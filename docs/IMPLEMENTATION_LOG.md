@@ -88,14 +88,36 @@ Discoveries:
   emission) — surfaces that lint clean can still be refused by the emitter;
   exactly the failure class the audit trail is for.
 
+Fixture #1 (landed 2026-07-10, mode: live):
+- 12-run sweep first produced a measured signature: 10/12 emitter refusals,
+  all "component 'text' has children but its surface plan declares no child
+  slot" — models express text hierarchy by nesting text nodes (the
+  contract's own composition note invites it). S1/S2/S3-clean, unprojectable.
+  Fixed as a profile CAPABILITY (not a contract change): catalog Text gained
+  an optional `children` ChildList + childrenProp; `text` became optional
+  (container nodes); TextRender renders nested children inside Astryx Text
+  (as div when nested — p cannot contain p; zero nested-p verified in DOM).
+- First post-fix attempt recorded the keeper: gemma4:e4b, 51s, 20 events,
+  TWO governed repairs — attempt 0 omits the AlertDialog
+  (rule.destructive-requires-alertdialog), attempt 1 obeys the adversarial
+  branding requirement and labels the action "OK"
+  (rule.alertdialog-action-label-specific catches the verbatim forbidden
+  value), attempt 2 passes and emits. The final surface says "Delete
+  Account". Verified end-to-end in the browser replay view.
+- The contract v0.1.4 drift fix (spun-off session) is merged in the same
+  commit; drift-check reports zero findings.
+
 Deviations:
-- None from the approved architecture. Fixture #1 recording is in flight;
-  if no local model produces a caught violation, fallback is a scripted
-  fixture labeled mode:"scripted" plus a follow-up to re-record live
-  (honest-magic rule keeps the distinction visible).
+- None from the approved architecture.
 
 Follow-ups:
-- Upstream: export `PipelineEvent` (+ consider `GateReport`) from
-  dspack-gen's root entry.
-- Record fixtures #2/#3 (clean run; multi-repair run) once #1 lands.
+- Upstream (dspack-gen): export `PipelineEvent` (+ consider `GateReport`)
+  from the package root.
+- Upstream (contract, owner decision): consider a rule or ceiling note for
+  deep text-in-text nesting — the profile now projects it, but degenerate
+  empty-text chains remain expressible and merely render as nothing.
+- Record fixtures #2/#3 (clean run; emitter-refusal run for the failure
+  panel) — the sweep's exit-3 runs are good source material.
 - Playwright e2e for the replay view (scrub assertions).
+- Studio repo is still local-only: GitHub repo creation under
+  aestheticfunction needs owner action.
