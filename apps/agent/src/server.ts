@@ -26,12 +26,12 @@ import {
 } from "@dspack-studio/agui-bridge";
 import { governedRun } from "./pipeline.js";
 import { bookingRespond, bookingStartOps, enhanceGeneratedOps } from "./scenarios/appointment-booking.js";
-import { recipeRespond, recipeStartOps } from "./scenarios/recipe-creator.js";
+import { enhanceGeneratedRecipeOps, recipeRespond, recipeStartOps } from "./scenarios/recipe-creator.js";
 
 /** Scenario registry: start ops + HITL responders (scenario-neutral shell). */
-const SCENARIOS: Record<string, { start: () => unknown[]; respond: (name: string, ctx: Record<string, unknown>) => { outcome: "accepted" | "rejected"; detail?: string; ops: unknown[] } }> = {
-  "appointment-booking": { start: bookingStartOps, respond: bookingRespond },
-  "recipe-creator": { start: recipeStartOps, respond: recipeRespond },
+const SCENARIOS: Record<string, { start: () => unknown[]; respond: (name: string, ctx: Record<string, unknown>) => { outcome: "accepted" | "rejected"; detail?: string; ops: unknown[] }; enhance?: (ops: any[]) => { ops: any[]; notes: string[] } }> = {
+  "appointment-booking": { start: bookingStartOps, respond: bookingRespond, enhance: enhanceGeneratedOps },
+  "recipe-creator": { start: recipeStartOps, respond: recipeRespond, enhance: enhanceGeneratedRecipeOps },
 };
 
 /** Duplicate-action protection: correlation ids already answered. */
@@ -168,15 +168,15 @@ const server = createServer(async (req, res) => {
   }
 
   const map = createPipelineEventMapper({ threadId, runId });
-  const enhance = props.scenario === "appointment-booking"; // recipe live-gen awaits governance
+  const enhancer = SCENARIOS[String(props.scenario)]?.enhance;
   const onEvent = (event: unknown) => {
     for (const agui of map(event as PipelineEvent)) {
       let toWrite: BaseEvent = agui;
-      if (enhance && (agui as any).type === EventType.TOOL_CALL_RESULT) {
+      if (enhancer && (agui as any).type === EventType.TOOL_CALL_RESULT) {
         try {
           const envelope = JSON.parse((agui as any).content);
           if (Array.isArray(envelope.a2ui_operations)) {
-            const { ops, notes } = enhanceGeneratedOps(envelope.a2ui_operations);
+            const { ops, notes } = enhancer(envelope.a2ui_operations);
             toWrite = { ...(agui as any), content: JSON.stringify({ a2ui_operations: ops }) } as BaseEvent;
             res.write(encoder.encode(toWrite));
             res.write(encoder.encode({ type: EventType.CUSTOM, name: "studio.surface.enhanced", value: { scenario: props.scenario, notes } } as BaseEvent));

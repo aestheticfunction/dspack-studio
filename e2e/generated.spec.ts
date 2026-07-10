@@ -66,3 +66,43 @@ test("record fixture-005 (live model)", async ({ page }) => {
   const path = await download.path();
   copyFileSync(path!, join(process.cwd(), "packages", "replay", "fixtures", "fixture-005.json"));
 });
+
+test("record fixture-006 (live recipe)", async ({ page }) => {
+  test.skip(!process.env.RECORD_RECIPE, "live recording is manual (RECORD_RECIPE=1)");
+  test.setTimeout(600_000);
+  // Generate a structured recipe surface live, then co-edit it.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await page.goto("/");
+    await page.getByTestId("scenario-recipe-creator").click();
+    await page.getByTestId("view-live").click();
+    await page.getByTestId("live-model").selectOption(process.env.RECORD_MODEL ?? "ollama:gpt-oss:latest");
+    await page
+      .getByTestId("live-prompt")
+      .fill("An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a labeled dietary-constraint input, and a regenerate button.");
+    await page.getByTestId("live-generate").click();
+    await expect(page.getByTestId("live-status")).toContainText(/finished|error/, { timeout: 180_000 });
+    const failed = await page.getByTestId("failure-panel").count();
+    const hasInput = await page.locator("[data-canvas] input").count();
+    if (failed === 0 && hasInput > 0) break;
+    expect(attempt, "no passing generated recipe run within the retry budget").toBeLessThan(3);
+  }
+
+  // User edit: type a dietary constraint into the enhanced bound input.
+  await page.locator("[data-canvas] input").first().fill("vegetarian");
+  const applyBtn = page.locator("[data-canvas] button", { hasText: /constraint|apply/i }).first();
+  if (await applyBtn.count()) {
+    await applyBtn.click();
+    await expect(page.locator("[data-canvas]")).toContainText(/Applied vegetarian|Unknown constraint/, { timeout: 10_000 });
+  }
+  // Structured update: regenerate (grounded on the single primary button).
+  const regen = page.locator("[data-canvas] button", { hasText: /regenerate|new recipe/i }).first();
+  if (await regen.count()) {
+    await regen.click();
+    await expect(page.locator("[data-canvas]")).toContainText(/Regenerated:/, { timeout: 10_000 });
+  }
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByTestId("live-download").click();
+  const download = await downloadPromise;
+  copyFileSync((await download.path())!, join(process.cwd(), "packages", "replay", "fixtures", "fixture-006.json"));
+});

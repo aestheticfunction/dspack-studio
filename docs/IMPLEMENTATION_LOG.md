@@ -544,3 +544,39 @@ ex.book-consultation did not regress the destructive intent (it improved
 3x alongside the drift fix), scheduling generation went from impossible to
 first-attempt-clean in targeted runs, and no evidence supports any
 scheduling rule (zero scheduling failures to justify one).
+
+## Recipe governance applied + live path (2026-07-10, in progress)
+
+Owner approved structured-editing + ex.recipe-creator (no rule). Applied to
+the authoritative dspack contract on branch feat/structured-editing-intent —
+PR #21 (aebecb4 + 3d6819d). Validated: example lints S1/S2/S3 clean;
+few-shot contexts are INTENT-SCOPED (verified) — a correction to earlier
+reporting: adding examples never changes other intents' contexts, so the
+matrix improvement attributes to the v0.1.4 alignment, not few-shot growth.
+Studio copy propagated byte-identical to the branch; both catalogs gate
+clean. Studio CI's sync check stays red until PR #21 merges (expected).
+dspack-gen/dspack-emit sync PRs follow the merge (established chain).
+
+Live recipe generation: enabled under structured-editing; scenario registry
+now carries per-scenario enhance hooks (booking + recipe); recipe
+enhancement grounds only the unambiguous (single TextField ->
+/recipe/constraint, single caption -> /recipe/status, single primary ->
+regenerate, single secondary -> apply_constraint) — servings buttons stay
+ungrounded by design (no validated semantic for +/- deltas; resolution
+rejects them clearly). Deterministic path unchanged (CI fallback, offline
+mode, curated demo, comparison baseline) — same state/capabilities/
+transport/rendering/timeline/inspectors/replay/export.
+
+fixture-006: BLOCKED on a measured signature. After the worked example's
+empty table was populated with literal rows (teachability fix, amended into
+PR #21 — generated tables then carried correct columns/data shapes), gpt-oss
+still emits table-as-container (rows as child nodes) in 6+ consecutive
+runs -> emitter refusal "component 'table' has children but its surface plan
+declares no child slot". Same class as the Text-children finding (measured,
+systematic, profile capability gap — Astryx Table natively supports a
+children mode via TableRow/TableCell). NEXT STEP: synthesize TableRow/
+TableCell catalog primitives + Table childrenProp in the profile with
+matching renderers, then record fixture-006. Retries are not the fix.
+
+Queued in this block: fixture-006 (after the Table capability), FM-9 Wire
+View, FM-3 Fork UX, matrix archive doc.

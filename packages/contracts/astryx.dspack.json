@@ -401,6 +401,11 @@
       "id": "scheduling",
       "name": "Scheduling",
       "description": "Surfaces that collect a time choice and confirm it."
+    },
+    {
+      "id": "structured-editing",
+      "name": "Structured editing",
+      "description": "Surfaces the user and agent edit together: a structured object rendered for co-editing, with explicit actions to change it."
     }
   ],
   "rules": [
@@ -664,6 +669,133 @@
               "props": {
                 "label": "Start over",
                 "variant": "ghost"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.recipe-creator",
+      "intent": "structured-editing",
+      "name": "Recipe creator",
+      "prompt": "an editable weeknight recipe with servings and dietary constraints",
+      "description": "A card presenting a co-edited structured object: a titled recipe with a dietary badge, labeled servings controls, an ingredients table, a labeled constraint input, a bound status line, and explicit edit/regenerate actions.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "structured-editing",
+        "root": {
+          "component": "card",
+          "id": "recipe-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Weeknight pasta"
+            },
+            {
+              "component": "badge",
+              "id": "diet-badge",
+              "props": {
+                "label": "no constraints",
+                "variant": "neutral"
+              }
+            },
+            {
+              "component": "text",
+              "id": "servings-label",
+              "props": {
+                "type": "body"
+              },
+              "text": "Servings: 2"
+            },
+            {
+              "component": "button",
+              "id": "servings-down",
+              "props": {
+                "label": "Fewer servings",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "servings-up",
+              "props": {
+                "label": "More servings",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "table",
+              "id": "ingredients",
+              "props": {
+                "columns": [
+                  "Ingredient",
+                  "Amount"
+                ],
+                "data": [
+                  {
+                    "cells": [
+                      "Spaghetti",
+                      "180 g"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "Pancetta",
+                      "80 g"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "Parmesan",
+                      "50 g"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "Cherry tomatoes",
+                      "240 g"
+                    ]
+                  }
+                ],
+                "density": "compact"
+              }
+            },
+            {
+              "component": "text-input",
+              "id": "constraint-input",
+              "props": {
+                "label": "Dietary constraint",
+                "placeholder": "vegetarian, vegan, or gluten-free"
+              }
+            },
+            {
+              "component": "button",
+              "id": "apply-constraint",
+              "props": {
+                "label": "Apply constraint",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "text",
+              "id": "status",
+              "props": {
+                "type": "supporting"
+              },
+              "text": "Edit servings or add a constraint."
+            },
+            {
+              "component": "button",
+              "id": "regenerate",
+              "props": {
+                "label": "Regenerate recipe",
+                "variant": "primary"
               }
             }
           ]

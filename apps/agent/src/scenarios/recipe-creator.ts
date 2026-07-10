@@ -157,3 +157,44 @@ export function recipeRespond(name: string, context: Record<string, unknown>, se
       return { outcome: "rejected", detail: `unknown action '${name}'`, ops: [] };
   }
 }
+
+/**
+ * Deterministic enhancement of a GENERATED structured-editing delivery.
+ * Unambiguous grounding only: single TextField -> /recipe/constraint;
+ * single caption Text -> /recipe/status; single primary Button ->
+ * regenerate. Servings buttons are NOT grounded (no validated semantic
+ * distinguishes +/- deltas on arbitrary generated labels); their synthesized
+ * actions resolve as unsupported — clearly, in the stream.
+ */
+export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: string[] } {
+  const out = structuredClone(ops);
+  const notes: string[] = [];
+  const components = out.flatMap((m: any) => m?.updateComponents?.components ?? []);
+  const textFields = components.filter((c: any) => c.component === "TextField");
+  if (textFields.length === 1) {
+    textFields[0].value = { path: "/recipe/constraint" };
+    notes.push(`bound the single TextField '${textFields[0].id}' to /recipe/constraint`);
+  }
+  const captions = components.filter((c: any) => c.component === "Text" && c.variant === "caption");
+  if (captions.length === 1) {
+    captions[0].text = { path: "/recipe/status" };
+    notes.push(`bound the single caption Text '${captions[0].id}' to /recipe/status`);
+  }
+  const primaries = components.filter((c: any) => c.component === "Button" && c.variant === "primary");
+  if (primaries.length === 1) {
+    primaries[0].action = { event: { name: "regenerate" } };
+    notes.push(`grounded the single primary Button '${primaries[0].id}' as regenerate`);
+  }
+  const applyBtns = components.filter((c: any) => c.component === "Button" && c.variant === "secondary");
+  if (applyBtns.length === 1) {
+    applyBtns[0].action = { event: { name: "apply_constraint", context: { constraint: { path: "/recipe/constraint" } } } };
+    notes.push(`grounded the single secondary Button '${applyBtns[0].id}' as apply_constraint`);
+  }
+  const surfaceId = out[0]?.createSurface?.surfaceId ?? out.find((m: any) => m.updateComponents)?.updateComponents?.surfaceId;
+  if (surfaceId) {
+    out.push({ version: "v0.9", updateDataModel: { surfaceId, path: "/recipe", value: { servings: 2, constraint: "", status: "Generated. Edit the constraint or regenerate.", variant: 0 } } });
+    notes.push("initialized /recipe data model");
+  }
+  sessions.clear();
+  return { ops: out, notes };
+}

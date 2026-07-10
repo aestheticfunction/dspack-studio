@@ -6,16 +6,115 @@
     "component": "card",
     "id": "recipe-card",
     "children": [
-      { "component": "text", "id": "title", "props": { "type": "display-3" }, "text": "Weeknight pasta" },
-      { "component": "badge", "id": "diet-badge", "props": { "label": "no constraints", "variant": "neutral" } },
-      { "component": "text", "id": "servings-label", "props": { "type": "body" }, "text": "Servings: 2" },
-      { "component": "button", "id": "servings-down", "props": { "label": "Fewer servings", "variant": "secondary" } },
-      { "component": "button", "id": "servings-up", "props": { "label": "More servings", "variant": "secondary" } },
-      { "component": "table", "id": "ingredients", "props": { "columns": ["Ingredient", "Amount"], "data": [], "density": "compact" } },
-      { "component": "text-input", "id": "constraint-input", "props": { "label": "Dietary constraint", "placeholder": "vegetarian, vegan, or gluten-free" } },
-      { "component": "button", "id": "apply-constraint", "props": { "label": "Apply constraint", "variant": "secondary" } },
-      { "component": "text", "id": "status", "props": { "type": "supporting" }, "text": "Edit servings or add a constraint." },
-      { "component": "button", "id": "regenerate", "props": { "label": "Regenerate recipe", "variant": "primary" } }
+      {
+        "component": "text",
+        "id": "title",
+        "props": {
+          "type": "display-3"
+        },
+        "text": "Weeknight pasta"
+      },
+      {
+        "component": "badge",
+        "id": "diet-badge",
+        "props": {
+          "label": "no constraints",
+          "variant": "neutral"
+        }
+      },
+      {
+        "component": "text",
+        "id": "servings-label",
+        "props": {
+          "type": "body"
+        },
+        "text": "Servings: 2"
+      },
+      {
+        "component": "button",
+        "id": "servings-down",
+        "props": {
+          "label": "Fewer servings",
+          "variant": "secondary"
+        }
+      },
+      {
+        "component": "button",
+        "id": "servings-up",
+        "props": {
+          "label": "More servings",
+          "variant": "secondary"
+        }
+      },
+      {
+        "component": "table",
+        "id": "ingredients",
+        "props": {
+          "columns": [
+            "Ingredient",
+            "Amount"
+          ],
+          "data": [
+            {
+              "cells": [
+                "Spaghetti",
+                "180 g"
+              ]
+            },
+            {
+              "cells": [
+                "Pancetta",
+                "80 g"
+              ]
+            },
+            {
+              "cells": [
+                "Parmesan",
+                "50 g"
+              ]
+            },
+            {
+              "cells": [
+                "Cherry tomatoes",
+                "240 g"
+              ]
+            }
+          ],
+          "density": "compact"
+        }
+      },
+      {
+        "component": "text-input",
+        "id": "constraint-input",
+        "props": {
+          "label": "Dietary constraint",
+          "placeholder": "vegetarian, vegan, or gluten-free"
+        }
+      },
+      {
+        "component": "button",
+        "id": "apply-constraint",
+        "props": {
+          "label": "Apply constraint",
+          "variant": "secondary"
+        }
+      },
+      {
+        "component": "text",
+        "id": "status",
+        "props": {
+          "type": "supporting"
+        },
+        "text": "Edit servings or add a constraint."
+      },
+      {
+        "component": "button",
+        "id": "regenerate",
+        "props": {
+          "label": "Regenerate recipe",
+          "variant": "primary"
+        }
+      }
     ]
   }
 }

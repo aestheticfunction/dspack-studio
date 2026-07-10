@@ -99,7 +99,6 @@ export const scenarios: Scenario[] = [
     intent: "structured-editing",
     status: "ready",
     interactive: true,
-    needs: ["live generation awaits the owner-approved 'structured-editing' governance proposal"],
     seedPrompts: ["A weeknight pasta recipe for two, editable servings."],
     fixtures: [],
   },
