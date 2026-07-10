@@ -1,0 +1,35 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The studio: canvas, timeline, X-ray, wire view. Phase 1: the contract's worked example rendered through Astryx with the theme dial.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "NODE_OPTIONS=--localstorage-file=/tmp/dspack-studio-dev-localstorage next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@astryxdesign/core": "0.1.4",
+    "@astryxdesign/theme-butter": "0.1.4",
+    "@astryxdesign/theme-chocolate": "0.1.4",
+    "@astryxdesign/theme-gothic": "0.1.4",
+    "@astryxdesign/theme-matcha": "0.1.4",
+    "@astryxdesign/theme-neutral": "0.1.4",
+    "@astryxdesign/theme-stone": "0.1.4",
+    "@astryxdesign/theme-y2k": "0.1.4",
+    "@dspack-studio/a2ui-ingest": "workspace:*",
+    "@dspack-studio/astryx-renderers": "workspace:*",
+    "@dspack-studio/contracts": "workspace:*",
+    "next": "15.3.2",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@dspack-studio/a2ui-ingest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generic A2UI catalog ingestion: turns an emitted A2UI catalog JSON plus a visual registry into a renderable Catalog. Extracted from dspack-emit's demo; names no components. All @a2ui/* imports in dspack-studio are confined to this package and @dspack-studio/astryx-renderers.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@a2ui/react": "0.10.1",
+    "@a2ui/web_core": "0.10.3",
+    "zod": "3.25.76"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

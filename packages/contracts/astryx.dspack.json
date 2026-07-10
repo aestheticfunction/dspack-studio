@@ -1,0 +1,557 @@
+{
+  "$schema": "../schema/dspack.v0.4.schema.json",
+  "dspack": "0.4",
+  "name": "Astryx",
+  "description": "A nine-component slice of Meta's Astryx design system (open source, MIT; 160+ components; explicitly guidance-over-enforcement: design opinions live in docs, components render whatever they are passed). This contract converts a subset of that prose guidance into machine-checkable governance. Components and guidance are sourced from the repository's structured *.doc.mjs files at the pinned tag.",
+  "version": "0.1.2",
+  "metadata": {
+    "source": "https://github.com/facebook/astryx/tree/v0.1.2",
+    "license": "MIT",
+    "x-upstream": {
+      "repo": "https://github.com/facebook/astryx",
+      "tag": "v0.1.2",
+      "commit": "6c533c70674cf32c38a2ef85a3d4a648df91eb4b"
+    }
+  },
+  "components": {
+    "alert-dialog": {
+      "name": "AlertDialog",
+      "description": "A modal dialog that asks the user to confirm a destructive action. Props-based: title, description, and action/cancel labels are string props (there is no trigger sub-component; visibility is controlled).",
+      "whenToUse": "AlertDialog asks the user to confirm a destructive or irreversible action before it happens. Use it for things like deleting content, revoking access, or discarding unsaved changes.",
+      "whenNotToUse": "Do not use AlertDialog for non-destructive actions; use a standard Dialog instead.",
+      "props": {
+        "title": {
+          "type": "string",
+          "description": "Dialog title. Linked via aria-labelledby."
+        },
+        "description": {
+          "type": "string",
+          "description": "Consequence description. Linked via aria-describedby."
+        },
+        "actionLabel": {
+          "type": "string",
+          "description": "Action button label. Make it specific: 'Delete project' is better than 'OK' or 'Confirm'."
+        },
+        "cancelLabel": {
+          "type": "string",
+          "description": "Cancel button label.",
+          "default": "Cancel"
+        },
+        "actionVariant": {
+          "type": "enum",
+          "values": [
+            "primary",
+            "secondary",
+            "ghost",
+            "destructive"
+          ],
+          "description": "Action button variant.",
+          "default": "destructive"
+        }
+      },
+      "categories": [
+        "overlay"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    "dialog": {
+      "name": "Dialog",
+      "description": "A modal window over the page content. Takes arbitrary children; dismissal behavior is controlled by `purpose`.",
+      "whenNotToUse": "Do not use Dialog for destructive confirmations; use AlertDialog.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "standard",
+            "fullscreen"
+          ],
+          "description": "Dialog variant: fullscreen expands to fill the viewport.",
+          "default": "standard"
+        },
+        "purpose": {
+          "type": "enum",
+          "values": [
+            "required",
+            "form",
+            "info"
+          ],
+          "description": "Controls dismissal: 'required' disables Escape and backdrop click; 'form' disables backdrop click only.",
+          "default": "info"
+        }
+      },
+      "categories": [
+        "overlay"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Dialog/Dialog.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
+      }
+    },
+    "button": {
+      "name": "Button",
+      "description": "Triggers an action when clicked. The accessible label is a REQUIRED string prop (rendered as visible text; used as aria-label when isIconOnly).",
+      "whenToUse": "Use for form submissions, confirmations, or any interaction that needs a clear call to action.",
+      "whenNotToUse": "Do not use a button for navigation; if it only takes the user to another page, use a link instead.",
+      "props": {
+        "label": {
+          "type": "string",
+          "description": "Accessible label. Rendered as visible text by default; used as aria-label when isIconOnly."
+        },
+        "variant": {
+          "type": "enum",
+          "values": [
+            "primary",
+            "secondary",
+            "ghost",
+            "destructive"
+          ],
+          "description": "Reserve primary for the single most important action in the view. Use destructive for irreversible actions.",
+          "default": "primary"
+        },
+        "size": {
+          "type": "enum",
+          "values": [
+            "sm",
+            "md",
+            "lg"
+          ],
+          "description": "Button size.",
+          "default": "md"
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "Whether the button is non-interactive.",
+          "default": false
+        },
+        "isIconOnly": {
+          "type": "boolean",
+          "description": "Icon-only rendering; the label becomes the aria-label.",
+          "default": false
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Tooltip text; recommended for icon-only buttons."
+        }
+      },
+      "categories": [
+        "action"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Button/Button.doc.mjs"
+    },
+    "badge": {
+      "name": "Badge",
+      "description": "A small status or category label.",
+      "whenToUse": "Badge states where the user needs to notice or act. Use success/warning/error only for system status that demands attention; use color variants for category tags.",
+      "whenNotToUse": "Do not apply a success badge to every healthy/active item; if all rows show green badges, none of them communicate anything.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "neutral",
+            "info",
+            "success",
+            "warning",
+            "error",
+            "blue",
+            "cyan",
+            "green",
+            "orange",
+            "pink",
+            "purple",
+            "red",
+            "teal",
+            "yellow"
+          ],
+          "description": "Status variants (neutral/info/success/warning/error) for system state; color variants for category tags."
+        },
+        "label": {
+          "type": "string",
+          "description": "Badge text. Keep to one or two words."
+        }
+      },
+      "categories": [
+        "feedback"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Badge/Badge.doc.mjs"
+    },
+    "card": {
+      "name": "Card",
+      "description": "A container for a discrete item that could be reordered or removed independently.",
+      "whenNotToUse": "Do not default to cards for visual grouping; a heading plus spacing often creates hierarchy without chrome.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "outlined",
+            "elevated",
+            "filled"
+          ],
+          "description": "Card visual treatment.",
+          "default": "outlined"
+        }
+      },
+      "categories": [
+        "container"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Card/Card.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
+      }
+    },
+    "text-input": {
+      "name": "TextInput",
+      "description": "A single-line text input. The visible label is a REQUIRED string prop.",
+      "whenToUse": "Use for short free-form text. Always provide a visible label; only hide it when surrounding context makes the purpose unambiguous.",
+      "props": {
+        "type": {
+          "type": "enum",
+          "values": [
+            "text",
+            "password",
+            "email"
+          ],
+          "description": "Input type."
+        },
+        "label": {
+          "type": "string",
+          "description": "Visible field label (required by the component API)."
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder text."
+        },
+        "description": {
+          "type": "string",
+          "description": "Helper text below the field."
+        },
+        "isLabelHidden": {
+          "type": "boolean",
+          "description": "Visually hides the label (still announced to screen readers)."
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Marks the field required."
+        },
+        "size": {
+          "type": "enum",
+          "values": [
+            "sm",
+            "md",
+            "lg"
+          ],
+          "description": "Input size.",
+          "default": "md"
+        }
+      },
+      "categories": [
+        "data-input"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/TextInput/TextInput.doc.mjs"
+    },
+    "dropdown-menu": {
+      "name": "DropdownMenu",
+      "description": "A menu opened from a trigger button. DATA-DRIVEN: menu entries are an `items` array prop, not child components — a deliberate Astryx idiom this contract documents as an array-typed prop.",
+      "props": {
+        "items": {
+          "type": "array",
+          "description": "Menu entries: [{label, ...}]. Handlers inside items are not surface-expressible; generation carries labels only."
+        },
+        "hasChevron": {
+          "type": "boolean",
+          "description": "Shows a chevron on the trigger.",
+          "default": true
+        }
+      },
+      "categories": [
+        "action",
+        "overlay"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/DropdownMenu/DropdownMenu.doc.mjs"
+    },
+    "table": {
+      "name": "Table",
+      "description": "Tabular data. DATA-DRIVEN: rows and columns are array props (`data`, `columns`), not sub-components — the second instance of the Astryx data-props idiom.",
+      "props": {
+        "data": {
+          "type": "array",
+          "description": "Row objects."
+        },
+        "columns": {
+          "type": "array",
+          "description": "Column definitions: [{key, header, ...}]."
+        },
+        "density": {
+          "type": "enum",
+          "values": [
+            "compact",
+            "balanced",
+            "spacious"
+          ],
+          "description": "Row density.",
+          "default": "balanced"
+        },
+        "dividers": {
+          "type": "enum",
+          "values": [
+            "rows",
+            "columns",
+            "grid",
+            "none"
+          ],
+          "description": "Divider style.",
+          "default": "rows"
+        },
+        "isStriped": {
+          "type": "boolean",
+          "description": "Striped rows.",
+          "default": false
+        }
+      },
+      "categories": [
+        "table-list"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Table/Table.doc.mjs"
+    },
+    "text": {
+      "name": "Text",
+      "description": "Body text content.",
+      "props": {
+        "as": {
+          "type": "enum",
+          "values": [
+            "span",
+            "p",
+            "div",
+            "label",
+            "h1",
+            "h2",
+            "h3"
+          ],
+          "description": "Rendered element.",
+          "default": "span"
+        }
+      },
+      "categories": [
+        "content"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Text/Text.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
+      }
+    }
+  },
+  "categories": {
+    "action": {
+      "name": "Action",
+      "description": "Triggers an operation when activated. Mirrors Astryx's own 'Action' docs category."
+    },
+    "overlay": {
+      "name": "Overlay",
+      "description": "Renders above the page with its own focus and dismiss semantics. Mirrors Astryx's 'Overlay' docs category."
+    },
+    "container": {
+      "name": "Container",
+      "description": "Groups discrete content. Mirrors Astryx's 'Container' docs category."
+    },
+    "content": {
+      "name": "Content",
+      "description": "Static content presentation. Mirrors Astryx's 'Content' docs category."
+    },
+    "data-input": {
+      "name": "Data Input",
+      "description": "Collects user input. Mirrors Astryx's 'Data Input' docs category."
+    },
+    "feedback": {
+      "name": "Feedback & Status",
+      "description": "Communicates state or draws attention. Mirrors Astryx's 'Feedback & Status' docs category."
+    },
+    "table-list": {
+      "name": "Table & List",
+      "description": "Tabular and list data presentation. Mirrors Astryx's 'Table & List' docs category."
+    }
+  },
+  "intents": [
+    {
+      "id": "destructive-action",
+      "name": "Destructive action",
+      "description": "The requested UI performs an irreversible or high-consequence operation: deleting content, revoking access, discarding unsaved changes."
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule.destructive-requires-alertdialog",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "destructive-action"
+        ]
+      },
+      "require": [
+        "alert-dialog"
+      ],
+      "forbid": [
+        "dialog"
+      ],
+      "rationale": "\"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.2",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "safety"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    {
+      "id": "rule.alertdialog-carries-content",
+      "type": "required-props",
+      "severity": "must",
+      "component": "alert-dialog",
+      "requiredProps": [
+        {
+          "prop": "title"
+        },
+        {
+          "prop": "description"
+        },
+        {
+          "prop": "actionLabel"
+        }
+      ],
+      "rationale": "title, description, and actionLabel are required by the component API (aria-labelledby / aria-describedby wiring), and \"describe what will happen in the description so the user knows the consequences before confirming\". The schema does not check prop presence; this rule does — Astryx AlertDialog docs, v0.1.2",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "accessibility",
+        "safety"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    {
+      "id": "rule.alertdialog-action-label-specific",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "alert-dialog",
+      "forbiddenProps": [
+        {
+          "prop": "actionLabel",
+          "values": [
+            "OK",
+            "Confirm",
+            "Yes",
+            "Continue"
+          ]
+        }
+      ],
+      "rationale": "\"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.2",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "content"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    {
+      "id": "rule.button-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "component": "button",
+      "requiredProps": [
+        {
+          "prop": "label"
+        }
+      ],
+      "rationale": "\"Always provide a label for icon-only buttons so screen readers can announce what the button does\" — and label is the component's required accessible name in every mode. The schema does not check prop presence; this rule does — Astryx Button docs, v0.1.2",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "accessibility"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Button/Button.doc.mjs"
+    },
+    {
+      "id": "rule.input-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "component": "text-input",
+      "requiredProps": [
+        {
+          "prop": "label"
+        }
+      ],
+      "rationale": "\"Always provide a visible label so users know what the field is for. Only hide the label when surrounding context makes the purpose unambiguous\" (and then via isLabelHidden, which keeps it announced — never by omitting it) — Astryx TextInput docs, v0.1.2",
+      "tags": [
+        "accessibility"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/TextInput/TextInput.doc.mjs"
+    },
+    {
+      "id": "rule.dialog-no-nested-overlays",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "dialog",
+      "forbiddenCategories": [
+        "overlay"
+      ],
+      "rationale": "A dialog is a single layer of focus; stacking another overlay (dialog, alert dialog, dropdown menu) inside it breaks focus containment and dismissal semantics. Astryx renders whatever it is passed (guidance-over-enforcement); this rule is the enforcement its docs' modality guidance implies.",
+      "tags": [
+        "accessibility",
+        "interaction"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Dialog/Dialog.doc.mjs"
+    }
+  ],
+  "examples": [
+    {
+      "id": "ex.delete-project-confirmation",
+      "intent": "destructive-action",
+      "name": "Delete project confirmation",
+      "prompt": "a screen to delete a project",
+      "description": "A card presenting the destructive entry point (a labeled destructive button) alongside the AlertDialog carrying its required title, consequence description, and a specific action label — the Astryx props-based idiom (no trigger sub-component).",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "destructive-action",
+        "root": {
+          "component": "card",
+          "children": [
+            {
+              "component": "text",
+              "props": {
+                "as": "h2"
+              },
+              "text": "Danger zone"
+            },
+            {
+              "component": "text",
+              "props": {
+                "as": "p"
+              },
+              "text": "Deleting a project removes all of its data permanently."
+            },
+            {
+              "component": "button",
+              "props": {
+                "label": "Delete project",
+                "variant": "destructive"
+              }
+            },
+            {
+              "component": "alert-dialog",
+              "props": {
+                "title": "Delete this project?",
+                "description": "This action cannot be undone. The project and all its data will be permanently removed.",
+                "actionLabel": "Delete project",
+                "cancelLabel": "Cancel",
+                "actionVariant": "destructive"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

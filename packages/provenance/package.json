@@ -1,0 +1,9 @@
+{
+  "name": "@dspack-studio/provenance",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phase 2 package (see docs/plan): provenance.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" }
+}

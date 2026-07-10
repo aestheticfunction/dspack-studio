@@ -1,0 +1,18 @@
+{
+  "name": "dspack-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The flagship experience for the open AI-native frontend ecosystem: an AI agent builds interfaces under a design-system contract, streamed over AG-UI as A2UI surfaces, rendered with Astryx.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.25.0",
+  "scripts": {
+    "build": "pnpm -r --filter './packages/**' build",
+    "test": "pnpm -r --filter './packages/**' test",
+    "build:contracts": "pnpm --filter @dspack-studio/contracts build:catalogs",
+    "dev": "pnpm --filter web dev"
+  }
+}
