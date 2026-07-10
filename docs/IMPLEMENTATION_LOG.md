@@ -428,14 +428,14 @@ check:sync green on dspack-gen main.
 
 DISTRIBUTED EVAL (zero framework changes): the 216-run matrix now executes
 on two hosts sharing one outDir — the local worker in matrix order, a
-remote worker (OLLAMA_HOST=100.119.121.39, model digests verified identical)
+remote worker (OLLAMA_HOST=<remote-gpu-host>, model digests verified identical)
 walking a reversed-model-order COPY of the same matrix from the far end.
 --resume treats retained per-cell reports as completed observations, so the
 partitions converge without coordination; the canonical results.json comes
 from a final --resume pass over the ORIGINAL matrix file (identical prompts,
 models, scoring, aggregation, and report ordering). Host attribution =
 per-process logs (/tmp/eval-matrix{,-remote}.log), preserved with the run
-config. Second offered host (100.115.35.114) unreachable — documented.
+config. Second offered host (host-2) unreachable — documented.
 Duplicate execution is possible only for cells in flight at the partition
 meeting point (wasted compute, never duplicate observations: one retained
 report per cell run). No methodology change; no runner redesign.
@@ -464,7 +464,7 @@ Validation: frozen install; unit 3/6/13/5/9; typecheck x8; contract gates +
 drift clean; check:sync green; export builds; Playwright 27 passed
 (+2 gated).
 
-Host-2 probe (2026-07-10, per owner instruction): 100.115.35.114 reachable;
+Host-2 probe (2026-07-10, per owner instruction): host-2 reachable;
 Ollama 0.31.1; model digests identical to local + host-1 (gemma4:e4b
 c6eb396dbd59, qwen3.6:35b 07d35212591f, gpt-oss 17052f91a42e). Throughput
 probe (gemma, fixed 120-token budget): 2.6 tok/s vs 33.8 tok/s on host-1 —
