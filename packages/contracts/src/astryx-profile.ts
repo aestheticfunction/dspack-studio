@@ -227,6 +227,17 @@ export const astryxProfile: Profile = {
           description: "Row records, each { cells: string[], status?: { label, variant } }.",
           synthNote: "Row data carried as a static array; A2UI has no tabular data model.",
         },
+        children: {
+          schema: { $ref: "#/$defs/ChildList" },
+          description:
+            "Nested child component IDs, arranged left-to-right, top-to-bottom into rows of " +
+            "one cell per column (an alternative to `data`).",
+          synthNote:
+            "The contract's Table takes arbitrary children; models routinely express cells as " +
+            "nested text nodes (measured: every gpt-oss structured-editing run refused before " +
+            "this slot existed), and Astryx Table natively supports a children mode " +
+            "(TableRow/TableCell) — so the projection carries them.",
+        },
       },
       propMap: {
         density: {
@@ -249,8 +260,9 @@ export const astryxProfile: Profile = {
           description: "Alternates row backgrounds.",
         },
       },
-      required: ["columns", "data"],
-      surfacePlan: { structuralPassthrough: ["columns", "data"] },
+      // `data` is optional: children-mode tables (nested cell nodes) are valid.
+      required: ["columns"],
+      surfacePlan: { structuralPassthrough: ["columns", "data"], childrenProp: "children" },
     },
 
     {

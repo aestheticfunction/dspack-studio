@@ -1,19 +1,54 @@
 /**
- * Catalog `Table` -> Astryx Table (data-driven mode). The catalog carries
- * `columns` (header labels) and `data` (rows of { cells, status? }); rows with
- * a status get a trailing status column rendered as an Astryx Badge.
+ * Catalog `Table` -> Astryx Table. Two modes, mirroring Astryx's own API:
+ *   - data-driven: `columns` (header labels) + `data` (rows of { cells,
+ *     status? }); rows with a status get a trailing status column rendered as
+ *     an Astryx Badge.
+ *   - children: nested child component IDs (how generating models routinely
+ *     express cells), arranged left-to-right, top-to-bottom into rows of one
+ *     cell per column via Astryx's native TableRow/TableCell composition.
  */
 import type { FC } from "react";
-import { Table } from "@astryxdesign/core/Table";
+import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
 import { Badge } from "@astryxdesign/core/Badge";
+import { childIds } from "../provenance";
 
 interface Row {
   cells?: unknown[];
   status?: { label?: string; variant?: string };
 }
 
-export const TableRender: FC<any> = ({ props }) => {
+export const TableRender: FC<any> = ({ props, buildChild }) => {
   const headers: string[] = Array.isArray(props.columns) ? props.columns.map(String) : [];
+  const nested = childIds(props.children);
+
+  if (nested.length > 0) {
+    const width = Math.max(headers.length, 1);
+    const bodyRows: string[][] = [];
+    for (let i = 0; i < nested.length; i += width) bodyRows.push(nested.slice(i, i + width));
+    return (
+      <Table density={props.density} dividers={props.dividers} isStriped={props.isStriped}>
+        {headers.length > 0 && (
+          <TableHeader>
+            <TableRow isHeaderRow>
+              {headers.map((header, i) => (
+                <TableHeaderCell key={i}>{header}</TableHeaderCell>
+              ))}
+            </TableRow>
+          </TableHeader>
+        )}
+        <TableBody>
+          {bodyRows.map((row, ri) => (
+            <TableRow key={ri}>
+              {row.map((id) => (
+                <TableCell key={id}>{buildChild(id)}</TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
+
   const rows: Row[] = Array.isArray(props.data) ? props.data : [];
   const hasStatus = rows.some((r) => r?.status);
 

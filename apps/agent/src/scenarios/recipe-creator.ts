@@ -162,7 +162,8 @@ export function recipeRespond(name: string, context: Record<string, unknown>, se
  * Deterministic enhancement of a GENERATED structured-editing delivery.
  * Unambiguous grounding only: single TextField -> /recipe/constraint;
  * single caption Text -> /recipe/status; single primary Button ->
- * regenerate. Servings buttons are NOT grounded (no validated semantic
+ * regenerate; single constraint-labeled non-primary Button ->
+ * apply_constraint. Servings buttons are NOT grounded (no validated semantic
  * distinguishes +/- deltas on arbitrary generated labels); their synthesized
  * actions resolve as unsupported — clearly, in the stream.
  */
@@ -185,10 +186,15 @@ export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: stri
     primaries[0].action = { event: { name: "regenerate" } };
     notes.push(`grounded the single primary Button '${primaries[0].id}' as regenerate`);
   }
-  const applyBtns = components.filter((c: any) => c.component === "Button" && c.variant === "secondary");
+  // Validated label semantics (the slotFromLabel precedent): exactly one
+  // non-primary button whose label names the constraint. "Single secondary"
+  // alone is not a usable signal — the worked example itself carries three.
+  const applyBtns = components.filter(
+    (c: any) => c.component === "Button" && c.variant !== "primary" && /constraint/i.test(String(c.label ?? "")),
+  );
   if (applyBtns.length === 1) {
     applyBtns[0].action = { event: { name: "apply_constraint", context: { constraint: { path: "/recipe/constraint" } } } };
-    notes.push(`grounded the single secondary Button '${applyBtns[0].id}' as apply_constraint`);
+    notes.push(`grounded the constraint-labeled Button '${applyBtns[0].id}' as apply_constraint`);
   }
   const surfaceId = out[0]?.createSurface?.surfaceId ?? out.find((m: any) => m.updateComponents)?.updateComponents?.surfaceId;
   if (surfaceId) {

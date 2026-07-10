@@ -580,3 +580,53 @@ matching renderers, then record fixture-006. Retries are not the fix.
 
 Queued in this block: fixture-006 (after the Table capability), FM-9 Wire
 View, FM-3 Fork UX, matrix archive doc.
+
+### fixture-006 root-cause investigation (2026-07-10, evening)
+
+The table-children capability landed (profile: catalog Table gained an
+optional children ChildList; renderer: Astryx Table children mode via
+TableRow/TableCell, flat children chunked into rows of one cell per
+column) and eliminated the emitter-refusal class — but recordings still
+failed: generated surfaces were minimal 3-6-node prefixes, text-less,
+table-less. The investigation, in order of falsified hypotheses:
+
+1. Context-window overflow (Ollama default 4096) — falsified: raising
+   num_ctx/num_predict per request changed nothing; done_reason was
+   "stop", not truncation. (The num_ctx raise is kept as headroom.)
+2. Pipeline-vs-probe difference — falsified byte-for-byte: captured the
+   adapter's outgoing body and diffed against a hand-built request;
+   identical. It was sampling from one distribution all along.
+3. Read the model's reasoning: gpt-oss PLANS the full rich surface
+   (title text, populated table rows, constraint input, regenerate) and
+   the constrained output then omits exactly what the grammar forbids.
+
+Root cause, twofold, in dspack-gen's generation schema (grammar-
+constrained decoders enforce declared shapes and property order):
+  - Array-typed contract props fell through to { type: "string" } — the
+    grammar FORBADE the arrays the model plans (table columns/data);
+    forced deviations derailed generation right where the table starts.
+  - Node properties declared text BEFORE props, while models and the
+    worked examples serialize props first — node text was unreachable
+    once props was emitted (text-less nodes in every live generation).
+
+Fixes, each at its owning layer:
+  - dspack-gen PR #40 (0.1.1): array props emit as arrays with optional
+    contract-declared items passthrough; property order is component,
+    id, props, text, children. 93/93 tests, golden regenerated.
+  - dspack PR #21 (amended): table columns/data items typed (strings /
+    { cells: string[] } records — matching the approved example and the
+    A2UI projection; the old description claimed [{key, header}] objects
+    the example never used). An earlier same-day example-reorder commit
+    went the WRONG direction and is reverted on the branch.
+  - Studio: enhancer grounds apply_constraint by validated label
+    semantics (exactly one non-primary button labeled ~constraint — the
+    slotFromLabel precedent); "single secondary" could never ground on
+    example-mirroring surfaces (the example itself has three).
+Measured end-to-end with local fixed source + typed contract: rich runs
+carry typed columns and node text (probe: 18 nodes, 10 textful); the
+minimal mode persists at ~50% but 4 recorder retries cover it (~94%).
+
+BLOCKED: recording fixture-006 waits for dspack-gen 0.1.1 on npm (the
+flagship proves the published packages; recording against unpublished
+source would break the audit's schemaSha256 provenance). FM-9/FM-3
+proceed meanwhile — replay-layer work, independent of generation.

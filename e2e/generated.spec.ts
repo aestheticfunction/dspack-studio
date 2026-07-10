@@ -83,7 +83,8 @@ test("record fixture-006 (live recipe)", async ({ page }) => {
     await expect(page.getByTestId("live-status")).toContainText(/finished|error/, { timeout: 180_000 });
     const failed = await page.getByTestId("failure-panel").count();
     const hasInput = await page.locator("[data-canvas] input").count();
-    if (failed === 0 && hasInput > 0) break;
+    const hasTable = await page.locator("[data-canvas] table").count();
+    if (failed === 0 && hasInput > 0 && hasTable > 0) break;
     expect(attempt, "no passing generated recipe run within the retry budget").toBeLessThan(3);
   }
 

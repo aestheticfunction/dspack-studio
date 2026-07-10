@@ -283,11 +283,28 @@
       "props": {
         "data": {
           "type": "array",
-          "description": "Row objects."
+          "description": "Row records: each { cells: string[] } aligned with columns.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "cells": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "cells"
+            ]
+          }
         },
         "columns": {
           "type": "array",
-          "description": "Column definitions: [{key, header, ...}]."
+          "description": "Header labels for the data columns, e.g. [\"Ingredient\", \"Amount\"]. (The full Astryx TableColumn object shape is not yet contract-specified.)",
+          "items": {
+            "type": "string"
+          }
         },
         "density": {
           "type": "enum",
