@@ -3,14 +3,14 @@
   "dspack": "0.4",
   "name": "Astryx",
   "description": "A nine-component slice of Meta's Astryx design system (open source, MIT; 160+ components; explicitly guidance-over-enforcement: design opinions live in docs, components render whatever they are passed). This contract converts a subset of that prose guidance into machine-checkable governance. Components and guidance are sourced from the repository's structured *.doc.mjs files at the pinned tag.",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "metadata": {
-    "source": "https://github.com/facebook/astryx/tree/v0.1.2",
+    "source": "https://github.com/facebook/astryx/tree/v0.1.4",
     "license": "MIT",
     "x-upstream": {
       "repo": "https://github.com/facebook/astryx",
-      "tag": "v0.1.2",
-      "commit": "6c533c70674cf32c38a2ef85a3d4a648df91eb4b"
+      "tag": "v0.1.4",
+      "commit": "7b76c68ae07cbc798e3b7f4125eb99ec596f0779"
     }
   },
   "components": {
@@ -52,7 +52,7 @@
       "categories": [
         "overlay"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
     },
     "dialog": {
       "name": "Dialog",
@@ -82,7 +82,7 @@
       "categories": [
         "overlay"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Dialog/Dialog.doc.mjs",
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Dialog/Dialog.doc.mjs",
       "composition": {
         "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
       }
@@ -136,7 +136,7 @@
       "categories": [
         "action"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Button/Button.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Button/Button.doc.mjs"
     },
     "badge": {
       "name": "Badge",
@@ -172,7 +172,7 @@
       "categories": [
         "feedback"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Badge/Badge.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Badge/Badge.doc.mjs"
     },
     "card": {
       "name": "Card",
@@ -182,18 +182,27 @@
         "variant": {
           "type": "enum",
           "values": [
-            "outlined",
-            "elevated",
-            "filled"
+            "default",
+            "muted",
+            "blue",
+            "cyan",
+            "gray",
+            "green",
+            "orange",
+            "pink",
+            "purple",
+            "red",
+            "teal",
+            "yellow"
           ],
-          "description": "Card visual treatment.",
-          "default": "outlined"
+          "description": "Background color variant: 'default' is the standard card background, 'muted' de-emphasises the card. Color variants are for categorization, not status (use Badge or a banner for status).",
+          "default": "default"
         }
       },
       "categories": [
         "container"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Card/Card.doc.mjs",
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Card/Card.doc.mjs",
       "composition": {
         "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
       }
@@ -246,7 +255,7 @@
       "categories": [
         "data-input"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/TextInput/TextInput.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/TextInput/TextInput.doc.mjs"
     },
     "dropdown-menu": {
       "name": "DropdownMenu",
@@ -266,7 +275,7 @@
         "action",
         "overlay"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/DropdownMenu/DropdownMenu.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/DropdownMenu/DropdownMenu.doc.mjs"
     },
     "table": {
       "name": "Table",
@@ -310,31 +319,43 @@
       "categories": [
         "table-list"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Table/Table.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Table/Table.doc.mjs"
     },
     "text": {
       "name": "Text",
       "description": "Body text content.",
       "props": {
+        "type": {
+          "type": "enum",
+          "values": [
+            "body",
+            "large",
+            "label",
+            "supporting",
+            "code",
+            "display-1",
+            "display-2",
+            "display-3"
+          ],
+          "description": "Semantic text type; determines size, weight, and line-height from the theme. Headings are expressed via the display types (or Astryx's separate Heading component), never via the rendered element.",
+          "default": "body"
+        },
         "as": {
           "type": "enum",
           "values": [
             "span",
             "p",
             "div",
-            "label",
-            "h1",
-            "h2",
-            "h3"
+            "label"
           ],
-          "description": "Rendered element.",
+          "description": "Rendered HTML element. Heading tags are not accepted; use `type` for heading-scale text.",
           "default": "span"
         }
       },
       "categories": [
         "content"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Text/Text.doc.mjs",
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Text/Text.doc.mjs",
       "composition": {
         "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
       }
@@ -393,14 +414,14 @@
       "forbid": [
         "dialog"
       ],
-      "rationale": "\"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.2",
+      "rationale": "\"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.4",
       "examples": [
         "ex.delete-project-confirmation"
       ],
       "tags": [
         "safety"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
     },
     {
       "id": "rule.alertdialog-carries-content",
@@ -418,7 +439,7 @@
           "prop": "actionLabel"
         }
       ],
-      "rationale": "title, description, and actionLabel are required by the component API (aria-labelledby / aria-describedby wiring), and \"describe what will happen in the description so the user knows the consequences before confirming\". The schema does not check prop presence; this rule does — Astryx AlertDialog docs, v0.1.2",
+      "rationale": "title, description, and actionLabel are required by the component API (aria-labelledby / aria-describedby wiring), and \"describe what will happen in the description so the user knows the consequences before confirming\". The schema does not check prop presence; this rule does — Astryx AlertDialog docs, v0.1.4",
       "examples": [
         "ex.delete-project-confirmation"
       ],
@@ -426,7 +447,7 @@
         "accessibility",
         "safety"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
     },
     {
       "id": "rule.alertdialog-action-label-specific",
@@ -444,14 +465,14 @@
           ]
         }
       ],
-      "rationale": "\"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.2",
+      "rationale": "\"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.4",
       "examples": [
         "ex.delete-project-confirmation"
       ],
       "tags": [
         "content"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
     },
     {
       "id": "rule.button-carries-label",
@@ -463,14 +484,14 @@
           "prop": "label"
         }
       ],
-      "rationale": "\"Always provide a label for icon-only buttons so screen readers can announce what the button does\" — and label is the component's required accessible name in every mode. The schema does not check prop presence; this rule does — Astryx Button docs, v0.1.2",
+      "rationale": "\"Always provide a label for icon-only buttons so screen readers can announce what the button does\" — and label is the component's required accessible name in every mode. The schema does not check prop presence; this rule does — Astryx Button docs, v0.1.4",
       "examples": [
         "ex.delete-project-confirmation"
       ],
       "tags": [
         "accessibility"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Button/Button.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Button/Button.doc.mjs"
     },
     {
       "id": "rule.input-carries-label",
@@ -482,11 +503,11 @@
           "prop": "label"
         }
       ],
-      "rationale": "\"Always provide a visible label so users know what the field is for. Only hide the label when surrounding context makes the purpose unambiguous\" (and then via isLabelHidden, which keeps it announced — never by omitting it) — Astryx TextInput docs, v0.1.2",
+      "rationale": "\"Always provide a visible label so users know what the field is for. Only hide the label when surrounding context makes the purpose unambiguous\" (and then via isLabelHidden, which keeps it announced — never by omitting it) — Astryx TextInput docs, v0.1.4",
       "tags": [
         "accessibility"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/TextInput/TextInput.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/TextInput/TextInput.doc.mjs"
     },
     {
       "id": "rule.dialog-no-nested-overlays",
@@ -501,7 +522,7 @@
         "accessibility",
         "interaction"
       ],
-      "x-source": "https://github.com/facebook/astryx/blob/v0.1.2/packages/core/src/Dialog/Dialog.doc.mjs"
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Dialog/Dialog.doc.mjs"
     }
   ],
   "examples": [
@@ -521,7 +542,7 @@
             {
               "component": "text",
               "props": {
-                "as": "h2"
+                "type": "display-3"
               },
               "text": "Danger zone"
             },

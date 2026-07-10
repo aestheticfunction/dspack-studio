@@ -111,9 +111,14 @@ export const astryxProfile: Profile = {
         variant: {
           a2ui: "variant",
           kind: "enum",
-          targetEnum: ["outlined", "elevated", "filled"],
-          default: "outlined",
-          description: "Card visual treatment, carried verbatim.",
+          targetEnum: [
+            "default", "muted",
+            "blue", "cyan", "gray", "green", "orange", "pink", "purple", "red", "teal", "yellow",
+          ],
+          default: "default",
+          description:
+            "Card background variant, carried verbatim (default/muted plus the color variants, " +
+            "which categorize rather than signal status).",
         },
       },
       required: ["child"],
@@ -341,26 +346,41 @@ export const astryxProfile: Profile = {
       structural: {
         text: {
           schema: DynStr,
-          description: "The text content to display.",
+          description: "The text content to display (optional when the node only nests children).",
           synthNote:
             "The contract's Text takes children (ReactNode); surfaces express content as the " +
             "node's text, projected into this property.",
         },
+        children: {
+          schema: { $ref: "#/$defs/ChildList" },
+          description: "Nested child component IDs rendered after the text content.",
+          synthNote:
+            "The contract's Text takes arbitrary children; models routinely nest text nodes " +
+            "(measured 10/12 emitter refusals before this slot existed), and Astryx Text " +
+            "renders nested children natively — so the projection carries them.",
+        },
       },
+      // The contract's `as` prop (rendered HTML element: span/p/div/label) has
+      // no A2UI counterpart and is a deliberate dropped-prop casualty.
       propMap: {
-        as: {
+        type: {
           a2ui: "variant",
           kind: "enum",
           targetEnum: ["h1", "h2", "h3", "body", "caption"],
-          valueMap: { h1: "h1", h2: "h2", h3: "h3", p: "body", span: "body", div: "body", label: "caption" },
+          valueMap: {
+            "display-1": "h1", "display-2": "h1", "display-3": "h2", large: "h3",
+            body: "body", code: "body", label: "caption", supporting: "caption",
+          },
           default: "body",
           description:
-            "Base text style, projected from the contract's rendered-element prop " +
-            "(p/span/div collapse to body; label projects to caption).",
+            "Base text style, projected from the contract's semantic text type (the display " +
+            "scale collapses onto the heading variants; label/supporting project to caption; " +
+            "code collapses to body).",
         },
       },
-      required: ["text"],
-      surfacePlan: { textProp: "text" },
+      // `text` is optional: container text nodes (children only) are valid.
+      required: [],
+      surfacePlan: { textProp: "text", childrenProp: "children" },
     },
   ],
 

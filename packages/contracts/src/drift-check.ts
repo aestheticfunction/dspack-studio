@@ -7,11 +7,11 @@
  * drift is expected as Astryx Beta moves; findings feed contract revisions
  * upstream. Pass --strict to fail CI on any finding.
  *
- * Known-drift note (v0.1.2 -> v0.1.4, found at authoring time):
- *   - card.variant: contract says outlined/elevated/filled; Astryx Card has
- *     default/muted/<colors>.
- *   - text.as: contract includes h1/h2/h3; Astryx Text renders headings via
- *     `type`, and `as` only accepts span/p/div/label.
+ * History: the v0.1.2-authored contract drifted from Astryx v0.1.4 in
+ * card.variant (outlined/elevated/filled vs default/muted/<colors>) and
+ * text.as (h1/h2/h3 vs span/p/div/label, headings moving to `type`). The
+ * contract has since been updated to v0.1.4; this check should be clean
+ * until Astryx moves again.
  */
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";

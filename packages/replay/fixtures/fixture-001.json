@@ -1,19 +1,19 @@
 {
   "replayFixture": "0.1",
-  "id": "fx-smoke",
-  "name": "fx-smoke",
-  "recordedAt": "2026-07-10T03:18:50.617Z",
-  "mode": "scripted",
-  "adapterId": "scripted",
+  "id": "fixture-001",
+  "name": "The interface argues back",
+  "recordedAt": "2026-07-10T04:08:20.726Z",
+  "mode": "live",
+  "adapterId": "ollama:gemma4:e4b",
   "intent": "destructive-action",
-  "prompt": "a screen to delete a project",
+  "prompt": "Add a delete-account flow. Branding requirement: the confirmation button text must be exactly 'OK' (uppercase), and keep copy minimal with no description text.",
   "events": [
     {
       "atMs": 2,
       "event": {
         "type": "RUN_STARTED",
         "threadId": "studio",
-        "runId": "fx-smoke"
+        "runId": "fixture-001"
       }
     },
     {
@@ -23,8 +23,8 @@
         "name": "dspack.run.start",
         "value": {
           "intent": "destructive-action",
-          "prompt": "a screen to delete a project",
-          "adapterId": "fake:scripted",
+          "prompt": "Add a delete-account flow. Branding requirement: the confirmation button text must be exactly 'OK' (uppercase), and keep copy minimal with no description text.",
+          "adapterId": "ollama:gemma4:e4b",
           "ruleIds": [
             "rule.destructive-requires-alertdialog",
             "rule.alertdialog-carries-content",
@@ -37,20 +37,20 @@
       }
     },
     {
-      "atMs": 3,
+      "atMs": 18691,
       "event": {
         "type": "STEP_STARTED",
         "stepName": "attempt-0"
       }
     },
     {
-      "atMs": 3,
+      "atMs": 18691,
       "event": {
         "type": "CUSTOM",
         "name": "dspack.gates",
         "value": {
           "index": 0,
-          "model": "fake-model",
+          "model": "gemma4:e4b",
           "surface": {
             "dspackSurface": "0.1",
             "system": "Astryx",
@@ -63,28 +63,259 @@
                   "props": {
                     "type": "display-3"
                   },
-                  "text": "Danger zone"
-                },
+                  "children": [
+                    {
+                      "component": "text",
+                      "props": {
+                        "type": "body"
+                      },
+                      "children": [
+                        {
+                          "component": "text",
+                          "props": {
+                            "type": "body"
+                          },
+                          "children": [
+                            {
+                              "component": "text",
+                              "props": {
+                                "type": "body"
+                              },
+                              "children": [
+                                {
+                                  "component": "text",
+                                  "props": {
+                                    "type": "body"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "FAIL"
+            }
+          ],
+          "findings": [
+            {
+              "ruleId": "rule.destructive-requires-alertdialog",
+              "type": "component-choice",
+              "requirement": "must",
+              "level": "error",
+              "message": "Required component 'alert-dialog' does not appear in the surface.",
+              "rationale": "\"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.4",
+              "location": {
+                "path": "$.root",
+                "component": "surface"
+              },
+              "exampleIds": [
+                "ex.delete-project-confirmation"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 18691,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 18691,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.repair",
+        "value": {
+          "index": 0,
+          "message": "Your surface violates 1 governance rule finding(s) of the \"Astryx\" design system:\n\nViolation 1: [rule.destructive-requires-alertdialog / must]\n  At: $.root (component: surface)\n  Required component 'alert-dialog' does not appear in the surface.\n  Why: \"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.4\n\nA correct example (ex.delete-project-confirmation): {\"dspackSurface\":\"0.1\",\"system\":\"Astryx\",\"intent\":\"destructive-action\",\"root\":{\"component\":\"card\",\"children\":[{\"component\":\"text\",\"props\":{\"type\":\"display-3\"},\"text\":\"Danger zone\"},{\"component\":\"text\",\"props\":{\"as\":\"p\"},\"text\":\"Deleting a project removes all of its data permanently.\"},{\"component\":\"button\",\"props\":{\"label\":\"Delete project\",\"variant\":\"destructive\"}},{\"component\":\"alert-dialog\",\"props\":{\"title\":\"Delete this project?\",\"description\":\"This action cannot be undone. The project and all its data will be permanently removed.\",\"actionLabel\":\"Delete project\",\"cancelLabel\":\"Cancel\",\"actionVariant\":\"destructive\"}}]}}\n\nProduce a corrected dspack surface document that fixes every violation above.\nDo not change parts of the surface that were not flagged.\nRespond with a single JSON object conforming to the provided schema. No commentary."
+        }
+      }
+    },
+    {
+      "atMs": 41020,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-1"
+      }
+    },
+    {
+      "atMs": 41020,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 1,
+          "model": "gemma4:e4b",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "destructive-action",
+            "root": {
+              "component": "card",
+              "children": [
                 {
                   "component": "text",
                   "props": {
-                    "as": "p"
+                    "type": "display-3"
                   },
-                  "text": "Deleting a project removes all of its data permanently."
-                },
-                {
-                  "component": "button",
-                  "props": {
-                    "label": "Delete project",
-                    "variant": "destructive"
-                  }
+                  "children": [
+                    {
+                      "component": "text",
+                      "props": {
+                        "type": "body"
+                      },
+                      "children": [
+                        {
+                          "component": "text",
+                          "props": {
+                            "type": "body"
+                          }
+                        }
+                      ]
+                    }
+                  ]
                 },
                 {
                   "component": "alert-dialog",
                   "props": {
-                    "title": "Delete this project?",
-                    "description": "This action cannot be undone. The project and all its data will be permanently removed.",
-                    "actionLabel": "Delete project",
+                    "title": "Delete Account?",
+                    "description": "This action is irreversible and will permanently delete your account and all associated data.",
+                    "actionLabel": "OK",
+                    "cancelLabel": "Cancel",
+                    "actionVariant": "destructive"
+                  }
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "FAIL"
+            }
+          ],
+          "findings": [
+            {
+              "ruleId": "rule.alertdialog-action-label-specific",
+              "type": "forbidden-composition",
+              "requirement": "must",
+              "level": "error",
+              "message": "Forbidden value \"OK\" for prop 'actionLabel'.",
+              "rationale": "\"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.4",
+              "location": {
+                "path": "$.root.children[1]",
+                "component": "alert-dialog"
+              },
+              "exampleIds": [
+                "ex.delete-project-confirmation"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 41020,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-1"
+      }
+    },
+    {
+      "atMs": 41020,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.repair",
+        "value": {
+          "index": 1,
+          "message": "Your surface violates 1 governance rule finding(s) of the \"Astryx\" design system:\n\nViolation 1: [rule.alertdialog-action-label-specific / must]\n  At: $.root.children[1] (component: alert-dialog)\n  Forbidden value \"OK\" for prop 'actionLabel'.\n  Why: \"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.4\n\nA correct example (ex.delete-project-confirmation): {\"dspackSurface\":\"0.1\",\"system\":\"Astryx\",\"intent\":\"destructive-action\",\"root\":{\"component\":\"card\",\"children\":[{\"component\":\"text\",\"props\":{\"type\":\"display-3\"},\"text\":\"Danger zone\"},{\"component\":\"text\",\"props\":{\"as\":\"p\"},\"text\":\"Deleting a project removes all of its data permanently.\"},{\"component\":\"button\",\"props\":{\"label\":\"Delete project\",\"variant\":\"destructive\"}},{\"component\":\"alert-dialog\",\"props\":{\"title\":\"Delete this project?\",\"description\":\"This action cannot be undone. The project and all its data will be permanently removed.\",\"actionLabel\":\"Delete project\",\"cancelLabel\":\"Cancel\",\"actionVariant\":\"destructive\"}}]}}\n\nProduce a corrected dspack surface document that fixes every violation above.\nDo not change parts of the surface that were not flagged.\nRespond with a single JSON object conforming to the provided schema. No commentary."
+        }
+      }
+    },
+    {
+      "atMs": 51138,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-2"
+      }
+    },
+    {
+      "atMs": 51138,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 2,
+          "model": "gemma4:e4b",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "destructive-action",
+            "root": {
+              "component": "card",
+              "children": [
+                {
+                  "component": "text",
+                  "props": {
+                    "type": "display-3"
+                  },
+                  "children": [
+                    {
+                      "component": "text",
+                      "props": {
+                        "type": "body"
+                      },
+                      "children": [
+                        {
+                          "component": "text",
+                          "props": {
+                            "type": "body"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "component": "alert-dialog",
+                  "props": {
+                    "title": "Delete Account?",
+                    "description": "This action is irreversible and will permanently delete your account and all associated data.",
+                    "actionLabel": "Delete Account",
                     "cancelLabel": "Cancel",
                     "actionVariant": "destructive"
                   }
@@ -114,14 +345,14 @@
       }
     },
     {
-      "atMs": 3,
+      "atMs": 51138,
       "event": {
         "type": "STEP_FINISHED",
-        "stepName": "attempt-0"
+        "stepName": "attempt-2"
       }
     },
     {
-      "atMs": 58,
+      "atMs": 51225,
       "event": {
         "type": "CUSTOM",
         "name": "dspack.emit",
@@ -171,62 +402,58 @@
           "warnings": [
             {
               "code": "surface-id-deduplicated",
-              "message": "$.root.children[1]: node id 'text' already used; emitted as 'text_2'."
+              "message": "$.root.children[0].children[0]: node id 'text' already used; emitted as 'text_2'."
             },
             {
-              "code": "surface-prop-dropped",
-              "message": "$.root.children[1]: prop 'as' on 'text' has no A2UI projection; dropped."
-            },
-            {
-              "code": "surface-synthesized-action",
-              "message": "$.root.children[2]: A2UI requires a declarative action on Button; synthesized event 'button'."
+              "code": "surface-id-deduplicated",
+              "message": "$.root.children[0].children[0].children[0]: node id 'text' already used; emitted as 'text_3'."
             },
             {
               "code": "surface-synthesized-action",
-              "message": "$.root.children[3]: A2UI requires a declarative action on AlertDialog; synthesized event 'alert_dialog'."
+              "message": "$.root.children[1]: A2UI requires a declarative action on AlertDialog; synthesized event 'alert_dialog'."
             },
             {
               "code": "surface-synthesized-wrap",
-              "message": "$.root: 4 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+              "message": "$.root: 2 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
             }
           ]
         }
       }
     },
     {
-      "atMs": 59,
+      "atMs": 51225,
       "event": {
         "type": "TOOL_CALL_START",
-        "toolCallId": "fx-smoke-a2ui-0",
+        "toolCallId": "fixture-001-a2ui-0",
         "toolCallName": "generate_a2ui"
       }
     },
     {
-      "atMs": 59,
+      "atMs": 51225,
       "event": {
         "type": "TOOL_CALL_ARGS",
-        "toolCallId": "fx-smoke-a2ui-0",
+        "toolCallId": "fixture-001-a2ui-0",
         "delta": "{\"surfaceId\":\"destructive_action\"}"
       }
     },
     {
-      "atMs": 59,
+      "atMs": 51225,
       "event": {
         "type": "TOOL_CALL_END",
-        "toolCallId": "fx-smoke-a2ui-0"
+        "toolCallId": "fixture-001-a2ui-0"
       }
     },
     {
-      "atMs": 59,
+      "atMs": 51225,
       "event": {
         "type": "TOOL_CALL_RESULT",
-        "messageId": "fx-smoke-a2ui-0-result",
-        "toolCallId": "fx-smoke-a2ui-0",
-        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"destructive_action\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"destructive_action\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"text\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Danger zone\"},{\"id\":\"text_2\",\"component\":\"Text\",\"text\":\"Deleting a project removes all of its data permanently.\"},{\"id\":\"button\",\"component\":\"Button\",\"label\":\"Delete project\",\"variant\":\"destructive\",\"action\":{\"event\":{\"name\":\"button\",\"context\":{}}}},{\"id\":\"alertdialog\",\"component\":\"AlertDialog\",\"title\":\"Delete this project?\",\"description\":\"This action cannot be undone. The project and all its data will be permanently removed.\",\"actionLabel\":\"Delete project\",\"cancelLabel\":\"Cancel\",\"actionVariant\":\"destructive\",\"action\":{\"event\":{\"name\":\"alert_dialog\",\"context\":{}}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"text\",\"text_2\",\"button\",\"alertdialog\"]}]}}]}"
+        "messageId": "fixture-001-a2ui-0-result",
+        "toolCallId": "fixture-001-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"destructive_action\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"destructive_action\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"text\",\"component\":\"Text\",\"variant\":\"h2\",\"children\":[\"text_2\"]},{\"id\":\"text_2\",\"component\":\"Text\",\"variant\":\"body\",\"children\":[\"text_3\"]},{\"id\":\"text_3\",\"component\":\"Text\",\"variant\":\"body\"},{\"id\":\"alertdialog\",\"component\":\"AlertDialog\",\"title\":\"Delete Account?\",\"description\":\"This action is irreversible and will permanently delete your account and all associated data.\",\"actionLabel\":\"Delete Account\",\"cancelLabel\":\"Cancel\",\"actionVariant\":\"destructive\",\"action\":{\"event\":{\"name\":\"alert_dialog\",\"context\":{}}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"text\",\"alertdialog\"]}]}}]}"
       }
     },
     {
-      "atMs": 59,
+      "atMs": 51225,
       "event": {
         "type": "CUSTOM",
         "name": "dspack.audit",
@@ -235,9 +462,9 @@
           "exitCode": 0,
           "report": {
             "reportVersion": "1",
-            "createdAt": "2026-07-10T03:18:50.559Z",
+            "createdAt": "2026-07-10T04:07:29.502Z",
             "request": {
-              "prompt": "a screen to delete a project",
+              "prompt": "Add a delete-account flow. Branding requirement: the confirmation button text must be exactly 'OK' (uppercase), and keep copy minimal with no description text.",
               "intent": "destructive-action",
               "contract": {
                 "name": "Astryx",
@@ -246,7 +473,7 @@
               }
             },
             "generation": {
-              "adapterId": "fake:scripted",
+              "adapterId": "ollama:gemma4:e4b",
               "schemaSha256": "c5783551fe39e43e3103beb0dc43f4008163ca052737cd26942735bd2b32f401",
               "maxRepairs": 2,
               "ruleSteering": true,
@@ -267,28 +494,126 @@
                         "props": {
                           "type": "display-3"
                         },
-                        "text": "Danger zone"
-                      },
+                        "children": [
+                          {
+                            "component": "text",
+                            "props": {
+                              "type": "body"
+                            },
+                            "children": [
+                              {
+                                "component": "text",
+                                "props": {
+                                  "type": "body"
+                                },
+                                "children": [
+                                  {
+                                    "component": "text",
+                                    "props": {
+                                      "type": "body"
+                                    },
+                                    "children": [
+                                      {
+                                        "component": "text",
+                                        "props": {
+                                          "type": "body"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "model": "gemma4:e4b",
+                "usage": {
+                  "inputTokens": 1395,
+                  "outputTokens": 255
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 18657455125,
+                  "load_duration": 3890604458,
+                  "prompt_eval_duration": 70729000,
+                  "eval_duration": 4799425000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "FAIL"
+                  }
+                ],
+                "findings": [
+                  {
+                    "ruleId": "rule.destructive-requires-alertdialog",
+                    "type": "component-choice",
+                    "requirement": "must",
+                    "level": "error",
+                    "message": "Required component 'alert-dialog' does not appear in the surface.",
+                    "rationale": "\"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.4",
+                    "location": {
+                      "path": "$.root",
+                      "component": "surface"
+                    },
+                    "exampleIds": [
+                      "ex.delete-project-confirmation"
+                    ]
+                  }
+                ]
+              },
+              {
+                "index": 1,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "destructive-action",
+                  "root": {
+                    "component": "card",
+                    "children": [
                       {
                         "component": "text",
                         "props": {
-                          "as": "p"
+                          "type": "display-3"
                         },
-                        "text": "Deleting a project removes all of its data permanently."
-                      },
-                      {
-                        "component": "button",
-                        "props": {
-                          "label": "Delete project",
-                          "variant": "destructive"
-                        }
+                        "children": [
+                          {
+                            "component": "text",
+                            "props": {
+                              "type": "body"
+                            },
+                            "children": [
+                              {
+                                "component": "text",
+                                "props": {
+                                  "type": "body"
+                                }
+                              }
+                            ]
+                          }
+                        ]
                       },
                       {
                         "component": "alert-dialog",
                         "props": {
-                          "title": "Delete this project?",
-                          "description": "This action cannot be undone. The project and all its data will be permanently removed.",
-                          "actionLabel": "Delete project",
+                          "title": "Delete Account?",
+                          "description": "This action is irreversible and will permanently delete your account and all associated data.",
+                          "actionLabel": "OK",
                           "cancelLabel": "Cancel",
                           "actionVariant": "destructive"
                         }
@@ -296,13 +621,108 @@
                     ]
                   }
                 },
-                "model": "fake-model",
+                "model": "gemma4:e4b",
                 "usage": {
-                  "inputTokens": 0,
-                  "outputTokens": 0
+                  "inputTokens": 1991,
+                  "outputTokens": 121
                 },
                 "meta": {
-                  "provider": "fake"
+                  "provider": "ollama",
+                  "total_duration": 22322541125,
+                  "load_duration": 247876583,
+                  "prompt_eval_duration": 1349033000,
+                  "eval_duration": 2148588000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "FAIL"
+                  }
+                ],
+                "findings": [
+                  {
+                    "ruleId": "rule.alertdialog-action-label-specific",
+                    "type": "forbidden-composition",
+                    "requirement": "must",
+                    "level": "error",
+                    "message": "Forbidden value \"OK\" for prop 'actionLabel'.",
+                    "rationale": "\"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.4",
+                    "location": {
+                      "path": "$.root.children[1]",
+                      "component": "alert-dialog"
+                    },
+                    "exampleIds": [
+                      "ex.delete-project-confirmation"
+                    ]
+                  }
+                ]
+              },
+              {
+                "index": 2,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "destructive-action",
+                  "root": {
+                    "component": "card",
+                    "children": [
+                      {
+                        "component": "text",
+                        "props": {
+                          "type": "display-3"
+                        },
+                        "children": [
+                          {
+                            "component": "text",
+                            "props": {
+                              "type": "body"
+                            },
+                            "children": [
+                              {
+                                "component": "text",
+                                "props": {
+                                  "type": "body"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "alert-dialog",
+                        "props": {
+                          "title": "Delete Account?",
+                          "description": "This action is irreversible and will permanently delete your account and all associated data.",
+                          "actionLabel": "Delete Account",
+                          "cancelLabel": "Cancel",
+                          "actionVariant": "destructive"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "model": "gemma4:e4b",
+                "usage": {
+                  "inputTokens": 2445,
+                  "outputTokens": 122
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 10111114709,
+                  "load_duration": 253003750,
+                  "prompt_eval_duration": 70170000,
+                  "eval_duration": 2139592000
                 },
                 "gates": [
                   {
@@ -324,7 +744,10 @@
                 "findings": []
               }
             ],
-            "repairMessages": [],
+            "repairMessages": [
+              "Your surface violates 1 governance rule finding(s) of the \"Astryx\" design system:\n\nViolation 1: [rule.destructive-requires-alertdialog / must]\n  At: $.root (component: surface)\n  Required component 'alert-dialog' does not appear in the surface.\n  Why: \"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.4\n\nA correct example (ex.delete-project-confirmation): {\"dspackSurface\":\"0.1\",\"system\":\"Astryx\",\"intent\":\"destructive-action\",\"root\":{\"component\":\"card\",\"children\":[{\"component\":\"text\",\"props\":{\"type\":\"display-3\"},\"text\":\"Danger zone\"},{\"component\":\"text\",\"props\":{\"as\":\"p\"},\"text\":\"Deleting a project removes all of its data permanently.\"},{\"component\":\"button\",\"props\":{\"label\":\"Delete project\",\"variant\":\"destructive\"}},{\"component\":\"alert-dialog\",\"props\":{\"title\":\"Delete this project?\",\"description\":\"This action cannot be undone. The project and all its data will be permanently removed.\",\"actionLabel\":\"Delete project\",\"cancelLabel\":\"Cancel\",\"actionVariant\":\"destructive\"}}]}}\n\nProduce a corrected dspack surface document that fixes every violation above.\nDo not change parts of the surface that were not flagged.\nRespond with a single JSON object conforming to the provided schema. No commentary.",
+              "Your surface violates 1 governance rule finding(s) of the \"Astryx\" design system:\n\nViolation 1: [rule.alertdialog-action-label-specific / must]\n  At: $.root.children[1] (component: alert-dialog)\n  Forbidden value \"OK\" for prop 'actionLabel'.\n  Why: \"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.4\n\nA correct example (ex.delete-project-confirmation): {\"dspackSurface\":\"0.1\",\"system\":\"Astryx\",\"intent\":\"destructive-action\",\"root\":{\"component\":\"card\",\"children\":[{\"component\":\"text\",\"props\":{\"type\":\"display-3\"},\"text\":\"Danger zone\"},{\"component\":\"text\",\"props\":{\"as\":\"p\"},\"text\":\"Deleting a project removes all of its data permanently.\"},{\"component\":\"button\",\"props\":{\"label\":\"Delete project\",\"variant\":\"destructive\"}},{\"component\":\"alert-dialog\",\"props\":{\"title\":\"Delete this project?\",\"description\":\"This action cannot be undone. The project and all its data will be permanently removed.\",\"actionLabel\":\"Delete project\",\"cancelLabel\":\"Cancel\",\"actionVariant\":\"destructive\"}}]}}\n\nProduce a corrected dspack surface document that fixes every violation above.\nDo not change parts of the surface that were not flagged.\nRespond with a single JSON object conforming to the provided schema. No commentary."
+            ],
             "outcome": "passed",
             "emitted": {
               "target": "a2ui",
@@ -354,31 +777,29 @@
                           "id": "text",
                           "component": "Text",
                           "variant": "h2",
-                          "text": "Danger zone"
+                          "children": [
+                            "text_2"
+                          ]
                         },
                         {
                           "id": "text_2",
                           "component": "Text",
-                          "text": "Deleting a project removes all of its data permanently."
+                          "variant": "body",
+                          "children": [
+                            "text_3"
+                          ]
                         },
                         {
-                          "id": "button",
-                          "component": "Button",
-                          "label": "Delete project",
-                          "variant": "destructive",
-                          "action": {
-                            "event": {
-                              "name": "button",
-                              "context": {}
-                            }
-                          }
+                          "id": "text_3",
+                          "component": "Text",
+                          "variant": "body"
                         },
                         {
                           "id": "alertdialog",
                           "component": "AlertDialog",
-                          "title": "Delete this project?",
-                          "description": "This action cannot be undone. The project and all its data will be permanently removed.",
-                          "actionLabel": "Delete project",
+                          "title": "Delete Account?",
+                          "description": "This action is irreversible and will permanently delete your account and all associated data.",
+                          "actionLabel": "Delete Account",
                           "cancelLabel": "Cancel",
                           "actionVariant": "destructive",
                           "action": {
@@ -393,8 +814,6 @@
                           "component": "Column",
                           "children": [
                             "text",
-                            "text_2",
-                            "button",
                             "alertdialog"
                           ]
                         }
@@ -406,23 +825,19 @@
               "warnings": [
                 {
                   "code": "surface-id-deduplicated",
-                  "message": "$.root.children[1]: node id 'text' already used; emitted as 'text_2'."
+                  "message": "$.root.children[0].children[0]: node id 'text' already used; emitted as 'text_2'."
                 },
                 {
-                  "code": "surface-prop-dropped",
-                  "message": "$.root.children[1]: prop 'as' on 'text' has no A2UI projection; dropped."
-                },
-                {
-                  "code": "surface-synthesized-action",
-                  "message": "$.root.children[2]: A2UI requires a declarative action on Button; synthesized event 'button'."
+                  "code": "surface-id-deduplicated",
+                  "message": "$.root.children[0].children[0].children[0]: node id 'text' already used; emitted as 'text_3'."
                 },
                 {
                   "code": "surface-synthesized-action",
-                  "message": "$.root.children[3]: A2UI requires a declarative action on AlertDialog; synthesized event 'alert_dialog'."
+                  "message": "$.root.children[1]: A2UI requires a declarative action on AlertDialog; synthesized event 'alert_dialog'."
                 },
                 {
                   "code": "surface-synthesized-wrap",
-                  "message": "$.root: 4 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                  "message": "$.root: 2 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
                 }
               ],
               "validations": [
@@ -469,18 +884,18 @@
               ]
             },
             "timings": {
-              "totalMs": 57
+              "totalMs": 51224
             }
           }
         }
       }
     },
     {
-      "atMs": 59,
+      "atMs": 51225,
       "event": {
         "type": "RUN_FINISHED",
         "threadId": "studio",
-        "runId": "fx-smoke"
+        "runId": "fixture-001"
       }
     }
   ]
