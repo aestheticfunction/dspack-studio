@@ -2,17 +2,37 @@
 
 dspack-studio is the flagship experience for the open AI-native frontend ecosystem: an AI agent builds interfaces under a design-system contract, streamed over AG-UI as A2UI surfaces, rendered with Astryx. Rewind it, fork it, break it, X-ray it. Every gate, repair, and audit is inspectable.
 
-Status: pre-alpha. Phase 1 (foundation) complete: the contract's worked example renders through Astryx with the theme dial; both A2UI catalogs emit behind gates; the vocabulary drift check runs against Astryx's own machine-readable docs.
+Status: MVP experience assembled — replayable recorded runs, live governed
+generation, imported sessions, an interactive appointment-booking scenario,
+a deterministic recipe co-editor, Break-it Mode, and progressive inspectors.
 
 ## Try it
 
 ```sh
 pnpm install
-pnpm build:contracts   # compile the contract -> A2UI catalogs + example surface (gated)
-pnpm dev               # http://localhost:3000
+pnpm build:contracts            # contract -> gated A2UI catalogs + scenario surfaces
+pnpm dev                        # the studio (replay works with no agent, no keys)
+pnpm --filter agent dev         # optional: the local agent for "run it live" + interactions
 ```
 
-No keys, no network calls beyond npm. `pnpm --filter @dspack-studio/contracts drift-check` compares the contract's vocabulary against `npx astryx component --json`.
+Replay mode needs no keys and no network beyond npm: every curated example
+is a recorded real run (`mode: "live"` in its fixture). Live mode runs the
+governed pipeline on your machine — "scripted" is deterministic; `ollama:*`
+uses your local models. `pnpm e2e` drives the whole experience against the
+static export (zero model calls).
+
+## What you can do
+
+- **Replay** curated recordings: watch an interface build, scrub it backward,
+  inspect every event, gate finding, repair message, and state patch.
+- **Run it live**: the pipeline generates under the contract, streams over
+  AG-UI, renders through Astryx — then the finished run is instantly
+  scrubbable and downloadable as a session fixture.
+- **Import a session** someone else downloaded; it replays identically.
+- **Book an appointment / co-edit a recipe**: human-in-the-loop actions with
+  correlation ids, validated shared state, recoverable rejections.
+- **Break it on purpose**: pick a failure condition and watch the pipeline
+  catch, repair, or refuse — with receipts.
 
 ## The pipeline
 
