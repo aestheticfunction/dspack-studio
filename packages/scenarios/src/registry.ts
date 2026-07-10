@@ -8,6 +8,7 @@ import type { Scenario } from "./types";
 import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
 import fixture002 from "@dspack-studio/replay/fixtures/fixture-002.json";
 import fixture003 from "@dspack-studio/replay/fixtures/fixture-003.json";
+import fixture005 from "@dspack-studio/replay/fixtures/fixture-005.json";
 
 export const scenarios: Scenario[] = [
   {
@@ -81,7 +82,15 @@ export const scenarios: Scenario[] = [
     status: "ready",
     interactive: true,
     seedPrompts: ["Book a 30-minute consultation next week."],
-    fixtures: [],
+    fixtures: [
+      {
+        key: "generated-live",
+        label: "generated, then booked",
+        blurb:
+          "A real model generates the booking surface under the scheduling intent; the enhancement grounds it, a slot is held, the booking confirms — every round-trip recorded.",
+        fixture: fixture005,
+      },
+    ],
   },
   {
     id: "recipe-creator",

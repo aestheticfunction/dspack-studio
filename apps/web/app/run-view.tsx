@@ -25,6 +25,7 @@ import {
   type TimelineTick,
 } from "@dspack-studio/replay";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
+import { Inspector } from "./inspector";
 
 const TICK_COLOR: Record<TimelineTick["kind"], string> = {
   lifecycle: "#64748b",
@@ -266,6 +267,8 @@ export function RunView({ events, label, streaming = false, live = false, resetK
           </p>
         )}
       </section>
+
+      <Inspector source={source} playhead={playhead} />
 
       {/* You-are-here: the raw wire event at the playhead. */}
       {current && (

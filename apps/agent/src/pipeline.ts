@@ -32,9 +32,13 @@ export interface GovernedRunInput {
 
 export async function governedRun(input: GovernedRunInput): Promise<RunResult> {
   const contract = loadContract() as Parameters<typeof runPipeline>[0]["contract"];
+  // Scripted mode plays the contract's own worked example FOR THE REQUESTED
+  // INTENT — the deterministic stand-in for generation (labeled scripted).
+  const examples = (contract as any).examples ?? [];
+  const example = examples.find((e: any) => e.intent === input.intent) ?? examples[0];
   const adapter =
     input.modelRef === "scripted"
-      ? new ScriptedAdapter([{ output: (contract as any).examples[0].surface }])
+      ? new ScriptedAdapter([{ output: example.surface }])
       : adapterFor(input.modelRef);
 
   return runPipeline({

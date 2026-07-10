@@ -180,3 +180,97 @@ export function timelineTicks(fixture: EventSource): TimelineTick[] {
     return { index, atMs, kind, label };
   });
 }
+
+/* ------------------------------------------------------------------ */
+/* Inspector reducers (P2): all pure folds over the same event prefix */
+/* ------------------------------------------------------------------ */
+
+/** Ordered shared-state patches applied up to the playhead. */
+export interface StatePatch {
+  index: number;
+  atMs: number;
+  surfaceId: string;
+  path: string;
+  value: unknown;
+  /** Tool-call id that delivered it (correlates to actions/runs). */
+  via?: string;
+}
+
+export function statePatchesAt(fixture: EventSource, playhead: number): StatePatch[] {
+  const patches: StatePatch[] = [];
+  eventsUpTo(fixture, playhead).forEach(({ atMs, event }, index) => {
+    if (event.type !== T.toolCallResult) return;
+    const content = (event as any).content;
+    if (typeof content !== "string") return;
+    try {
+      const parsed = JSON.parse(content);
+      for (const op of parsed?.[A2UI_OPERATIONS_KEY] ?? []) {
+        const dm = op?.updateDataModel;
+        if (dm) patches.push({ index, atMs, surfaceId: dm.surfaceId, path: dm.path ?? "/", value: dm.value, via: (event as any).toolCallId });
+      }
+    } catch { /* not an ops envelope */ }
+  });
+  return patches;
+}
+
+/** The shared data model at the playhead: patches folded in order. */
+export function dataModelAt(fixture: EventSource, playhead: number): Record<string, unknown> {
+  const model: Record<string, unknown> = {};
+  for (const p of statePatchesAt(fixture, playhead)) {
+    if (p.path === "/" || p.path === "") {
+      if (p.value && typeof p.value === "object") Object.assign(model, p.value);
+      continue;
+    }
+    const segs = p.path.replace(/^\//, "").split("/");
+    let node: any = model;
+    for (let i = 0; i < segs.length - 1; i++) {
+      if (typeof node[segs[i]] !== "object" || node[segs[i]] === null) node[segs[i]] = {};
+      node = node[segs[i]];
+    }
+    node[segs[segs.length - 1]] = p.value;
+  }
+  return model;
+}
+
+/** One HITL action's full lifecycle, correlated by actionId. */
+export interface ActionLifecycle {
+  actionId: string;
+  name?: string;
+  capability?: string;
+  states: Array<{ index: number; atMs: number; state: string; detail?: string; method?: string }>;
+}
+
+export function actionLifecyclesAt(fixture: EventSource, playhead: number): ActionLifecycle[] {
+  const byId = new Map<string, ActionLifecycle>();
+  eventsUpTo(fixture, playhead).forEach(({ atMs, event }, index) => {
+    if (event.type !== T.custom) return;
+    const name = (event as any).name as string;
+    if (!name?.startsWith("studio.action.")) return;
+    const v = (event as any).value ?? {};
+    const id = String(v.actionId ?? "unknown");
+    const lc = byId.get(id) ?? { actionId: id, states: [] };
+    lc.name = lc.name ?? v.name ?? v.originalName;
+    lc.capability = lc.capability ?? v.capability;
+    lc.states.push({ index, atMs, state: name.replace("studio.action.", ""), detail: v.detail, method: v.method });
+    byId.set(id, lc);
+  });
+  return [...byId.values()];
+}
+
+export type EventCategory = "run" | "step" | "pipeline" | "a2ui" | "user-action" | "agent-response" | "enhancement" | "other";
+
+/** Category taxonomy: user actions vs agent events vs pipeline events vs deliveries. */
+export function eventCategory(event: { type: string } & Record<string, unknown>): EventCategory {
+  const t = event.type;
+  if (t === T.runStarted || t === T.runFinished || t === T.runError) return "run";
+  if (t === T.stepStarted || t === T.stepFinished) return "step";
+  if (t.startsWith("TOOL_CALL")) return "a2ui";
+  if (t === T.custom) {
+    const name = String((event as any).name ?? "");
+    if (name.startsWith("dspack.")) return "pipeline";
+    if (name === "studio.surface.enhanced") return "enhancement";
+    if (name === "studio.action.pending" || name === "studio.action.resolved" || name === "studio.action.unresolved" || name === "studio.action.cancelled") return "user-action";
+    if (name.startsWith("studio.action.")) return "agent-response";
+  }
+  return "other";
+}
