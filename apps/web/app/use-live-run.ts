@@ -36,7 +36,7 @@ export interface LiveRunControls {
    * network failures append studio.action.failed and can be retried by
    * calling sendAction again with the same payload.
    */
-  sendAction(action: { scenario: string; name: string; surfaceId?: string; sourceComponentId?: string; context?: Record<string, unknown> }): void;
+  sendAction(action: { scenario: string; name: string; capability?: string; surfaceId?: string; sourceComponentId?: string; context?: Record<string, unknown>; resolution?: unknown }): void;
   /** The accumulated run as a downloadable fixture document. */
   toFixture(meta: { id: string; name: string; intent: string; prompt: string; modelRef: string }): unknown;
 }
@@ -98,12 +98,24 @@ export function useLiveRun(agentUrl: string): LiveRunState & LiveRunControls {
       pendingActions.current.add(dedupeKey);
 
       const actionId = crypto.randomUUID();
-      appendEvent({ type: "CUSTOM", name: "studio.action.pending", value: { actionId, ...action } });
+      const { resolution, ...rest } = action as any;
+      if (resolution) {
+        appendEvent({
+          type: "CUSTOM",
+          name: resolution.ok ? "studio.action.resolved" : "studio.action.unresolved",
+          value: { actionId, originalName: resolution.originalName, capability: resolution.capability, method: resolution.method, reason: resolution.reason, detail: resolution.detail },
+        });
+        if (!resolution.ok) {
+          pendingActions.current.delete(dedupeKey);
+          return;
+        }
+      }
+      appendEvent({ type: "CUSTOM", name: "studio.action.pending", value: { actionId, ...rest } });
 
       fetch(`${agentUrl}/action`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ actionId, ...action }),
+        body: JSON.stringify({ actionId, ...rest }),
       })
         .then(async (r) => {
           const body = (await r.json()) as { events?: Array<Record<string, unknown>>; error?: string };

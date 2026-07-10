@@ -92,7 +92,7 @@ const server = createServer(async (req, res) => {
   // client appends to its event source (UI event -> agent response, both
   // correlation-id'd; replays reconstruct the whole exchange).
   if (path === "/action") {
-    const { scenario, actionId, name, context } = body ?? {};
+    const { scenario, actionId, name, capability, context } = body ?? {};
     if (typeof actionId !== "string" || typeof name !== "string") {
       json(res, 400, { error: "actionId and name are required" });
       return;
@@ -105,7 +105,7 @@ const server = createServer(async (req, res) => {
       json(res, 404, { error: `no interactive responder for scenario '${String(scenario)}'` });
       return;
     }
-    const response = bookingRespond(name, context ?? {});
+    const response = bookingRespond(String(capability ?? name), context ?? {});
     const events: BaseEvent[] = [];
     if (response.ops.length > 0) {
       events.push(...a2uiDeliveryEvents(response.ops as Array<Record<string, unknown>>, `action-${actionId}`));

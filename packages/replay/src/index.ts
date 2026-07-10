@@ -6,6 +6,7 @@ export {
   a2uiMessagesAt,
   gateStateAt,
   timelineTicks,
+  surfaceComponentsAt,
   gateFailed,
   type GateLike,
   type GateState,

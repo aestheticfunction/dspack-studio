@@ -11,7 +11,8 @@
  * on the visitor's own machine via the local agent.
  */
 import { useState } from "react";
-import type { Scenario } from "@dspack-studio/scenarios";
+import { bookingCapabilities, resolveAction, type Scenario } from "@dspack-studio/scenarios";
+import { surfaceComponentsAt } from "@dspack-studio/replay";
 import { useLiveRun, type LiveStatus } from "./use-live-run";
 import { RunView } from "./run-view";
 
@@ -214,14 +215,23 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
           label={`live run — ${lastRun?.modelRef ?? modelRef}, ${live.events.length} events`}
           onAction={
             interactive
-              ? (a: any) =>
+              ? (a: any) => {
+                  const components = surfaceComponentsAt({ events: live.events }, live.events.length - 1);
+                  const resolution = resolveAction(
+                    { name: a?.name ?? "unknown", sourceComponentId: a?.sourceComponentId, context: a?.context },
+                    components as any,
+                    bookingCapabilities,
+                  );
                   live.sendAction({
                     scenario: scenario.id,
                     name: a?.name ?? "unknown",
+                    capability: resolution.ok ? resolution.capability : undefined,
                     surfaceId: a?.surfaceId,
                     sourceComponentId: a?.sourceComponentId,
-                    context: a?.context,
-                  })
+                    context: resolution.ok ? resolution.context : a?.context,
+                    resolution,
+                  } as any);
+                }
               : undefined
           }
         />

@@ -63,6 +63,15 @@ export function a2uiMessagesAt(fixture: EventSource, playhead: number): unknown[
   return ops;
 }
 
+/** Latest definition of every surface component delivered up to the playhead. */
+export function surfaceComponentsAt(fixture: EventSource, playhead: number): Array<Record<string, unknown> & { id: string; component: string }> {
+  const byId = new Map<string, any>();
+  for (const op of a2uiMessagesAt(fixture, playhead) as any[]) {
+    for (const c of op?.updateComponents?.components ?? []) if (c?.id) byId.set(c.id, c);
+  }
+  return [...byId.values()];
+}
+
 export interface GateLike {
   gate: string;
   /** S-gates: "PASS" | "FAIL" | "SKIPPED". */

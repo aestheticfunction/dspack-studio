@@ -310,3 +310,29 @@ Finding: generated surfaces carry synthesized action slugs (not the
 select_slot overlay), so HITL responses reject them gracefully as unknown
 actions — wiring generated actions to responders is next-block work
 alongside the inspectors, recipe-creator, and the remount benchmark.
+
+## Generated-action resolution layer (2026-07-10, in progress)
+
+PR verified: dspack#20 (OPEN) carries the drift fix + scheduling governance.
+Full eval matrix (P5) waits on its merge (check:sync gates on GitHub main).
+
+Implemented (unit-tested, wired, committed):
+- packages/scenarios/capabilities.ts: scenario-neutral resolution.
+  Capabilities declare exact action names AND component-grounded matchers
+  with VALIDATED semantics (e.g. select_slot grounds on a Button whose label
+  parses as HH:MM — never bare label-string matching hidden in code).
+  resolveAction(action, surfaceComponents, capabilities) is pure ->
+  deterministic in replay; preserves the original (synthesized) identifier
+  as provenance; single-hit resolves, multi-hit -> "ambiguous", no-hit ->
+  "unsupported" (both rejected clearly, never guessed). 5/5 tests incl.
+  synthesized slugs, ambiguity, determinism.
+- replay: surfaceComponentsAt reducer (latest component defs at playhead).
+- Client: LiveView resolves before dispatch (works for deterministic AND
+  generated surfaces); studio.action.resolved/unresolved recorded in the
+  stream with method + provenance; unresolved actions never POST.
+- Agent: /action dispatches on capability ?? name (idempotency unchanged).
+
+Remaining in this block (next session): e2e verification of a generated
+scheduling interaction + fixture-005 recording; progressive-disclosure
+inspectors (P2); recipe-creator foundation + governance proposal (P3);
+canvas-remount benchmark (P4); full matrix after dspack#20 merges (P5).
