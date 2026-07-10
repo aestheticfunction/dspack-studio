@@ -352,3 +352,71 @@ natural variance) and the failure panel handled it as designed. Pending
 next session: full generated-interaction happy path in-browser + Playwright,
 fixture-005 recording, then P2 inspectors, P3 recipe proposal, P4 remount
 benchmark, P5 matrix (blocked on dspack#20 merge).
+
+## P1 sign-off, inspectors, recipe foundation, benchmark (2026-07-10)
+
+Merge verified: dspack/main = 86dbe85 (PR #20; drift fix 9857b85 +
+scheduling 7085835). dspack-gen check:sync re-synced (--write) with FA
+goldens regenerated deliberately (rationale strings now cite v0.1.4);
+93/93; committed on branch sync/astryx-scheduling-contract. All three
+contract copies verified byte-identical to GitHub main.
+
+P1 SIGNED OFF:
+- Scripted adapter is intent-aware (plays the worked example for the
+  requested intent) — CI has a deterministic generated-booking path.
+- fixture-005 (mode live, ollama:gpt-oss:latest, 27 events, 9.5s): generation
+  under the merged scheduling intent -> gates -> studio.surface.enhanced
+  provenance -> resolved->pending->accepted twice (slot, confirm) ->
+  /booking/confirmed=true, "Booked Mon 9:00 AM for Ada". Recorded via the
+  gated RECORD_LIVE Playwright spec (retry budget 4; first recording attempt
+  failed on ESM __dirname — fixed to process.cwd()). Registered as the
+  booking scenario's replay fixture; replayable in-app.
+- e2e: deterministic generated path (pipeline -> enhancement -> semantic
+  resolution -> confirm -> scrub reconstruction incl. committed name).
+
+P2 INSPECTORS: closed-by-default disclosure inside RunView; tabs state
+(model + ordered patch log with delivery correlation), actions (lifecycles
+by correlation id, resolution method, rejection detail), events
+(category-colored: run/step/pipeline/a2ui/user-action/agent-response/
+enhancement), a2ui ops, gates (findings + repair messages + refusal),
+components (bindings ⇄ paths, grounded actions). All panels are prefix
+folds — synchronized with scrubbing by construction; 4 reducer unit tests
+assert no-future-state; 4 e2e tests assert backward/forward sync against
+fixture-005. Identical across live, replayed, imported sessions.
+
+P3 RECIPE FOUNDATION (deterministic; governance proposal below, not applied):
+- Authored contract surface (surfaces/recipe-creator.dsurface.json, intent
+  structured-editing) emitted via the generalized surfaces/ build loop.
+- Agent module: servings rescale the ingredients Table via updateComponents
+  (component-level co-editing beyond DM patches), constraints validate
+  against a known set (unknown -> recoverable rejection), regenerate cycles
+  deterministic variants preserving servings+constraint; per-session state
+  cleared on scenario start (first suite run exposed cross-run session
+  leakage — fixed). 4 unit tests; 3 e2e tests incl. export.
+- Scenario-neutral shell: SCENARIOS registry (start + respond) in the agent;
+  capabilitiesByScenario in the scenarios package; live view reads both.
+  "generate live" is hidden for scenarios with unmet governance needs.
+
+P4 BENCHMARK (measured, then one adapter-level fix, no renderer changes):
+- 8 rapid interactive deliveries: click->paint mean 39-45ms; total processor
+  time 3.4ms (≈0.1ms/rebuild) — processing cost is a non-issue at this scale.
+- Found 32 rebuilds for 8 deliveries (array-identity effect deps); fixed by
+  keying the processor effect on messages.length (a prefix accumulator ⇒
+  equal length = identical content): now exactly 1 rebuild per delivery.
+- The real user-facing cost is FOCUS + DRAFT-INPUT LOSS on delivery
+  (focusRetained=false, draftRetained=false): inherent to the remount
+  workaround for @a2ui/react's per-surface memoization of resolved props.
+  Verdict: acceptable for scheduling and recipe (typing precedes actions;
+  agent patches land after actions, not mid-keystroke). A real fix means
+  upstream reactive re-resolution in @a2ui/react — filed as a follow-up,
+  explicitly NOT fork-worthy on this evidence.
+
+P5 MATRIX: running (216 live runs, json-render target, byte-comparable to
+the m3 baseline 67/216; ~14 runs in, gemma segment). Note the matrix
+prompts are all destructive-action — it measures regression on the
+unrelated intent (the fewshot corpus now includes ex.book-consultation
+cross-intent); scheduling-specific numbers come from the recorded live runs
+and a supplementary prompt set if regression review warrants it.
+
+Validation: frozen install clean; unit 6/13/5/9; typecheck OK x7; contract
+gates + drift clean; export builds; Playwright 21/21 twice (+2 gated).

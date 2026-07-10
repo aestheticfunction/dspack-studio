@@ -1,0 +1,159 @@
+/**
+ * Recipe creator: the second interactive scenario, deterministic and local.
+ * Exercises component-level co-editing beyond data-model patches: servings
+ * changes and constraint swaps re-deliver the ingredients table and badge
+ * via updateComponents, while status/servings ride the shared data model.
+ *
+ * State schema:
+ *   /recipe/servings    number
+ *   /recipe/constraint  string ("" | vegetarian | vegan | gluten-free)
+ *   /recipe/status      string (bound status Text)
+ *   /recipe/variant     number (regeneration counter)
+ *
+ * Actions (correlation-id'd, idempotent at the server):
+ *   change_servings {delta}        clamps 1..12; rescales the table
+ *   apply_constraint {constraint}  validates against the known set; unknown -> REJECTED (recoverable)
+ *   regenerate {}                  next deterministic variant
+ */
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import type { ActionResponse } from "./appointment-booking.js";
+
+const require = createRequire(import.meta.url);
+const SURFACE_ID = "structured_editing";
+const DM = (path: string, value: unknown) => ({ version: "v0.9", updateDataModel: { surfaceId: SURFACE_ID, path, value } });
+
+/** Server-side session state per surface (deterministic; cleared on start). */
+const sessions = new Map<string, { servings: number; constraint: string; variant: number }>();
+const session = (id: string) => sessions.get(id) ?? { servings: 2, constraint: "", variant: 0 };
+
+type Ingredient = { name: string; perServing: number; unit: string; tags: string[] };
+const VARIANTS: Array<{ title: string; ingredients: Ingredient[] }> = [
+  {
+    title: "Weeknight pasta",
+    ingredients: [
+      { name: "Spaghetti", perServing: 90, unit: "g", tags: [] },
+      { name: "Pancetta", perServing: 40, unit: "g", tags: ["meat"] },
+      { name: "Parmesan", perServing: 25, unit: "g", tags: ["dairy"] },
+      { name: "Cherry tomatoes", perServing: 120, unit: "g", tags: [] },
+    ],
+  },
+  {
+    title: "Lemon herb risotto",
+    ingredients: [
+      { name: "Arborio rice", perServing: 80, unit: "g", tags: [] },
+      { name: "Chicken stock", perServing: 250, unit: "ml", tags: ["meat"] },
+      { name: "Butter", perServing: 15, unit: "g", tags: ["dairy"] },
+      { name: "Lemon", perServing: 0.5, unit: "", tags: [] },
+    ],
+  },
+];
+const SWAPS: Record<string, Record<string, string>> = {
+  vegetarian: { Pancetta: "Smoked tofu", "Chicken stock": "Vegetable stock" },
+  vegan: { Pancetta: "Smoked tofu", Parmesan: "Nutritional yeast", "Chicken stock": "Vegetable stock", Butter: "Olive oil" },
+  "gluten-free": { Spaghetti: "GF spaghetti" },
+};
+const CONSTRAINTS = Object.keys(SWAPS);
+
+function tableRows(variant: number, servings: number, constraint: string) {
+  return VARIANTS[variant % VARIANTS.length].ingredients.map((ing) => {
+    const name = SWAPS[constraint]?.[ing.name] ?? ing.name;
+    const amount = ing.unit ? `${Math.round(ing.perServing * servings * 10) / 10} ${ing.unit}` : `${ing.perServing * servings}`;
+    return { cells: [name, amount] };
+  });
+}
+
+/** updateComponents delivery for the recipe's mutable components. */
+function recipeComponentsOps(variant: number, servings: number, constraint: string) {
+  return [
+    {
+      version: "v0.9",
+      updateComponents: {
+        surfaceId: SURFACE_ID,
+        components: [
+          { id: "title", component: "Text", variant: "h2", text: VARIANTS[variant % VARIANTS.length].title },
+          { id: "diet_badge", component: "Badge", label: constraint || "no constraints", variant: constraint ? "success" : "neutral" },
+          { id: "servings_label", component: "Text", variant: "body", text: `Servings: ${servings}` },
+          { id: "ingredients", component: "Table", columns: ["Ingredient", "Amount"], data: tableRows(variant, servings, constraint), density: "compact" },
+        ],
+      },
+    },
+  ];
+}
+
+export function resetRecipeSessions(): void {
+  sessions.clear();
+}
+
+export function recipeStartOps(): unknown[] {
+  // A fresh scenario start is a fresh session — deterministic across runs.
+  sessions.clear();
+  const path = require.resolve("@dspack-studio/contracts/out/recipe-creator.surface.json");
+  const emitted = JSON.parse(readFileSync(path, "utf8")) as { messages: any[] };
+  const messages = structuredClone(emitted.messages);
+  for (const m of messages) {
+    for (const c of m?.updateComponents?.components ?? []) {
+      if (c.id === "constraint_input") c.value = { path: "/recipe/constraint" };
+      if (c.id === "status") c.text = { path: "/recipe/status" };
+      if (c.id === "servings_down") c.action = { event: { name: "change_servings", context: { delta: -1 } } };
+      if (c.id === "servings_up") c.action = { event: { name: "change_servings", context: { delta: 1 } } };
+      if (c.id === "apply_constraint") c.action = { event: { name: "apply_constraint", context: { constraint: { path: "/recipe/constraint" } } } };
+      if (c.id === "regenerate") c.action = { event: { name: "regenerate" } };
+    }
+  }
+  messages.push(...recipeComponentsOps(0, 2, ""));
+  messages.push(DM("/recipe", { servings: 2, constraint: "", status: "Edit servings or add a constraint.", variant: 0 }));
+  return messages;
+}
+
+
+
+export function recipeRespond(name: string, context: Record<string, unknown>, sessionId = "default"): ActionResponse {
+  const s = session(sessionId);
+  switch (name) {
+    case "change_servings": {
+      const next = Math.max(1, Math.min(12, s.servings + Number(context.delta ?? 0)));
+      if (next === s.servings) {
+        return { outcome: "rejected", detail: `servings stay within 1–12 (already ${s.servings})`, ops: [DM("/recipe/status", `Servings stay within 1–12.`)] };
+      }
+      sessions.set(sessionId, { ...s, servings: next });
+      return {
+        outcome: "accepted",
+        ops: [...recipeComponentsOps(s.variant, next, s.constraint), DM("/recipe/servings", next), DM("/recipe/status", `Scaled to ${next} servings.`)],
+      };
+    }
+    case "apply_constraint": {
+      const constraint = String(context.constraint ?? "").trim().toLowerCase();
+      if (!CONSTRAINTS.includes(constraint)) {
+        return {
+          outcome: "rejected",
+          detail: `unknown constraint '${constraint || "(empty)"}' — try ${CONSTRAINTS.join(", ")}`,
+          ops: [DM("/recipe/status", `Unknown constraint. Try: ${CONSTRAINTS.join(", ")}.`)],
+        };
+      }
+      sessions.set(sessionId, { ...s, constraint });
+      return {
+        outcome: "accepted",
+        ops: [
+          ...recipeComponentsOps(s.variant, s.servings, constraint),
+          DM("/recipe/constraint", constraint),
+          DM("/recipe/status", `Applied ${constraint}: ingredients swapped where needed.`),
+        ],
+      };
+    }
+    case "regenerate": {
+      const variant = (s.variant + 1) % VARIANTS.length;
+      sessions.set(sessionId, { ...s, variant });
+      return {
+        outcome: "accepted",
+        ops: [
+          ...recipeComponentsOps(variant, s.servings, s.constraint),
+          DM("/recipe/variant", variant),
+          DM("/recipe/status", `Regenerated: ${VARIANTS[variant].title}.`),
+        ],
+      };
+    }
+    default:
+      return { outcome: "rejected", detail: `unknown action '${name}'`, ops: [] };
+  }
+}

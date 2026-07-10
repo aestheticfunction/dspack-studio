@@ -157,3 +157,17 @@ export const bookingCapabilities: Capability[] = [
     ],
   },
 ];
+
+/** The recipe-creator capability set (deterministic overlay names only —
+ * generated recipe surfaces await owner-approved governance). */
+export const recipeCapabilities: Capability[] = [
+  { capability: "change_servings", names: ["change_servings"] },
+  { capability: "apply_constraint", names: ["apply_constraint"] },
+  { capability: "regenerate", names: ["regenerate"] },
+];
+
+/** Per-scenario capability registry for the studio shell. */
+export const capabilitiesByScenario: Record<string, Capability[]> = {
+  "appointment-booking": bookingCapabilities,
+  "recipe-creator": recipeCapabilities,
+};

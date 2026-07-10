@@ -26,6 +26,13 @@ import {
 } from "@dspack-studio/agui-bridge";
 import { governedRun } from "./pipeline.js";
 import { bookingRespond, bookingStartOps, enhanceGeneratedOps } from "./scenarios/appointment-booking.js";
+import { recipeRespond, recipeStartOps } from "./scenarios/recipe-creator.js";
+
+/** Scenario registry: start ops + HITL responders (scenario-neutral shell). */
+const SCENARIOS: Record<string, { start: () => unknown[]; respond: (name: string, ctx: Record<string, unknown>) => { outcome: "accepted" | "rejected"; detail?: string; ops: unknown[] } }> = {
+  "appointment-booking": { start: bookingStartOps, respond: bookingRespond },
+  "recipe-creator": { start: recipeStartOps, respond: recipeRespond },
+};
 
 /** Duplicate-action protection: correlation ids already answered. */
 const answeredActions = new Map<string, unknown>();
@@ -101,11 +108,12 @@ const server = createServer(async (req, res) => {
       json(res, 200, { duplicate: true, events: answeredActions.get(actionId) });
       return;
     }
-    if (scenario !== "appointment-booking") {
+    const responder = SCENARIOS[String(scenario)];
+    if (!responder) {
       json(res, 404, { error: `no interactive responder for scenario '${String(scenario)}'` });
       return;
     }
-    const response = bookingRespond(String(capability ?? name), context ?? {});
+    const response = responder.respond(String(capability ?? name), context ?? {});
     const events: BaseEvent[] = [];
     if (response.ops.length > 0) {
       events.push(...a2uiDeliveryEvents(response.ops as Array<Record<string, unknown>>, `action-${actionId}`));
@@ -137,9 +145,9 @@ const server = createServer(async (req, res) => {
 
   // Deterministic interactive-scenario start: the authored, contract-emitted
   // surface plus its interaction overlay, streamed as a normal run.
-  if (props.scenario === "appointment-booking" && modelRef === "deterministic:authored") {
+  if (SCENARIOS[String(props.scenario)] && modelRef === "deterministic:authored") {
     res.write(encoder.encode({ type: EventType.RUN_STARTED, threadId, runId } as BaseEvent));
-    for (const e of a2uiDeliveryEvents(bookingStartOps() as Array<Record<string, unknown>>, `${runId}-start`)) {
+    for (const e of a2uiDeliveryEvents(SCENARIOS[String(props.scenario)].start() as Array<Record<string, unknown>>, `${runId}-start`)) {
       res.write(encoder.encode(e));
     }
     res.write(encoder.encode({ type: EventType.RUN_FINISHED, threadId, runId } as BaseEvent));
@@ -148,7 +156,7 @@ const server = createServer(async (req, res) => {
   }
 
   const map = createPipelineEventMapper({ threadId, runId });
-  const enhance = props.scenario === "appointment-booking";
+  const enhance = props.scenario === "appointment-booking"; // recipe live-gen awaits governance
   const onEvent = (event: unknown) => {
     for (const agui of map(event as PipelineEvent)) {
       let toWrite: BaseEvent = agui;

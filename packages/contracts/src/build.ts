@@ -11,7 +11,7 @@
  * Exit codes: 0 clean, 1 catalog gate failure, 4 surface emission failure
  * (matching dspack-emit's CLI conventions).
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -55,19 +55,19 @@ try {
   throw err;
 }
 
-// 1b) Emit the appointment-booking scenario surface (deterministic, authored,
-// lint-relevant unscoped rules apply; intent 'scheduling' is scenario-local —
-// generation for it awaits owner-authored contract governance).
-{
-  const bookingSurface = JSON.parse(
-    readFileSync(join(root, "surfaces", "appointment-booking.dsurface.json"), "utf8"),
-  ) as DspackSurface;
-  const emitted = emitSurface(bookingSurface, doc, { profile: astryxProfile });
+// 1b) Emit every authored scenario surface in surfaces/ (deterministic,
+// contract-governed structure; unscoped rules apply at lint time; intents
+// without contract governance stay deterministic-only until owner-authored).
+for (const file of readdirSync(join(root, "surfaces"))) {
+  if (!file.endsWith(".dsurface.json")) continue;
+  const name = file.replace(".dsurface.json", "");
+  const scenarioSurface = JSON.parse(readFileSync(join(root, "surfaces", file), "utf8")) as DspackSurface;
+  const emitted = emitSurface(scenarioSurface, doc, { profile: astryxProfile });
   writeFileSync(
-    join(outDir, "appointment-booking.surface.json"),
+    join(outDir, `${name}.surface.json`),
     JSON.stringify({ messages: emitted.messages, warnings: emitted.warnings }, null, 2),
   );
-  for (const w of emitted.warnings) console.log(`  [booking warn] ${w.code}: ${w.message}`);
+  for (const w of emitted.warnings) console.log(`  [${name} warn] ${w.code}: ${w.message}`);
 }
 
 // 2) Compile + gate both catalog versions.

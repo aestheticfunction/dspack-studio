@@ -27,6 +27,12 @@ export const A2uiCanvas: FC<A2uiCanvasProps> = ({ catalog, registry, messages, o
   const [surface, setSurface] = useState<any>(null);
 
   useEffect(() => {
+    // Debug telemetry for the remount benchmark: every processor rebuild
+    // (canvas remount / message-prefix change) increments a window counter.
+    if (typeof window !== "undefined") {
+      (window as any).__a2uiCanvasMounts = ((window as any).__a2uiCanvasMounts ?? 0) + 1;
+    }
+    const t0 = typeof performance !== "undefined" ? performance.now() : 0;
     const processor = new MessageProcessor<ReactComponentImplementation>(
       [ingested.catalog],
       async (action: A2uiClientAction) => onAction?.(action),
@@ -34,11 +40,18 @@ export const A2uiCanvas: FC<A2uiCanvasProps> = ({ catalog, registry, messages, o
     processor.processMessages(structuredClone(messages) as any);
     const model = Array.from(processor.model.surfacesMap.values())[0];
     if (model) setSurface(processor.model.getSurface(model.id));
+    if (typeof window !== "undefined" && typeof performance !== "undefined") {
+      const w = window as any;
+      w.__a2uiProcessMs = (w.__a2uiProcessMs ?? 0) + (performance.now() - t0);
+    }
     return () => processor.model.dispose();
-    // onAction is intentionally not a dependency: the processor holds a stable
-    // reference for the surface's lifetime.
+    // onAction is intentionally not a dependency (stable for the surface's
+    // lifetime). messages is keyed by LENGTH: a2uiMessagesAt is a prefix
+    // accumulator, so equal length implies identical content for one source —
+    // this skips rebuilds on playhead-only re-renders (measured 32 -> 8
+    // rebuilds per 8 deliveries). Source switches remount via the key prop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ingested, messages]);
+  }, [ingested, messages.length]);
 
   if (!surface) return null;
   return <A2uiSurface surface={surface} />;
