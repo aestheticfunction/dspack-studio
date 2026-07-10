@@ -1,0 +1,158 @@
+"use client";
+
+/**
+ * Break-it Mode (FM-8): pick a failure condition, run it, watch the open
+ * pipeline defend itself — validation, repair, refusal, or recoverable
+ * rejection — through the exact same RunView, timeline, and inspectors as
+ * every other run. Deterministic variants (labeled scripted) work offline;
+ * live variants run the same prompt a visitor could type.
+ */
+import { useMemo, useState } from "react";
+import { breakConditions, capabilitiesByScenario, resolveAction, scenarios, type BreakCondition } from "@dspack-studio/scenarios";
+import { importFixture, surfaceComponentsAt } from "@dspack-studio/replay";
+import { useLiveRun } from "./use-live-run";
+import { RunView } from "./run-view";
+
+const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
+
+const btn = (primary = false): React.CSSProperties => ({
+  padding: "6px 12px",
+  borderRadius: 8,
+  border: "1px solid #cbd5e1",
+  background: primary ? "#0f172a" : "transparent",
+  color: primary ? "#fff" : "inherit",
+  cursor: "pointer",
+  font: "inherit",
+  fontSize: 13,
+});
+
+export function BreakView() {
+  const live = useLiveRun(AGENT_URL);
+  const [conditionId, setConditionId] = useState(breakConditions[0].id);
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const [runSeq, setRunSeq] = useState(0);
+  const [importDemo, setImportDemo] = useState<string | null>(null);
+
+  const condition = breakConditions.find((c) => c.id === conditionId)!;
+  const scenario = useMemo(() => scenarios.find((s) => s.id === condition.scenarioId)!, [condition]);
+  const effectivePrompt = prompt ?? condition.prompt ?? "";
+  const streaming = live.status === "streaming";
+
+  const start = (modelRef: string) => {
+    setImportDemo(null);
+    setRunSeq((n) => n + 1);
+    live.run({
+      prompt: effectivePrompt || condition.label,
+      intent: condition.intent,
+      modelRef,
+      scenario: condition.kind === "unresolved-action" || condition.kind === "invalid-state" ? scenario.id : undefined,
+    });
+  };
+
+  const dispatchBadAction = () => {
+    const components = surfaceComponentsAt({ events: live.events }, live.events.length - 1);
+    if (condition.kind === "unresolved-action") {
+      const action = { name: "mystery_action", sourceComponentId: "intro" };
+      const resolution = resolveAction(action, components as any, capabilitiesByScenario[scenario.id] ?? []);
+      live.sendAction({ scenario: scenario.id, ...action, resolution } as any);
+    } else {
+      // invalid-state: a well-formed action carrying state the agent rejects.
+      live.sendAction({
+        scenario: scenario.id,
+        name: "apply_constraint",
+        capability: "apply_constraint",
+        context: { constraint: "keto" },
+        resolution: { ok: true, capability: "apply_constraint", method: "exact-name", originalName: "apply_constraint", context: { constraint: "keto" } },
+      } as any);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        {breakConditions.map((c: BreakCondition) => (
+          <button
+            key={c.id}
+            data-testid={`break-${c.id}`}
+            style={btn(c.id === conditionId)}
+            onClick={() => {
+              setConditionId(c.id);
+              setPrompt(null);
+              setImportDemo(null);
+              live.reset();
+            }}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      <p data-testid="break-expected" style={{ fontSize: 13, opacity: 0.75, margin: "0 0 10px", maxWidth: 720 }}>
+        <strong>Expected:</strong> {condition.expected}
+      </p>
+
+      {condition.prompt && (
+        <input
+          data-testid="break-prompt"
+          value={effectivePrompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", font: "inherit", fontSize: 13, background: "transparent", color: "inherit", marginBottom: 8 }}
+        />
+      )}
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        {condition.kind === "malformed-import" ? (
+          <button data-testid="break-run" style={btn(true)} onClick={() => setImportDemo((importFixture("{this is not json") as any).error)}>
+            try the malformed import
+          </button>
+        ) : condition.kind === "unresolved-action" || condition.kind === "invalid-state" ? (
+          <>
+            <button data-testid="break-run" style={btn(true)} disabled={streaming} onClick={() => start("deterministic:authored")}>
+              start the scenario
+            </button>
+            <button
+              data-testid="break-dispatch"
+              style={btn()}
+              disabled={live.events.length === 0 || streaming}
+              onClick={dispatchBadAction}
+            >
+              {condition.kind === "unresolved-action" ? "dispatch an ungroundable action" : "submit an invalid constraint"}
+            </button>
+          </>
+        ) : (
+          <>
+            {condition.scriptedRef && (
+              <button data-testid="break-run" style={btn(true)} disabled={streaming} onClick={() => start(condition.scriptedRef!)}>
+                run deterministic (scripted)
+              </button>
+            )}
+            {condition.prompt && (
+              <button data-testid="break-run-live" style={btn()} disabled={streaming} onClick={() => start("ollama:gpt-oss:latest")}>
+                run live (local model)
+              </button>
+            )}
+          </>
+        )}
+        <span style={{ fontSize: 13, opacity: 0.7 }} data-testid="break-status">
+          {live.status}
+        </span>
+      </div>
+
+      {importDemo && (
+        <section data-testid="break-import-error" style={{ border: "1px solid #fca5a5", background: "rgba(220,38,38,0.08)", borderRadius: 12, padding: "12px 16px", fontSize: 13, marginBottom: 14 }}>
+          The validator said no: <code>{importDemo}</code> — and nothing was partially loaded.
+        </section>
+      )}
+
+      {live.events.length > 0 && (
+        <RunView
+          events={live.events}
+          streaming={streaming}
+          live
+          resetKey={`break-${conditionId}-${runSeq}`}
+          label={`${condition.label} — ${live.events.length} events`}
+        />
+      )}
+    </div>
+  );
+}

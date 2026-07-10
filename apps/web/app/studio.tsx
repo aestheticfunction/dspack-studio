@@ -17,6 +17,7 @@ import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmatio
 import { importFixture, parseFixture, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
 import { RunView } from "./run-view";
 import { LiveView } from "./live-view";
+import { BreakView } from "./break-view";
 
 const btnStyle = (active: boolean): React.CSSProperties => ({
   padding: "6px 12px",
@@ -116,7 +117,7 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
 
 export function Studio() {
   const [scenarioId, setScenarioId] = useState(readyScenarios[0]?.id);
-  const [view, setView] = useState<"replay" | "live" | "canvas">("replay");
+  const [view, setView] = useState<"replay" | "live" | "break" | "canvas">("replay");
   const [actions, setActions] = useState<A2uiClientAction[]>([]);
   const [themeName, setThemeName] = useState<ThemeName>("default");
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -170,6 +171,9 @@ export function Studio() {
         <button data-testid="view-live" style={btnStyle(view === "live")} onClick={() => setView("live")}>
           run it live
         </button>
+        <button data-testid="view-break" style={btnStyle(view === "break")} onClick={() => setView("break")}>
+          break it on purpose
+        </button>
         <button data-testid="view-canvas" style={btnStyle(view === "canvas")} onClick={() => setView("canvas")}>
           worked example + themes
         </button>
@@ -177,6 +181,7 @@ export function Studio() {
 
       {view === "replay" && scenario && <ReplayPane key={scenario.id} scenario={scenario} />}
       {view === "live" && scenario && <LiveView key={scenario.id} scenario={scenario} />}
+      {view === "break" && <BreakView />}
       {view === "canvas" && (
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>

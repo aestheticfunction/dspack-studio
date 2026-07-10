@@ -420,3 +420,46 @@ and a supplementary prompt set if regression review warrants it.
 
 Validation: frozen install clean; unit 6/13/5/9; typecheck OK x7; contract
 gates + drift clean; export builds; Playwright 21/21 twice (+2 gated).
+
+## Break-it Mode, renderer abstraction, distributed eval (2026-07-10)
+
+Ecosystem sync PRs merged upstream (dspack-gen#39, dspack-emit#19);
+check:sync green on dspack-gen main.
+
+DISTRIBUTED EVAL (zero framework changes): the 216-run matrix now executes
+on two hosts sharing one outDir — the local worker in matrix order, a
+remote worker (OLLAMA_HOST=100.119.121.39, model digests verified identical)
+walking a reversed-model-order COPY of the same matrix from the far end.
+--resume treats retained per-cell reports as completed observations, so the
+partitions converge without coordination; the canonical results.json comes
+from a final --resume pass over the ORIGINAL matrix file (identical prompts,
+models, scoring, aggregation, and report ordering). Host attribution =
+per-process logs (/tmp/eval-matrix{,-remote}.log), preserved with the run
+config. Second offered host (100.115.35.114) unreachable — documented.
+Duplicate execution is possible only for cells in flight at the partition
+meeting point (wasted compute, never duplicate observations: one retained
+report per cell run). No methodology change; no runner redesign.
+
+BREAK-IT MODE (FM-8): breakConditions data (7 curated conditions:
+no-alertdialog, OK-label, unsupported component, malformed generation,
+ungroundable action, invalid shared state, malformed import) + agent-side
+BREAK_SCRIPTS (authored violating->repaired surface pairs played through the
+ORDINARY pipeline by the scripted adapter — deterministic, CI-safe, labeled
+scripted; live-model variant uses the same visitor-typable prompt). BreakView
+tab: pick a condition, read the expected outcome, run it, watch the gates/
+repair/refusal in the same RunView + inspectors; replay/scrub/export
+inherited. 6 e2e tests (27 total passing).
+
+RENDERER ABSTRACTION: docs/renderer-abstraction.md states the verified
+boundaries (AG-UI -> A2UI -> AF contract -> renderer adapter -> design
+system), interfaces (Registry, buildCatalog, render contract), capability
+discovery (BuiltCatalog.names/unimplemented), unsupported-component
+behavior, theme ownership (design-system layer only), and the exact swap
+requirements. Validated by registry-abstraction.test.ts: a minimal plain-
+HTML alternate registry against the REAL emitted catalog proves the catalog
+owns vocabulary/schemas and a registry cannot widen or narrow them. No
+migration performed.
+
+Validation: frozen install; unit 3/6/13/5/9; typecheck x8; contract gates +
+drift clean; check:sync green; export builds; Playwright 27 passed
+(+2 gated).

@@ -13,6 +13,7 @@ import {
   type RunResult,
 } from "@aestheticfunction/dspack-gen";
 import { astryxProfile } from "@dspack-studio/contracts";
+import { BREAK_SCRIPTS } from "./scenarios/break-scripts.js";
 
 const require = createRequire(import.meta.url);
 
@@ -36,8 +37,9 @@ export async function governedRun(input: GovernedRunInput): Promise<RunResult> {
   // INTENT — the deterministic stand-in for generation (labeled scripted).
   const examples = (contract as any).examples ?? [];
   const example = examples.find((e: any) => e.intent === input.intent) ?? examples[0];
-  const adapter =
-    input.modelRef === "scripted"
+  const adapter = BREAK_SCRIPTS[input.modelRef]
+    ? new ScriptedAdapter(structuredClone(BREAK_SCRIPTS[input.modelRef]))
+    : input.modelRef === "scripted"
       ? new ScriptedAdapter([{ output: example.surface }])
       : adapterFor(input.modelRef);
 
