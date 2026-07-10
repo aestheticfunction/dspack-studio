@@ -147,13 +147,59 @@ Validation matrix (2026-07-10): bridge 6/6, replay 5/5, typecheck OK across
 all six packages/apps, contract gates clean (A1/A2/A3 both A2UI versions),
 static export builds, Playwright 6/6. Phase 2 exit criteria met.
 
+## Run it Live + scenario framework (2026-07-10)
+
+The unified event-source architecture, exactly as specified: a run is an
+ordered `{ atMs, event }[]` whatever its source — recorded fixture, live
+AG-UI stream, or a saved session. One `RunView` renders all of them; the
+reducers, timeline, scrubbing, gate ticker, failure panel, and canvas are
+shared. There is no separate live implementation.
+
+Completed:
+- `apps/agent`: GET / health, GET /models (Ollama discovery + "scripted"),
+  CORS preflight. No credentials in code or requests (anthropic:* only via
+  server env; the browser never carries a key).
+- `apps/web/use-live-run.ts`: HttpAgent (via the bridge) streams the run;
+  events accumulate with timings into fixture shape. Status machine:
+  idle/streaming/finished/error/cancelled/offline; cancel (unsubscribe),
+  retry (re-run last input), reset, agent health + model discovery.
+- `RunView` (replaces replay-view): streaming mode follows the newest event
+  (progressive rendering, live timeline); scrubbing detaches follow; on
+  completion the run is immediately scrubbable. Recorded mode keeps paced
+  playback. Bug found live: deriving the reset key from the label reset the
+  playhead when streaming finished — resetKey is now an explicit prop.
+- `LiveView`: seed prompts, free prompt, model picker, run/cancel/retry/
+  reset, status line, agent-offline panel (with the exact command to start
+  the local agent), and "download fixture" — a completed live run exports as
+  a session fixture (the third event source, already round-trippable).
+- `packages/scenarios`: scenarios as data ({intent, seedPrompts,
+  breakItPrompts, fixtures, status}). "project-deletion" is the ready
+  reference scenario (3 live fixtures); onboarding / support-triage /
+  appointment-booking / recipe-creator / hotel-reservations ship as
+  status:"planned" entries stating what they wait on (contract expansion is
+  owner-authored governance content). The studio shell is fully
+  scenario-driven: shelf -> replay | live | themes; zero per-scenario UI.
+- Playwright grew live-mode coverage (scripted adapter, deterministic):
+  stream->render->outcome->scrub, run-again, reset+download. Config runs two
+  webServers (static export + agent). 9/9, run twice for stability; two
+  non-waiting count assertions replaced with auto-waiting ones.
+
+Verified live in-browser (not just tests): a real ollama:gpt-oss run from
+the Run button — 2 -> 6 -> 16 events streaming progressively, an S3 catch +
+repair mid-run, final surface rendered, then scrubbed backward; cancel
+mid-stream -> "cancelled" + retry offered.
+
+Validation (2026-07-10): unit 6/6 + 5/5; typecheck OK x7 packages/apps;
+contract gates clean; static export builds; Playwright 9/9 twice.
+
 Follow-ups:
-- Web "run it live" view (HttpAgent -> apps/agent) — the live loop is
-  protocol-verified (curl); the browser UI for it is the recommended next
-  block (MVP "BYO key behind a disclosure").
+- Push to github.com/aestheticfunction/dspack-studio (owner runs the push;
+  command provided in session).
 - Upstream (dspack-gen): export `PipelineEvent` (+ consider `GateReport`)
   from the package root.
-- Upstream (contract, owner decision): ceiling note or rule for degenerate
-  empty text-in-text chains (projectable now, render as nothing).
-- Studio repo is still local-only: GitHub repo creation under
-  aestheticfunction needs owner action.
+- Upstream (contract, owner decision): intents/rules/examples for the five
+  planned scenarios; ceiling note for degenerate empty text-in-text chains.
+- Load a downloaded session fixture back into the replay view (file-open) —
+  the format already round-trips.
+- HITL + STATE_DELTA co-editing (appointment-booking / recipe-creator
+  prerequisites).

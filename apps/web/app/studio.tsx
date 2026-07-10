@@ -1,42 +1,22 @@
 "use client";
 
 /**
- * The studio shell (Phase 2 v1): two views over the same substrate.
- *  - replay: fixture-001 played/scrubbed through the FM-2 timeline engine.
- *  - canvas: the contract's worked example, statically rendered (Phase 1),
- *    with the FM-5 theme dial.
- * Both render through the identical catalog -> Astryx registry path.
+ * The studio shell: scenario-driven. A scenario contributes only data
+ * (intent, seed prompts, curated fixtures); the experience — replay with the
+ * timeline, live streaming, gate ticker, failure panel, inspection — is the
+ * same substrate for every scenario. Planned scenarios appear on the shelf
+ * with what they are waiting on, stated honestly.
  */
 import { useState } from "react";
 import { Theme } from "@astryxdesign/core";
 import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
 import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-studio/astryx-renderers";
+import { readyScenarios, scenarios, type Scenario } from "@dspack-studio/scenarios";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
-import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
-import fixture002 from "@dspack-studio/replay/fixtures/fixture-002.json";
-import fixture003 from "@dspack-studio/replay/fixtures/fixture-003.json";
-import { ReplayView } from "./replay-view";
-
-const FIXTURES = {
-  "argues-back": {
-    json: fixture001,
-    label: "the interface argues back",
-    blurb: "Two governed repairs: the model omits the AlertDialog, then labels the action 'OK'. The design system wins.",
-  },
-  clean: {
-    json: fixture002,
-    label: "clean first pass",
-    blurb: "No violations: one attempt, straight through the gates to a rendered surface.",
-  },
-  refusal: {
-    json: fixture003,
-    label: "the emitter refuses",
-    blurb: "Lint-clean surface uses a component the protocol profile cannot project — the pipeline refuses, with receipts.",
-  },
-} as const;
-
-type FixtureKey = keyof typeof FIXTURES;
+import { parseFixture } from "@dspack-studio/replay";
+import { RunView } from "./run-view";
+import { LiveView } from "./live-view";
 
 const btnStyle = (active: boolean): React.CSSProperties => ({
   padding: "6px 12px",
@@ -49,13 +29,38 @@ const btnStyle = (active: boolean): React.CSSProperties => ({
   fontSize: 13,
 });
 
+function ReplayPane({ scenario }: { scenario: Scenario }) {
+  const [key, setKey] = useState(scenario.fixtures[0]?.key);
+  const ref = scenario.fixtures.find((f) => f.key === key) ?? scenario.fixtures[0];
+  if (!ref) return <p style={{ opacity: 0.6 }}>No recordings yet for this scenario.</p>;
+  const fixture = parseFixture(ref.fixture);
+  return (
+    <>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        {scenario.fixtures.map((f) => (
+          <button key={f.key} data-testid={`fixture-${f.key}`} style={btnStyle(f.key === ref.key)} onClick={() => setKey(f.key)}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{ref.blurb}</p>
+      <RunView
+        events={fixture.events}
+        resetKey={`${scenario.id}:${ref.key}`}
+        label={`${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events`}
+      />
+    </>
+  );
+}
+
 export function Studio() {
-  const [view, setView] = useState<"replay" | "canvas">("replay");
-  const [fixtureKey, setFixtureKey] = useState<FixtureKey>("argues-back");
+  const [scenarioId, setScenarioId] = useState(readyScenarios[0]?.id);
+  const [view, setView] = useState<"replay" | "live" | "canvas">("replay");
   const [actions, setActions] = useState<A2uiClientAction[]>([]);
   const [themeName, setThemeName] = useState<ThemeName>("default");
   const [mode, setMode] = useState<"light" | "dark">("light");
 
+  const scenario = scenarios.find((s) => s.id === scenarioId) ?? readyScenarios[0];
   const theme = themes[themeName];
 
   const staticCanvas = (
@@ -69,41 +74,49 @@ export function Studio() {
 
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px", fontFamily: "system-ui" }}>
-      <header style={{ marginBottom: 24 }}>
+      <header style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>dspack-studio</h1>
         <p style={{ fontSize: 14, opacity: 0.75, margin: "6px 0 0" }}>
           An agent builds interfaces under a design-system contract — streamed over AG-UI as A2UI
-          surfaces, rendered with Astryx. Rewind it. X-ray it. Nothing here is staged.
+          surfaces, rendered with Astryx. Replay it, run it live, rewind it. Nothing here is staged.
         </p>
       </header>
 
+      {/* The scenario shelf. */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+        {scenarios.map((s) =>
+          s.status === "ready" ? (
+            <button key={s.id} data-testid={`scenario-${s.id}`} style={btnStyle(s.id === scenario?.id)} onClick={() => setScenarioId(s.id)}>
+              {s.name}
+            </button>
+          ) : (
+            <span
+              key={s.id}
+              title={`Planned. Needs: ${(s.needs ?? []).join("; ")}`}
+              style={{ ...btnStyle(false), opacity: 0.45, cursor: "help" }}
+            >
+              {s.name} <em style={{ fontSize: 11 }}>(planned)</em>
+            </span>
+          ),
+        )}
+      </div>
+      {scenario && <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 16px" }}>{scenario.tagline}</p>}
+
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <button style={btnStyle(view === "replay")} onClick={() => setView("replay")}>
+        <button data-testid="view-replay" style={btnStyle(view === "replay")} onClick={() => setView("replay")}>
           replay a recorded run
         </button>
-        <button style={btnStyle(view === "canvas")} onClick={() => setView("canvas")}>
+        <button data-testid="view-live" style={btnStyle(view === "live")} onClick={() => setView("live")}>
+          run it live
+        </button>
+        <button data-testid="view-canvas" style={btnStyle(view === "canvas")} onClick={() => setView("canvas")}>
           worked example + themes
         </button>
       </div>
 
-      {view === "replay" ? (
-        <>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            {(Object.keys(FIXTURES) as FixtureKey[]).map((key) => (
-              <button
-                key={key}
-                data-testid={`fixture-${key}`}
-                style={btnStyle(key === fixtureKey)}
-                onClick={() => setFixtureKey(key)}
-              >
-                {FIXTURES[key].label}
-              </button>
-            ))}
-          </div>
-          <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{FIXTURES[fixtureKey].blurb}</p>
-          <ReplayView fixtureJson={FIXTURES[fixtureKey].json} />
-        </>
-      ) : (
+      {view === "replay" && scenario && <ReplayPane key={scenario.id} scenario={scenario} />}
+      {view === "live" && scenario && <LiveView key={scenario.id} scenario={scenario} />}
+      {view === "canvas" && (
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
             {themeNames.map((name) => (

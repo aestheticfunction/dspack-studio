@@ -1,1 +1,2 @@
-// Phase 2 — see the implementation plan.
+export type { Scenario, ScenarioFixtureRef } from "./types";
+export { scenarios, readyScenarios } from "./registry";

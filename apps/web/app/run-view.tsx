@@ -1,15 +1,17 @@
 "use client";
 
 /**
- * FM-2 v1: interface time travel over recorded runs. The fixture is a real
- * recorded run (AG-UI events + original timings). Play streams it back; the
- * scrubber folds the event prefix into the exact historical state — the
- * canvas un-builds as you drag left, the repaired dialog reverts, gate ticks
- * un-light. Every frame is a real state, reconstructed not approximated.
+ * RunView: the one experience for every event source. A run — recorded
+ * fixture, live AG-UI stream, or a future saved session — is an ordered list
+ * of { atMs, event }; everything here (timeline, scrubbing, playback, gate
+ * ticker, failure panel, canvas, raw-event card) folds off that list through
+ * the same reducers. Replay and live are the same pixels because they are
+ * the same data shape.
  *
- * Failure runs are first-class: when the audit outcome is not "passed", the
- * failure panel shows the emitter's refusal (or gate errors) verbatim from
- * the audit report — failures ship with receipts too.
+ * streaming=true (a live run in flight): the playhead follows the newest
+ * event (progressive rendering); scrubbing detaches the follow, the follow
+ * button re-attaches it. streaming=false: play schedules the remaining
+ * events at their recorded pacing.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
@@ -18,9 +20,8 @@ import {
   a2uiMessagesAt,
   gateFailed,
   gateStateAt,
-  parseFixture,
   timelineTicks,
-  type ReplayFixture,
+  type FixtureEvent,
   type TimelineTick,
 } from "@dspack-studio/replay";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
@@ -37,30 +38,50 @@ const TICK_COLOR: Record<TimelineTick["kind"], string> = {
   other: "#cbd5e1",
 };
 
-export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
-  const fixture: ReplayFixture = useMemo(() => parseFixture(fixtureJson), [fixtureJson]);
-  const ticks = useMemo(() => timelineTicks(fixture), [fixture]);
-  const last = fixture.events.length - 1;
+export interface RunViewProps {
+  events: FixtureEvent[];
+  /** e.g. "The interface argues back — live run, ollama:gemma4:e4b, 20 events" */
+  label: string;
+  /** True while a live run is still streaming. */
+  streaming?: boolean;
+  /** Changes exactly when the underlying RUN changes (fixture key / run id) —
+   * resets the playhead. Must NOT change when only the label/status does. */
+  resetKey: string;
+}
+
+export function RunView({ events, label, streaming = false, resetKey }: RunViewProps) {
+  const source = useMemo(() => ({ events }), [events]);
+  const ticks = useMemo(() => timelineTicks(source), [source]);
+  const last = events.length - 1;
 
   const [playhead, setPlayhead] = useState(-1);
   const [playing, setPlaying] = useState(false);
+  const [follow, setFollow] = useState(true);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Reset when the fixture changes.
+  // New run (fixture switch or a fresh live run): reset. Follow is on only
+  // for runs that arrive streaming; replayed fixtures start at the beginning.
   useEffect(() => {
     setPlayhead(-1);
     setPlaying(false);
-  }, [fixture]);
+    setFollow(streaming);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
 
-  // Play = schedule the remaining events at their recorded pacing (gaps capped
-  // so long model pauses stay watchable).
+  // Live follow: pin the playhead to the newest event while the run streams,
+  // and land on the final event when it completes (streaming flips false).
+  useEffect(() => {
+    if (follow && last >= 0) setPlayhead(last);
+  }, [streaming, follow, last]);
+
+  // Recorded playback: schedule the remaining events at recorded pacing.
   useEffect(() => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    if (!playing) return;
+    if (!playing || streaming) return;
     let clock = 0;
     for (let i = playhead + 1; i <= last; i++) {
-      const gap = Math.min(fixture.events[i].atMs - (i > 0 ? fixture.events[i - 1].atMs : 0), 2500);
+      const gap = Math.min(events[i].atMs - (i > 0 ? events[i - 1].atMs : 0), 2500);
       clock += Math.max(gap, 30);
       const idx = i;
       timers.current.push(
@@ -74,9 +95,9 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing]);
 
-  const messages = useMemo(() => a2uiMessagesAt(fixture, playhead), [fixture, playhead]);
-  const gates = useMemo(() => gateStateAt(fixture, playhead), [fixture, playhead]);
-  const current = playhead >= 0 ? fixture.events[playhead] : null;
+  const messages = useMemo(() => a2uiMessagesAt(source, playhead), [source, playhead]);
+  const gates = useMemo(() => gateStateAt(source, playhead), [source, playhead]);
+  const current = playhead >= 0 && playhead <= last ? events[playhead] : null;
 
   const failed = gates.audit && gates.audit.outcome !== "passed";
   const refusal = failed ? ((gates.audit?.report as any)?.emitted?.refusal as string | undefined) : undefined;
@@ -84,18 +105,29 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
   return (
     <div>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10, fontSize: 13 }}>
-        <button
-          data-testid="play"
-          onClick={() => {
-            if (playhead >= last) setPlayhead(-1);
-            setPlaying(!playing);
-          }}
-          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}
-        >
-          {playing ? "pause" : playhead >= last ? "replay" : "play"}
-        </button>
+        {!streaming && (
+          <button
+            data-testid="play"
+            onClick={() => {
+              if (playhead >= last) setPlayhead(-1);
+              setPlaying(!playing);
+            }}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}
+          >
+            {playing ? "pause" : playhead >= last && last >= 0 ? "replay" : "play"}
+          </button>
+        )}
+        {streaming && !follow && (
+          <button
+            data-testid="follow"
+            onClick={() => setFollow(true)}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}
+          >
+            follow live
+          </button>
+        )}
         <span style={{ opacity: 0.7 }} data-testid="fixture-meta">
-          {fixture.name} — {fixture.mode} run, {fixture.adapterId}, {fixture.events.length} events
+          {label}
         </span>
       </div>
 
@@ -105,10 +137,11 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
           data-testid="scrubber"
           type="range"
           min={-1}
-          max={last}
+          max={Math.max(last, 0)}
           value={playhead}
           onChange={(e) => {
             setPlaying(false);
+            setFollow(false);
             setPlayhead(Number(e.target.value));
           }}
           style={{ width: "100%" }}
@@ -121,6 +154,7 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
               title={`${t.label} @ ${t.atMs}ms`}
               onClick={() => {
                 setPlaying(false);
+                setFollow(false);
                 setPlayhead(t.index);
               }}
               style={{
@@ -197,13 +231,15 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
           <A2uiCanvas catalog={catalogJson as any} registry={astryxRegistry} messages={messages} />
         ) : (
           <p style={{ opacity: 0.6, fontSize: 14 }} data-testid="canvas-empty">
-            {playhead < 0
-              ? "Press play, or drag the timeline: the interface builds (and un-builds) from the recorded event stream."
-              : failed
-                ? "No surface shipped — the refusal above is this run's ending."
-                : gates.attempts.some((a) => a.gates.some(gateFailed))
-                  ? "The design system said no — a gate failed here; the repair is on its way."
-                  : "Generating…"}
+            {streaming
+              ? "Generating — the surface streams in the moment it passes the gates…"
+              : playhead < 0
+                ? "Press play, or drag the timeline: the interface builds (and un-builds) from the recorded event stream."
+                : failed
+                  ? "No surface shipped — the refusal above is this run's ending."
+                  : gates.attempts.some((a) => a.gates.some(gateFailed))
+                    ? "The design system said no — a gate failed here; the repair is on its way."
+                    : "Generating…"}
           </p>
         )}
       </section>

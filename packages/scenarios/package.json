@@ -2,8 +2,17 @@
   "name": "@dspack-studio/scenarios",
   "version": "0.1.0",
   "private": true,
-  "description": "Phase 2 package (see docs/plan): scenarios.",
+  "description": "The scenario framework: scenarios as data (intent, seed prompts, break-it prompts, curated fixtures). Every scenario inherits the full studio experience \u2014 timeline, inspection, validation, repair visualization, rendering \u2014 with zero per-scenario UI code.",
   "license": "Apache-2.0",
   "type": "module",
-  "exports": { ".": "./src/index.ts" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@dspack-studio/replay": "workspace:*",
+    "typescript": "^5.7.2"
+  }
 }

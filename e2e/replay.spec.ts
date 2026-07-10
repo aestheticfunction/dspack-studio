@@ -39,13 +39,13 @@ test("scrub forward: jumping to the end reconstructs the final state instantly",
   await page.getByTestId("fixture-clean").click();
   await scrubToEnd(page);
   await expect(page.getByTestId("audit-outcome")).toContainText("outcome passed (exit 0)");
-  expect(await canvasComponents(page).count()).toBeGreaterThan(0);
+  await expect(canvasComponents(page).first()).toBeVisible();
 });
 
 test("scrub backward: the interface un-builds to the exact earlier state (FM-2)", async ({ page }) => {
   await page.getByTestId("fixture-clean").click();
   await scrubToEnd(page);
-  expect(await canvasComponents(page).count()).toBeGreaterThan(0);
+  await expect(canvasComponents(page).first()).toBeVisible();
 
   await scrubToStart(page);
   await expect(canvasComponents(page)).toHaveCount(0);

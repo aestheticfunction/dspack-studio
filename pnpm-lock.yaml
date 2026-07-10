@@ -69,6 +69,9 @@ importers:
       '@dspack-studio/a2ui-ingest':
         specifier: workspace:*
         version: link:../../packages/a2ui-ingest
+      '@dspack-studio/agui-bridge':
+        specifier: workspace:*
+        version: link:../../packages/agui-bridge
       '@dspack-studio/astryx-renderers':
         specifier: workspace:*
         version: link:../../packages/astryx-renderers
@@ -78,6 +81,9 @@ importers:
       '@dspack-studio/replay':
         specifier: workspace:*
         version: link:../../packages/replay
+      '@dspack-studio/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
       next:
         specifier: 15.3.2
         version: 15.3.2(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -233,7 +239,14 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.0)
 
-  packages/scenarios: {}
+  packages/scenarios:
+    devDependencies:
+      '@dspack-studio/replay':
+        specifier: workspace:*
+        version: link:../replay
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
 
 packages:
 
