@@ -51,7 +51,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
   const startGenerated = (p: string, m: string) => {
     setRunSeq((n) => n + 1);
     setLastRun({ prompt: p, modelRef: m });
-    live.run({ prompt: p, intent: scenario.intent, modelRef: m });
+    live.run({ prompt: p, intent: scenario.intent, modelRef: m, scenario: interactive ? scenario.id : undefined });
   };
 
   const start = (p: string, m: string) => {

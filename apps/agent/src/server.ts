@@ -25,7 +25,7 @@ import {
   type PipelineEvent,
 } from "@dspack-studio/agui-bridge";
 import { governedRun } from "./pipeline.js";
-import { bookingRespond, bookingStartOps } from "./scenarios/appointment-booking.js";
+import { bookingRespond, bookingStartOps, enhanceGeneratedOps } from "./scenarios/appointment-booking.js";
 
 /** Duplicate-action protection: correlation ids already answered. */
 const answeredActions = new Map<string, unknown>();
@@ -137,7 +137,7 @@ const server = createServer(async (req, res) => {
 
   // Deterministic interactive-scenario start: the authored, contract-emitted
   // surface plus its interaction overlay, streamed as a normal run.
-  if (props.scenario === "appointment-booking") {
+  if (props.scenario === "appointment-booking" && modelRef === "deterministic:authored") {
     res.write(encoder.encode({ type: EventType.RUN_STARTED, threadId, runId } as BaseEvent));
     for (const e of a2uiDeliveryEvents(bookingStartOps() as Array<Record<string, unknown>>, `${runId}-start`)) {
       res.write(encoder.encode(e));
@@ -148,8 +148,24 @@ const server = createServer(async (req, res) => {
   }
 
   const map = createPipelineEventMapper({ threadId, runId });
+  const enhance = props.scenario === "appointment-booking";
   const onEvent = (event: unknown) => {
-    for (const agui of map(event as PipelineEvent)) res.write(encoder.encode(agui));
+    for (const agui of map(event as PipelineEvent)) {
+      let toWrite: BaseEvent = agui;
+      if (enhance && (agui as any).type === EventType.TOOL_CALL_RESULT) {
+        try {
+          const envelope = JSON.parse((agui as any).content);
+          if (Array.isArray(envelope.a2ui_operations)) {
+            const { ops, notes } = enhanceGeneratedOps(envelope.a2ui_operations);
+            toWrite = { ...(agui as any), content: JSON.stringify({ a2ui_operations: ops }) } as BaseEvent;
+            res.write(encoder.encode(toWrite));
+            res.write(encoder.encode({ type: EventType.CUSTOM, name: "studio.surface.enhanced", value: { scenario: props.scenario, notes } } as BaseEvent));
+            continue;
+          }
+        } catch { /* not an ops envelope */ }
+      }
+      res.write(encoder.encode(toWrite));
+    }
   };
 
   try {

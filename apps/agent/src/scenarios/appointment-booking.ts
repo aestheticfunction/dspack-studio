@@ -61,6 +61,61 @@ export function bookingStartOps(): unknown[] {
   return messages;
 }
 
+/**
+ * Deterministic enhancement of a GENERATED scheduling delivery: attach the
+ * shared-state plumbing the generator cannot express. Grounding is
+ * unambiguous-only (never label heuristics): exactly one TextField -> bind
+ * /booking/name; exactly one supporting-variant Text -> bind /booking/status.
+ * Every attachment is reported so the caller can record it in the stream.
+ */
+export function enhanceGeneratedOps(ops: any[]): { ops: any[]; notes: string[] } {
+  const out = structuredClone(ops);
+  const notes: string[] = [];
+  const components = out.flatMap((m: any) => m?.updateComponents?.components ?? []);
+  const textFields = components.filter((c: any) => c.component === "TextField");
+  if (textFields.length === 1) {
+    textFields[0].value = { path: "/booking/name" };
+    notes.push(`bound the single TextField '${textFields[0].id}' to /booking/name`);
+  } else if (textFields.length > 1) {
+    notes.push(`ambiguous: ${textFields.length} TextFields — no binding attached`);
+  }
+  const TIME_TOKEN = /\b([01]?\d|2[0-3]):[0-5]\d\b/g;
+  const slotFromLabel = (label: unknown): string | null => {
+    if (typeof label !== "string") return null;
+    const hits = label.trim().match(TIME_TOKEN);
+    return hits && hits.length === 1 ? label.trim() : null;
+  };
+  for (const c of components) {
+    if (c.component !== "Button") continue;
+    const slot = slotFromLabel(c.label);
+    if (slot) {
+      c.action = { event: { name: "select_slot", context: { slot, name: { path: "/booking/name" } } } };
+      notes.push(`grounded time-labeled Button '${c.id}' as select_slot('${slot}')`);
+    }
+  }
+  const primaries = components.filter((c: any) => c.component === "Button" && c.variant === "primary" && slotFromLabel(c.label) === null);
+  if (primaries.length === 1) {
+    primaries[0].action = { event: { name: "confirm_booking", context: { slot: { path: "/booking/slot" }, name: { path: "/booking/name" } } } };
+    notes.push(`grounded the single primary Button '${primaries[0].id}' as confirm_booking`);
+  }
+  const ghosts = components.filter((c: any) => c.component === "Button" && c.variant === "ghost");
+  if (ghosts.length === 1) {
+    ghosts[0].action = { event: { name: "cancel_booking" } };
+    notes.push(`grounded the single ghost Button '${ghosts[0].id}' as cancel_booking`);
+  }
+  const statusTexts = components.filter((c: any) => c.component === "Text" && c.variant === "caption");
+  if (statusTexts.length === 1) {
+    statusTexts[0].text = { path: "/booking/status" };
+    notes.push(`bound the single caption Text '${statusTexts[0].id}' to /booking/status`);
+  }
+  const surfaceId = out[0]?.createSurface?.surfaceId ?? out.find((m: any) => m.updateComponents)?.updateComponents?.surfaceId;
+  if (surfaceId) {
+    out.push({ version: "v0.9", updateDataModel: { surfaceId, path: "/booking", value: { name: "", slot: "", status: "Pick a time to begin.", confirmed: false } } });
+    notes.push("initialized /booking data model");
+  }
+  return { ops: out, notes };
+}
+
 export interface ActionResponse {
   outcome: "accepted" | "rejected";
   detail?: string;

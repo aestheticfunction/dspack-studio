@@ -111,8 +111,14 @@ export function resolveAction(
   };
 }
 
-/** Time-of-day literal, e.g. "9:00" / "14:30" — the validated slot semantic. */
-const TIME_RE = /^([01]?\d|2[0-3]):[0-5]\d$/;
+/** A label containing exactly one time-of-day token (e.g. "9:00", "Mon 9:00")
+ * grounds as a slot; zero or multiple tokens do not. */
+const TIME_TOKEN = /\b([01]?\d|2[0-3]):[0-5]\d\b/g;
+export function slotFromLabel(label: unknown): string | null {
+  if (typeof label !== "string") return null;
+  const hits = label.trim().match(TIME_TOKEN);
+  return hits && hits.length === 1 ? label.trim() : null;
+}
 
 /** The appointment-booking capability set (used by client and agent alike). */
 export const bookingCapabilities: Capability[] = [
@@ -123,7 +129,7 @@ export const bookingCapabilities: Capability[] = [
       {
         componentType: "Button",
         method: "semantic:time-labeled-button",
-        semantics: (c) => (typeof c.label === "string" && TIME_RE.test(c.label.trim()) ? { slot: c.label.trim() } : null),
+        semantics: (c) => { const slot = slotFromLabel(c.label); return slot ? { slot } : null; },
       },
     ],
   },
@@ -135,7 +141,7 @@ export const bookingCapabilities: Capability[] = [
         componentType: "Button",
         method: "semantic:primary-non-time-button",
         semantics: (c) =>
-          c.variant === "primary" && typeof c.label === "string" && !TIME_RE.test(c.label.trim()) ? {} : null,
+          c.variant === "primary" && slotFromLabel(c.label) === null ? {} : null,
       },
     ],
   },

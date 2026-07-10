@@ -336,3 +336,19 @@ Remaining in this block (next session): e2e verification of a generated
 scheduling interaction + fixture-005 recording; progressive-disclosure
 inspectors (P2); recipe-creator foundation + governance proposal (P3);
 canvas-remount benchmark (P4); full matrix after dspack#20 merges (P5).
+
+P1 continued (2026-07-10): generated-surface enhancement shipped —
+enhanceGeneratedOps grounds ONLY unambiguous components (single TextField ->
+/booking/name, single caption Text -> /booking/status, time-token-labeled
+Buttons -> select_slot with context paths, single primary -> confirm, single
+ghost -> cancel), every attachment recorded via CUSTOM
+studio.surface.enhanced. Slot semantic widened to labels containing exactly
+one HH:MM token (gpt-oss generates "Mon 9:00"-style labels); the same
+extraction (slotFromLabel) is shared by client matchers and agent
+enhancement. Verified in-browser: a generated scheduling surface rendered
+with enhanced bindings and the initial data model ("Pick a time to begin."
+via binding). A second generated run hit the emitter-refusal class (exit 3,
+natural variance) and the failure panel handled it as designed. Pending
+next session: full generated-interaction happy path in-browser + Playwright,
+fixture-005 recording, then P2 inspectors, P3 recipe proposal, P4 remount
+benchmark, P5 matrix (blocked on dspack#20 merge).
