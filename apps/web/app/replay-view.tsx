@@ -1,11 +1,15 @@
 "use client";
 
 /**
- * FM-2 v1: interface time travel. The fixture is a recorded real run (AG-UI
- * events + original timings). Play streams it back; the scrubber folds the
- * event prefix into the exact historical state — the canvas un-builds as you
- * drag left, the repaired dialog reverts to its rejected form, gate ticks
+ * FM-2 v1: interface time travel over recorded runs. The fixture is a real
+ * recorded run (AG-UI events + original timings). Play streams it back; the
+ * scrubber folds the event prefix into the exact historical state — the
+ * canvas un-builds as you drag left, the repaired dialog reverts, gate ticks
  * un-light. Every frame is a real state, reconstructed not approximated.
+ *
+ * Failure runs are first-class: when the audit outcome is not "passed", the
+ * failure panel shows the emitter's refusal (or gate errors) verbatim from
+ * the audit report — failures ship with receipts too.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
@@ -42,6 +46,12 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
   const [playing, setPlaying] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // Reset when the fixture changes.
+  useEffect(() => {
+    setPlayhead(-1);
+    setPlaying(false);
+  }, [fixture]);
+
   // Play = schedule the remaining events at their recorded pacing (gaps capped
   // so long model pauses stay watchable).
   useEffect(() => {
@@ -68,10 +78,14 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
   const gates = useMemo(() => gateStateAt(fixture, playhead), [fixture, playhead]);
   const current = playhead >= 0 ? fixture.events[playhead] : null;
 
+  const failed = gates.audit && gates.audit.outcome !== "passed";
+  const refusal = failed ? ((gates.audit?.report as any)?.emitted?.refusal as string | undefined) : undefined;
+
   return (
     <div>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10, fontSize: 13 }}>
         <button
+          data-testid="play"
           onClick={() => {
             if (playhead >= last) setPlayhead(-1);
             setPlaying(!playing);
@@ -80,7 +94,7 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
         >
           {playing ? "pause" : playhead >= last ? "replay" : "play"}
         </button>
-        <span style={{ opacity: 0.7 }}>
+        <span style={{ opacity: 0.7 }} data-testid="fixture-meta">
           {fixture.name} — {fixture.mode} run, {fixture.adapterId}, {fixture.events.length} events
         </span>
       </div>
@@ -88,6 +102,7 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
       {/* The timeline: one tick per AG-UI event; drag to any moment. */}
       <div style={{ marginBottom: 4 }}>
         <input
+          data-testid="scrubber"
           type="range"
           min={-1}
           max={last}
@@ -123,7 +138,10 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
       </div>
 
       {/* Gate ticker: S-gates per attempt fold out of the same event prefix. */}
-      <div style={{ display: "flex", gap: 10, fontSize: 12, margin: "8px 0 14px", flexWrap: "wrap", alignItems: "center" }}>
+      <div
+        data-testid="gate-ticker"
+        style={{ display: "flex", gap: 10, fontSize: 12, margin: "8px 0 14px", flexWrap: "wrap", alignItems: "center" }}
+      >
         {gates.runStart && <code style={{ opacity: 0.7 }}>{gates.runStart.adapterId}</code>}
         {gates.attempts.map((a) => (
           <span key={a.index} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
@@ -138,22 +156,54 @@ export function ReplayView({ fixtureJson }: { fixtureJson: unknown }) {
           </span>
         ))}
         {gates.audit && (
-          <span>
+          <span data-testid="audit-outcome">
             outcome <strong>{gates.audit.outcome}</strong> (exit {gates.audit.exitCode})
           </span>
         )}
       </div>
 
+      {/* Failure panel: the refusal, verbatim from the audit report. */}
+      {failed && (
+        <section
+          data-testid="failure-panel"
+          style={{
+            border: "1px solid #fca5a5",
+            background: "rgba(220,38,38,0.08)",
+            borderRadius: 12,
+            padding: "14px 18px",
+            marginBottom: 14,
+            fontSize: 13,
+          }}
+        >
+          <strong>The pipeline refused to ship this surface.</strong>
+          <p style={{ margin: "6px 0 0", lineHeight: 1.5 }}>
+            {refusal ? (
+              <>
+                Emitter refusal: <code>{refusal}</code>
+              </>
+            ) : (
+              <>Outcome {gates.audit?.outcome} (exit {gates.audit?.exitCode}) — see the audit event for gate errors.</>
+            )}
+          </p>
+          <p style={{ margin: "6px 0 0", opacity: 0.7 }}>
+            Failures are first-class artifacts: this run ends with a complete audit report instead of a rendered
+            surface. Nothing is silently dropped.
+          </p>
+        </section>
+      )}
+
       <section data-canvas style={{ border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24, minHeight: 220 }}>
         {messages.length > 0 ? (
           <A2uiCanvas catalog={catalogJson as any} registry={astryxRegistry} messages={messages} />
         ) : (
-          <p style={{ opacity: 0.6, fontSize: 14 }}>
+          <p style={{ opacity: 0.6, fontSize: 14 }} data-testid="canvas-empty">
             {playhead < 0
               ? "Press play, or drag the timeline: the interface builds (and un-builds) from the recorded event stream."
-              : gates.attempts.some((a) => a.gates.some(gateFailed))
-                ? "The design system said no — a gate failed here; the repair is on its way."
-                : "Generating…"}
+              : failed
+                ? "No surface shipped — the refusal above is this run's ending."
+                : gates.attempts.some((a) => a.gates.some(gateFailed))
+                  ? "The design system said no — a gate failed here; the repair is on its way."
+                  : "Generating…"}
           </p>
         )}
       </section>

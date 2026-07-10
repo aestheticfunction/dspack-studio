@@ -32,6 +32,11 @@ const id = flag("id");
 const name = flag("name", id);
 const out = flag("out");
 const requireRepair = process.argv.includes("--require-repair");
+/** Fixture #2 class: reject runs that needed a repair (clean first pass only). */
+const requireClean = process.argv.includes("--require-clean");
+/** Fixture #3 class: keep failure runs (emitter refusal etc.) — the failure
+ * panel needs real recorded failures, and failures are first-class artifacts. */
+const allowFailure = process.argv.includes("--allow-failure");
 
 const recorder = createRecorder({
   id,
@@ -69,11 +74,18 @@ if (result.exitCode !== 0) {
   if (lastAttempt?.surface) {
     console.error(`final surface: ${JSON.stringify(lastAttempt.surface).slice(0, 600)}`);
   }
-  console.error("run did not pass; fixture not written");
-  process.exit(result.exitCode);
+  if (!allowFailure) {
+    console.error("run did not pass; fixture not written (pass --allow-failure to keep failure runs)");
+    process.exit(result.exitCode);
+  }
+  console.error("run did not pass; keeping the failure fixture (--allow-failure)");
 }
 if (requireRepair && !sawRepair) {
   console.error("run passed but contained no repair; fixture not written (--require-repair)");
+  process.exit(5);
+}
+if (requireClean && (sawRepair || result.exitCode !== 0)) {
+  console.error("run was not a clean first pass; fixture not written (--require-clean)");
   process.exit(5);
 }
 

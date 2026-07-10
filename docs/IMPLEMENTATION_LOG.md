@@ -110,14 +110,50 @@ Fixture #1 (landed 2026-07-10, mode: live):
 Deviations:
 - None from the approved architecture.
 
+Fixtures #2 and #3 (landed 2026-07-10, both mode: live):
+- **fixture-002 "Clean first pass"** — ollama:gpt-oss:latest, 12 events,
+  19.7s. Prompt: "A settings screen where a user can delete a project they
+  own, with a clear explanation of the consequences." Arc: one attempt,
+  S1/S2/S3 all PASS, emitted, audit passed (exit 0). Recorded first try with
+  `--require-clean` (rejects any run that needed a repair).
+- **fixture-003 "The emitter refuses"** — ollama:gpt-oss:latest, 12 events.
+  Prompt asks for a dropdown menu to pick the reason for leaving. Arc:
+  attempt 0 S3 FAIL (destructive rule) -> repair -> attempt 1 all PASS ->
+  emitter refusal: "unknown component 'dropdown-menu': not a mapped
+  component of the ... profile" -> audit failed-gate (exit 3). The refusal
+  reason rides CUSTOM dspack.audit (report.emitted.refusal), verbatim.
+  Recorded with the new `--allow-failure` flag (failures are first-class
+  artifacts). Model-specific finding: gpt-oss reliably uses dropdown-menu
+  when the prompt asks for one — the casualty path is easy to stage
+  honestly.
+- Recorder gained `--require-clean` and `--allow-failure` classes alongside
+  `--require-repair`.
+
+Replay experience + failure panel:
+- Fixture picker (argues-back / clean / refusal) with one-line blurbs;
+  reducers loosened to `EventSource` (any `{events}`) so a future live view
+  can accumulate into the same shape and be scrubbable for free.
+- Failure panel: when audit.outcome != passed, the run's ending is the
+  refusal (verbatim from the audit report) instead of a surface; canvas
+  shows "No surface shipped".
+
+Playwright (6 tests, e2e/replay.spec.ts) runs against the STATIC EXPORT
+(apps/web/out served by a zero-dep file server): playback, scrub forward,
+scrub-backward reconstruction (FM-2), clean-run rendering, repair-run
+rendering (asserts the final dialog says "Delete Account", not the
+adversarial "OK"), refusal panel with the verbatim reason. Zero model calls.
+
+Validation matrix (2026-07-10): bridge 6/6, replay 5/5, typecheck OK across
+all six packages/apps, contract gates clean (A1/A2/A3 both A2UI versions),
+static export builds, Playwright 6/6. Phase 2 exit criteria met.
+
 Follow-ups:
+- Web "run it live" view (HttpAgent -> apps/agent) — the live loop is
+  protocol-verified (curl); the browser UI for it is the recommended next
+  block (MVP "BYO key behind a disclosure").
 - Upstream (dspack-gen): export `PipelineEvent` (+ consider `GateReport`)
   from the package root.
-- Upstream (contract, owner decision): consider a rule or ceiling note for
-  deep text-in-text nesting — the profile now projects it, but degenerate
-  empty-text chains remain expressible and merely render as nothing.
-- Record fixtures #2/#3 (clean run; emitter-refusal run for the failure
-  panel) — the sweep's exit-3 runs are good source material.
-- Playwright e2e for the replay view (scrub assertions).
+- Upstream (contract, owner decision): ceiling note or rule for degenerate
+  empty text-in-text chains (projectable now, render as nothing).
 - Studio repo is still local-only: GitHub repo creation under
   aestheticfunction needs owner action.

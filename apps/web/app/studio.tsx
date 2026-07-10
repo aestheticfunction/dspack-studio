@@ -14,7 +14,29 @@ import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-stud
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
 import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
+import fixture002 from "@dspack-studio/replay/fixtures/fixture-002.json";
+import fixture003 from "@dspack-studio/replay/fixtures/fixture-003.json";
 import { ReplayView } from "./replay-view";
+
+const FIXTURES = {
+  "argues-back": {
+    json: fixture001,
+    label: "the interface argues back",
+    blurb: "Two governed repairs: the model omits the AlertDialog, then labels the action 'OK'. The design system wins.",
+  },
+  clean: {
+    json: fixture002,
+    label: "clean first pass",
+    blurb: "No violations: one attempt, straight through the gates to a rendered surface.",
+  },
+  refusal: {
+    json: fixture003,
+    label: "the emitter refuses",
+    blurb: "Lint-clean surface uses a component the protocol profile cannot project — the pipeline refuses, with receipts.",
+  },
+} as const;
+
+type FixtureKey = keyof typeof FIXTURES;
 
 const btnStyle = (active: boolean): React.CSSProperties => ({
   padding: "6px 12px",
@@ -29,6 +51,7 @@ const btnStyle = (active: boolean): React.CSSProperties => ({
 
 export function Studio() {
   const [view, setView] = useState<"replay" | "canvas">("replay");
+  const [fixtureKey, setFixtureKey] = useState<FixtureKey>("argues-back");
   const [actions, setActions] = useState<A2uiClientAction[]>([]);
   const [themeName, setThemeName] = useState<ThemeName>("default");
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -64,7 +87,22 @@ export function Studio() {
       </div>
 
       {view === "replay" ? (
-        <ReplayView fixtureJson={fixture001} />
+        <>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            {(Object.keys(FIXTURES) as FixtureKey[]).map((key) => (
+              <button
+                key={key}
+                data-testid={`fixture-${key}`}
+                style={btnStyle(key === fixtureKey)}
+                onClick={() => setFixtureKey(key)}
+              >
+                {FIXTURES[key].label}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{FIXTURES[fixtureKey].blurb}</p>
+          <ReplayView fixtureJson={FIXTURES[fixtureKey].json} />
+        </>
       ) : (
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>

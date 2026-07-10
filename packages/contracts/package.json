@@ -22,6 +22,7 @@
   "devDependencies": {
     "@astryxdesign/cli": "0.1.4",
     "@astryxdesign/core": "0.1.4",
+    "@types/node": "^22.20.1",
     "tsx": "^4.19.0",
     "typescript": "^5.7.2",
     "vitest": "^3.0.0"

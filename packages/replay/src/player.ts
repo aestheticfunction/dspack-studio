@@ -10,6 +10,12 @@
  */
 import type { FixtureEvent, ReplayFixture } from "./fixture";
 
+/**
+ * Any ordered event source: a parsed fixture, or a live run accumulating
+ * events into the same shape (which makes live runs scrubbable for free).
+ */
+export type EventSource = Pick<ReplayFixture, "events">;
+
 /** AG-UI wire type strings this package understands (kept minimal). */
 const T = {
   runStarted: "RUN_STARTED",
@@ -33,7 +39,7 @@ const DSPACK = {
 const A2UI_OPERATIONS_KEY = "a2ui_operations";
 
 /** Events at or before the playhead (inclusive index into fixture.events). */
-export function eventsUpTo(fixture: ReplayFixture, playhead: number): FixtureEvent[] {
+export function eventsUpTo(fixture: EventSource, playhead: number): FixtureEvent[] {
   return fixture.events.slice(0, Math.max(0, Math.min(playhead + 1, fixture.events.length)));
 }
 
@@ -41,7 +47,7 @@ export function eventsUpTo(fixture: ReplayFixture, playhead: number): FixtureEve
  * The A2UI message prefix at a playhead: every operation delivered in
  * generate_a2ui tool results so far, in order. Feed directly to A2uiCanvas.
  */
-export function a2uiMessagesAt(fixture: ReplayFixture, playhead: number): unknown[] {
+export function a2uiMessagesAt(fixture: EventSource, playhead: number): unknown[] {
   const ops: unknown[] = [];
   for (const { event } of eventsUpTo(fixture, playhead)) {
     if (event.type !== T.toolCallResult) continue;
@@ -91,7 +97,7 @@ export interface GateState {
 }
 
 /** Fold the CUSTOM/lifecycle events up to the playhead into inspector state. */
-export function gateStateAt(fixture: ReplayFixture, playhead: number): GateState {
+export function gateStateAt(fixture: EventSource, playhead: number): GateState {
   const state: GateState = { started: false, finished: false, errored: false, attempts: [] };
   for (const { event } of eventsUpTo(fixture, playhead)) {
     switch (event.type) {
@@ -140,7 +146,7 @@ export interface TimelineTick {
 }
 
 /** One tick per event, classified for the scrubber's coloring. */
-export function timelineTicks(fixture: ReplayFixture): TimelineTick[] {
+export function timelineTicks(fixture: EventSource): TimelineTick[] {
   return fixture.events.map(({ atMs, event }, index) => {
     let kind: TickKind = "other";
     let label = String(event.type);
