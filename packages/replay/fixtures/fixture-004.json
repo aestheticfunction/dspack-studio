@@ -1,0 +1,429 @@
+{
+  "replayFixture": "0.1",
+  "id": "fixture-004",
+  "name": "Scheduling, generated live",
+  "recordedAt": "2026-07-10T14:32:51.980Z",
+  "mode": "live",
+  "adapterId": "ollama:gpt-oss:latest",
+  "intent": "scheduling",
+  "prompt": "a screen to book a consultation time",
+  "events": [
+    {
+      "atMs": 2,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "fixture-004"
+      }
+    },
+    {
+      "atMs": 2,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.run.start",
+        "value": {
+          "intent": "scheduling",
+          "prompt": "a screen to book a consultation time",
+          "adapterId": "ollama:gpt-oss:latest",
+          "ruleIds": [
+            "rule.alertdialog-carries-content",
+            "rule.alertdialog-action-label-specific",
+            "rule.button-carries-label",
+            "rule.input-carries-label",
+            "rule.dialog-no-nested-overlays"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 4971,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 4971,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 0,
+          "model": "gpt-oss:latest",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "scheduling",
+            "root": {
+              "component": "card",
+              "id": "booking-card",
+              "children": [
+                {
+                  "component": "text",
+                  "id": "title",
+                  "props": {
+                    "type": "display-3"
+                  },
+                  "children": []
+                },
+                {
+                  "component": "text",
+                  "id": "intro",
+                  "props": {
+                    "type": "body"
+                  },
+                  "children": []
+                },
+                {
+                  "component": "text-input",
+                  "id": "name-input",
+                  "props": {
+                    "label": "Your name",
+                    "placeholder": "Ada Lovelace",
+                    "isRequired": true,
+                    "size": "md"
+                  }
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "PASS"
+            }
+          ],
+          "findings": []
+        }
+      }
+    },
+    {
+      "atMs": 4971,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 5042,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.emit",
+        "value": {
+          "validations": [
+            {
+              "a2uiVersion": "0.9.1",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            },
+            {
+              "a2uiVersion": "1.0",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            }
+          ],
+          "warnings": [
+            {
+              "code": "surface-synthesized-wrap",
+              "message": "$.root: 3 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 5042,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "fixture-004-a2ui-0",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 5042,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "fixture-004-a2ui-0",
+        "delta": "{\"surfaceId\":\"scheduling\"}"
+      }
+    },
+    {
+      "atMs": 5042,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "fixture-004-a2ui-0"
+      }
+    },
+    {
+      "atMs": 5042,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "fixture-004-a2ui-0-result",
+        "toolCallId": "fixture-004-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"scheduling\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"scheduling\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\"},{\"id\":\"intro\",\"component\":\"Text\",\"variant\":\"body\"},{\"id\":\"name_input\",\"component\":\"TextField\",\"label\":\"Your name\",\"placeholder\":\"Ada Lovelace\",\"isRequired\":true,\"size\":\"md\"},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"intro\",\"name_input\"]}]}}]}"
+      }
+    },
+    {
+      "atMs": 5042,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.audit",
+        "value": {
+          "outcome": "passed",
+          "exitCode": 0,
+          "report": {
+            "reportVersion": "1",
+            "createdAt": "2026-07-10T14:32:46.938Z",
+            "request": {
+              "prompt": "a screen to book a consultation time",
+              "intent": "scheduling",
+              "contract": {
+                "name": "Astryx",
+                "dspack": "0.4",
+                "sha256": "e6c1632f739b1b8b79040c677fff7f51582b3164be819203e8649b0ab60647f9"
+              }
+            },
+            "generation": {
+              "adapterId": "ollama:gpt-oss:latest",
+              "schemaSha256": "739d2c5b0680fdbf75ac5b1ec56e35594321b0afd5a2786ec28e50b3a10362aa",
+              "maxRepairs": 2,
+              "ruleSteering": true,
+              "repairTemplate": "standard"
+            },
+            "attempts": [
+              {
+                "index": 0,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "scheduling",
+                  "root": {
+                    "component": "card",
+                    "id": "booking-card",
+                    "children": [
+                      {
+                        "component": "text",
+                        "id": "title",
+                        "props": {
+                          "type": "display-3"
+                        },
+                        "children": []
+                      },
+                      {
+                        "component": "text",
+                        "id": "intro",
+                        "props": {
+                          "type": "body"
+                        },
+                        "children": []
+                      },
+                      {
+                        "component": "text-input",
+                        "id": "name-input",
+                        "props": {
+                          "label": "Your name",
+                          "placeholder": "Ada Lovelace",
+                          "isRequired": true,
+                          "size": "md"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "model": "gpt-oss:latest",
+                "usage": {
+                  "inputTokens": 1546,
+                  "outputTokens": 108
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 4939146292,
+                  "load_duration": 254684125,
+                  "prompt_eval_duration": 18697000,
+                  "eval_duration": 1915263000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "PASS"
+                  }
+                ],
+                "findings": []
+              }
+            ],
+            "repairMessages": [],
+            "outcome": "passed",
+            "emitted": {
+              "target": "a2ui",
+              "surfaceMessages": {
+                "messages": [
+                  {
+                    "version": "v0.9",
+                    "createSurface": {
+                      "surfaceId": "scheduling",
+                      "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+                      "theme": {
+                        "agentDisplayName": "Astryx via dspack"
+                      }
+                    }
+                  },
+                  {
+                    "version": "v0.9",
+                    "updateComponents": {
+                      "surfaceId": "scheduling",
+                      "components": [
+                        {
+                          "id": "root",
+                          "component": "Card",
+                          "child": "root_col"
+                        },
+                        {
+                          "id": "title",
+                          "component": "Text",
+                          "variant": "h2"
+                        },
+                        {
+                          "id": "intro",
+                          "component": "Text",
+                          "variant": "body"
+                        },
+                        {
+                          "id": "name_input",
+                          "component": "TextField",
+                          "label": "Your name",
+                          "placeholder": "Ada Lovelace",
+                          "isRequired": true,
+                          "size": "md"
+                        },
+                        {
+                          "id": "root_col",
+                          "component": "Column",
+                          "children": [
+                            "title",
+                            "intro",
+                            "name_input"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "warnings": [
+                {
+                  "code": "surface-synthesized-wrap",
+                  "message": "$.root: 3 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                }
+              ],
+              "validations": [
+                {
+                  "a2uiVersion": "0.9.1",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                },
+                {
+                  "a2uiVersion": "1.0",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                }
+              ]
+            },
+            "timings": {
+              "totalMs": 5042
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 5042,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "fixture-004"
+      }
+    }
+  ]
+}

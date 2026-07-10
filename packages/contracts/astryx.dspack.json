@@ -396,6 +396,11 @@
       "id": "destructive-action",
       "name": "Destructive action",
       "description": "The requested UI performs an irreversible or high-consequence operation: deleting content, revoking access, discarding unsaved changes."
+    },
+    {
+      "id": "scheduling",
+      "name": "Scheduling",
+      "description": "Surfaces that collect a time choice and confirm it."
     }
   ],
   "rules": [
@@ -568,6 +573,97 @@
                 "actionLabel": "Delete project",
                 "cancelLabel": "Cancel",
                 "actionVariant": "destructive"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.book-consultation",
+      "intent": "scheduling",
+      "name": "Book a consultation",
+      "prompt": "a screen to book a consultation time",
+      "description": "A card collecting the booker's name (labeled, required) beside selectable time buttons and an explicit, specifically-labeled confirm action — time choice and confirmation on one surface.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "scheduling",
+        "root": {
+          "component": "card",
+          "id": "booking-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Book a consultation"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Pick a time that works. Your name is required to hold the slot."
+            },
+            {
+              "component": "text-input",
+              "id": "name-input",
+              "props": {
+                "label": "Your name",
+                "placeholder": "Ada Lovelace",
+                "isRequired": true
+              }
+            },
+            {
+              "component": "text",
+              "id": "status",
+              "props": {
+                "type": "supporting"
+              },
+              "text": "Pick a time to begin."
+            },
+            {
+              "component": "button",
+              "id": "slot-0900",
+              "props": {
+                "label": "9:00",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "slot-1030",
+              "props": {
+                "label": "10:30",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "slot-1400",
+              "props": {
+                "label": "14:00",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "confirm",
+              "props": {
+                "label": "Confirm booking",
+                "variant": "primary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "cancel",
+              "props": {
+                "label": "Start over",
+                "variant": "ghost"
               }
             }
           ]

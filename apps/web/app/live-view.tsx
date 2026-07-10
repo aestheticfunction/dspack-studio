@@ -47,6 +47,12 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
 
   const interactive = scenario.interactive === true;
 
+  const startGenerated = (p: string, m: string) => {
+    setRunSeq((n) => n + 1);
+    setLastRun({ prompt: p, modelRef: m });
+    live.run({ prompt: p, intent: scenario.intent, modelRef: m });
+  };
+
   const start = (p: string, m: string) => {
     setRunSeq((n) => n + 1);
     setLastRun({ prompt: p, modelRef: m });
@@ -100,7 +106,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
   return (
     <div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-        {!interactive && scenario.seedPrompts.map((p, i) => (
+        {scenario.seedPrompts.map((p, i) => (
           <button
             key={i}
             style={{ ...btn(p === prompt), fontSize: 12, maxWidth: 340, textAlign: "left" }}
@@ -112,7 +118,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         ))}
       </div>
 
-      {!interactive && (
+      {(
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input
           data-testid="live-prompt"
@@ -160,6 +166,17 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
               : live.status === "finished" || live.status === "error" || live.status === "cancelled"
                 ? "run again"
                 : "run it live"}
+          </button>
+        )}
+        {!streaming && interactive && (
+          <button
+            data-testid="live-generate"
+            style={btn()}
+            title="Generate this scenario's surface with a model under the contract's scheduling intent (the deterministic start remains the reliable fallback)."
+            onClick={() => startGenerated(prompt, modelRef)}
+            disabled={!prompt.trim()}
+          >
+            generate live
           </button>
         )}
         {streaming && (

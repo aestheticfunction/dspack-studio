@@ -271,3 +271,42 @@ Follow-ups:
   the format already round-trips.
 - HITL + STATE_DELTA co-editing (appointment-booking / recipe-creator
   prerequisites).
+
+## Scheduling governance wired through (2026-07-10)
+
+Owner-approved, additive: intent `scheduling` + worked example
+`ex.book-consultation` (the authored booking surface, verbatim) added to the
+AUTHORITATIVE contract (dspack repo, branch claude/agitated-lovelace-016480 —
+which also now carries the previously-uncommitted v0.1.4 drift fix as its own
+commit). Copies propagated to dspack-emit/input and packages/contracts.
+NOTE: dspack-gen's check:sync gates against GitHub main — it will fail
+upstream until the branch merges (owner PR).
+
+Rule hypothesis (documented, NOT added, per owner decision):
+- Intended failure mode: scheduling surfaces that collect a time but give
+  the user no way to commit it (dead-end forms).
+- Would correctly reject: a slot list with no confirm affordance; a name
+  field + slots with only decorative text.
+- Could incorrectly reject: availability browsing, reschedule/cancel views,
+  "no slots available" informational states, read-only calendar summaries.
+- Narrower candidate: apply only to a terminal booking-confirmation intent
+  (e.g. `scheduling-confirmation`) or gate on a `confirmed`-writing action
+  being reachable — needs eval evidence first.
+
+Validation of the change: scheduling context compiles (fewshot=2, includes
+booking); example lints S1/S2/S3 PASS; destructive-action context unchanged;
+both A2UI catalogs gate clean; drift-check clean.
+
+Mini eval vs baseline: pre-change, scheduling generation was IMPOSSIBLE (no
+intent). Post-change: 3/3 live gpt-oss generations for "a screen to book a
+consultation time" passed all gates first-attempt (no refusals, no
+projection failures, no repairs). fixture-004 ("Scheduling, generated live",
+mode live) recorded. Full 216-run matrix rerun: queued follow-up.
+
+Booking live path: interactive scenarios now offer BOTH "start scenario"
+(deterministic, the CI-stable fallback) and "generate live" (real pipeline
+under the scheduling intent); labels stay honest (adapterId per run).
+Finding: generated surfaces carry synthesized action slugs (not the
+select_slot overlay), so HITL responses reject them gracefully as unknown
+actions — wiring generated actions to responders is next-block work
+alongside the inspectors, recipe-creator, and the remount benchmark.
