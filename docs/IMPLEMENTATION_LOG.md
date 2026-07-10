@@ -463,3 +463,12 @@ migration performed.
 Validation: frozen install; unit 3/6/13/5/9; typecheck x8; contract gates +
 drift clean; check:sync green; export builds; Playwright 27 passed
 (+2 gated).
+
+Host-2 probe (2026-07-10, per owner instruction): 100.115.35.114 reachable;
+Ollama 0.31.1; model digests identical to local + host-1 (gemma4:e4b
+c6eb396dbd59, qwen3.6:35b 07d35212591f, gpt-oss 17052f91a42e). Throughput
+probe (gemma, fixed 120-token budget): 2.6 tok/s vs 33.8 tok/s on host-1 —
+CPU-only in practice (CUDA_VISIBLE_DEVICES=-1; GPUs held by VLLM), 13x
+slower on the smallest model. Remaining matrix cells are qwen-35B + gpt-oss
+only — the worst fit for CPU. DECISION: left unused (contribution would be
+negative wall-clock); no evaluation cells assigned; methodology unchanged.
