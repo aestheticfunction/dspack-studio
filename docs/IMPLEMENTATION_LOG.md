@@ -512,3 +512,35 @@ limitations incl. focus-loss ceiling, troubleshooting incl. the .next
 corruption trap); README already MVP-focused; docs/release-checklist.md.
 
 Validation: Playwright 29 passed (+2 gated) incl. 4 axe + keyboard tests.
+
+## 216-run matrix complete (2026-07-10) — authoritative evaluation
+
+Config preserved in dspack-gen/out/eval/scheduling-2026-07-10/ (results.json
+with matrixSha256 a369d0d4… and contract sha e6c1632f… [dspack 0.4, Astryx],
+canonical + execution-order matrix copies, both worker logs, all 216 retained
+audit reports). dspack-gen at 07774f6; json-render target — byte-comparable
+methodology to the m3 baseline (67/216 on the v0.1.2 contract).
+
+Headline: 192/216 passed (88.9%) vs baseline 67/216 (31.0%). First-attempt
+pass 141/216 (65.3%); repair success 51/67 (76%); ZERO emitter-gate
+failures and ZERO s3-clean-but-refused (m3 had 7 residual — the ADR-D1
+class is extinct in this configuration); 16 lint-exhausted; 8 failed-adapter
+(qwen transport, infra class). Per model (passed/72): gemma 64 (was 17),
+qwen 59 (was 9, incl. the 8 infra failures), gpt-oss 69 (was 41). Top rule
+fired on first attempts: destructive-requires-alertdialog (61) — the rules
+still catch; models now repair. Worst prompt a01-delete-project 12/18.
+
+Attribution honesty: the local worker predated --resume and executed all 216
+runs; the remote GPU worker independently executed ~97 overlapping cells
+(reversed order, --resume) — each retained report is one valid observation
+of the exact cell config; per-cell host provenance is a documented mix.
+Distributed execution changed nothing methodological (same matrix, prompts,
+models, scoring, aggregation; canonical pass over the original file).
+
+Interpretation limits: the delta vs m3 conflates (a) the v0.1.4 contract
+alignment (text.type semantics) and (b) the added cross-intent worked
+example — not separable without an ablation run. What IS clean: adding
+ex.book-consultation did not regress the destructive intent (it improved
+3x alongside the drift fix), scheduling generation went from impossible to
+first-attempt-clean in targeted runs, and no evidence supports any
+scheduling rule (zero scheduling failures to justify one).
