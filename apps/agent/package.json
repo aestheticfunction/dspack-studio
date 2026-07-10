@@ -1,0 +1,26 @@
+{
+  "name": "agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The AG-UI agent server: wraps @aestheticfunction/dspack-gen's runPipeline (published npm package) behind an AG-UI SSE endpoint, and records replay fixtures.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "record": "tsx src/record-fixture.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aestheticfunction/dspack-gen": "^0.1.0",
+    "@dspack-studio/agui-bridge": "workspace:*",
+    "@dspack-studio/contracts": "workspace:*",
+    "@dspack-studio/replay": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

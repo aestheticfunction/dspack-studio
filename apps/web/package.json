@@ -22,6 +22,7 @@
     "@dspack-studio/a2ui-ingest": "workspace:*",
     "@dspack-studio/astryx-renderers": "workspace:*",
     "@dspack-studio/contracts": "workspace:*",
+    "@dspack-studio/replay": "workspace:*",
     "next": "15.3.2",
     "react": "19.2.7",
     "react-dom": "19.2.7"

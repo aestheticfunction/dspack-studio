@@ -1,0 +1,487 @@
+{
+  "replayFixture": "0.1",
+  "id": "fx-smoke",
+  "name": "fx-smoke",
+  "recordedAt": "2026-07-10T03:18:50.617Z",
+  "mode": "scripted",
+  "adapterId": "scripted",
+  "intent": "destructive-action",
+  "prompt": "a screen to delete a project",
+  "events": [
+    {
+      "atMs": 2,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "fx-smoke"
+      }
+    },
+    {
+      "atMs": 2,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.run.start",
+        "value": {
+          "intent": "destructive-action",
+          "prompt": "a screen to delete a project",
+          "adapterId": "fake:scripted",
+          "ruleIds": [
+            "rule.destructive-requires-alertdialog",
+            "rule.alertdialog-carries-content",
+            "rule.alertdialog-action-label-specific",
+            "rule.button-carries-label",
+            "rule.input-carries-label",
+            "rule.dialog-no-nested-overlays"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 3,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 3,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 0,
+          "model": "fake-model",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "destructive-action",
+            "root": {
+              "component": "card",
+              "children": [
+                {
+                  "component": "text",
+                  "props": {
+                    "type": "display-3"
+                  },
+                  "text": "Danger zone"
+                },
+                {
+                  "component": "text",
+                  "props": {
+                    "as": "p"
+                  },
+                  "text": "Deleting a project removes all of its data permanently."
+                },
+                {
+                  "component": "button",
+                  "props": {
+                    "label": "Delete project",
+                    "variant": "destructive"
+                  }
+                },
+                {
+                  "component": "alert-dialog",
+                  "props": {
+                    "title": "Delete this project?",
+                    "description": "This action cannot be undone. The project and all its data will be permanently removed.",
+                    "actionLabel": "Delete project",
+                    "cancelLabel": "Cancel",
+                    "actionVariant": "destructive"
+                  }
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "PASS"
+            }
+          ],
+          "findings": []
+        }
+      }
+    },
+    {
+      "atMs": 3,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 58,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.emit",
+        "value": {
+          "validations": [
+            {
+              "a2uiVersion": "0.9.1",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            },
+            {
+              "a2uiVersion": "1.0",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            }
+          ],
+          "warnings": [
+            {
+              "code": "surface-id-deduplicated",
+              "message": "$.root.children[1]: node id 'text' already used; emitted as 'text_2'."
+            },
+            {
+              "code": "surface-prop-dropped",
+              "message": "$.root.children[1]: prop 'as' on 'text' has no A2UI projection; dropped."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[2]: A2UI requires a declarative action on Button; synthesized event 'button'."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[3]: A2UI requires a declarative action on AlertDialog; synthesized event 'alert_dialog'."
+            },
+            {
+              "code": "surface-synthesized-wrap",
+              "message": "$.root: 4 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 59,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "fx-smoke-a2ui-0",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 59,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "fx-smoke-a2ui-0",
+        "delta": "{\"surfaceId\":\"destructive_action\"}"
+      }
+    },
+    {
+      "atMs": 59,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "fx-smoke-a2ui-0"
+      }
+    },
+    {
+      "atMs": 59,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "fx-smoke-a2ui-0-result",
+        "toolCallId": "fx-smoke-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"destructive_action\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"destructive_action\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"text\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Danger zone\"},{\"id\":\"text_2\",\"component\":\"Text\",\"text\":\"Deleting a project removes all of its data permanently.\"},{\"id\":\"button\",\"component\":\"Button\",\"label\":\"Delete project\",\"variant\":\"destructive\",\"action\":{\"event\":{\"name\":\"button\",\"context\":{}}}},{\"id\":\"alertdialog\",\"component\":\"AlertDialog\",\"title\":\"Delete this project?\",\"description\":\"This action cannot be undone. The project and all its data will be permanently removed.\",\"actionLabel\":\"Delete project\",\"cancelLabel\":\"Cancel\",\"actionVariant\":\"destructive\",\"action\":{\"event\":{\"name\":\"alert_dialog\",\"context\":{}}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"text\",\"text_2\",\"button\",\"alertdialog\"]}]}}]}"
+      }
+    },
+    {
+      "atMs": 59,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.audit",
+        "value": {
+          "outcome": "passed",
+          "exitCode": 0,
+          "report": {
+            "reportVersion": "1",
+            "createdAt": "2026-07-10T03:18:50.559Z",
+            "request": {
+              "prompt": "a screen to delete a project",
+              "intent": "destructive-action",
+              "contract": {
+                "name": "Astryx",
+                "dspack": "0.4",
+                "sha256": "024a31e4d5bf33e1164e50fcb4625c5672dbf0098c123e06ba441cb4160da0d5"
+              }
+            },
+            "generation": {
+              "adapterId": "fake:scripted",
+              "schemaSha256": "c5783551fe39e43e3103beb0dc43f4008163ca052737cd26942735bd2b32f401",
+              "maxRepairs": 2,
+              "ruleSteering": true,
+              "repairTemplate": "standard"
+            },
+            "attempts": [
+              {
+                "index": 0,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "destructive-action",
+                  "root": {
+                    "component": "card",
+                    "children": [
+                      {
+                        "component": "text",
+                        "props": {
+                          "type": "display-3"
+                        },
+                        "text": "Danger zone"
+                      },
+                      {
+                        "component": "text",
+                        "props": {
+                          "as": "p"
+                        },
+                        "text": "Deleting a project removes all of its data permanently."
+                      },
+                      {
+                        "component": "button",
+                        "props": {
+                          "label": "Delete project",
+                          "variant": "destructive"
+                        }
+                      },
+                      {
+                        "component": "alert-dialog",
+                        "props": {
+                          "title": "Delete this project?",
+                          "description": "This action cannot be undone. The project and all its data will be permanently removed.",
+                          "actionLabel": "Delete project",
+                          "cancelLabel": "Cancel",
+                          "actionVariant": "destructive"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "model": "fake-model",
+                "usage": {
+                  "inputTokens": 0,
+                  "outputTokens": 0
+                },
+                "meta": {
+                  "provider": "fake"
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "PASS"
+                  }
+                ],
+                "findings": []
+              }
+            ],
+            "repairMessages": [],
+            "outcome": "passed",
+            "emitted": {
+              "target": "a2ui",
+              "surfaceMessages": {
+                "messages": [
+                  {
+                    "version": "v0.9",
+                    "createSurface": {
+                      "surfaceId": "destructive_action",
+                      "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+                      "theme": {
+                        "agentDisplayName": "Astryx via dspack"
+                      }
+                    }
+                  },
+                  {
+                    "version": "v0.9",
+                    "updateComponents": {
+                      "surfaceId": "destructive_action",
+                      "components": [
+                        {
+                          "id": "root",
+                          "component": "Card",
+                          "child": "root_col"
+                        },
+                        {
+                          "id": "text",
+                          "component": "Text",
+                          "variant": "h2",
+                          "text": "Danger zone"
+                        },
+                        {
+                          "id": "text_2",
+                          "component": "Text",
+                          "text": "Deleting a project removes all of its data permanently."
+                        },
+                        {
+                          "id": "button",
+                          "component": "Button",
+                          "label": "Delete project",
+                          "variant": "destructive",
+                          "action": {
+                            "event": {
+                              "name": "button",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "alertdialog",
+                          "component": "AlertDialog",
+                          "title": "Delete this project?",
+                          "description": "This action cannot be undone. The project and all its data will be permanently removed.",
+                          "actionLabel": "Delete project",
+                          "cancelLabel": "Cancel",
+                          "actionVariant": "destructive",
+                          "action": {
+                            "event": {
+                              "name": "alert_dialog",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "root_col",
+                          "component": "Column",
+                          "children": [
+                            "text",
+                            "text_2",
+                            "button",
+                            "alertdialog"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "warnings": [
+                {
+                  "code": "surface-id-deduplicated",
+                  "message": "$.root.children[1]: node id 'text' already used; emitted as 'text_2'."
+                },
+                {
+                  "code": "surface-prop-dropped",
+                  "message": "$.root.children[1]: prop 'as' on 'text' has no A2UI projection; dropped."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[2]: A2UI requires a declarative action on Button; synthesized event 'button'."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[3]: A2UI requires a declarative action on AlertDialog; synthesized event 'alert_dialog'."
+                },
+                {
+                  "code": "surface-synthesized-wrap",
+                  "message": "$.root: 4 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                }
+              ],
+              "validations": [
+                {
+                  "a2uiVersion": "0.9.1",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                },
+                {
+                  "a2uiVersion": "1.0",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                }
+              ]
+            },
+            "timings": {
+              "totalMs": 57
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 59,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "fx-smoke"
+      }
+    }
+  ]
+}

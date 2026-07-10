@@ -2,8 +2,25 @@
   "name": "@dspack-studio/agui-bridge",
   "version": "0.1.0",
   "private": true,
-  "description": "Phase 2 package (see docs/plan): agui-bridge.",
+  "description": "The protocol boundary: maps dspack-gen pipeline events onto AG-UI events (typed CUSTOM payloads + a2ui-toolkit tool calls). All @ag-ui/* imports in dspack-studio are confined to this package.",
   "license": "Apache-2.0",
   "type": "module",
-  "exports": { ".": "./src/index.ts" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ag-ui/a2ui-toolkit": "0.0.4",
+    "@ag-ui/client": "0.0.57",
+    "@ag-ui/core": "0.0.57",
+    "@ag-ui/encoder": "0.0.57",
+    "rxjs": "7.8.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
 }

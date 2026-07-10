@@ -2,8 +2,20 @@
   "name": "@dspack-studio/replay",
   "version": "0.1.0",
   "private": true,
-  "description": "Phase 2 package (see docs/plan): replay.",
+  "description": "Recorded-run fixtures (versioned), the recorder, and the pure event-prefix reducers behind the FM-2 timeline. No protocol dependencies: fixtures and reducers are plain data.",
   "license": "Apache-2.0",
   "type": "module",
-  "exports": { ".": "./src/index.ts" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures/*": "./fixtures/*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@dspack-studio/agui-bridge": "workspace:*",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
 }
