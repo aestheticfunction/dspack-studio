@@ -133,7 +133,7 @@ export function BreakView() {
             )}
           </>
         )}
-        <span style={{ fontSize: 13, opacity: 0.7 }} data-testid="break-status">
+        <span style={{ fontSize: 13, opacity: 0.7 }} data-testid="break-status" aria-live="polite">
           {live.status}
         </span>
       </div>

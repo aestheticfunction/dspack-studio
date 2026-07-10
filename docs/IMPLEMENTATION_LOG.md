@@ -472,3 +472,43 @@ CPU-only in practice (CUDA_VISIBLE_DEVICES=-1; GPUs held by VLLM), 13x
 slower on the smallest model. Remaining matrix cells are qwen-35B + gpt-oss
 only — the worst fit for CPU. DECISION: left unused (contribution would be
 negative wall-clock); no evaluation cells assigned; methodology unchanged.
+
+## Launch-readiness block (2026-07-10)
+
+Matrix untouched throughout (isolated in dspack-gen/out/eval/...; no eval
+files modified). Progress checked without interruption.
+
+CI: .github/workflows/ci.yml — frozen install, contract gates, authoritative
+sync check (curl diff vs dspack main), Astryx drift check (local CLI, no
+network), all unit suites, typechecks, static export, Playwright against the
+deploy artifact (deterministic paths only; RECORD_LIVE/BENCH specs skip);
+pnpm + Playwright-browser caching; report artifact on failure.
+
+Deployment: docs/deployment.md (launch topology = static-only export to
+Cloudflare Pages; live topology optional/owner-gated; health checks;
+rollback = redeploy prior immutable artifact; agent stateless). .env.example
+placeholders only. Agent CORS hardened: AGENT_ALLOWED_ORIGINS allowlist
+(dev default *), origin echoed only when allowed, vary: origin. Verified no
+private hosts/keys in the client bundle (browser sees model refs only).
+
+Accessibility: axe (wcag2a/2aa) e2e suite + keyboard-operability test.
+Real defects found and fixed: planned-chip contrast 3.36:1 -> 0.62 opacity;
+inspector event-category and gate-status text palettes darkened to >=4.5:1;
+tablist contained non-tab children (restructured); model select lacked an
+accessible name; timeline ticks gained aria-labels; status/audit/canvas-empty
+regions aria-live=polite. Automation is the floor: manual keyboard/SR passes
+remain on the release checklist.
+
+Performance (production artifact): first-load shell 103 kB; the app chunk
+(Astryx + A2UI + all fixtures) is 2.1 MB uncompressed loaded async (fixtures
+148 KB total); export 3.6 MB. Verdict: no optimization warranted at these
+numbers; import caps (5 MB / 5000 events) bound large-session behavior;
+repeated replay/reset and agent-disconnect recovery are exercised by the e2e
+suite. No renderer or event-architecture changes.
+
+Docs: CONTRIBUTING.md (setup, tests, fixture recording + provenance, adding
+scenarios, governance boundary, mermaid architecture diagram, known
+limitations incl. focus-loss ceiling, troubleshooting incl. the .next
+corruption trap); README already MVP-focused; docs/release-checklist.md.
+
+Validation: Playwright 29 passed (+2 gated) incl. 4 axe + keyboard tests.

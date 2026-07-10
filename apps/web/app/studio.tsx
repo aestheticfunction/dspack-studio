@@ -155,7 +155,7 @@ export function Studio() {
             <span
               key={s.id}
               title={`Planned. Needs: ${(s.needs ?? []).join("; ")}`}
-              style={{ ...btnStyle(false), opacity: 0.45, cursor: "help" }}
+              style={{ ...btnStyle(false), opacity: 0.62, cursor: "help" }}
             >
               {s.name} <em style={{ fontSize: 11 }}>(planned)</em>
             </span>

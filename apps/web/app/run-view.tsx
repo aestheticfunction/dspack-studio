@@ -158,6 +158,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
             <button
               key={t.index}
               title={`${t.label} @ ${t.atMs}ms`}
+              aria-label={`jump to event ${t.index}: ${t.label}`}
               onClick={() => {
                 setPlaying(false);
                 setFollow(false);
@@ -187,16 +188,16 @@ export function RunView({ events, label, streaming = false, live = false, resetK
           <span key={a.index} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
             attempt {a.index}:
             {a.gates.map((g) => (
-              <strong key={String(g.gate)} style={{ color: gateFailed(g) ? "#dc2626" : "#16a34a" }}>
+              <strong key={String(g.gate)} style={{ color: gateFailed(g) ? "#b91c1c" : "#15803d" }}>
                 {String(g.gate)}
                 {gateFailed(g) ? "✗" : "✓"}
               </strong>
             ))}
-            {a.repairMessage && <span style={{ color: "#f59e0b" }}>→ repair</span>}
+            {a.repairMessage && <span style={{ color: "#92400e" }}>→ repair</span>}
           </span>
         ))}
         {gates.audit && (
-          <span data-testid="audit-outcome">
+          <span data-testid="audit-outcome" aria-live="polite">
             outcome <strong>{gates.audit.outcome}</strong> (exit {gates.audit.exitCode})
           </span>
         )}
@@ -254,7 +255,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
             }
           />
         ) : (
-          <p style={{ opacity: 0.6, fontSize: 14 }} data-testid="canvas-empty">
+          <p style={{ opacity: 0.6, fontSize: 14 }} data-testid="canvas-empty" aria-live="polite">
             {streaming
               ? "Generating — the surface streams in the moment it passes the gates…"
               : playhead < 0

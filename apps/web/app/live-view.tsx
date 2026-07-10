@@ -139,6 +139,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         />
         <select
           data-testid="live-model"
+          aria-label="model"
           value={modelRef}
           onChange={(e) => setModelRef(e.target.value)}
           style={{ borderRadius: 8, border: "1px solid #cbd5e1", font: "inherit", fontSize: 13, padding: "0 8px" }}
@@ -200,7 +201,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
             </button>
           </>
         )}
-        <span data-testid="live-status" style={{ opacity: 0.7 }}>
+        <span data-testid="live-status" style={{ opacity: 0.7 }} aria-live="polite">
           {STATUS_LABEL[live.status]}
           {live.error ? ` — ${live.error}` : ""}
         </span>

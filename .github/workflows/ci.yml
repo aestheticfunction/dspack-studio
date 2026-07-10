@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Frozen-lockfile install
+        run: pnpm install --frozen-lockfile
+      - name: Contract gates (A2UI 0.9.1 + 1.0) and scenario surfaces
+        run: pnpm --filter @dspack-studio/contracts build:catalogs
+      - name: Contract copy matches the authoritative dspack main (sync check)
+        run: |
+          curl -sf https://raw.githubusercontent.com/aestheticfunction/dspack/main/examples/astryx.dspack.json \
+            | diff - packages/contracts/astryx.dspack.json
+      - name: Astryx vocabulary drift check (report-only, local CLI)
+        run: pnpm --filter @dspack-studio/contracts drift-check
+      - name: Unit tests
+        run: |
+          pnpm --filter @dspack-studio/a2ui-ingest test
+          pnpm --filter @dspack-studio/agui-bridge test
+          pnpm --filter @dspack-studio/replay test
+          pnpm --filter @dspack-studio/scenarios test
+          pnpm --filter agent test
+      - name: Type checks
+        run: pnpm -r typecheck
+      - name: Static export (the deploy artifact)
+        run: pnpm --filter web build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+      # The e2e suite drives the REAL static export plus the local agent in
+      # its deterministic paths only (scripted adapter, authored scenarios,
+      # break-it scripts). No Ollama, no model calls, no network beyond
+      # localhost: live-model specs are gated behind RECORD_LIVE/BENCH and
+      # skip in CI by design.
+      - name: Playwright (replay, live-deterministic, interactive, inspectors, break-it, import/export)
+        run: pnpm exec playwright test
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

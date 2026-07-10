@@ -22,15 +22,16 @@ import {
   type EventSource,
 } from "@dspack-studio/replay";
 
+/** Text-safe category palette (>=4.5:1 on the panel background). */
 const CATEGORY_COLOR: Record<EventCategory, string> = {
-  run: "#64748b",
-  step: "#94a3b8",
-  pipeline: "#0ea5e9",
-  a2ui: "#8b5cf6",
-  "user-action": "#16a34a",
-  "agent-response": "#f59e0b",
-  enhancement: "#e879f9",
-  other: "#cbd5e1",
+  run: "#475569",
+  step: "#475569",
+  pipeline: "#075985",
+  a2ui: "#5b21b6",
+  "user-action": "#166534",
+  "agent-response": "#92400e",
+  enhancement: "#86198f",
+  other: "#475569",
 };
 
 const TABS = ["state", "actions", "events", "a2ui", "gates", "components"] as const;
@@ -66,20 +67,24 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
   return (
     <section data-testid="inspector" style={{ marginTop: 14, border: "1px solid #cbd5e1", borderRadius: 12, padding: 14, fontSize: 13 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
-        {TABS.map((t) => (
-          <button
-            key={t}
-            data-testid={`inspector-tab-${t}`}
-            onClick={() => setTab(t)}
-            style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: t === tab ? "#0f172a" : "transparent", color: t === tab ? "#fff" : "inherit", cursor: "pointer", font: "inherit", fontSize: 12 }}
-          >
-            {t}
-          </button>
-        ))}
-        <span style={{ marginLeft: "auto", opacity: 0.6, ...mono }} data-testid="inspector-position">
+        <div role="tablist" aria-label="run inspector panels" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {TABS.map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={t === tab}
+              data-testid={`inspector-tab-${t}`}
+              onClick={() => setTab(t)}
+              style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: t === tab ? "#0f172a" : "transparent", color: t === tab ? "#fff" : "inherit", cursor: "pointer", font: "inherit", fontSize: 12 }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <span style={{ marginLeft: "auto", opacity: 0.75, ...mono }} data-testid="inspector-position">
           at event {Math.max(playhead, -1)} / {source.events.length - 1}
         </span>
-        <button onClick={() => setOpen(false)} style={{ border: "none", background: "transparent", cursor: "pointer", font: "inherit", opacity: 0.6 }}>
+        <button onClick={() => setOpen(false)} style={{ border: "none", background: "transparent", cursor: "pointer", font: "inherit", opacity: 0.75 }}>
           close
         </button>
       </div>
@@ -108,7 +113,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
               <div style={mono}>
                 <strong>{lc.name}</strong>
                 {lc.capability && lc.capability !== lc.name ? <> → <strong>{lc.capability}</strong></> : null}{" "}
-                <span style={{ opacity: 0.55 }}>({lc.actionId.slice(0, 8)}…)</span>
+                <span style={{ opacity: 0.7 }}>({lc.actionId.slice(0, 8)}…)</span>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                 {lc.states.map((s, i) => (
@@ -131,7 +136,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
             return (
               <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                 <span style={{ color: CATEGORY_COLOR[cat], minWidth: 104 }}>{cat}</span>
-                <span style={{ opacity: 0.55, minWidth: 64 }}>@{atMs}ms</span>
+                <span style={{ opacity: 0.72, minWidth: 64 }}>@{atMs}ms</span>
                 <span>
                   {String(event.type)}
                   {"name" in event ? ` ${String((event as any).name)}` : ""}
@@ -155,7 +160,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
             <div key={a.index} style={{ marginBottom: 8 }}>
               <strong>attempt {a.index}</strong>{" "}
               {a.gates.map((g) => (
-                <span key={String(g.gate)} style={{ color: gateFailed(g) ? "#dc2626" : "#16a34a", marginRight: 6 }}>
+                <span key={String(g.gate)} style={{ color: gateFailed(g) ? "#b91c1c" : "#15803d", marginRight: 6 }}>
                   {String(g.gate)} {gateFailed(g) ? "FAIL" : "PASS"}
                 </span>
               ))}

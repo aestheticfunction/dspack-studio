@@ -40,19 +40,31 @@ const answeredActions = new Map<string, unknown>();
 const PORT = Number(process.env.PORT ?? 8787);
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
 
-const CORS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
-  "access-control-allow-headers": "content-type, accept",
-};
+/** Comma-separated allowlist; "*" (the local-dev default) allows any origin. */
+const ALLOWED_ORIGINS = (process.env.AGENT_ALLOWED_ORIGINS ?? "*").split(",").map((o) => o.trim());
 
-function json(res: ServerResponse, status: number, body: unknown): void {
-  res.writeHead(status, { "content-type": "application/json", ...CORS });
+function corsFor(origin: string | undefined): Record<string, string> {
+  const allow = ALLOWED_ORIGINS.includes("*")
+    ? "*"
+    : origin && ALLOWED_ORIGINS.includes(origin)
+      ? origin
+      : ALLOWED_ORIGINS[0] ?? "";
+  return {
+    "access-control-allow-origin": allow,
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-headers": "content-type, accept",
+    vary: "origin",
+  };
+}
+
+function json(res: ServerResponse, status: number, body: unknown, cors: Record<string, string> = corsFor(undefined)): void {
+  res.writeHead(status, { "content-type": "application/json", ...cors });
   res.end(JSON.stringify(body));
 }
 
 const server = createServer(async (req, res) => {
   const path = (req.url ?? "/").split("?")[0];
+  const CORS = corsFor(req.headers.origin);
 
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS).end();
@@ -60,7 +72,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && path === "/") {
-    json(res, 200, { ok: true, name: "dspack-studio agent", protocol: "ag-ui" });
+    json(res, 200, { ok: true, name: "dspack-studio agent", protocol: "ag-ui" }, CORS);
     return;
   }
 
@@ -75,7 +87,7 @@ const server = createServer(async (req, res) => {
     } catch {
       // Ollama offline: scripted mode still works.
     }
-    json(res, 200, { models });
+    json(res, 200, { models }, CORS);
     return;
   }
 
@@ -101,16 +113,16 @@ const server = createServer(async (req, res) => {
   if (path === "/action") {
     const { scenario, actionId, name, capability, context } = body ?? {};
     if (typeof actionId !== "string" || typeof name !== "string") {
-      json(res, 400, { error: "actionId and name are required" });
+      json(res, 400, { error: "actionId and name are required" }, CORS);
       return;
     }
     if (answeredActions.has(actionId)) {
-      json(res, 200, { duplicate: true, events: answeredActions.get(actionId) });
+      json(res, 200, { duplicate: true, events: answeredActions.get(actionId) }, CORS);
       return;
     }
     const responder = SCENARIOS[String(scenario)];
     if (!responder) {
-      json(res, 404, { error: `no interactive responder for scenario '${String(scenario)}'` });
+      json(res, 404, { error: `no interactive responder for scenario '${String(scenario)}'` }, CORS);
       return;
     }
     const response = responder.respond(String(capability ?? name), context ?? {});
@@ -124,7 +136,7 @@ const server = createServer(async (req, res) => {
       value: { actionId, name, context, detail: response.detail },
     } as BaseEvent);
     answeredActions.set(actionId, events);
-    json(res, 200, { events });
+    json(res, 200, { events }, CORS);
     return;
   }
 
