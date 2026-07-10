@@ -15,12 +15,20 @@
  */
 import { createServer, type ServerResponse } from "node:http";
 import {
+  a2uiDeliveryEvents,
   createPipelineEventMapper,
   createSseEncoder,
   runErrorEvent,
+  EventType,
+  STUDIO_EVENT,
+  type BaseEvent,
   type PipelineEvent,
 } from "@dspack-studio/agui-bridge";
 import { governedRun } from "./pipeline.js";
+import { bookingRespond, bookingStartOps } from "./scenarios/appointment-booking.js";
+
+/** Duplicate-action protection: correlation ids already answered. */
+const answeredActions = new Map<string, unknown>();
 
 const PORT = Number(process.env.PORT ?? 8787);
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
@@ -80,6 +88,38 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // HITL action round-trip: a single-turn JSON response of AG-UI events the
+  // client appends to its event source (UI event -> agent response, both
+  // correlation-id'd; replays reconstruct the whole exchange).
+  if (path === "/action") {
+    const { scenario, actionId, name, context } = body ?? {};
+    if (typeof actionId !== "string" || typeof name !== "string") {
+      json(res, 400, { error: "actionId and name are required" });
+      return;
+    }
+    if (answeredActions.has(actionId)) {
+      json(res, 200, { duplicate: true, events: answeredActions.get(actionId) });
+      return;
+    }
+    if (scenario !== "appointment-booking") {
+      json(res, 404, { error: `no interactive responder for scenario '${String(scenario)}'` });
+      return;
+    }
+    const response = bookingRespond(name, context ?? {});
+    const events: BaseEvent[] = [];
+    if (response.ops.length > 0) {
+      events.push(...a2uiDeliveryEvents(response.ops as Array<Record<string, unknown>>, `action-${actionId}`));
+    }
+    events.push({
+      type: EventType.CUSTOM,
+      name: response.outcome === "accepted" ? STUDIO_EVENT.actionAccepted : STUDIO_EVENT.actionRejected,
+      value: { actionId, name, context, detail: response.detail },
+    } as BaseEvent);
+    answeredActions.set(actionId, events);
+    json(res, 200, { events });
+    return;
+  }
+
   const threadId = String(body.threadId ?? "thread");
   const runId = String(body.runId ?? `run-${Date.now()}`);
   const props = body.forwardedProps ?? {};
@@ -94,6 +134,18 @@ const server = createServer(async (req, res) => {
     connection: "keep-alive",
     ...CORS,
   });
+
+  // Deterministic interactive-scenario start: the authored, contract-emitted
+  // surface plus its interaction overlay, streamed as a normal run.
+  if (props.scenario === "appointment-booking") {
+    res.write(encoder.encode({ type: EventType.RUN_STARTED, threadId, runId } as BaseEvent));
+    for (const e of a2uiDeliveryEvents(bookingStartOps() as Array<Record<string, unknown>>, `${runId}-start`)) {
+      res.write(encoder.encode(e));
+    }
+    res.write(encoder.encode({ type: EventType.RUN_FINISHED, threadId, runId } as BaseEvent));
+    res.end();
+    return;
+  }
 
   const map = createPipelineEventMapper({ threadId, runId });
   const onEvent = (event: unknown) => {

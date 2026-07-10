@@ -55,6 +55,21 @@ try {
   throw err;
 }
 
+// 1b) Emit the appointment-booking scenario surface (deterministic, authored,
+// lint-relevant unscoped rules apply; intent 'scheduling' is scenario-local —
+// generation for it awaits owner-authored contract governance).
+{
+  const bookingSurface = JSON.parse(
+    readFileSync(join(root, "surfaces", "appointment-booking.dsurface.json"), "utf8"),
+  ) as DspackSurface;
+  const emitted = emitSurface(bookingSurface, doc, { profile: astryxProfile });
+  writeFileSync(
+    join(outDir, "appointment-booking.surface.json"),
+    JSON.stringify({ messages: emitted.messages, warnings: emitted.warnings }, null, 2),
+  );
+  for (const w of emitted.warnings) console.log(`  [booking warn] ${w.code}: ${w.message}`);
+}
+
 // 2) Compile + gate both catalog versions.
 const fileTag = (v: A2uiVersion) => (v === "0.9.1" ? "0_9_1" : "1_0");
 let failed = false;

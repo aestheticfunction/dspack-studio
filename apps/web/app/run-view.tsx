@@ -44,12 +44,17 @@ export interface RunViewProps {
   label: string;
   /** True while a live run is still streaming. */
   streaming?: boolean;
+  /** True for live-originated runs: the playhead follows the newest event
+   * until the user scrubs, regardless of how fast the stream completed. */
+  live?: boolean;
   /** Changes exactly when the underlying RUN changes (fixture key / run id) —
    * resets the playhead. Must NOT change when only the label/status does. */
   resetKey: string;
+  /** Interactive runs: rendered A2UI actions dispatch here (HITL). */
+  onAction?: (action: any) => void;
 }
 
-export function RunView({ events, label, streaming = false, resetKey }: RunViewProps) {
+export function RunView({ events, label, streaming = false, live = false, resetKey, onAction }: RunViewProps) {
   const source = useMemo(() => ({ events }), [events]);
   const ticks = useMemo(() => timelineTicks(source), [source]);
   const last = events.length - 1;
@@ -59,20 +64,20 @@ export function RunView({ events, label, streaming = false, resetKey }: RunViewP
   const [follow, setFollow] = useState(true);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // New run (fixture switch or a fresh live run): reset. Follow is on only
-  // for runs that arrive streaming; replayed fixtures start at the beginning.
+  // New run (fixture switch or a fresh live run): reset. Follow is on for
+  // live-originated runs; replayed fixtures start at the beginning.
   useEffect(() => {
     setPlayhead(-1);
     setPlaying(false);
-    setFollow(streaming);
+    setFollow(live);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
-  // Live follow: pin the playhead to the newest event while the run streams,
-  // and land on the final event when it completes (streaming flips false).
+  // Live follow: pin the playhead to the newest event (including action
+  // round-trips after the initial stream) until the user scrubs away.
   useEffect(() => {
-    if (follow && last >= 0) setPlayhead(last);
-  }, [streaming, follow, last]);
+    if (live && follow && last >= 0) setPlayhead(last);
+  }, [live, follow, last]);
 
   // Recorded playback: schedule the remaining events at recorded pacing.
   useEffect(() => {
@@ -228,7 +233,25 @@ export function RunView({ events, label, streaming = false, resetKey }: RunViewP
 
       <section data-canvas style={{ border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24, minHeight: 220 }}>
         {messages.length > 0 ? (
-          <A2uiCanvas catalog={catalogJson as any} registry={astryxRegistry} messages={messages} />
+          // Keyed on the delivery count: each new A2UI delivery remounts the
+          // canvas with a fresh processor, so bound values are re-resolved
+          // (the published renderer memoizes resolved props per surface).
+          <A2uiCanvas
+            key={`${resetKey}:${messages.length}`}
+            catalog={catalogJson as any}
+            registry={astryxRegistry}
+            messages={messages}
+            onAction={
+              onAction
+                ? (a) => {
+                    // Acting on the surface re-attaches the live follow: the
+                    // user is interacting with NOW, so show them the response.
+                    setFollow(true);
+                    onAction(a);
+                  }
+                : undefined
+            }
+          />
         ) : (
           <p style={{ opacity: 0.6, fontSize: 14 }} data-testid="canvas-empty">
             {streaming

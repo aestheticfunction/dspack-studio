@@ -106,6 +106,30 @@ export function createPipelineEventMapper(ids: MapperIds) {
   };
 }
 
+/**
+ * The A2UI delivery quartet for an arbitrary op list — used by the mapper's
+ * `done` branch and by interaction responses (scenario starts, HITL action
+ * results), so every A2UI delivery in the stream has the identical shape.
+ */
+export function a2uiDeliveryEvents(ops: Array<Record<string, unknown>>, toolCallId: string): BaseEvent[] {
+  const surfaceId =
+    (ops[0] as any)?.createSurface?.surfaceId ??
+    (ops[0] as any)?.updateComponents?.surfaceId ??
+    (ops[0] as any)?.updateDataModel?.surfaceId ??
+    "surface";
+  return [
+    { type: EventType.TOOL_CALL_START, toolCallId, toolCallName: GENERATE_A2UI_TOOL_NAME } as BaseEvent,
+    { type: EventType.TOOL_CALL_ARGS, toolCallId, delta: JSON.stringify({ surfaceId }) } as BaseEvent,
+    { type: EventType.TOOL_CALL_END, toolCallId } as BaseEvent,
+    {
+      type: EventType.TOOL_CALL_RESULT,
+      messageId: `${toolCallId}-result`,
+      toolCallId,
+      content: wrapAsOperationsEnvelope(ops),
+    } as BaseEvent,
+  ];
+}
+
 /** RUN_ERROR for thrown exceptions (never for pipeline outcomes). */
 export function runErrorEvent(message: string, code?: string): BaseEvent {
   return { type: EventType.RUN_ERROR, message, ...(code ? { code } : {}) } as BaseEvent;

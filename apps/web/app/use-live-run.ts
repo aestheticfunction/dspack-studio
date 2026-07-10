@@ -26,9 +26,17 @@ export interface LiveRunState {
 }
 
 export interface LiveRunControls {
-  run(input: { prompt: string; intent: string; modelRef: string }): void;
+  run(input: { prompt: string; intent: string; modelRef: string; scenario?: string }): void;
   cancel(): void;
   reset(): void;
+  /**
+   * HITL round-trip: record the user's action (studio.action.pending),
+   * POST it to the agent, and append the agent's response events. Duplicate
+   * in-flight actions are ignored client-side (and idempotent server-side);
+   * network failures append studio.action.failed and can be retried by
+   * calling sendAction again with the same payload.
+   */
+  sendAction(action: { scenario: string; name: string; surfaceId?: string; sourceComponentId?: string; context?: Record<string, unknown> }): void;
   /** The accumulated run as a downloadable fixture document. */
   toFixture(meta: { id: string; name: string; intent: string; prompt: string; modelRef: string }): unknown;
 }
@@ -76,8 +84,46 @@ export function useLiveRun(agentUrl: string): LiveRunState & LiveRunControls {
     setStatus("idle");
   }, []);
 
+  const pendingActions = useRef(new Set<string>());
+
+  const appendEvent = useCallback((event: Record<string, unknown>) => {
+    setEvents((prev) => [...prev, { atMs: Date.now() - t0.current, event: event as any }]);
+  }, []);
+
+  const sendAction = useCallback(
+    (action: { scenario: string; name: string; surfaceId?: string; sourceComponentId?: string; context?: Record<string, unknown> }) => {
+      // Duplicate protection: one in-flight round-trip per (name, source).
+      const dedupeKey = `${action.name}:${action.sourceComponentId ?? ""}`;
+      if (pendingActions.current.has(dedupeKey)) return;
+      pendingActions.current.add(dedupeKey);
+
+      const actionId = crypto.randomUUID();
+      appendEvent({ type: "CUSTOM", name: "studio.action.pending", value: { actionId, ...action } });
+
+      fetch(`${agentUrl}/action`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ actionId, ...action }),
+      })
+        .then(async (r) => {
+          const body = (await r.json()) as { events?: Array<Record<string, unknown>>; error?: string };
+          if (!r.ok) throw new Error(body.error ?? `agent responded ${r.status}`);
+          for (const e of body.events ?? []) appendEvent(e);
+        })
+        .catch((err: unknown) => {
+          appendEvent({
+            type: "CUSTOM",
+            name: "studio.action.failed",
+            value: { actionId, ...action, detail: err instanceof Error ? err.message : String(err) },
+          });
+        })
+        .finally(() => pendingActions.current.delete(dedupeKey));
+    },
+    [agentUrl, appendEvent],
+  );
+
   const run = useCallback(
-    (input: { prompt: string; intent: string; modelRef: string }) => {
+    (input: { prompt: string; intent: string; modelRef: string; scenario?: string }) => {
       subscription.current?.unsubscribe();
       setEvents([]);
       setError(undefined);
@@ -125,5 +171,5 @@ export function useLiveRun(agentUrl: string): LiveRunState & LiveRunControls {
     [events],
   );
 
-  return { status, events, error, agentOnline, models, run, cancel, reset, toFixture };
+  return { status, events, error, agentOnline, models, run, cancel, reset, sendAction, toFixture };
 }

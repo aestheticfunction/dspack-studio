@@ -45,10 +45,17 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
   const [lastRun, setLastRun] = useState<{ prompt: string; modelRef: string } | null>(null);
   const [runSeq, setRunSeq] = useState(0);
 
+  const interactive = scenario.interactive === true;
+
   const start = (p: string, m: string) => {
     setRunSeq((n) => n + 1);
     setLastRun({ prompt: p, modelRef: m });
-    live.run({ prompt: p, intent: scenario.intent, modelRef: m });
+    live.run({
+      prompt: p,
+      intent: scenario.intent,
+      modelRef: interactive ? "deterministic:authored" : m,
+      scenario: interactive ? scenario.id : undefined,
+    });
   };
 
   const download = () => {
@@ -93,7 +100,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
   return (
     <div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-        {scenario.seedPrompts.map((p, i) => (
+        {!interactive && scenario.seedPrompts.map((p, i) => (
           <button
             key={i}
             style={{ ...btn(p === prompt), fontSize: 12, maxWidth: 340, textAlign: "left" }}
@@ -105,6 +112,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         ))}
       </div>
 
+      {!interactive && (
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input
           data-testid="live-prompt"
@@ -135,11 +143,23 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
           ))}
         </select>
       </div>
+      )}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, fontSize: 13 }}>
         {!streaming && (
-          <button data-testid="live-run" style={btn(true)} onClick={() => start(prompt, modelRef)} disabled={!prompt.trim()}>
-            {live.status === "finished" || live.status === "error" || live.status === "cancelled" ? "run again" : "run it live"}
+          <button
+            data-testid="live-run"
+            style={btn(true)}
+            onClick={() => start(prompt, modelRef)}
+            disabled={!interactive && !prompt.trim()}
+          >
+            {interactive
+              ? live.events.length > 0
+                ? "restart scenario"
+                : "start scenario"
+              : live.status === "finished" || live.status === "error" || live.status === "cancelled"
+                ? "run again"
+                : "run it live"}
           </button>
         )}
         {streaming && (
@@ -172,8 +192,21 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         <RunView
           events={live.events}
           streaming={streaming}
+          live
           resetKey={`run-${runSeq}`}
           label={`live run — ${lastRun?.modelRef ?? modelRef}, ${live.events.length} events`}
+          onAction={
+            interactive
+              ? (a: any) =>
+                  live.sendAction({
+                    scenario: scenario.id,
+                    name: a?.name ?? "unknown",
+                    surfaceId: a?.surfaceId,
+                    sourceComponentId: a?.sourceComponentId,
+                    context: a?.context,
+                  })
+              : undefined
+          }
         />
       )}
     </div>

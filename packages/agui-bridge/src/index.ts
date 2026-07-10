@@ -1,4 +1,4 @@
-export { DSPACK_EVENT } from "./custom-events";
+export { DSPACK_EVENT, STUDIO_EVENT, type StudioActionValue } from "./custom-events";
 export type {
   DspackEventName,
   DspackRunStartValue,
@@ -9,7 +9,7 @@ export type {
 } from "./custom-events";
 export type { PipelineEvent, GateReportLike, FindingLike } from "./pipeline-types";
 export { gateFailed, gatePassed } from "./pipeline-types";
-export { createPipelineEventMapper, runErrorEvent, type MapperIds } from "./mapper";
+export { createPipelineEventMapper, runErrorEvent, a2uiDeliveryEvents, type MapperIds } from "./mapper";
 export { FixtureAgent, type ReplayFixtureLike, type FixtureEventEntry, type FixtureAgentOptions } from "./fixture-agent";
 export { createSseEncoder, type SseEncoder } from "./sse";
 // Deliberate re-exports so other packages consume AG-UI concepts through the

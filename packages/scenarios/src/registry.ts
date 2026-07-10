@@ -76,10 +76,10 @@ export const scenarios: Scenario[] = [
   {
     id: "appointment-booking",
     name: "Appointment booking",
-    tagline: "The agent proposes, the interface asks permission — human-in-the-loop as a governed surface.",
+    tagline: "Human-in-the-loop, live: pick a slot, the agent validates and co-edits the same state you type into.",
     intent: "scheduling",
-    status: "planned",
-    needs: ["contract intent + rules (owner-authored)", "HITL round-trip (Phase 2 follow-on)", "recorded fixtures"],
+    status: "ready",
+    interactive: true,
     seedPrompts: ["Book a 30-minute consultation next week."],
     fixtures: [],
   },

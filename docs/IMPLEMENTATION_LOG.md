@@ -192,9 +192,77 @@ mid-stream -> "cancelled" + retry offered.
 Validation (2026-07-10): unit 6/6 + 5/5; typecheck OK x7 packages/apps;
 contract gates clean; static export builds; Playwright 9/9 twice.
 
+## Session import + HITL + shared state + appointment booking (2026-07-10)
+
+Pushed: origin = github.com/aestheticfunction/dspack-studio, main tracks
+origin/main.
+
+Session import (third event source, closed):
+- `importFixture` in packages/replay: strict user-facing validation — 5 MB /
+  5000-event caps, version check (0.1 only), per-event shape check, mode
+  whitelist. 4 unit tests + 2 e2e (malformed JSON, future version).
+- Replay pane: file picker + drag-and-drop; imported sessions labeled
+  "(imported)" with provenance (recordedAt, prompt); identical RunView path.
+- Round-trip proven by e2e: run live -> download -> import -> scrub to the
+  same state.
+
+HITL action round-trips:
+- STUDIO_EVENT namespace (studio.action.pending/accepted/rejected/cancelled/
+  failed) separate from dspack.* pipeline events; every state carries the
+  same correlation actionId. UI events, agent events, and pipeline events
+  are distinct namespaces in one ordered stream — replay-safe by
+  construction.
+- Client: sendAction (dedupe per name+source while in flight; UUID
+  correlation; failure appends studio.action.failed; retry = re-send).
+  Server: POST /action, idempotent by actionId (duplicates return the
+  original response), scenario-neutral responder registry.
+- Acting on the surface re-attaches the live follow (found by e2e: after
+  scrubbing, a canvas action must snap the playhead back to now).
+
+Shared-state co-editing (public mechanisms only):
+- A2UI updateDataModel ops ({surfaceId, path, value}) = partial updates,
+  ordered by the event stream; user input is optimistic-local via the
+  binder's generated setters (TextFieldRender uses props.setValue when
+  bound); an ACCEPTED action commits its submitted values back into the
+  data model (sync-on-action per the A2UI spec) — that commit is what
+  survives replay/reconstruction. Conflicts: agent-authoritative on action
+  (last-committed-wins), validation rejections update /booking/status and
+  ride studio.action.rejected verbatim.
+
+Appointment booking (first interactive scenario):
+- Structure from the contract: surfaces/appointment-booking.dsurface.json,
+  emitted by dspack-emit at build (unscoped rules apply; note the emitter
+  slugifies ids: name-input -> name_input).
+- The agent adds the interaction OVERLAY (bindings + named actions with
+  context paths) — exactly the layer dspack v0.4's Deliberate Ceiling
+  declares out of contract scope; documented as evidence.
+- State schema /booking/{name,slot,status,confirmed}; actions select_slot /
+  confirm_booking / cancel_booking; deterministic responder (no provider,
+  no model). Full arc verified in-browser AND by e2e: validation rejection,
+  hold with committed name, confirm -> "Booked 10:30 for Ada", scrub-back
+  reconstruction, start over.
+- Rendering discovery: the published @a2ui/react renderer memoizes resolved
+  props per surface — bound-value updates require remounting the canvas per
+  delivery (keyed on ops count). A transient mid-edit compile error also
+  produced a stale-bundle debugging detour; verify compile state first.
+
+Governance boundary (owner decision needed for the LIVE-generation path):
+- The contract has no `scheduling` intent, so `run it live` with a model is
+  gated for booking (deterministic start + HITL work without it). Proposed
+  draft for owner review:
+  intents += { id: "scheduling", name: "Scheduling",
+    description: "Surfaces that collect a time choice and confirm it." }
+  examples += ex.book-consultation (the authored booking surface, verbatim);
+  optional rule: required-composition — a scheduling surface must carry at
+  least one button (the confirm affordance). Compatibility: additive
+  (v0.4-safe); no existing rules change; fewshot grows by one example.
+
+Validation (2026-07-10): frozen-lockfile install clean; unit 6/9/5;
+typecheck OK x7; contract gates clean; drift-check clean (1 unverifiable
+alias); static export builds; Playwright 13/13 twice (replay 6, live 3,
+interactive+import 4).
+
 Follow-ups:
-- Push to github.com/aestheticfunction/dspack-studio (owner runs the push;
-  command provided in session).
 - Upstream (dspack-gen): export `PipelineEvent` (+ consider `GateReport`)
   from the package root.
 - Upstream (contract, owner decision): intents/rules/examples for the five

@@ -36,4 +36,11 @@ export interface Scenario {
   status: "ready" | "planned";
   /** For planned scenarios: what has to exist first. */
   needs?: string[];
+  /**
+   * Interactive scenarios start from a deterministic contract-emitted surface
+   * (no model call) and answer rendered actions through the agent's HITL
+   * responder. Their live-generation path stays gated on owner-authored
+   * contract governance for the scenario's intent.
+   */
+  interactive?: boolean;
 }

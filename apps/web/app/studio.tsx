@@ -14,7 +14,7 @@ import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-stud
 import { readyScenarios, scenarios, type Scenario } from "@dspack-studio/scenarios";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
-import { parseFixture } from "@dspack-studio/replay";
+import { importFixture, parseFixture, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
 import { RunView } from "./run-view";
 import { LiveView } from "./live-view";
 
@@ -31,25 +31,86 @@ const btnStyle = (active: boolean): React.CSSProperties => ({
 
 function ReplayPane({ scenario }: { scenario: Scenario }) {
   const [key, setKey] = useState(scenario.fixtures[0]?.key);
-  const ref = scenario.fixtures.find((f) => f.key === key) ?? scenario.fixtures[0];
-  if (!ref) return <p style={{ opacity: 0.6 }}>No recordings yet for this scenario.</p>;
-  const fixture = parseFixture(ref.fixture);
+  const [imported, setImported] = useState<ReplayFixture | null>(null);
+  const [importSeq, setImportSeq] = useState(0);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleFile = async (file: File) => {
+    setImportError(null);
+    if (file.size > MAX_IMPORT_BYTES) {
+      setImportError(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB — fixtures are small JSON documents (limit 5 MB)`);
+      return;
+    }
+    const result = importFixture(await file.text(), file.size);
+    if (!result.ok) {
+      setImportError(`"${file.name}": ${result.error}`);
+      return;
+    }
+    setImported(result.fixture);
+    setImportSeq((n) => n + 1);
+    setKey("__imported__");
+  };
+
+  const ref = key === "__imported__" && imported ? null : (scenario.fixtures.find((f) => f.key === key) ?? scenario.fixtures[0]);
+  const fixture = ref ? parseFixture(ref.fixture) : imported;
+
   return (
-    <>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files?.[0];
+        if (file) void handleFile(file);
+      }}
+    >
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8, alignItems: "center" }}>
         {scenario.fixtures.map((f) => (
-          <button key={f.key} data-testid={`fixture-${f.key}`} style={btnStyle(f.key === ref.key)} onClick={() => setKey(f.key)}>
+          <button key={f.key} data-testid={`fixture-${f.key}`} style={btnStyle(f.key === ref?.key)} onClick={() => setKey(f.key)}>
             {f.label}
           </button>
         ))}
+        {imported && (
+          <button data-testid="fixture-imported" style={btnStyle(key === "__imported__")} onClick={() => setKey("__imported__")}>
+            imported session
+          </button>
+        )}
+        <label style={{ ...btnStyle(false), marginLeft: "auto" }} data-testid="import-label">
+          open a session file…
+          <input
+            data-testid="import-input"
+            type="file"
+            accept=".json,application/json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleFile(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
       </div>
-      <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{ref.blurb}</p>
-      <RunView
-        events={fixture.events}
-        resetKey={`${scenario.id}:${ref.key}`}
-        label={`${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events`}
-      />
-    </>
+      {importError && (
+        <p data-testid="import-error" style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>
+          could not import: {importError}
+        </p>
+      )}
+      {ref && <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{ref.blurb}</p>}
+      {!ref && imported && (
+        <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>
+          Imported session — recorded {imported.recordedAt || "(unknown time)"}, prompt: “{imported.prompt || "—"}”. Drag another
+          file anywhere here to replace it.
+        </p>
+      )}
+      {fixture ? (
+        <RunView
+          events={fixture.events}
+          resetKey={ref ? `${scenario.id}:${ref.key}` : `imported-${importSeq}`}
+          label={`${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`}
+        />
+      ) : (
+        <p style={{ opacity: 0.6 }}>No recordings yet for this scenario — open a session file, or run it live and download one.</p>
+      )}
+    </div>
   );
 }
 
