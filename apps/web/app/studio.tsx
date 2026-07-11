@@ -8,12 +8,7 @@
  * with what they are waiting on, stated honestly.
  */
 import { useEffect, useState } from "react";
-import { Theme } from "@astryxdesign/core";
-import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
-import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-studio/astryx-renderers";
 import { capabilitiesByScenario, readyScenarios, resolveAction, scenarios, type Scenario } from "@dspack-studio/scenarios";
-import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
-import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
 import { dataModelAt, forkFixture, importFixture, parseFixture, surfaceComponentsAt, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
 import { dispatchAction } from "./action-dispatch";
 import { buildPermalink, parsePermalink, type PermalinkState } from "./permalink";
@@ -23,6 +18,7 @@ import { RunView } from "./run-view";
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
+import { RestyleView } from "./restyle-view";
 import { useAgentStatus } from "./use-agent-status";
 import { btnClass, linkClass } from "./ui";
 
@@ -463,21 +459,7 @@ export function Studio() {
     setView("replay");
     setDeepLink(state);
   }, []);
-  const [actions, setActions] = useState<A2uiClientAction[]>([]);
-  const [themeName, setThemeName] = useState<ThemeName>("default");
-  const [mode, setMode] = useState<"light" | "dark">("light");
-
   const scenario = scenarios.find((s) => s.id === scenarioId) ?? readyScenarios[0];
-  const theme = themes[themeName];
-
-  const staticCanvas = (
-    <A2uiCanvas
-      catalog={catalogJson as any}
-      registry={astryxRegistry}
-      messages={(surfaceJson as any).messages}
-      onAction={(action) => setActions((prev) => [...prev, action])}
-    />
-  );
 
   return (
     <main className="st-main" style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -619,54 +601,7 @@ export function Studio() {
       )}
       {view === "live" && scenario && <LiveView key={scenario.id} scenario={scenario} />}
       {view === "break" && scenario && <BreakView key={scenario.id} scenario={scenario} />}
-      {view === "canvas" && (
-        <>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
-            {themeNames.map((name) => (
-              <button key={name} onClick={() => setThemeName(name)} className={btnClass(name === themeName)}>
-                {name}
-              </button>
-            ))}
-            <button
-              onClick={() => setMode((m) => (m === "light" ? "dark" : "light"))}
-              className={btnClass()}
-              style={{ marginLeft: "auto" }}
-            >
-              {mode === "light" ? "dark mode" : "light mode"}
-            </button>
-          </div>
-
-          {/* The artboard: a deliberately light surface framed by the dark
-              chrome. colorScheme pins Astryx's light-dark() tokens to the
-              same resolution the studio always shipped, independent of the
-              visitor's OS scheme; the <Theme> wrapper inside still owns its
-              own subtree when the dial is used. */}
-          <section data-canvas style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, background: "#fff", colorScheme: "light", color: "#0f172a" }}>
-            {theme ? (
-              <Theme theme={theme as any} mode={mode}>
-                {staticCanvas}
-              </Theme>
-            ) : (
-              staticCanvas
-            )}
-          </section>
-
-          <p data-testid="fm5-caption" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "12px 0 0" }}>
-            Nothing about this interface changed. Only the design system&apos;s theme did.
-          </p>
-
-          <section style={{ marginTop: 20, fontSize: 13, color: "var(--fg-dim)" }}>
-            <strong>Dispatched actions</strong> (A2UI → host):{" "}
-            {actions.length === 0 ? (
-              <em>none yet: press the confirm button in the dialog</em>
-            ) : (
-              <code>
-                {actions.map((a: any) => `${a?.name ?? "?"} (from ${a?.sourceComponentId ?? "?"})`).join(", ")}
-              </code>
-            )}
-          </section>
-        </>
-      )}
+      {view === "canvas" && scenario && <RestyleView scenario={scenario} />}
       {/* Orientation, below the primary experience: the approved pipeline
           language and the existing capabilities, stated once, compactly. */}
       <section aria-label="how it works" style={{ marginTop: 44, fontSize: 12 }}>

@@ -56,6 +56,19 @@ test("planned scenarios reveal what they need, by keyboard", async ({ page }) =>
   await expect(page.getByTestId("planned-needs")).toHaveCount(0);
 });
 
+test("restyle themes the active scenario's own surface", async ({ page }) => {
+  await page.goto("/");
+  // The default scenario is recipe-creator: restyle shows ITS recorded
+  // surface, not another scenario's.
+  await page.getByTestId("view-canvas").click();
+  await expect(page.locator("[data-canvas]")).toContainText("Dietary constraint");
+  // Switching scenarios stays in the restyle operation and swaps the surface.
+  await page.getByTestId("scenario-appointment-booking").click();
+  await expect(page.locator("[data-canvas]")).toContainText("Confirm booking");
+  await page.getByTestId("scenario-project-deletion").click();
+  await expect(page.locator("[data-canvas]")).toContainText("Delete");
+});
+
 test("restyle view carries the FM-5 caption and theme dial", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("view-canvas").click();
