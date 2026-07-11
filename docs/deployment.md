@@ -7,14 +7,41 @@ Two artifacts, deliberately separable:
 | `apps/web` | fully static export (`apps/web/out`) — the whole replay experience, all curated fixtures, session import, inspectors, Break-it deterministic docs | any static host; no server, no keys |
 | `apps/agent` | small Node HTTP server (AG-UI SSE + `/action`) — live generation and interactive scenarios | Node ≥ 22, a reachable model backend for `ollama:*` refs |
 
+## Production (live since 2026-07-11)
+
+**https://studio.aesthetic-function.com** runs the static-only topology on
+**Cloudflare Workers Static Assets**, configured by the committed
+`wrangler.jsonc` at the repository root:
+
+| Setting | Value |
+|---|---|
+| Repository path | `/` (repo root) |
+| Application build command | `pnpm build:deploy` |
+| Deploy command | `npx wrangler deploy` |
+| Static asset directory | `apps/web/out` (from `wrangler.jsonc`) |
+| Environment variables | none (`NEXT_PUBLIC_AGENT_URL` deliberately unset) |
+
+`pnpm build:deploy` is the canonical deployment build: it generates the
+gated contract artifacts (`packages/contracts/out` is gitignored emission
+output, so a clean checkout MUST run this), builds the Next.js static
+export, and verifies `apps/web/out` exists. Cloudflare installs
+dependencies itself; do not fold `pnpm install` into the build command.
+
+Analytics: Cloudflare Web Analytics (zone-injected beacon, cookieless).
+
+Production smoke suite (agent-free specs against the deployed site):
+
+```sh
+npx playwright test --config playwright.production.config.ts
+```
+
 ## Recommended topology
 
-**Launch topology: static-only.** Deploy `apps/web/out` to Cloudflare Pages
-(matches the af-site stack; Vercel/Netlify equivalent). Do NOT set
-`NEXT_PUBLIC_AGENT_URL`: the live tab then shows the offline panel with the
-exact local command (`pnpm --filter agent dev`) — "run it live" is a
-bring-your-own-machine feature, which is the honest cost model (no hosted
-inference, no keys, no abuse surface).
+**Launch topology: static-only.** Do NOT set `NEXT_PUBLIC_AGENT_URL`: the
+live tab then shows the offline panel with the exact local command
+(`pnpm --filter agent dev`) — "run it live" is a bring-your-own-machine
+feature, which is the honest cost model (no hosted inference, no keys, no
+abuse surface).
 
 **Optional live topology (later, owner decision):** agent on a long-lived-
 process host (Fly.io / Railway — SSE-friendly), `NEXT_PUBLIC_AGENT_URL`
@@ -25,8 +52,7 @@ agent's `OLLAMA_URL` / `ANTHROPIC_API_KEY` kept server-side only.
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm --filter @dspack-studio/contracts build:catalogs   # gated artifacts
-pnpm --filter web build                                  # -> apps/web/out
+pnpm build:deploy   # gated contract artifacts + static export -> apps/web/out
 # agent (only for the live topology):
 PORT=8787 AGENT_ALLOWED_ORIGINS=https://studio.example pnpm --filter agent dev
 ```
