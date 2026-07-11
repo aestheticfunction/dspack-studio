@@ -26,6 +26,7 @@ import {
 } from "@dspack-studio/replay";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import { Inspector } from "./inspector";
+import { WireView } from "./wire-view";
 
 const TICK_COLOR: Record<TimelineTick["kind"], string> = {
   lifecycle: "#64748b",
@@ -271,6 +272,9 @@ export function RunView({ events, label, streaming = false, live = false, resetK
 
       <Inspector source={source} playhead={playhead} />
 
+      {/* FM-9: which pipeline layers the playhead event actually touches. */}
+      <WireView current={current} playhead={playhead} />
+
       {/* You-are-here: the raw wire event at the playhead. */}
       {current && (
         <details style={{ marginTop: 12, fontSize: 12 }} open={false}>
@@ -284,7 +288,11 @@ export function RunView({ events, label, streaming = false, live = false, resetK
             ) : null}{" "}
             @ {current.atMs}ms
           </summary>
-          <pre style={{ overflow: "auto", maxHeight: 260, background: "rgba(148,163,184,0.12)", padding: 12, borderRadius: 8 }}>
+          <pre
+            tabIndex={0}
+            aria-label="raw event JSON"
+            style={{ overflow: "auto", maxHeight: 260, background: "rgba(148,163,184,0.12)", padding: 12, borderRadius: 8 }}
+          >
             {JSON.stringify(current.event, null, 2)}
           </pre>
         </details>

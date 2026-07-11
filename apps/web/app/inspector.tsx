@@ -92,9 +92,9 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
       {tab === "state" && (
         <div data-testid="inspector-state">
           <p style={{ margin: "0 0 6px", opacity: 0.7 }}>Shared data model at this playhead ({patches.length} patches applied):</p>
-          <pre style={pre} data-testid="inspector-state-json">{JSON.stringify(model, null, 2)}</pre>
+          <pre style={pre} tabIndex={0} aria-label="shared data model JSON" data-testid="inspector-state-json">{JSON.stringify(model, null, 2)}</pre>
           <p style={{ margin: "10px 0 6px", opacity: 0.7 }}>Ordered patch log:</p>
-          <div style={{ ...pre, maxHeight: 180 }} data-testid="inspector-patches">
+          <div style={{ ...pre, maxHeight: 180 }} tabIndex={0} role="group" aria-label="state patches" data-testid="inspector-patches">
             {patches.length === 0 && <em>no patches yet</em>}
             {patches.map((p, i) => (
               <div key={i}>
@@ -130,7 +130,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
       )}
 
       {tab === "events" && (
-        <div style={{ ...pre, maxHeight: 300 }} data-testid="inspector-events">
+        <div style={{ ...pre, maxHeight: 300 }} tabIndex={0} role="group" aria-label="raw events" data-testid="inspector-events">
           {events.map(({ atMs, event }, i) => {
             const cat = eventCategory(event as any);
             return (
@@ -148,7 +148,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
       )}
 
       {tab === "a2ui" && (
-        <pre style={{ ...pre, maxHeight: 300 }} data-testid="inspector-a2ui">
+        <pre style={{ ...pre, maxHeight: 300 }} tabIndex={0} aria-label="A2UI operations JSON" data-testid="inspector-a2ui">
           {JSON.stringify(ops, null, 2)}
         </pre>
       )}
@@ -171,7 +171,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
                   ))}
                 </div>
               )}
-              {a.repairMessage && <details style={mono}><summary>repair message</summary><pre style={pre}>{a.repairMessage}</pre></details>}
+              {a.repairMessage && <details style={mono}><summary>repair message</summary><pre style={pre} tabIndex={0} aria-label="repair message">{a.repairMessage}</pre></details>}
             </div>
           ))}
           {gates.audit && (
@@ -184,7 +184,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
       )}
 
       {tab === "components" && (
-        <div style={{ ...pre, maxHeight: 300 }} data-testid="inspector-components">
+        <div style={{ ...pre, maxHeight: 300 }} tabIndex={0} role="group" aria-label="surface components" data-testid="inspector-components">
           {components.length === 0 && <em>no components yet</em>}
           {components.map((c: any) => (
             <div key={c.id}>

@@ -94,6 +94,7 @@ export function BreakView() {
       {condition.prompt && (
         <input
           data-testid="break-prompt"
+          aria-label="the adversarial prompt this break attempt runs"
           value={effectivePrompt}
           onChange={(e) => setPrompt(e.target.value)}
           style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", font: "inherit", fontSize: 13, background: "transparent", color: "inherit", marginBottom: 8 }}
