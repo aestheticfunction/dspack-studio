@@ -661,3 +661,50 @@ deterministic responders) — designed, not yet wired; live re-generation
 forks are the BYO-live milestone after that.
 
 Validation: 31 unit tests + agent 9/9 + 36 Playwright (3 gated skips).
+
+## 0.1.1 propagation, fixture-006, FM-3 continuation (2026-07-11) — COMPLETE
+
+Release verified before anything downstream moved: dspack PR #21 merge on
+main (fe4b8df); dspack-gen v0.1.1 release workflow green after the repair
+(trusted publishing registration + npm >= 11.5 via Node 24 — the first two
+runs failed E404 on the unauthenticated PUT; nothing partially published);
+registry artifact shasum byte-identical to the CI tarball, SLSA v1
+provenance verified via npm audit signatures, schema fixes confirmed from
+a fresh registry install.
+
+Propagation: studio consumes ^0.1.1 (lockfile updated, artifacts
+regenerated, both A2UI versions gate clean, contract copy byte-identical
+to dspack main); dspack-emit sync PR #20 (no golden changes — 55/55 pass;
+its own built-in astryx a2ui MAPPING's unclassified text/text-input is
+pre-existing and not CI-gated, tracked as a finding); dspack-gen PR #42
+adds grammar-alignment regressions (8 tests; 5 fail under the 0.1.0
+schema builder, including the ex.recipe-creator oracle).
+
+fixture-006 (mode live, gpt-oss, 27 events, ~12s, first-attempt pass,
+0 repairs): generated recipe surface WITH node text (the 0.1.1 fix visible
+in the artifact), enhancement grounds input/status/apply/regenerate and
+RECORDS its grounded update targets in the stream; apply_constraint
+'vegetarian' lands 4 rows on the rendered generated table; regenerate
+cycles the dish. On the shelf as "generated, then co-edited"; fidelity
+proven by e2e (shelf replay, scrub reconstruction at three moments,
+export->import round-trip). Recording found a real defect: responder
+co-edits orphaned on authored ids for generated surfaces — fixed by
+enhancement-time retargeting (unambiguous slots only), agent-tested.
+
+FM-3 deterministic continuation: POST /fork rebuilds scenario state from a
+fork's prefix (reset + grounding restore + accepted-action replay through
+the deterministic responders; divergent replays are refused 409, nothing
+invented). The replay pane continues forks live: new actions append ONLY
+to the branch, the parent stays untouched, continued forks export with
+provenance + branch events and reopen through session import. e2e proves
+the money shot: parent applied vegetarian; its fork applies vegan; both
+render their own truths. Action dispatch extracted to one shared module
+(live view + continuation use identical wire shapes). Live-model
+continuation remains gated/manual — the deterministic path proves the
+architecture.
+
+Validation: frozen-lockfile install; typecheck clean; 51 unit tests;
+6/6 A2UI gates; sync + Astryx drift clean; static export; 43 Playwright
+(3 gated live/bench skips) including new wire-view, fixture-006,
+fork-continue, and fork/wire a11y coverage (contrast fixes on the new
+controls). Deterministic CI stays Ollama-independent.

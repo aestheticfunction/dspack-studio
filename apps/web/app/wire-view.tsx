@@ -196,11 +196,11 @@ export function WireView({ current, playhead }: { current: FixtureEvent | null; 
                     padding: "6px 8px",
                     border: on ? "1px solid #0f172a" : "1px dashed #cbd5e1",
                     background: on ? "rgba(15,23,42,0.08)" : "transparent",
-                    color: on ? "inherit" : "#64748b",
+                    color: on ? "inherit" : "#475569",
                   }}
                 >
                   <strong style={{ display: "block" }}>{s.label}</strong>
-                  <span style={{ fontSize: 10, opacity: 0.75 }}>{s.sub}</span>
+                  <span style={{ fontSize: 10, color: on ? "#334155" : "#475569" }}>{s.sub}</span>
                 </div>
               </div>
             );

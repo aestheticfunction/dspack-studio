@@ -90,14 +90,25 @@ function recipeComponentsOps(variant: number, servings: number, constraint: stri
   ];
 }
 
+/** Fresh scenario state: sessions gone, updates back on authored ids. */
 export function resetRecipeSessions(): void {
   sessions.clear();
+  updateTargets = { ...AUTHORED_TARGETS };
+}
+
+/**
+ * FM-3 continuation: restore the grounding a fork's prefix recorded (the
+ * studio.surface.enhanced event carries it), so co-edits on the forked run
+ * land on the same generated components the original run targeted.
+ */
+export function restoreRecipeGrounding(grounding: unknown): void {
+  const targets = (grounding as { targets?: Partial<typeof AUTHORED_TARGETS> } | undefined)?.targets;
+  if (targets) updateTargets = { ...AUTHORED_TARGETS, ...targets };
 }
 
 export function recipeStartOps(): unknown[] {
   // A fresh scenario start is a fresh session — deterministic across runs.
-  sessions.clear();
-  updateTargets = { ...AUTHORED_TARGETS };
+  resetRecipeSessions();
   const path = require.resolve("@dspack-studio/contracts/out/recipe-creator.surface.json");
   const emitted = JSON.parse(readFileSync(path, "utf8")) as { messages: any[] };
   const messages = structuredClone(emitted.messages);
@@ -177,7 +188,7 @@ export function recipeRespond(name: string, context: Record<string, unknown>, se
  * distinguishes +/- deltas on arbitrary generated labels); their synthesized
  * actions resolve as unsupported — clearly, in the stream.
  */
-export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: string[] } {
+export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: string[]; grounding: { targets: typeof AUTHORED_TARGETS } } {
   const out = structuredClone(ops);
   const notes: string[] = [];
   const components = out.flatMap((m: any) => m?.updateComponents?.components ?? []);
@@ -229,5 +240,5 @@ export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: stri
     notes.push("initialized /recipe data model");
   }
   sessions.clear();
-  return { ops: out, notes };
+  return { ops: out, notes, grounding: { targets: { ...updateTargets } } };
 }

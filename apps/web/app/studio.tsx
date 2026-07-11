@@ -11,11 +11,14 @@ import { useState } from "react";
 import { Theme } from "@astryxdesign/core";
 import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
 import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-studio/astryx-renderers";
-import { readyScenarios, scenarios, type Scenario } from "@dspack-studio/scenarios";
+import { capabilitiesByScenario, readyScenarios, resolveAction, scenarios, type Scenario } from "@dspack-studio/scenarios";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
-import { forkFixture, importFixture, parseFixture, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
+import { forkFixture, importFixture, parseFixture, surfaceComponentsAt, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
+import { dispatchAction } from "./action-dispatch";
 import { RunView } from "./run-view";
+
+const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
 
@@ -38,6 +41,10 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
   // FM-3: forked runs live beside the curated fixtures for this session.
   const [forks, setForks] = useState<ReplayFixture[]>([]);
   const [forkError, setForkError] = useState<string | null>(null);
+  // Continuation: the fork id whose agent session has been rebuilt from its
+  // prefix (deterministic responders) and now accepts NEW actions.
+  const [continuingId, setContinuingId] = useState<string | null>(null);
+  const [continueError, setContinueError] = useState<string | null>(null);
 
   const handleFile = async (file: File) => {
     setImportError(null);
@@ -72,6 +79,58 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
     }
     setForks((prev) => [...prev, result.fixture]);
     setKey(result.fixture.id);
+  };
+
+  // POST the fork's prefix to the agent: reset scenario state, restore the
+  // recorded grounding, replay accepted actions — then new actions continue
+  // the branch. Refused (409) if a replay diverges; nothing is invented.
+  const startContinuation = async (fork: ReplayFixture) => {
+    setContinueError(null);
+    try {
+      const r = await fetch(`${AGENT_URL}/fork`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scenario: scenario.id, events: fork.events }),
+      });
+      const body = (await r.json()) as { ok?: boolean; error?: string };
+      if (!r.ok || !body.ok) throw new Error(body.error ?? `agent responded ${r.status}`);
+      setContinuingId(fork.id);
+    } catch (err) {
+      setContinueError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  // Append a continuation event to the forked run (and only to it).
+  const appendToFork = (forkId: string, event: Record<string, unknown>) => {
+    setForks((prev) =>
+      prev.map((f) =>
+        f.id === forkId
+          ? { ...f, events: [...f.events, { atMs: (f.events.at(-1)?.atMs ?? 0) + 1000, event: event as any }] }
+          : f,
+      ),
+    );
+  };
+
+  const continuationAction = (fork: ReplayFixture) => (a: any) => {
+    const components = surfaceComponentsAt({ events: fork.events }, fork.events.length - 1);
+    const resolution = resolveAction(
+      { name: a?.name ?? "unknown", sourceComponentId: a?.sourceComponentId, context: a?.context },
+      components as any,
+      capabilitiesByScenario[scenario.id] ?? [],
+    );
+    void dispatchAction(
+      AGENT_URL,
+      {
+        scenario: scenario.id,
+        name: a?.name ?? "unknown",
+        capability: resolution.ok ? resolution.capability : undefined,
+        surfaceId: a?.surfaceId,
+        sourceComponentId: a?.sourceComponentId,
+        context: resolution.ok ? resolution.context : a?.context,
+        resolution: resolution as any,
+      },
+      (event) => appendToFork(fork.id, event),
+    );
   };
 
   const downloadFork = (fork: ReplayFixture) => {
@@ -141,17 +200,39 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
       )}
       {ref && <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{ref.blurb}</p>}
       {selectedFork && (
-        <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }} data-testid="fork-blurb">
+        <p style={{ fontSize: 13, color: "#475569", margin: "0 0 14px" }} data-testid="fork-blurb">
           A new run forked from “{selectedFork.fork?.parentName}” at event {selectedFork.fork?.forkIndex}: it shares
           history up to that moment and nothing after. The original is untouched.{" "}
           <button
             data-testid="fork-download"
             onClick={() => downloadFork(selectedFork)}
-            style={{ font: "inherit", border: "none", background: "none", color: "#0369a1", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+            style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
           >
             download this fork
           </button>{" "}
           — it reopens like any session file, provenance included.
+          {scenario.interactive && continuingId !== selectedFork.id && (
+            <>
+              {" "}
+              <button
+                data-testid="fork-continue"
+                onClick={() => void startContinuation(selectedFork)}
+                style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+              >
+                continue this fork
+              </button>{" "}
+              — the agent rebuilds its state from the prefix (deterministic responders), then your next actions
+              diverge the branch for real.
+            </>
+          )}
+          {continuingId === selectedFork.id && (
+            <em data-testid="fork-continuing"> — continuation active: act on the surface to grow this branch.</em>
+          )}
+        </p>
+      )}
+      {continueError && (
+        <p data-testid="continue-error" style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>
+          cannot continue this fork: {continueError}
         </p>
       )}
       {!ref && !selectedFork && imported && (
@@ -170,6 +251,8 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
               : `${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`
           }
           onFork={handleFork}
+          live={Boolean(selectedFork && continuingId === selectedFork.id)}
+          onAction={selectedFork && continuingId === selectedFork.id ? continuationAction(selectedFork) : undefined}
         />
       ) : (
         <p style={{ opacity: 0.6 }}>No recordings yet for this scenario — open a session file, or run it live and download one.</p>

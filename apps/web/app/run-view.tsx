@@ -78,6 +78,12 @@ export function RunView({ events, label, streaming = false, live = false, resetK
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
+  // Becoming live mid-session (FM-3: a fork's continuation starts) re-arms
+  // the follow — the user just asked to act on NOW.
+  useEffect(() => {
+    if (live) setFollow(true);
+  }, [live]);
+
   // Live follow: pin the playhead to the newest event (including action
   // round-trips after the initial stream) until the user scrubs away.
   useEffect(() => {

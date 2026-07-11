@@ -26,12 +26,27 @@ import {
 } from "@dspack-studio/agui-bridge";
 import { governedRun } from "./pipeline.js";
 import { bookingRespond, bookingStartOps, enhanceGeneratedOps } from "./scenarios/appointment-booking.js";
-import { enhanceGeneratedRecipeOps, recipeRespond, recipeStartOps } from "./scenarios/recipe-creator.js";
+import { enhanceGeneratedRecipeOps, recipeRespond, recipeStartOps, resetRecipeSessions, restoreRecipeGrounding } from "./scenarios/recipe-creator.js";
 
 /** Scenario registry: start ops + HITL responders (scenario-neutral shell). */
-const SCENARIOS: Record<string, { start: () => unknown[]; respond: (name: string, ctx: Record<string, unknown>) => { outcome: "accepted" | "rejected"; detail?: string; ops: unknown[] }; enhance?: (ops: any[]) => { ops: any[]; notes: string[] } }> = {
+interface ScenarioEntry {
+  start: () => unknown[];
+  respond: (name: string, ctx: Record<string, unknown>) => { outcome: "accepted" | "rejected"; detail?: string; ops: unknown[] };
+  enhance?: (ops: any[]) => { ops: any[]; notes: string[]; grounding?: unknown };
+  /** FM-3: wipe scenario state before a fork rebuilds it (omit if stateless). */
+  reset?: () => void;
+  /** FM-3: restore grounded update targets recorded in a prefix's enhanced event. */
+  restoreGrounding?: (grounding: unknown) => void;
+}
+const SCENARIOS: Record<string, ScenarioEntry> = {
   "appointment-booking": { start: bookingStartOps, respond: bookingRespond, enhance: enhanceGeneratedOps },
-  "recipe-creator": { start: recipeStartOps, respond: recipeRespond, enhance: enhanceGeneratedRecipeOps },
+  "recipe-creator": {
+    start: recipeStartOps,
+    respond: recipeRespond,
+    enhance: enhanceGeneratedRecipeOps,
+    reset: resetRecipeSessions,
+    restoreGrounding: restoreRecipeGrounding,
+  },
 };
 
 /** Duplicate-action protection: correlation ids already answered. */
@@ -107,6 +122,45 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // FM-3 deterministic continuation: rebuild the scenario's state from a
+  // fork's event prefix — reset, restore recorded grounding, then replay
+  // the prefix's ACCEPTED actions through the same responders. Nothing is
+  // invented: if a replayed action no longer produces "accepted", the fork
+  // is refused with the divergence named.
+  if (path === "/fork") {
+    const { scenario, events } = body ?? {};
+    const responder = SCENARIOS[String(scenario)];
+    if (!responder) {
+      json(res, 404, { error: `no interactive responder for scenario '${String(scenario)}'` }, CORS);
+      return;
+    }
+    if (!Array.isArray(events)) {
+      json(res, 400, { error: "events (the fork's prefix) are required" }, CORS);
+      return;
+    }
+    responder.reset?.();
+    const pendings = new Map<string, { name?: string; capability?: string; context?: Record<string, unknown> }>();
+    let replayed = 0;
+    for (const wrapped of events) {
+      const ev = wrapped?.event ?? wrapped;
+      if (ev?.type !== "CUSTOM") continue;
+      if (ev.name === "studio.surface.enhanced") responder.restoreGrounding?.(ev.value?.grounding);
+      if (ev.name === STUDIO_EVENT.actionPending && ev.value?.actionId) pendings.set(String(ev.value.actionId), ev.value);
+      if (ev.name === STUDIO_EVENT.actionAccepted && ev.value?.actionId) {
+        const p = pendings.get(String(ev.value.actionId));
+        if (!p) continue;
+        const outcome = responder.respond(String(p.capability ?? p.name), p.context ?? {});
+        if (outcome.outcome !== "accepted") {
+          json(res, 409, { error: `replaying '${String(p.capability ?? p.name)}' diverged: ${outcome.detail ?? outcome.outcome}`, replayed }, CORS);
+          return;
+        }
+        replayed++;
+      }
+    }
+    json(res, 200, { ok: true, replayed }, CORS);
+    return;
+  }
+
   // HITL action round-trip: a single-turn JSON response of AG-UI events the
   // client appends to its event source (UI event -> agent response, both
   // correlation-id'd; replays reconstruct the whole exchange).
@@ -176,10 +230,11 @@ const server = createServer(async (req, res) => {
         try {
           const envelope = JSON.parse((agui as any).content);
           if (Array.isArray(envelope.a2ui_operations)) {
-            const { ops, notes } = enhancer(envelope.a2ui_operations);
+            const { ops, notes, grounding } = enhancer(envelope.a2ui_operations);
             toWrite = { ...(agui as any), content: JSON.stringify({ a2ui_operations: ops }) } as BaseEvent;
             res.write(encoder.encode(toWrite));
-            res.write(encoder.encode({ type: EventType.CUSTOM, name: "studio.surface.enhanced", value: { scenario: props.scenario, notes } } as BaseEvent));
+            // grounding rides the stream so forks can rebuild it (FM-3).
+            res.write(encoder.encode({ type: EventType.CUSTOM, name: "studio.surface.enhanced", value: { scenario: props.scenario, notes, grounding } } as BaseEvent));
             continue;
           }
         } catch { /* not an ops envelope */ }

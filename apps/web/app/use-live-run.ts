@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HttpAgent, type BaseEvent } from "@dspack-studio/agui-bridge";
 import type { FixtureEvent } from "@dspack-studio/replay";
+import { dispatchAction } from "./action-dispatch";
 
 export type LiveStatus = "idle" | "checking" | "streaming" | "finished" | "error" | "cancelled" | "offline";
 
@@ -96,40 +97,7 @@ export function useLiveRun(agentUrl: string): LiveRunState & LiveRunControls {
       const dedupeKey = `${action.name}:${action.sourceComponentId ?? ""}`;
       if (pendingActions.current.has(dedupeKey)) return;
       pendingActions.current.add(dedupeKey);
-
-      const actionId = crypto.randomUUID();
-      const { resolution, ...rest } = action as any;
-      if (resolution) {
-        appendEvent({
-          type: "CUSTOM",
-          name: resolution.ok ? "studio.action.resolved" : "studio.action.unresolved",
-          value: { actionId, originalName: resolution.originalName, capability: resolution.capability, method: resolution.method, reason: resolution.reason, detail: resolution.detail },
-        });
-        if (!resolution.ok) {
-          pendingActions.current.delete(dedupeKey);
-          return;
-        }
-      }
-      appendEvent({ type: "CUSTOM", name: "studio.action.pending", value: { actionId, ...rest } });
-
-      fetch(`${agentUrl}/action`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ actionId, ...rest }),
-      })
-        .then(async (r) => {
-          const body = (await r.json()) as { events?: Array<Record<string, unknown>>; error?: string };
-          if (!r.ok) throw new Error(body.error ?? `agent responded ${r.status}`);
-          for (const e of body.events ?? []) appendEvent(e);
-        })
-        .catch((err: unknown) => {
-          appendEvent({
-            type: "CUSTOM",
-            name: "studio.action.failed",
-            value: { actionId, ...action, detail: err instanceof Error ? err.message : String(err) },
-          });
-        })
-        .finally(() => pendingActions.current.delete(dedupeKey));
+      void dispatchAction(agentUrl, action as any, appendEvent).finally(() => pendingActions.current.delete(dedupeKey));
     },
     [agentUrl, appendEvent],
   );

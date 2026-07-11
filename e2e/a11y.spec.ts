@@ -51,3 +51,17 @@ test("timeline is keyboard-operable end to end", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(page.getByTestId("inspector-open")).toBeVisible();
 });
+
+test("forked run (chips, blurb, continue control) and open wire view have no axe violations", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("scenario-recipe-creator").click();
+  await page.getByTestId("fixture-generated-cooked").click();
+  await page.getByTestId("scrubber").focus();
+  await page.keyboard.press("End");
+  await page.getByTestId("fork").click();
+  await page.getByTestId("scrubber").focus();
+  await page.keyboard.press("End");
+  await page.getByTestId("wire-view").locator("summary").click();
+  const results = await scan(page);
+  expect(results.violations).toEqual([]);
+});
