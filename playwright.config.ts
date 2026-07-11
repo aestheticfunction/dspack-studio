@@ -13,6 +13,11 @@ export default defineConfig({
   testDir: "e2e",
   timeout: 30_000,
   retries: 0,
+  // The local agent is deliberately single-session (one visitor, one
+  // machine): interactive specs mutate its scenario state and grounding,
+  // so parallel workers can race each other through it. One worker keeps
+  // every run deterministic; the static production suite stays parallel.
+  workers: 1,
   // prod-smoke asserts the DEPLOYED site's properties (no local agent,
   // injected analytics); it runs via playwright.production.config.ts only.
   testIgnore: ["prod-smoke.spec.ts"],

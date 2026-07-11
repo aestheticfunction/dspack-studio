@@ -472,7 +472,16 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         </section>
       )}
 
-      <Inspector source={source} playhead={playhead} />
+      <Inspector
+        source={source}
+        playhead={playhead}
+        onTrace={(id) => {
+          // Same selection state as clicking the canvas; the provenance card
+          // below is aria-live, so the trace is announced.
+          setXray(true);
+          setXrayNode(id);
+        }}
+      />
 
       {/* FM-12: the run's evidence, downloadable and verifiable. */}
       {gates.audit && <ReceiptView source={source} meta={meta} defaultOpen={initial?.panel === "receipt"} />}

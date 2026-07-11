@@ -21,6 +21,10 @@ export default defineConfig({
     "inspector.spec.ts",
     "wire.spec.ts",
     "a11y.spec.ts",
+    "studio-shell.spec.ts",
+    // The deployed site has no agent, which is exactly the state this suite
+    // reproduces locally by blocking the port — it runs as-is in production.
+    "break-offline.spec.ts",
     "prod-smoke.spec.ts",
   ],
   timeout: 30_000,

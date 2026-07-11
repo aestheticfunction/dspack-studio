@@ -41,7 +41,16 @@ type Tab = (typeof TABS)[number];
 
 const pre: React.CSSProperties = { ...mono, overflow: "auto", maxHeight: 260, background: "var(--bg-2)", border: "1px solid var(--line-soft)", padding: 10, borderRadius: 3, margin: 0 };
 
-export function Inspector({ source, playhead }: { source: EventSource; playhead: number }) {
+export function Inspector({
+  source,
+  playhead,
+  onTrace,
+}: {
+  source: EventSource;
+  playhead: number;
+  /** X-ray by keyboard: trace a component from its inspector row. */
+  onTrace?: (nodeId: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("state");
 
@@ -195,6 +204,14 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
               {c.action?.event?.name ? ` → ${c.action.event.name}` : ""}
               {c.value?.path ? ` ⇄ ${c.value.path}` : ""}
               {c.text?.path ? ` ⇐ ${c.text.path}` : ""}
+              {onTrace && (
+                <>
+                  {" "}
+                  <button data-testid={`trace-${c.id}`} className={linkClass} onClick={() => onTrace(c.id)} aria-label={`x-ray trace ${c.component} ${c.id}`}>
+                    trace
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>
