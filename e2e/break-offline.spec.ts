@@ -6,6 +6,7 @@
  * still works. The agent runs locally during e2e, so this suite blocks it
  * at the network layer to reproduce production.
  */
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 async function gotoOffline(page: Page) {
@@ -55,6 +56,29 @@ test("live-only conditions say plainly what they need", async ({ page }) => {
     await expect(page.getByTestId("break-live-only")).toContainText("local agent");
     await expect(page.getByTestId("break-run")).toHaveCount(0);
   }
+});
+
+test("offline states (badges active, recorded catch, live-only note) have no axe violations", async ({ page }) => {
+  // The offline badges render inside ACTIVE buttons on the deployed site;
+  // this is the state local e2e never sees (the agent is running), so it is
+  // scanned here with the agent blocked. Regression test for the badge
+  // contrast failure axe caught in production.
+  await gotoOffline(page);
+  await expect(page.getByTestId("view-live")).toContainText("offline");
+  const scan = () =>
+    new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(["region"]).analyze();
+
+  await page.getByTestId("view-live").click();
+  await expect(page.getByTestId("agent-offline")).toBeVisible();
+  expect((await scan()).violations).toEqual([]);
+
+  await page.getByTestId("view-break").click();
+  await expect(page.getByTestId("break-recorded-note")).toBeVisible();
+  expect((await scan()).violations).toEqual([]);
+
+  await page.getByTestId("break-malformed-generation").click();
+  await expect(page.getByTestId("break-live-only")).toBeVisible();
+  expect((await scan()).violations).toEqual([]);
 });
 
 test("the malformed-import demo stays fully client-side", async ({ page }) => {
