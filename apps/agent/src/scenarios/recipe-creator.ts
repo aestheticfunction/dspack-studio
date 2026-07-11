@@ -63,6 +63,15 @@ function tableRows(variant: number, servings: number, constraint: string) {
   });
 }
 
+/**
+ * Where the responder's component updates land. Authored-surface ids by
+ * default (the deterministic start path); the enhancer retargets each slot
+ * to the GENERATED surface's unambiguous counterpart, so co-edits reach the
+ * components that actually exist instead of orphaning on authored ids.
+ */
+const AUTHORED_TARGETS = { title: "title", badge: "diet_badge", servingsLabel: "servings_label", table: "ingredients" };
+let updateTargets = { ...AUTHORED_TARGETS };
+
 /** updateComponents delivery for the recipe's mutable components. */
 function recipeComponentsOps(variant: number, servings: number, constraint: string) {
   return [
@@ -71,10 +80,10 @@ function recipeComponentsOps(variant: number, servings: number, constraint: stri
       updateComponents: {
         surfaceId: SURFACE_ID,
         components: [
-          { id: "title", component: "Text", variant: "h2", text: VARIANTS[variant % VARIANTS.length].title },
-          { id: "diet_badge", component: "Badge", label: constraint || "no constraints", variant: constraint ? "success" : "neutral" },
-          { id: "servings_label", component: "Text", variant: "body", text: `Servings: ${servings}` },
-          { id: "ingredients", component: "Table", columns: ["Ingredient", "Amount"], data: tableRows(variant, servings, constraint), density: "compact" },
+          { id: updateTargets.title, component: "Text", variant: "h2", text: VARIANTS[variant % VARIANTS.length].title },
+          { id: updateTargets.badge, component: "Badge", label: constraint || "no constraints", variant: constraint ? "success" : "neutral" },
+          { id: updateTargets.servingsLabel, component: "Text", variant: "body", text: `Servings: ${servings}` },
+          { id: updateTargets.table, component: "Table", columns: ["Ingredient", "Amount"], data: tableRows(variant, servings, constraint), density: "compact" },
         ],
       },
     },
@@ -88,6 +97,7 @@ export function resetRecipeSessions(): void {
 export function recipeStartOps(): unknown[] {
   // A fresh scenario start is a fresh session — deterministic across runs.
   sessions.clear();
+  updateTargets = { ...AUTHORED_TARGETS };
   const path = require.resolve("@dspack-studio/contracts/out/recipe-creator.surface.json");
   const emitted = JSON.parse(readFileSync(path, "utf8")) as { messages: any[] };
   const messages = structuredClone(emitted.messages);
@@ -196,6 +206,23 @@ export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: stri
     applyBtns[0].action = { event: { name: "apply_constraint", context: { constraint: { path: "/recipe/constraint" } } } };
     notes.push(`grounded the constraint-labeled Button '${applyBtns[0].id}' as apply_constraint`);
   }
+  // Retarget the responder's component updates onto the GENERATED surface,
+  // unambiguous slots only — otherwise updates orphan on authored ids that
+  // may not exist here. Each slot keeps its authored default when the
+  // generated surface has zero or several candidates.
+  updateTargets = { ...AUTHORED_TARGETS };
+  const tables = components.filter((c: any) => c.component === "Table");
+  if (tables.length === 1) updateTargets.table = tables[0].id;
+  const badges = components.filter((c: any) => c.component === "Badge");
+  if (badges.length === 1) updateTargets.badge = badges[0].id;
+  const headings = components.filter((c: any) => c.component === "Text" && /^h[123]$/.test(String(c.variant)));
+  if (headings.length === 1) updateTargets.title = headings[0].id;
+  const servingsTexts = components.filter((c: any) => c.component === "Text" && /servings/i.test(String(c.text ?? "")));
+  if (servingsTexts.length === 1) updateTargets.servingsLabel = servingsTexts[0].id;
+  notes.push(
+    `component updates target { title: '${updateTargets.title}', badge: '${updateTargets.badge}', servingsLabel: '${updateTargets.servingsLabel}', table: '${updateTargets.table}' }`,
+  );
+
   const surfaceId = out[0]?.createSurface?.surfaceId ?? out.find((m: any) => m.updateComponents)?.updateComponents?.surfaceId;
   if (surfaceId) {
     out.push({ version: "v0.9", updateDataModel: { surfaceId, path: "/recipe", value: { servings: 2, constraint: "", status: "Generated. Edit the constraint or regenerate.", variant: 0 } } });

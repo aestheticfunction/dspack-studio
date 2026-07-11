@@ -69,38 +69,52 @@ test("record fixture-005 (live model)", async ({ page }) => {
 
 test("record fixture-006 (live recipe)", async ({ page }) => {
   test.skip(!process.env.RECORD_RECIPE, "live recording is manual (RECORD_RECIPE=1)");
-  test.setTimeout(600_000);
-  // Generate a structured recipe surface live, then co-edit it.
-  for (let attempt = 0; attempt < 4; attempt++) {
+  test.setTimeout(900_000);
+  // Retry-until-representative: the WHOLE story must play on a real run —
+  // generated surface with a table + constraint input, enhancement grounds
+  // the apply/regenerate buttons, the constraint round-trip visibly lands,
+  // regenerate visibly lands. Runs whose surface can't carry the story
+  // (model variance: no apply button, no status caption) are discarded and
+  // regenerated — never patched.
+  let recorded = false;
+  for (let attempt = 0; attempt < 6 && !recorded; attempt++) {
     await page.goto("/");
     await page.getByTestId("scenario-recipe-creator").click();
     await page.getByTestId("view-live").click();
     await page.getByTestId("live-model").selectOption(process.env.RECORD_MODEL ?? "ollama:gpt-oss:latest");
     await page
       .getByTestId("live-prompt")
-      .fill("An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a labeled dietary-constraint input, and a regenerate button.");
+      .fill("An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.");
     await page.getByTestId("live-generate").click();
     await expect(page.getByTestId("live-status")).toContainText(/finished|error/, { timeout: 180_000 });
+
     const failed = await page.getByTestId("failure-panel").count();
     const hasInput = await page.locator("[data-canvas] input").count();
     const hasTable = await page.locator("[data-canvas] table").count();
-    if (failed === 0 && hasInput > 0 && hasTable > 0) break;
-    expect(attempt, "no passing generated recipe run within the retry budget").toBeLessThan(3);
-  }
+    const applyBtn = page.locator("[data-canvas] button", { hasText: /constraint|apply/i }).first();
+    const regenBtn = page.locator("[data-canvas] button", { hasText: /regenerate|new recipe/i }).first();
+    if (failed > 0 || !hasInput || !hasTable || !(await applyBtn.count()) || !(await regenBtn.count())) continue;
 
-  // User edit: type a dietary constraint into the enhanced bound input.
-  await page.locator("[data-canvas] input").first().fill("vegetarian");
-  const applyBtn = page.locator("[data-canvas] button", { hasText: /constraint|apply/i }).first();
-  if (await applyBtn.count()) {
+    // User edit: type a dietary constraint into the enhanced bound input,
+    // then apply it (the action context carries the bound value).
+    await page.locator("[data-canvas] input").first().fill("vegetarian");
     await applyBtn.click();
-    await expect(page.locator("[data-canvas]")).toContainText(/Applied vegetarian|Unknown constraint/, { timeout: 10_000 });
+    try {
+      // Visible feedback requires the enhancement to have bound a status
+      // caption; surfaces without one aren't representative — regenerate.
+      await expect(page.locator("[data-canvas]")).toContainText(/Applied vegetarian/, { timeout: 10_000 });
+      // The grounded co-edit lands rows ON THE RENDERED TABLE (the enhancer
+      // retargets updates to the generated table's id).
+      await expect(page.locator("[data-canvas] table td", { hasText: /Smoked tofu|Vegetable stock|GF /i }).first()).toBeVisible({ timeout: 10_000 });
+      // Structured update: regenerate (grounded on the single primary button).
+      await regenBtn.click();
+      await expect(page.locator("[data-canvas]")).toContainText(/Regenerated:/, { timeout: 10_000 });
+    } catch {
+      continue;
+    }
+    recorded = true;
   }
-  // Structured update: regenerate (grounded on the single primary button).
-  const regen = page.locator("[data-canvas] button", { hasText: /regenerate|new recipe/i }).first();
-  if (await regen.count()) {
-    await regen.click();
-    await expect(page.locator("[data-canvas]")).toContainText(/Regenerated:/, { timeout: 10_000 });
-  }
+  expect(recorded, "no representative generated recipe run within the retry budget").toBe(true);
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByTestId("live-download").click();

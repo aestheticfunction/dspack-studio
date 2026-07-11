@@ -9,6 +9,7 @@ import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
 import fixture002 from "@dspack-studio/replay/fixtures/fixture-002.json";
 import fixture003 from "@dspack-studio/replay/fixtures/fixture-003.json";
 import fixture005 from "@dspack-studio/replay/fixtures/fixture-005.json";
+import fixture006 from "@dspack-studio/replay/fixtures/fixture-006.json";
 
 export const scenarios: Scenario[] = [
   {
@@ -100,7 +101,15 @@ export const scenarios: Scenario[] = [
     status: "ready",
     interactive: true,
     seedPrompts: ["A weeknight pasta recipe for two, editable servings."],
-    fixtures: [],
+    fixtures: [
+      {
+        key: "generated-cooked",
+        label: "generated, then co-edited",
+        blurb:
+          "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps rows onto the generated table; regenerate cycles the dish — every round-trip recorded.",
+        fixture: fixture006,
+      },
+    ],
   },
   {
     id: "hotel-reservations",
