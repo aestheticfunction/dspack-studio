@@ -8,12 +8,7 @@
  * with what they are waiting on, stated honestly.
  */
 import { useEffect, useState } from "react";
-import { Theme } from "@astryxdesign/core";
-import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
-import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-studio/astryx-renderers";
-import { capabilitiesByScenario, readyScenarios, resolveAction, scenarios, type Scenario } from "@dspack-studio/scenarios";
-import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
-import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
+import { breakConditions, capabilitiesByScenario, readyScenarios, resolveAction, scenarios, type Scenario } from "@dspack-studio/scenarios";
 import { dataModelAt, forkFixture, importFixture, parseFixture, surfaceComponentsAt, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
 import { dispatchAction } from "./action-dispatch";
 import { buildPermalink, parsePermalink, type PermalinkState } from "./permalink";
@@ -23,6 +18,7 @@ import { RunView } from "./run-view";
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
+import { RestyleView } from "./restyle-view";
 import { useAgentStatus } from "./use-agent-status";
 import { btnClass, linkClass } from "./ui";
 
@@ -452,6 +448,7 @@ export function Studio() {
       setLinkError(`that link did not parse: ${error}. Showing the studio's default view instead.`);
       return;
     }
+    let linkScenario = readyScenarios[0];
     if (state.scenario) {
       const target = scenarios.find((sc) => sc.id === state.scenario);
       if (!target || target.status !== "ready") {
@@ -459,25 +456,26 @@ export function Studio() {
         return;
       }
       setScenarioId(state.scenario);
+      linkScenario = target;
     }
-    setView("replay");
-    setDeepLink(state);
+    // The scenario always wins: a break condition that does not belong to the
+    // named scenario never drags the scenario along — the view opens on the
+    // scenario's own valid default, with the mismatch stated.
+    let breakCondition = state.breakCondition;
+    if (state.view === "break" && breakCondition) {
+      const condition = breakConditions.find((c) => c.id === breakCondition);
+      if (!condition) {
+        setLinkError(`that link did not fully resolve: there is no failure condition '${breakCondition}'. Showing this scenario's conditions instead.`);
+        breakCondition = undefined;
+      } else if (!(condition.scenarioIndependent || condition.scenarioId === linkScenario?.id)) {
+        setLinkError(`that link did not fully resolve: '${breakCondition}' is not a failure condition for ${linkScenario?.name}. Showing this scenario's conditions instead.`);
+        breakCondition = undefined;
+      }
+    }
+    setView(state.view ?? "replay");
+    setDeepLink({ ...state, breakCondition });
   }, []);
-  const [actions, setActions] = useState<A2uiClientAction[]>([]);
-  const [themeName, setThemeName] = useState<ThemeName>("default");
-  const [mode, setMode] = useState<"light" | "dark">("light");
-
   const scenario = scenarios.find((s) => s.id === scenarioId) ?? readyScenarios[0];
-  const theme = themes[themeName];
-
-  const staticCanvas = (
-    <A2uiCanvas
-      catalog={catalogJson as any}
-      registry={astryxRegistry}
-      messages={(surfaceJson as any).messages}
-      onAction={(action) => setActions((prev) => [...prev, action])}
-    />
-  );
 
   return (
     <main className="st-main" style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -618,55 +616,15 @@ export function Studio() {
         />
       )}
       {view === "live" && scenario && <LiveView key={scenario.id} scenario={scenario} />}
-      {view === "break" && scenario && <BreakView key={scenario.id} scenario={scenario} />}
-      {view === "canvas" && (
-        <>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
-            {themeNames.map((name) => (
-              <button key={name} onClick={() => setThemeName(name)} className={btnClass(name === themeName)}>
-                {name}
-              </button>
-            ))}
-            <button
-              onClick={() => setMode((m) => (m === "light" ? "dark" : "light"))}
-              className={btnClass()}
-              style={{ marginLeft: "auto" }}
-            >
-              {mode === "light" ? "dark mode" : "light mode"}
-            </button>
-          </div>
-
-          {/* The artboard: a deliberately light surface framed by the dark
-              chrome. colorScheme pins Astryx's light-dark() tokens to the
-              same resolution the studio always shipped, independent of the
-              visitor's OS scheme; the <Theme> wrapper inside still owns its
-              own subtree when the dial is used. */}
-          <section data-canvas style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, background: "#fff", colorScheme: "light", color: "#0f172a" }}>
-            {theme ? (
-              <Theme theme={theme as any} mode={mode}>
-                {staticCanvas}
-              </Theme>
-            ) : (
-              staticCanvas
-            )}
-          </section>
-
-          <p data-testid="fm5-caption" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "12px 0 0" }}>
-            Nothing about this interface changed. Only the design system&apos;s theme did.
-          </p>
-
-          <section style={{ marginTop: 20, fontSize: 13, color: "var(--fg-dim)" }}>
-            <strong>Dispatched actions</strong> (A2UI → host):{" "}
-            {actions.length === 0 ? (
-              <em>none yet: press the confirm button in the dialog</em>
-            ) : (
-              <code>
-                {actions.map((a: any) => `${a?.name ?? "?"} (from ${a?.sourceComponentId ?? "?"})`).join(", ")}
-              </code>
-            )}
-          </section>
-        </>
+      {view === "break" && scenario && (
+        <BreakView
+          key={scenario.id}
+          scenario={scenario}
+          initialConditionId={deepLink?.view === "break" ? deepLink.breakCondition : undefined}
+          initial={deepLink?.view === "break" ? { playhead: deepLink.event, xray: deepLink.xray, panel: deepLink.panel } : undefined}
+        />
       )}
+      {view === "canvas" && scenario && <RestyleView scenario={scenario} />}
       {/* Orientation, below the primary experience: the approved pipeline
           language and the existing capabilities, stated once, compactly. */}
       <section aria-label="how it works" style={{ marginTop: 44, fontSize: 12 }}>

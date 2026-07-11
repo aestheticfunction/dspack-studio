@@ -18,8 +18,10 @@ pnpm dev                        # the studio (replay works with no agent, no key
 pnpm --filter agent dev         # optional: the local agent for "run it live" + interactions
 ```
 
-Replay mode needs no keys and no network beyond npm: every curated example
-is a recorded real run (`mode: "live"` in its fixture). Live mode runs the
+Replay mode needs no keys and no network beyond npm: every curated
+generation is a recorded real run (`mode: "live"` in its fixture), and the
+interactive catch recordings are deterministic, labeled `mode: "scripted"`
+with the authored adapter named. Live mode runs the
 governed pipeline on your machine — "scripted" is deterministic; `ollama:*`
 uses your local models. `pnpm e2e` drives the whole experience against the
 static export (zero model calls).
@@ -38,7 +40,7 @@ static export (zero model calls).
   constraint rewrites the matching steps, not just the table.
 - **Break it on purpose**: pick a failure condition and watch the pipeline
   catch, repair, or refuse — with receipts. Without the local agent, the
-  conditions with an equivalent recorded real run replay it, labeled as a
+  conditions with an equivalent recorded run replay it, labeled as a
   recorded catch; the rest say plainly that they need the agent.
 - **Restyle it**: spin one governed surface through the Astryx themes. The
   structure, events, and audit do not change; only the theme does.

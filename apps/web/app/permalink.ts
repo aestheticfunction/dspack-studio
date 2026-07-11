@@ -11,17 +11,26 @@
  *
  *   #s=<scenario>&f=<fixtureKey>&e=<n>&panel=receipt|wire|pipeline&x=1
  *   #s=<scenario>&fork=<parentKey>@<n>&e=<n>
+ *   #s=<scenario>&v=break&bc=<conditionId>&e=<n>
+ *
+ * v names the OPERATION (replay is the default and stays out of the URL);
+ * bc names a break condition. The scenario always wins: a condition that
+ * does not belong to the named scenario never drags the scenario along —
+ * the studio lands on the scenario's own valid default and says why.
  */
 export interface PermalinkState {
   scenario?: string;
+  view?: "replay" | "live" | "break" | "canvas";
   fixture?: string;
   fork?: { parentKey: string; forkIndex: number };
+  breakCondition?: string;
   event?: number;
   panel?: "receipt" | "wire" | "pipeline";
   xray?: boolean;
 }
 
 const PANELS = new Set(["receipt", "wire", "pipeline"]);
+const VIEWS = new Set(["replay", "live", "break", "canvas"]);
 
 export function parsePermalink(hash: string): { state: PermalinkState; error?: string } {
   const raw = hash.replace(/^#\/?/, "");
@@ -29,6 +38,12 @@ export function parsePermalink(hash: string): { state: PermalinkState; error?: s
   const p = new URLSearchParams(raw);
   const state: PermalinkState = {};
   if (p.get("s")) state.scenario = p.get("s")!;
+  const view = p.get("v");
+  if (view) {
+    if (!VIEWS.has(view)) return { state, error: `unknown view '${view}'` };
+    state.view = view as PermalinkState["view"];
+  }
+  if (p.get("bc")) state.breakCondition = p.get("bc")!;
   if (p.get("f")) state.fixture = p.get("f")!;
   const fork = p.get("fork");
   if (fork) {
@@ -53,6 +68,8 @@ export function parsePermalink(hash: string): { state: PermalinkState; error?: s
 export function buildPermalink(state: PermalinkState): string {
   const p = new URLSearchParams();
   if (state.scenario) p.set("s", state.scenario);
+  if (state.view && state.view !== "replay") p.set("v", state.view);
+  if (state.breakCondition) p.set("bc", state.breakCondition);
   if (state.fork) p.set("fork", `${state.fork.parentKey}@${state.fork.forkIndex}`);
   else if (state.fixture) p.set("f", state.fixture);
   if (state.event !== undefined && state.event >= 0) p.set("e", String(state.event));

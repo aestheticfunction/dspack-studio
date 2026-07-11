@@ -14,6 +14,8 @@ import fixture002 from "@dspack-studio/replay/fixtures/fixture-002.json";
 import fixture003 from "@dspack-studio/replay/fixtures/fixture-003.json";
 import fixture005 from "@dspack-studio/replay/fixtures/fixture-005.json";
 import fixture006 from "@dspack-studio/replay/fixtures/fixture-006.json";
+import fixture007 from "@dspack-studio/replay/fixtures/fixture-007.json";
+import fixture008 from "@dspack-studio/replay/fixtures/fixture-008.json";
 
 export const scenarios: Scenario[] = [
   {
@@ -32,6 +34,13 @@ export const scenarios: Scenario[] = [
           "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps ingredient rows and rewrites the matching instruction steps; regenerate cycles the dish. Every round-trip is recorded.",
         fixture: fixture006,
       },
+      {
+        key: "invalid-constraint",
+        label: "the agent rejects an invalid edit",
+        blurb:
+          "The authored recipe surface submits a constraint the agent does not know ('keto'): the same responder that answers live rejects it recoverably — studio.action.rejected with the reason, the status line says why, and the session keeps going. Deterministic start, labeled scripted.",
+        fixture: fixture007,
+      },
     ],
   },
   {
@@ -49,6 +58,13 @@ export const scenarios: Scenario[] = [
         blurb:
           "A real model generates the booking surface under the scheduling intent; the enhancement grounds it, a slot is held, the booking confirms. Every round-trip is recorded.",
         fixture: fixture005,
+      },
+      {
+        key: "unresolved-action",
+        label: "an action nothing grounds",
+        blurb:
+          "The authored booking surface dispatches 'mystery_action': no exact capability name, no validated component semantics, so resolution rejects it client-side — studio.action.unresolved on the record, nothing sent to the agent. Deterministic start, labeled scripted.",
+        fixture: fixture008,
       },
     ],
   },
