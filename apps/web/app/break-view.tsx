@@ -153,7 +153,7 @@ export function BreakView() {
 
       {importDemo && (
         <section data-testid="break-import-error" style={{ border: "1px solid var(--err-line)", background: "var(--err-soft)", borderRadius: 6, padding: "12px 16px", fontSize: 13, marginBottom: 14 }}>
-          The validator said no: <code>{importDemo}</code> — and nothing was partially loaded.
+          The validator said no: <code>{importDemo}</code>. Nothing was partially loaded.
         </section>
       )}
 
@@ -161,7 +161,7 @@ export function BreakView() {
         <RunView
           events={recordedCatch.fixture.events}
           resetKey={`break-recorded-${conditionId}`}
-          label={`recorded catch — ${recordedCatch.fixture.name}, ${recordedCatch.fixture.mode} run, ${recordedCatch.fixture.adapterId}, ${recordedCatch.fixture.events.length} events`}
+          label={`recorded catch · ${recordedCatch.fixture.name}, ${recordedCatch.fixture.mode} run, ${recordedCatch.fixture.adapterId}, ${recordedCatch.fixture.events.length} events`}
           autoStart
         />
       ) : (
@@ -171,7 +171,7 @@ export function BreakView() {
             streaming={streaming}
             live
             resetKey={`break-${conditionId}-${runSeq}`}
-            label={`${condition.label} — ${live.events.length} events`}
+            label={`${condition.label} · ${live.events.length} events`}
           />
         )
       )}

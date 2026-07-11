@@ -19,7 +19,7 @@ import { fontVariables } from "./fonts";
 export const metadata: Metadata = {
   title: "dspack-studio · Aesthetic Function Studio",
   description:
-    "Governed generative UI, live: an AI agent builds interfaces under a design-system contract, streamed over AG-UI as A2UI surfaces, rendered with Astryx.",
+    "The design system governs what the agent ships: generated interfaces are checked, explained, and repaired under its rules, and every run can be replayed, rewound, forked, and inspected. Aesthetic Function's reference application for governed generative interfaces.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -70,7 +70,7 @@ export function Inspector({
         className={btnClass(false, true)}
         style={{ marginTop: 14 }}
       >
-        inspect this run — state, actions, events, gates
+        inspect this run: state, actions, events, gates
       </button>
     );
   }
@@ -131,7 +131,7 @@ export function Inspector({
                   <span key={i} style={{ ...mono, padding: "2px 8px", borderRadius: 3, background: "var(--bg-2)", border: "1px solid var(--line-soft)" }} title={s.detail ?? s.method ?? ""}>
                     {s.state}
                     {s.method ? ` · ${s.method}` : ""}
-                    {s.detail ? ` — ${s.detail}` : ""}
+                    {s.detail ? ` · ${s.detail}` : ""}
                   </span>
                 ))}
               </div>
@@ -200,7 +200,7 @@ export function Inspector({
           {components.map((c: any) => (
             <div key={c.id}>
               <strong>{c.component}</strong> #{c.id}
-              {typeof c.label === "string" ? ` — "${c.label}"` : ""}
+              {typeof c.label === "string" ? ` · "${c.label}"` : ""}
               {c.action?.event?.name ? ` → ${c.action.event.name}` : ""}
               {c.value?.path ? ` ⇄ ${c.value.path}` : ""}
               {c.text?.path ? ` ⇐ ${c.text.path}` : ""}

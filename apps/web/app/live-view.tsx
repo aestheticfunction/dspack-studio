@@ -23,7 +23,7 @@ const STATUS_LABEL: Record<LiveStatus, string> = {
   idle: "ready",
   checking: "checking agent…",
   streaming: "streaming",
-  finished: "finished — scrub the timeline",
+  finished: "finished · scrub the timeline",
   error: "error",
   cancelled: "cancelled",
   offline: "agent offline",
@@ -79,14 +79,14 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
       >
         <strong>The local agent is not running.</strong>
         <p style={{ margin: "8px 0 0" }}>
-          Live mode streams the governed pipeline from a small local server — your prompts and models never leave your
+          Live mode streams the governed pipeline from a small local server: your prompts and models never leave your
           machine. Start it and reload:
         </p>
         <pre style={{ background: "var(--bg-2)", padding: 12, borderRadius: 3, marginTop: 8 }}>
           pnpm --filter agent dev
         </pre>
         <p style={{ margin: "8px 0 0", color: "var(--fg-dim)" }}>
-          Replay mode works without it — every curated example is a recorded real run.
+          Replay mode works without it: every curated example is a recorded real run.
         </p>
       </section>
     );
@@ -194,7 +194,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         )}
         <span data-testid="live-status" style={{ color: "var(--fg-dim)" }} aria-live="polite">
           {STATUS_LABEL[live.status]}
-          {live.error ? ` — ${live.error}` : ""}
+          {live.error ? `: ${live.error}` : ""}
         </span>
       </div>
 
@@ -204,7 +204,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
           streaming={streaming}
           live
           resetKey={`run-${runSeq}`}
-          label={`live run — ${lastRun?.modelRef ?? modelRef}, ${live.events.length} events`}
+          label={`live run · ${lastRun?.modelRef ?? modelRef}, ${live.events.length} events`}
           meta={{ mode: (lastRun?.modelRef ?? modelRef) === "scripted" || (lastRun?.modelRef ?? modelRef) === "deterministic:authored" ? "scripted" : "live", adapterId: lastRun?.modelRef ?? modelRef, prompt: lastRun?.prompt }}
           onAction={
             interactive

@@ -28,7 +28,7 @@ export interface ImportError {
 export function importFixture(raw: string, byteLength?: number): ImportResult | ImportError {
   const size = byteLength ?? new TextEncoder().encode(raw).length;
   if (size > MAX_IMPORT_BYTES) {
-    return { ok: false, error: `file is ${(size / 1024 / 1024).toFixed(1)} MB — fixtures are small JSON documents (limit 5 MB)` };
+    return { ok: false, error: `file is ${(size / 1024 / 1024).toFixed(1)} MB: fixtures are small JSON documents (limit 5 MB)` };
   }
 
   let parsed: unknown;

@@ -70,7 +70,7 @@ export const breakConditions: BreakCondition[] = [
     intent: "destructive-action",
     kind: "emitter-refusal",
     expected:
-      "The surface lints clean (dropdown-menu is in the contract's vocabulary) but the emitter refuses it — the profile cannot project it. The run ends failed-gate (exit 3) with the refusal, verbatim, in the failure panel.",
+      "The surface lints clean (dropdown-menu is in the contract's vocabulary) but the emitter refuses it: the profile cannot project it. The run ends failed-gate (exit 3) with the refusal, verbatim, in the failure panel.",
     prompt: "A delete-account screen that includes a dropdown menu for the user to choose their reason for leaving.",
     scriptedRef: "scripted:break:unsupported-component",
     recordedCatch: {
@@ -86,7 +86,7 @@ export const breakConditions: BreakCondition[] = [
     intent: "destructive-action",
     kind: "lint-exhausted",
     expected:
-      "Every attempt fails S1 (the surface is not even shaped like a surface); after the repair budget is exhausted the run ends failed-lint-exhausted (exit 2) — a complete audit, no silent drop.",
+      "Every attempt fails S1 (the surface is not even shaped like a surface); after the repair budget is exhausted the run ends failed-lint-exhausted (exit 2): a complete audit, no silent drop.",
     scriptedRef: "scripted:break:malformed",
   },
   {
@@ -114,6 +114,6 @@ export const breakConditions: BreakCondition[] = [
     intent: "destructive-action",
     kind: "malformed-import",
     expected:
-      "The import validator rejects the file with a clear, user-facing error (not valid JSON / wrong version / malformed events) — nothing is partially loaded.",
+      "The import validator rejects the file with a clear, user-facing error (not valid JSON / wrong version / malformed events). Nothing is partially loaded.",
   },
 ];

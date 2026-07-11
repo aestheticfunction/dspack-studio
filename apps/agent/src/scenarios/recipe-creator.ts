@@ -174,7 +174,7 @@ export function recipeRespond(name: string, context: Record<string, unknown>, se
       if (!CONSTRAINTS.includes(constraint)) {
         return {
           outcome: "rejected",
-          detail: `unknown constraint '${constraint || "(empty)"}' — try ${CONSTRAINTS.join(", ")}`,
+          detail: `unknown constraint '${constraint || "(empty)"}': try ${CONSTRAINTS.join(", ")}`,
           ops: [DM("/recipe/status", `Unknown constraint. Try: ${CONSTRAINTS.join(", ")}.`)],
         };
       }

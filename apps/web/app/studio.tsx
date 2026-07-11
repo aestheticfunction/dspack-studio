@@ -146,7 +146,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
   const handleFile = async (file: File) => {
     setImportError(null);
     if (file.size > MAX_IMPORT_BYTES) {
-      setImportError(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB — fixtures are small JSON documents (limit 5 MB)`);
+      setImportError(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB: fixtures are small JSON documents (limit 5 MB)`);
       return;
     }
     const result = importFixture(await file.text(), file.size);
@@ -332,8 +332,8 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
             className={linkClass}
           >
             download this fork
-          </button>{" "}
-          — it reopens like any session file, provenance included.
+          </button>
+          ; it reopens like any session file, provenance included.
           {scenario.interactive && continuingId !== selectedFork.id && (
             <>
               {" "}
@@ -343,13 +343,13 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
                 className={linkClass}
               >
                 continue this fork
-              </button>{" "}
-              — the agent rebuilds its state from the prefix (deterministic responders), then your next actions
+              </button>
+              ; the agent rebuilds its state from the prefix (deterministic responders), then your next actions
               diverge the branch for real.
             </>
           )}
           {continuingId === selectedFork.id && (
-            <em data-testid="fork-continuing"> — continuation active: act on the surface to grow this branch.</em>
+            <em data-testid="fork-continuing"> · continuation active: act on the surface to grow this branch.</em>
           )}
         </p>
       )}
@@ -367,7 +367,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
       )}
       {!ref && !selectedFork && imported && (
         <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 14px" }}>
-          Imported session — recorded {imported.recordedAt || "(unknown time)"}, prompt: “{imported.prompt || "—"}”. Drag another
+          Imported session · recorded {imported.recordedAt || "(unknown time)"}, prompt: “{imported.prompt || "(none)"}”. Drag another
           file anywhere here to replace it.
         </p>
       )}
@@ -377,8 +377,8 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
           resetKey={ref ? `${scenario.id}:${ref.key}` : selectedFork ? selectedFork.id : `imported-${importSeq}`}
           label={
             selectedFork
-              ? `⑂ ${fixture.name} — ${fixture.mode} run, ${fixture.events.length} events`
-              : `${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`
+              ? `⑂ ${fixture.name} · ${fixture.mode} run, ${fixture.events.length} events`
+              : `${fixture.name} · ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`
           }
           onFork={handleFork}
           meta={{ id: fixture.id, name: fixture.name, mode: fixture.mode, adapterId: fixture.adapterId, intent: fixture.intent, prompt: fixture.prompt, recordedAt: fixture.recordedAt, fork: fixture.fork }}
@@ -406,7 +406,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
           onAction={selectedFork && continuingId === selectedFork.id ? continuationAction(selectedFork) : undefined}
         />
       ) : (
-        <p style={{ color: "var(--fg-dim)" }}>No recordings yet for this scenario — open a session file, or run it live and download one.</p>
+        <p style={{ color: "var(--fg-dim)" }}>No recordings yet for this scenario: open a session file, or run it live and download one.</p>
       )}
     </div>
   );
@@ -658,7 +658,7 @@ export function Studio() {
           <section style={{ marginTop: 20, fontSize: 13, color: "var(--fg-dim)" }}>
             <strong>Dispatched actions</strong> (A2UI → host):{" "}
             {actions.length === 0 ? (
-              <em>none yet — press the confirm button in the dialog</em>
+              <em>none yet: press the confirm button in the dialog</em>
             ) : (
               <code>
                 {actions.map((a: any) => `${a?.name ?? "?"} (from ${a?.sourceComponentId ?? "?"})`).join(", ")}
