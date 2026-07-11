@@ -139,6 +139,12 @@ describe("recipe-creator responder (deterministic co-editing)", () => {
     const seededSteps = comps.filter((c: any) => c.id === "gen_steps").at(-1);
     expect(seededIngredients.data.length).toBeGreaterThan(0);
     expect(seededSteps.data.map((r: any) => r.cells[1]).join(" ")).toMatch(/al dente/);
+    // The instructions carry a heading, inserted into the column just before
+    // the instructions table.
+    const heading = comps.find((c: any) => c.id === "instructions_heading");
+    expect(heading).toMatchObject({ component: "Text", text: "Instructions" });
+    const col = comps.find((c: any) => c.id === "col");
+    expect(col.children.indexOf("instructions_heading")).toBe(col.children.indexOf("gen_steps") - 1);
     recipeStartOps(); // restore authored targets for later tests
   });
 
@@ -167,6 +173,9 @@ describe("recipe-creator responder (deterministic co-editing)", () => {
     expect(added.data.length).toBeGreaterThanOrEqual(4);
     const col = comps.find((c: any) => c.id === "col");
     expect(col.children).toContain("instructions");
+    // The heading precedes the added instructions table in the column.
+    expect(comps.find((c: any) => c.id === "instructions_heading")?.text).toBe("Instructions");
+    expect(col.children.indexOf("instructions_heading")).toBe(col.children.indexOf("instructions") - 1);
     recipeStartOps();
   });
 

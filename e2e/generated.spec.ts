@@ -95,9 +95,11 @@ test("record fixture-006 (live recipe)", async ({ page }) => {
     const regenBtn = page.locator("[data-canvas] button", { hasText: /regenerate|new recipe/i }).first();
     if (failed > 0 || !hasInput || !hasTable || !(await applyBtn.count()) || !(await regenBtn.count())) continue;
     // A full recipe from the first frame: the enhancement seeds ingredients
-    // and numbered instructions before any interaction.
+    // and numbered instructions (under an "Instructions" heading) before any
+    // interaction.
     if (!(await page.locator("[data-canvas] table td", { hasText: /al dente/i }).count())) continue;
     if (!(await page.locator("[data-canvas] table td", { hasText: /Spaghetti/i }).count())) continue;
+    if (!(await page.locator("[data-canvas]", { hasText: /Instructions/ }).count())) continue;
 
     // User edit: type a dietary constraint into the enhanced bound input,
     // then apply it (the action context carries the bound value).

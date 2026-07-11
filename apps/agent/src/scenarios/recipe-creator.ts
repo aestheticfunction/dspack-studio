@@ -288,6 +288,24 @@ export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: stri
   notes.push(
     `component updates target { title: '${updateTargets.title}', badge: '${updateTargets.badge}', servingsLabel: '${updateTargets.servingsLabel}', table: '${updateTargets.table}', instructions: '${updateTargets.instructions}' }`,
   );
+  // Label the instructions with a heading, matching the authored surface's
+  // "Instructions" title. Insert it into the column immediately before the
+  // instructions table and deliver it (a static Text, so once is enough).
+  const enhSurfaceId = out[0]?.createSurface?.surfaceId ?? out.find((m: any) => m.updateComponents)?.updateComponents?.surfaceId;
+  const instrColumn = components.find(
+    (c: any) => c.component === "Column" && Array.isArray(c.children) && c.children.includes(updateTargets.instructions),
+  );
+  if (instrColumn && !instrColumn.children.includes("instructions_heading")) {
+    instrColumn.children.splice(instrColumn.children.indexOf(updateTargets.instructions), 0, "instructions_heading");
+    out.push({
+      version: "v0.9",
+      updateComponents: {
+        surfaceId: enhSurfaceId,
+        components: [{ id: "instructions_heading", component: "Text", variant: "h3", text: "Instructions" }],
+      },
+    });
+    notes.push("labeled the instructions with an 'Instructions' heading");
+  }
   // Models lay the tables out but leave them empty (content is the
   // responder's, not the model's). Deliver the initial recipe onto the
   // grounded targets so the generated surface is a full recipe from its
