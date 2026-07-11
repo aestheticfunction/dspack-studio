@@ -168,8 +168,8 @@ export function PipelineView({ current, playhead, defaultOpen }: { current: Fixt
       </summary>
       <div
         style={{
-          border: "1px solid #cbd5e1",
-          borderRadius: 12,
+          border: "1px solid var(--line)",
+          borderRadius: 6,
           padding: "12px 14px",
           marginTop: 8,
           display: "grid",
@@ -192,15 +192,15 @@ export function PipelineView({ current, playhead, defaultOpen }: { current: Fixt
                   style={{
                     flex: 1,
                     textAlign: "center",
-                    borderRadius: 8,
+                    borderRadius: 4,
                     padding: "6px 8px",
-                    border: on ? "1px solid #0f172a" : "1px dashed #cbd5e1",
-                    background: on ? "rgba(15,23,42,0.08)" : "transparent",
-                    color: on ? "inherit" : "#475569",
+                    border: on ? "1px solid var(--green)" : "1px dashed var(--line)",
+                    background: on ? "var(--green-glow)" : "transparent",
+                    color: on ? "var(--fg)" : "var(--fg-dim)",
                   }}
                 >
                   <strong style={{ display: "block" }}>{s.label}</strong>
-                  <span style={{ fontSize: 10, color: on ? "#334155" : "#475569" }}>{s.sub}</span>
+                  <span style={{ fontSize: 10, color: on ? "var(--fg-body)" : "var(--fg-dim)" }}>{s.sub}</span>
                 </div>
               </div>
             );
@@ -212,13 +212,13 @@ export function PipelineView({ current, playhead, defaultOpen }: { current: Fixt
         {reading.correlations.length > 0 && (
           <p style={{ margin: 0, display: "flex", gap: 8, flexWrap: "wrap" }} data-testid="pipeline-correlations">
             {reading.correlations.map(([k, val]) => (
-              <code key={k} style={{ background: "rgba(148,163,184,0.15)", borderRadius: 6, padding: "2px 6px" }}>
+              <code key={k} style={{ background: "var(--bg-2)", borderRadius: 3, padding: "2px 6px" }}>
                 {k}: {val}
               </code>
             ))}
           </p>
         )}
-        <p style={{ margin: 0, opacity: 0.6 }}>
+        <p style={{ margin: 0, color: "var(--fg-dim)" }}>
           Dimmed layers are not part of event {playhead} — most events live on one or two layers; only a delivery
           crosses them all.
         </p>

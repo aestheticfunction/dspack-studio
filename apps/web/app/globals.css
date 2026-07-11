@@ -1,0 +1,146 @@
+/*
+ * Aesthetic Function brand layer for the studio chrome.
+ * Tokens transcribed from af-site/assets/af.css (the authoritative design
+ * system). This file styles the studio's own UI only; the rendered A2UI
+ * canvas keeps its Astryx tokens. Deliberately does NOT set `color-scheme`
+ * or `data-theme` anywhere global: Astryx base tokens resolve via
+ * light-dark() from the inherited color-scheme, and a global dark scheme
+ * would silently retint the canvas surfaces.
+ */
+
+:root {
+  /* Surfaces (warm near-black, never pure black) */
+  --bg: #131310;
+  --bg-1: #181814;
+  --bg-2: #1e1e19;
+  --line: #2b2b24;
+  --line-soft: #21211b;
+
+  /* Ink (warm cream scale) */
+  --fg: #e7dfd2;
+  --fg-body: #c4bdb0;
+  --fg-dim: #8f8a7c;
+  --fg-faint: #6a665b;
+
+  /* Accent (sage / pine, used sparingly) */
+  --green: #7e9652;
+  --green-bright: #97b063;
+  --green-deep: #62763f;
+  --green-glow: rgba(126, 150, 82, 0.16);
+
+  /* Semantic tokens tuned for the dark chrome (all text uses >= 4.5:1
+     on --bg / --bg-1 / --bg-2) */
+  --err: #f87171;
+  --err-line: #8a3a3a;
+  --err-soft: rgba(248, 113, 113, 0.09);
+  --ok: #97b063;
+  --warn: #d9a05b;
+  --violet: #a78bfa;
+  --info: #7dd3fc;
+  --link: var(--green-bright);
+
+  /* Type (next/font variables with system fallbacks) */
+  --hl: var(--font-oswald), system-ui, sans-serif;
+  --sans: var(--font-plex-sans), system-ui, sans-serif;
+  --mono: var(--font-plex-mono), ui-monospace, monospace;
+  --geo: var(--font-jost), system-ui, sans-serif;
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0.5, 0.15, 1);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg-body);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--green);
+  color: var(--bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--green-bright);
+  outline-offset: 2px;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--mono);
+}
+
+input[type="range"] {
+  accent-color: var(--green);
+}
+
+/* AF button language: mono, uppercase, near-square. Class-based so hover
+   and focus states exist (inline styles cannot express pseudo-classes). */
+.st-btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--fg-body);
+  cursor: pointer;
+  transition:
+    border-color 0.18s var(--ease),
+    color 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+.st-btn:hover {
+  border-color: var(--green);
+  color: var(--green-bright);
+}
+.st-btn--active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #10120c;
+  font-weight: 600;
+}
+.st-btn--active:hover {
+  background: var(--green-bright);
+  border-color: var(--green-bright);
+  color: #10120c;
+}
+.st-btn--dashed {
+  border-style: dashed;
+}
+.st-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.st-btn[disabled]:hover {
+  border-color: var(--line);
+  color: var(--fg-body);
+}
+
+/* Quiet text links (AF .tlink adapted to in-app link-buttons). */
+.st-link {
+  font: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--link);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.16s var(--ease);
+}
+.st-link:hover {
+  color: var(--fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-btn,
+  .st-link {
+    transition: none;
+  }
+}

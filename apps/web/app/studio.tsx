@@ -23,17 +23,39 @@ import { RunView } from "./run-view";
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
+import { btnClass, linkClass } from "./ui";
 
-const btnStyle = (active: boolean): React.CSSProperties => ({
-  padding: "6px 12px",
-  borderRadius: 8,
-  border: "1px solid #cbd5e1",
-  background: active ? "#0f172a" : "transparent",
-  color: active ? "#fff" : "inherit",
-  cursor: "pointer",
-  font: "inherit",
-  fontSize: 13,
-});
+/** AF eyebrow: mono micro-label with the 22px green rule (af.css .eyebrow). */
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        fontWeight: 500,
+        letterSpacing: "0.22em",
+        textTransform: "uppercase",
+        color: "var(--fg-dim)",
+        margin: "0 0 8px",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
+      <span aria-hidden style={{ width: 22, height: 1, background: "var(--green)", flex: "0 0 auto" }} />
+      {children}
+    </p>
+  );
+}
+
+/** Green pipeline arrow, decorative only. */
+function Arrow() {
+  return (
+    <span aria-hidden style={{ color: "var(--green)" }}>
+      →
+    </span>
+  );
+}
 
 /**
  * FM-3: the original and a fork, side by side at their own endings. Shared
@@ -54,19 +76,19 @@ function BranchCompare({ parent, fork }: { parent: { name: string; events: any[]
   return (
     <details data-testid="branch-compare" style={{ margin: "0 0 14px", fontSize: 12 }}>
       <summary style={{ cursor: "pointer" }}>compare branches: original vs this fork</summary>
-      <div style={{ border: "1px solid #cbd5e1", borderRadius: 12, padding: "12px 14px", marginTop: 8, display: "grid", gap: 10 }}>
+      <div style={{ border: "1px solid var(--line)", borderRadius: 6, padding: "12px 14px", marginTop: 8, display: "grid", gap: 10 }}>
         <p style={{ margin: 0 }}>
           Both branches share history up to event {fork.fork?.forkIndex}; everything after is each branch's own. The
           states below are each branch's ending.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {sides.map((side, i) => (
-            <div key={side.key} data-testid={`branch-${side.key}`} style={{ border: "1px dashed #cbd5e1", borderRadius: 8, padding: 10, minWidth: 0 }}>
+            <div key={side.key} data-testid={`branch-${side.key}`} style={{ border: "1px dashed var(--line)", borderRadius: 4, padding: 10, minWidth: 0 }}>
               <strong style={{ display: "block", marginBottom: 6 }}>{side.label}</strong>
-              <div style={{ marginBottom: 6, color: "#475569" }}>
+              <div style={{ marginBottom: 6, color: "var(--fg-dim)" }}>
                 {side.source.events.length} events, {comps[i].length} rendered components
               </div>
-              <pre tabIndex={0} aria-label={`${side.key} final data model`} style={{ margin: 0, padding: 8, background: "rgba(148,163,184,0.12)", borderRadius: 6, overflow: "auto", maxHeight: 200, fontFamily: "ui-monospace, monospace" }}>
+              <pre tabIndex={0} aria-label={`${side.key} final data model`} style={{ margin: 0, padding: 8, background: "var(--bg-2)", borderRadius: 3, overflow: "auto", maxHeight: 200, fontFamily: "var(--mono)" }}>
                 {JSON.stringify(models[i], null, 2)}
               </pre>
             </div>
@@ -234,12 +256,12 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
     >
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8, alignItems: "center" }}>
         {scenario.fixtures.map((f) => (
-          <button key={f.key} data-testid={`fixture-${f.key}`} style={btnStyle(f.key === ref?.key)} onClick={() => setKey(f.key)}>
+          <button key={f.key} data-testid={`fixture-${f.key}`} className={btnClass(f.key === ref?.key)} onClick={() => setKey(f.key)}>
             {f.label}
           </button>
         ))}
         {imported && (
-          <button data-testid="fixture-imported" style={btnStyle(key === "__imported__")} onClick={() => setKey("__imported__")}>
+          <button data-testid="fixture-imported" className={btnClass(key === "__imported__")} onClick={() => setKey("__imported__")}>
             imported session
           </button>
         )}
@@ -247,14 +269,14 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
           <button
             key={f.id}
             data-testid={`fork-${f.fork?.forkIndex}`}
-            style={{ ...btnStyle(f.id === key), borderStyle: "dashed" }}
+            className={btnClass(f.id === key, true)}
             title={`forked from ${f.fork?.parentName ?? f.fork?.parentId} at event ${f.fork?.forkIndex}`}
             onClick={() => setKey(f.id)}
           >
             ⑂ fork @ {f.fork?.forkIndex}
           </button>
         ))}
-        <label style={{ ...btnStyle(false), marginLeft: "auto" }} data-testid="import-label">
+        <label className={btnClass()} style={{ marginLeft: "auto" }} data-testid="import-label">
           open a session file…
           <input
             data-testid="import-input"
@@ -270,24 +292,24 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
         </label>
       </div>
       {importError && (
-        <p data-testid="import-error" style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>
+        <p data-testid="import-error" style={{ fontSize: 13, color: "var(--err)", margin: "0 0 10px" }}>
           could not import: {importError}
         </p>
       )}
       {forkError && (
-        <p data-testid="fork-error" style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>
+        <p data-testid="fork-error" style={{ fontSize: 13, color: "var(--err)", margin: "0 0 10px" }}>
           cannot fork here: {forkError}
         </p>
       )}
-      {ref && <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{ref.blurb}</p>}
+      {ref && <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 14px" }}>{ref.blurb}</p>}
       {selectedFork && (
-        <p style={{ fontSize: 13, color: "#475569", margin: "0 0 14px" }} data-testid="fork-blurb">
+        <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 14px" }} data-testid="fork-blurb">
           A new run forked from “{selectedFork.fork?.parentName}” at event {selectedFork.fork?.forkIndex}: it shares
           history up to that moment and nothing after. The original is untouched.{" "}
           <button
             data-testid="fork-download"
             onClick={() => downloadFork(selectedFork)}
-            style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+            className={linkClass}
           >
             download this fork
           </button>{" "}
@@ -298,7 +320,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
               <button
                 data-testid="fork-continue"
                 onClick={() => void startContinuation(selectedFork)}
-                style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                className={linkClass}
               >
                 continue this fork
               </button>{" "}
@@ -319,12 +341,12 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
         return <BranchCompare parent={parentFix} fork={selectedFork} />;
       })()}
       {continueError && (
-        <p data-testid="continue-error" style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>
+        <p data-testid="continue-error" style={{ fontSize: 13, color: "var(--err)", margin: "0 0 10px" }}>
           cannot continue this fork: {continueError}
         </p>
       )}
       {!ref && !selectedFork && imported && (
-        <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>
+        <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 14px" }}>
           Imported session — recorded {imported.recordedAt || "(unknown time)"}, prompt: “{imported.prompt || "—"}”. Drag another
           file anywhere here to replace it.
         </p>
@@ -364,7 +386,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
           onAction={selectedFork && continuingId === selectedFork.id ? continuationAction(selectedFork) : undefined}
         />
       ) : (
-        <p style={{ opacity: 0.6 }}>No recordings yet for this scenario — open a session file, or run it live and download one.</p>
+        <p style={{ color: "var(--fg-dim)" }}>No recordings yet for this scenario — open a session file, or run it live and download one.</p>
       )}
     </div>
   );
@@ -434,19 +456,51 @@ export function Studio() {
   );
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px", fontFamily: "system-ui" }}>
-      <header style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, margin: 0 }}>dspack-studio</h1>
-        <p style={{ fontSize: 14, opacity: 0.75, margin: "6px 0 0" }}>
-          An agent builds interfaces under a design-system contract, streamed over AG-UI as A2UI
-          surfaces, rendered with Astryx. Replay it, run it live, rewind it. Nothing here is staged.
-        </p>
-        <p style={{ fontSize: 13, margin: "8px 0 0" }}>
-          <button
-            data-testid="tour-start"
-            onClick={() => startTour(0)}
-            style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+    <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 48px" }}>
+      <header style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", paddingBottom: 14, borderBottom: "1px solid var(--line-soft)", marginBottom: 16 }}>
+          <img src="/af-mark.png" alt="" height={28} width={32} style={{ display: "block" }} />
+          <h1
+            style={{
+              fontFamily: "var(--geo)",
+              fontSize: 13,
+              fontWeight: 400,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "var(--fg)",
+              margin: 0,
+            }}
           >
+            Aesthetic Function <span style={{ color: "var(--green-bright)" }}>/ Studio</span>
+          </h1>
+          <a
+            href="https://aesthetic-function.com"
+            style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-dim)", textDecoration: "none" }}
+          >
+            aesthetic-function.com ↗
+          </a>
+        </div>
+        <p
+          style={{
+            fontFamily: "var(--hl)",
+            fontSize: "clamp(20px, 3vw, 26px)",
+            fontWeight: 600,
+            lineHeight: 1.1,
+            letterSpacing: "-0.01em",
+            color: "var(--fg)",
+            margin: 0,
+            textWrap: "balance",
+          }}
+        >
+          dspack-studio is Aesthetic Function’s reference application for governed, inspectable AI-native interfaces.
+        </p>
+        <p style={{ fontSize: 14, color: "var(--fg-body)", margin: "10px 0 0", maxWidth: 720, lineHeight: 1.55 }}>
+          An agent builds interfaces under a design-system contract, streams them over AG-UI as A2UI surfaces, and
+          renders them with Astryx. Replay the run, rewind it, fork it, break it, and inspect every gate, repair, and
+          receipt. Recorded and deterministic modes are labeled.
+        </p>
+        <p style={{ fontSize: 13, margin: "10px 0 0" }}>
+          <button data-testid="tour-start" onClick={() => startTour(0)} className={linkClass}>
             {tourOffered ? "first time here? take the one-minute tour" : "guided tour"}
           </button>
         </p>
@@ -456,39 +510,40 @@ export function Studio() {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
         {scenarios.map((s) =>
           s.status === "ready" ? (
-            <button key={s.id} data-testid={`scenario-${s.id}`} style={btnStyle(s.id === scenario?.id)} onClick={() => setScenarioId(s.id)}>
+            <button key={s.id} data-testid={`scenario-${s.id}`} className={btnClass(s.id === scenario?.id)} onClick={() => setScenarioId(s.id)}>
               {s.name}
             </button>
           ) : (
             <span
               key={s.id}
               title={`Planned. Needs: ${(s.needs ?? []).join("; ")}`}
-              style={{ ...btnStyle(false), opacity: 0.62, cursor: "help" }}
+              className={btnClass(false, true)}
+              style={{ color: "var(--fg-dim)", cursor: "help" }}
             >
               {s.name} <em style={{ fontSize: 11 }}>(planned)</em>
             </span>
           ),
         )}
       </div>
-      {scenario && <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 16px" }}>{scenario.tagline}</p>}
+      {scenario && <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 16px" }}>{scenario.tagline}</p>}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <button data-testid="view-replay" style={btnStyle(view === "replay")} onClick={() => setView("replay")}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        <button data-testid="view-replay" className={btnClass(view === "replay")} onClick={() => setView("replay")}>
           replay a recorded run
         </button>
-        <button data-testid="view-live" style={btnStyle(view === "live")} onClick={() => setView("live")}>
+        <button data-testid="view-live" className={btnClass(view === "live")} onClick={() => setView("live")}>
           run it live
         </button>
-        <button data-testid="view-break" style={btnStyle(view === "break")} onClick={() => setView("break")}>
+        <button data-testid="view-break" className={btnClass(view === "break")} onClick={() => setView("break")}>
           break it on purpose
         </button>
-        <button data-testid="view-canvas" style={btnStyle(view === "canvas")} onClick={() => setView("canvas")}>
+        <button data-testid="view-canvas" className={btnClass(view === "canvas")} onClick={() => setView("canvas")}>
           worked example + themes
         </button>
       </div>
 
       {linkError && (
-        <p data-testid="link-error" role="alert" style={{ fontSize: 13, color: "#b91c1c", margin: "0 0 12px" }}>
+        <p data-testid="link-error" role="alert" style={{ fontSize: 13, color: "var(--err)", margin: "0 0 12px" }}>
           {linkError}
         </p>
       )}
@@ -506,19 +561,25 @@ export function Studio() {
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
             {themeNames.map((name) => (
-              <button key={name} onClick={() => setThemeName(name)} style={btnStyle(name === themeName)}>
+              <button key={name} onClick={() => setThemeName(name)} className={btnClass(name === themeName)}>
                 {name}
               </button>
             ))}
             <button
               onClick={() => setMode((m) => (m === "light" ? "dark" : "light"))}
-              style={{ ...btnStyle(false), marginLeft: "auto" }}
+              className={btnClass()}
+              style={{ marginLeft: "auto" }}
             >
               {mode === "light" ? "dark mode" : "light mode"}
             </button>
           </div>
 
-          <section data-canvas style={{ border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24 }}>
+          {/* The artboard: a deliberately light surface framed by the dark
+              chrome. colorScheme pins Astryx's light-dark() tokens to the
+              same resolution the studio always shipped, independent of the
+              visitor's OS scheme; the <Theme> wrapper inside still owns its
+              own subtree when the dial is used. */}
+          <section data-canvas style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, background: "#fff", colorScheme: "light", color: "#0f172a" }}>
             {theme ? (
               <Theme theme={theme as any} mode={mode}>
                 {staticCanvas}
@@ -528,7 +589,7 @@ export function Studio() {
             )}
           </section>
 
-          <section style={{ marginTop: 20, fontSize: 13, opacity: 0.8 }}>
+          <section style={{ marginTop: 20, fontSize: 13, color: "var(--fg-dim)" }}>
             <strong>Dispatched actions</strong> (A2UI → host):{" "}
             {actions.length === 0 ? (
               <em>none yet — press the confirm button in the dialog</em>
@@ -540,13 +601,63 @@ export function Studio() {
           </section>
         </>
       )}
+      {/* Orientation, below the primary experience: the approved pipeline
+          language and the existing capabilities, stated once, compactly. */}
+      <section aria-label="how it works" style={{ marginTop: 44, fontSize: 12 }}>
+        <Eyebrow>How it works</Eyebrow>
+        <p style={{ fontFamily: "var(--mono)", color: "var(--fg-dim)", margin: 0, lineHeight: 2 }}>
+          <a className={linkClass} href="https://github.com/aestheticfunction/dspack">dspack</a> constrains and
+          validates <Arrow /> <a className={linkClass} href="https://github.com/aestheticfunction/dspack-emit">dspack-emit</a>{" "}
+          compiles <Arrow /> <a className={linkClass} href="https://github.com/ag-ui-protocol/ag-ui">AG-UI</a> transports{" "}
+          <Arrow /> <a className={linkClass} href="https://github.com/google/A2UI">A2UI</a> describes <Arrow />{" "}
+          <a className={linkClass} href="https://github.com/facebook/astryx">Astryx</a> renders.
+        </p>
+        <p style={{ color: "var(--fg-dim)", margin: "6px 0 0" }}>
+          In any run, the pipeline view shows the layers each event touches, and the wire shows the raw protocol
+          session.
+        </p>
+        <details style={{ marginTop: 8, color: "var(--fg-dim)" }}>
+          <summary style={{ cursor: "pointer" }}>what each layer does</summary>
+          <ul style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+            <li>Agent: intent routing, governed generation, human-in-the-loop pauses, data-model patching.</li>
+            <li>dspack contract: constrains generation, validates S1/S2/S3, carries rationale.</li>
+            <li>dspack-emit: compiles the contract to catalogs and the surface to A2UI; gates A1/A2/A3.</li>
+            <li>AG-UI: transport for lifecycle, tool calls, gate telemetry, and state deltas.</li>
+            <li>A2UI: the declarative surface, data model, and actions.</li>
+            <li>Astryx: real components and theming behind the catalog names.</li>
+          </ul>
+        </details>
+        <details data-testid="boundary" style={{ marginTop: 8, color: "var(--fg-dim)" }}>
+          <summary style={{ cursor: "pointer" }}>what this is not</summary>
+          <p style={{ margin: "6px 0 0" }}>
+            This application demonstrates the open ecosystem: dspack, dspack-gen, dspack-emit, AG-UI, A2UI, and
+            Astryx. It does not include Aesthetic Function&apos;s proprietary reconciliation engine.
+          </p>
+        </details>
+        <div style={{ marginTop: 20 }}>
+          <Eyebrow>What you can do</Eyebrow>
+          <p style={{ fontFamily: "var(--mono)", color: "var(--fg-dim)", margin: 0, lineHeight: 1.9 }}>
+            Replay a real governed run · Rewind the interface through its event history · Fork from a previous moment
+            · Break a rule on purpose · X-ray pixels back to protocol and contract evidence · Download the run and its
+            audit receipt
+          </p>
+        </div>
+      </section>
       {tourStep !== null && <TourBar step={tourStep} onStep={(n) => startTour(n)} onDone={endTour} />}
-      <footer style={{ marginTop: 40, paddingTop: 16, borderTop: "1px solid #e2e8f0", fontSize: 12, color: "#475569" }}>
+      <footer style={{ marginTop: 44, paddingTop: 16, borderTop: "1px solid var(--line)", fontSize: 12, color: "var(--fg-dim)" }}>
         <p style={{ margin: 0 }}>
           dspack-studio demonstrates the open ecosystem only: dspack, dspack-gen, dspack-emit, AG-UI, A2UI, and
-          Astryx. Aesthetic Function's proprietary reconciliation technology is not included and is not demonstrated
+          Astryx. Aesthetic Function&apos;s proprietary reconciliation technology is not included and is not demonstrated
           here. Curated recordings are real runs; each carries its provenance and its receipt.
         </p>
+        <p style={{ fontFamily: "var(--mono)", margin: "12px 0 0", display: "flex", gap: 14, flexWrap: "wrap" }}>
+          <a className={linkClass} href="https://github.com/aestheticfunction/dspack-studio">source</a>
+          <a className={linkClass} href="https://github.com/aestheticfunction/dspack-studio#readme">readme</a>
+          <a className={linkClass} href="https://github.com/aestheticfunction/dspack-gen">dspack-gen</a>
+          <a className={linkClass} href="https://aesthetic-function.com/open-source.html">open source</a>
+          <a className={linkClass} href="https://aesthetic-function.com">aesthetic-function.com</a>
+        </p>
+        <p style={{ fontFamily: "var(--mono)", margin: "12px 0 0", color: "var(--fg-dim)" }}>© 2026 Aesthetic Function LLC</p>
       </footer>
     </main>
   );

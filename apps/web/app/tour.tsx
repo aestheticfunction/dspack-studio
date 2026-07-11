@@ -9,6 +9,7 @@
  * construction. The bar never traps focus and never blocks exploration.
  */
 import type { PermalinkState } from "./permalink";
+import { btnClass } from "./ui";
 
 export interface TourStep {
   title: string;
@@ -54,7 +55,6 @@ export function TourBar({
 }) {
   const s = TOUR_STEPS[step];
   if (!s) return null;
-  const btn: React.CSSProperties = { padding: "5px 12px", borderRadius: 8, border: "1px solid #94a3b8", background: "transparent", color: "inherit", cursor: "pointer", font: "inherit" };
   return (
     <aside
       data-testid="tour-bar"
@@ -64,15 +64,16 @@ export function TourBar({
         position: "sticky",
         bottom: 12,
         marginTop: 16,
-        background: "#0f172a",
-        color: "#f8fafc",
-        borderRadius: 12,
+        background: "var(--bg-1)",
+        color: "var(--fg)",
+        border: "1px solid var(--line)",
+        borderRadius: 6,
         padding: "12px 16px",
         display: "flex",
         gap: 14,
         alignItems: "baseline",
         flexWrap: "wrap",
-        boxShadow: "0 6px 24px rgba(15,23,42,0.35)",
+        boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
       }}
     >
       <strong data-testid="tour-title">
@@ -81,20 +82,20 @@ export function TourBar({
       <span style={{ flex: "1 1 260px", fontSize: 13, lineHeight: 1.5 }}>{s.body}</span>
       <span style={{ display: "flex", gap: 8 }}>
         {step > 0 && (
-          <button style={btn} data-testid="tour-back" onClick={() => onStep(step - 1)}>
+          <button className={btnClass()} data-testid="tour-back" onClick={() => onStep(step - 1)}>
             back
           </button>
         )}
         {step < TOUR_STEPS.length - 1 ? (
-          <button style={{ ...btn, background: "#f8fafc", color: "#0f172a" }} data-testid="tour-next" onClick={() => onStep(step + 1)}>
+          <button className={btnClass(true)} data-testid="tour-next" onClick={() => onStep(step + 1)}>
             next
           </button>
         ) : (
-          <button style={{ ...btn, background: "#f8fafc", color: "#0f172a" }} data-testid="tour-finish" onClick={onDone}>
+          <button className={btnClass(true)} data-testid="tour-finish" onClick={onDone}>
             explore on your own
           </button>
         )}
-        <button style={btn} data-testid="tour-skip" onClick={onDone} aria-label="dismiss the tour">
+        <button className={btnClass()} data-testid="tour-skip" onClick={onDone} aria-label="dismiss the tour">
           skip
         </button>
       </span>

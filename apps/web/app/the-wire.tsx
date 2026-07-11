@@ -11,6 +11,7 @@
 import { useMemo, useState } from "react";
 import { encodeEventBinary } from "@dspack-studio/agui-bridge";
 import type { FixtureEvent } from "@dspack-studio/replay";
+import { btnClass } from "./ui";
 
 const hex = (bytes: Uint8Array, max = 64): string =>
   [...bytes.slice(0, max)].map((b) => b.toString(16).padStart(2, "0")).join(" ") + (bytes.length > max ? ` … (${bytes.length} bytes)` : "");
@@ -32,7 +33,7 @@ export function TheWire({ events, playhead, live, defaultOpen }: { events: Fixtu
   return (
     <details data-testid="the-wire" ref={(el) => { if (el && defaultOpen && !el.dataset.autoOpened) { el.open = true; el.dataset.autoOpened = "1"; } }} style={{ marginTop: 12, fontSize: 12 }}>
       <summary style={{ cursor: "pointer" }}>the wire — the raw protocol session ({events.length} AG-UI events)</summary>
-      <div style={{ border: "1px solid #cbd5e1", borderRadius: 12, padding: "12px 14px", marginTop: 8, display: "grid", gap: 8 }}>
+      <div style={{ border: "1px solid var(--line)", borderRadius: 6, padding: "12px 14px", marginTop: 8, display: "grid", gap: 8 }}>
         <p style={{ margin: 0 }} data-testid="wire-transport">
           {live
             ? "Live transport: "
@@ -45,7 +46,7 @@ export function TheWire({ events, playhead, live, defaultOpen }: { events: Fixtu
             data-testid="wire-encoding-json"
             aria-pressed={encoding === "json"}
             onClick={() => setEncoding("json")}
-            style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: encoding === "json" ? "#0f172a" : "transparent", color: encoding === "json" ? "#fff" : "inherit", cursor: "pointer", font: "inherit" }}
+            className={btnClass(encoding === "json")}
           >
             JSON
           </button>
@@ -53,7 +54,7 @@ export function TheWire({ events, playhead, live, defaultOpen }: { events: Fixtu
             data-testid="wire-encoding-proto"
             aria-pressed={encoding === "proto"}
             onClick={() => setEncoding("proto")}
-            style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: encoding === "proto" ? "#0f172a" : "transparent", color: encoding === "proto" ? "#fff" : "inherit", cursor: "pointer", font: "inherit" }}
+            className={btnClass(encoding === "proto")}
           >
             protobuf
           </button>
@@ -68,21 +69,21 @@ export function TheWire({ events, playhead, live, defaultOpen }: { events: Fixtu
           data-testid="wire-events"
           tabIndex={0}
           aria-label="raw AG-UI events"
-          style={{ margin: 0, paddingLeft: 0, listStyle: "none", maxHeight: 320, overflow: "auto", display: "grid", gap: 2, fontFamily: "ui-monospace, monospace" }}
+          style={{ margin: 0, paddingLeft: 0, listStyle: "none", maxHeight: 320, overflow: "auto", display: "grid", gap: 2, fontFamily: "var(--mono)" }}
         >
           {events.map((e, i) => (
-            <li key={i} style={{ background: i === playhead ? "rgba(139,92,246,0.14)" : undefined, borderRadius: 6 }}>
+            <li key={i} style={{ background: i === playhead ? "rgba(167,139,250,0.16)" : undefined, borderRadius: 3 }}>
               <details>
                 <summary style={{ cursor: "pointer", padding: "2px 6px" }}>
-                  <span style={{ opacity: 0.55 }}>{String(i).padStart(3, " ")}</span> {String((e.event as any).type)}
-                  {(e.event as any).name ? ` ${String((e.event as any).name)}` : ""} <span style={{ opacity: 0.55 }}>@{e.atMs}ms</span>
+                  <span style={{ color: "var(--fg-dim)" }}>{String(i).padStart(3, " ")}</span> {String((e.event as any).type)}
+                  {(e.event as any).name ? ` ${String((e.event as any).name)}` : ""} <span style={{ color: "var(--fg-dim)" }}>@{e.atMs}ms</span>
                 </summary>
                 {encoding === "json" ? (
-                  <pre tabIndex={0} aria-label={`event ${i} JSON`} style={{ margin: "2px 0 6px", padding: 8, background: "rgba(148,163,184,0.12)", borderRadius: 6, overflow: "auto", maxHeight: 200, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  <pre tabIndex={0} aria-label={`event ${i} JSON`} style={{ margin: "2px 0 6px", padding: 8, background: "var(--bg-2)", borderRadius: 3, overflow: "auto", maxHeight: 200, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                     {JSON.stringify(e.event, null, 2)}
                   </pre>
                 ) : (
-                  <pre tabIndex={0} aria-label={`event ${i} protobuf frame (re-encoded)`} style={{ margin: "2px 0 6px", padding: 8, background: "rgba(148,163,184,0.12)", borderRadius: 6, overflow: "auto", maxHeight: 200, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                  <pre tabIndex={0} aria-label={`event ${i} protobuf frame (re-encoded)`} style={{ margin: "2px 0 6px", padding: 8, background: "var(--bg-2)", borderRadius: 3, overflow: "auto", maxHeight: 200, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                     {protoFrames[i]}
                   </pre>
                 )}

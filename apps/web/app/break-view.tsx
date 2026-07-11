@@ -12,19 +12,9 @@ import { breakConditions, capabilitiesByScenario, resolveAction, scenarios, type
 import { importFixture, surfaceComponentsAt } from "@dspack-studio/replay";
 import { useLiveRun } from "./use-live-run";
 import { RunView } from "./run-view";
+import { btnClass } from "./ui";
 
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
-
-const btn = (primary = false): React.CSSProperties => ({
-  padding: "6px 12px",
-  borderRadius: 8,
-  border: "1px solid #cbd5e1",
-  background: primary ? "#0f172a" : "transparent",
-  color: primary ? "#fff" : "inherit",
-  cursor: "pointer",
-  font: "inherit",
-  fontSize: 13,
-});
 
 export function BreakView() {
   const live = useLiveRun(AGENT_URL);
@@ -74,7 +64,7 @@ export function BreakView() {
           <button
             key={c.id}
             data-testid={`break-${c.id}`}
-            style={btn(c.id === conditionId)}
+            className={btnClass(c.id === conditionId)}
             onClick={() => {
               setConditionId(c.id);
               setPrompt(null);
@@ -87,7 +77,7 @@ export function BreakView() {
         ))}
       </div>
 
-      <p data-testid="break-expected" style={{ fontSize: 13, opacity: 0.75, margin: "0 0 10px", maxWidth: 720 }}>
+      <p data-testid="break-expected" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 10px", maxWidth: 720 }}>
         <strong>Expected:</strong> {condition.expected}
       </p>
 
@@ -97,23 +87,23 @@ export function BreakView() {
           aria-label="the adversarial prompt this break attempt runs"
           value={effectivePrompt}
           onChange={(e) => setPrompt(e.target.value)}
-          style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", font: "inherit", fontSize: 13, background: "transparent", color: "inherit", marginBottom: 8 }}
+          style={{ width: "100%", padding: "8px 12px", borderRadius: 2, border: "1px solid var(--line)", font: "inherit", fontSize: 13, background: "var(--bg-1)", color: "inherit", marginBottom: 8 }}
         />
       )}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
         {condition.kind === "malformed-import" ? (
-          <button data-testid="break-run" style={btn(true)} onClick={() => setImportDemo((importFixture("{this is not json") as any).error)}>
+          <button data-testid="break-run" className={btnClass(true)} onClick={() => setImportDemo((importFixture("{this is not json") as any).error)}>
             try the malformed import
           </button>
         ) : condition.kind === "unresolved-action" || condition.kind === "invalid-state" ? (
           <>
-            <button data-testid="break-run" style={btn(true)} disabled={streaming} onClick={() => start("deterministic:authored")}>
+            <button data-testid="break-run" className={btnClass(true)} disabled={streaming} onClick={() => start("deterministic:authored")}>
               start the scenario
             </button>
             <button
               data-testid="break-dispatch"
-              style={btn()}
+              className={btnClass()}
               disabled={live.events.length === 0 || streaming}
               onClick={dispatchBadAction}
             >
@@ -123,24 +113,24 @@ export function BreakView() {
         ) : (
           <>
             {condition.scriptedRef && (
-              <button data-testid="break-run" style={btn(true)} disabled={streaming} onClick={() => start(condition.scriptedRef!)}>
+              <button data-testid="break-run" className={btnClass(true)} disabled={streaming} onClick={() => start(condition.scriptedRef!)}>
                 run deterministic (scripted)
               </button>
             )}
             {condition.prompt && (
-              <button data-testid="break-run-live" style={btn()} disabled={streaming} onClick={() => start("ollama:gpt-oss:latest")}>
+              <button data-testid="break-run-live" className={btnClass()} disabled={streaming} onClick={() => start("ollama:gpt-oss:latest")}>
                 run live (local model)
               </button>
             )}
           </>
         )}
-        <span style={{ fontSize: 13, opacity: 0.7 }} data-testid="break-status" aria-live="polite">
+        <span style={{ fontSize: 13, color: "var(--fg-dim)" }} data-testid="break-status" aria-live="polite">
           {live.status}
         </span>
       </div>
 
       {importDemo && (
-        <section data-testid="break-import-error" style={{ border: "1px solid #fca5a5", background: "rgba(220,38,38,0.08)", borderRadius: 12, padding: "12px 16px", fontSize: 13, marginBottom: 14 }}>
+        <section data-testid="break-import-error" style={{ border: "1px solid var(--err-line)", background: "var(--err-soft)", borderRadius: 6, padding: "12px 16px", fontSize: 13, marginBottom: 14 }}>
           The validator said no: <code>{importDemo}</code> — and nothing was partially loaded.
         </section>
       )}

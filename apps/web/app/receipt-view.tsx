@@ -19,9 +19,11 @@ import {
   type ReceiptVerification,
 } from "@dspack-studio/replay";
 
+import { btnClass } from "./ui";
+
 const row: React.CSSProperties = { display: "flex", gap: 8, alignItems: "baseline" };
-const k: React.CSSProperties = { minWidth: 150, opacity: 0.65 };
-const code: React.CSSProperties = { background: "rgba(148,163,184,0.15)", borderRadius: 4, padding: "1px 5px", wordBreak: "break-all" };
+const k: React.CSSProperties = { minWidth: 150, color: "var(--fg-dim)" };
+const code: React.CSSProperties = { background: "var(--bg-2)", borderRadius: 3, padding: "1px 5px", wordBreak: "break-all" };
 
 export function ReceiptView({ source, meta, defaultOpen }: { source: EventSource; meta?: ReceiptMeta; defaultOpen?: boolean }) {
   const [receipt, setReceipt] = useState<AuditReceipt | null>(null);
@@ -66,7 +68,7 @@ export function ReceiptView({ source, meta, defaultOpen }: { source: EventSource
       <summary style={{ cursor: "pointer" }} data-testid="receipt-summary">
         audit receipt: <strong>{receipt.outcome}</strong> (exit {receipt.exitCode}) <span aria-hidden>🧾</span>
       </summary>
-      <div style={{ border: "1px solid #cbd5e1", borderRadius: 12, padding: "12px 14px", marginTop: 8, display: "grid", gap: 6 }}>
+      <div style={{ border: "1px solid var(--line)", borderRadius: 6, padding: "12px 14px", marginTop: 8, display: "grid", gap: 6 }}>
         <p style={{ margin: 0 }}>
           Interfaces with receipts: this run carries its complete evidence trail, reproducible from the recording.
         </p>
@@ -117,17 +119,17 @@ export function ReceiptView({ source, meta, defaultOpen }: { source: EventSource
         )}
 
         <div style={row}><span style={k}>canonical sha256</span><code style={code} data-testid="receipt-hash">{receipt.canonicalSha256}</code></div>
-        <p style={{ margin: 0, opacity: 0.65 }}>
+        <p style={{ margin: 0, color: "var(--fg-dim)" }}>
           The hash covers the request and every governance outcome. Wall-clock and timing fields are excluded by
           design: replaying this recording reproduces the hash byte for byte; a re-executed run reproduces it only if
           governance behaved identically.
         </p>
 
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <button data-testid="receipt-download" onClick={download} style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}>
+          <button data-testid="receipt-download" onClick={download} className={btnClass()}>
             download receipt
           </button>
-          <label style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer" }}>
+          <label className={btnClass()}>
             verify a receipt file against this run
             <input
               data-testid="receipt-verify-input"
@@ -149,7 +151,7 @@ export function ReceiptView({ source, meta, defaultOpen }: { source: EventSource
             style={{
               margin: 0,
               fontWeight: 600,
-              color: verdict.status === "match" ? "#15803d" : "#b91c1c",
+              color: verdict.status === "match" ? "var(--ok)" : "var(--err)",
             }}
           >
             {verdict.status === "match" && `verified: the receipt matches this run (sha256 ${verdict.sha256.slice(0, 16)}…)`}

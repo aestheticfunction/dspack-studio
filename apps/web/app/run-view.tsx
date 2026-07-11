@@ -34,17 +34,20 @@ import { Inspector } from "./inspector";
 import { ReceiptView } from "./receipt-view";
 import { PipelineView } from "./pipeline-view";
 import { TheWire } from "./the-wire";
+import { btnClass, linkClass } from "./ui";
 
+// Non-text timeline ticks on the dark chrome; hierarchy is inverted from the
+// light theme (the audit, the run's most consequential moment, is brightest).
 const TICK_COLOR: Record<TimelineTick["kind"], string> = {
-  lifecycle: "#64748b",
-  step: "#94a3b8",
-  "gates-pass": "#16a34a",
-  "gates-fail": "#dc2626",
-  repair: "#f59e0b",
-  emit: "#0ea5e9",
-  a2ui: "#8b5cf6",
-  audit: "#0f172a",
-  other: "#cbd5e1",
+  lifecycle: "#6a665b",
+  step: "#4e4a40",
+  "gates-pass": "#7e9652",
+  "gates-fail": "#e5484d",
+  repair: "#d9a05b",
+  emit: "#5ba3c7",
+  a2ui: "#8b7ec8",
+  audit: "#e7dfd2",
+  other: "#2b2b24",
 };
 
 export interface RunViewProps {
@@ -173,21 +176,17 @@ export function RunView({ events, label, streaming = false, live = false, resetK
               if (playhead >= last) setPlayhead(-1);
               setPlaying(!playing);
             }}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}
+            className={btnClass()}
           >
             {playing ? "pause" : playhead >= last && last >= 0 ? "replay" : "play"}
           </button>
         )}
         {streaming && !follow && (
-          <button
-            data-testid="follow"
-            onClick={() => setFollow(true)}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}
-          >
+          <button data-testid="follow" onClick={() => setFollow(true)} className={btnClass()}>
             follow live
           </button>
         )}
-        <span style={{ opacity: 0.7 }} data-testid="fixture-meta">
+        <span style={{ color: "var(--fg-dim)" }} data-testid="fixture-meta">
           {label}
         </span>
         <button
@@ -197,15 +196,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
             setXray(!xray);
             setXrayNode(null);
           }}
-          style={{
-            padding: "6px 14px",
-            borderRadius: 8,
-            border: "1px solid #cbd5e1",
-            background: xray ? "#0f172a" : "transparent",
-            color: xray ? "#fff" : "inherit",
-            cursor: "pointer",
-            font: "inherit",
-          }}
+          className={btnClass(xray)}
         >
           x-ray
         </button>
@@ -219,7 +210,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}
+            className={btnClass()}
           >
             {copied ? "link copied" : "copy link to this moment"}
           </button>
@@ -232,15 +223,8 @@ export function RunView({ events, label, streaming = false, live = false, resetK
               disabled={Boolean(reason)}
               title={reason ?? `fork a new run from event ${playhead} — the original stays untouched`}
               onClick={() => onFork(playhead)}
-              style={{
-                marginLeft: "auto",
-                padding: "6px 14px",
-                borderRadius: 8,
-                border: "1px solid #cbd5e1",
-                cursor: reason ? "not-allowed" : "pointer",
-                opacity: reason ? 0.5 : 1,
-                font: "inherit",
-              }}
+              className={btnClass()}
+              style={{ marginLeft: "auto" }}
             >
               fork this moment
             </button>
@@ -261,7 +245,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
             setFollow(false);
             setPlayhead(Number(e.target.value));
           }}
-          style={{ width: "100%" }}
+          style={{ width: "100%", colorScheme: "dark" }}
           aria-label="timeline scrubber"
         />
         <div style={{ display: "flex", gap: 2, height: 14 }}>
@@ -294,17 +278,17 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         data-testid="gate-ticker"
         style={{ display: "flex", gap: 10, fontSize: 12, margin: "8px 0 14px", flexWrap: "wrap", alignItems: "center" }}
       >
-        {gates.runStart && <code style={{ opacity: 0.7 }}>{gates.runStart.adapterId}</code>}
+        {gates.runStart && <code style={{ color: "var(--fg-dim)" }}>{gates.runStart.adapterId}</code>}
         {gates.attempts.map((a) => (
           <span key={a.index} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
             attempt {a.index}:
             {a.gates.map((g) => (
-              <strong key={String(g.gate)} style={{ color: gateFailed(g) ? "#b91c1c" : "#15803d" }}>
+              <strong key={String(g.gate)} style={{ color: gateFailed(g) ? "var(--err)" : "var(--ok)" }}>
                 {String(g.gate)}
                 {gateFailed(g) ? "✗" : "✓"}
               </strong>
             ))}
-            {a.repairMessage && <span style={{ color: "#92400e" }}>→ repair</span>}
+            {a.repairMessage && <span style={{ color: "var(--warn)" }}>→ repair</span>}
           </span>
         ))}
         {gates.audit && (
@@ -319,9 +303,9 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         <section
           data-testid="failure-panel"
           style={{
-            border: "1px solid #fca5a5",
-            background: "rgba(220,38,38,0.08)",
-            borderRadius: 12,
+            border: "1px solid var(--err-line)",
+            background: "var(--err-soft)",
+            borderRadius: 6,
             padding: "14px 18px",
             marginBottom: 14,
             fontSize: 13,
@@ -337,7 +321,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
               <>Outcome {gates.audit?.outcome} (exit {gates.audit?.exitCode}) — see the audit event for gate errors.</>
             )}
           </p>
-          <p style={{ margin: "6px 0 0", opacity: 0.7 }}>
+          <p style={{ margin: "6px 0 0", color: "var(--fg-dim)" }}>
             Failures are first-class artifacts: this run ends with a complete audit report instead of a rendered
             surface. Nothing is silently dropped.
           </p>
@@ -369,7 +353,10 @@ export function RunView({ events, label, streaming = false, live = false, resetK
               }
             : undefined
         }
-        style={{ border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24, minHeight: 220 }}
+        // The artboard: a light surface framed by the dark chrome. colorScheme
+        // pins Astryx's light-dark() tokens to the resolution the studio has
+        // always shipped, independent of the visitor's OS scheme.
+        style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, minHeight: 220, background: "#fff", colorScheme: "light", color: "#0f172a" }}
       >
         {messages.length > 0 ? (
           // Keyed on the delivery count: each new A2UI delivery remounts the
@@ -392,7 +379,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
             }
           />
         ) : (
-          <p style={{ opacity: 0.6, fontSize: 14 }} data-testid="canvas-empty" aria-live="polite">
+          <p style={{ color: "#475569", fontSize: 14 }} data-testid="canvas-empty" aria-live="polite">
             {streaming
               ? "Generating — the surface streams in the moment it passes the gates…"
               : playhead < 0
@@ -411,7 +398,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         <section
           data-testid="xray-card"
           aria-live="polite"
-          style={{ border: "1px solid #0f172a", borderRadius: 12, padding: "12px 16px", marginTop: 12, fontSize: 12, display: "grid", gap: 6 }}
+          style={{ border: "1px solid var(--line)", background: "var(--bg-1)", borderRadius: 6, padding: "12px 16px", marginTop: 12, fontSize: 12, display: "grid", gap: 6 }}
         >
           {!selected && (
             <p style={{ margin: 0 }}>
@@ -436,7 +423,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
                     setFollow(false);
                     setPlayhead(selected.createdAt);
                   }}
-                  style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                  className={linkClass}
                 >
                   event {selected.createdAt}
                 </button>
@@ -452,7 +439,8 @@ export function RunView({ events, label, streaming = false, live = false, resetK
                           setFollow(false);
                           setPlayhead(i);
                         }}
-                        style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline", marginRight: 4 }}
+                        className={linkClass}
+                        style={{ marginRight: 4 }}
                       >
                         event {i}
                         {n < selected.updatedAt.length - 1 ? "," : ""}
@@ -460,7 +448,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
                     ))}
                   </>
                 )}{" "}
-                <span style={{ opacity: 0.65 }}>(explicit: read off the A2UI operations)</span>
+                <span style={{ color: "var(--fg-dim)" }}>(explicit: read off the A2UI operations)</span>
               </div>
               <div data-testid="xray-rules">
                 {selectedRules.length > 0 ? (
@@ -471,12 +459,12 @@ export function RunView({ events, label, streaming = false, live = false, resetK
                         <code>{f.ruleId}</code> ("{f.message}"){i < selectedRules.length - 1 ? "; " : ""}
                       </span>
                     ))}{" "}
-                    <span style={{ opacity: 0.65 }}>
+                    <span style={{ color: "var(--fg-dim)" }}>
                       (inferred by component type: findings cite surface locations, not rendered node ids)
                     </span>
                   </>
                 ) : (
-                  <span style={{ opacity: 0.65 }}>no recorded findings reference this component type in this run</span>
+                  <span style={{ color: "var(--fg-dim)" }}>no recorded findings reference this component type in this run</span>
                 )}
               </div>
             </>
@@ -511,7 +499,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
           <pre
             tabIndex={0}
             aria-label="raw event JSON"
-            style={{ overflow: "auto", maxHeight: 260, background: "rgba(148,163,184,0.12)", padding: 12, borderRadius: 8 }}
+            style={{ overflow: "auto", maxHeight: 260, background: "var(--bg-2)", padding: 12, borderRadius: 3 }}
           >
             {JSON.stringify(current.event, null, 2)}
           </pre>

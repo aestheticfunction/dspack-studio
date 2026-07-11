@@ -22,23 +22,24 @@ import {
   type EventSource,
 } from "@dspack-studio/replay";
 
-/** Text-safe category palette (>=4.5:1 on the panel background). */
+import { btnClass, linkClass, mono } from "./ui";
+
+/** Text-safe category palette (>=4.5:1 on the dark panel wells). */
 const CATEGORY_COLOR: Record<EventCategory, string> = {
-  run: "#475569",
-  step: "#475569",
-  pipeline: "#075985",
-  a2ui: "#5b21b6",
-  "user-action": "#166534",
-  "agent-response": "#92400e",
-  enhancement: "#86198f",
-  other: "#475569",
+  run: "#8f8a7c",
+  step: "#8f8a7c",
+  pipeline: "#7dd3fc",
+  a2ui: "#a78bfa",
+  "user-action": "#97b063",
+  "agent-response": "#d9a05b",
+  enhancement: "#f0abfc",
+  other: "#8f8a7c",
 };
 
 const TABS = ["state", "actions", "events", "a2ui", "gates", "components"] as const;
 type Tab = (typeof TABS)[number];
 
-const mono: React.CSSProperties = { fontFamily: "ui-monospace, monospace", fontSize: 12 };
-const pre: React.CSSProperties = { ...mono, overflow: "auto", maxHeight: 260, background: "rgba(148,163,184,0.10)", padding: 10, borderRadius: 8, margin: 0 };
+const pre: React.CSSProperties = { ...mono, overflow: "auto", maxHeight: 260, background: "var(--bg-2)", border: "1px solid var(--line-soft)", padding: 10, borderRadius: 3, margin: 0 };
 
 export function Inspector({ source, playhead }: { source: EventSource; playhead: number }) {
   const [open, setOpen] = useState(false);
@@ -57,7 +58,8 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
       <button
         data-testid="inspector-open"
         onClick={() => setOpen(true)}
-        style={{ marginTop: 14, padding: "6px 14px", borderRadius: 8, border: "1px dashed #cbd5e1", background: "transparent", cursor: "pointer", font: "inherit", fontSize: 13, opacity: 0.8 }}
+        className={btnClass(false, true)}
+        style={{ marginTop: 14 }}
       >
         inspect this run — state, actions, events, gates
       </button>
@@ -65,7 +67,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
   }
 
   return (
-    <section data-testid="inspector" style={{ marginTop: 14, border: "1px solid #cbd5e1", borderRadius: 12, padding: 14, fontSize: 13 }}>
+    <section data-testid="inspector" style={{ marginTop: 14, border: "1px solid var(--line)", borderRadius: 6, padding: 14, fontSize: 13 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
         <div role="tablist" aria-label="run inspector panels" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {TABS.map((t) => (
@@ -75,25 +77,25 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
               aria-selected={t === tab}
               data-testid={`inspector-tab-${t}`}
               onClick={() => setTab(t)}
-              style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: t === tab ? "#0f172a" : "transparent", color: t === tab ? "#fff" : "inherit", cursor: "pointer", font: "inherit", fontSize: 12 }}
+              className={btnClass(t === tab)}
             >
               {t}
             </button>
           ))}
         </div>
-        <span style={{ marginLeft: "auto", opacity: 0.75, ...mono }} data-testid="inspector-position">
+        <span style={{ marginLeft: "auto", color: "var(--fg-dim)", ...mono }} data-testid="inspector-position">
           at event {Math.max(playhead, -1)} / {source.events.length - 1}
         </span>
-        <button onClick={() => setOpen(false)} style={{ border: "none", background: "transparent", cursor: "pointer", font: "inherit", opacity: 0.75 }}>
+        <button onClick={() => setOpen(false)} className={linkClass}>
           close
         </button>
       </div>
 
       {tab === "state" && (
         <div data-testid="inspector-state">
-          <p style={{ margin: "0 0 6px", opacity: 0.7 }}>Shared data model at this playhead ({patches.length} patches applied):</p>
+          <p style={{ margin: "0 0 6px", color: "var(--fg-dim)" }}>Shared data model at this playhead ({patches.length} patches applied):</p>
           <pre style={pre} tabIndex={0} aria-label="shared data model JSON" data-testid="inspector-state-json">{JSON.stringify(model, null, 2)}</pre>
-          <p style={{ margin: "10px 0 6px", opacity: 0.7 }}>Ordered patch log:</p>
+          <p style={{ margin: "10px 0 6px", color: "var(--fg-dim)" }}>Ordered patch log:</p>
           <div style={{ ...pre, maxHeight: 180 }} tabIndex={0} role="group" aria-label="state patches" data-testid="inspector-patches">
             {patches.length === 0 && <em>no patches yet</em>}
             {patches.map((p, i) => (
@@ -107,17 +109,17 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
 
       {tab === "actions" && (
         <div data-testid="inspector-actions">
-          {lifecycles.length === 0 && <em style={{ opacity: 0.6 }}>no user actions yet</em>}
+          {lifecycles.length === 0 && <em style={{ color: "var(--fg-dim)" }}>no user actions yet</em>}
           {lifecycles.map((lc) => (
             <div key={lc.actionId} style={{ marginBottom: 10 }}>
               <div style={mono}>
                 <strong>{lc.name}</strong>
                 {lc.capability && lc.capability !== lc.name ? <> → <strong>{lc.capability}</strong></> : null}{" "}
-                <span style={{ opacity: 0.7 }}>({lc.actionId.slice(0, 8)}…)</span>
+                <span style={{ color: "var(--fg-dim)" }}>({lc.actionId.slice(0, 8)}…)</span>
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                 {lc.states.map((s, i) => (
-                  <span key={i} style={{ ...mono, padding: "2px 8px", borderRadius: 999, background: "rgba(148,163,184,0.15)" }} title={s.detail ?? s.method ?? ""}>
+                  <span key={i} style={{ ...mono, padding: "2px 8px", borderRadius: 3, background: "var(--bg-2)", border: "1px solid var(--line-soft)" }} title={s.detail ?? s.method ?? ""}>
                     {s.state}
                     {s.method ? ` · ${s.method}` : ""}
                     {s.detail ? ` — ${s.detail}` : ""}
@@ -136,7 +138,7 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
             return (
               <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
                 <span style={{ color: CATEGORY_COLOR[cat], minWidth: 104 }}>{cat}</span>
-                <span style={{ opacity: 0.72, minWidth: 64 }}>@{atMs}ms</span>
+                <span style={{ color: "var(--fg-dim)", minWidth: 64 }}>@{atMs}ms</span>
                 <span>
                   {String(event.type)}
                   {"name" in event ? ` ${String((event as any).name)}` : ""}
@@ -155,17 +157,17 @@ export function Inspector({ source, playhead }: { source: EventSource; playhead:
 
       {tab === "gates" && (
         <div data-testid="inspector-gates">
-          {gates.attempts.length === 0 && <em style={{ opacity: 0.6 }}>no gate results yet</em>}
+          {gates.attempts.length === 0 && <em style={{ color: "var(--fg-dim)" }}>no gate results yet</em>}
           {gates.attempts.map((a) => (
             <div key={a.index} style={{ marginBottom: 8 }}>
               <strong>attempt {a.index}</strong>{" "}
               {a.gates.map((g) => (
-                <span key={String(g.gate)} style={{ color: gateFailed(g) ? "#b91c1c" : "#15803d", marginRight: 6 }}>
+                <span key={String(g.gate)} style={{ color: gateFailed(g) ? "var(--err)" : "var(--ok)", marginRight: 6 }}>
                   {String(g.gate)} {gateFailed(g) ? "FAIL" : "PASS"}
                 </span>
               ))}
               {a.findings.length > 0 && (
-                <div style={{ ...mono, opacity: 0.85 }}>
+                <div style={{ ...mono, color: "var(--fg-dim)" }}>
                   {a.findings.map((f: any, i: number) => (
                     <div key={i}>· {f.ruleId ?? f.rule}: {f.message}</div>
                   ))}

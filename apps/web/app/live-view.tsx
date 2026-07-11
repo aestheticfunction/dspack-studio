@@ -15,6 +15,7 @@ import { capabilitiesByScenario, resolveAction, type Scenario } from "@dspack-st
 import { surfaceComponentsAt } from "@dspack-studio/replay";
 import { useLiveRun, type LiveStatus } from "./use-live-run";
 import { RunView } from "./run-view";
+import { btnClass } from "./ui";
 
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 
@@ -27,17 +28,6 @@ const STATUS_LABEL: Record<LiveStatus, string> = {
   cancelled: "cancelled",
   offline: "agent offline",
 };
-
-const btn = (primary = false): React.CSSProperties => ({
-  padding: "6px 14px",
-  borderRadius: 8,
-  border: "1px solid #cbd5e1",
-  background: primary ? "#0f172a" : "transparent",
-  color: primary ? "#fff" : "inherit",
-  cursor: "pointer",
-  font: "inherit",
-  fontSize: 13,
-});
 
 export function LiveView({ scenario }: { scenario: Scenario }) {
   const live = useLiveRun(AGENT_URL);
@@ -85,17 +75,17 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
     return (
       <section
         data-testid="agent-offline"
-        style={{ border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24, fontSize: 14, lineHeight: 1.6 }}
+        style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, fontSize: 14, lineHeight: 1.6 }}
       >
         <strong>The local agent is not running.</strong>
         <p style={{ margin: "8px 0 0" }}>
           Live mode streams the governed pipeline from a small local server — your prompts and models never leave your
           machine. Start it and reload:
         </p>
-        <pre style={{ background: "rgba(148,163,184,0.12)", padding: 12, borderRadius: 8, marginTop: 8 }}>
+        <pre style={{ background: "var(--bg-2)", padding: 12, borderRadius: 3, marginTop: 8 }}>
           pnpm --filter agent dev
         </pre>
-        <p style={{ margin: "8px 0 0", opacity: 0.7 }}>
+        <p style={{ margin: "8px 0 0", color: "var(--fg-dim)" }}>
           Replay mode works without it — every curated example is a recorded real run.
         </p>
       </section>
@@ -110,7 +100,8 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         {scenario.seedPrompts.map((p, i) => (
           <button
             key={i}
-            style={{ ...btn(p === prompt), fontSize: 12, maxWidth: 340, textAlign: "left" }}
+            className={btnClass(p === prompt)}
+            style={{ maxWidth: 340, textAlign: "left", textTransform: "none" }}
             onClick={() => setPrompt(p)}
             title={p}
           >
@@ -129,11 +120,11 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
           style={{
             flex: 1,
             padding: "8px 12px",
-            borderRadius: 8,
-            border: "1px solid #cbd5e1",
+            borderRadius: 2,
+            border: "1px solid var(--line)",
             font: "inherit",
             fontSize: 13,
-            background: "transparent",
+            background: "var(--bg-1)",
             color: "inherit",
           }}
         />
@@ -142,7 +133,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
           aria-label="model"
           value={modelRef}
           onChange={(e) => setModelRef(e.target.value)}
-          style={{ borderRadius: 8, border: "1px solid #cbd5e1", font: "inherit", fontSize: 13, padding: "0 8px" }}
+          style={{ borderRadius: 2, border: "1px solid var(--line)", font: "inherit", fontSize: 13, padding: "0 8px", background: "var(--bg-1)", color: "inherit", colorScheme: "dark" }}
         >
           {live.models.map((m) => (
             <option key={m} value={m}>
@@ -157,7 +148,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         {!streaming && (
           <button
             data-testid="live-run"
-            style={btn(true)}
+            className={btnClass(true)}
             onClick={() => start(prompt, modelRef)}
             disabled={!interactive && !prompt.trim()}
           >
@@ -173,7 +164,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
         {!streaming && interactive && !scenario.needs?.length && (
           <button
             data-testid="live-generate"
-            style={btn()}
+            className={btnClass()}
             title="Generate this scenario's surface with a model under the contract's scheduling intent (the deterministic start remains the reliable fallback)."
             onClick={() => startGenerated(prompt, modelRef)}
             disabled={!prompt.trim()}
@@ -182,26 +173,26 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
           </button>
         )}
         {streaming && (
-          <button data-testid="live-cancel" style={btn()} onClick={live.cancel}>
+          <button data-testid="live-cancel" className={btnClass()} onClick={live.cancel}>
             cancel
           </button>
         )}
         {(live.status === "error" || live.status === "cancelled") && lastRun && (
-          <button data-testid="live-retry" style={btn()} onClick={() => start(lastRun.prompt, lastRun.modelRef)}>
+          <button data-testid="live-retry" className={btnClass()} onClick={() => start(lastRun.prompt, lastRun.modelRef)}>
             retry
           </button>
         )}
         {live.events.length > 0 && !streaming && (
           <>
-            <button data-testid="live-reset" style={btn()} onClick={live.reset}>
+            <button data-testid="live-reset" className={btnClass()} onClick={live.reset}>
               reset
             </button>
-            <button data-testid="live-download" style={btn()} onClick={download}>
+            <button data-testid="live-download" className={btnClass()} onClick={download}>
               download fixture
             </button>
           </>
         )}
-        <span data-testid="live-status" style={{ opacity: 0.7 }} aria-live="polite">
+        <span data-testid="live-status" style={{ color: "var(--fg-dim)" }} aria-live="polite">
           {STATUS_LABEL[live.status]}
           {live.error ? ` — ${live.error}` : ""}
         </span>
