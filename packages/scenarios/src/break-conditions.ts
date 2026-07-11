@@ -103,6 +103,11 @@ export const breakConditions: BreakCondition[] = [
     kind: "unresolved-action",
     expected:
       "The dispatched action matches no capability (no exact name, no validated component semantics), so resolution rejects it client-side: studio.action.unresolved in the stream, nothing sent to the agent.",
+    recordedCatch: {
+      scenarioId: "appointment-booking",
+      fixtureKey: "unresolved-action",
+      note: "In this recording the same ungroundable action was dispatched at the authored booking surface: resolution rejected it client-side and nothing was sent to the agent. Deterministic, labeled scripted.",
+    },
   },
   {
     id: "invalid-state",
@@ -112,6 +117,11 @@ export const breakConditions: BreakCondition[] = [
     kind: "invalid-state",
     expected:
       "The agent validates the co-edited state and rejects it recoverably: studio.action.rejected with the reason, a status update, and the session keeps going.",
+    recordedCatch: {
+      scenarioId: "recipe-creator",
+      fixtureKey: "invalid-constraint",
+      note: "In this recording this exact constraint ('keto') was submitted: the same responder that answers live rejected it recoverably and the session kept going. Deterministic, labeled scripted.",
+    },
   },
   {
     id: "malformed-import",

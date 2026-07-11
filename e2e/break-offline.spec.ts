@@ -52,18 +52,46 @@ test("the emitter-refusal condition replays the recorded refusal", async ({ page
 
 test("live-only conditions say plainly what they need", async ({ page }) => {
   await gotoOffline(page);
-  const cases: Array<[condition: string, scenario: string]> = [
-    ["malformed-generation", "project-deletion"],
-    ["ambiguous-action", "appointment-booking"],
-    ["invalid-state", "recipe-creator"],
-  ];
-  for (const [id, scenario] of cases) {
-    await page.getByTestId(`scenario-${scenario}`).click();
-    await page.getByTestId("view-break").click();
-    await page.getByTestId(`break-${id}`).click();
-    await expect(page.getByTestId("break-live-only")).toContainText("local agent");
-    await expect(page.getByTestId("break-run")).toHaveCount(0);
-  }
+  await page.getByTestId("scenario-project-deletion").click();
+  await page.getByTestId("view-break").click();
+  await page.getByTestId("break-malformed-generation").click();
+  await expect(page.getByTestId("break-live-only")).toContainText("local agent");
+  await expect(page.getByTestId("break-run")).toHaveCount(0);
+});
+
+test("the booking scenario's recorded catch replays the unresolved action", async ({ page }) => {
+  await gotoOffline(page);
+  await page.getByTestId("scenario-appointment-booking").click();
+  await page.getByTestId("view-break").click();
+  await page.getByTestId("break-ambiguous-action").click();
+  await expect(page.getByTestId("break-recorded-note")).toContainText("recorded catch");
+  // The recorded run carries the catch: the dispatched action grounds on no
+  // capability, resolution rejects it client-side, on the record.
+  await page.getByTestId("scrubber").focus();
+  await page.keyboard.press("End");
+  await page.getByTestId("inspector-open").click();
+  await page.getByTestId("inspector-tab-actions").click();
+  await expect(page.getByTestId("inspector-actions")).toContainText("unresolved");
+  await expect(page.getByTestId("inspector-actions")).toContainText("mystery_action");
+  // No dead run buttons.
+  await expect(page.getByTestId("break-run")).toHaveCount(0);
+});
+
+test("the recipe scenario's recorded catch replays the recoverable rejection", async ({ page }) => {
+  await gotoOffline(page);
+  await page.getByTestId("scenario-recipe-creator").click();
+  await page.getByTestId("view-break").click();
+  await page.getByTestId("break-invalid-state").click();
+  await expect(page.getByTestId("break-recorded-note")).toContainText("recorded catch");
+  // The recorded run carries the catch: the agent rejects the unknown
+  // constraint recoverably and the session keeps going.
+  await page.getByTestId("scrubber").focus();
+  await page.keyboard.press("End");
+  await expect(page.locator("[data-canvas]")).toContainText("Unknown constraint. Try: vegetarian, vegan, gluten-free.");
+  await page.getByTestId("inspector-open").click();
+  await page.getByTestId("inspector-tab-actions").click();
+  await expect(page.getByTestId("inspector-actions")).toContainText("rejected");
+  await expect(page.getByTestId("break-run")).toHaveCount(0);
 });
 
 test("offline states (badges active, recorded catch, live-only note) have no axe violations", async ({ page }) => {

@@ -1,0 +1,73 @@
+{
+  "replayFixture": "0.1",
+  "id": "fixture-008",
+  "name": "An action nothing grounds",
+  "recordedAt": "2026-07-11T17:24:20.540Z",
+  "mode": "scripted",
+  "adapterId": "deterministic:authored",
+  "intent": "scheduling",
+  "prompt": "ungroundable generated action",
+  "events": [
+    {
+      "atMs": 0,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "fixture-008"
+      }
+    },
+    {
+      "atMs": 306,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "fixture-008-start",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 306,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "fixture-008-start",
+        "delta": "{\"surfaceId\":\"scheduling\"}"
+      }
+    },
+    {
+      "atMs": 306,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "fixture-008-start"
+      }
+    },
+    {
+      "atMs": 306,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "fixture-008-start-result",
+        "toolCallId": "fixture-008-start",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"scheduling\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"scheduling\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Book a consultation\"},{\"id\":\"intro\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Pick a time that works. Your name is required to hold the slot.\"},{\"id\":\"name_input\",\"component\":\"TextField\",\"label\":\"Your name\",\"placeholder\":\"Ada Lovelace\",\"isRequired\":true,\"value\":{\"path\":\"/booking/name\"}},{\"id\":\"status\",\"component\":\"Text\",\"variant\":\"caption\",\"text\":{\"path\":\"/booking/status\"}},{\"id\":\"slot_0900\",\"component\":\"Button\",\"label\":\"9:00\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"select_slot\",\"context\":{\"slot\":\"9:00\",\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"slot_1030\",\"component\":\"Button\",\"label\":\"10:30\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"select_slot\",\"context\":{\"slot\":\"10:30\",\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"slot_1400\",\"component\":\"Button\",\"label\":\"14:00\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"select_slot\",\"context\":{\"slot\":\"14:00\",\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"confirm\",\"component\":\"Button\",\"label\":\"Confirm booking\",\"variant\":\"primary\",\"action\":{\"event\":{\"name\":\"confirm_booking\",\"context\":{\"slot\":{\"path\":\"/booking/slot\"},\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"cancel\",\"component\":\"Button\",\"label\":\"Start over\",\"variant\":\"ghost\",\"action\":{\"event\":{\"name\":\"cancel_booking\"}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"intro\",\"name_input\",\"status\",\"slot_0900\",\"slot_1030\",\"slot_1400\",\"confirm\",\"cancel\"]}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"scheduling\",\"path\":\"/booking\",\"value\":{\"name\":\"\",\"slot\":\"\",\"status\":\"Pick a time to begin.\",\"confirmed\":false}}}]}"
+      }
+    },
+    {
+      "atMs": 607,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "fixture-008"
+      }
+    },
+    {
+      "atMs": 910,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.unresolved",
+        "value": {
+          "actionId": "4bbd6c08-38c9-4b3b-9324-0b91fd2487c3",
+          "originalName": "mystery_action",
+          "reason": "unsupported",
+          "detail": "no capability grounds action 'mystery_action' from Text 'intro'"
+        }
+      }
+    }
+  ]
+}

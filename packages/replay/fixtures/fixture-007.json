@@ -1,0 +1,136 @@
+{
+  "replayFixture": "0.1",
+  "id": "fixture-007",
+  "name": "The agent rejects an invalid edit",
+  "recordedAt": "2026-07-11T17:24:19.151Z",
+  "mode": "scripted",
+  "adapterId": "deterministic:authored",
+  "intent": "structured-editing",
+  "prompt": "invalid shared-state edit",
+  "events": [
+    {
+      "atMs": 0,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "fixture-007"
+      }
+    },
+    {
+      "atMs": 308,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "fixture-007-start",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 308,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "fixture-007-start",
+        "delta": "{\"surfaceId\":\"structured_editing\"}"
+      }
+    },
+    {
+      "atMs": 308,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "fixture-007-start"
+      }
+    },
+    {
+      "atMs": 308,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "fixture-007-start-result",
+        "toolCallId": "fixture-007-start",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"structured_editing\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Weeknight pasta\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"no constraints\",\"variant\":\"neutral\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"servings_down\",\"component\":\"Button\",\"label\":\"Fewer servings\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"change_servings\",\"context\":{\"delta\":-1}}}},{\"id\":\"servings_up\",\"component\":\"Button\",\"label\":\"More servings\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"change_servings\",\"context\":{\"delta\":1}}}},{\"id\":\"ingredients\",\"component\":\"Table\",\"density\":\"compact\",\"columns\":[\"Ingredient\",\"Amount\"],\"data\":[{\"cells\":[\"Spaghetti\",\"180 g\"]},{\"cells\":[\"Pancetta\",\"80 g\"]},{\"cells\":[\"Parmesan\",\"50 g\"]},{\"cells\":[\"Cherry tomatoes\",\"240 g\"]}]},{\"id\":\"instructions_title\",\"component\":\"Text\",\"variant\":\"h3\",\"text\":\"Instructions\"},{\"id\":\"instructions\",\"component\":\"Table\",\"density\":\"compact\",\"columns\":[\"Step\",\"Instruction\"],\"data\":[{\"cells\":[\"1\",\"Boil the Spaghetti in well-salted water until just short of al dente.\"]},{\"cells\":[\"2\",\"Meanwhile, cook the Pancetta in a wide pan over medium heat until crisp.\"]},{\"cells\":[\"3\",\"Add the Cherry tomatoes to the pan and cook until they blister and burst.\"]},{\"cells\":[\"4\",\"Toss the drained pasta in the pan with a splash of pasta water, then finish with the Parmesan.\"]}]},{\"id\":\"constraint_input\",\"component\":\"TextField\",\"label\":\"Dietary constraint\",\"placeholder\":\"vegetarian, vegan, or gluten-free\",\"value\":{\"path\":\"/recipe/constraint\"}},{\"id\":\"apply_constraint\",\"component\":\"Button\",\"label\":\"Apply constraint\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"apply_constraint\",\"context\":{\"constraint\":{\"path\":\"/recipe/constraint\"}}}}},{\"id\":\"status\",\"component\":\"Text\",\"variant\":\"caption\",\"text\":{\"path\":\"/recipe/status\"}},{\"id\":\"regenerate\",\"component\":\"Button\",\"label\":\"Regenerate recipe\",\"variant\":\"primary\",\"action\":{\"event\":{\"name\":\"regenerate\"}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"diet_badge\",\"servings_label\",\"servings_down\",\"servings_up\",\"ingredients\",\"instructions_title\",\"instructions\",\"constraint_input\",\"apply_constraint\",\"status\",\"regenerate\"]}]}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Weeknight pasta\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"no constraints\",\"variant\":\"neutral\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"ingredients\",\"component\":\"Table\",\"columns\":[\"Ingredient\",\"Amount\"],\"data\":[{\"cells\":[\"Spaghetti\",\"180 g\"]},{\"cells\":[\"Pancetta\",\"80 g\"]},{\"cells\":[\"Parmesan\",\"50 g\"]},{\"cells\":[\"Cherry tomatoes\",\"240 g\"]}],\"density\":\"compact\"},{\"id\":\"instructions\",\"component\":\"Table\",\"columns\":[\"Step\",\"Instruction\"],\"data\":[{\"cells\":[\"1\",\"Boil the Spaghetti in well-salted water until just short of al dente.\"]},{\"cells\":[\"2\",\"Meanwhile, cook the Pancetta in a wide pan over medium heat until crisp.\"]},{\"cells\":[\"3\",\"Add the Cherry tomatoes to the pan and cook until they blister and burst.\"]},{\"cells\":[\"4\",\"Toss the drained pasta in the pan with a splash of pasta water, then finish with the Parmesan.\"]}],\"density\":\"compact\"}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe\",\"value\":{\"servings\":2,\"constraint\":\"\",\"status\":\"Edit servings or add a constraint.\",\"variant\":0}}}]}"
+      }
+    },
+    {
+      "atMs": 610,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "fixture-007"
+      }
+    },
+    {
+      "atMs": 914,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.resolved",
+        "value": {
+          "actionId": "aac6ccc0-4c3d-4c57-a27c-f799182253c9",
+          "originalName": "apply_constraint",
+          "capability": "apply_constraint",
+          "method": "exact-name"
+        }
+      }
+    },
+    {
+      "atMs": 914,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.pending",
+        "value": {
+          "actionId": "aac6ccc0-4c3d-4c57-a27c-f799182253c9",
+          "scenario": "recipe-creator",
+          "name": "apply_constraint",
+          "capability": "apply_constraint",
+          "context": {
+            "constraint": "keto"
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1218,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "action-aac6ccc0-4c3d-4c57-a27c-f799182253c9",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 1218,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "action-aac6ccc0-4c3d-4c57-a27c-f799182253c9",
+        "delta": "{\"surfaceId\":\"structured_editing\"}"
+      }
+    },
+    {
+      "atMs": 1218,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "action-aac6ccc0-4c3d-4c57-a27c-f799182253c9"
+      }
+    },
+    {
+      "atMs": 1218,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "action-aac6ccc0-4c3d-4c57-a27c-f799182253c9-result",
+        "toolCallId": "action-aac6ccc0-4c3d-4c57-a27c-f799182253c9",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/status\",\"value\":\"Unknown constraint. Try: vegetarian, vegan, gluten-free.\"}}]}"
+      }
+    },
+    {
+      "atMs": 1218,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.rejected",
+        "value": {
+          "actionId": "aac6ccc0-4c3d-4c57-a27c-f799182253c9",
+          "name": "apply_constraint",
+          "context": {
+            "constraint": "keto"
+          },
+          "detail": "unknown constraint 'keto': try vegetarian, vegan, gluten-free"
+        }
+      }
+    }
+  ]
+}
