@@ -586,7 +586,7 @@ export function Studio() {
           title={agentOnline === false ? "runs on a local agent; offline right now" : undefined}
           onClick={() => setView("live")}
         >
-          run it live{agentOnline === false && <span style={{ opacity: 0.7 }}> · offline</span>}
+          run it live{agentOnline === false && <span> · offline</span>}
         </button>
         <button
           data-testid="view-break"
@@ -594,7 +594,7 @@ export function Studio() {
           title={agentOnline === false ? "recorded catches replay here; fresh runs need the local agent" : undefined}
           onClick={() => setView("break")}
         >
-          break it on purpose{agentOnline === false && <span style={{ opacity: 0.7 }}> · recorded</span>}
+          break it on purpose{agentOnline === false && <span> · recorded</span>}
         </button>
         <button data-testid="view-canvas" className={btnClass(view === "canvas")} onClick={() => setView("canvas")}>
           restyle it
