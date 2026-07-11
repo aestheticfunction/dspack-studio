@@ -35,9 +35,12 @@ test("replays from the shelf: generated surface, grounded co-edits, final state"
 
 test("scrub reconstruction: earlier moments render their exact states", async ({ page }) => {
   await openShelfFixture(page);
-  // The generation delivery: table exists but carries no swapped rows yet.
+  // The generation delivery: the seeded recipe (ingredients + instructions)
+  // is already a full recipe, but carries no swapped rows yet.
   await page.getByRole("button", { name: /jump to event 10: studio.surface.enhanced/ }).click();
-  await expect(page.locator("[data-canvas] table")).toBeVisible();
+  await expect(page.locator("[data-canvas] table")).toHaveCount(2);
+  await expect(page.locator("[data-canvas]")).toContainText("Spaghetti");
+  await expect(page.locator("[data-canvas]")).toContainText("al dente");
   await expect(page.locator("[data-canvas]")).not.toContainText("Vegetable stock");
   // After the accepted constraint round-trip: swapped rows, applied status.
   await page.getByRole("button", { name: /jump to event 19: studio.action.accepted/ }).click();

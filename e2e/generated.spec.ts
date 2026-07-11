@@ -84,7 +84,7 @@ test("record fixture-006 (live recipe)", async ({ page }) => {
     await page.getByTestId("live-model").selectOption(process.env.RECORD_MODEL ?? "ollama:gpt-oss:latest");
     await page
       .getByTestId("live-prompt")
-      .fill("An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.");
+      .fill("An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a numbered cooking-instructions table whose columns are Step and Instruction, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.");
     await page.getByTestId("live-generate").click();
     await expect(page.getByTestId("live-status")).toContainText(/finished|error/, { timeout: 180_000 });
 
@@ -94,6 +94,10 @@ test("record fixture-006 (live recipe)", async ({ page }) => {
     const applyBtn = page.locator("[data-canvas] button", { hasText: /constraint|apply/i }).first();
     const regenBtn = page.locator("[data-canvas] button", { hasText: /regenerate|new recipe/i }).first();
     if (failed > 0 || !hasInput || !hasTable || !(await applyBtn.count()) || !(await regenBtn.count())) continue;
+    // A full recipe from the first frame: the enhancement seeds ingredients
+    // and numbered instructions before any interaction.
+    if (!(await page.locator("[data-canvas] table td", { hasText: /al dente/i }).count())) continue;
+    if (!(await page.locator("[data-canvas] table td", { hasText: /Spaghetti/i }).count())) continue;
 
     // User edit: type a dietary constraint into the enhanced bound input,
     // then apply it (the action context carries the bound value).
@@ -106,9 +110,15 @@ test("record fixture-006 (live recipe)", async ({ page }) => {
       // The grounded co-edit lands rows ON THE RENDERED TABLE (the enhancer
       // retargets updates to the generated table's id).
       await expect(page.locator("[data-canvas] table td", { hasText: /Smoked tofu|Vegetable stock|GF /i }).first()).toBeVisible({ timeout: 10_000 });
+      // Instructions must be part of the story: numbered steps render (from
+      // the model's own table or the labeled enhancement) and the constraint
+      // rewrote the matching step text.
+      await expect(page.locator("[data-canvas] table td", { hasText: /cook the Smoked tofu/i }).first()).toBeVisible({ timeout: 10_000 });
       // Structured update: regenerate (grounded on the single primary button).
       await regenBtn.click();
       await expect(page.locator("[data-canvas]")).toContainText(/Regenerated:/, { timeout: 10_000 });
+      // The regenerated dish carries its own steps (variant 1: risotto).
+      await expect(page.locator("[data-canvas] table td", { hasText: /ladle at a time/i }).first()).toBeVisible({ timeout: 10_000 });
     } catch {
       continue;
     }

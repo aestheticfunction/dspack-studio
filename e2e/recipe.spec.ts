@@ -16,6 +16,9 @@ async function startRecipe(page: Page) {
   await page.getByTestId("live-run").click();
   await expect(canvas(page)).toContainText("Edit servings or add a constraint.", { timeout: 15_000 });
   await expect(canvas(page)).toContainText("Spaghetti");
+  // The recipe is a real recipe: numbered instructions ship with the surface.
+  await expect(canvas(page)).toContainText("Instructions");
+  await expect(canvas(page)).toContainText("al dente");
 }
 
 test("servings co-editing rescales the ingredients table", async ({ page }) => {
@@ -39,6 +42,8 @@ test("constraint validation rejects unknowns recoverably, then applies a valid o
   await expect(canvas(page)).toContainText("Applied vegetarian");
   await expect(canvas(page)).toContainText("Smoked tofu");
   await expect(canvas(page)).not.toContainText("Pancetta");
+  // The constraint rewrote the matching instruction step, not just the table.
+  await expect(canvas(page)).toContainText(/cook the Smoked tofu/i);
 });
 
 test("regenerate cycles variants and the session scrubs back to the start", async ({ page }) => {

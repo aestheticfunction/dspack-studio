@@ -96,7 +96,7 @@ export const scenarios: Scenario[] = [
   {
     id: "recipe-creator",
     name: "Recipe creator",
-    tagline: "Co-edit one live recipe with the agent: servings rescale the table, constraints swap ingredients.",
+    tagline: "Co-edit one live recipe with the agent: servings rescale the ingredients, constraints swap them and rewrite the matching steps.",
     intent: "structured-editing",
     status: "ready",
     interactive: true,
@@ -106,7 +106,7 @@ export const scenarios: Scenario[] = [
         key: "generated-cooked",
         label: "generated, then co-edited",
         blurb:
-          "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps rows onto the generated table; regenerate cycles the dish. Every round-trip is recorded.",
+          "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps ingredient rows and rewrites the matching instruction steps; regenerate cycles the dish. Every round-trip is recorded.",
         fixture: fixture006,
       },
     ],

@@ -1,29 +1,29 @@
 {
   "replayFixture": "0.1",
-  "id": "session-1783748199794",
+  "id": "session-1783776610943",
   "name": "Recipe creator (saved session)",
-  "recordedAt": "2026-07-11T05:36:39.794Z",
+  "recordedAt": "2026-07-11T13:30:10.943Z",
   "mode": "live",
   "adapterId": "ollama:gpt-oss:latest",
   "intent": "structured-editing",
-  "prompt": "An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.",
+  "prompt": "An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a numbered cooking-instructions table whose columns are Step and Instruction, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.",
   "events": [
     {
-      "atMs": 7,
+      "atMs": 6,
       "event": {
         "type": "RUN_STARTED",
         "threadId": "studio",
-        "runId": "live-1783748187836"
+        "runId": "live-1783776590878"
       }
     },
     {
-      "atMs": 7,
+      "atMs": 6,
       "event": {
         "type": "CUSTOM",
         "name": "dspack.run.start",
         "value": {
           "intent": "structured-editing",
-          "prompt": "An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.",
+          "prompt": "An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a numbered cooking-instructions table whose columns are Step and Instruction, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.",
           "adapterId": "ollama:gpt-oss:latest",
           "ruleIds": [
             "rule.alertdialog-carries-content",
@@ -36,14 +36,14 @@
       }
     },
     {
-      "atMs": 11816,
+      "atMs": 19707,
       "event": {
         "type": "STEP_STARTED",
         "stepName": "attempt-0"
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "CUSTOM",
         "name": "dspack.gates",
@@ -70,7 +70,7 @@
                   "component": "badge",
                   "id": "diet-badge",
                   "props": {
-                    "label": "No constraints (default)"
+                    "label": "No constraints"
                   }
                 },
                 {
@@ -86,8 +86,7 @@
                   "id": "servings-down",
                   "props": {
                     "label": "Decrease servings",
-                    "variant": "secondary",
-                    "size": "md"
+                    "variant": "secondary"
                   }
                 },
                 {
@@ -95,8 +94,7 @@
                   "id": "servings-up",
                   "props": {
                     "label": "Increase servings",
-                    "variant": "secondary",
-                    "size": "md"
+                    "variant": "secondary"
                   }
                 },
                 {
@@ -114,81 +112,112 @@
                   "children": [
                     {
                       "component": "text",
-                      "id": "row1-ingredient",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "ing-1",
                       "text": "Spaghetti"
                     },
                     {
                       "component": "text",
-                      "id": "row1-amount",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "amt-1",
                       "text": "180 g"
                     },
                     {
                       "component": "text",
-                      "id": "row2-ingredient",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "ing-2",
                       "text": "Pancetta"
                     },
                     {
                       "component": "text",
-                      "id": "row2-amount",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "amt-2",
                       "text": "80 g"
                     },
                     {
                       "component": "text",
-                      "id": "row3-ingredient",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "ing-3",
                       "text": "Parmesan"
                     },
                     {
                       "component": "text",
-                      "id": "row3-amount",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "amt-3",
                       "text": "50 g"
                     },
                     {
                       "component": "text",
-                      "id": "row4-ingredient",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "ing-4",
                       "text": "Cherry tomatoes"
                     },
                     {
                       "component": "text",
-                      "id": "row4-amount",
-                      "props": {
-                        "type": "body"
-                      },
+                      "id": "amt-4",
                       "text": "240 g"
                     }
                   ]
                 },
                 {
-                  "component": "text-input",
-                  "id": "dietary-constraint-input",
+                  "component": "table",
+                  "id": "instructions-table",
                   "props": {
-                    "label": "Dietary constraint",
-                    "placeholder": "e.g., vegetarian, vegan, gluten-free"
+                    "columns": [
+                      "Step",
+                      "Instruction"
+                    ],
+                    "density": "compact",
+                    "dividers": "rows",
+                    "isStriped": false
+                  },
+                  "children": [
+                    {
+                      "component": "text",
+                      "id": "step-1",
+                      "text": "1"
+                    },
+                    {
+                      "component": "text",
+                      "id": "inst-1",
+                      "text": "Cook spaghetti according to package instructions."
+                    },
+                    {
+                      "component": "text",
+                      "id": "step-2",
+                      "text": "2"
+                    },
+                    {
+                      "component": "text",
+                      "id": "inst-2",
+                      "text": "In a pan, sauté pancetta until crisp."
+                    },
+                    {
+                      "component": "text",
+                      "id": "step-3",
+                      "text": "3"
+                    },
+                    {
+                      "component": "text",
+                      "id": "inst-3",
+                      "text": "Add cherry tomatoes and cook for 2 minutes."
+                    },
+                    {
+                      "component": "text",
+                      "id": "step-4",
+                      "text": "4"
+                    },
+                    {
+                      "component": "text",
+                      "id": "inst-4",
+                      "text": "Drain pasta, toss with pancetta and tomatoes, sprinkle parmesan."
+                    }
+                  ]
+                },
+                {
+                  "component": "text-input",
+                  "id": "constraint-input",
+                  "props": {
+                    "label": "Dietary Constraint",
+                    "placeholder": "e.g., vegetarian"
                   }
                 },
                 {
                   "component": "button",
-                  "id": "apply-constraint-btn",
+                  "id": "apply-constraint",
                   "props": {
                     "label": "Apply constraint",
                     "variant": "secondary"
@@ -200,11 +229,11 @@
                   "props": {
                     "type": "supporting"
                   },
-                  "text": "Adjust servings or add a dietary constraint."
+                  "text": "Edit servings or add a constraint."
                 },
                 {
                   "component": "button",
-                  "id": "regenerate-recipe-btn",
+                  "id": "regenerate-btn",
                   "props": {
                     "label": "Regenerate recipe",
                     "variant": "primary"
@@ -235,14 +264,14 @@
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "STEP_FINISHED",
         "stepName": "attempt-0"
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "CUSTOM",
         "name": "dspack.emit",
@@ -300,65 +329,66 @@
             },
             {
               "code": "surface-synthesized-action",
-              "message": "$.root.children[7]: A2UI requires a declarative action on Button; synthesized event 'apply_constraint_btn'."
+              "message": "$.root.children[8]: A2UI requires a declarative action on Button; synthesized event 'apply_constraint'."
             },
             {
               "code": "surface-synthesized-action",
-              "message": "$.root.children[9]: A2UI requires a declarative action on Button; synthesized event 'regenerate_recipe_btn'."
+              "message": "$.root.children[10]: A2UI requires a declarative action on Button; synthesized event 'regenerate_btn'."
             },
             {
               "code": "surface-synthesized-wrap",
-              "message": "$.root: 10 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+              "message": "$.root: 11 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
             }
           ]
         }
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "TOOL_CALL_START",
-        "toolCallId": "live-1783748187836-a2ui-0",
+        "toolCallId": "live-1783776590878-a2ui-0",
         "toolCallName": "generate_a2ui"
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "TOOL_CALL_ARGS",
-        "toolCallId": "live-1783748187836-a2ui-0",
+        "toolCallId": "live-1783776590878-a2ui-0",
         "delta": "{\"surfaceId\":\"structured_editing\"}"
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "TOOL_CALL_END",
-        "toolCallId": "live-1783748187836-a2ui-0"
+        "toolCallId": "live-1783776590878-a2ui-0"
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "TOOL_CALL_RESULT",
-        "messageId": "live-1783748187836-a2ui-0-result",
-        "toolCallId": "live-1783748187836-a2ui-0",
-        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"structured_editing\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Weeknight Pasta\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"No constraints (default)\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"servings_down\",\"component\":\"Button\",\"label\":\"Decrease servings\",\"variant\":\"secondary\",\"size\":\"md\",\"action\":{\"event\":{\"name\":\"servings_down\",\"context\":{}}}},{\"id\":\"servings_up\",\"component\":\"Button\",\"label\":\"Increase servings\",\"variant\":\"secondary\",\"size\":\"md\",\"action\":{\"event\":{\"name\":\"servings_up\",\"context\":{}}}},{\"id\":\"ingredients_table\",\"component\":\"Table\",\"density\":\"compact\",\"dividers\":\"rows\",\"isStriped\":false,\"columns\":[\"Ingredient\",\"Amount\"],\"children\":[\"row1_ingredient\",\"row1_amount\",\"row2_ingredient\",\"row2_amount\",\"row3_ingredient\",\"row3_amount\",\"row4_ingredient\",\"row4_amount\"]},{\"id\":\"row1_ingredient\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Spaghetti\"},{\"id\":\"row1_amount\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"180 g\"},{\"id\":\"row2_ingredient\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Pancetta\"},{\"id\":\"row2_amount\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"80 g\"},{\"id\":\"row3_ingredient\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Parmesan\"},{\"id\":\"row3_amount\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"50 g\"},{\"id\":\"row4_ingredient\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Cherry tomatoes\"},{\"id\":\"row4_amount\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"240 g\"},{\"id\":\"dietary_constraint_input\",\"component\":\"TextField\",\"label\":\"Dietary constraint\",\"placeholder\":\"e.g., vegetarian, vegan, gluten-free\",\"value\":{\"path\":\"/recipe/constraint\"}},{\"id\":\"apply_constraint_btn\",\"component\":\"Button\",\"label\":\"Apply constraint\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"apply_constraint\",\"context\":{\"constraint\":{\"path\":\"/recipe/constraint\"}}}}},{\"id\":\"status_line\",\"component\":\"Text\",\"variant\":\"caption\",\"text\":{\"path\":\"/recipe/status\"}},{\"id\":\"regenerate_recipe_btn\",\"component\":\"Button\",\"label\":\"Regenerate recipe\",\"variant\":\"primary\",\"action\":{\"event\":{\"name\":\"regenerate\"}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"diet_badge\",\"servings_label\",\"servings_down\",\"servings_up\",\"ingredients_table\",\"dietary_constraint_input\",\"apply_constraint_btn\",\"status_line\",\"regenerate_recipe_btn\"]}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe\",\"value\":{\"servings\":2,\"constraint\":\"\",\"status\":\"Generated. Edit the constraint or regenerate.\",\"variant\":0}}}]}"
+        "messageId": "live-1783776590878-a2ui-0-result",
+        "toolCallId": "live-1783776590878-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"structured_editing\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Weeknight Pasta\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"No constraints\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"servings_down\",\"component\":\"Button\",\"label\":\"Decrease servings\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"servings_down\",\"context\":{}}}},{\"id\":\"servings_up\",\"component\":\"Button\",\"label\":\"Increase servings\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"servings_up\",\"context\":{}}}},{\"id\":\"ingredients_table\",\"component\":\"Table\",\"density\":\"compact\",\"dividers\":\"rows\",\"isStriped\":false,\"columns\":[\"Ingredient\",\"Amount\"],\"children\":[\"ing_1\",\"amt_1\",\"ing_2\",\"amt_2\",\"ing_3\",\"amt_3\",\"ing_4\",\"amt_4\"]},{\"id\":\"ing_1\",\"component\":\"Text\",\"text\":\"Spaghetti\"},{\"id\":\"amt_1\",\"component\":\"Text\",\"text\":\"180 g\"},{\"id\":\"ing_2\",\"component\":\"Text\",\"text\":\"Pancetta\"},{\"id\":\"amt_2\",\"component\":\"Text\",\"text\":\"80 g\"},{\"id\":\"ing_3\",\"component\":\"Text\",\"text\":\"Parmesan\"},{\"id\":\"amt_3\",\"component\":\"Text\",\"text\":\"50 g\"},{\"id\":\"ing_4\",\"component\":\"Text\",\"text\":\"Cherry tomatoes\"},{\"id\":\"amt_4\",\"component\":\"Text\",\"text\":\"240 g\"},{\"id\":\"instructions_table\",\"component\":\"Table\",\"density\":\"compact\",\"dividers\":\"rows\",\"isStriped\":false,\"columns\":[\"Step\",\"Instruction\"],\"children\":[\"step_1\",\"inst_1\",\"step_2\",\"inst_2\",\"step_3\",\"inst_3\",\"step_4\",\"inst_4\"]},{\"id\":\"step_1\",\"component\":\"Text\",\"text\":\"1\"},{\"id\":\"inst_1\",\"component\":\"Text\",\"text\":\"Cook spaghetti according to package instructions.\"},{\"id\":\"step_2\",\"component\":\"Text\",\"text\":\"2\"},{\"id\":\"inst_2\",\"component\":\"Text\",\"text\":\"In a pan, sauté pancetta until crisp.\"},{\"id\":\"step_3\",\"component\":\"Text\",\"text\":\"3\"},{\"id\":\"inst_3\",\"component\":\"Text\",\"text\":\"Add cherry tomatoes and cook for 2 minutes.\"},{\"id\":\"step_4\",\"component\":\"Text\",\"text\":\"4\"},{\"id\":\"inst_4\",\"component\":\"Text\",\"text\":\"Drain pasta, toss with pancetta and tomatoes, sprinkle parmesan.\"},{\"id\":\"constraint_input\",\"component\":\"TextField\",\"label\":\"Dietary Constraint\",\"placeholder\":\"e.g., vegetarian\",\"value\":{\"path\":\"/recipe/constraint\"}},{\"id\":\"apply_constraint\",\"component\":\"Button\",\"label\":\"Apply constraint\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"apply_constraint\",\"context\":{\"constraint\":{\"path\":\"/recipe/constraint\"}}}}},{\"id\":\"status_line\",\"component\":\"Text\",\"variant\":\"caption\",\"text\":{\"path\":\"/recipe/status\"}},{\"id\":\"regenerate_btn\",\"component\":\"Button\",\"label\":\"Regenerate recipe\",\"variant\":\"primary\",\"action\":{\"event\":{\"name\":\"regenerate\"}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"diet_badge\",\"servings_label\",\"servings_down\",\"servings_up\",\"ingredients_table\",\"instructions_table\",\"constraint_input\",\"apply_constraint\",\"status_line\",\"regenerate_btn\"]}]}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Weeknight pasta\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"no constraints\",\"variant\":\"neutral\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"ingredients_table\",\"component\":\"Table\",\"columns\":[\"Ingredient\",\"Amount\"],\"data\":[{\"cells\":[\"Spaghetti\",\"180 g\"]},{\"cells\":[\"Pancetta\",\"80 g\"]},{\"cells\":[\"Parmesan\",\"50 g\"]},{\"cells\":[\"Cherry tomatoes\",\"240 g\"]}],\"density\":\"compact\"},{\"id\":\"instructions_table\",\"component\":\"Table\",\"columns\":[\"Step\",\"Instruction\"],\"data\":[{\"cells\":[\"1\",\"Boil the Spaghetti in well-salted water until just short of al dente.\"]},{\"cells\":[\"2\",\"Meanwhile, cook the Pancetta in a wide pan over medium heat until crisp.\"]},{\"cells\":[\"3\",\"Add the Cherry tomatoes to the pan and cook until they blister and burst.\"]},{\"cells\":[\"4\",\"Toss the drained pasta in the pan with a splash of pasta water, then finish with the Parmesan.\"]}],\"density\":\"compact\"}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe\",\"value\":{\"servings\":2,\"constraint\":\"\",\"status\":\"Generated. Edit the constraint or regenerate.\",\"variant\":0}}}]}"
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "CUSTOM",
         "name": "studio.surface.enhanced",
         "value": {
           "scenario": "recipe-creator",
           "notes": [
-            "bound the single TextField 'dietary_constraint_input' to /recipe/constraint",
+            "bound the single TextField 'constraint_input' to /recipe/constraint",
             "bound the single caption Text 'status_line' to /recipe/status",
-            "grounded the single primary Button 'regenerate_recipe_btn' as regenerate",
-            "grounded the constraint-labeled Button 'apply_constraint_btn' as apply_constraint",
-            "component updates target { title: 'title', badge: 'diet_badge', servingsLabel: 'servings_label', table: 'ingredients_table' }",
+            "grounded the single primary Button 'regenerate_btn' as regenerate",
+            "grounded the constraint-labeled Button 'apply_constraint' as apply_constraint",
+            "component updates target { title: 'title', badge: 'diet_badge', servingsLabel: 'servings_label', table: 'ingredients_table', instructions: 'instructions_table' }",
+            "seeded title, ingredients, and instructions from the deterministic responder",
             "initialized /recipe data model"
           ],
           "grounding": {
@@ -366,14 +396,15 @@
               "title": "title",
               "badge": "diet_badge",
               "servingsLabel": "servings_label",
-              "table": "ingredients_table"
+              "table": "ingredients_table",
+              "instructions": "instructions_table"
             }
           }
         }
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "CUSTOM",
         "name": "dspack.audit",
@@ -382,9 +413,9 @@
           "exitCode": 0,
           "report": {
             "reportVersion": "1",
-            "createdAt": "2026-07-11T05:36:27.839Z",
+            "createdAt": "2026-07-11T13:29:50.881Z",
             "request": {
-              "prompt": "An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.",
+              "prompt": "An editable weeknight recipe: a title, a dietary badge, servings controls, an ingredients table whose data rows list ingredient name and amount, a numbered cooking-instructions table whose columns are Step and Instruction, a labeled dietary-constraint input, an apply-constraint button, a status line, and a regenerate button.",
               "intent": "structured-editing",
               "contract": {
                 "name": "Astryx",
@@ -422,7 +453,7 @@
                         "component": "badge",
                         "id": "diet-badge",
                         "props": {
-                          "label": "No constraints (default)"
+                          "label": "No constraints"
                         }
                       },
                       {
@@ -438,8 +469,7 @@
                         "id": "servings-down",
                         "props": {
                           "label": "Decrease servings",
-                          "variant": "secondary",
-                          "size": "md"
+                          "variant": "secondary"
                         }
                       },
                       {
@@ -447,8 +477,7 @@
                         "id": "servings-up",
                         "props": {
                           "label": "Increase servings",
-                          "variant": "secondary",
-                          "size": "md"
+                          "variant": "secondary"
                         }
                       },
                       {
@@ -466,81 +495,112 @@
                         "children": [
                           {
                             "component": "text",
-                            "id": "row1-ingredient",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "ing-1",
                             "text": "Spaghetti"
                           },
                           {
                             "component": "text",
-                            "id": "row1-amount",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "amt-1",
                             "text": "180 g"
                           },
                           {
                             "component": "text",
-                            "id": "row2-ingredient",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "ing-2",
                             "text": "Pancetta"
                           },
                           {
                             "component": "text",
-                            "id": "row2-amount",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "amt-2",
                             "text": "80 g"
                           },
                           {
                             "component": "text",
-                            "id": "row3-ingredient",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "ing-3",
                             "text": "Parmesan"
                           },
                           {
                             "component": "text",
-                            "id": "row3-amount",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "amt-3",
                             "text": "50 g"
                           },
                           {
                             "component": "text",
-                            "id": "row4-ingredient",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "ing-4",
                             "text": "Cherry tomatoes"
                           },
                           {
                             "component": "text",
-                            "id": "row4-amount",
-                            "props": {
-                              "type": "body"
-                            },
+                            "id": "amt-4",
                             "text": "240 g"
                           }
                         ]
                       },
                       {
-                        "component": "text-input",
-                        "id": "dietary-constraint-input",
+                        "component": "table",
+                        "id": "instructions-table",
                         "props": {
-                          "label": "Dietary constraint",
-                          "placeholder": "e.g., vegetarian, vegan, gluten-free"
+                          "columns": [
+                            "Step",
+                            "Instruction"
+                          ],
+                          "density": "compact",
+                          "dividers": "rows",
+                          "isStriped": false
+                        },
+                        "children": [
+                          {
+                            "component": "text",
+                            "id": "step-1",
+                            "text": "1"
+                          },
+                          {
+                            "component": "text",
+                            "id": "inst-1",
+                            "text": "Cook spaghetti according to package instructions."
+                          },
+                          {
+                            "component": "text",
+                            "id": "step-2",
+                            "text": "2"
+                          },
+                          {
+                            "component": "text",
+                            "id": "inst-2",
+                            "text": "In a pan, sauté pancetta until crisp."
+                          },
+                          {
+                            "component": "text",
+                            "id": "step-3",
+                            "text": "3"
+                          },
+                          {
+                            "component": "text",
+                            "id": "inst-3",
+                            "text": "Add cherry tomatoes and cook for 2 minutes."
+                          },
+                          {
+                            "component": "text",
+                            "id": "step-4",
+                            "text": "4"
+                          },
+                          {
+                            "component": "text",
+                            "id": "inst-4",
+                            "text": "Drain pasta, toss with pancetta and tomatoes, sprinkle parmesan."
+                          }
+                        ]
+                      },
+                      {
+                        "component": "text-input",
+                        "id": "constraint-input",
+                        "props": {
+                          "label": "Dietary Constraint",
+                          "placeholder": "e.g., vegetarian"
                         }
                       },
                       {
                         "component": "button",
-                        "id": "apply-constraint-btn",
+                        "id": "apply-constraint",
                         "props": {
                           "label": "Apply constraint",
                           "variant": "secondary"
@@ -552,11 +612,11 @@
                         "props": {
                           "type": "supporting"
                         },
-                        "text": "Adjust servings or add a dietary constraint."
+                        "text": "Edit servings or add a constraint."
                       },
                       {
                         "component": "button",
-                        "id": "regenerate-recipe-btn",
+                        "id": "regenerate-btn",
                         "props": {
                           "label": "Regenerate recipe",
                           "variant": "primary"
@@ -567,15 +627,15 @@
                 },
                 "model": "gpt-oss:latest",
                 "usage": {
-                  "inputTokens": 1650,
-                  "outputTokens": 498
+                  "inputTokens": 1982,
+                  "outputTokens": 599
                 },
                 "meta": {
                   "provider": "ollama",
-                  "total_duration": 11738053708,
-                  "load_duration": 258977958,
-                  "prompt_eval_duration": 17538000,
-                  "eval_duration": 8967605000
+                  "total_duration": 19633427416,
+                  "load_duration": 263620125,
+                  "prompt_eval_duration": 18984000,
+                  "eval_duration": 10675835000
                 },
                 "gates": [
                   {
@@ -632,7 +692,7 @@
                         {
                           "id": "diet_badge",
                           "component": "Badge",
-                          "label": "No constraints (default)"
+                          "label": "No constraints"
                         },
                         {
                           "id": "servings_label",
@@ -645,7 +705,6 @@
                           "component": "Button",
                           "label": "Decrease servings",
                           "variant": "secondary",
-                          "size": "md",
                           "action": {
                             "event": {
                               "name": "servings_down",
@@ -658,7 +717,6 @@
                           "component": "Button",
                           "label": "Increase servings",
                           "variant": "secondary",
-                          "size": "md",
                           "action": {
                             "event": {
                               "name": "servings_up",
@@ -677,78 +735,131 @@
                             "Amount"
                           ],
                           "children": [
-                            "row1_ingredient",
-                            "row1_amount",
-                            "row2_ingredient",
-                            "row2_amount",
-                            "row3_ingredient",
-                            "row3_amount",
-                            "row4_ingredient",
-                            "row4_amount"
+                            "ing_1",
+                            "amt_1",
+                            "ing_2",
+                            "amt_2",
+                            "ing_3",
+                            "amt_3",
+                            "ing_4",
+                            "amt_4"
                           ]
                         },
                         {
-                          "id": "row1_ingredient",
+                          "id": "ing_1",
                           "component": "Text",
-                          "variant": "body",
                           "text": "Spaghetti"
                         },
                         {
-                          "id": "row1_amount",
+                          "id": "amt_1",
                           "component": "Text",
-                          "variant": "body",
                           "text": "180 g"
                         },
                         {
-                          "id": "row2_ingredient",
+                          "id": "ing_2",
                           "component": "Text",
-                          "variant": "body",
                           "text": "Pancetta"
                         },
                         {
-                          "id": "row2_amount",
+                          "id": "amt_2",
                           "component": "Text",
-                          "variant": "body",
                           "text": "80 g"
                         },
                         {
-                          "id": "row3_ingredient",
+                          "id": "ing_3",
                           "component": "Text",
-                          "variant": "body",
                           "text": "Parmesan"
                         },
                         {
-                          "id": "row3_amount",
+                          "id": "amt_3",
                           "component": "Text",
-                          "variant": "body",
                           "text": "50 g"
                         },
                         {
-                          "id": "row4_ingredient",
+                          "id": "ing_4",
                           "component": "Text",
-                          "variant": "body",
                           "text": "Cherry tomatoes"
                         },
                         {
-                          "id": "row4_amount",
+                          "id": "amt_4",
                           "component": "Text",
-                          "variant": "body",
                           "text": "240 g"
                         },
                         {
-                          "id": "dietary_constraint_input",
-                          "component": "TextField",
-                          "label": "Dietary constraint",
-                          "placeholder": "e.g., vegetarian, vegan, gluten-free"
+                          "id": "instructions_table",
+                          "component": "Table",
+                          "density": "compact",
+                          "dividers": "rows",
+                          "isStriped": false,
+                          "columns": [
+                            "Step",
+                            "Instruction"
+                          ],
+                          "children": [
+                            "step_1",
+                            "inst_1",
+                            "step_2",
+                            "inst_2",
+                            "step_3",
+                            "inst_3",
+                            "step_4",
+                            "inst_4"
+                          ]
                         },
                         {
-                          "id": "apply_constraint_btn",
+                          "id": "step_1",
+                          "component": "Text",
+                          "text": "1"
+                        },
+                        {
+                          "id": "inst_1",
+                          "component": "Text",
+                          "text": "Cook spaghetti according to package instructions."
+                        },
+                        {
+                          "id": "step_2",
+                          "component": "Text",
+                          "text": "2"
+                        },
+                        {
+                          "id": "inst_2",
+                          "component": "Text",
+                          "text": "In a pan, sauté pancetta until crisp."
+                        },
+                        {
+                          "id": "step_3",
+                          "component": "Text",
+                          "text": "3"
+                        },
+                        {
+                          "id": "inst_3",
+                          "component": "Text",
+                          "text": "Add cherry tomatoes and cook for 2 minutes."
+                        },
+                        {
+                          "id": "step_4",
+                          "component": "Text",
+                          "text": "4"
+                        },
+                        {
+                          "id": "inst_4",
+                          "component": "Text",
+                          "text": "Drain pasta, toss with pancetta and tomatoes, sprinkle parmesan."
+                        },
+                        {
+                          "id": "constraint_input",
+                          "component": "TextField",
+                          "label": "Dietary Constraint",
+                          "placeholder": "e.g., vegetarian"
+                        },
+                        {
+                          "id": "apply_constraint",
                           "component": "Button",
                           "label": "Apply constraint",
                           "variant": "secondary",
                           "action": {
                             "event": {
-                              "name": "apply_constraint_btn",
+                              "name": "apply_constraint",
                               "context": {}
                             }
                           }
@@ -757,16 +868,16 @@
                           "id": "status_line",
                           "component": "Text",
                           "variant": "caption",
-                          "text": "Adjust servings or add a dietary constraint."
+                          "text": "Edit servings or add a constraint."
                         },
                         {
-                          "id": "regenerate_recipe_btn",
+                          "id": "regenerate_btn",
                           "component": "Button",
                           "label": "Regenerate recipe",
                           "variant": "primary",
                           "action": {
                             "event": {
-                              "name": "regenerate_recipe_btn",
+                              "name": "regenerate_btn",
                               "context": {}
                             }
                           }
@@ -781,10 +892,11 @@
                             "servings_down",
                             "servings_up",
                             "ingredients_table",
-                            "dietary_constraint_input",
-                            "apply_constraint_btn",
+                            "instructions_table",
+                            "constraint_input",
+                            "apply_constraint",
                             "status_line",
-                            "regenerate_recipe_btn"
+                            "regenerate_btn"
                           ]
                         }
                       ]
@@ -803,15 +915,15 @@
                 },
                 {
                   "code": "surface-synthesized-action",
-                  "message": "$.root.children[7]: A2UI requires a declarative action on Button; synthesized event 'apply_constraint_btn'."
+                  "message": "$.root.children[8]: A2UI requires a declarative action on Button; synthesized event 'apply_constraint'."
                 },
                 {
                   "code": "surface-synthesized-action",
-                  "message": "$.root.children[9]: A2UI requires a declarative action on Button; synthesized event 'regenerate_recipe_btn'."
+                  "message": "$.root.children[10]: A2UI requires a declarative action on Button; synthesized event 'regenerate_btn'."
                 },
                 {
                   "code": "surface-synthesized-wrap",
-                  "message": "$.root: 10 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                  "message": "$.root: 11 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
                 }
               ],
               "validations": [
@@ -858,27 +970,27 @@
               ]
             },
             "timings": {
-              "totalMs": 11812
+              "totalMs": 19703
             }
           }
         }
       }
     },
     {
-      "atMs": 11817,
+      "atMs": 19707,
       "event": {
         "type": "RUN_FINISHED",
         "threadId": "studio",
-        "runId": "live-1783748187836"
+        "runId": "live-1783776590878"
       }
     },
     {
-      "atMs": 11878,
+      "atMs": 19974,
       "event": {
         "type": "CUSTOM",
         "name": "studio.action.resolved",
         "value": {
-          "actionId": "270c0b13-02e7-4cfd-b2b1-05948296673d",
+          "actionId": "4c547075-7cbf-4d47-9e97-afeda1d2bdea",
           "originalName": "apply_constraint",
           "capability": "apply_constraint",
           "method": "exact-name"
@@ -886,17 +998,17 @@
       }
     },
     {
-      "atMs": 11878,
+      "atMs": 19975,
       "event": {
         "type": "CUSTOM",
         "name": "studio.action.pending",
         "value": {
-          "actionId": "270c0b13-02e7-4cfd-b2b1-05948296673d",
+          "actionId": "4c547075-7cbf-4d47-9e97-afeda1d2bdea",
           "scenario": "recipe-creator",
           "name": "apply_constraint",
           "capability": "apply_constraint",
           "surfaceId": "structured_editing",
-          "sourceComponentId": "apply_constraint_btn",
+          "sourceComponentId": "apply_constraint",
           "context": {
             "constraint": "vegetarian"
           }
@@ -904,44 +1016,44 @@
       }
     },
     {
-      "atMs": 11886,
+      "atMs": 19987,
       "event": {
         "type": "TOOL_CALL_START",
-        "toolCallId": "action-270c0b13-02e7-4cfd-b2b1-05948296673d",
+        "toolCallId": "action-4c547075-7cbf-4d47-9e97-afeda1d2bdea",
         "toolCallName": "generate_a2ui"
       }
     },
     {
-      "atMs": 11886,
+      "atMs": 19987,
       "event": {
         "type": "TOOL_CALL_ARGS",
-        "toolCallId": "action-270c0b13-02e7-4cfd-b2b1-05948296673d",
+        "toolCallId": "action-4c547075-7cbf-4d47-9e97-afeda1d2bdea",
         "delta": "{\"surfaceId\":\"structured_editing\"}"
       }
     },
     {
-      "atMs": 11886,
+      "atMs": 19987,
       "event": {
         "type": "TOOL_CALL_END",
-        "toolCallId": "action-270c0b13-02e7-4cfd-b2b1-05948296673d"
+        "toolCallId": "action-4c547075-7cbf-4d47-9e97-afeda1d2bdea"
       }
     },
     {
-      "atMs": 11886,
+      "atMs": 19987,
       "event": {
         "type": "TOOL_CALL_RESULT",
-        "messageId": "action-270c0b13-02e7-4cfd-b2b1-05948296673d-result",
-        "toolCallId": "action-270c0b13-02e7-4cfd-b2b1-05948296673d",
-        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Weeknight pasta\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"vegetarian\",\"variant\":\"success\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"ingredients_table\",\"component\":\"Table\",\"columns\":[\"Ingredient\",\"Amount\"],\"data\":[{\"cells\":[\"Spaghetti\",\"180 g\"]},{\"cells\":[\"Smoked tofu\",\"80 g\"]},{\"cells\":[\"Parmesan\",\"50 g\"]},{\"cells\":[\"Cherry tomatoes\",\"240 g\"]}],\"density\":\"compact\"}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/constraint\",\"value\":\"vegetarian\"}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/status\",\"value\":\"Applied vegetarian: ingredients swapped where needed.\"}}]}"
+        "messageId": "action-4c547075-7cbf-4d47-9e97-afeda1d2bdea-result",
+        "toolCallId": "action-4c547075-7cbf-4d47-9e97-afeda1d2bdea",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Weeknight pasta\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"vegetarian\",\"variant\":\"success\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"ingredients_table\",\"component\":\"Table\",\"columns\":[\"Ingredient\",\"Amount\"],\"data\":[{\"cells\":[\"Spaghetti\",\"180 g\"]},{\"cells\":[\"Smoked tofu\",\"80 g\"]},{\"cells\":[\"Parmesan\",\"50 g\"]},{\"cells\":[\"Cherry tomatoes\",\"240 g\"]}],\"density\":\"compact\"},{\"id\":\"instructions_table\",\"component\":\"Table\",\"columns\":[\"Step\",\"Instruction\"],\"data\":[{\"cells\":[\"1\",\"Boil the Spaghetti in well-salted water until just short of al dente.\"]},{\"cells\":[\"2\",\"Meanwhile, cook the Smoked tofu in a wide pan over medium heat until crisp.\"]},{\"cells\":[\"3\",\"Add the Cherry tomatoes to the pan and cook until they blister and burst.\"]},{\"cells\":[\"4\",\"Toss the drained pasta in the pan with a splash of pasta water, then finish with the Parmesan.\"]}],\"density\":\"compact\"}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/constraint\",\"value\":\"vegetarian\"}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/status\",\"value\":\"Applied vegetarian: ingredients swapped where needed.\"}}]}"
       }
     },
     {
-      "atMs": 11886,
+      "atMs": 19987,
       "event": {
         "type": "CUSTOM",
         "name": "studio.action.accepted",
         "value": {
-          "actionId": "270c0b13-02e7-4cfd-b2b1-05948296673d",
+          "actionId": "4c547075-7cbf-4d47-9e97-afeda1d2bdea",
           "name": "apply_constraint",
           "context": {
             "constraint": "vegetarian"
@@ -950,12 +1062,12 @@
       }
     },
     {
-      "atMs": 11925,
+      "atMs": 20022,
       "event": {
         "type": "CUSTOM",
         "name": "studio.action.resolved",
         "value": {
-          "actionId": "b458c349-ad2f-435a-9fd7-14a3009019e4",
+          "actionId": "c4c3fc51-0e68-4731-8545-ff558964910d",
           "originalName": "regenerate",
           "capability": "regenerate",
           "method": "exact-name"
@@ -963,60 +1075,60 @@
       }
     },
     {
-      "atMs": 11925,
+      "atMs": 20022,
       "event": {
         "type": "CUSTOM",
         "name": "studio.action.pending",
         "value": {
-          "actionId": "b458c349-ad2f-435a-9fd7-14a3009019e4",
+          "actionId": "c4c3fc51-0e68-4731-8545-ff558964910d",
           "scenario": "recipe-creator",
           "name": "regenerate",
           "capability": "regenerate",
           "surfaceId": "structured_editing",
-          "sourceComponentId": "regenerate_recipe_btn",
+          "sourceComponentId": "regenerate_btn",
           "context": {}
         }
       }
     },
     {
-      "atMs": 11932,
+      "atMs": 20033,
       "event": {
         "type": "TOOL_CALL_START",
-        "toolCallId": "action-b458c349-ad2f-435a-9fd7-14a3009019e4",
+        "toolCallId": "action-c4c3fc51-0e68-4731-8545-ff558964910d",
         "toolCallName": "generate_a2ui"
       }
     },
     {
-      "atMs": 11932,
+      "atMs": 20033,
       "event": {
         "type": "TOOL_CALL_ARGS",
-        "toolCallId": "action-b458c349-ad2f-435a-9fd7-14a3009019e4",
+        "toolCallId": "action-c4c3fc51-0e68-4731-8545-ff558964910d",
         "delta": "{\"surfaceId\":\"structured_editing\"}"
       }
     },
     {
-      "atMs": 11932,
+      "atMs": 20033,
       "event": {
         "type": "TOOL_CALL_END",
-        "toolCallId": "action-b458c349-ad2f-435a-9fd7-14a3009019e4"
+        "toolCallId": "action-c4c3fc51-0e68-4731-8545-ff558964910d"
       }
     },
     {
-      "atMs": 11932,
+      "atMs": 20033,
       "event": {
         "type": "TOOL_CALL_RESULT",
-        "messageId": "action-b458c349-ad2f-435a-9fd7-14a3009019e4-result",
-        "toolCallId": "action-b458c349-ad2f-435a-9fd7-14a3009019e4",
-        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Lemon herb risotto\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"vegetarian\",\"variant\":\"success\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"ingredients_table\",\"component\":\"Table\",\"columns\":[\"Ingredient\",\"Amount\"],\"data\":[{\"cells\":[\"Arborio rice\",\"160 g\"]},{\"cells\":[\"Vegetable stock\",\"500 ml\"]},{\"cells\":[\"Butter\",\"30 g\"]},{\"cells\":[\"Lemon\",\"1\"]}],\"density\":\"compact\"}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/variant\",\"value\":1}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/status\",\"value\":\"Regenerated: Lemon herb risotto.\"}}]}"
+        "messageId": "action-c4c3fc51-0e68-4731-8545-ff558964910d-result",
+        "toolCallId": "action-c4c3fc51-0e68-4731-8545-ff558964910d",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"structured_editing\",\"components\":[{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Lemon herb risotto\"},{\"id\":\"diet_badge\",\"component\":\"Badge\",\"label\":\"vegetarian\",\"variant\":\"success\"},{\"id\":\"servings_label\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Servings: 2\"},{\"id\":\"ingredients_table\",\"component\":\"Table\",\"columns\":[\"Ingredient\",\"Amount\"],\"data\":[{\"cells\":[\"Arborio rice\",\"160 g\"]},{\"cells\":[\"Vegetable stock\",\"500 ml\"]},{\"cells\":[\"Butter\",\"30 g\"]},{\"cells\":[\"Lemon\",\"1\"]}],\"density\":\"compact\"},{\"id\":\"instructions_table\",\"component\":\"Table\",\"columns\":[\"Step\",\"Instruction\"],\"data\":[{\"cells\":[\"1\",\"Warm the Vegetable stock in a saucepan and hold it at a low simmer.\"]},{\"cells\":[\"2\",\"Toast the Arborio rice in a little oil until the edges turn translucent.\"]},{\"cells\":[\"3\",\"Add the stock one ladle at a time, stirring until each addition is absorbed.\"]},{\"cells\":[\"4\",\"Off the heat, finish with the Butter, the zest and juice of the Lemon, and fresh herbs.\"]}],\"density\":\"compact\"}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/variant\",\"value\":1}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"structured_editing\",\"path\":\"/recipe/status\",\"value\":\"Regenerated: Lemon herb risotto.\"}}]}"
       }
     },
     {
-      "atMs": 11932,
+      "atMs": 20033,
       "event": {
         "type": "CUSTOM",
         "name": "studio.action.accepted",
         "value": {
-          "actionId": "b458c349-ad2f-435a-9fd7-14a3009019e4",
+          "actionId": "c4c3fc51-0e68-4731-8545-ff558964910d",
           "name": "regenerate",
           "context": {}
         }

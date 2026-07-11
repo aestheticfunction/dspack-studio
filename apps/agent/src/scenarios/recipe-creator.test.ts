@@ -3,10 +3,10 @@ import { enhanceGeneratedRecipeOps, recipeRespond, recipeStartOps } from "./reci
 
 const dmOf = (ops: unknown[]) =>
   Object.fromEntries(ops.filter((o: any) => o.updateDataModel).map((o: any) => [o.updateDataModel.path, o.updateDataModel.value]));
-const tableOf = (ops: unknown[]) => {
+const tableOf = (ops: unknown[], id = "ingredients") => {
   let last;
   for (const o of ops as any[]) {
-    const t = o?.updateComponents?.components?.find((c: any) => c.id === "ingredients");
+    const t = o?.updateComponents?.components?.find((c: any) => c.id === id);
     if (t) last = t;
   }
   return last;
@@ -20,6 +20,28 @@ describe("recipe-creator responder (deterministic co-editing)", () => {
     expect(components.find((c: any) => c.id === "servings_up").action.event.name).toBe("change_servings");
     expect(tableOf(ops).data.length).toBeGreaterThan(0);
     expect(dmOf(ops)["/recipe"]).toMatchObject({ servings: 2, constraint: "" });
+  });
+
+  it("start ops carry numbered cooking instructions", () => {
+    const ops = recipeStartOps() as any[];
+    const instructions = tableOf(ops, "instructions");
+    expect(instructions.columns).toEqual(["Step", "Instruction"]);
+    expect(instructions.data.length).toBeGreaterThanOrEqual(4);
+    expect(instructions.data[0].cells[0]).toBe("1");
+    expect(instructions.data.map((r: any) => r.cells[1]).join(" ")).toMatch(/Spaghetti/);
+  });
+
+  it("constraints rewrite the matching instruction steps, not just the table", () => {
+    const sid = `s-${Math.random()}`;
+    const good = recipeRespond("apply_constraint", { constraint: "vegetarian" }, sid);
+    const steps = tableOf(good.ops, "instructions").data.map((r: any) => r.cells[1]).join(" ");
+    expect(steps).toContain("Smoked tofu");
+    expect(steps).not.toContain("Pancetta");
+    // Regenerate keeps the constraint applied to the new dish's steps.
+    const regen = recipeRespond("regenerate", {}, sid);
+    const regenSteps = tableOf(regen.ops, "instructions").data.map((r: any) => r.cells[1]).join(" ");
+    expect(regenSteps).toContain("Vegetable stock");
+    expect(regenSteps).not.toContain("Chicken stock");
   });
 
   it("servings changes rescale the delivered table and clamp with a recoverable rejection", () => {
@@ -88,6 +110,64 @@ describe("recipe-creator responder (deterministic co-editing)", () => {
     const after = recipeRespond("regenerate", {}, `s-${Math.random()}`);
     const afterComps = (after.ops as any[]).flatMap((o) => o?.updateComponents?.components ?? []);
     expect(afterComps.find((c: any) => c.component === "Table").id).toBe("ingredients");
+  });
+
+  it("enhancement disambiguates ingredients and instructions tables by column names", () => {
+    const generated = [
+      { version: "v0.9", createSurface: { surfaceId: "structured_editing", catalogId: "c" } },
+      {
+        version: "v0.9",
+        updateComponents: {
+          surfaceId: "structured_editing",
+          components: [
+            { id: "root", component: "Card", child: "col" },
+            { id: "gen_ingredients", component: "Table", columns: ["Ingredient", "Amount"] },
+            { id: "gen_steps", component: "Table", columns: ["Step", "Instruction"] },
+            { id: "col", component: "Column", children: ["gen_ingredients", "gen_steps"] },
+          ],
+        },
+      },
+    ];
+    const { ops, notes, grounding } = enhanceGeneratedRecipeOps(generated);
+    expect(grounding.targets.table).toBe("gen_ingredients");
+    expect(grounding.targets.instructions).toBe("gen_steps");
+    expect(notes.join("\n")).toContain("instructions: 'gen_steps'");
+    // The enhancement seeds content onto the grounded targets: the surface
+    // is a full recipe before any interaction.
+    const comps = (ops as any[]).flatMap((o) => o?.updateComponents?.components ?? []);
+    const seededIngredients = comps.filter((c: any) => c.id === "gen_ingredients").at(-1);
+    const seededSteps = comps.filter((c: any) => c.id === "gen_steps").at(-1);
+    expect(seededIngredients.data.length).toBeGreaterThan(0);
+    expect(seededSteps.data.map((r: any) => r.cells[1]).join(" ")).toMatch(/al dente/);
+    recipeStartOps(); // restore authored targets for later tests
+  });
+
+  it("enhancement adds an instructions table, on the record, when the model omitted one", () => {
+    const generated = [
+      { version: "v0.9", createSurface: { surfaceId: "structured_editing", catalogId: "c" } },
+      {
+        version: "v0.9",
+        updateComponents: {
+          surfaceId: "structured_editing",
+          components: [
+            { id: "root", component: "Card", child: "col" },
+            { id: "only_table", component: "Table", columns: ["Ingredient", "Amount"] },
+            { id: "col", component: "Column", children: ["only_table"] },
+          ],
+        },
+      },
+    ];
+    const { ops, notes, grounding } = enhanceGeneratedRecipeOps(generated);
+    expect(grounding.targets.table).toBe("only_table");
+    expect(grounding.targets.instructions).toBe("instructions");
+    expect(notes.join("\n")).toContain("added an instructions table");
+    const comps = (ops as any[]).flatMap((o) => o?.updateComponents?.components ?? []);
+    const added = comps.find((c: any) => c.id === "instructions");
+    expect(added.columns).toEqual(["Step", "Instruction"]);
+    expect(added.data.length).toBeGreaterThanOrEqual(4);
+    const col = comps.find((c: any) => c.id === "col");
+    expect(col.children).toContain("instructions");
+    recipeStartOps();
   });
 
   it("regenerate cycles deterministic variants, preserving servings and constraint", () => {
