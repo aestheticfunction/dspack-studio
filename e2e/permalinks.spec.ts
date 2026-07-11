@@ -23,6 +23,7 @@ test("a fork deep link reconstructs the fork from its bundled parent", async ({ 
 
 test("copy-link writes the URL and a reload reconstructs the same moment", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("scenario-project-deletion").click();
   await page.getByRole("button", { name: "jump to event 17: TOOL_CALL_RESULT" }).click();
   await page.getByTestId("xray-toggle").click();
   await page.getByTestId("copy-link").click();

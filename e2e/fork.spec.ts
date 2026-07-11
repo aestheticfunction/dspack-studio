@@ -13,6 +13,12 @@ const scrubToEnd = async (page: Page) => {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  // Forks fixture-001 (project-deletion argue-back), no longer the default.
+  await page.getByTestId("scenario-project-deletion").click();
+  // Selecting a scenario auto-plays its first recording (under reduced motion,
+  // straight to the delivered surface). Wait for that to settle so the tests
+  // manipulate the timeline from a known state, not mid-mount.
+  await expect(page.getByTestId("fork")).toBeEnabled();
 });
 
 test("fork is refused before any surface exists, allowed after the delivery", async ({ page }) => {

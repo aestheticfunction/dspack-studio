@@ -10,6 +10,9 @@ const canvasComponents = (page: Page) => page.locator("[data-canvas] [data-a2ui-
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  // The governed live loop (gates + audit outcome) is the non-interactive
+  // project-deletion run; it is no longer the default scenario.
+  await page.getByTestId("scenario-project-deletion").click();
   await page.getByTestId("view-live").click();
 });
 

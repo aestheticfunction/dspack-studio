@@ -820,3 +820,28 @@ and closed the recipe-content definition-of-done item.
   FM-5, x-ray trace) and break-offline.spec.ts (agent blocked at the
   network layer; recorded catches, live-only labels, client-side import
   demo) — both also registered in the production suite.
+
+## 2026-07-11 — Recipe table layout fix + scenario shelf reorder
+
+Two follow-ups from a user report on the deployed recipe.
+
+- Recipe table overlap: Astryx's table scroll wrapper carries a -16px
+  margin on all four sides (full-bleed for a lone table in a padded
+  Card). In a Column (VStack gap 12px) two stacked tables computed
+  12 - 16 - 16 = -20px and overlapped (the recipe's ingredients and
+  instructions tables). globals.css now zeroes only the vertical bleed on
+  table scroll wrappers within [data-canvas], keeping the horizontal
+  full-bleed; the tables stack with the 12px gap. Root-caused in the
+  browser (measured the negative margins), not guessed.
+- Scenario shelf order: ready scenarios lead (recipe co-editing is now
+  the default, then appointment booking, then project deletion), planned
+  ones grouped after. readyScenarios[0] drives the default, so the reorder
+  alone changes it. Eight e2e specs implicitly assumed project-deletion
+  was the default (they used its recordings, gates, and event indices
+  without selecting it); each now selects scenario-project-deletion
+  explicitly — a more robust coupling. fork.spec waits for the selected
+  scenario's autoplay to settle before manipulating the timeline (the
+  new-scenario mount raced an immediate Home press).
+
+Validation: typecheck, 49 unit, build:deploy, 69 Playwright + 3 gated
+skips, all green.

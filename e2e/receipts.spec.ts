@@ -17,6 +17,8 @@ const scrubToEnd = async (page: Page) => {
 
 test("receipt renders evidence and its download matches an independent recomputation", async ({ page }, testInfo) => {
   await page.goto("/");
+  // The argue-back receipt (fixture-001) is no longer the default scenario.
+  await page.getByTestId("scenario-project-deletion").click();
   await scrubToEnd(page);
   await page.getByTestId("receipt-summary").click();
 

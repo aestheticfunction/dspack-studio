@@ -3,6 +3,10 @@
  * live today; "planned" scenarios state exactly what they are waiting on
  * (usually contract expansion — new intents/rules/examples are owner-authored
  * governance content, per the project plan).
+ *
+ * Order is intentional: ready scenarios first (recipe co-editing leads as the
+ * default, then booking, then project deletion), planned ones grouped after.
+ * readyScenarios[0] is the studio's default scenario.
  */
 import type { Scenario } from "./types";
 import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
@@ -12,6 +16,42 @@ import fixture005 from "@dspack-studio/replay/fixtures/fixture-005.json";
 import fixture006 from "@dspack-studio/replay/fixtures/fixture-006.json";
 
 export const scenarios: Scenario[] = [
+  {
+    id: "recipe-creator",
+    name: "Recipe creator",
+    tagline: "Co-edit one live recipe with the agent: servings rescale the ingredients, constraints swap them and rewrite the matching steps.",
+    intent: "structured-editing",
+    status: "ready",
+    interactive: true,
+    seedPrompts: ["A weeknight pasta recipe for two, editable servings."],
+    fixtures: [
+      {
+        key: "generated-cooked",
+        label: "generated, then co-edited",
+        blurb:
+          "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps ingredient rows and rewrites the matching instruction steps; regenerate cycles the dish. Every round-trip is recorded.",
+        fixture: fixture006,
+      },
+    ],
+  },
+  {
+    id: "appointment-booking",
+    name: "Appointment booking",
+    tagline: "Human-in-the-loop, live: pick a slot, the agent validates and co-edits the same state you type into.",
+    intent: "scheduling",
+    status: "ready",
+    interactive: true,
+    seedPrompts: ["Book a 30-minute consultation next week."],
+    fixtures: [
+      {
+        key: "generated-live",
+        label: "generated, then booked",
+        blurb:
+          "A real model generates the booking surface under the scheduling intent; the enhancement grounds it, a slot is held, the booking confirms. Every round-trip is recorded.",
+        fixture: fixture005,
+      },
+    ],
+  },
   {
     id: "project-deletion",
     name: "Project deletion",
@@ -74,42 +114,6 @@ export const scenarios: Scenario[] = [
     needs: ["design-system rules for lists of records and statuses", "a recorded real run to replay"],
     seedPrompts: ["A triage view of open support tickets with status and priority."],
     fixtures: [],
-  },
-  {
-    id: "appointment-booking",
-    name: "Appointment booking",
-    tagline: "Human-in-the-loop, live: pick a slot, the agent validates and co-edits the same state you type into.",
-    intent: "scheduling",
-    status: "ready",
-    interactive: true,
-    seedPrompts: ["Book a 30-minute consultation next week."],
-    fixtures: [
-      {
-        key: "generated-live",
-        label: "generated, then booked",
-        blurb:
-          "A real model generates the booking surface under the scheduling intent; the enhancement grounds it, a slot is held, the booking confirms. Every round-trip is recorded.",
-        fixture: fixture005,
-      },
-    ],
-  },
-  {
-    id: "recipe-creator",
-    name: "Recipe creator",
-    tagline: "Co-edit one live recipe with the agent: servings rescale the ingredients, constraints swap them and rewrite the matching steps.",
-    intent: "structured-editing",
-    status: "ready",
-    interactive: true,
-    seedPrompts: ["A weeknight pasta recipe for two, editable servings."],
-    fixtures: [
-      {
-        key: "generated-cooked",
-        label: "generated, then co-edited",
-        blurb:
-          "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps ingredient rows and rewrites the matching instruction steps; regenerate cycles the dish. Every round-trip is recorded.",
-        fixture: fixture006,
-      },
-    ],
   },
   {
     id: "hotel-reservations",

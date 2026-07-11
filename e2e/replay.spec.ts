@@ -24,6 +24,9 @@ async function scrubToStart(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  // These tests exercise the project-deletion recordings (clean, argue-back,
+  // refusal), which are no longer the default scenario.
+  await page.getByTestId("scenario-project-deletion").click();
 });
 
 test("playback: play streams the recorded run into a rendered surface", async ({ page }) => {
