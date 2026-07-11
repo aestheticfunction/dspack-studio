@@ -220,6 +220,19 @@ input[type="range"] {
   }
 }
 
+/* Astryx integration fix, scoped to the rendered canvas. Astryx's table
+   scroll wrapper carries a -16px margin on every side: a full-bleed
+   affordance so a lone table spans a padded Card edge to edge. The
+   horizontal bleed is wanted; the vertical bleed is not, because two
+   tables stacked in a Column (VStack gap 12px) then compute 12 - 16 - 16
+   = -20px and overlap (the recipe's ingredients and instructions tables).
+   This zeroes only the vertical bleed, keeping the horizontal full-bleed.
+   globals.css is loaded unlayered so it wins over Astryx's layered sheets. */
+[data-canvas] .astryx-table-scroll-wrapper {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .st-btn,
   .st-link {

@@ -48,8 +48,9 @@ test("planned scenarios reveal what they need, by keyboard", async ({ page }) =>
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("planned-needs")).toContainText(/planned, not built/i);
   await expect(page.getByTestId("planned-needs")).toContainText(/needs/i);
-  // Revealing never selects the scenario: the ready experience is untouched.
-  await expect(page.getByTestId("fixture-argues-back")).toBeVisible();
+  // Revealing never selects the scenario: the ready experience is untouched
+  // (recipe-creator is the default, so its recording stays on screen).
+  await expect(page.getByTestId("fixture-generated-cooked")).toBeVisible();
   // Tapping again dismisses the reveal.
   await planned.click();
   await expect(page.getByTestId("planned-needs")).toHaveCount(0);

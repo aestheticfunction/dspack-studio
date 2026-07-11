@@ -47,6 +47,7 @@ test("the tour is dismissible at any step and keyboard operable", async ({ page 
 
 test("x-ray: click a rendered element, read its provenance, jump to its event", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("scenario-project-deletion").click();
   await scrubToEnd(page);
   await page.getByTestId("xray-toggle").click();
   await expect(page.getByTestId("xray-card")).toContainText("click any rendered element");
@@ -65,6 +66,7 @@ test("x-ray: click a rendered element, read its provenance, jump to its event", 
 
 test("x-ray rule provenance is labeled inferred and absent rules are stated", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("scenario-project-deletion").click();
   await scrubToEnd(page);
   await page.getByTestId("xray-toggle").click();
   const ids = await page.locator("[data-canvas] [data-a2ui-id]").evaluateAll((els) => els.map((e) => e.getAttribute("data-a2ui-id")));
@@ -80,6 +82,7 @@ test("x-ray rule provenance is labeled inferred and absent rules are stated", as
 
 test("the wire: raw ordered events, real content types, labeled protobuf re-encoding", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("scenario-project-deletion").click();
   await scrubToEnd(page);
   await page.getByTestId("the-wire").locator("> summary").click();
 

@@ -16,6 +16,7 @@ const scan = (page: Page) =>
 
 test("replay view (fixture loaded, scrubbed) has no axe violations", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("scenario-project-deletion").click();
   await page.getByTestId("fixture-argues-back").click();
   await page.getByTestId("scrubber").focus();
   await page.keyboard.press("End");

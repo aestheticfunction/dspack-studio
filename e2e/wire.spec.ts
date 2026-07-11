@@ -14,6 +14,9 @@ const stage = (page: Page, id: string) => page.locator(`[data-testid="pipeline-v
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  // Runs against fixture-001 (project-deletion argue-back), which is no
+  // longer the default scenario.
+  await page.getByTestId("scenario-project-deletion").click();
 });
 
 test("closed by default, opens on demand, follows the playhead", async ({ page }) => {
