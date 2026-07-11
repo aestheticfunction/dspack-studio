@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "dev": "NODE_OPTIONS=--localstorage-file=/tmp/dspack-studio-dev-localstorage next dev",
-    "build": "next build",
+    "build": "pnpm --filter @dspack-studio/contracts build:catalogs && next build",
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json"
   },
