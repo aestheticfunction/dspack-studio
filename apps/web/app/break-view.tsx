@@ -8,7 +8,7 @@
  * live variants run the same prompt a visitor could type.
  */
 import { useMemo, useState } from "react";
-import { breakConditions, capabilitiesByScenario, resolveAction, scenarios, type BreakCondition } from "@dspack-studio/scenarios";
+import { breakConditions, capabilitiesByScenario, resolveAction, scenarios, type BreakCondition, type Scenario } from "@dspack-studio/scenarios";
 import { importFixture, parseFixture, surfaceComponentsAt } from "@dspack-studio/replay";
 import { useLiveRun } from "./use-live-run";
 import { RunView } from "./run-view";
@@ -16,15 +16,35 @@ import { btnClass } from "./ui";
 
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 
-export function BreakView() {
+/**
+ * The scenario is the persistent context; a condition is a lens on IT. Only
+ * the active scenario's conditions (plus scenario-independent demonstrations)
+ * are offered — a condition never switches the scenario.
+ */
+export function BreakView({ scenario, initialConditionId }: { scenario: Scenario; initialConditionId?: string }) {
   const live = useLiveRun(AGENT_URL);
-  const [conditionId, setConditionId] = useState(breakConditions[0].id);
+  const conditions = useMemo(
+    () => breakConditions.filter((c) => c.scenarioIndependent || c.scenarioId === scenario.id),
+    [scenario.id],
+  );
+  const [conditionId, setConditionId] = useState(
+    initialConditionId && conditions.some((c) => c.id === initialConditionId) ? initialConditionId : conditions[0]?.id,
+  );
   const [prompt, setPrompt] = useState<string | null>(null);
   const [runSeq, setRunSeq] = useState(0);
   const [importDemo, setImportDemo] = useState<string | null>(null);
 
-  const condition = breakConditions.find((c) => c.id === conditionId)!;
-  const scenario = useMemo(() => scenarios.find((s) => s.id === condition.scenarioId)!, [condition]);
+  const condition = conditions.find((c) => c.id === conditionId) ?? conditions[0];
+  if (!condition) {
+    // Unreachable while the import demo is scenario-independent; stated
+    // honestly anyway, in case a future scenario ships with none.
+    return (
+      <p data-testid="break-none" style={{ fontSize: 13, color: "var(--fg-dim)" }}>
+        No curated failure conditions for this scenario yet: they are authored per scenario, with the recording to
+        prove the catch.
+      </p>
+    );
+  }
   const effectivePrompt = prompt ?? condition.prompt ?? "";
   const streaming = live.status === "streaming";
 
@@ -44,7 +64,7 @@ export function BreakView() {
     setRunSeq((n) => n + 1);
     live.run({
       prompt: effectivePrompt || condition.label,
-      intent: condition.intent,
+      intent: condition.intent ?? scenario.intent,
       modelRef,
       scenario: condition.kind === "unresolved-action" || condition.kind === "invalid-state" ? scenario.id : undefined,
     });
@@ -71,7 +91,7 @@ export function BreakView() {
   return (
     <div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-        {breakConditions.map((c: BreakCondition) => (
+        {conditions.map((c: BreakCondition) => (
           <button
             key={c.id}
             data-testid={`break-${c.id}`}

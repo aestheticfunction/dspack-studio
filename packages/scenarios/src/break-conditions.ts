@@ -11,9 +11,15 @@
 export interface BreakCondition {
   id: string;
   label: string;
-  /** Which scenario's intent it runs under. */
-  scenarioId: "project-deletion" | "appointment-booking" | "recipe-creator";
-  intent: string;
+  /** The scenario this condition belongs to; absent when scenarioIndependent. */
+  scenarioId?: "project-deletion" | "appointment-booking" | "recipe-creator";
+  /**
+   * True for conditions that belong to every scenario: pure client-side
+   * demonstrations that never start a run or read scenario state.
+   */
+  scenarioIndependent?: boolean;
+  /** Contract intent the run starts under; absent when the condition never starts a run. */
+  intent?: string;
   kind: "governed-repair" | "lint-exhausted" | "emitter-refusal" | "unresolved-action" | "invalid-state" | "malformed-import";
   /** What the visitor should expect to see — shown before running. */
   expected: string;
@@ -110,8 +116,7 @@ export const breakConditions: BreakCondition[] = [
   {
     id: "malformed-import",
     label: "malformed session import",
-    scenarioId: "project-deletion",
-    intent: "destructive-action",
+    scenarioIndependent: true,
     kind: "malformed-import",
     expected:
       "The import validator rejects the file with a clear, user-facing error (not valid JSON / wrong version / malformed events). Nothing is partially loaded.",

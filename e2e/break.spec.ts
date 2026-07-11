@@ -6,11 +6,40 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
+/** Conditions live under their scenario; everything else is project-deletion's. */
+const SCENARIO_FOR: Record<string, string> = {
+  "ambiguous-action": "appointment-booking",
+  "invalid-state": "recipe-creator",
+};
+
 async function openBreak(page: Page, conditionId: string) {
   await page.goto("/");
+  await page.getByTestId(`scenario-${SCENARIO_FOR[conditionId] ?? "project-deletion"}`).click();
   await page.getByTestId("view-break").click();
   await page.getByTestId(`break-${conditionId}`).click();
 }
+
+test("break conditions are scoped to the active scenario", async ({ page }) => {
+  await page.goto("/");
+  // The default scenario is recipe-creator: its condition and the
+  // scenario-independent import demo are offered; other scenarios' are not.
+  await page.getByTestId("view-break").click();
+  await expect(page.getByTestId("break-invalid-state")).toBeVisible();
+  await expect(page.getByTestId("break-malformed-import")).toBeVisible();
+  await expect(page.getByTestId("break-no-alertdialog")).toHaveCount(0);
+  await expect(page.getByTestId("break-ambiguous-action")).toHaveCount(0);
+  // Switching the scenario preserves the operation and re-scopes the list.
+  await page.getByTestId("scenario-appointment-booking").click();
+  await expect(page.getByTestId("break-ambiguous-action")).toBeVisible();
+  await expect(page.getByTestId("break-invalid-state")).toHaveCount(0);
+});
+
+test("break view defaults to the active scenario's own condition", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("scenario-recipe-creator").click();
+  await page.getByTestId("view-break").click();
+  await expect(page.getByTestId("break-expected")).toContainText("studio.action.rejected");
+});
 
 test("no-alertdialog: S3 catches, repair lands, run passes", async ({ page }) => {
   await openBreak(page, "no-alertdialog");
