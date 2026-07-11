@@ -25,6 +25,7 @@ test("the switcher marks agent-dependent modes when the agent is offline", async
 
 test("governed-repair conditions replay their recorded catch", async ({ page }) => {
   await gotoOffline(page);
+  await page.getByTestId("scenario-project-deletion").click();
   await page.getByTestId("view-break").click();
   await page.getByTestId("break-no-alertdialog").click();
   await expect(page.getByTestId("break-recorded-note")).toContainText("recorded catch");
@@ -40,6 +41,7 @@ test("governed-repair conditions replay their recorded catch", async ({ page }) 
 
 test("the emitter-refusal condition replays the recorded refusal", async ({ page }) => {
   await gotoOffline(page);
+  await page.getByTestId("scenario-project-deletion").click();
   await page.getByTestId("view-break").click();
   await page.getByTestId("break-unsupported-component").click();
   await expect(page.getByTestId("break-recorded-note")).toContainText("recorded catch");
@@ -50,8 +52,14 @@ test("the emitter-refusal condition replays the recorded refusal", async ({ page
 
 test("live-only conditions say plainly what they need", async ({ page }) => {
   await gotoOffline(page);
-  await page.getByTestId("view-break").click();
-  for (const id of ["malformed-generation", "ambiguous-action", "invalid-state"]) {
+  const cases: Array<[condition: string, scenario: string]> = [
+    ["malformed-generation", "project-deletion"],
+    ["ambiguous-action", "appointment-booking"],
+    ["invalid-state", "recipe-creator"],
+  ];
+  for (const [id, scenario] of cases) {
+    await page.getByTestId(`scenario-${scenario}`).click();
+    await page.getByTestId("view-break").click();
     await page.getByTestId(`break-${id}`).click();
     await expect(page.getByTestId("break-live-only")).toContainText("local agent");
     await expect(page.getByTestId("break-run")).toHaveCount(0);
@@ -72,6 +80,7 @@ test("offline states (badges active, recorded catch, live-only note) have no axe
   await expect(page.getByTestId("agent-offline")).toBeVisible();
   expect((await scan()).violations).toEqual([]);
 
+  await page.getByTestId("scenario-project-deletion").click();
   await page.getByTestId("view-break").click();
   await expect(page.getByTestId("break-recorded-note")).toBeVisible();
   expect((await scan()).violations).toEqual([]);

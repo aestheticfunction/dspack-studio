@@ -618,7 +618,7 @@ export function Studio() {
         />
       )}
       {view === "live" && scenario && <LiveView key={scenario.id} scenario={scenario} />}
-      {view === "break" && <BreakView />}
+      {view === "break" && scenario && <BreakView key={scenario.id} scenario={scenario} />}
       {view === "canvas" && (
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
