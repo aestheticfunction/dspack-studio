@@ -21,6 +21,7 @@ import {
   gateFailed,
   gateStateAt,
   timelineTicks,
+  unforkableReason,
   type FixtureEvent,
   type TimelineTick,
 } from "@dspack-studio/replay";
@@ -54,9 +55,11 @@ export interface RunViewProps {
   resetKey: string;
   /** Interactive runs: rendered A2UI actions dispatch here (HITL). */
   onAction?: (action: any) => void;
+  /** FM-3: fork the run at the current playhead (host creates the new run). */
+  onFork?: (playhead: number) => void;
 }
 
-export function RunView({ events, label, streaming = false, live = false, resetKey, onAction }: RunViewProps) {
+export function RunView({ events, label, streaming = false, live = false, resetKey, onAction, onFork }: RunViewProps) {
   const source = useMemo(() => ({ events }), [events]);
   const ticks = useMemo(() => timelineTicks(source), [source]);
   const last = events.length - 1;
@@ -136,6 +139,28 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         <span style={{ opacity: 0.7 }} data-testid="fixture-meta">
           {label}
         </span>
+        {onFork && !streaming && (() => {
+          const reason = unforkableReason(source, playhead);
+          return (
+            <button
+              data-testid="fork"
+              disabled={Boolean(reason)}
+              title={reason ?? `fork a new run from event ${playhead} — the original stays untouched`}
+              onClick={() => onFork(playhead)}
+              style={{
+                marginLeft: "auto",
+                padding: "6px 14px",
+                borderRadius: 8,
+                border: "1px solid #cbd5e1",
+                cursor: reason ? "not-allowed" : "pointer",
+                opacity: reason ? 0.5 : 1,
+                font: "inherit",
+              }}
+            >
+              fork this moment
+            </button>
+          );
+        })()}
       </div>
 
       {/* The timeline: one tick per AG-UI event; drag to any moment. */}

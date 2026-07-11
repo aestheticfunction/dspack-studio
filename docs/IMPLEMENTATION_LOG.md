@@ -630,3 +630,34 @@ BLOCKED: recording fixture-006 waits for dspack-gen 0.1.1 on npm (the
 flagship proves the published packages; recording against unpublished
 source would break the audit's schemaSha256 provenance). FM-9/FM-3
 proceed meanwhile — replay-layer work, independent of generation.
+
+### FM-9 Wire View + FM-3 Fork UX (2026-07-10, late)
+
+FM-9: wire-view.tsx renders which of the seven pipeline layers (you /
+agent / projection / AG-UI / A2UI / registry / Astryx) the PLAYHEAD event
+actually touches — a pure function of the current event, no parallel
+telemetry. Uninvolved stages dim (a gate verdict lights two layers; only
+the delivery crosses six; user actions flow the other direction with
+flipped arrows). Correlation ids (toolCallId, surfaceId, actionId) render
+as chips. Closed by default. e2e: e2e/wire.spec.ts. The a11y sweep it
+triggered fixed keyboard focus on every scrollable inspector region and
+labeled the break-prompt input (axe clean again).
+
+FM-3 v1: forkFixture/unforkableReason in packages/replay — a fork is a
+NEW run (own id) whose events are a deep copy of the parent's prefix
+[0..playhead], with explicit ForkProvenance {parentId, parentName,
+forkIndex, forkedAt} (additive 0.1-compatible field). The parent is never
+mutated (test-proven: appending to or editing the fork leaves the source
+byte-identical). Moments before any delivered surface are rejected with
+the reason stated ("no application state to diverge from"). UI: a fork
+button beside the timeline (disabled with the reason until forkable),
+fork chips on the replay shelf, provenance blurb, download; a downloaded
+fork reopens through the normal session import with provenance intact
+(e2e/fork.spec.ts, incl. the export->import round-trip). Deliberately v1:
+forked runs are scrubbable/inspectable/exportable diverging copies;
+CONTINUING a fork with new HITL actions needs the agent's session state
+rebuilt from the prefix (replaying accepted actions through the
+deterministic responders) — designed, not yet wired; live re-generation
+forks are the BYO-live milestone after that.
+
+Validation: 31 unit tests + agent 9/9 + 36 Playwright (3 gated skips).

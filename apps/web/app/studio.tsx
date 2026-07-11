@@ -14,7 +14,7 @@ import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-stud
 import { readyScenarios, scenarios, type Scenario } from "@dspack-studio/scenarios";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
-import { importFixture, parseFixture, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
+import { forkFixture, importFixture, parseFixture, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
 import { RunView } from "./run-view";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
@@ -35,6 +35,9 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
   const [imported, setImported] = useState<ReplayFixture | null>(null);
   const [importSeq, setImportSeq] = useState(0);
   const [importError, setImportError] = useState<string | null>(null);
+  // FM-3: forked runs live beside the curated fixtures for this session.
+  const [forks, setForks] = useState<ReplayFixture[]>([]);
+  const [forkError, setForkError] = useState<string | null>(null);
 
   const handleFile = async (file: File) => {
     setImportError(null);
@@ -52,8 +55,33 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
     setKey("__imported__");
   };
 
-  const ref = key === "__imported__" && imported ? null : (scenario.fixtures.find((f) => f.key === key) ?? scenario.fixtures[0]);
-  const fixture = ref ? parseFixture(ref.fixture) : imported;
+  const selectedFork = forks.find((f) => f.id === key) ?? null;
+  const ref =
+    selectedFork || (key === "__imported__" && imported)
+      ? null
+      : (scenario.fixtures.find((f) => f.key === key) ?? scenario.fixtures[0]);
+  const fixture = ref ? parseFixture(ref.fixture) : (selectedFork ?? imported);
+
+  const handleFork = (playhead: number) => {
+    if (!fixture) return;
+    setForkError(null);
+    const result = forkFixture(fixture, playhead);
+    if (!result.ok) {
+      setForkError(result.reason);
+      return;
+    }
+    setForks((prev) => [...prev, result.fixture]);
+    setKey(result.fixture.id);
+  };
+
+  const downloadFork = (fork: ReplayFixture) => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(fork, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fork.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div
@@ -75,6 +103,17 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
             imported session
           </button>
         )}
+        {forks.map((f) => (
+          <button
+            key={f.id}
+            data-testid={`fork-${f.fork?.forkIndex}`}
+            style={{ ...btnStyle(f.id === key), borderStyle: "dashed" }}
+            title={`forked from ${f.fork?.parentName ?? f.fork?.parentId} at event ${f.fork?.forkIndex}`}
+            onClick={() => setKey(f.id)}
+          >
+            ⑂ fork @ {f.fork?.forkIndex}
+          </button>
+        ))}
         <label style={{ ...btnStyle(false), marginLeft: "auto" }} data-testid="import-label">
           open a session file…
           <input
@@ -95,8 +134,27 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
           could not import: {importError}
         </p>
       )}
+      {forkError && (
+        <p data-testid="fork-error" style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>
+          cannot fork here: {forkError}
+        </p>
+      )}
       {ref && <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>{ref.blurb}</p>}
-      {!ref && imported && (
+      {selectedFork && (
+        <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }} data-testid="fork-blurb">
+          A new run forked from “{selectedFork.fork?.parentName}” at event {selectedFork.fork?.forkIndex}: it shares
+          history up to that moment and nothing after. The original is untouched.{" "}
+          <button
+            data-testid="fork-download"
+            onClick={() => downloadFork(selectedFork)}
+            style={{ font: "inherit", border: "none", background: "none", color: "#0369a1", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+          >
+            download this fork
+          </button>{" "}
+          — it reopens like any session file, provenance included.
+        </p>
+      )}
+      {!ref && !selectedFork && imported && (
         <p style={{ fontSize: 13, opacity: 0.7, margin: "0 0 14px" }}>
           Imported session — recorded {imported.recordedAt || "(unknown time)"}, prompt: “{imported.prompt || "—"}”. Drag another
           file anywhere here to replace it.
@@ -105,8 +163,13 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
       {fixture ? (
         <RunView
           events={fixture.events}
-          resetKey={ref ? `${scenario.id}:${ref.key}` : `imported-${importSeq}`}
-          label={`${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`}
+          resetKey={ref ? `${scenario.id}:${ref.key}` : selectedFork ? selectedFork.id : `imported-${importSeq}`}
+          label={
+            selectedFork
+              ? `⑂ ${fixture.name} — ${fixture.mode} run, ${fixture.events.length} events`
+              : `${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`
+          }
+          onFork={handleFork}
         />
       ) : (
         <p style={{ opacity: 0.6 }}>No recordings yet for this scenario — open a session file, or run it live and download one.</p>

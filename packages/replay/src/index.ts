@@ -1,4 +1,5 @@
-export { parseFixture, type ReplayFixture, type FixtureEvent } from "./fixture";
+export { parseFixture, type ReplayFixture, type FixtureEvent, type ForkProvenance } from "./fixture";
+export { forkFixture, unforkableReason, type ForkResult, type ForkSource } from "./fork";
 export { importFixture, MAX_IMPORT_BYTES, MAX_IMPORT_EVENTS, type ImportResult, type ImportError } from "./import";
 export { createRecorder, type Recorder, type RecorderMeta } from "./recorder";
 export {
