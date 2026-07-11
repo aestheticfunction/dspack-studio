@@ -1,0 +1,14 @@
+// Cloudflare Workers Static Assets: the dspack-studio static preview.
+// Build with the canonical `pnpm build:deploy` (generates the gated
+// contract artifacts, then the Next.js static export), then `wrangler
+// deploy` uploads apps/web/out. Replay mode needs no environment: the
+// preview ships with recorded fixtures only (no NEXT_PUBLIC_AGENT_URL;
+// "run it live" states plainly that it needs a local agent).
+{
+  "name": "dspack-studio",
+  "compatibility_date": "2026-07-11",
+  "assets": {
+    "directory": "./apps/web/out",
+    "not_found_handling": "404-page"
+  }
+}
