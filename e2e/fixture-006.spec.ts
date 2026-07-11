@@ -30,6 +30,8 @@ test("replays from the shelf: generated surface, grounded co-edits, final state"
   // GENERATED table, and the bound status caption narrating it.
   await expect(page.locator("[data-canvas]")).toContainText(/Regenerated: Lemon herb risotto/);
   await expect(page.locator("[data-canvas] table td", { hasText: "Vegetable stock" }).first()).toBeVisible();
+  // The instructions carry their own heading, labeled by the enhancement.
+  await expect(page.locator("[data-canvas]")).toContainText("Instructions");
   await expect(page.getByTestId("audit-outcome")).toContainText("passed");
 });
 
