@@ -13,6 +13,9 @@ export default defineConfig({
   testDir: "e2e",
   timeout: 30_000,
   retries: 0,
+  // prod-smoke asserts the DEPLOYED site's properties (no local agent,
+  // injected analytics); it runs via playwright.production.config.ts only.
+  testIgnore: ["prod-smoke.spec.ts"],
   use: {
     baseURL: "http://localhost:3311",
     // Deterministic CI: the homepage is alive by default (auto-plays the
