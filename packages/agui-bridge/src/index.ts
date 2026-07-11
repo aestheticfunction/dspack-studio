@@ -11,7 +11,7 @@ export type { PipelineEvent, GateReportLike, FindingLike } from "./pipeline-type
 export { gateFailed, gatePassed } from "./pipeline-types";
 export { createPipelineEventMapper, runErrorEvent, a2uiDeliveryEvents, type MapperIds } from "./mapper";
 export { FixtureAgent, type ReplayFixtureLike, type FixtureEventEntry, type FixtureAgentOptions } from "./fixture-agent";
-export { createSseEncoder, type SseEncoder } from "./sse";
+export { createSseEncoder, encodeEventBinary, type SseEncoder } from "./sse";
 // Deliberate re-exports so other packages consume AG-UI concepts through the
 // bridge instead of importing @ag-ui/* themselves.
 export { EventType, type BaseEvent, type RunAgentInput } from "@ag-ui/core";

@@ -61,7 +61,7 @@ test("forked run (chips, blurb, continue control) and open wire view have no axe
   await page.getByTestId("fork").click();
   await page.getByTestId("scrubber").focus();
   await page.keyboard.press("End");
-  await page.getByTestId("wire-view").locator("summary").click();
+  await page.getByTestId("pipeline-view").locator("summary").click();
   const results = await scan(page);
   expect(results.violations).toEqual([]);
 });

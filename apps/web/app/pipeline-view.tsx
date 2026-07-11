@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * FM-9 Wire View: which layers of the honest pipeline THIS event actually
+ * Pipeline View: which layers of the honest pipeline THIS event actually
  * touches, synchronized to the timeline playhead. A pure function of the
  * current event — no parallel telemetry, nothing the timeline doesn't
  * already know. Deliberately dims the stages an event does NOT involve:
@@ -156,15 +156,15 @@ export function readWire(event: Record<string, any>): WireReading {
   };
 }
 
-export function WireView({ current, playhead }: { current: FixtureEvent | null; playhead: number }) {
+export function PipelineView({ current, playhead, defaultOpen }: { current: FixtureEvent | null; playhead: number; defaultOpen?: boolean }) {
   if (!current) return null;
   const reading = readWire(current.event as Record<string, any>);
   const involved = new Set(reading.involved);
 
   return (
-    <details data-testid="wire-view" style={{ marginTop: 12, fontSize: 12 }} open={false}>
+    <details data-testid="pipeline-view" ref={(el) => { if (el && defaultOpen && !el.dataset.autoOpened) { el.open = true; el.dataset.autoOpened = "1"; } }} style={{ marginTop: 12, fontSize: 12 }}>
       <summary style={{ cursor: "pointer" }}>
-        wire view — the layers <em>this</em> event touches
+        pipeline view — the layers <em>this</em> event touches
       </summary>
       <div
         style={{
@@ -206,11 +206,11 @@ export function WireView({ current, playhead }: { current: FixtureEvent | null; 
             );
           })}
         </div>
-        <p style={{ margin: 0, lineHeight: 1.5 }} data-testid="wire-what">
+        <p style={{ margin: 0, lineHeight: 1.5 }} data-testid="pipeline-what">
           {reading.what}
         </p>
         {reading.correlations.length > 0 && (
-          <p style={{ margin: 0, display: "flex", gap: 8, flexWrap: "wrap" }} data-testid="wire-correlations">
+          <p style={{ margin: 0, display: "flex", gap: 8, flexWrap: "wrap" }} data-testid="pipeline-correlations">
             {reading.correlations.map(([k, val]) => (
               <code key={k} style={{ background: "rgba(148,163,184,0.15)", borderRadius: 6, padding: "2px 6px" }}>
                 {k}: {val}

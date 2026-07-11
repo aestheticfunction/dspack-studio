@@ -7,15 +7,17 @@
  * same substrate for every scenario. Planned scenarios appear on the shelf
  * with what they are waiting on, stated honestly.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Theme } from "@astryxdesign/core";
 import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
 import { astryxRegistry, themes, themeNames, type ThemeName } from "@dspack-studio/astryx-renderers";
 import { capabilitiesByScenario, readyScenarios, resolveAction, scenarios, type Scenario } from "@dspack-studio/scenarios";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import surfaceJson from "@dspack-studio/contracts/out/delete-project-confirmation.surface.json";
-import { forkFixture, importFixture, parseFixture, surfaceComponentsAt, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
+import { dataModelAt, forkFixture, importFixture, parseFixture, surfaceComponentsAt, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
 import { dispatchAction } from "./action-dispatch";
+import { buildPermalink, parsePermalink, type PermalinkState } from "./permalink";
+import { TOUR_STEPS, TourBar } from "./tour";
 import { RunView } from "./run-view";
 
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
@@ -33,8 +35,61 @@ const btnStyle = (active: boolean): React.CSSProperties => ({
   fontSize: 13,
 });
 
-function ReplayPane({ scenario }: { scenario: Scenario }) {
-  const [key, setKey] = useState(scenario.fixtures[0]?.key);
+/**
+ * FM-3: the original and a fork, side by side at their own endings. Shared
+ * history to the fork point, then each branch's real final state: data
+ * model and rendered components. Two branches, plainly labeled; no graph.
+ */
+function BranchCompare({ parent, fork }: { parent: { name: string; events: any[] } | null; fork: ReplayFixture }) {
+  if (!parent) return null;
+  const sides = [
+    { key: "original", label: `original: ${parent.name}`, source: { events: parent.events } },
+    { key: "fork", label: `fork at event ${fork.fork?.forkIndex}: continues on its own`, source: { events: fork.events } },
+  ];
+  const models = sides.map((s) => dataModelAt(s.source, s.source.events.length - 1));
+  const comps = sides.map((s) => surfaceComponentsAt(s.source, s.source.events.length - 1));
+  const changedPaths = Object.keys({ ...(models[0] as any), ...(models[1] as any) }).filter(
+    (k) => JSON.stringify((models[0] as any)[k]) !== JSON.stringify((models[1] as any)[k]),
+  );
+  return (
+    <details data-testid="branch-compare" style={{ margin: "0 0 14px", fontSize: 12 }}>
+      <summary style={{ cursor: "pointer" }}>compare branches: original vs this fork</summary>
+      <div style={{ border: "1px solid #cbd5e1", borderRadius: 12, padding: "12px 14px", marginTop: 8, display: "grid", gap: 10 }}>
+        <p style={{ margin: 0 }}>
+          Both branches share history up to event {fork.fork?.forkIndex}; everything after is each branch's own. The
+          states below are each branch's ending.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {sides.map((side, i) => (
+            <div key={side.key} data-testid={`branch-${side.key}`} style={{ border: "1px dashed #cbd5e1", borderRadius: 8, padding: 10, minWidth: 0 }}>
+              <strong style={{ display: "block", marginBottom: 6 }}>{side.label}</strong>
+              <div style={{ marginBottom: 6, color: "#475569" }}>
+                {side.source.events.length} events, {comps[i].length} rendered components
+              </div>
+              <pre tabIndex={0} aria-label={`${side.key} final data model`} style={{ margin: 0, padding: 8, background: "rgba(148,163,184,0.12)", borderRadius: 6, overflow: "auto", maxHeight: 200, fontFamily: "ui-monospace, monospace" }}>
+                {JSON.stringify(models[i], null, 2)}
+              </pre>
+            </div>
+          ))}
+        </div>
+        <p style={{ margin: 0 }} data-testid="branch-diff">
+          {changedPaths.length > 0 ? (
+            <>
+              the branches disagree on: {changedPaths.map((k) => <code key={k} style={{ marginRight: 6 }}>{k}</code>)}
+            </>
+          ) : (
+            <>the branches currently agree on every shared-state path</>
+          )}
+        </p>
+      </div>
+    </details>
+  );
+}
+
+function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; deepLink?: PermalinkState; onLinkError?: (msg: string) => void }) {
+  const [key, setKey] = useState(
+    deepLink?.fixture && scenario.fixtures.some((f) => f.key === deepLink.fixture) ? deepLink.fixture : scenario.fixtures[0]?.key,
+  );
   const [imported, setImported] = useState<ReplayFixture | null>(null);
   const [importSeq, setImportSeq] = useState(0);
   const [importError, setImportError] = useState<string | null>(null);
@@ -61,6 +116,32 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
     setImportSeq((n) => n + 1);
     setKey("__imported__");
   };
+
+  // Deep links: unknown fixture keys fail clearly; fork links reconstruct
+  // the fork deterministically from the bundled parent (same prefix, fresh
+  // identity) rather than pretending a stored session exists.
+  useEffect(() => {
+    if (!deepLink) return;
+    if (deepLink.fixture && !scenario.fixtures.some((f) => f.key === deepLink.fixture)) {
+      onLinkError?.(`this scenario has no recording '${deepLink.fixture}'`);
+      return;
+    }
+    if (deepLink.fork) {
+      const parentRef = scenario.fixtures.find((f) => f.key === deepLink.fork!.parentKey);
+      if (!parentRef) {
+        onLinkError?.(`this scenario has no recording '${deepLink.fork.parentKey}' to fork`);
+        return;
+      }
+      const result = forkFixture(parseFixture(parentRef.fixture), deepLink.fork.forkIndex);
+      if (!result.ok) {
+        onLinkError?.(`cannot fork '${deepLink.fork.parentKey}' at event ${deepLink.fork.forkIndex}: ${result.reason}`);
+        return;
+      }
+      setForks([result.fixture]);
+      setKey(result.fixture.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedFork = forks.find((f) => f.id === key) ?? null;
   const ref =
@@ -230,6 +311,13 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
           )}
         </p>
       )}
+      {selectedFork && (() => {
+        const parentFix = scenario.fixtures.map((f) => parseFixture(f.fixture)).find((f) => f.id === selectedFork.fork?.parentId)
+          ?? (imported?.id === selectedFork.fork?.parentId ? imported : null)
+          ?? forks.find((f) => f.id === selectedFork.fork?.parentId)
+          ?? null;
+        return <BranchCompare parent={parentFix} fork={selectedFork} />;
+      })()}
       {continueError && (
         <p data-testid="continue-error" style={{ fontSize: 13, color: "#dc2626", margin: "0 0 10px" }}>
           cannot continue this fork: {continueError}
@@ -251,6 +339,27 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
               : `${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`
           }
           onFork={handleFork}
+          meta={{ id: fixture.id, name: fixture.name, mode: fixture.mode, adapterId: fixture.adapterId, intent: fixture.intent, prompt: fixture.prompt, recordedAt: fixture.recordedAt, fork: fixture.fork }}
+          initial={deepLink && (ref?.key === deepLink.fixture || (deepLink.fork && selectedFork)) ? { playhead: deepLink.event, xray: deepLink.xray, panel: deepLink.panel } : undefined}
+          autoStart={!deepLink && ref?.key === scenario.fixtures[0]?.key}
+          permalink={
+            // Imported sessions live on the visitor's disk; links cover
+            // bundled recordings and forks of them.
+            ref || (selectedFork && scenario.fixtures.some((f) => parseFixture(f.fixture).id === selectedFork.fork?.parentId))
+              ? (playhead, xrayOn) =>
+                  location.origin +
+                  location.pathname +
+                  buildPermalink({
+                    scenario: scenario.id,
+                    fixture: ref?.key,
+                    fork: selectedFork
+                      ? { parentKey: scenario.fixtures.find((f) => parseFixture(f.fixture).id === selectedFork.fork?.parentId)!.key, forkIndex: selectedFork.fork!.forkIndex }
+                      : undefined,
+                    event: playhead >= 0 ? playhead : undefined,
+                    xray: xrayOn || undefined,
+                  })
+              : undefined
+          }
           live={Boolean(selectedFork && continuingId === selectedFork.id)}
           onAction={selectedFork && continuingId === selectedFork.id ? continuationAction(selectedFork) : undefined}
         />
@@ -264,6 +373,50 @@ function ReplayPane({ scenario }: { scenario: Scenario }) {
 export function Studio() {
   const [scenarioId, setScenarioId] = useState(readyScenarios[0]?.id);
   const [view, setView] = useState<"replay" | "live" | "break" | "canvas">("replay");
+  const [deepLink, setDeepLink] = useState<PermalinkState | undefined>();
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  // Guided tour: drives the SAME deep-link mechanism as permalinks, so
+  // every step is a real, reachable UI state. Non-blocking, restartable.
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const [tourOffered, setTourOffered] = useState(false);
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("dspack-studio-tour-done") && !location.hash) setTourOffered(true);
+    } catch { /* storage unavailable: no offer, tour stays reachable via the header button */ }
+  }, []);
+  const startTour = (n = 0) => {
+    setTourOffered(false);
+    setLinkError(null);
+    setView("replay");
+    setScenarioId(TOUR_STEPS[n].state.scenario!);
+    setDeepLink(TOUR_STEPS[n].state);
+    setTourStep(n);
+  };
+  const endTour = () => {
+    setTourStep(null);
+    setDeepLink(undefined);
+    try { localStorage.setItem("dspack-studio-tour-done", "1"); } catch { /* fine */ }
+  };
+
+  useEffect(() => {
+    if (!location.hash || location.hash === "#") return;
+    const { state, error } = parsePermalink(location.hash);
+    if (error) {
+      setLinkError(`that link did not parse: ${error}. Showing the studio's default view instead.`);
+      return;
+    }
+    if (state.scenario) {
+      const target = scenarios.find((sc) => sc.id === state.scenario);
+      if (!target || target.status !== "ready") {
+        setLinkError(`that link points at unknown or not-yet-ready scenario '${state.scenario}'. Showing the default view instead.`);
+        return;
+      }
+      setScenarioId(state.scenario);
+    }
+    setView("replay");
+    setDeepLink(state);
+  }, []);
   const [actions, setActions] = useState<A2uiClientAction[]>([]);
   const [themeName, setThemeName] = useState<ThemeName>("default");
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -285,8 +438,17 @@ export function Studio() {
       <header style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>dspack-studio</h1>
         <p style={{ fontSize: 14, opacity: 0.75, margin: "6px 0 0" }}>
-          An agent builds interfaces under a design-system contract — streamed over AG-UI as A2UI
+          An agent builds interfaces under a design-system contract, streamed over AG-UI as A2UI
           surfaces, rendered with Astryx. Replay it, run it live, rewind it. Nothing here is staged.
+        </p>
+        <p style={{ fontSize: 13, margin: "8px 0 0" }}>
+          <button
+            data-testid="tour-start"
+            onClick={() => startTour(0)}
+            style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+          >
+            {tourOffered ? "first time here? take the one-minute tour" : "guided tour"}
+          </button>
         </p>
       </header>
 
@@ -325,7 +487,19 @@ export function Studio() {
         </button>
       </div>
 
-      {view === "replay" && scenario && <ReplayPane key={scenario.id} scenario={scenario} />}
+      {linkError && (
+        <p data-testid="link-error" role="alert" style={{ fontSize: 13, color: "#b91c1c", margin: "0 0 12px" }}>
+          {linkError}
+        </p>
+      )}
+      {view === "replay" && scenario && (
+        <ReplayPane
+          key={`${scenario.id}${deepLink ? `:linked:${tourStep ?? "url"}` : ""}`}
+          scenario={scenario}
+          deepLink={deepLink}
+          onLinkError={(msg) => setLinkError(`that link did not fully resolve: ${msg}. Showing the scenario's default recording instead.`)}
+        />
+      )}
       {view === "live" && scenario && <LiveView key={scenario.id} scenario={scenario} />}
       {view === "break" && <BreakView />}
       {view === "canvas" && (
@@ -366,6 +540,14 @@ export function Studio() {
           </section>
         </>
       )}
+      {tourStep !== null && <TourBar step={tourStep} onStep={(n) => startTour(n)} onDone={endTour} />}
+      <footer style={{ marginTop: 40, paddingTop: 16, borderTop: "1px solid #e2e8f0", fontSize: 12, color: "#475569" }}>
+        <p style={{ margin: 0 }}>
+          dspack-studio demonstrates the open ecosystem only: dspack, dspack-gen, dspack-emit, AG-UI, A2UI, and
+          Astryx. Aesthetic Function's proprietary reconciliation technology is not included and is not demonstrated
+          here. Curated recordings are real runs; each carries its provenance and its receipt.
+        </p>
+      </footer>
     </main>
   );
 }

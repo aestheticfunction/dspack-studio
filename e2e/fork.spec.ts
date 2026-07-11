@@ -16,7 +16,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("fork is refused before any surface exists, allowed after the delivery", async ({ page }) => {
-  // Playhead starts at -1: nothing has happened yet.
+  // Rewind to before anything happened: nothing to fork yet.
+  await page.getByTestId("scrubber").focus();
+  await page.keyboard.press("Home");
   await expect(page.getByTestId("fork")).toBeDisabled();
   // Scrub to a pre-delivery event: still no application state.
   await page.getByRole("button", { name: "jump to event 3: dspack.gates" }).click();

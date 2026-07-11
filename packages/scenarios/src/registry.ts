@@ -50,7 +50,7 @@ export const scenarios: Scenario[] = [
       {
         key: "refusal",
         label: "the emitter refuses",
-        blurb: "Lint-clean surface uses a component the protocol profile cannot project — the pipeline refuses, with receipts.",
+        blurb: "Lint-clean surface uses a component the protocol profile cannot project: the pipeline refuses, with receipts.",
         fixture: fixture003,
       },
     ],
@@ -68,7 +68,7 @@ export const scenarios: Scenario[] = [
   {
     id: "support-triage",
     name: "Support-ticket triage",
-    tagline: "Collections choose tables; status becomes badges — component choice at scale.",
+    tagline: "Collections choose tables; status becomes badges: component choice at scale.",
     intent: "record-collection",
     status: "planned",
     needs: ["contract intent + rules (owner-authored)", "recorded fixtures"],
@@ -88,7 +88,7 @@ export const scenarios: Scenario[] = [
         key: "generated-live",
         label: "generated, then booked",
         blurb:
-          "A real model generates the booking surface under the scheduling intent; the enhancement grounds it, a slot is held, the booking confirms — every round-trip recorded.",
+          "A real model generates the booking surface under the scheduling intent; the enhancement grounds it, a slot is held, the booking confirms. Every round-trip is recorded.",
         fixture: fixture005,
       },
     ],
@@ -106,7 +106,7 @@ export const scenarios: Scenario[] = [
         key: "generated-cooked",
         label: "generated, then co-edited",
         blurb:
-          "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps rows onto the generated table; regenerate cycles the dish — every round-trip recorded.",
+          "A real model generates the recipe surface under the structured-editing intent; the enhancement grounds its input, status, and buttons; applying 'vegetarian' swaps rows onto the generated table; regenerate cycles the dish. Every round-trip is recorded.",
         fixture: fixture006,
       },
     ],
@@ -114,7 +114,7 @@ export const scenarios: Scenario[] = [
   {
     id: "hotel-reservations",
     name: "Hotel reservations",
-    tagline: "Search, compare, reserve — once the contract carries the vocabulary for it.",
+    tagline: "Search, compare, reserve, once the contract carries the vocabulary for it.",
     intent: "transactional-review",
     status: "planned",
     needs: ["contract expansion (components + intent, owner-authored)", "recorded fixtures"],

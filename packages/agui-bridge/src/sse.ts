@@ -23,3 +23,14 @@ export function createSseEncoder(acceptHeader?: string): SseEncoder {
     encode: (event) => encoder.encodeSSE(event),
   };
 }
+
+/**
+ * FM-9 (the wire): protobuf re-encoding of a single event, for the studio's
+ * wire view. This is an HONEST RE-ENCODING for display — recorded fixtures
+ * and the local agent's default transport are SSE JSON; the bytes shown are
+ * what the same event WOULD be as an AG-UI protobuf frame.
+ */
+export function encodeEventBinary(event: BaseEvent): Uint8Array {
+  const encoder = new EventEncoder({ accept: "application/vnd.ag-ui.event+proto" });
+  return encoder.encodeBinary(event);
+}

@@ -15,6 +15,10 @@ export default defineConfig({
   retries: 0,
   use: {
     baseURL: "http://localhost:3311",
+    // Deterministic CI: the homepage is alive by default (auto-plays the
+    // first recording); under reduced motion it jumps to the finished
+    // surface instead, which is also the stable state tests start from.
+    contextOptions: { reducedMotion: "reduce" },
   },
   webServer: [
     {

@@ -214,6 +214,7 @@ export function LiveView({ scenario }: { scenario: Scenario }) {
           live
           resetKey={`run-${runSeq}`}
           label={`live run — ${lastRun?.modelRef ?? modelRef}, ${live.events.length} events`}
+          meta={{ mode: (lastRun?.modelRef ?? modelRef) === "scripted" || (lastRun?.modelRef ?? modelRef) === "deterministic:authored" ? "scripted" : "live", adapterId: lastRun?.modelRef ?? modelRef, prompt: lastRun?.prompt }}
           onAction={
             interactive
               ? (a: any) => {

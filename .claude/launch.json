@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "studio-static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["e2e/serve-static.mjs"],
+      "port": 3311
+    },
+    {
+      "name": "agent",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "agent", "dev"],
+      "port": 8787
+    }
+  ]
+}

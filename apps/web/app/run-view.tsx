@@ -18,16 +18,22 @@ import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { astryxRegistry } from "@dspack-studio/astryx-renderers";
 import {
   a2uiMessagesAt,
+  findingsAt,
   gateFailed,
   gateStateAt,
+  nodeHistoryAt,
   timelineTicks,
+  toContractId,
   unforkableReason,
   type FixtureEvent,
   type TimelineTick,
 } from "@dspack-studio/replay";
+import type { ReceiptMeta } from "@dspack-studio/replay";
 import catalogJson from "@dspack-studio/contracts/out/catalog.v0_9_1.json";
 import { Inspector } from "./inspector";
-import { WireView } from "./wire-view";
+import { ReceiptView } from "./receipt-view";
+import { PipelineView } from "./pipeline-view";
+import { TheWire } from "./the-wire";
 
 const TICK_COLOR: Record<TimelineTick["kind"], string> = {
   lifecycle: "#64748b",
@@ -57,9 +63,18 @@ export interface RunViewProps {
   onAction?: (action: any) => void;
   /** FM-3: fork the run at the current playhead (host creates the new run). */
   onFork?: (playhead: number) => void;
+  /** FM-12: session provenance stamped onto the audit receipt. */
+  meta?: ReceiptMeta;
+  /** Deep link: applied once per resetKey (playhead, x-ray, opened panel). */
+  initial?: { playhead?: number; xray?: boolean; panel?: "receipt" | "wire" | "pipeline" };
+  /** Builds a shareable URL for the current moment (replay pane only). */
+  permalink?: (playhead: number, xray: boolean) => string;
+  /** Alive by default: auto-play the recording on first render (falls back
+   * to jumping to the end under prefers-reduced-motion). */
+  autoStart?: boolean;
 }
 
-export function RunView({ events, label, streaming = false, live = false, resetKey, onAction, onFork }: RunViewProps) {
+export function RunView({ events, label, streaming = false, live = false, resetKey, onAction, onFork, meta, initial, permalink, autoStart = false }: RunViewProps) {
   const source = useMemo(() => ({ events }), [events]);
   const ticks = useMemo(() => timelineTicks(source), [source]);
   const last = events.length - 1;
@@ -67,14 +82,25 @@ export function RunView({ events, label, streaming = false, live = false, resetK
   const [playhead, setPlayhead] = useState(-1);
   const [playing, setPlaying] = useState(false);
   const [follow, setFollow] = useState(true);
+  const [xray, setXray] = useState(false);
+  const [xrayNode, setXrayNode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // New run (fixture switch or a fresh live run): reset. Follow is on for
   // live-originated runs; replayed fixtures start at the beginning.
   useEffect(() => {
-    setPlayhead(-1);
+    const start = initial?.playhead !== undefined && initial.playhead <= last ? initial.playhead : -1;
+    setPlayhead(start);
     setPlaying(false);
-    setFollow(live);
+    setFollow(live && start === -1);
+    if (initial?.xray) setXray(true);
+    if (autoStart && start === -1 && last >= 0) {
+      // Watching software build itself is the first impression; visitors who
+      // prefer reduced motion get the finished surface instead of playback.
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) setPlayhead(last);
+      else setPlaying(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
 
@@ -115,12 +141,31 @@ export function RunView({ events, label, streaming = false, live = false, resetK
   const gates = useMemo(() => gateStateAt(source, playhead), [source, playhead]);
   const current = playhead >= 0 && playhead <= last ? events[playhead] : null;
 
+  // FM-4 X-ray: pixels-to-protocol provenance as a canvas interaction.
+  const history = useMemo(() => (xray ? nodeHistoryAt(source, playhead) : new Map()), [xray, source, playhead]);
+  const findings = useMemo(() => (xray ? findingsAt(source, playhead) : []), [xray, source, playhead]);
+  // Reverse direction: when the playhead sits ON a delivery, its components
+  // light up on the canvas (explicit: read off that event's operations).
+  const deliveredNow = useMemo(() => {
+    if (!xray || !current || (current.event as any).type !== "TOOL_CALL_RESULT") return [];
+    try {
+      const ops = JSON.parse(String((current.event as any).content ?? "")).a2ui_operations ?? [];
+      return ops.flatMap((op: any) => (op?.updateComponents?.components ?? []).map((c: any) => c.id)).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }, [xray, current]);
+  const selected = xrayNode ? history.get(xrayNode) : undefined;
+  const selectedRules = selected
+    ? findings.filter((f) => f.location?.component && f.location.component === toContractId(selected.component))
+    : [];
+
   const failed = gates.audit && gates.audit.outcome !== "passed";
   const refusal = failed ? ((gates.audit?.report as any)?.emitted?.refusal as string | undefined) : undefined;
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10, fontSize: 13 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10, fontSize: 13, flexWrap: "wrap" }}>
         {!streaming && (
           <button
             data-testid="play"
@@ -145,6 +190,40 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         <span style={{ opacity: 0.7 }} data-testid="fixture-meta">
           {label}
         </span>
+        <button
+          data-testid="xray-toggle"
+          aria-pressed={xray}
+          onClick={() => {
+            setXray(!xray);
+            setXrayNode(null);
+          }}
+          style={{
+            padding: "6px 14px",
+            borderRadius: 8,
+            border: "1px solid #cbd5e1",
+            background: xray ? "#0f172a" : "transparent",
+            color: xray ? "#fff" : "inherit",
+            cursor: "pointer",
+            font: "inherit",
+          }}
+        >
+          x-ray
+        </button>
+        {permalink && !streaming && (
+          <button
+            data-testid="copy-link"
+            onClick={() => {
+              const url = permalink(playhead, xray);
+              void navigator.clipboard?.writeText(url).catch(() => {});
+              window.history.replaceState(null, "", url);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #cbd5e1", cursor: "pointer", font: "inherit" }}
+          >
+            {copied ? "link copied" : "copy link to this moment"}
+          </button>
+        )}
         {onFork && !streaming && (() => {
           const reason = unforkableReason(source, playhead);
           return (
@@ -265,7 +344,33 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         </section>
       )}
 
-      <section data-canvas style={{ border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24, minHeight: 220 }}>
+      {/* X-ray outlines: hoverable nodes, the selected node, and (reverse
+          direction) the components the CURRENT delivery event carried. */}
+      {xray && (
+        <style>{`
+          [data-xray] [data-a2ui-id] { cursor: crosshair; }
+          [data-xray] [data-a2ui-id]:hover { outline: 2px dashed #0f172a; outline-offset: 2px; }
+          ${xrayNode ? `[data-xray] [data-a2ui-id="${xrayNode}"] { outline: 2px solid #0f172a; outline-offset: 2px; }` : ""}
+          ${deliveredNow.map((id: string) => `[data-xray] [data-a2ui-id="${id}"] { outline: 2px solid #8b5cf6; outline-offset: 2px; }`).join("\n")}
+        `}</style>
+      )}
+      <section
+        data-canvas
+        data-xray={xray || undefined}
+        onClickCapture={
+          xray
+            ? (e) => {
+                const el = (e.target as HTMLElement).closest("[data-a2ui-id]");
+                if (el) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setXrayNode(el.getAttribute("data-a2ui-id"));
+                }
+              }
+            : undefined
+        }
+        style={{ border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24, minHeight: 220 }}
+      >
         {messages.length > 0 ? (
           // Keyed on the delivery count: each new A2UI delivery remounts the
           // canvas with a fresh processor, so bound values are re-resolved
@@ -301,10 +406,94 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         )}
       </section>
 
+      {/* FM-4 provenance card: pixels to protocol for the selected node. */}
+      {xray && (
+        <section
+          data-testid="xray-card"
+          aria-live="polite"
+          style={{ border: "1px solid #0f172a", borderRadius: 12, padding: "12px 16px", marginTop: 12, fontSize: 12, display: "grid", gap: 6 }}
+        >
+          {!selected && (
+            <p style={{ margin: 0 }}>
+              X-ray is on: click any rendered element to trace it to the event, catalog entry, and rules that shaped
+              it. A delivery event at the playhead lights its components in violet.
+            </p>
+          )}
+          {selected && (
+            <>
+              <div>
+                <strong>
+                  <code>{selected.nodeId}</code>
+                </strong>{" "}
+                is an A2UI <code>{selected.component}</code> node, admitted by the Astryx catalog (contract component{" "}
+                <code>{toContractId(selected.component)}</code>) and rendered by the registered Astryx renderer.
+              </div>
+              <div data-testid="xray-created">
+                created by{" "}
+                <button
+                  onClick={() => {
+                    setPlaying(false);
+                    setFollow(false);
+                    setPlayhead(selected.createdAt);
+                  }}
+                  style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                >
+                  event {selected.createdAt}
+                </button>
+                {selected.updatedAt.length > 0 && (
+                  <>
+                    {" "}
+                    · updated by{" "}
+                    {selected.updatedAt.map((i: number, n: number) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setPlaying(false);
+                          setFollow(false);
+                          setPlayhead(i);
+                        }}
+                        style={{ font: "inherit", border: "none", background: "none", color: "#075985", cursor: "pointer", padding: 0, textDecoration: "underline", marginRight: 4 }}
+                      >
+                        event {i}
+                        {n < selected.updatedAt.length - 1 ? "," : ""}
+                      </button>
+                    ))}
+                  </>
+                )}{" "}
+                <span style={{ opacity: 0.65 }}>(explicit: read off the A2UI operations)</span>
+              </div>
+              <div data-testid="xray-rules">
+                {selectedRules.length > 0 ? (
+                  <>
+                    rules concerning <code>{toContractId(selected.component)}</code> in this run:{" "}
+                    {selectedRules.map((f, i) => (
+                      <span key={i}>
+                        <code>{f.ruleId}</code> ("{f.message}"){i < selectedRules.length - 1 ? "; " : ""}
+                      </span>
+                    ))}{" "}
+                    <span style={{ opacity: 0.65 }}>
+                      (inferred by component type: findings cite surface locations, not rendered node ids)
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ opacity: 0.65 }}>no recorded findings reference this component type in this run</span>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       <Inspector source={source} playhead={playhead} />
 
-      {/* FM-9: which pipeline layers the playhead event actually touches. */}
-      <WireView current={current} playhead={playhead} />
+      {/* FM-12: the run's evidence, downloadable and verifiable. */}
+      {gates.audit && <ReceiptView source={source} meta={meta} defaultOpen={initial?.panel === "receipt"} />}
+
+      {/* Pipeline view: which layers the playhead event actually touches. */}
+      <PipelineView current={current} playhead={playhead} defaultOpen={initial?.panel === "pipeline"} />
+
+      {/* FM-9: the actual protocol session, raw and re-encodable. */}
+      <TheWire events={events} playhead={playhead} live={streaming} defaultOpen={initial?.panel === "wire"} />
 
       {/* You-are-here: the raw wire event at the playhead. */}
       {current && (

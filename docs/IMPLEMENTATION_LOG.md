@@ -708,3 +708,66 @@ Validation: frozen-lockfile install; typecheck clean; 51 unit tests;
 (3 gated live/bench skips) including new wire-view, fixture-006,
 fork-continue, and fork/wire a11y coverage (contrast fixes on the new
 controls). Deterministic CI stays Ollama-independent.
+
+## Plan-conformance block: FM-12, permalinks, tour, X-ray, the wire, branch compare (2026-07-11) — COMPLETE
+
+Merged-state verified first (emit PR #20, gen PR #42 on their mains, CI
+green, all sync copies byte-identical, studio main clean).
+
+Plan-conformance review found five user-facing gaps behind the plumbing
+(a reducer or inspector tab is not a moment): FM-12 was display-only, no
+permalinks, no tour, FM-4 was an inspector tab rather than a canvas
+interaction, and FM-9's stage-flow panel was not the raw wire. All five
+closed this block:
+
+- FM-12: receipt.ts in packages/replay — receiptVersion 1, canonical
+  byte-match boundary defined precisely (stable-stringify of {intent,
+  prompt, report} MINUS report.createdAt and report.timings; session
+  identity displayed but unhashed), sha256 anchor, verifyReceipt with
+  match / MISMATCH / invalid(reason) — never silent. ReceiptView panel:
+  attempts, findings, repairs, warnings, gates per A2UI version, adapter,
+  contract digest, schema hash, provenance, download, verify-a-file.
+  e2e proves the downloaded hash equals an independent recomputation from
+  the fixture file, and cross-run receipts mismatch loudly.
+- Permalinks: hash-based (static-safe) #s=&f=&e=&panel=&x= plus
+  fork=parentKey@index (forks of bundled fixtures reconstruct
+  deterministically; imported sessions are deliberately not linkable and
+  the UI says so). Copy-link writes the URL; reload reconstructs scenario,
+  recording, moment, x-ray, and open panel; malformed/unknown links fail
+  with the reason and fall back to a working default.
+- Guided tour: four steps on fixture-001 (argue-back moment, time travel,
+  x-ray, receipt) driving the SAME deep-link mechanism as permalinks —
+  every step is a reachable real state; dismissible, restartable,
+  keyboard-operable, motion-free by construction, never blocks.
+- FM-4 X-ray: canvas interaction — toggle, click any rendered node,
+  provenance card (A2UI id, catalog/contract component, renderer,
+  creating/updating events with timeline jumps, marked EXPLICIT) and rule
+  findings matched by component type (marked INFERRED — findings cite
+  surface locations, not node ids); reverse direction: a delivery event at
+  the playhead washes its components violet.
+- FM-9 resolved into two honest panels: the stage-flow visualization is
+  now the Pipeline View (renamed, same behavior), and THE WIRE is new:
+  raw ordered AG-UI events with expandable JSON, the real content types
+  (recorded fixture = JSON document; live transport text/event-stream),
+  and per-event protobuf frames explicitly labeled as a RE-ENCODED VIEW
+  of the same events (bridge gained encodeEventBinary).
+- FM-3 branch compare: original vs fork side by side at their own endings
+  (events, component counts, final data models, disagreeing state paths);
+  two branches plainly labeled, no graph.
+
+RC pass: alive by default (the homepage recording auto-plays; reduced
+motion lands on the finished surface instead — Playwright emulates
+reduced motion so CI stays deterministic), scope-boundary footer (open
+ecosystem only; proprietary reconciliation not included), em-dash sweep
+of public copy, controls wrap on narrow viewports (375px verified).
+
+Validation: frozen lockfile, typecheck clean, 55 unit tests (45 pkg +
+10 agent), 6/6 A2UI gates, drift + sync clean, static export, 56
+Playwright + 3 gated skips (incl. new receipts, permalinks,
+tour/x-ray/wire, alive, a11y).
+
+Still deferred by plan/owner: FM-10 swap, FM-11 take-it-home, new
+scenarios, hosted inference, A2UI 1.0 renderer, OG cards + analytics +
+domain (owner-gated launch items), conversation-rail narration (the
+pipeline emits no TEXT_MESSAGE; synthesizing narration would violate
+honest-magic — gate ticker + finding cards + tour carry the story).
