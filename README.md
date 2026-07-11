@@ -1,10 +1,13 @@
 # dspack-studio
 
-dspack-studio is the flagship experience for the open AI-native frontend ecosystem: an AI agent builds interfaces under a design-system contract, streamed over AG-UI as A2UI surfaces, rendered with Astryx. Rewind it, fork it, break it, X-ray it. Every gate, repair, and audit is inspectable.
+The design system governs what the agent ships. An agent proposes an interface; the design system checks it; invalid patterns are explained and repaired, with the rule and its written rationale on the record. dspack-studio is the flagship experience for the open AI-native frontend ecosystem: generation under a dspack contract, streamed over AG-UI as A2UI surfaces, rendered with Astryx. Rewind it, fork it, break it, X-ray it. Every gate, repair, and audit is inspectable.
 
 Status: MVP experience assembled — replayable recorded runs, live governed
 generation, imported sessions, an interactive appointment-booking scenario,
-a deterministic recipe co-editor, Break-it Mode, and progressive inspectors.
+a recipe co-editor with real ingredients and instructions, Break-it Mode
+(with recorded catches when no agent is running), and progressive
+inspectors. See [docs/AUDIT.md](docs/AUDIT.md) for the plan-vs-implementation
+map.
 
 ## Try it
 
@@ -30,9 +33,15 @@ static export (zero model calls).
   scrubbable and downloadable as a session fixture.
 - **Import a session** someone else downloaded; it replays identically.
 - **Book an appointment / co-edit a recipe**: human-in-the-loop actions with
-  correlation ids, validated shared state, recoverable rejections.
+  correlation ids, validated shared state, recoverable rejections. The recipe
+  is a real recipe — ingredients and numbered instructions — and a dietary
+  constraint rewrites the matching steps, not just the table.
 - **Break it on purpose**: pick a failure condition and watch the pipeline
-  catch, repair, or refuse — with receipts.
+  catch, repair, or refuse — with receipts. Without the local agent, the
+  conditions with an equivalent recorded real run replay it, labeled as a
+  recorded catch; the rest say plainly that they need the agent.
+- **Restyle it**: spin one governed surface through the Astryx themes. The
+  structure, events, and audit do not change; only the theme does.
 
 ## The pipeline
 
@@ -71,8 +80,7 @@ RUNTIME (browser)
 | `packages/astryx-renderers` | Catalog names mapped to Astryx components |
 | `packages/agui-bridge` | Pipeline events mapped to AG-UI events |
 | `packages/contracts` | The astryx dspack contract, catalog emission, drift check |
-| `packages/replay` | Recorded-run fixtures, recorder, timeline player |
-| `packages/provenance` | Event-log indexing for X-ray |
+| `packages/replay` | Recorded-run fixtures, recorder, timeline player, X-ray event-log indexing |
 | `packages/scenarios` | Scenario configs: prompts, break-it prompts, fixtures |
 
 ## What this is not
