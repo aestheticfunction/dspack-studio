@@ -8,7 +8,7 @@
  * with what they are waiting on, stated honestly.
  */
 import { useEffect, useState } from "react";
-import { capabilitiesByScenario, readyScenarios, resolveAction, scenarios, type Scenario } from "@dspack-studio/scenarios";
+import { breakConditions, capabilitiesByScenario, readyScenarios, resolveAction, scenarios, type Scenario } from "@dspack-studio/scenarios";
 import { dataModelAt, forkFixture, importFixture, parseFixture, surfaceComponentsAt, MAX_IMPORT_BYTES, type ReplayFixture } from "@dspack-studio/replay";
 import { dispatchAction } from "./action-dispatch";
 import { buildPermalink, parsePermalink, type PermalinkState } from "./permalink";
@@ -448,6 +448,7 @@ export function Studio() {
       setLinkError(`that link did not parse: ${error}. Showing the studio's default view instead.`);
       return;
     }
+    let linkScenario = readyScenarios[0];
     if (state.scenario) {
       const target = scenarios.find((sc) => sc.id === state.scenario);
       if (!target || target.status !== "ready") {
@@ -455,9 +456,24 @@ export function Studio() {
         return;
       }
       setScenarioId(state.scenario);
+      linkScenario = target;
     }
-    setView("replay");
-    setDeepLink(state);
+    // The scenario always wins: a break condition that does not belong to the
+    // named scenario never drags the scenario along — the view opens on the
+    // scenario's own valid default, with the mismatch stated.
+    let breakCondition = state.breakCondition;
+    if (state.view === "break" && breakCondition) {
+      const condition = breakConditions.find((c) => c.id === breakCondition);
+      if (!condition) {
+        setLinkError(`that link did not fully resolve: there is no failure condition '${breakCondition}'. Showing this scenario's conditions instead.`);
+        breakCondition = undefined;
+      } else if (!(condition.scenarioIndependent || condition.scenarioId === linkScenario?.id)) {
+        setLinkError(`that link did not fully resolve: '${breakCondition}' is not a failure condition for ${linkScenario?.name}. Showing this scenario's conditions instead.`);
+        breakCondition = undefined;
+      }
+    }
+    setView(state.view ?? "replay");
+    setDeepLink({ ...state, breakCondition });
   }, []);
   const scenario = scenarios.find((s) => s.id === scenarioId) ?? readyScenarios[0];
 
@@ -600,7 +616,14 @@ export function Studio() {
         />
       )}
       {view === "live" && scenario && <LiveView key={scenario.id} scenario={scenario} />}
-      {view === "break" && scenario && <BreakView key={scenario.id} scenario={scenario} />}
+      {view === "break" && scenario && (
+        <BreakView
+          key={scenario.id}
+          scenario={scenario}
+          initialConditionId={deepLink?.view === "break" ? deepLink.breakCondition : undefined}
+          initial={deepLink?.view === "break" ? { playhead: deepLink.event, xray: deepLink.xray, panel: deepLink.panel } : undefined}
+        />
+      )}
       {view === "canvas" && scenario && <RestyleView scenario={scenario} />}
       {/* Orientation, below the primary experience: the approved pipeline
           language and the existing capabilities, stated once, compactly. */}

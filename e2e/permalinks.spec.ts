@@ -38,6 +38,55 @@ test("copy-link writes the URL and a reload reconstructs the same moment", async
   await expect(page.getByTestId("xray-card")).toBeVisible();
 });
 
+test("an operation deep link opens the named view on the named scenario", async ({ page }) => {
+  await page.goto("/#s=appointment-booking&v=break&bc=ambiguous-action");
+  await expect(page.getByTestId("break-expected")).toContainText("studio.action.unresolved");
+  // The scenario is the named one: its tagline is on screen.
+  await expect(page.locator("main")).toContainText("Human-in-the-loop, live");
+});
+
+test("a cross-axis mismatch keeps the scenario and lands on its valid default", async ({ page }) => {
+  // no-alertdialog belongs to project-deletion; the link names recipe-creator.
+  // The scenario always wins: the condition never drags the scenario along.
+  await page.goto("/#s=recipe-creator&v=break&bc=no-alertdialog");
+  await expect(page.getByTestId("link-error")).toContainText("not a failure condition for Recipe creator");
+  await expect(page.getByTestId("break-invalid-state")).toBeVisible();
+  await expect(page.getByTestId("break-no-alertdialog")).toHaveCount(0);
+  await expect(page.getByTestId("break-expected")).toContainText("studio.action.rejected");
+});
+
+test("an unknown view fails clearly and falls back to replay", async ({ page }) => {
+  await page.goto("/#v=telepathy");
+  await expect(page.getByTestId("link-error")).toContainText("unknown view 'telepathy'");
+  await expect(page.getByTestId("fixture-meta")).toBeVisible(); // default view still works
+});
+
+test("a restyle deep link opens the theme dial", async ({ page }) => {
+  await page.goto("/#s=appointment-booking&v=canvas");
+  await expect(page.getByTestId("fm5-caption")).toBeVisible();
+});
+
+test("copy-link from a recorded catch round-trips through a reload", async ({ page }) => {
+  // Agent blocked: the recorded catch is the offline break experience.
+  await page.route("http://localhost:8787/**", (r) => r.abort());
+  await page.route("http://127.0.0.1:8787/**", (r) => r.abort());
+  await page.goto("/");
+  await page.getByTestId("scenario-project-deletion").click();
+  await page.getByTestId("view-break").click();
+  await expect(page.getByTestId("break-recorded-note")).toBeVisible();
+  await page.getByTestId("scrubber").focus();
+  await page.keyboard.press("End");
+  await page.getByTestId("copy-link").click();
+  const hash = await page.evaluate(() => location.hash);
+  expect(hash).toContain("s=project-deletion");
+  expect(hash).toContain("v=break");
+  expect(hash).toContain("bc=no-alertdialog");
+
+  await page.reload();
+  await expect(page.getByTestId("break-recorded-note")).toBeVisible();
+  await expect(page.getByTestId("audit-outcome")).toContainText("passed"); // the linked moment is the run's ending
+});
+
 test("malformed and unknown links fail clearly and fall back", async ({ page }) => {
   await page.goto("/#s=project-deletion&e=banana");
   await expect(page.getByTestId("link-error")).toContainText("did not parse");

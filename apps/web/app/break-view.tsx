@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { breakConditions, capabilitiesByScenario, resolveAction, scenarios, type BreakCondition, type Scenario } from "@dspack-studio/scenarios";
 import { importFixture, parseFixture, surfaceComponentsAt } from "@dspack-studio/replay";
+import { buildPermalink } from "./permalink";
 import { useLiveRun } from "./use-live-run";
 import { RunView } from "./run-view";
 import { btnClass } from "./ui";
@@ -21,7 +22,16 @@ const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
  * the active scenario's conditions (plus scenario-independent demonstrations)
  * are offered — a condition never switches the scenario.
  */
-export function BreakView({ scenario, initialConditionId }: { scenario: Scenario; initialConditionId?: string }) {
+export function BreakView({
+  scenario,
+  initialConditionId,
+  initial,
+}: {
+  scenario: Scenario;
+  initialConditionId?: string;
+  /** Deep link: applied to the recorded catch (playhead, x-ray, panel). */
+  initial?: { playhead?: number; xray?: boolean; panel?: "receipt" | "wire" | "pipeline" };
+}) {
   const live = useLiveRun(AGENT_URL);
   const conditions = useMemo(
     () => breakConditions.filter((c) => c.scenarioIndependent || c.scenarioId === scenario.id),
@@ -182,7 +192,19 @@ export function BreakView({ scenario, initialConditionId }: { scenario: Scenario
           events={recordedCatch.fixture.events}
           resetKey={`break-recorded-${conditionId}`}
           label={`recorded catch · ${recordedCatch.fixture.name}, ${recordedCatch.fixture.mode} run, ${recordedCatch.fixture.adapterId}, ${recordedCatch.fixture.events.length} events`}
-          autoStart
+          autoStart={!initial}
+          initial={initial}
+          permalink={(playhead, xrayOn) =>
+            location.origin +
+            location.pathname +
+            buildPermalink({
+              scenario: scenario.id,
+              view: "break",
+              breakCondition: condition.id,
+              event: playhead >= 0 ? playhead : undefined,
+              xray: xrayOn || undefined,
+            })
+          }
         />
       ) : (
         live.events.length > 0 && (
