@@ -23,7 +23,27 @@ import { RunView } from "./run-view";
 const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
+import { useAgentStatus } from "./use-agent-status";
 import { btnClass, linkClass } from "./ui";
+
+/** One plain sentence of context per view, shown under the switcher. */
+function viewHelp(view: "replay" | "live" | "break" | "canvas", agentOnline: boolean | null): string {
+  const offline = agentOnline === false;
+  switch (view) {
+    case "replay":
+      return "Recorded real runs, replayed from their event streams. Works everywhere, no setup.";
+    case "live":
+      return offline
+        ? "Streams a new run from an agent on your machine. The local agent is offline; start it: pnpm --filter agent dev. Replay works without it."
+        : "Streams a new run from an agent on your machine. No credentials pass through the browser.";
+    case "break":
+      return offline
+        ? "Deliberate failures, caught and explained by the same pipeline. The local agent is offline: recorded catches replay here; the rest needs it."
+        : "Deliberate failures, caught and explained by the same pipeline. Deterministic variants are labeled scripted; live variants run a local model.";
+    case "canvas":
+      return "One governed surface, restyled by the design system's themes. The structure never changes.";
+  }
+}
 
 /** AF eyebrow: mono micro-label with the 22px green rule (af.css .eyebrow). */
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -81,7 +101,7 @@ function BranchCompare({ parent, fork }: { parent: { name: string; events: any[]
           Both branches share history up to event {fork.fork?.forkIndex}; everything after is each branch's own. The
           states below are each branch's ending.
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="st-cols-2">
           {sides.map((side, i) => (
             <div key={side.key} data-testid={`branch-${side.key}`} style={{ border: "1px dashed var(--line)", borderRadius: 4, padding: 10, minWidth: 0 }}>
               <strong style={{ display: "block", marginBottom: 6 }}>{side.label}</strong>
@@ -126,7 +146,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
   const handleFile = async (file: File) => {
     setImportError(null);
     if (file.size > MAX_IMPORT_BYTES) {
-      setImportError(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB — fixtures are small JSON documents (limit 5 MB)`);
+      setImportError(`"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB: fixtures are small JSON documents (limit 5 MB)`);
       return;
     }
     const result = importFixture(await file.text(), file.size);
@@ -312,8 +332,8 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
             className={linkClass}
           >
             download this fork
-          </button>{" "}
-          — it reopens like any session file, provenance included.
+          </button>
+          ; it reopens like any session file, provenance included.
           {scenario.interactive && continuingId !== selectedFork.id && (
             <>
               {" "}
@@ -323,13 +343,13 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
                 className={linkClass}
               >
                 continue this fork
-              </button>{" "}
-              — the agent rebuilds its state from the prefix (deterministic responders), then your next actions
+              </button>
+              ; the agent rebuilds its state from the prefix (deterministic responders), then your next actions
               diverge the branch for real.
             </>
           )}
           {continuingId === selectedFork.id && (
-            <em data-testid="fork-continuing"> — continuation active: act on the surface to grow this branch.</em>
+            <em data-testid="fork-continuing"> · continuation active: act on the surface to grow this branch.</em>
           )}
         </p>
       )}
@@ -347,7 +367,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
       )}
       {!ref && !selectedFork && imported && (
         <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 14px" }}>
-          Imported session — recorded {imported.recordedAt || "(unknown time)"}, prompt: “{imported.prompt || "—"}”. Drag another
+          Imported session · recorded {imported.recordedAt || "(unknown time)"}, prompt: “{imported.prompt || "(none)"}”. Drag another
           file anywhere here to replace it.
         </p>
       )}
@@ -357,8 +377,8 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
           resetKey={ref ? `${scenario.id}:${ref.key}` : selectedFork ? selectedFork.id : `imported-${importSeq}`}
           label={
             selectedFork
-              ? `⑂ ${fixture.name} — ${fixture.mode} run, ${fixture.events.length} events`
-              : `${fixture.name} — ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`
+              ? `⑂ ${fixture.name} · ${fixture.mode} run, ${fixture.events.length} events`
+              : `${fixture.name} · ${fixture.mode} run, ${fixture.adapterId}, ${fixture.events.length} events${ref ? "" : " (imported)"}`
           }
           onFork={handleFork}
           meta={{ id: fixture.id, name: fixture.name, mode: fixture.mode, adapterId: fixture.adapterId, intent: fixture.intent, prompt: fixture.prompt, recordedAt: fixture.recordedAt, fork: fixture.fork }}
@@ -386,7 +406,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
           onAction={selectedFork && continuingId === selectedFork.id ? continuationAction(selectedFork) : undefined}
         />
       ) : (
-        <p style={{ color: "var(--fg-dim)" }}>No recordings yet for this scenario — open a session file, or run it live and download one.</p>
+        <p style={{ color: "var(--fg-dim)" }}>No recordings yet for this scenario: open a session file, or run it live and download one.</p>
       )}
     </div>
   );
@@ -395,6 +415,10 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
 export function Studio() {
   const [scenarioId, setScenarioId] = useState(readyScenarios[0]?.id);
   const [view, setView] = useState<"replay" | "live" | "break" | "canvas">("replay");
+  // A planned scenario the visitor tapped: its "what it needs" line replaces
+  // the tagline until a ready scenario is chosen or it is tapped again.
+  const [revealedPlanned, setRevealedPlanned] = useState<string | null>(null);
+  const agentOnline = useAgentStatus(AGENT_URL);
   const [deepLink, setDeepLink] = useState<PermalinkState | undefined>();
   const [linkError, setLinkError] = useState<string | null>(null);
 
@@ -456,7 +480,7 @@ export function Studio() {
   );
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 48px" }}>
+    <main className="st-main" style={{ maxWidth: 900, margin: "0 auto" }}>
       <header style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", paddingBottom: 14, borderBottom: "1px solid var(--line-soft)", marginBottom: 16 }}>
           <img src="/af-mark.png" alt="" height={28} width={32} style={{ display: "block" }} />
@@ -492,12 +516,16 @@ export function Studio() {
             textWrap: "balance",
           }}
         >
-          dspack-studio is Aesthetic Function’s reference application for governed, inspectable AI-native interfaces.
+          The design system governs what the agent ships.
         </p>
         <p style={{ fontSize: 14, color: "var(--fg-body)", margin: "10px 0 0", maxWidth: 720, lineHeight: 1.55 }}>
-          An agent builds interfaces under a design-system contract, streams them over AG-UI as A2UI surfaces, and
-          renders them with Astryx. Replay the run, rewind it, fork it, break it, and inspect every gate, repair, and
-          receipt. Recorded and deterministic modes are labeled.
+          An agent proposes an interface. The design system checks it. Invalid patterns are explained and repaired,
+          with the rule and its written rationale on the record. The result can be replayed, rewound, forked,
+          restyled, and inspected, because its structure, its events, and its rules stay separate and visible.
+        </p>
+        <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "8px 0 0", maxWidth: 720, lineHeight: 1.55 }}>
+          dspack-studio is Aesthetic Function&apos;s reference application for governed generative interfaces. Every
+          curated recording is a real run; recorded and live modes are labeled.
         </p>
         <p style={{ fontSize: 13, margin: "10px 0 0" }}>
           <button data-testid="tour-start" onClick={() => startTour(0)} className={linkClass}>
@@ -506,41 +534,75 @@ export function Studio() {
         </p>
       </header>
 
-      {/* The scenario shelf. */}
+      {/* The scenario shelf. Planned scenarios are real buttons whose only
+          action is revealing what they are waiting on — reachable by touch
+          and keyboard, never mistakable for a working scenario. */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
         {scenarios.map((s) =>
           s.status === "ready" ? (
-            <button key={s.id} data-testid={`scenario-${s.id}`} className={btnClass(s.id === scenario?.id)} onClick={() => setScenarioId(s.id)}>
+            <button
+              key={s.id}
+              data-testid={`scenario-${s.id}`}
+              className={btnClass(s.id === scenario?.id)}
+              onClick={() => {
+                setRevealedPlanned(null);
+                setScenarioId(s.id);
+              }}
+            >
               {s.name}
             </button>
           ) : (
-            <span
+            <button
               key={s.id}
+              data-testid={`scenario-${s.id}`}
               title={`Planned. Needs: ${(s.needs ?? []).join("; ")}`}
               className={btnClass(false, true)}
-              style={{ color: "var(--fg-dim)", cursor: "help" }}
+              style={{ color: "var(--fg-dim)" }}
+              onClick={() => setRevealedPlanned((cur) => (cur === s.id ? null : s.id))}
             >
               {s.name} <em style={{ fontSize: 11 }}>(planned)</em>
-            </span>
+            </button>
           ),
         )}
       </div>
-      {scenario && <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 16px" }}>{scenario.tagline}</p>}
+      {revealedPlanned ? (
+        <p data-testid="planned-needs" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 16px" }}>
+          {(() => {
+            const p = scenarios.find((s) => s.id === revealedPlanned);
+            return p ? `${p.name} is planned, not built. It needs: ${(p.needs ?? []).join("; ")}.` : null;
+          })()}
+        </p>
+      ) : (
+        scenario && <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 16px" }}>{scenario.tagline}</p>
+      )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
         <button data-testid="view-replay" className={btnClass(view === "replay")} onClick={() => setView("replay")}>
           replay a recorded run
         </button>
-        <button data-testid="view-live" className={btnClass(view === "live")} onClick={() => setView("live")}>
-          run it live
+        <button
+          data-testid="view-live"
+          className={btnClass(view === "live")}
+          title={agentOnline === false ? "runs on a local agent; offline right now" : undefined}
+          onClick={() => setView("live")}
+        >
+          run it live{agentOnline === false && <span style={{ opacity: 0.7 }}> · offline</span>}
         </button>
-        <button data-testid="view-break" className={btnClass(view === "break")} onClick={() => setView("break")}>
-          break it on purpose
+        <button
+          data-testid="view-break"
+          className={btnClass(view === "break")}
+          title={agentOnline === false ? "recorded catches replay here; fresh runs need the local agent" : undefined}
+          onClick={() => setView("break")}
+        >
+          break it on purpose{agentOnline === false && <span style={{ opacity: 0.7 }}> · recorded</span>}
         </button>
         <button data-testid="view-canvas" className={btnClass(view === "canvas")} onClick={() => setView("canvas")}>
-          worked example + themes
+          restyle it
         </button>
       </div>
+      <p data-testid="view-help" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 20px", maxWidth: 720 }}>
+        {viewHelp(view, agentOnline)}
+      </p>
 
       {linkError && (
         <p data-testid="link-error" role="alert" style={{ fontSize: 13, color: "var(--err)", margin: "0 0 12px" }}>
@@ -589,10 +651,14 @@ export function Studio() {
             )}
           </section>
 
+          <p data-testid="fm5-caption" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "12px 0 0" }}>
+            Nothing about this interface changed. Only the design system&apos;s theme did.
+          </p>
+
           <section style={{ marginTop: 20, fontSize: 13, color: "var(--fg-dim)" }}>
             <strong>Dispatched actions</strong> (A2UI → host):{" "}
             {actions.length === 0 ? (
-              <em>none yet — press the confirm button in the dialog</em>
+              <em>none yet: press the confirm button in the dialog</em>
             ) : (
               <code>
                 {actions.map((a: any) => `${a?.name ?? "?"} (from ${a?.sourceComponentId ?? "?"})`).join(", ")}
@@ -605,6 +671,58 @@ export function Studio() {
           language and the existing capabilities, stated once, compactly. */}
       <section aria-label="how it works" style={{ marginTop: 44, fontSize: 12 }}>
         <Eyebrow>How it works</Eyebrow>
+        {/* The pipeline diagram: real text in DOM order, decorative bus SVG
+            below it (af-site's .dgm idiom). Collapses to a 2-up grid without
+            the bus on narrow viewports. */}
+        <figure data-testid="pipeline-diagram" className="dgm" style={{ marginLeft: 0, marginRight: 0 }}>
+          <div className="dgm-grid">
+            <div className="dgm-node">
+              <p className="dgm-node__k">Intent</p>
+              <p className="dgm-node__t">Prompt / agent</p>
+              <p className="dgm-node__s">what should exist</p>
+            </div>
+            <div className="dgm-node dgm-node--contract">
+              <p className="dgm-node__k">Governs</p>
+              <p className="dgm-node__t">dspack contract</p>
+              <p className="dgm-node__s">rules + gates S1 S2 S3</p>
+            </div>
+            <div className="dgm-node">
+              <p className="dgm-node__k">Compiles</p>
+              <p className="dgm-node__t">dspack-emit</p>
+              <p className="dgm-node__s">gates A1 A2 A3</p>
+            </div>
+            <div className="dgm-node">
+              <p className="dgm-node__k">Transports</p>
+              <p className="dgm-node__t">AG-UI</p>
+              <p className="dgm-node__s">the wire</p>
+            </div>
+            <div className="dgm-node">
+              <p className="dgm-node__k">Describes</p>
+              <p className="dgm-node__t">A2UI</p>
+              <p className="dgm-node__s">the surface</p>
+            </div>
+            <div className="dgm-node">
+              <p className="dgm-node__k">Renders</p>
+              <p className="dgm-node__t">Astryx</p>
+              <p className="dgm-node__s">components + themes</p>
+            </div>
+          </div>
+          <svg className="dgm-bus" viewBox="0 0 720 40" preserveAspectRatio="none" aria-hidden="true">
+            {[60, 180, 300, 420, 540, 660].map((x) => (
+              <line key={`v${x}`} x1={x} y1={2} x2={x} y2={20} stroke="#4a4a40" strokeWidth={1} strokeDasharray="4 4" />
+            ))}
+            <line x1={60} y1={20} x2={660} y2={20} stroke="#7e9652" strokeWidth={1.5} />
+            {[60, 180, 300, 420, 540, 660].map((x) => (
+              <circle key={`c${x}`} cx={x} cy={20} r={2.5} fill="#7e9652" />
+            ))}
+            <line x1={660} y1={20} x2={660} y2={38} stroke="#7e9652" strokeWidth={1.5} />
+          </svg>
+          <figcaption className="dgm-caption">
+            One pipeline, inspectable at every joint: the contract constrains what the agent may propose, the gates
+            check it, the emitter compiles it, the wire carries it, the surface describes it, and Astryx renders it.
+            Structure, events, and rules never collapse into each other.
+          </figcaption>
+        </figure>
         <p style={{ fontFamily: "var(--mono)", color: "var(--fg-dim)", margin: 0, lineHeight: 2 }}>
           <a className={linkClass} href="https://github.com/aestheticfunction/dspack">dspack</a> constrains and
           validates <Arrow /> <a className={linkClass} href="https://github.com/aestheticfunction/dspack-emit">dspack-emit</a>{" "}

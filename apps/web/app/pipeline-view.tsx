@@ -95,12 +95,12 @@ export function readWire(event: Record<string, any>): WireReading {
         name === "dspack.run.start"
           ? "The agent opens a governed run: intent, prompt, and the rules in force."
           : name === "dspack.gates"
-            ? "S1/S2/S3 lint verdicts from inside the agent — governance telemetry on the wire, not a rendering step."
+            ? "S1/S2/S3 lint verdicts from inside the agent: governance telemetry on the wire, not a rendering step."
             : name === "dspack.repair"
               ? "The exact repair message the pipeline sends itself. Still inside the agent."
               : name === "dspack.emit"
                 ? "dspack-emit's projection report: gates per A2UI version, every synthesis warned."
-                : "The complete audit report — the run's receipt.",
+                : "The complete audit report: the run's receipt.",
       correlations: corr([["intent", v.intent], ["attempt", v.attempt ?? v.index], ["outcome", v.outcome]]),
     };
   }
@@ -120,7 +120,7 @@ export function readWire(event: Record<string, any>): WireReading {
       what:
         name === "studio.action.resolved"
           ? "Your click on the rendered surface became an A2UI action; the studio client resolved it against the scenario's declared capabilities."
-          : "Your click became an A2UI action the scenario does not support — rejected in the client, clearly, before anything was sent.",
+          : "Your click became an A2UI action the scenario does not support: rejected in the client, clearly, before anything was sent.",
       correlations: corr([["actionId", v.actionId], ["action", v.name], ["capability", v.capability]]),
     };
 
@@ -141,7 +141,7 @@ export function readWire(event: Record<string, any>): WireReading {
       direction: "forward",
       what:
         name === "studio.action.accepted"
-          ? "The agent accepted the action — its state and component updates arrive as a normal delivery."
+          ? "The agent accepted the action: its state and component updates arrive as a normal delivery."
           : name === "studio.action.rejected"
             ? "The agent rejected the action, with the reason on the wire."
             : "The action failed in transit or in the agent; the failure is a first-class event.",
@@ -151,7 +151,7 @@ export function readWire(event: Record<string, any>): WireReading {
   return {
     involved: ["agui"],
     direction: "none",
-    what: "An AG-UI event outside the studio's typed vocabulary — on the wire, shown verbatim below.",
+    what: "An AG-UI event outside the studio's typed vocabulary: on the wire, shown verbatim below.",
     correlations: corr([["type", t], ["name", name || undefined]]),
   };
 }
@@ -164,7 +164,7 @@ export function PipelineView({ current, playhead, defaultOpen }: { current: Fixt
   return (
     <details data-testid="pipeline-view" ref={(el) => { if (el && defaultOpen && !el.dataset.autoOpened) { el.open = true; el.dataset.autoOpened = "1"; } }} style={{ marginTop: 12, fontSize: 12 }}>
       <summary style={{ cursor: "pointer" }}>
-        pipeline view — the layers <em>this</em> event touches
+        pipeline view: the layers <em>this</em> event touches
       </summary>
       <div
         style={{
@@ -219,7 +219,7 @@ export function PipelineView({ current, playhead, defaultOpen }: { current: Fixt
           </p>
         )}
         <p style={{ margin: 0, color: "var(--fg-dim)" }}>
-          Dimmed layers are not part of event {playhead} — most events live on one or two layers; only a delivery
+          Dimmed layers are not part of event {playhead}. Most events live on one or two layers; only a delivery
           crosses them all.
         </p>
       </div>

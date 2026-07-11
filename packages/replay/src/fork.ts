@@ -25,10 +25,10 @@ export type ForkResult = { ok: true; fixture: ReplayFixture } | { ok: false; rea
 
 /** Why a given playhead cannot be forked, or null when it can. */
 export function unforkableReason(source: Pick<ForkSource, "events">, forkIndex: number): string | null {
-  if (!Number.isInteger(forkIndex) || forkIndex < 0) return "nothing has happened yet — play or scrub to a moment first";
+  if (!Number.isInteger(forkIndex) || forkIndex < 0) return "nothing has happened yet: play or scrub to a moment first";
   if (forkIndex >= source.events.length) return `event ${forkIndex} does not exist in this run`;
   if (a2uiMessagesAt({ events: source.events }, forkIndex).length === 0)
-    return "no surface has been delivered at this moment — there is no application state to diverge from yet";
+    return "no surface has been delivered at this moment: there is no application state to diverge from yet";
   return null;
 }
 
@@ -45,7 +45,7 @@ export function forkFixture(source: ForkSource, forkIndex: number, now: () => Da
   const fixture: ReplayFixture = {
     replayFixture: "0.1",
     id: `${source.id}-fork-${forkIndex}-${Math.random().toString(36).slice(2, 8)}`,
-    name: `${source.name} — forked at event ${forkIndex}`,
+    name: `${source.name} · forked at event ${forkIndex}`,
     recordedAt: fork.forkedAt,
     mode: source.mode,
     adapterId: source.adapterId,

@@ -221,7 +221,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
             <button
               data-testid="fork"
               disabled={Boolean(reason)}
-              title={reason ?? `fork a new run from event ${playhead} — the original stays untouched`}
+              title={reason ?? `fork a new run from event ${playhead}: the original stays untouched`}
               onClick={() => onFork(playhead)}
               className={btnClass()}
               style={{ marginLeft: "auto" }}
@@ -318,7 +318,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
                 Emitter refusal: <code>{refusal}</code>
               </>
             ) : (
-              <>Outcome {gates.audit?.outcome} (exit {gates.audit?.exitCode}) — see the audit event for gate errors.</>
+              <>Outcome {gates.audit?.outcome} (exit {gates.audit?.exitCode}). See the audit event for gate errors.</>
             )}
           </p>
           <p style={{ margin: "6px 0 0", color: "var(--fg-dim)" }}>
@@ -381,13 +381,13 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         ) : (
           <p style={{ color: "#475569", fontSize: 14 }} data-testid="canvas-empty" aria-live="polite">
             {streaming
-              ? "Generating — the surface streams in the moment it passes the gates…"
+              ? "Generating: the surface streams in the moment it passes the gates…"
               : playhead < 0
                 ? "Press play, or drag the timeline: the interface builds (and un-builds) from the recorded event stream."
                 : failed
-                  ? "No surface shipped — the refusal above is this run's ending."
+                  ? "No surface shipped: the refusal above is this run's ending."
                   : gates.attempts.some((a) => a.gates.some(gateFailed))
-                    ? "The design system said no — a gate failed here; the repair is on its way."
+                    ? "The design system said no: a gate failed here, and the repair is on its way."
                     : "Generating…"}
           </p>
         )}
@@ -472,7 +472,16 @@ export function RunView({ events, label, streaming = false, live = false, resetK
         </section>
       )}
 
-      <Inspector source={source} playhead={playhead} />
+      <Inspector
+        source={source}
+        playhead={playhead}
+        onTrace={(id) => {
+          // Same selection state as clicking the canvas; the provenance card
+          // below is aria-live, so the trace is announced.
+          setXray(true);
+          setXrayNode(id);
+        }}
+      />
 
       {/* FM-12: the run's evidence, downloadable and verifiable. */}
       {gates.audit && <ReceiptView source={source} meta={meta} defaultOpen={initial?.panel === "receipt"} />}
@@ -487,7 +496,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
       {current && (
         <details style={{ marginTop: 12, fontSize: 12 }} open={false}>
           <summary style={{ cursor: "pointer" }}>
-            event {playhead}/{last} — <code>{String(current.event.type)}</code>
+            event {playhead}/{last} · <code>{String(current.event.type)}</code>
             {"name" in current.event ? (
               <>
                 {" "}

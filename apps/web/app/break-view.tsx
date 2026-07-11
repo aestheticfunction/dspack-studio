@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from "react";
 import { breakConditions, capabilitiesByScenario, resolveAction, scenarios, type BreakCondition } from "@dspack-studio/scenarios";
-import { importFixture, surfaceComponentsAt } from "@dspack-studio/replay";
+import { importFixture, parseFixture, surfaceComponentsAt } from "@dspack-studio/replay";
 import { useLiveRun } from "./use-live-run";
 import { RunView } from "./run-view";
 import { btnClass } from "./ui";
@@ -27,6 +27,17 @@ export function BreakView() {
   const scenario = useMemo(() => scenarios.find((s) => s.id === condition.scenarioId)!, [condition]);
   const effectivePrompt = prompt ?? condition.prompt ?? "";
   const streaming = live.status === "streaming";
+
+  // No local agent: conditions with an equivalent recorded real run replay
+  // it, labeled as a recording; the rest say plainly what they need.
+  const offline = live.agentOnline === false && condition.kind !== "malformed-import";
+  const recordedCatch = useMemo(() => {
+    const rc = condition.recordedCatch;
+    if (!rc) return null;
+    const sc = scenarios.find((s) => s.id === rc.scenarioId);
+    const ref = sc?.fixtures.find((f) => f.key === rc.fixtureKey);
+    return ref ? { note: rc.note, fixture: parseFixture(ref.fixture) } : null;
+  }, [condition]);
 
   const start = (modelRef: string) => {
     setImportDemo(null);
@@ -81,7 +92,7 @@ export function BreakView() {
         <strong>Expected:</strong> {condition.expected}
       </p>
 
-      {condition.prompt && (
+      {condition.prompt && !offline && (
         <input
           data-testid="break-prompt"
           aria-label="the adversarial prompt this break attempt runs"
@@ -91,7 +102,18 @@ export function BreakView() {
         />
       )}
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+      {offline && recordedCatch && (
+        <p data-testid="break-recorded-note" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 10px", maxWidth: 720 }}>
+          The local agent is offline, so this is the recorded catch instead of a fresh run. {recordedCatch.note}
+        </p>
+      )}
+      {offline && !recordedCatch && (
+        <p data-testid="break-live-only" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 14px", maxWidth: 720 }}>
+          This condition runs the pipeline for real and needs the local agent (
+          <code>pnpm --filter agent dev</code>). No recording substitutes for it.
+        </p>
+      )}
+      {!offline && <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
         {condition.kind === "malformed-import" ? (
           <button data-testid="break-run" className={btnClass(true)} onClick={() => setImportDemo((importFixture("{this is not json") as any).error)}>
             try the malformed import
@@ -127,22 +149,31 @@ export function BreakView() {
         <span style={{ fontSize: 13, color: "var(--fg-dim)" }} data-testid="break-status" aria-live="polite">
           {live.status}
         </span>
-      </div>
+      </div>}
 
       {importDemo && (
         <section data-testid="break-import-error" style={{ border: "1px solid var(--err-line)", background: "var(--err-soft)", borderRadius: 6, padding: "12px 16px", fontSize: 13, marginBottom: 14 }}>
-          The validator said no: <code>{importDemo}</code> — and nothing was partially loaded.
+          The validator said no: <code>{importDemo}</code>. Nothing was partially loaded.
         </section>
       )}
 
-      {live.events.length > 0 && (
+      {offline && recordedCatch ? (
         <RunView
-          events={live.events}
-          streaming={streaming}
-          live
-          resetKey={`break-${conditionId}-${runSeq}`}
-          label={`${condition.label} — ${live.events.length} events`}
+          events={recordedCatch.fixture.events}
+          resetKey={`break-recorded-${conditionId}`}
+          label={`recorded catch · ${recordedCatch.fixture.name}, ${recordedCatch.fixture.mode} run, ${recordedCatch.fixture.adapterId}, ${recordedCatch.fixture.events.length} events`}
+          autoStart
         />
+      ) : (
+        live.events.length > 0 && (
+          <RunView
+            events={live.events}
+            streaming={streaming}
+            live
+            resetKey={`break-${conditionId}-${runSeq}`}
+            label={`${condition.label} · ${live.events.length} events`}
+          />
+        )
       )}
     </div>
   );

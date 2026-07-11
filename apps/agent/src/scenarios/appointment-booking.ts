@@ -132,7 +132,7 @@ export function bookingRespond(name: string, context: Record<string, unknown>): 
         return {
           outcome: "rejected",
           detail: "Name is required to hold a slot.",
-          ops: [DM("/booking/status", "Please enter your name first — the slot is held under it.")],
+          ops: [DM("/booking/status", "Please enter your name first: the slot is held under it.")],
         };
       }
       return {

@@ -771,3 +771,52 @@ scenarios, hosted inference, A2UI 1.0 renderer, OG cards + analytics +
 domain (owner-gated launch items), conversation-rail narration (the
 pipeline emits no TEXT_MESSAGE; synthesizing narration would violate
 honest-magic — gate ticker + finding cards + tour carry the story).
+
+## 2026-07-11 — Audit + product-experience pass (comprehension, honesty, recipe)
+
+Full plan-vs-implementation audit recorded in docs/AUDIT.md (new). The
+implementation was found substantially complete and honest; this pass
+fixed the comprehension and availability gaps a first-time visitor hits,
+and closed the recipe-content definition-of-done item.
+
+- Governance-first story: the hero now leads with "The design system
+  governs what the agent ships" and the plain-language loop (propose,
+  check, explain, repair, replay); protocol names moved to How-it-works.
+  One-sentence helper line under the view switcher, per view
+  (view-help); "worked example + themes" renamed "restyle it"; FM-5
+  caption under the themed artboard.
+- How-it-works diagram: the AF .dgm idiom (six node cards over the green
+  bus SVG, dspack node green-ruled) transcribed from af-site; static,
+  text-first, collapses to a 2-up grid without the bus under 640px.
+- Availability honesty: one-shot agent probe in the shell; live/break
+  switcher buttons carry an offline mark; Break-it Mode without the
+  agent replays the recorded catch for no-alertdialog / ok-label
+  (fixture-001 ran that exact prompt and repaired both rules) and
+  unsupported-component (fixture-003's verbatim refusal), and labels the
+  three live-only conditions plainly. Nothing dead-ends silently on the
+  static deploy.
+- Recipe instructions end to end: VARIANTS carry numbered steps whose
+  ingredient names the constraint swaps rewrite (unit-tested); the
+  authored dsurface gained instructions nodes (contract file untouched —
+  it byte-syncs with dspack main; the worked example there is
+  owner-authored governance content); the enhancer disambiguates tables
+  by column names, appends a labeled instructions table when a model
+  omits one, and seeds title/ingredients/instructions at enhancement so
+  a generated surface is a full recipe from its first frame. fixture-006
+  re-recorded live (ollama:gpt-oss:latest, 27 events, same structure:
+  enhanced@10, accepted@19) — the model laid out both tables itself.
+- Shelf a11y: planned scenarios are real buttons that reveal their
+  blockers inline (planned-needs) on tap/keyboard; x-ray gained a
+  keyboard path (trace buttons in the inspector components tab);
+  .st-cols-2 responsive collapse for branch compare; main padding
+  tightens under 640px.
+- Cleanup: packages/provenance stub deleted (zero reverse deps; the real
+  provenance lives in astryx-renderers + replay); README reflects the
+  governance-first story and the new behaviors.
+- Tests: e2e workers pinned to 1 (the local agent is deliberately
+  single-session; parallel workers raced its grounding — observed as an
+  intermittent recipe/fork-continue collision). New specs:
+  studio-shell.spec.ts (hero order, view-help, diagram, planned reveal,
+  FM-5, x-ray trace) and break-offline.spec.ts (agent blocked at the
+  network layer; recorded catches, live-only labels, client-side import
+  demo) — both also registered in the production suite.

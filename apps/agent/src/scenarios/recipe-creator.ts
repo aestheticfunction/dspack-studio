@@ -28,7 +28,7 @@ const sessions = new Map<string, { servings: number; constraint: string; variant
 const session = (id: string) => sessions.get(id) ?? { servings: 2, constraint: "", variant: 0 };
 
 type Ingredient = { name: string; perServing: number; unit: string; tags: string[] };
-const VARIANTS: Array<{ title: string; ingredients: Ingredient[] }> = [
+const VARIANTS: Array<{ title: string; ingredients: Ingredient[]; steps: string[] }> = [
   {
     title: "Weeknight pasta",
     ingredients: [
@@ -36,6 +36,13 @@ const VARIANTS: Array<{ title: string; ingredients: Ingredient[] }> = [
       { name: "Pancetta", perServing: 40, unit: "g", tags: ["meat"] },
       { name: "Parmesan", perServing: 25, unit: "g", tags: ["dairy"] },
       { name: "Cherry tomatoes", perServing: 120, unit: "g", tags: [] },
+    ],
+    // Steps name their ingredients exactly so constraint swaps rewrite them.
+    steps: [
+      "Boil the Spaghetti in well-salted water until just short of al dente.",
+      "Meanwhile, cook the Pancetta in a wide pan over medium heat until crisp.",
+      "Add the Cherry tomatoes to the pan and cook until they blister and burst.",
+      "Toss the drained pasta in the pan with a splash of pasta water, then finish with the Parmesan.",
     ],
   },
   {
@@ -45,6 +52,12 @@ const VARIANTS: Array<{ title: string; ingredients: Ingredient[] }> = [
       { name: "Chicken stock", perServing: 250, unit: "ml", tags: ["meat"] },
       { name: "Butter", perServing: 15, unit: "g", tags: ["dairy"] },
       { name: "Lemon", perServing: 0.5, unit: "", tags: [] },
+    ],
+    steps: [
+      "Warm the Chicken stock in a saucepan and hold it at a low simmer.",
+      "Toast the Arborio rice in a little oil until the edges turn translucent.",
+      "Add the stock one ladle at a time, stirring until each addition is absorbed.",
+      "Off the heat, finish with the Butter, the zest and juice of the Lemon, and fresh herbs.",
     ],
   },
 ];
@@ -63,13 +76,25 @@ function tableRows(variant: number, servings: number, constraint: string) {
   });
 }
 
+/** Instruction steps with the constraint's ingredient swaps applied in text. */
+function stepsFor(variant: number, constraint: string): string[] {
+  const swaps = SWAPS[constraint] ?? {};
+  return VARIANTS[variant % VARIANTS.length].steps.map((step) =>
+    Object.entries(swaps).reduce((s, [from, to]) => s.split(from).join(to), step),
+  );
+}
+
+function stepRows(variant: number, constraint: string) {
+  return stepsFor(variant, constraint).map((s, i) => ({ cells: [String(i + 1), s] }));
+}
+
 /**
  * Where the responder's component updates land. Authored-surface ids by
  * default (the deterministic start path); the enhancer retargets each slot
  * to the GENERATED surface's unambiguous counterpart, so co-edits reach the
  * components that actually exist instead of orphaning on authored ids.
  */
-const AUTHORED_TARGETS = { title: "title", badge: "diet_badge", servingsLabel: "servings_label", table: "ingredients" };
+const AUTHORED_TARGETS = { title: "title", badge: "diet_badge", servingsLabel: "servings_label", table: "ingredients", instructions: "instructions" };
 let updateTargets = { ...AUTHORED_TARGETS };
 
 /** updateComponents delivery for the recipe's mutable components. */
@@ -84,6 +109,7 @@ function recipeComponentsOps(variant: number, servings: number, constraint: stri
           { id: updateTargets.badge, component: "Badge", label: constraint || "no constraints", variant: constraint ? "success" : "neutral" },
           { id: updateTargets.servingsLabel, component: "Text", variant: "body", text: `Servings: ${servings}` },
           { id: updateTargets.table, component: "Table", columns: ["Ingredient", "Amount"], data: tableRows(variant, servings, constraint), density: "compact" },
+          { id: updateTargets.instructions, component: "Table", columns: ["Step", "Instruction"], data: stepRows(variant, constraint), density: "compact" },
         ],
       },
     },
@@ -148,7 +174,7 @@ export function recipeRespond(name: string, context: Record<string, unknown>, se
       if (!CONSTRAINTS.includes(constraint)) {
         return {
           outcome: "rejected",
-          detail: `unknown constraint '${constraint || "(empty)"}' — try ${CONSTRAINTS.join(", ")}`,
+          detail: `unknown constraint '${constraint || "(empty)"}': try ${CONSTRAINTS.join(", ")}`,
           ops: [DM("/recipe/status", `Unknown constraint. Try: ${CONSTRAINTS.join(", ")}.`)],
         };
       }
@@ -223,7 +249,36 @@ export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: stri
   // generated surface has zero or several candidates.
   updateTargets = { ...AUTHORED_TARGETS };
   const tables = components.filter((c: any) => c.component === "Table");
-  if (tables.length === 1) updateTargets.table = tables[0].id;
+  // Tables disambiguate by column names: a recipe surface may carry both an
+  // ingredients table and an instructions table. A lone unlabeled table is
+  // still the ingredients table (the pre-instructions behavior).
+  const colsOf = (t: any) => (Array.isArray(t.columns) ? t.columns.join(" ") : "");
+  const ingredientTables = tables.filter((t: any) => /ingredient/i.test(colsOf(t)));
+  const instructionTables = tables.filter((t: any) => /step|instruction/i.test(colsOf(t)) && !/ingredient/i.test(colsOf(t)));
+  if (ingredientTables.length === 1) updateTargets.table = ingredientTables[0].id;
+  else if (tables.length === 1 && instructionTables.length === 0) updateTargets.table = tables[0].id;
+  if (instructionTables.length === 1) {
+    updateTargets.instructions = instructionTables[0].id;
+  } else if (instructionTables.length === 0) {
+    // The generated surface carries no instructions table: add one, on the
+    // record. Its content comes from the same deterministic responder that
+    // owns the ingredient data; the addition is part of this labeled
+    // enhancement, not the model's output.
+    const columns = components.filter((c: any) => c.component === "Column" && Array.isArray(c.children));
+    if (columns.length === 1) {
+      columns[0].children.push("instructions");
+      out.push({
+        version: "v0.9",
+        updateComponents: {
+          surfaceId: out[0]?.createSurface?.surfaceId ?? out.find((m: any) => m.updateComponents)?.updateComponents?.surfaceId,
+          components: [
+            { id: "instructions", component: "Table", columns: ["Step", "Instruction"], data: stepRows(0, ""), density: "compact" },
+          ],
+        },
+      });
+      notes.push("added an instructions table 'instructions' to the surface (deterministic enhancement; the model's output carried none)");
+    }
+  }
   const badges = components.filter((c: any) => c.component === "Badge");
   if (badges.length === 1) updateTargets.badge = badges[0].id;
   const headings = components.filter((c: any) => c.component === "Text" && /^h[123]$/.test(String(c.variant)));
@@ -231,8 +286,14 @@ export function enhanceGeneratedRecipeOps(ops: any[]): { ops: any[]; notes: stri
   const servingsTexts = components.filter((c: any) => c.component === "Text" && /servings/i.test(String(c.text ?? "")));
   if (servingsTexts.length === 1) updateTargets.servingsLabel = servingsTexts[0].id;
   notes.push(
-    `component updates target { title: '${updateTargets.title}', badge: '${updateTargets.badge}', servingsLabel: '${updateTargets.servingsLabel}', table: '${updateTargets.table}' }`,
+    `component updates target { title: '${updateTargets.title}', badge: '${updateTargets.badge}', servingsLabel: '${updateTargets.servingsLabel}', table: '${updateTargets.table}', instructions: '${updateTargets.instructions}' }`,
   );
+  // Models lay the tables out but leave them empty (content is the
+  // responder's, not the model's). Deliver the initial recipe onto the
+  // grounded targets so the generated surface is a full recipe from its
+  // first frame — same responder, same channel as every later co-edit.
+  out.push(...recipeComponentsOps(0, 2, ""));
+  notes.push("seeded title, ingredients, and instructions from the deterministic responder");
 
   const surfaceId = out[0]?.createSurface?.surfaceId ?? out.find((m: any) => m.updateComponents)?.updateComponents?.surfaceId;
   if (surfaceId) {

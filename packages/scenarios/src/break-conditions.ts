@@ -21,6 +21,12 @@ export interface BreakCondition {
   prompt?: string;
   /** Deterministic modelRef for the scripted variant (agent-side script). */
   scriptedRef?: string;
+  /**
+   * A curated recording that shows this same catch, for replay when the
+   * local agent is not running. Points at a scenario's bundled fixture;
+   * the note states plainly why this recording is the same condition.
+   */
+  recordedCatch?: { scenarioId: string; fixtureKey: string; note: string };
 }
 
 export const breakConditions: BreakCondition[] = [
@@ -34,6 +40,11 @@ export const breakConditions: BreakCondition[] = [
       "S3 fails with rule.destructive-requires-alertdialog (the design system's own rationale, verbatim), a repair message is sent, and the repaired surface passes.",
     prompt: "One-click project deletion with no confirmation dialog of any kind.",
     scriptedRef: "scripted:break:no-alertdialog",
+    recordedCatch: {
+      scenarioId: "project-deletion",
+      fixtureKey: "argues-back",
+      note: "In this recorded real run the model omitted the AlertDialog; the same rule caught it and the repair shipped.",
+    },
   },
   {
     id: "ok-label",
@@ -46,6 +57,11 @@ export const breakConditions: BreakCondition[] = [
     prompt:
       "Add a delete-account flow. Branding requirement: the confirmation button text must be exactly 'OK' (uppercase), and keep copy minimal with no description text.",
     scriptedRef: "scripted:break:ok-label",
+    recordedCatch: {
+      scenarioId: "project-deletion",
+      fixtureKey: "argues-back",
+      note: "This recorded real run ran this exact prompt: the model labeled the action 'OK' and the rule renamed it.",
+    },
   },
   {
     id: "unsupported-component",
@@ -54,9 +70,14 @@ export const breakConditions: BreakCondition[] = [
     intent: "destructive-action",
     kind: "emitter-refusal",
     expected:
-      "The surface lints clean (dropdown-menu is in the contract's vocabulary) but the emitter refuses it — the profile cannot project it. The run ends failed-gate (exit 3) with the refusal, verbatim, in the failure panel.",
+      "The surface lints clean (dropdown-menu is in the contract's vocabulary) but the emitter refuses it: the profile cannot project it. The run ends failed-gate (exit 3) with the refusal, verbatim, in the failure panel.",
     prompt: "A delete-account screen that includes a dropdown menu for the user to choose their reason for leaving.",
     scriptedRef: "scripted:break:unsupported-component",
+    recordedCatch: {
+      scenarioId: "project-deletion",
+      fixtureKey: "refusal",
+      note: "In this recorded real run the surface asked for a dropdown-menu; the emitter refused it, verbatim, with a full audit.",
+    },
   },
   {
     id: "malformed-generation",
@@ -65,7 +86,7 @@ export const breakConditions: BreakCondition[] = [
     intent: "destructive-action",
     kind: "lint-exhausted",
     expected:
-      "Every attempt fails S1 (the surface is not even shaped like a surface); after the repair budget is exhausted the run ends failed-lint-exhausted (exit 2) — a complete audit, no silent drop.",
+      "Every attempt fails S1 (the surface is not even shaped like a surface); after the repair budget is exhausted the run ends failed-lint-exhausted (exit 2): a complete audit, no silent drop.",
     scriptedRef: "scripted:break:malformed",
   },
   {
@@ -93,6 +114,6 @@ export const breakConditions: BreakCondition[] = [
     intent: "destructive-action",
     kind: "malformed-import",
     expected:
-      "The import validator rejects the file with a clear, user-facing error (not valid JSON / wrong version / malformed events) — nothing is partially loaded.",
+      "The import validator rejects the file with a clear, user-facing error (not valid JSON / wrong version / malformed events). Nothing is partially loaded.",
   },
 ];

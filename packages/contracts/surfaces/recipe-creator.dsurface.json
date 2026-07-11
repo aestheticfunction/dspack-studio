@@ -84,6 +84,51 @@
         }
       },
       {
+        "component": "text",
+        "id": "instructions-title",
+        "props": {
+          "type": "large"
+        },
+        "text": "Instructions"
+      },
+      {
+        "component": "table",
+        "id": "instructions",
+        "props": {
+          "columns": [
+            "Step",
+            "Instruction"
+          ],
+          "data": [
+            {
+              "cells": [
+                "1",
+                "Boil the Spaghetti in well-salted water until just short of al dente."
+              ]
+            },
+            {
+              "cells": [
+                "2",
+                "Meanwhile, cook the Pancetta in a wide pan over medium heat until crisp."
+              ]
+            },
+            {
+              "cells": [
+                "3",
+                "Add the Cherry tomatoes to the pan and cook until they blister and burst."
+              ]
+            },
+            {
+              "cells": [
+                "4",
+                "Toss the drained pasta in the pan with a splash of pasta water, then finish with the Parmesan."
+              ]
+            }
+          ],
+          "density": "compact"
+        }
+      },
+      {
         "component": "text-input",
         "id": "constraint-input",
         "props": {

@@ -32,7 +32,7 @@ export function TheWire({ events, playhead, live, defaultOpen }: { events: Fixtu
 
   return (
     <details data-testid="the-wire" ref={(el) => { if (el && defaultOpen && !el.dataset.autoOpened) { el.open = true; el.dataset.autoOpened = "1"; } }} style={{ marginTop: 12, fontSize: 12 }}>
-      <summary style={{ cursor: "pointer" }}>the wire — the raw protocol session ({events.length} AG-UI events)</summary>
+      <summary style={{ cursor: "pointer" }}>the wire: the raw protocol session ({events.length} AG-UI events)</summary>
       <div style={{ border: "1px solid var(--line)", borderRadius: 6, padding: "12px 14px", marginTop: 8, display: "grid", gap: 8 }}>
         <p style={{ margin: 0 }} data-testid="wire-transport">
           {live

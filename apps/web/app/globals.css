@@ -138,6 +138,88 @@ input[type="range"] {
   color: var(--fg);
 }
 
+/* Layout utilities: the app is otherwise inline-styled; width-sensitive
+   layout lives here so it can respond to the viewport. */
+.st-main {
+  padding: 40px 24px 48px;
+}
+.st-cols-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* The pipeline diagram: AF's .dgm idiom (node cards over a green bus)
+   transcribed from af-site. Static, no animation. */
+.dgm {
+  margin: 14px 0 4px;
+}
+.dgm-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(96px, 1fr));
+  gap: 8px;
+}
+.dgm-node {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-1);
+  padding: 10px 10px 9px;
+  min-width: 0;
+}
+.dgm-node--contract {
+  border-left: 2px solid var(--green);
+}
+.dgm-node__k {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  margin: 0 0 4px;
+}
+.dgm-node__t {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0;
+}
+.dgm-node__s {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+  margin: 4px 0 0;
+  line-height: 1.45;
+}
+.dgm-bus {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin-top: 2px;
+}
+.dgm-caption {
+  font-size: 12px;
+  color: var(--fg-dim);
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .st-main {
+    padding: 32px 16px 40px;
+  }
+  .st-cols-2 {
+    grid-template-columns: 1fr;
+  }
+  .dgm-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dgm-bus {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .st-btn,
   .st-link {
