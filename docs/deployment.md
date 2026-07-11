@@ -16,15 +16,16 @@ Two artifacts, deliberately separable:
 | Setting | Value |
 |---|---|
 | Repository path | `/` (repo root) |
-| Application build command | `pnpm build:deploy` |
+| Application build command | `pnpm --dir apps/web run build` (the dashboard's actual setting; `pnpm build:deploy` works too) |
 | Deploy command | `npx wrangler deploy` |
 | Static asset directory | `apps/web/out` (from `wrangler.jsonc`) |
 | Environment variables | none (`NEXT_PUBLIC_AGENT_URL` deliberately unset) |
 
-`pnpm build:deploy` is the canonical deployment build: it generates the
-gated contract artifacts (`packages/contracts/out` is gitignored emission
-output, so a clean checkout MUST run this), builds the Next.js static
-export, and verifies `apps/web/out` exists. Cloudflare installs
+The web build is self-sufficient on a clean checkout: `apps/web`'s `build`
+script generates the gated contract artifacts first (`packages/contracts/out`
+is gitignored emission output) and then runs the Next.js static export.
+`pnpm build:deploy` remains the canonical local command: it does the same
+and additionally verifies `apps/web/out` exists. Cloudflare installs
 dependencies itself; do not fold `pnpm install` into the build command.
 
 Analytics: Cloudflare Web Analytics (zone-injected beacon, cookieless).
