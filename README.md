@@ -2,6 +2,8 @@
 
 The design system governs what the agent ships. An agent proposes an interface; the design system checks it; invalid patterns are explained and repaired, with the rule and its written rationale on the record. dspack-studio is the flagship experience for the open AI-native frontend ecosystem: generation under a dspack contract, streamed over AG-UI as A2UI surfaces, rendered with Astryx. Rewind it, fork it, break it, X-ray it. Every gate, repair, and audit is inspectable.
 
+![An agent proposes a destructive-action surface without an AlertDialog; the S3 gate fails with rule.destructive-requires-alertdialog, a repair message is sent, and the repaired surface renders.](docs/assets/dspack-studio-catch.gif)
+
 Status: MVP experience assembled — replayable recorded runs, live governed
 generation, imported sessions, an interactive appointment-booking scenario,
 a recipe co-editor with real ingredients and instructions, Break-it Mode
