@@ -1,0 +1,33 @@
+{
+  "name": "@dspack-studio/shadcn-renderers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The second design system (FM-10): maps emitted A2UI catalog names to shadcn/ui visuals (vendored per shadcn's copy-paste model), tagged with data-a2ui-id for X-ray provenance. All shadcn styling dependencies are confined to this package; Dialog is deliberately unimplemented to exercise the placeholder migration path.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./dist/shadcn.css"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -i src/styles.css -o dist/shadcn.css --minify",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@dspack-studio/a2ui-ingest": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.2"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "@types/react": "^19.0.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

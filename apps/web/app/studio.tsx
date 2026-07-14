@@ -19,6 +19,7 @@ const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
 import { RestyleView } from "./restyle-view";
+import { DesignSystemContext, type DesignSystemId } from "./design-system";
 import { TakeHomeView } from "./take-home-view";
 import { useAgentStatus } from "./use-agent-status";
 import { btnClass, linkClass } from "./ui";
@@ -414,6 +415,9 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
 export function Studio() {
   const [scenarioId, setScenarioId] = useState(readyScenarios[0]?.id);
   const [view, setView] = useState<"replay" | "live" | "break" | "canvas" | "home">("replay");
+  // FM-10: the design system is shell-level state — the canvas everywhere
+  // renders through it, while events, gates, and receipts stay untouched.
+  const [designSystem, setDesignSystem] = useState<DesignSystemId>("astryx");
   // A planned scenario the visitor tapped: its "what it needs" line replaces
   // the tagline until a ready scenario is chosen or it is tapped again.
   const [revealedPlanned, setRevealedPlanned] = useState<string | null>(null);
@@ -481,6 +485,7 @@ export function Studio() {
   const scenario = scenarios.find((s) => s.id === scenarioId) ?? readyScenarios[0];
 
   return (
+    <DesignSystemContext.Provider value={designSystem}>
     <main className="st-main" style={{ maxWidth: 900, margin: "0 auto" }}>
       <header style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", paddingBottom: 14, borderBottom: "1px solid var(--line-soft)", marginBottom: 16 }}>
@@ -630,7 +635,9 @@ export function Studio() {
           initial={deepLink?.view === "break" ? { playhead: deepLink.event, xray: deepLink.xray, panel: deepLink.panel } : undefined}
         />
       )}
-      {view === "canvas" && scenario && <RestyleView scenario={scenario} />}
+      {view === "canvas" && scenario && (
+        <RestyleView scenario={scenario} designSystem={designSystem} onDesignSystemChange={setDesignSystem} />
+      )}
       {view === "home" && <TakeHomeView agentOnline={agentOnline} />}
       {/* Orientation, below the primary experience: the approved pipeline
           language and the existing capabilities, stated once, compactly. */}
@@ -743,5 +750,6 @@ export function Studio() {
         <p style={{ fontFamily: "var(--mono)", margin: "12px 0 0", color: "var(--fg-dim)" }}>© 2026 Aesthetic Function LLC</p>
       </footer>
     </main>
+    </DesignSystemContext.Provider>
   );
 }

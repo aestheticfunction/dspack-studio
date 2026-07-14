@@ -4,7 +4,7 @@
  */
 import type { FC } from "react";
 import { VStack } from "@astryxdesign/core/Stack";
-import { childIds } from "../provenance";
+import { childIds } from "@dspack-studio/a2ui-ingest";
 
 const JUSTIFY: Record<string, "start" | "center" | "end" | "between" | "around" | "evenly"> = {
   start: "start",

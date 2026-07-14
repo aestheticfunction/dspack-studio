@@ -1,0 +1,1 @@
+export { shadcnRegistry } from "./registry";

@@ -15,7 +15,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
-import { astryxRegistry } from "@dspack-studio/astryx-renderers";
+import { canvasScopeProps, useDesignSystem } from "./design-system";
 import {
   a2uiMessagesAt,
   findingsAt,
@@ -78,6 +78,7 @@ export interface RunViewProps {
 }
 
 export function RunView({ events, label, streaming = false, live = false, resetKey, onAction, onFork, meta, initial, permalink, autoStart = false }: RunViewProps) {
+  const designSystem = useDesignSystem();
   const source = useMemo(() => ({ events }), [events]);
   const ticks = useMemo(() => timelineTicks(source), [source]);
   const last = events.length - 1;
@@ -341,6 +342,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
       <section
         data-canvas
         data-xray={xray || undefined}
+        {...canvasScopeProps(designSystem.id)}
         onClickCapture={
           xray
             ? (e) => {
@@ -353,19 +355,26 @@ export function RunView({ events, label, streaming = false, live = false, resetK
               }
             : undefined
         }
-        // The artboard: a light surface framed by the dark chrome. colorScheme
-        // pins Astryx's light-dark() tokens to the resolution the studio has
-        // always shipped, independent of the visitor's OS scheme.
-        style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, minHeight: 220, background: "#fff", colorScheme: "light", color: "#0f172a" }}
+        // The artboard: a light surface framed by the dark chrome. Astryx:
+        // colorScheme pins its light-dark() tokens to the resolution the
+        // studio has always shipped. shadcn: no inline color overrides —
+        // the scope's own tokens own the canvas.
+        style={{
+          border: "1px dashed var(--line)",
+          borderRadius: 6,
+          padding: 24,
+          minHeight: 220,
+          ...(designSystem.id === "shadcn" ? {} : { background: "#fff", colorScheme: "light" as const, color: "#0f172a" }),
+        }}
       >
         {messages.length > 0 ? (
           // Keyed on the delivery count: each new A2UI delivery remounts the
           // canvas with a fresh processor, so bound values are re-resolved
           // (the published renderer memoizes resolved props per surface).
           <A2uiCanvas
-            key={`${resetKey}:${messages.length}`}
+            key={`${resetKey}:${designSystem.id}:${messages.length}`}
             catalog={catalogJson as any}
-            registry={astryxRegistry}
+            registry={designSystem.registry}
             messages={messages}
             onAction={
               onAction

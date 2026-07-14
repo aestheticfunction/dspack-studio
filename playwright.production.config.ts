@@ -22,6 +22,8 @@ export default defineConfig({
     "wire.spec.ts",
     "a11y.spec.ts",
     "studio-shell.spec.ts",
+    // Replay + restyle only; agent-free by construction.
+    "design-swap.spec.ts",
     // The deployed site has no agent, which is exactly the state this suite
     // reproduces locally by blocking the port — it runs as-is in production.
     "break-offline.spec.ts",
