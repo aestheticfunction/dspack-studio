@@ -10,3 +10,4 @@ coverage/
 test-results/
 playwright-report/
 *.tsbuildinfo
+apps/web/public/take-home/

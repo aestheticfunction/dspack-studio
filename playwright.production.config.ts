@@ -25,6 +25,9 @@ export default defineConfig({
     // The deployed site has no agent, which is exactly the state this suite
     // reproduces locally by blocking the port — it runs as-is in production.
     "break-offline.spec.ts",
+    // Agent-free by construction (blocks the agent port itself); the
+    // validator, config, and downloads are static-site capabilities.
+    "take-home.spec.ts",
     "prod-smoke.spec.ts",
   ],
   timeout: 30_000,

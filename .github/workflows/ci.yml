@@ -32,6 +32,7 @@ jobs:
           pnpm --filter @dspack-studio/replay test
           pnpm --filter @dspack-studio/scenarios test
           pnpm --filter agent test
+          pnpm --filter web test
       - name: Type checks
         run: pnpm -r typecheck
       - name: Static export (the deploy artifact)
