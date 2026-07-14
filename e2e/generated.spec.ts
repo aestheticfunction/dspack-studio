@@ -99,7 +99,13 @@ test("record fixture-009 (live governed question, FM-7)", async ({ page }) => {
     } catch {
       continue; // ungroundable/refused generation: retry the whole arc
     }
-    await dialog.locator("button").last().click();
+    // The confirm affordance: governance requires a specific action label,
+    // and the prompt asks the model to name the slot in it — prefer the
+    // dialog button carrying a time token over positional selection (button
+    // order varies with model output; cancel/extra buttons would misfire).
+    const timeLabeled = dialog.locator("button", { hasText: /\d{1,2}:\d{2}/ });
+    const confirmBtn = (await timeLabeled.count()) === 1 ? timeLabeled.first() : dialog.locator("button").last();
+    await confirmBtn.click();
     try {
       await expect(page.locator("[data-canvas]")).toContainText(/Booked .* for Ada/, { timeout: 10_000 });
       await expect(question).toHaveCount(0);

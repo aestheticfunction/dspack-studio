@@ -60,13 +60,16 @@ export const A2uiCanvas: FC<A2uiCanvasProps> = ({ catalog, registry, messages, o
   }, [ingested, messages.length]);
 
   if (surfaces.length === 0) return null;
+  // One shared grid spaces the surfaces; the per-surface wrapper exists only
+  // to carry the data-a2ui-surface attribute (a gap on a single-child
+  // wrapper would space nothing).
   return (
-    <>
+    <div style={{ display: "grid", gap: 16 }}>
       {surfaces.map(({ id, surface }) => (
-        <div key={id} data-a2ui-surface={id} style={{ display: "grid", gap: 16 }}>
+        <div key={id} data-a2ui-surface={id}>
           <A2uiSurface surface={surface} />
         </div>
       ))}
-    </>
+    </div>
   );
 };
