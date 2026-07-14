@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import {
   transform,
   emitSurface,
+  shadcnProfile,
   EmitSurfaceError,
   type A2uiVersion,
   type DspackDoc,
@@ -79,6 +80,43 @@ for (const version of ["0.9.1", "1.0"] as A2uiVersion[]) {
   writeFileSync(join(outDir, `report.v${fileTag(version)}.json`), JSON.stringify(report, null, 2));
 
   console.log(`A2UI ${version}:`);
+  for (const gate of validation.gates) {
+    console.log(`  [${gate.pass ? "PASS" : "FAIL"}] ${gate.name} — ${gate.detail}`);
+    if (!gate.pass && gate.errors) for (const e of gate.errors) console.log(`      ${e}`);
+  }
+  if (!validation.pass) failed = true;
+}
+
+// 3) The second design system's contract (FM-10 groundwork): the shadcn
+// dspack contract, byte-synced with dspack main like the Astryx one, gated
+// through dspack-emit's own shadcn profile. Its worked example feeds A3.
+// The studio's scenario coverage under this contract waits on the
+// owner-authored upstream extension (intents beyond destructive-action);
+// the catalog emission and gates run today.
+const shadcnDoc = JSON.parse(readFileSync(join(root, "shadcn-ui.dspack.json"), "utf8")) as DspackDoc;
+const shadcnExample = (shadcnDoc as any).examples?.[0];
+if (!shadcnExample?.surface) {
+  console.error("shadcn contract has no worked example surface; A3 would be vacuous");
+  process.exit(1);
+}
+let shadcnSurfaceMessages: unknown = { messages: [] };
+try {
+  const emitted = emitSurface(shadcnExample.surface as DspackSurface, shadcnDoc, { profile: shadcnProfile });
+  shadcnSurfaceMessages = { messages: emitted.messages };
+  for (const w of emitted.warnings) console.log(`  [shadcn surface warn] ${w.code}: ${w.message}`);
+} catch (err) {
+  if (err instanceof EmitSurfaceError) {
+    console.error(`shadcn surface emission failed: ${err.message}`);
+    process.exit(4);
+  }
+  throw err;
+}
+for (const version of ["0.9.1", "1.0"] as A2uiVersion[]) {
+  const { catalog, validation, report } = transform(shadcnDoc, version, shadcnSurfaceMessages, shadcnProfile);
+  writeFileSync(join(outDir, `catalog.shadcn.v${fileTag(version)}.json`), JSON.stringify(catalog, null, 2));
+  writeFileSync(join(outDir, `report.shadcn.v${fileTag(version)}.json`), JSON.stringify(report, null, 2));
+
+  console.log(`A2UI ${version} (shadcn contract):`);
   for (const gate of validation.gates) {
     console.log(`  [${gate.pass ? "PASS" : "FAIL"}] ${gate.name} — ${gate.detail}`);
     if (!gate.pass && gate.errors) for (const e of gate.errors) console.log(`      ${e}`);

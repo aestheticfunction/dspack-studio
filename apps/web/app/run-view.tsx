@@ -15,7 +15,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
-import { astryxRegistry } from "@dspack-studio/astryx-renderers";
+import { canvasScopeProps, useDesignSystem } from "./design-system";
 import {
   a2uiMessagesAt,
   findingsAt,
@@ -78,6 +78,7 @@ export interface RunViewProps {
 }
 
 export function RunView({ events, label, streaming = false, live = false, resetKey, onAction, onFork, meta, initial, permalink, autoStart = false }: RunViewProps) {
+  const designSystem = useDesignSystem();
   const source = useMemo(() => ({ events }), [events]);
   const ticks = useMemo(() => timelineTicks(source), [source]);
   const last = events.length - 1;
@@ -341,6 +342,7 @@ export function RunView({ events, label, streaming = false, live = false, resetK
       <section
         data-canvas
         data-xray={xray || undefined}
+        {...canvasScopeProps(designSystem.id)}
         onClickCapture={
           xray
             ? (e) => {
@@ -363,9 +365,9 @@ export function RunView({ events, label, streaming = false, live = false, resetK
           // canvas with a fresh processor, so bound values are re-resolved
           // (the published renderer memoizes resolved props per surface).
           <A2uiCanvas
-            key={`${resetKey}:${messages.length}`}
+            key={`${resetKey}:${designSystem.id}:${messages.length}`}
             catalog={catalogJson as any}
-            registry={astryxRegistry}
+            registry={designSystem.registry}
             messages={messages}
             onAction={
               onAction

@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./astryx.dspack.json": "./astryx.dspack.json",
-    "./out/*": "./out/*"
+    "./out/*": "./out/*",
+    "./shadcn-ui.dspack.json": "./shadcn-ui.dspack.json"
   },
   "scripts": {
     "build:catalogs": "tsx src/build.ts",

@@ -1,0 +1,1297 @@
+{
+  "$schema": "../schema/dspack.v0.4.schema.json",
+  "dspack": "0.4",
+  "name": "shadcn/ui",
+  "description": "A collection of reusable components built with Radix UI and Tailwind CSS. Components are copied into your project, not installed as a dependency.",
+  "version": "2.2.0",
+  "metadata": {
+    "source": "https://ui.shadcn.com",
+    "license": "MIT"
+  },
+  "tokens": {
+    "color-primitives": {
+      "description": "Raw color palette values. These are the base colors from which semantic tokens are derived.",
+      "tier": "primitive",
+      "values": {
+        "white": {
+          "value": "hsl(0, 0%, 100%)",
+          "type": "color"
+        },
+        "slate-950": {
+          "value": "hsl(222.2, 84%, 4.9%)",
+          "type": "color"
+        },
+        "slate-900": {
+          "value": "hsl(222.2, 47.4%, 11.2%)",
+          "type": "color"
+        },
+        "slate-50": {
+          "value": "hsl(210, 40%, 98%)",
+          "type": "color"
+        },
+        "slate-100": {
+          "value": "hsl(210, 40%, 96.1%)",
+          "type": "color"
+        },
+        "slate-400": {
+          "value": "hsl(215.4, 16.3%, 46.9%)",
+          "type": "color"
+        },
+        "slate-200": {
+          "value": "hsl(214.3, 31.8%, 91.4%)",
+          "type": "color"
+        },
+        "red-500": {
+          "value": "hsl(0, 84.2%, 60.2%)",
+          "type": "color"
+        },
+        "blue-500": {
+          "value": "hsl(217.2, 91.2%, 59.8%)",
+          "type": "color"
+        }
+      }
+    },
+    "color": {
+      "description": "Semantic color tokens. Values shown are the default light theme.",
+      "tier": "semantic",
+      "values": {
+        "background": {
+          "value": "hsl(0, 0%, 100%)",
+          "description": "Default page background color.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "white"
+          }
+        },
+        "foreground": {
+          "value": "hsl(222.2, 84%, 4.9%)",
+          "description": "Default text color.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-950"
+          }
+        },
+        "primary": {
+          "value": "hsl(222.2, 47.4%, 11.2%)",
+          "description": "Primary brand color used for prominent interactive elements and emphasis.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-900"
+          }
+        },
+        "primary-foreground": {
+          "value": "hsl(210, 40%, 98%)",
+          "description": "Text color on primary-colored backgrounds.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-50"
+          }
+        },
+        "secondary": {
+          "value": "hsl(210, 40%, 96.1%)",
+          "description": "Secondary color for less prominent interactive elements.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-100"
+          }
+        },
+        "secondary-foreground": {
+          "value": "hsl(222.2, 47.4%, 11.2%)",
+          "description": "Text color on secondary-colored backgrounds.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-900"
+          }
+        },
+        "muted": {
+          "value": "hsl(210, 40%, 96.1%)",
+          "description": "Muted background color for subtle UI areas.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-100"
+          }
+        },
+        "muted-foreground": {
+          "value": "hsl(215.4, 16.3%, 46.9%)",
+          "description": "Text color for de-emphasized or secondary text.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-400"
+          }
+        },
+        "accent": {
+          "value": "hsl(210, 40%, 96.1%)",
+          "description": "Accent color for highlights and hover states.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-100"
+          }
+        },
+        "destructive": {
+          "value": "hsl(0, 84.2%, 60.2%)",
+          "description": "Color for destructive actions such as delete or remove.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "red-500"
+          }
+        },
+        "destructive-foreground": {
+          "value": "hsl(210, 40%, 98%)",
+          "description": "Text color on destructive-colored backgrounds.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-50"
+          }
+        },
+        "border": {
+          "value": "hsl(214.3, 31.8%, 91.4%)",
+          "description": "Default border color.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-200"
+          }
+        },
+        "ring": {
+          "value": "hsl(222.2, 84%, 4.9%)",
+          "description": "Focus ring color for interactive elements.",
+          "type": "color",
+          "aliasOf": {
+            "category": "color-primitives",
+            "token": "slate-950"
+          }
+        }
+      }
+    },
+    "spacing": {
+      "description": "Spacing scale based on a 4px (0.25rem) base unit at the default root font size.",
+      "values": {
+        "sp-1": {
+          "value": "0.25rem",
+          "description": "4px. Smallest spacing unit, used for tight internal padding.",
+          "type": "dimension"
+        },
+        "sp-2": {
+          "value": "0.5rem",
+          "description": "8px. Small spacing, used for gaps between related elements.",
+          "type": "dimension"
+        },
+        "sp-4": {
+          "value": "1rem",
+          "description": "16px. Standard spacing for padding and margins.",
+          "type": "dimension"
+        },
+        "sp-6": {
+          "value": "1.5rem",
+          "description": "24px. Medium spacing for section padding.",
+          "type": "dimension"
+        },
+        "sp-8": {
+          "value": "2rem",
+          "description": "32px. Large spacing for major section separation.",
+          "type": "dimension"
+        }
+      }
+    },
+    "border-radius": {
+      "description": "Border radius tokens.",
+      "values": {
+        "radius": {
+          "value": "0.5rem",
+          "description": "Default border radius for components.",
+          "type": "borderRadius"
+        },
+        "radius-sm": {
+          "value": "calc(0.5rem - 4px)",
+          "description": "Smaller border radius for nested or compact elements.",
+          "type": "borderRadius"
+        },
+        "radius-lg": {
+          "value": "calc(0.5rem + 4px)",
+          "description": "Larger border radius for prominent containers.",
+          "type": "borderRadius"
+        }
+      }
+    }
+  },
+  "components": {
+    "button": {
+      "name": "Button",
+      "description": "An interactive element that triggers an action when activated. Built on a native button element with support for Radix UI Slot composition via asChild.",
+      "status": "stable",
+      "whenToUse": "Use for primary actions, form submissions, dialog confirmations, and any interaction that performs an operation. Choose the variant that matches the action's importance and tone.",
+      "whenNotToUse": "Do not use for navigation between pages or views. Use a Link component or anchor element instead. Do not use for toggling state; use Toggle or Switch.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "propRole": "choice",
+          "values": [
+            { "value": "default", "description": "Standard button for primary page actions." },
+            { "value": "destructive", "description": "For irreversible actions like delete. Uses destructive color tokens." },
+            { "value": "outline", "description": "Bordered button for secondary actions that need clear affordance." },
+            { "value": "secondary", "description": "De-emphasized button for supplementary actions." },
+            { "value": "ghost", "description": "Minimal button for toolbar actions or inline controls. No background until hovered." },
+            { "value": "link", "description": "Renders as a text link. Use for inline navigation-like actions within prose." }
+          ],
+          "default": "default",
+          "description": "Visual treatment. Use destructive for irreversible actions, ghost for toolbar actions, link for inline text actions."
+        },
+        "size": {
+          "type": "enum",
+          "propRole": "dimension",
+          "values": [
+            { "value": "default", "description": "Standard size, suitable for most contexts." },
+            { "value": "sm", "description": "Compact size for dense UIs or inline actions." },
+            { "value": "lg", "description": "Large size for prominent calls to action." },
+            { "value": "icon", "description": "Square aspect ratio for icon-only buttons." }
+          ],
+          "default": "default",
+          "description": "Button size. Use icon for square icon-only buttons."
+        },
+        "disabled": {
+          "type": "boolean",
+          "propRole": "flag",
+          "default": false,
+          "description": "Whether the button is non-interactive. Conveys that the action is unavailable."
+        },
+        "asChild": {
+          "type": "boolean",
+          "propRole": "flag",
+          "default": false,
+          "description": "When true, merges props and behavior onto the child element instead of rendering a <button>. Used for composing with router Link components."
+        }
+      },
+      "accessibility": {
+        "role": "button",
+        "keyboardInteractions": [
+          { "key": "Enter", "description": "Activates the button." },
+          { "key": "Space", "description": "Activates the button." }
+        ],
+        "labelRequirement": "required-accessible-name",
+        "requiredAttributes": [
+          {
+            "attribute": "aria-label",
+            "condition": "when the button contains only an icon and no visible text",
+            "description": "Provide a text description of the button's action for screen readers."
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "context": "An action that submits a form, confirms a dialog, or triggers a side effect",
+          "rule": "Use Button",
+          "severity": "should"
+        },
+        {
+          "context": "Navigation between pages or views",
+          "rule": "Use a Link component or anchor element instead of Button",
+          "severity": "must-not"
+        },
+        {
+          "context": "Toggling a boolean state (on/off, show/hide)",
+          "rule": "Use Toggle or Switch instead of Button",
+          "severity": "should-not"
+        },
+        {
+          "context": "A destructive or irreversible action",
+          "rule": "Use the destructive variant",
+          "severity": "must"
+        }
+      ],
+      "tokens": ["primary", "primary-foreground", "secondary", "secondary-foreground", "destructive", "destructive-foreground", "border", "ring", "radius"],
+      "relatedComponents": ["toggle"],
+      "tags": ["interactive", "form", "action"],
+      "categories": ["interactive"]
+    },
+    "alert-dialog": {
+      "name": "Alert Dialog",
+      "description": "A modal dialog that interrupts the user with important content and expects a response. Built on Radix UI AlertDialog. Renders with a required action and a cancel option. The user cannot dismiss it by clicking the overlay or pressing Escape — they must choose an explicit action.",
+      "status": "stable",
+      "whenToUse": "Use for confirming destructive or irreversible actions: deleting records, discarding unsaved changes, revoking access. Use when the consequence of proceeding is significant enough that the user should explicitly acknowledge it.",
+      "whenNotToUse": "Do not use for informational messages or non-destructive confirmations. Use Dialog for those. Do not use when the user should be able to dismiss without choosing — that is what Dialog provides.",
+      "props": {
+        "open": {
+          "type": "boolean",
+          "propRole": "state",
+          "description": "Controlled open state of the dialog."
+        },
+        "onOpenChange": {
+          "type": "function",
+          "propRole": "handler",
+          "description": "Callback fired when the open state changes."
+        }
+      },
+      "accessibility": {
+        "role": "alertdialog",
+        "requiredAttributes": [
+          {
+            "attribute": "aria-labelledby",
+            "description": "Must reference the AlertDialogTitle element."
+          },
+          {
+            "attribute": "aria-describedby",
+            "description": "Must reference the AlertDialogDescription element."
+          }
+        ],
+        "keyboardInteractions": [
+          { "key": "Tab", "description": "Moves focus between focusable elements within the dialog. Focus is trapped inside." },
+          { "key": "Escape", "description": "Does NOT close the dialog. User must select an explicit action." },
+          { "key": "Enter", "description": "Activates the focused button." },
+          { "key": "Space", "description": "Activates the focused button." }
+        ],
+        "focusManagement": "On open, focus moves to the cancel button (least destructive action). On close, focus returns to the trigger element. Focus is trapped within the dialog while open.",
+        "labelRequirement": "required-visible"
+      },
+      "composition": {
+        "subComponents": [
+          {
+            "id": "alert-dialog-trigger",
+            "name": "AlertDialogTrigger",
+            "description": "The element that opens the alert dialog.",
+            "required": true,
+            "slot": "trigger",
+            "acceptsChildren": "components",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "alert-dialog-content",
+            "name": "AlertDialogContent",
+            "description": "The container for the dialog's content, rendered in a portal.",
+            "required": true,
+            "slot": "content",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "alert-dialog-header",
+            "name": "AlertDialogHeader",
+            "description": "Groups the title and description at the top of the dialog.",
+            "slot": "header",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "alert-dialog-title",
+            "name": "AlertDialogTitle",
+            "description": "The title of the alert dialog. Rendered as an h2. Referenced by aria-labelledby.",
+            "required": true,
+            "acceptsChildren": "text"
+          },
+          {
+            "id": "alert-dialog-description",
+            "name": "AlertDialogDescription",
+            "description": "A description providing additional context about the alert. Referenced by aria-describedby.",
+            "required": true,
+            "acceptsChildren": "text"
+          },
+          {
+            "id": "alert-dialog-footer",
+            "name": "AlertDialogFooter",
+            "description": "Contains the action and cancel buttons.",
+            "slot": "footer",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "alert-dialog-action",
+            "name": "AlertDialogAction",
+            "description": "The button that confirms the destructive action.",
+            "required": true,
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "alert-dialog-cancel",
+            "name": "AlertDialogCancel",
+            "description": "The button that cancels and closes the dialog.",
+            "required": true,
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
+          }
+        ],
+        "notes": "AlertDialogContent must contain AlertDialogTitle and AlertDialogDescription for accessibility. AlertDialogAction and AlertDialogCancel must appear in AlertDialogFooter. Place cancel before confirm in reading order."
+      },
+      "constraints": [
+        {
+          "context": "Confirming a destructive or irreversible action",
+          "rule": "Use AlertDialog instead of Dialog",
+          "severity": "must"
+        },
+        {
+          "context": "Informational messages or non-destructive confirmations",
+          "rule": "Use Dialog instead of AlertDialog",
+          "severity": "must-not"
+        },
+        {
+          "context": "Cases where the user should be able to dismiss without choosing an action",
+          "rule": "Use Dialog instead of AlertDialog",
+          "severity": "must-not"
+        }
+      ],
+      "tokens": ["background", "foreground", "primary", "primary-foreground", "destructive", "destructive-foreground", "border", "radius"],
+      "relatedComponents": ["dialog", "button"],
+      "tags": ["modal", "confirmation", "destructive", "accessibility"],
+      "categories": ["overlay"]
+    },
+    "dialog": {
+      "name": "Dialog",
+      "description": "A modal window that appears over the page content. Built on Radix UI Dialog. Can be dismissed by clicking the overlay, pressing Escape, or activating a close button.",
+      "status": "stable",
+      "whenToUse": "Use for forms, settings panels, detail views, or any content that benefits from focused attention without leaving the current page. Appropriate when the user should be able to dismiss the content without taking an action.",
+      "whenNotToUse": "Do not use for confirming destructive actions. Use AlertDialog instead — it prevents accidental dismissal. Do not use for simple, brief messages; use a toast or inline alert.",
+      "props": {
+        "open": {
+          "type": "boolean",
+          "propRole": "state",
+          "description": "Controlled open state of the dialog."
+        },
+        "onOpenChange": {
+          "type": "function",
+          "propRole": "handler",
+          "description": "Callback fired when the open state changes."
+        },
+        "modal": {
+          "type": "boolean",
+          "propRole": "flag",
+          "default": true,
+          "description": "Whether the dialog blocks interaction with the rest of the page."
+        }
+      },
+      "accessibility": {
+        "role": "dialog",
+        "requiredAttributes": [
+          {
+            "attribute": "aria-labelledby",
+            "description": "Must reference the DialogTitle element."
+          }
+        ],
+        "keyboardInteractions": [
+          { "key": "Tab", "description": "Moves focus between focusable elements within the dialog. Focus is trapped inside." },
+          { "key": "Escape", "description": "Closes the dialog and returns focus to the trigger." },
+          { "key": "Enter", "description": "Activates the focused interactive element." }
+        ],
+        "focusManagement": "On open, focus moves to the first focusable element inside the dialog. On close, focus returns to the trigger element. Focus is trapped within the dialog while open.",
+        "labelRequirement": "required-visible"
+      },
+      "composition": {
+        "subComponents": [
+          {
+            "id": "dialog-trigger",
+            "name": "DialogTrigger",
+            "description": "The element that opens the dialog.",
+            "slot": "trigger",
+            "acceptsChildren": "components",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "dialog-content",
+            "name": "DialogContent",
+            "description": "The container for the dialog's content, rendered in a portal.",
+            "required": true,
+            "slot": "content",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "dialog-header",
+            "name": "DialogHeader",
+            "description": "Groups the title and description at the top of the dialog.",
+            "slot": "header",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "dialog-title",
+            "name": "DialogTitle",
+            "description": "The title of the dialog. Referenced by aria-labelledby.",
+            "required": true,
+            "acceptsChildren": "text"
+          },
+          {
+            "id": "dialog-description",
+            "name": "DialogDescription",
+            "description": "A description providing additional context.",
+            "acceptsChildren": "text"
+          },
+          {
+            "id": "dialog-footer",
+            "name": "DialogFooter",
+            "description": "Contains action buttons.",
+            "slot": "footer",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "dialog-close",
+            "name": "DialogClose",
+            "description": "A button that closes the dialog.",
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "context": "Forms, settings panels, or detail views requiring focused attention",
+          "rule": "Use Dialog",
+          "severity": "should"
+        },
+        {
+          "context": "Confirming destructive actions",
+          "rule": "Use AlertDialog instead of Dialog",
+          "severity": "must-not"
+        }
+      ],
+      "tokens": ["background", "foreground", "border", "radius"],
+      "relatedComponents": ["alert-dialog"],
+      "tags": ["modal", "overlay", "form"],
+      "categories": ["overlay"]
+    },
+    "card": {
+      "name": "Card",
+      "description": "A container for grouping related content and actions. Provides visual separation through a bordered surface.",
+      "status": "stable",
+      "whenToUse": "Use to group related information into a distinct visual unit. Appropriate for dashboard widgets, summary panels, list items with detail, or any content that benefits from visual containment.",
+      "whenNotToUse": "Do not nest Cards inside other Cards. If content hierarchy is needed, use headings and spacing within a single Card. Do not use as a clickable element — wrap content in an interactive element instead.",
+      "props": {
+        "className": {
+          "type": "string",
+          "propRole": "content",
+          "description": "Additional CSS classes for customization."
+        }
+      },
+      "composition": {
+        "subComponents": [
+          {
+            "id": "card-header",
+            "name": "CardHeader",
+            "description": "Contains the title and optional description at the top of the card.",
+            "slot": "header",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "card-title",
+            "name": "CardTitle",
+            "description": "The title of the card.",
+            "acceptsChildren": "text"
+          },
+          {
+            "id": "card-description",
+            "name": "CardDescription",
+            "description": "A description below the title.",
+            "acceptsChildren": "text"
+          },
+          {
+            "id": "card-content",
+            "name": "CardContent",
+            "description": "The main content area of the card.",
+            "slot": "content",
+            "acceptsChildren": "any"
+          },
+          {
+            "id": "card-footer",
+            "name": "CardFooter",
+            "description": "Contains action buttons or supplementary information.",
+            "slot": "footer",
+            "acceptsChildren": "components"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "context": "Nesting Cards inside other Cards",
+          "rule": "Use headings and spacing within a single Card instead",
+          "severity": "must-not"
+        },
+        {
+          "context": "A clickable surface",
+          "rule": "Wrap Card content in an interactive element; do not make Card itself clickable",
+          "severity": "should-not"
+        }
+      ],
+      "tokens": ["background", "foreground", "border", "radius", "muted", "muted-foreground"],
+      "relatedComponents": ["button"],
+      "tags": ["layout", "container", "surface"]
+    },
+    "input": {
+      "name": "Input",
+      "description": "A single-line text input field built on the native <input> element. Supports all standard HTML input types.",
+      "status": "stable",
+      "whenToUse": "Use for short-form text entry: names, email addresses, search queries, numeric values. Choose the appropriate HTML type attribute for the content (email, password, number, etc.).",
+      "whenNotToUse": "Do not use for multi-line text. Use Textarea instead. Do not use for selecting from a predefined set of options; use Select or RadioGroup.",
+      "props": {
+        "type": {
+          "type": "string",
+          "propRole": "choice",
+          "default": "text",
+          "description": "HTML input type (text, email, password, number, search, etc.)."
+        },
+        "placeholder": {
+          "type": "string",
+          "propRole": "content",
+          "description": "Placeholder text shown when the input is empty."
+        },
+        "disabled": {
+          "type": "boolean",
+          "propRole": "flag",
+          "default": false,
+          "description": "Whether the input is non-interactive."
+        }
+      },
+      "accessibility": {
+        "labelRequirement": "required-visible",
+        "requiredAttributes": [
+          {
+            "attribute": "id",
+            "description": "Required for associating the input with its <label> element via htmlFor."
+          }
+        ],
+        "notes": "Every Input must have an associated <label> element. The label must be visible, not just provided via aria-label. Placeholder text is not a substitute for a label."
+      },
+      "constraints": [
+        {
+          "context": "Multi-line text entry",
+          "rule": "Use Textarea instead of Input",
+          "severity": "must-not"
+        },
+        {
+          "context": "Selecting from a predefined set of options",
+          "rule": "Use Select or RadioGroup instead of Input",
+          "severity": "should-not"
+        }
+      ],
+      "tokens": ["background", "foreground", "border", "ring", "radius-sm"],
+      "relatedComponents": [],
+      "tags": ["form", "input", "text"],
+      "categories": ["interactive"]
+    },
+    "badge": {
+      "name": "Badge",
+      "description": "A small label for categorization, status indication, or metadata. Renders as an inline element.",
+      "status": "experimental",
+      "whenToUse": "Use to display status (active, pending, archived), categories, tags, or counts. Appropriate for metadata that should be scannable at a glance.",
+      "whenNotToUse": "Do not use as a button or interactive element. If the badge should trigger an action, wrap it in a button or use a different component.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "propRole": "choice",
+          "values": [
+            { "value": "default", "description": "Standard badge for general categorization." },
+            { "value": "secondary", "description": "De-emphasized badge for supplementary metadata." },
+            { "value": "outline", "description": "Bordered badge for subtle labeling." },
+            { "value": "destructive", "description": "Indicates errors or critical status." }
+          ],
+          "default": "default",
+          "description": "Visual treatment. Use destructive to indicate errors or critical status."
+        }
+      },
+      "accessibility": {
+        "labelRequirement": "none",
+        "notes": "Badge is a presentational element. If the badge conveys status that is not also communicated through surrounding text, use aria-label on the badge or ensure the status is programmatically determinable through other means."
+      },
+      "tokens": ["primary", "primary-foreground", "secondary", "secondary-foreground", "destructive", "destructive-foreground", "border"],
+      "relatedComponents": [],
+      "tags": ["display", "status", "label"]
+    },
+    "dropdown-menu": {
+      "name": "Dropdown Menu",
+      "description": "A menu that appears on activation of a trigger element. Built on Radix UI DropdownMenu. Supports items, checkboxes, radio groups, sub-menus, separators, and keyboard navigation.",
+      "status": "stable",
+      "whenToUse": "Use when a set of actions or options needs to be accessible from a single trigger without taking up permanent screen space. Appropriate for overflow menus, context-sensitive actions, and settings with multiple choices.",
+      "whenNotToUse": "Do not use for navigation — use a navigation menu or links. Do not use when the options should always be visible; use RadioGroup or a set of Buttons instead.",
+      "props": {
+        "open": {
+          "type": "boolean",
+          "propRole": "state",
+          "description": "Controlled open state."
+        },
+        "onOpenChange": {
+          "type": "function",
+          "propRole": "handler",
+          "description": "Callback fired when the open state changes."
+        },
+        "modal": {
+          "type": "boolean",
+          "propRole": "flag",
+          "default": true,
+          "description": "Whether the menu blocks interaction with the rest of the page."
+        }
+      },
+      "accessibility": {
+        "role": "menu",
+        "keyboardInteractions": [
+          { "key": "Arrow Down", "description": "Moves focus to the next menu item." },
+          { "key": "Arrow Up", "description": "Moves focus to the previous menu item." },
+          { "key": "Enter", "description": "Activates the focused menu item." },
+          { "key": "Space", "description": "Activates the focused menu item." },
+          { "key": "Escape", "description": "Closes the menu and returns focus to the trigger." }
+        ],
+        "focusManagement": "On open, focus moves to the first menu item. On close, focus returns to the trigger. Arrow keys cycle through items.",
+        "labelRequirement": "required-accessible-name"
+      },
+      "composition": {
+        "subComponents": [
+          {
+            "id": "dropdown-menu-trigger",
+            "name": "DropdownMenuTrigger",
+            "description": "The element that opens the dropdown menu.",
+            "required": true,
+            "slot": "trigger",
+            "acceptsChildren": "components",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "dropdown-menu-content",
+            "name": "DropdownMenuContent",
+            "description": "The container for menu items, rendered in a portal.",
+            "required": true,
+            "slot": "content",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "dropdown-menu-item",
+            "name": "DropdownMenuItem",
+            "description": "A single actionable item in the menu.",
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "dropdown-menu-checkbox-item",
+            "name": "DropdownMenuCheckboxItem",
+            "description": "A menu item that can be toggled on/off.",
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "dropdown-menu-radio-group",
+            "name": "DropdownMenuRadioGroup",
+            "description": "Groups radio items for mutually exclusive selection.",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "dropdown-menu-radio-item",
+            "name": "DropdownMenuRadioItem",
+            "description": "A radio-style menu item for single selection within a group.",
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "dropdown-menu-label",
+            "name": "DropdownMenuLabel",
+            "description": "A non-interactive label for grouping menu items.",
+            "acceptsChildren": "text"
+          },
+          {
+            "id": "dropdown-menu-separator",
+            "name": "DropdownMenuSeparator",
+            "description": "A visual divider between groups of items.",
+            "acceptsChildren": "none"
+          },
+          {
+            "id": "dropdown-menu-group",
+            "name": "DropdownMenuGroup",
+            "description": "Groups related menu items together.",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "dropdown-menu-sub",
+            "name": "DropdownMenuSub",
+            "description": "A container for a sub-menu.",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "dropdown-menu-sub-trigger",
+            "name": "DropdownMenuSubTrigger",
+            "description": "The item that opens a sub-menu on hover or keyboard navigation.",
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
+          },
+          {
+            "id": "dropdown-menu-sub-content",
+            "name": "DropdownMenuSubContent",
+            "description": "The content container for a sub-menu.",
+            "acceptsChildren": "components"
+          }
+        ]
+      },
+      "tokens": ["background", "foreground", "accent", "muted", "muted-foreground", "border", "radius"],
+      "relatedComponents": ["button"],
+      "tags": ["interactive", "menu", "overlay"],
+      "categories": ["interactive", "overlay"]
+    },
+    "table": {
+      "name": "Table",
+      "description": "A set of primitives for presenting tabular data with a meaningful row-and-column relationship. These are thin, presentational wrappers over the native table elements — Table renders a <table> inside a horizontally scrollable container, and the sub-components render thead, tbody, tfoot, tr, th, td, and caption. There is no built-in sorting, filtering, pagination, or selection; those are composed on top.",
+      "status": "experimental",
+      "whenToUse": "Use to display data where each row is a record and each column is a comparable attribute: members and their roles, invoices, audit logs, permission lists. Reach for Table whenever the relationship between rows and columns carries meaning that assistive technology should be able to announce.",
+      "whenNotToUse": "Do not use Table to lay out or align non-tabular content — use CSS grid or flexbox for layout. Do not use a table to present a single record's key/value pairs; use a description list (dl) or a Card instead. For large interactive datasets, still use these primitives for markup but drive state with a headless table library rather than building a bespoke component.",
+      "accessibility": {
+        "role": "table",
+        "requiredAttributes": [
+          {
+            "attribute": "scope",
+            "condition": "on every TableHead (th) cell",
+            "description": "Set scope=\"col\" for column headers and scope=\"row\" for row headers so screen readers can associate each data cell with its header. Header cells must be th elements, not styled td cells."
+          },
+          {
+            "attribute": "aria-sort",
+            "condition": "on the TableHead (th) of a sortable column",
+            "description": "Reflect the column's current sort state as ascending, descending, or none. Only one column may expose a non-none value at a time so the active sort is unambiguous."
+          },
+          {
+            "attribute": "aria-label",
+            "condition": "when the table has no visible TableCaption and no aria-labelledby reference",
+            "description": "Give the table an accessible name with a literal label string so its purpose is announced when it receives focus or is navigated. Prefer a visible TableCaption where one is appropriate."
+          },
+          {
+            "attribute": "aria-labelledby",
+            "condition": "when the table has no visible TableCaption but an existing on-page heading names it",
+            "description": "Reference the id of the visible element that already names the table, instead of duplicating the name in an aria-label. Use either aria-labelledby or aria-label, not both."
+          }
+        ],
+        "labelRequirement": "required-accessible-name",
+        "notes": "Preserve the native semantic structure: real thead, tbody, tfoot, th, and td elements — never reconstruct a table from styled divs, which strips the row/column semantics screen readers depend on. Do NOT use Table for visual layout, alignment, or positioning; that is the job of CSS grid or flexbox. Provide an accessible name through TableCaption (preferred) or aria-label/aria-labelledby. A sortable column header must be a real Button inside the th, with the th carrying aria-sort, so the control is keyboard-operable and announced as a button."
+      },
+      "composition": {
+        "subComponents": [
+          {
+            "id": "table-header",
+            "name": "TableHeader",
+            "description": "The table's header section, rendered as a thead. Contains the header TableRow whose cells are TableHead elements.",
+            "slot": "header",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-body",
+            "name": "TableBody",
+            "description": "The table's body section, rendered as a tbody. Contains the data TableRows.",
+            "slot": "body",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-footer",
+            "name": "TableFooter",
+            "description": "The table's footer section, rendered as a tfoot. Use for summary rows such as totals.",
+            "slot": "footer",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-row",
+            "name": "TableRow",
+            "description": "A single row, rendered as a tr. Lives inside TableHeader, TableBody, or TableFooter and contains TableHead or TableCell elements.",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-head",
+            "name": "TableHead",
+            "description": "A header cell, rendered as a th. Carries scope and, when its column is sortable, aria-sort and a Button that toggles the sort.",
+            "slot": "columnheader",
+            "acceptsChildren": "any"
+          },
+          {
+            "id": "table-cell",
+            "name": "TableCell",
+            "description": "A data cell, rendered as a td. May contain plain text or interactive controls such as a Badge or a row actions menu.",
+            "acceptsChildren": "any"
+          },
+          {
+            "id": "table-caption",
+            "name": "TableCaption",
+            "description": "An accessible caption, rendered as a caption. Describes the table's contents and supplies its accessible name.",
+            "slot": "caption",
+            "acceptsChildren": "text"
+          }
+        ],
+        "notes": "TableRow must appear inside TableHeader, TableBody, or TableFooter — not directly under Table. Header cells use TableHead (th); data cells use TableCell (td). When present, TableCaption is the first child of Table. These primitives carry no data behavior; compose sorting, filtering, pagination, and selection on top of them."
+      },
+      "constraints": [
+        {
+          "context": "Displaying data with a meaningful row-and-column relationship",
+          "rule": "Use Table with semantic TableHeader/TableBody and TableHead/TableCell elements",
+          "severity": "should"
+        },
+        {
+          "context": "Visual layout, alignment, or positioning of non-tabular content",
+          "rule": "Use CSS grid or flexbox instead of Table",
+          "severity": "must-not"
+        },
+        {
+          "context": "Column and row header cells",
+          "rule": "Use TableHead (th) with an explicit scope attribute rather than a styled TableCell (td)",
+          "severity": "must"
+        },
+        {
+          "context": "A sortable column",
+          "rule": "Expose the sort state with aria-sort on the TableHead and make the trigger a real Button",
+          "severity": "must"
+        },
+        {
+          "context": "Sorting, filtering, pagination, or row selection over large datasets",
+          "rule": "Compose a headless table library such as TanStack Table on top of these primitives instead of hand-rolling the state",
+          "severity": "should"
+        },
+        {
+          "context": "Any data table",
+          "rule": "Give the table an accessible name describing its contents — a TableCaption (preferred), or aria-label/aria-labelledby",
+          "severity": "must"
+        }
+      ],
+      "tokens": ["background", "foreground", "muted", "muted-foreground", "border"],
+      "relatedComponents": ["badge", "button", "dropdown-menu"],
+      "tags": ["data", "table", "tabular", "display"]
+    }
+  },
+  "categories": {
+    "interactive": {
+      "name": "Interactive",
+      "description": "Receives pointer or keyboard activation: buttons, inputs, menu items, and trigger/action/cancel sub-components. Category-based composition rules select by this instead of enumerating ids."
+    },
+    "overlay": {
+      "name": "Overlay",
+      "description": "Renders content in a layer above the page with its own focus and dismiss semantics: dialogs, alert dialogs, dropdown menus."
+    }
+  },
+  "patterns": [
+    {
+      "id": "destructive-action-confirmation",
+      "name": "Destructive Action Confirmation",
+      "description": "A confirmation flow for actions that are irreversible or have significant consequences, using AlertDialog to require explicit user acknowledgment.",
+      "intent": "Prevent accidental data loss or irreversible state changes by requiring the user to explicitly confirm before proceeding.",
+      "context": "Use whenever an action cannot be undone: deleting a record, removing a team member, clearing form data, revoking access, or any operation the user might regret if triggered accidentally.",
+      "components": ["alert-dialog", "button"],
+      "guidance": "Use AlertDialog, not Dialog, for destructive confirmations. The trigger should clearly indicate the destructive nature of the action. Inside the AlertDialog, provide a clear title stating what will happen, a description of the consequences, and two actions: a cancel option and a confirm option. The confirm button MUST use the destructive variant. Place the cancel action before the confirm action in the footer. The description should state specifically what will be affected (e.g., 'This will permanently delete 3 projects and all associated data').",
+      "relatedPatterns": [],
+      "tags": ["confirmation", "destructive", "modal", "safety"]
+    },
+    {
+      "id": "form-field-layout",
+      "name": "Form Field Layout",
+      "description": "Standard arrangement of form controls within a Card container, providing consistent structure for data entry interfaces.",
+      "intent": "Give forms a consistent visual structure that groups related inputs, separates them from surrounding content, and provides clear hierarchy through Card sub-components.",
+      "context": "Use for settings panels, profile editors, checkout flows, or any interface where the user enters structured data across multiple fields.",
+      "components": ["card", "input", "button"],
+      "guidance": "Wrap the form in a Card. Use CardHeader with CardTitle and CardDescription to introduce the form's purpose. Place inputs inside CardContent with consistent vertical spacing (space-y-4 or equivalent). Group related fields together. Place primary actions (submit, save) in CardFooter. Labels should be associated with inputs for accessibility. Required fields should be visually indicated.",
+      "relatedPatterns": ["destructive-action-confirmation"],
+      "tags": ["form", "layout", "data-entry"]
+    },
+    {
+      "id": "contextual-actions-menu",
+      "name": "Contextual Actions Menu",
+      "description": "A pattern for exposing a set of context-sensitive actions through a dropdown menu triggered by an icon button.",
+      "intent": "Keep interfaces clean by collecting secondary or overflow actions behind a single trigger, while maintaining discoverability through a familiar interaction pattern.",
+      "context": "Use for row-level actions in tables or lists, overflow menus in toolbars, or any place where multiple actions apply to a single item but showing all of them inline would be visually noisy.",
+      "components": ["dropdown-menu", "button"],
+      "guidance": "Use a Button with the ghost variant and icon size as the DropdownMenuTrigger. A vertical ellipsis icon is the conventional trigger for contextual menus. Group related actions with DropdownMenuGroup and separate groups with DropdownMenuSeparator. Place destructive actions (delete, remove) at the end of the menu, visually distinguished. Include keyboard shortcuts in DropdownMenuItem when available.",
+      "relatedPatterns": ["destructive-action-confirmation"],
+      "tags": ["actions", "menu", "overflow"]
+    },
+    {
+      "id": "data-table-with-row-actions",
+      "name": "Data Table with Row Actions",
+      "description": "An enterprise data table that presents records with a sortable header, a status column, and a trailing column of per-row actions — including destructive ones routed through a confirmation. Composes the Table primitives with Badge for status, a DropdownMenu (via the contextual-actions-menu pattern) for the actions column, and AlertDialog (via the destructive-action-confirmation pattern) for destructive actions.",
+      "intent": "Let users scan and act on a list of records — reviewing each row's status and reaching its actions — without sacrificing the semantics, keyboard access, or safety guarantees that the underlying components provide.",
+      "context": "Use for access-management and administrative surfaces: a members table, a users-and-roles list, an API-keys table, or any view where each row is an entity with a status and a set of actions, some of which (remove, revoke access) are destructive.",
+      "components": ["table", "badge", "button", "dropdown-menu", "alert-dialog"],
+      "guidance": "Build the table from the Table primitives: a TableHeader row of TableHead cells, a TableBody of one TableRow per record, and a TableCaption (or aria-label) naming the table. Make sortable columns real controls — render a ghost Button inside the TableHead and set aria-sort on that TableHead to ascending, descending, or none, with only one column sorted at a time. Render the status column with a Badge whose variant reflects state (for example default or secondary for active and pending, destructive for suspended or revoked); because Badge is presentational, keep the status readable as text so it is announced by assistive technology, not conveyed by color alone. Put per-row actions in a trailing TableCell as a contextual-actions-menu: a ghost icon Button (a vertical ellipsis) as the DropdownMenuTrigger opening a DropdownMenu of actions, with an aria-label on the trigger. Route every destructive row action — remove, revoke access — through the destructive-action-confirmation pattern using AlertDialog, never Dialog, so the action cannot be dismissed by accident; the AlertDialogDescription should name the specific record affected (for example 'This revokes Jordan Lee's access to the Acme workspace'). Do not make the entire TableRow a single clickable target while it also contains its own action controls — that is the nested-interactive-elements anti-pattern, which produces ambiguous click targets and unpredictable behavior for keyboard and screen-reader users; if rows need a primary navigation, expose it as a distinct link or cell control rather than wrapping the row.",
+      "relatedPatterns": ["contextual-actions-menu", "destructive-action-confirmation"],
+      "tags": ["table", "data", "actions", "access-management", "destructive"]
+    }
+  ],
+  "antiPatterns": [
+    {
+      "id": "dialog-for-destructive-actions",
+      "name": "Using Dialog for Destructive Confirmations",
+      "description": "Using the dismissible Dialog component instead of AlertDialog when confirming a destructive or irreversible action.",
+      "reason": "Dialog can be dismissed by clicking the overlay or pressing Escape, which means a user can accidentally bypass the confirmation without making a conscious choice. AlertDialog forces the user to select an explicit action (confirm or cancel), providing a stronger safeguard against accidental destructive operations. This distinction also matters for accessibility: screen readers announce AlertDialog with greater urgency.",
+      "severity": "must-not",
+      "insteadUse": "destructive-action-confirmation",
+      "components": ["dialog", "alert-dialog"],
+      "tags": ["modal", "destructive", "accessibility"]
+    },
+    {
+      "id": "nested-interactive-elements",
+      "name": "Nesting Interactive Elements",
+      "description": "Placing a clickable or focusable element (Button, Link, Input) inside another clickable element (a clickable Card, a Button, or a Link).",
+      "reason": "Nested interactive elements create ambiguous click targets and are a significant accessibility violation. Screen readers cannot determine user intent when interactive elements are nested, and the resulting behavior varies unpredictably across browsers. The outer element may intercept clicks intended for the inner element, or both may fire, leading to unexpected navigation or duplicate actions.",
+      "severity": "must-not",
+      "components": ["button", "card", "input"],
+      "tags": ["accessibility", "interaction", "html-semantics"]
+    },
+    {
+      "id": "div-as-button",
+      "name": "Using a Styled Div as a Button",
+      "description": "Creating a clickable element by adding an onClick handler and visual styles to a <div> or <span> instead of using the Button component or a native <button> element.",
+      "reason": "A styled div lacks keyboard accessibility (not focusable by default, does not respond to Enter or Space), is not announced as a button by screen readers, and does not participate in form submission. The Button component handles all of these concerns. Using a div requires manually re-implementing focus management, keyboard handling, and ARIA attributes — work that is error-prone and already solved by the component.",
+      "severity": "must-not",
+      "components": ["button"],
+      "tags": ["accessibility", "semantics", "component-misuse"]
+    }
+  ],
+  "intents": [
+    {
+      "id": "destructive-action",
+      "name": "Destructive action",
+      "description": "The requested UI performs an irreversible or high-consequence operation: deleting records or accounts, revoking access, removing members.",
+      "relatedPatterns": ["destructive-action-confirmation"]
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule.destructive-requires-alertdialog",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": { "intents": ["destructive-action"] },
+      "require": ["alert-dialog"],
+      "forbid": ["dialog"],
+      "rationale": "Dialog can be dismissed by clicking the overlay or pressing Escape, so a user can bypass a destructive confirmation without making a conscious choice. AlertDialog forces an explicit confirm/cancel decision and is announced with greater urgency by screen readers.",
+      "examples": ["ex.delete-account-confirmation"],
+      "tags": ["safety", "accessibility"]
+    },
+    {
+      "id": "rule.alertdialog-requires-cancel",
+      "type": "required-composition",
+      "severity": "must",
+      "component": "alert-dialog",
+      "requiredSubComponents": [
+        { "id": "alert-dialog-cancel", "min": 1 },
+        { "id": "alert-dialog-title", "min": 1 }
+      ],
+      "rationale": "A confirmation without an explicit cancel action and a title naming the consequence funnels the user toward the destructive action; the title is also required for aria-labelledby.",
+      "examples": ["ex.delete-account-confirmation"],
+      "tags": ["safety", "accessibility"]
+    },
+    {
+      "id": "rule.button-no-interactive-descendants",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "button",
+      "forbiddenDescendants": ["button", "input"],
+      "rationale": "Nested interactive elements create ambiguous click targets and are an accessibility violation: screen readers cannot determine intent and click handling varies across browsers.",
+      "examples": ["ex.delete-account-confirmation"],
+      "tags": ["accessibility", "interaction"]
+    },
+    {
+      "id": "rule.trigger-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "component": "alert-dialog-trigger",
+      "requiredText": true,
+      "textScope": "subtree",
+      "rationale": "The trigger must present an accessible label: non-empty text somewhere under the trigger. Protocol projections lift the label from the trigger's subtree (preferring a label-bearing button; lifts are audited) — a trigger with no label text anywhere yields a control with no accessible name and an instance downstream emitters must refuse.",
+      "examples": ["ex.delete-account-confirmation"],
+      "tags": ["accessibility", "projection"]
+    },
+    {
+      "id": "rule.alertdialog-no-nested-overlays",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "alert-dialog",
+      "forbiddenCategories": ["overlay"],
+      "rationale": "An alert dialog is a single focused interruption. Stacking another overlay (dialog, dropdown menu, another alert dialog) inside it breaks focus containment and dismiss semantics and buries the confirmation decision under a second layer.",
+      "tags": ["accessibility", "interaction"]
+    }
+  ],
+  "examples": [
+    {
+      "id": "ex.delete-account-confirmation",
+      "intent": "destructive-action",
+      "name": "Delete account confirmation",
+      "prompt": "a screen to delete my account",
+      "description": "Card with a destructive entry point; AlertDialog confirmation with explicit consequence text, cancel-before-confirm, destructive confirm variant.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "shadcn/ui",
+        "intent": "destructive-action",
+        "root": {
+          "component": "card",
+          "children": [
+            {
+              "component": "alert-dialog",
+              "children": [
+                {
+                  "component": "alert-dialog-trigger",
+                  "children": [
+                    {
+                      "component": "button",
+                      "props": { "variant": "destructive" },
+                      "text": "Delete account"
+                    }
+                  ]
+                },
+                {
+                  "component": "alert-dialog-content",
+                  "children": [
+                    { "component": "alert-dialog-title", "text": "Delete your account?" },
+                    {
+                      "component": "alert-dialog-description",
+                      "text": "This will permanently delete your account and all associated data. This action cannot be undone."
+                    },
+                    {
+                      "component": "alert-dialog-footer",
+                      "children": [
+                        { "component": "alert-dialog-cancel", "text": "Cancel" },
+                        { "component": "alert-dialog-action", "text": "Delete account" }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "frameworkBindings": {
+    "react": {
+      "name": "React",
+      "package": "shadcn/ui",
+      "installCommand": "npx shadcn@latest init",
+      "description": "React components built with Radix UI primitives and styled with Tailwind CSS. Components are copied into your project source rather than imported from a package — you own and can modify the code.",
+      "guidance": "Run 'npx shadcn@latest init' to set up the project, then add individual components with 'npx shadcn@latest add <component>'. Components are placed in your project (typically src/components/ui/ or components/ui/) and can be freely modified. Tailwind CSS v4 and a path alias (usually @/) are expected.",
+      "components": {
+        "button": {
+          "importPath": "@/components/ui/button",
+          "installCommand": "npx shadcn@latest add button",
+          "exportName": "Button",
+          "guidance": "Uses class-variance-authority (cva) for variant styles. Supports Radix UI Slot via the asChild prop for composing with router Link components."
+        },
+        "alert-dialog": {
+          "importPath": "@/components/ui/alert-dialog",
+          "installCommand": "npx shadcn@latest add alert-dialog",
+          "guidance": "Built on @radix-ui/react-alert-dialog.",
+          "subComponents": {
+            "alert-dialog-trigger": { "exportName": "AlertDialogTrigger" },
+            "alert-dialog-content": { "exportName": "AlertDialogContent" },
+            "alert-dialog-header": { "exportName": "AlertDialogHeader" },
+            "alert-dialog-title": { "exportName": "AlertDialogTitle" },
+            "alert-dialog-description": { "exportName": "AlertDialogDescription" },
+            "alert-dialog-footer": { "exportName": "AlertDialogFooter" },
+            "alert-dialog-action": { "exportName": "AlertDialogAction" },
+            "alert-dialog-cancel": { "exportName": "AlertDialogCancel" }
+          }
+        },
+        "dialog": {
+          "importPath": "@/components/ui/dialog",
+          "installCommand": "npx shadcn@latest add dialog",
+          "guidance": "Built on @radix-ui/react-dialog.",
+          "subComponents": {
+            "dialog-trigger": { "exportName": "DialogTrigger" },
+            "dialog-content": { "exportName": "DialogContent" },
+            "dialog-header": { "exportName": "DialogHeader" },
+            "dialog-title": { "exportName": "DialogTitle" },
+            "dialog-description": { "exportName": "DialogDescription" },
+            "dialog-footer": { "exportName": "DialogFooter" },
+            "dialog-close": { "exportName": "DialogClose" }
+          }
+        },
+        "card": {
+          "importPath": "@/components/ui/card",
+          "installCommand": "npx shadcn@latest add card",
+          "guidance": "Pure HTML/CSS components — no Radix dependency.",
+          "subComponents": {
+            "card-header": { "exportName": "CardHeader" },
+            "card-title": { "exportName": "CardTitle" },
+            "card-description": { "exportName": "CardDescription" },
+            "card-content": { "exportName": "CardContent" },
+            "card-footer": { "exportName": "CardFooter" }
+          }
+        },
+        "input": {
+          "importPath": "@/components/ui/input",
+          "installCommand": "npx shadcn@latest add input",
+          "exportName": "Input",
+          "guidance": "A styled native <input> element. Forwards all standard HTML input attributes via React.forwardRef."
+        },
+        "badge": {
+          "importPath": "@/components/ui/badge",
+          "installCommand": "npx shadcn@latest add badge",
+          "exportName": "Badge",
+          "guidance": "Uses cva for variant styles. Renders as a <div> by default."
+        },
+        "dropdown-menu": {
+          "importPath": "@/components/ui/dropdown-menu",
+          "installCommand": "npx shadcn@latest add dropdown-menu",
+          "guidance": "Built on @radix-ui/react-dropdown-menu.",
+          "subComponents": {
+            "dropdown-menu-trigger": { "exportName": "DropdownMenuTrigger" },
+            "dropdown-menu-content": { "exportName": "DropdownMenuContent" },
+            "dropdown-menu-item": { "exportName": "DropdownMenuItem" },
+            "dropdown-menu-checkbox-item": { "exportName": "DropdownMenuCheckboxItem" },
+            "dropdown-menu-radio-group": { "exportName": "DropdownMenuRadioGroup" },
+            "dropdown-menu-radio-item": { "exportName": "DropdownMenuRadioItem" },
+            "dropdown-menu-label": { "exportName": "DropdownMenuLabel" },
+            "dropdown-menu-separator": { "exportName": "DropdownMenuSeparator" },
+            "dropdown-menu-group": { "exportName": "DropdownMenuGroup" },
+            "dropdown-menu-sub": { "exportName": "DropdownMenuSub" },
+            "dropdown-menu-sub-trigger": { "exportName": "DropdownMenuSubTrigger" },
+            "dropdown-menu-sub-content": { "exportName": "DropdownMenuSubContent" }
+          }
+        },
+        "table": {
+          "importPath": "@/components/ui/table",
+          "installCommand": "npx shadcn@latest add table",
+          "guidance": "Pure HTML/CSS table primitives — no Radix dependency. Table renders a <table> wrapped in a horizontally scrollable container; the sub-components map directly to the native thead, tbody, tfoot, tr, th, td, and caption elements. The primitives are presentational only: sorting, filtering, pagination, and row selection are typically composed with TanStack Table (@tanstack/react-table) on top of them, where the headless library owns the data state and these components render the resulting rows and cells.",
+          "subComponents": {
+            "table-header": { "exportName": "TableHeader" },
+            "table-body": { "exportName": "TableBody" },
+            "table-footer": { "exportName": "TableFooter" },
+            "table-row": { "exportName": "TableRow" },
+            "table-head": { "exportName": "TableHead" },
+            "table-cell": { "exportName": "TableCell" },
+            "table-caption": { "exportName": "TableCaption" }
+          }
+        }
+      }
+    }
+  },
+  "themes": {
+    "dark": {
+      "name": "Dark",
+      "description": "Dark theme for low-light environments. Inverts the primary background/foreground relationship and adjusts accent colors for sufficient contrast on dark surfaces.",
+      "overrides": {
+        "color.background": "hsl(222.2, 84%, 4.9%)",
+        "color.foreground": "hsl(210, 40%, 98%)",
+        "color.primary": "hsl(210, 40%, 98%)",
+        "color.primary-foreground": "hsl(222.2, 47.4%, 11.2%)",
+        "color.secondary": "hsl(217.2, 32.6%, 17.5%)",
+        "color.secondary-foreground": "hsl(210, 40%, 98%)",
+        "color.muted": "hsl(217.2, 32.6%, 17.5%)",
+        "color.muted-foreground": "hsl(215, 20.2%, 65.1%)",
+        "color.accent": "hsl(217.2, 32.6%, 17.5%)",
+        "color.destructive": "hsl(0, 62.8%, 30.6%)",
+        "color.destructive-foreground": "hsl(210, 40%, 98%)",
+        "color.border": "hsl(217.2, 32.6%, 17.5%)",
+        "color.ring": "hsl(212.7, 26.8%, 83.9%)"
+      }
+    }
+  },
+  "layout": {
+    "breakpoints": {
+      "sm": { "minWidth": "640px", "description": "Small devices and large phones in landscape." },
+      "md": { "minWidth": "768px", "description": "Tablets." },
+      "lg": { "minWidth": "1024px", "description": "Small desktops and laptops." },
+      "xl": { "minWidth": "1280px", "description": "Standard desktops." },
+      "2xl": { "minWidth": "1536px", "description": "Large desktops." }
+    },
+    "grid": {
+      "columns": 12,
+      "gutter": "1rem",
+      "description": "Use the 12-column grid for page-level layout. Component-level layout should use flexbox or CSS grid directly."
+    },
+    "containers": {
+      "default": { "maxWidth": "1280px", "description": "Standard content container for most pages." },
+      "narrow": { "maxWidth": "768px", "description": "For focused reading experiences, forms, and auth flows." },
+      "wide": { "maxWidth": "1536px", "description": "For data-dense views like dashboards and admin panels." }
+    },
+    "spacingScale": {
+      "baseUnit": "0.25rem",
+      "description": "Spacing follows a 4px (0.25rem) base unit. Use multiples: 1 (4px), 2 (8px), 3 (12px), 4 (16px), 5 (20px), 6 (24px), 8 (32px), 10 (40px), 12 (48px), 16 (64px)."
+    }
+  }
+}

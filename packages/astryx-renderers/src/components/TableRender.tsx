@@ -10,7 +10,7 @@
 import type { FC } from "react";
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
 import { Badge } from "@astryxdesign/core/Badge";
-import { childIds } from "../provenance";
+import { childIds } from "@dspack-studio/a2ui-ingest";
 
 interface Row {
   cells?: unknown[];

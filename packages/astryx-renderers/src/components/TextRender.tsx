@@ -11,7 +11,7 @@
  */
 import type { FC } from "react";
 import { Text } from "@astryxdesign/core/Text";
-import { childIds } from "../provenance";
+import { childIds } from "@dspack-studio/a2ui-ingest";
 
 const VARIANT_TO_TYPE: Record<string, { type: any; as: any; weight?: any }> = {
   h1: { type: "display-2", as: "p", weight: "bold" },

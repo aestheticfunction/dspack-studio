@@ -19,10 +19,12 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Contract gates (A2UI 0.9.1 + 1.0) and scenario surfaces
         run: pnpm --filter @dspack-studio/contracts build:catalogs
-      - name: Contract copy matches the authoritative dspack main (sync check)
+      - name: Contract copies match the authoritative dspack main (sync check)
         run: |
           curl -sf https://raw.githubusercontent.com/aestheticfunction/dspack/main/examples/astryx.dspack.json \
             | diff - packages/contracts/astryx.dspack.json
+          curl -sf https://raw.githubusercontent.com/aestheticfunction/dspack/main/examples/shadcn-ui.dspack.json \
+            | diff - packages/contracts/shadcn-ui.dspack.json
       - name: Astryx vocabulary drift check (report-only, local CLI)
         run: pnpm --filter @dspack-studio/contracts drift-check
       - name: Unit tests
@@ -31,6 +33,7 @@ jobs:
           pnpm --filter @dspack-studio/agui-bridge test
           pnpm --filter @dspack-studio/replay test
           pnpm --filter @dspack-studio/scenarios test
+          pnpm --filter @dspack-studio/shadcn-renderers test
           pnpm --filter agent test
       - name: Type checks
         run: pnpm -r typecheck

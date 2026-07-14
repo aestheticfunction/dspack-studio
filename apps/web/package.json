@@ -5,8 +5,8 @@
   "description": "The studio: canvas, timeline, X-ray, wire view. Phase 1: the contract's worked example rendered through Astryx with the theme dial.",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "NODE_OPTIONS=--localstorage-file=/tmp/dspack-studio-dev-localstorage next dev",
-    "build": "pnpm --filter @dspack-studio/contracts build:catalogs && next build",
+    "dev": "pnpm --filter @dspack-studio/shadcn-renderers build:css && NODE_OPTIONS=--localstorage-file=/tmp/dspack-studio-dev-localstorage next dev",
+    "build": "pnpm --filter @dspack-studio/contracts build:catalogs && pnpm --filter @dspack-studio/shadcn-renderers build:css && next build",
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json"
   },
@@ -27,7 +27,8 @@
     "@dspack-studio/scenarios": "workspace:*",
     "next": "15.3.2",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "@dspack-studio/shadcn-renderers": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

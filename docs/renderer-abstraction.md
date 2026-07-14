@@ -2,8 +2,13 @@
 
 The studio's rendering stack is layered so the design system is a plug-in,
 not a foundation. This document states the boundaries as they exist in code
-today (verified by `packages/a2ui-ingest/src/registry-abstraction.test.ts`)
-— it is preparation for a design-system swap, not the swap itself.
+today (verified by `packages/a2ui-ingest/src/registry-abstraction.test.ts`).
+Since the FM-10 groundwork the swap is real: `packages/shadcn-renderers`
+supplies a second registry (8 of 9 catalog names; `Dialog` renders the
+unimplemented placeholder by design), selected in the restyle view and
+applied to every canvas. The e2e proof (`e2e/design-swap.spec.ts`) replays
+one fixture under both design systems and asserts the receipt hash is
+identical while the rendered DOM differs.
 
 ## The layers
 
