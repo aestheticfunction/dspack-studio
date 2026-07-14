@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { bookingRespond, bookingStartOps } from "./appointment-booking";
+import { bookingRespond, bookingStartOps, resetBookingSession } from "./appointment-booking";
 
 const dm = (ops: unknown[]) =>
-  Object.fromEntries(ops.map((o: any) => [o.updateDataModel.path, o.updateDataModel.value]));
+  Object.fromEntries(ops.filter((o: any) => o.updateDataModel).map((o: any) => [o.updateDataModel.path, o.updateDataModel.value]));
 
 describe("appointment-booking responder (deterministic HITL)", () => {
   it("start ops carry the emitted surface, the interaction overlay, and the initial data model", () => {
@@ -26,10 +26,13 @@ describe("appointment-booking responder (deterministic HITL)", () => {
     expect(dm(r.ops)["/booking/status"]).toMatch(/enter your name/);
   });
 
-  it("happy path: select -> confirm reaches the success state", () => {
+  it("happy path: select -> governed question -> confirm reaches the success state", () => {
+    resetBookingSession();
     const select = bookingRespond("select_slot", { slot: "10:30", name: "Ada" });
     expect(select.outcome).toBe("accepted");
     expect(dm(select.ops)["/booking/slot"]).toBe("10:30");
+    // FM-7: acceptance carries the agent's question for the pipeline.
+    expect(select.question).toBeDefined();
 
     const confirm = bookingRespond("confirm_booking", { slot: "10:30", name: "Ada" });
     expect(confirm.outcome).toBe("accepted");
