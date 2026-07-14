@@ -355,10 +355,17 @@ export function RunView({ events, label, streaming = false, live = false, resetK
               }
             : undefined
         }
-        // The artboard: a light surface framed by the dark chrome. colorScheme
-        // pins Astryx's light-dark() tokens to the resolution the studio has
-        // always shipped, independent of the visitor's OS scheme.
-        style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, minHeight: 220, background: "#fff", colorScheme: "light", color: "#0f172a" }}
+        // The artboard: a light surface framed by the dark chrome. Astryx:
+        // colorScheme pins its light-dark() tokens to the resolution the
+        // studio has always shipped. shadcn: no inline color overrides —
+        // the scope's own tokens own the canvas.
+        style={{
+          border: "1px dashed var(--line)",
+          borderRadius: 6,
+          padding: 24,
+          minHeight: 220,
+          ...(designSystem.id === "shadcn" ? {} : { background: "#fff", colorScheme: "light" as const, color: "#0f172a" }),
+        }}
       >
         {messages.length > 0 ? (
           // Keyed on the delivery count: each new A2UI delivery remounts the

@@ -111,7 +111,16 @@ export function RestyleView({
       <section
         data-canvas
         {...canvasScopeProps(designSystem, mode)}
-        style={{ border: "1px dashed var(--line)", borderRadius: 6, padding: 24, background: designSystem === "shadcn" && mode === "dark" ? "transparent" : "#fff", colorScheme: "light", color: "#0f172a" }}
+        style={{
+          border: "1px dashed var(--line)",
+          borderRadius: 6,
+          padding: 24,
+          // Astryx: pin the light-dark() resolution the studio always
+          // shipped. shadcn: NO inline overrides — the scope's own tokens
+          // (color/background under [data-design-system], including the
+          // [data-mode=dark] values) own the artboard entirely.
+          ...(designSystem === "shadcn" ? {} : { background: "#fff", colorScheme: "light" as const, color: "#0f172a" }),
+        }}
       >
         {designSystem === "astryx" && theme ? (
           <Theme theme={theme as any} mode={mode}>

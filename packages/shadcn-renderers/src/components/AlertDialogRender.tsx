@@ -6,7 +6,7 @@
  * shadcn's alert-dialog content; the portal/overlay behavior is deliberately
  * not used, so no Radix dependency enters the bundle.
  */
-import type { FC } from "react";
+import { useId, type FC } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "../cn";
 
@@ -25,10 +25,19 @@ const actionVariants = cva(
   },
 );
 
-export const AlertDialogRender: FC<any> = ({ props }) => (
-  <div role="alertdialog" aria-modal="false" className="max-w-lg space-y-2 rounded-lg border bg-background p-6 shadow-lg">
-    <h2 className="text-lg font-semibold">{String(props.title ?? "")}</h2>
-    <p className="text-sm text-muted-foreground">{String(props.description ?? "")}</p>
+export const AlertDialogRender: FC<any> = ({ props }) => {
+  const titleId = useId();
+  const descriptionId = useId();
+  return (
+  <div
+    role="alertdialog"
+    aria-modal="false"
+    aria-labelledby={titleId}
+    aria-describedby={descriptionId}
+    className="max-w-lg space-y-2 rounded-lg border bg-background p-6 shadow-lg"
+  >
+    <h2 id={titleId} className="text-lg font-semibold">{String(props.title ?? "")}</h2>
+    <p id={descriptionId} className="text-sm text-muted-foreground">{String(props.description ?? "")}</p>
     <div className="flex justify-end gap-2 pt-2">
       {props.cancelLabel && (
         <button
@@ -47,4 +56,5 @@ export const AlertDialogRender: FC<any> = ({ props }) => (
       </button>
     </div>
   </div>
-);
+  );
+};

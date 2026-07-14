@@ -49,9 +49,9 @@ export const TableRender: FC<any> = ({ props, buildChild }) => {
           <thead className="border-b">
             <tr className={TR}>
               {headers.map((h, i) => (
-                <th key={i} className={TH}>{h}</th>
+                <th key={i} scope="col" className={TH}>{h}</th>
               ))}
-              {anyStatus && <th className={TH} />}
+              {anyStatus && <th scope="col" className={TH}>Status</th>}
             </tr>
           </thead>
         )}
