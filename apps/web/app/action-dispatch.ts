@@ -14,6 +14,8 @@ export interface DispatchableAction {
   surfaceId?: string;
   sourceComponentId?: string;
   context?: Record<string, unknown>;
+  /** The session's adapter: lets the agent generate its HITL question live (FM-7). */
+  modelRef?: string;
   resolution?: {
     ok: boolean;
     originalName?: string;

@@ -24,7 +24,7 @@ export interface A2uiCanvasProps {
 
 export const A2uiCanvas: FC<A2uiCanvasProps> = ({ catalog, registry, messages, onAction }) => {
   const ingested = useMemo(() => buildCatalog(catalog, registry), [catalog, registry]);
-  const [surface, setSurface] = useState<any>(null);
+  const [surfaces, setSurfaces] = useState<Array<{ id: string; surface: any }>>([]);
 
   useEffect(() => {
     // Debug telemetry for the remount benchmark: every processor rebuild
@@ -38,8 +38,14 @@ export const A2uiCanvas: FC<A2uiCanvasProps> = ({ catalog, registry, messages, o
       async (action: A2uiClientAction) => onAction?.(action),
     );
     processor.processMessages(structuredClone(messages) as any);
-    const model = Array.from(processor.model.surfacesMap.values())[0];
-    if (model) setSurface(processor.model.getSurface(model.id));
+    // Every live surface renders in creation order: an agent may put a
+    // second surface beside the first (FM-7: the HITL question) and remove
+    // it later (deleteSurface) — the stream, not this canvas, decides.
+    setSurfaces(
+      Array.from(processor.model.surfacesMap.values())
+        .map((model: any) => ({ id: String(model.id), surface: processor.model.getSurface(model.id) }))
+        .filter((s) => Boolean(s.surface)),
+    );
     if (typeof window !== "undefined" && typeof performance !== "undefined") {
       const w = window as any;
       w.__a2uiProcessMs = (w.__a2uiProcessMs ?? 0) + (performance.now() - t0);
@@ -53,6 +59,17 @@ export const A2uiCanvas: FC<A2uiCanvasProps> = ({ catalog, registry, messages, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ingested, messages.length]);
 
-  if (!surface) return null;
-  return <A2uiSurface surface={surface} />;
+  if (surfaces.length === 0) return null;
+  // One shared grid spaces the surfaces; the per-surface wrapper exists only
+  // to carry the data-a2ui-surface attribute (a gap on a single-child
+  // wrapper would space nothing).
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      {surfaces.map(({ id, surface }) => (
+        <div key={id} data-a2ui-surface={id}>
+          <A2uiSurface surface={surface} />
+        </div>
+      ))}
+    </div>
+  );
 };

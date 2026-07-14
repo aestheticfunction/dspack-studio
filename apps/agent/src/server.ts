@@ -24,8 +24,14 @@ import {
   type BaseEvent,
   type PipelineEvent,
 } from "@dspack-studio/agui-bridge";
-import { governedRun } from "./pipeline.js";
-import { bookingRespond, bookingStartOps, enhanceGeneratedOps } from "./scenarios/appointment-booking.js";
+import { governedQuestion, governedRun } from "./pipeline.js";
+import {
+  bookingRespond,
+  bookingStartOps,
+  enhanceGeneratedOps,
+  enhanceQuestionOps,
+  resetBookingSession,
+} from "./scenarios/appointment-booking.js";
 import { enhanceGeneratedRecipeOps, recipeRespond, recipeStartOps, resetRecipeSessions, restoreRecipeGrounding } from "./scenarios/recipe-creator.js";
 
 /** Scenario registry: start ops + HITL responders (scenario-neutral shell). */
@@ -39,7 +45,7 @@ interface ScenarioEntry {
   restoreGrounding?: (grounding: unknown) => void;
 }
 const SCENARIOS: Record<string, ScenarioEntry> = {
-  "appointment-booking": { start: bookingStartOps, respond: bookingRespond, enhance: enhanceGeneratedOps },
+  "appointment-booking": { start: bookingStartOps, respond: bookingRespond, enhance: enhanceGeneratedOps, reset: resetBookingSession },
   "recipe-creator": {
     start: recipeStartOps,
     respond: recipeRespond,
@@ -51,6 +57,96 @@ const SCENARIOS: Record<string, ScenarioEntry> = {
 
 /** Duplicate-action protection: correlation ids already answered. */
 const answeredActions = new Map<string, unknown>();
+
+/**
+ * FM-7: run the agent's HITL question through the ORDINARY pipeline and map
+ * it into this exchange's events. Run lifecycle events are stripped (the
+ * question is a segment of an ongoing session); everything else — STEP,
+ * dspack.gates/repair/emit/audit, the tool-call delivery — rides verbatim,
+ * so the gate ticker and inspectors show the question's own governance.
+ *
+ * modelRef "ollama:*" generates the question live; grounding is
+ * unambiguous-only (enhanceQuestionOps), and an ungroundable or undelivered
+ * generation falls back to the authored question through the SAME pipeline,
+ * with the fallback stated in the stream. The scripted path grounds by
+ * construction.
+ */
+async function questionPipelineEvents(
+  q: { surface: unknown; prompt: string },
+  modelRef: string | undefined,
+  ctx: { actionId: string; slot: string; name: string },
+): Promise<BaseEvent[]> {
+  const LIFECYCLE = new Set<string>([EventType.RUN_STARTED, EventType.RUN_FINISHED]);
+  const TOOL_CALL = new Set<string>([
+    EventType.TOOL_CALL_START,
+    EventType.TOOL_CALL_ARGS,
+    EventType.TOOL_CALL_END,
+    EventType.TOOL_CALL_RESULT,
+  ]);
+
+  const attempt = async (ref: string | undefined, tag: string): Promise<{ events: BaseEvent[]; grounded: boolean; reason?: string }> => {
+    const buffer: BaseEvent[] = [];
+    const map = createPipelineEventMapper({ threadId: `action-${ctx.actionId}`, runId: `question-${ctx.actionId}${tag}` });
+    try {
+      await governedQuestion({ surface: q.surface, prompt: q.prompt, modelRef: ref, onEvent: (pe) => {
+        for (const e of map(pe as PipelineEvent)) buffer.push(e);
+      } });
+    } catch (error) {
+      return { events: [], grounded: false, reason: error instanceof Error ? error.message : String(error) };
+    }
+    const inner = buffer.filter((e) => !LIFECYCLE.has((e as any).type));
+    const resultIdx = inner.findIndex((e) => (e as any).type === EventType.TOOL_CALL_RESULT);
+    if (resultIdx === -1) {
+      return { events: inner, grounded: false, reason: "the pipeline shipped no question surface (refusal or exhausted repairs)" };
+    }
+    let envelope: { a2ui_operations?: unknown[] };
+    try {
+      envelope = JSON.parse((inner[resultIdx] as any).content);
+    } catch {
+      return { events: inner, grounded: false, reason: "the delivery envelope did not parse" };
+    }
+    const enhanced = enhanceQuestionOps((envelope.a2ui_operations ?? []) as any[], ctx.slot, ctx.name);
+    if (!enhanced.ok) {
+      // An inert question would dead-end the human: keep the gates on the
+      // record, drop only the ungroundable delivery.
+      return { events: inner.filter((e) => !TOOL_CALL.has((e as any).type)), grounded: false, reason: enhanced.reason };
+    }
+    inner[resultIdx] = { ...(inner[resultIdx] as any), content: JSON.stringify({ a2ui_operations: enhanced.ops }) } as BaseEvent;
+    inner.splice(resultIdx + 1, 0, {
+      type: EventType.CUSTOM,
+      name: "studio.surface.enhanced",
+      value: { scenario: "appointment-booking", notes: enhanced.notes },
+    } as BaseEvent);
+    return { events: inner, grounded: true };
+  };
+
+  const live = modelRef?.startsWith("ollama:") ? modelRef : undefined;
+  if (live) {
+    const first = await attempt(live, "");
+    if (first.grounded) return first.events;
+    const note = {
+      type: EventType.CUSTOM,
+      name: "studio.question.fallback",
+      value: {
+        reason: first.reason,
+        from: live,
+        to: "the authored question, played through the same pipeline (scripted)",
+      },
+    } as BaseEvent;
+    const second = await attempt(undefined, "-fallback");
+    return [...first.events, note, ...second.events];
+  }
+  const only = await attempt(undefined, "");
+  if (!only.grounded) {
+    // The authored surface grounds by construction; reaching here means a
+    // real defect — fail loudly in the stream rather than dead-ending.
+    return [
+      ...only.events,
+      { type: EventType.CUSTOM, name: "studio.question.fallback", value: { reason: only.reason, from: "scripted", to: "none: the question could not be asked" } } as BaseEvent,
+    ];
+  }
+  return only.events;
+}
 
 const PORT = Number(process.env.PORT ?? 8787);
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
@@ -165,7 +261,7 @@ const server = createServer(async (req, res) => {
   // client appends to its event source (UI event -> agent response, both
   // correlation-id'd; replays reconstruct the whole exchange).
   if (path === "/action") {
-    const { scenario, actionId, name, capability, context } = body ?? {};
+    const { scenario, actionId, name, capability, context, modelRef } = body ?? {};
     if (typeof actionId !== "string" || typeof name !== "string") {
       json(res, 400, { error: "actionId and name are required" }, CORS);
       return;
@@ -189,6 +285,18 @@ const server = createServer(async (req, res) => {
       name: response.outcome === "accepted" ? STUDIO_EVENT.actionAccepted : STUDIO_EVENT.actionRejected,
       value: { actionId, name, context, detail: response.detail },
     } as BaseEvent);
+    // FM-7: the agent's follow-up question is a REAL pipeline run — gates,
+    // emission, audit — appended to this exchange, never synthesized.
+    if (response.outcome === "accepted" && (response as any).question) {
+      const q = (response as any).question as { surface: unknown; prompt: string };
+      events.push(
+        ...(await questionPipelineEvents(q, typeof modelRef === "string" ? modelRef : undefined, {
+          actionId,
+          slot: String((context as any)?.slot ?? ""),
+          name: String((context as any)?.name ?? ""),
+        })),
+      );
+    }
     answeredActions.set(actionId, events);
     json(res, 200, { events }, CORS);
     return;

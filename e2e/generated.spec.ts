@@ -10,7 +10,7 @@
  * generation + interaction + confirmation. It retries generation (model
  * variance includes honest refusal-class runs) and is skipped in CI.
  */
-import { copyFileSync } from "node:fs";
+import { copyFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -65,6 +65,69 @@ test("record fixture-005 (live model)", async ({ page }) => {
   const download = await downloadPromise;
   const path = await download.path();
   copyFileSync(path!, join(process.cwd(), "packages", "replay", "fixtures", "fixture-005.json"));
+});
+
+test("record fixture-009 (live governed question, FM-7)", async ({ page }) => {
+  test.skip(!process.env.RECORD_QUESTION, "live recording is manual (RECORD_QUESTION=1)");
+  test.setTimeout(900_000);
+  const model = process.env.RECORD_MODEL ?? "ollama:gpt-oss:latest";
+  // Retry-until-representative: the recording must show the QUESTION
+  // generated live through the pipeline — a run that fell back to the
+  // authored question (studio.question.fallback in the stream) is honest
+  // but not the story this fixture exists to prove; it is discarded and
+  // the whole arc regenerated. Never patched.
+  let saved = false;
+  for (let attempt = 0; attempt < 5 && !saved; attempt++) {
+    await page.goto("/");
+    await page.getByTestId("scenario-appointment-booking").click();
+    await page.getByTestId("view-live").click();
+    await page.getByTestId("live-model").selectOption(model);
+    await page.getByTestId("live-generate").click();
+    await expect(page.getByTestId("live-status")).toContainText(/finished|error/, { timeout: 180_000 });
+    if ((await page.getByTestId("failure-panel").count()) > 0) continue;
+    if ((await page.locator("[data-canvas] input").count()) === 0) continue;
+
+    await page.locator("[data-canvas] input").first().fill("Ada");
+    await canvasButton(page, /\d{1,2}:\d{2}/).click();
+
+    // The live-generated question: its own surface, an AlertDialog whose
+    // gates just ran in this stream. Generation takes real model time.
+    const question = page.locator('[data-a2ui-surface="scheduling_question"]');
+    const dialog = question.locator('[data-a2ui-component="AlertDialog"]');
+    try {
+      await expect(dialog).toBeVisible({ timeout: 180_000 });
+    } catch {
+      continue; // ungroundable/refused generation: retry the whole arc
+    }
+    // The confirm affordance: governance requires a specific action label,
+    // and the prompt asks the model to name the slot in it — prefer the
+    // dialog button carrying a time token over positional selection (button
+    // order varies with model output; cancel/extra buttons would misfire).
+    const timeLabeled = dialog.locator("button", { hasText: /\d{1,2}:\d{2}/ });
+    const confirmBtn = (await timeLabeled.count()) === 1 ? timeLabeled.first() : dialog.locator("button").last();
+    await confirmBtn.click();
+    try {
+      await expect(page.locator("[data-canvas]")).toContainText(/Booked .* for Ada/, { timeout: 10_000 });
+      await expect(question).toHaveCount(0);
+    } catch {
+      continue;
+    }
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("live-download").click();
+    const download = await downloadPromise;
+    const path = (await download.path())!;
+    const doc = JSON.parse(readFileSync(path, "utf-8")) as { events: Array<{ event: any }> };
+    const names = doc.events.map((e) => e.event?.name).filter(Boolean);
+    // Representative means: no fallback, the question's own gates and
+    // grounding provenance on the record.
+    if (names.includes("studio.question.fallback")) continue;
+    if (!names.includes("studio.surface.enhanced")) continue;
+    if (doc.events.filter((e) => e.event?.name === "dspack.gates").length < 2) continue;
+    copyFileSync(path, join(process.cwd(), "packages", "replay", "fixtures", "fixture-009.json"));
+    saved = true;
+  }
+  expect(saved, "no representative live governed-question run within the retry budget").toBe(true);
 });
 
 test("record fixture-006 (live recipe)", async ({ page }) => {

@@ -48,6 +48,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@aestheticfunction/dspack-gen':
+        specifier: ^0.1.1
+        version: 0.1.1(zod@4.4.3)
       '@astryxdesign/core':
         specifier: 0.1.4
         version: 0.1.4(@stylexjs/stylex@0.18.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -115,6 +118,9 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
 
   packages/a2ui-ingest:
     dependencies:

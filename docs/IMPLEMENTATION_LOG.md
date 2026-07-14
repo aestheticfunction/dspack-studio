@@ -845,3 +845,63 @@ Two follow-ups from a user report on the deployed recipe.
 
 Validation: typecheck, 49 unit, build:deploy, 69 Playwright + 3 gated
 skips, all green.
+
+## 2026-07-14 — PHASE-NEXT execution: WS0 re-pin, FM-11, FM-10 groundwork, FM-7
+
+The four workstreams of docs/PHASE-NEXT.md, shipped as separate PRs per the
+delivery discipline (fail-first evidence in each PR body).
+
+- WS0 (ds-mcp repo, PR #21): vendored core re-pinned f651433 -> 374e1cd
+  (the dspack-gen v0.1.1 tag commit; tag-pinned is the documented default).
+  Golden-context test byte-compares get-generation-context against
+  dspack-gen's compiler golden — byte-level ON PURPOSE: the pre-0.1.1
+  divergence is property ORDER (text before props at schema line 40), which
+  grammar decoders enforce and deepEqual cannot see. Pin-drift CI check
+  compares src/core blob-exact via the git trees API (the compare API caps
+  at 300 files and silently truncates — found by testing the check against
+  the old pin, 698-file diff). Trusted-publishing release workflow added;
+  0.3.1 release + npm trusted-publisher registration are owner steps.
+- FM-11 (studio PR #13): the validate-ui spike CONFIRMED client-side
+  execution — dspack-gen /core bundles into the static export and
+  lintSurface runs in-browser against the byte-synced contract (first-load
+  unchanged). Take-home view: MCP config (ds-mcp ^0.3.1 only; merge waits
+  on the 0.3.1 release), byte-exact contract download (build-time copy),
+  the real validator with fixture-001's recorded attempt-0 as the loadable
+  caught example (findings byte-match the recording, unit + e2e), and the
+  clone-and-run local-agent path executed verbatim from a cold clone. The
+  npx agent package remains an owner decision; copy deliberately does not
+  reference it.
+- FM-10 groundwork (studio PR #14): packages/shadcn-renderers (vendored
+  shadcn/ui zinc visuals, Tailwind v4 compiled package-locally, no
+  preflight, tokens scoped to the canvas; 8 of 9 names — Dialog exercises
+  the unimplemented placeholder). withProvenance/childIds promoted to
+  a2ui-ingest. Design-system selector in the restyle view, shell-level;
+  every canvas renders through the selected registry. Second contract copy
+  (shadcn-ui.dspack.json, byte-synced) + gated catalog.shadcn.* emission
+  via dspack-emit's shadcnProfile. The e2e honesty check replays
+  fixture-001 under both systems: receipt hash IDENTICAL, AlertDialog
+  markup different, the repaired "Delete Account" label survives.
+  Owner-gated remainder: the upstream contract extension (intents beyond
+  destructive-action) for scenario coverage under the shadcn contract.
+- FM-7 (this PR): the booking HITL question is a real governed surface.
+  select_slot acceptance returns a question descriptor; the server runs it
+  through the ORDINARY pipeline (scripted from the authored surface, or
+  generated live when the session's modelRef is a model) and appends the
+  run's events — gates, emission, audit — to the action exchange (run
+  lifecycle stripped; the question is a segment). The question rides its
+  OWN surface (scheduling_question, re-scoped at enhancement) beside the
+  booking surface — deleteSurface removes exactly it on answer, so the
+  underlying surface (authored or generated) is never replaced. Grounding
+  is unambiguous-only with literal slot/name context; ungroundable or
+  refused live generations fall back to the authored question through the
+  same pipeline, stated in the stream (studio.question.fallback). The
+  canvas now renders every live surface in creation order (the stream
+  decides, not the canvas). The governance story tells itself:
+  rule.alertdialog-action-label-specific forbids "OK"/"Confirm" on the
+  question's own action.
+
+Fail-first evidence: 6 new unit assertions failed on the old responder
+(missing question descriptor, no deleteSurface); the two updated
+interactive e2e specs failed on a clean origin/main worktree with
+"element(s) not found" for [data-a2ui-surface=scheduling_question]; both
+captured before implementation and pasted in the PR.
