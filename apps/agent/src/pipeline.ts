@@ -82,3 +82,35 @@ export async function governedRun(input: GovernedRunInput): Promise<RunResult> {
     onEvent: input.onEvent,
   });
 }
+
+export interface QuestionRunInput {
+  /** The authored question surface (the deterministic script). */
+  surface: unknown;
+  /** The visitor-typable prompt (what a live model is asked). */
+  prompt: string;
+  /** "ollama:<id>" generates the question live; anything else plays the
+   * authored surface through the SAME pipeline (scripted, real gates). */
+  modelRef?: string;
+  onEvent: NonNullable<RunOptions["onEvent"]>;
+}
+
+/**
+ * FM-7: the agent's HITL question runs through the ORDINARY pipeline —
+ * S1/S2/S3, repair loop, emission, audit — exactly like any generation.
+ * Nothing about the question is synthesized into the stream.
+ */
+export async function governedQuestion(input: QuestionRunInput): Promise<RunResult> {
+  const contract = loadContract() as Parameters<typeof runPipeline>[0]["contract"];
+  const adapter = input.modelRef?.startsWith("ollama:")
+    ? ollamaAdapterWithWindow(input.modelRef)
+    : new ScriptedAdapter([{ output: input.surface }]);
+  return runPipeline({
+    contract,
+    intent: "scheduling",
+    prompt: input.prompt,
+    adapter,
+    maxRepairs: 2,
+    emitProfile: astryxProfile,
+    onEvent: input.onEvent,
+  });
+}

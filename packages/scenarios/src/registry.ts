@@ -16,6 +16,7 @@ import fixture005 from "@dspack-studio/replay/fixtures/fixture-005.json";
 import fixture006 from "@dspack-studio/replay/fixtures/fixture-006.json";
 import fixture007 from "@dspack-studio/replay/fixtures/fixture-007.json";
 import fixture008 from "@dspack-studio/replay/fixtures/fixture-008.json";
+import fixture009 from "@dspack-studio/replay/fixtures/fixture-009.json";
 
 export const scenarios: Scenario[] = [
   {
@@ -52,6 +53,13 @@ export const scenarios: Scenario[] = [
     interactive: true,
     seedPrompts: ["Book a 30-minute consultation next week."],
     fixtures: [
+      {
+        key: "governed-question",
+        label: "the agent asks first",
+        blurb:
+          "A real model generates the booking surface, and when a slot is picked the agent's confirmation question is itself a generated, gated surface: its own S1/S2/S3 run is on the record, its action label names the slot, and answering removes exactly the question. FM-7, recorded live.",
+        fixture: fixture009,
+      },
       {
         key: "generated-live",
         label: "generated, then booked",

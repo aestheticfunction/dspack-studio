@@ -120,11 +120,114 @@ export interface ActionResponse {
   outcome: "accepted" | "rejected";
   detail?: string;
   ops: unknown[];
+  /**
+   * FM-7: the agent has a question for the human. The server runs this
+   * surface (or, live, this prompt) through the ORDINARY pipeline — real
+   * S1/S2/S3 gates, real emission, real audit — and delivers the result as
+   * its own surface. Never synthesized into the stream directly.
+   */
+  question?: { surface: unknown; prompt: string };
+}
+
+/** The question surface's own id: it rides beside the booking surface, never replacing it. */
+export const QUESTION_SURFACE_ID = "scheduling_question";
+
+/**
+ * FM-7 session state: a question is on canvas awaiting the human's answer.
+ * The agent is deliberately single-session (documented); /fork rebuilds this
+ * by replaying accepted actions through this same responder.
+ */
+let questionActive = false;
+export function resetBookingSession(): void {
+  questionActive = false;
+}
+
+/**
+ * The authored HITL question (FM-7): a governed AlertDialog surface asking
+ * for the booking decision. Engineering-authored like the scenario surface;
+ * governed by the unscoped rules — the action label MUST name the slot
+ * (rule.alertdialog-action-label-specific forbids "OK"/"Confirm"), and
+ * title/description/actionLabel are required (rule.alertdialog-carries-content).
+ */
+export function bookingQuestionSurface(slot: string, name: string): unknown {
+  return {
+    dspackSurface: "0.1",
+    system: "Astryx",
+    intent: "scheduling",
+    root: {
+      component: "card",
+      children: [
+        {
+          component: "alert-dialog",
+          props: {
+            title: `Book ${slot} for ${name}?`,
+            description: `The slot is held under your name. Nothing is booked until you confirm; declining releases it.`,
+            actionLabel: `Book ${slot}`,
+            actionVariant: "primary",
+          },
+        },
+        { component: "button", props: { label: "Back to the times", variant: "ghost" } },
+      ],
+    },
+  };
+}
+
+/** The visitor-typable prompt the live path gives a model for the same question. */
+export function bookingQuestionPrompt(slot: string, name: string): string {
+  return (
+    `Ask the user to confirm booking the ${slot} consultation slot held for ${name}. ` +
+    `The question must be an alert dialog whose confirm action names the slot, plus a ghost button back to the time list.`
+  );
+}
+
+/**
+ * Ground a question delivery (FM-7): unambiguous-only, like every studio
+ * enhancement. Exactly one AlertDialog -> confirm_booking with LITERAL
+ * slot/name context (the agent knows them; no binding guesswork); exactly
+ * one ghost Button -> cancel_booking. Every op is re-scoped to the question
+ * surface id so the booking surface underneath is never replaced. Anything
+ * ambiguous refuses clearly — the caller falls back and says so.
+ */
+export function enhanceQuestionOps(
+  ops: any[],
+  slot: string,
+  name: string,
+): { ok: true; ops: any[]; notes: string[] } | { ok: false; reason: string } {
+  const out = structuredClone(ops);
+  const notes: string[] = [];
+  for (const m of out) {
+    for (const key of ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"]) {
+      if (m?.[key]?.surfaceId) m[key].surfaceId = QUESTION_SURFACE_ID;
+    }
+  }
+  notes.push(`re-scoped the question delivery to surface '${QUESTION_SURFACE_ID}'`);
+  const components = out.flatMap((m: any) => m?.updateComponents?.components ?? []);
+  const dialogs = components.filter((c: any) => c.component === "AlertDialog");
+  if (dialogs.length !== 1) {
+    return { ok: false, reason: dialogs.length === 0 ? "no AlertDialog to carry the question" : `ambiguous: ${dialogs.length} AlertDialogs` };
+  }
+  dialogs[0].action = { event: { name: "confirm_booking", context: { slot, name } } };
+  notes.push(`grounded the AlertDialog '${dialogs[0].id}' as confirm_booking('${slot}' for '${name}')`);
+  const ghosts = components.filter((c: any) => c.component === "Button" && c.variant === "ghost");
+  if (ghosts.length === 1) {
+    ghosts[0].action = { event: { name: "cancel_booking", context: { name } } };
+    notes.push(`grounded the single ghost Button '${ghosts[0].id}' as cancel_booking`);
+  } else {
+    notes.push(`no unambiguous decline affordance (${ghosts.length} ghost Buttons); the dialog's confirm is the only grounded action`);
+  }
+  return { ok: true, ops: out, notes };
 }
 
 export function bookingRespond(name: string, context: Record<string, unknown>): ActionResponse {
   const userName = String(context.name ?? "").trim();
   const slot = String(context.slot ?? "").trim();
+
+  /** Answering the question removes exactly the question surface. */
+  const dropQuestion = () => {
+    if (!questionActive) return [] as unknown[];
+    questionActive = false;
+    return [{ version: "v0.9", deleteSurface: { surfaceId: QUESTION_SURFACE_ID } }];
+  };
 
   switch (name) {
     case "select_slot":
@@ -135,6 +238,7 @@ export function bookingRespond(name: string, context: Record<string, unknown>): 
           ops: [DM("/booking/status", "Please enter your name first: the slot is held under it.")],
         };
       }
+      questionActive = true;
       return {
         outcome: "accepted",
         // An accepted action COMMITS its submitted values: user input is
@@ -144,8 +248,12 @@ export function bookingRespond(name: string, context: Record<string, unknown>): 
         ops: [
           DM("/booking/name", userName),
           DM("/booking/slot", slot),
-          DM("/booking/status", `Holding ${slot} for ${userName}. Confirm to book.`),
+          DM("/booking/status", `Holding ${slot} for ${userName}.`),
         ],
+        // FM-7: the confirmation question is a real governed surface, run
+        // through the ordinary pipeline by the server (scripted from this
+        // authored surface, or generated live from the prompt).
+        question: { surface: bookingQuestionSurface(slot, userName), prompt: bookingQuestionPrompt(slot, userName) },
       };
 
     case "confirm_booking":
@@ -166,6 +274,7 @@ export function bookingRespond(name: string, context: Record<string, unknown>): 
       return {
         outcome: "accepted",
         ops: [
+          ...dropQuestion(),
           DM("/booking/confirmed", true),
           DM("/booking/status", `Booked ${slot} for ${userName}. See you then!`),
         ],
@@ -175,6 +284,7 @@ export function bookingRespond(name: string, context: Record<string, unknown>): 
       return {
         outcome: "accepted",
         ops: [
+          ...dropQuestion(),
           DM("/booking/slot", ""),
           DM("/booking/confirmed", false),
           DM("/booking/status", "Pick a time to begin."),

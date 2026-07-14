@@ -1,0 +1,1211 @@
+{
+  "replayFixture": "0.1",
+  "id": "session-1784058388352",
+  "name": "Appointment booking (saved session)",
+  "recordedAt": "2026-07-14T19:46:28.352Z",
+  "mode": "live",
+  "adapterId": "ollama:gpt-oss:latest",
+  "intent": "scheduling",
+  "prompt": "Book a 30-minute consultation next week.",
+  "events": [
+    {
+      "atMs": 8,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "live-1784058367459"
+      }
+    },
+    {
+      "atMs": 8,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.run.start",
+        "value": {
+          "intent": "scheduling",
+          "prompt": "Book a 30-minute consultation next week.",
+          "adapterId": "ollama:gpt-oss:latest",
+          "ruleIds": [
+            "rule.alertdialog-carries-content",
+            "rule.alertdialog-action-label-specific",
+            "rule.button-carries-label",
+            "rule.input-carries-label",
+            "rule.dialog-no-nested-overlays"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 0,
+          "model": "gpt-oss:latest",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "scheduling",
+            "root": {
+              "component": "card",
+              "id": "booking-card",
+              "children": [
+                {
+                  "component": "text",
+                  "id": "title",
+                  "props": {
+                    "type": "display-3"
+                  },
+                  "text": "Book a 30‑minute consultation"
+                },
+                {
+                  "component": "text",
+                  "id": "intro",
+                  "props": {
+                    "type": "body"
+                  },
+                  "text": "Select a slot next week and confirm your booking."
+                },
+                {
+                  "component": "text-input",
+                  "id": "name-input",
+                  "props": {
+                    "label": "Your name",
+                    "placeholder": "Ada Lovelace",
+                    "isRequired": true
+                  }
+                },
+                {
+                  "component": "text",
+                  "id": "status",
+                  "props": {
+                    "type": "supporting"
+                  },
+                  "text": "Choose a time:"
+                },
+                {
+                  "component": "button",
+                  "id": "slot-mon-0900",
+                  "props": {
+                    "label": "Mon 9:00 AM",
+                    "variant": "secondary"
+                  }
+                },
+                {
+                  "component": "button",
+                  "id": "slot-tue-1030",
+                  "props": {
+                    "label": "Tue 10:30 AM",
+                    "variant": "secondary"
+                  }
+                },
+                {
+                  "component": "button",
+                  "id": "slot-wed-1400",
+                  "props": {
+                    "label": "Wed 2:00 PM",
+                    "variant": "secondary"
+                  }
+                },
+                {
+                  "component": "button",
+                  "id": "slot-thu-0930",
+                  "props": {
+                    "label": "Thu 9:30 AM",
+                    "variant": "secondary"
+                  }
+                },
+                {
+                  "component": "button",
+                  "id": "confirm",
+                  "props": {
+                    "label": "Confirm booking",
+                    "variant": "primary"
+                  }
+                },
+                {
+                  "component": "button",
+                  "id": "cancel",
+                  "props": {
+                    "label": "Start over",
+                    "variant": "ghost"
+                  }
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "PASS"
+            }
+          ],
+          "findings": []
+        }
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.emit",
+        "value": {
+          "validations": [
+            {
+              "a2uiVersion": "0.9.1",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            },
+            {
+              "a2uiVersion": "1.0",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            }
+          ],
+          "warnings": [
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[4]: A2UI requires a declarative action on Button; synthesized event 'slot_mon_0900'."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[5]: A2UI requires a declarative action on Button; synthesized event 'slot_tue_1030'."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[6]: A2UI requires a declarative action on Button; synthesized event 'slot_wed_1400'."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[7]: A2UI requires a declarative action on Button; synthesized event 'slot_thu_0930'."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[8]: A2UI requires a declarative action on Button; synthesized event 'confirm'."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[9]: A2UI requires a declarative action on Button; synthesized event 'cancel'."
+            },
+            {
+              "code": "surface-synthesized-wrap",
+              "message": "$.root: 10 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "live-1784058367459-a2ui-0",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "live-1784058367459-a2ui-0",
+        "delta": "{\"surfaceId\":\"scheduling\"}"
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "live-1784058367459-a2ui-0"
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "live-1784058367459-a2ui-0-result",
+        "toolCallId": "live-1784058367459-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"scheduling\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"scheduling\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Book a 30‑minute consultation\"},{\"id\":\"intro\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Select a slot next week and confirm your booking.\"},{\"id\":\"name_input\",\"component\":\"TextField\",\"label\":\"Your name\",\"placeholder\":\"Ada Lovelace\",\"isRequired\":true,\"value\":{\"path\":\"/booking/name\"}},{\"id\":\"status\",\"component\":\"Text\",\"variant\":\"caption\",\"text\":{\"path\":\"/booking/status\"}},{\"id\":\"slot_mon_0900\",\"component\":\"Button\",\"label\":\"Mon 9:00 AM\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"select_slot\",\"context\":{\"slot\":\"Mon 9:00 AM\",\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"slot_tue_1030\",\"component\":\"Button\",\"label\":\"Tue 10:30 AM\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"select_slot\",\"context\":{\"slot\":\"Tue 10:30 AM\",\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"slot_wed_1400\",\"component\":\"Button\",\"label\":\"Wed 2:00 PM\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"select_slot\",\"context\":{\"slot\":\"Wed 2:00 PM\",\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"slot_thu_0930\",\"component\":\"Button\",\"label\":\"Thu 9:30 AM\",\"variant\":\"secondary\",\"action\":{\"event\":{\"name\":\"select_slot\",\"context\":{\"slot\":\"Thu 9:30 AM\",\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"confirm\",\"component\":\"Button\",\"label\":\"Confirm booking\",\"variant\":\"primary\",\"action\":{\"event\":{\"name\":\"confirm_booking\",\"context\":{\"slot\":{\"path\":\"/booking/slot\"},\"name\":{\"path\":\"/booking/name\"}}}}},{\"id\":\"cancel\",\"component\":\"Button\",\"label\":\"Start over\",\"variant\":\"ghost\",\"action\":{\"event\":{\"name\":\"cancel_booking\"}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"intro\",\"name_input\",\"status\",\"slot_mon_0900\",\"slot_tue_1030\",\"slot_wed_1400\",\"slot_thu_0930\",\"confirm\",\"cancel\"]}]}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"scheduling\",\"path\":\"/booking\",\"value\":{\"name\":\"\",\"slot\":\"\",\"status\":\"Pick a time to begin.\",\"confirmed\":false}}}]}"
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.surface.enhanced",
+        "value": {
+          "scenario": "appointment-booking",
+          "notes": [
+            "bound the single TextField 'name_input' to /booking/name",
+            "grounded time-labeled Button 'slot_mon_0900' as select_slot('Mon 9:00 AM')",
+            "grounded time-labeled Button 'slot_tue_1030' as select_slot('Tue 10:30 AM')",
+            "grounded time-labeled Button 'slot_wed_1400' as select_slot('Wed 2:00 PM')",
+            "grounded time-labeled Button 'slot_thu_0930' as select_slot('Thu 9:30 AM')",
+            "grounded the single primary Button 'confirm' as confirm_booking",
+            "grounded the single ghost Button 'cancel' as cancel_booking",
+            "bound the single caption Text 'status' to /booking/status",
+            "initialized /booking data model"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.audit",
+        "value": {
+          "outcome": "passed",
+          "exitCode": 0,
+          "report": {
+            "reportVersion": "1",
+            "createdAt": "2026-07-14T19:46:07.463Z",
+            "request": {
+              "prompt": "Book a 30-minute consultation next week.",
+              "intent": "scheduling",
+              "contract": {
+                "name": "Astryx",
+                "dspack": "0.4",
+                "sha256": "f3e3dc40b60dd92532d8c78fdf00aa192f1863a1d94dde02fb35358ea68d57bc"
+              }
+            },
+            "generation": {
+              "adapterId": "ollama:gpt-oss:latest",
+              "schemaSha256": "97b7d5d63aa90e0c1aee6ae4d49b972a8baec37ce2cc1d36a69b970834c02765",
+              "maxRepairs": 2,
+              "ruleSteering": true,
+              "repairTemplate": "standard"
+            },
+            "attempts": [
+              {
+                "index": 0,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "scheduling",
+                  "root": {
+                    "component": "card",
+                    "id": "booking-card",
+                    "children": [
+                      {
+                        "component": "text",
+                        "id": "title",
+                        "props": {
+                          "type": "display-3"
+                        },
+                        "text": "Book a 30‑minute consultation"
+                      },
+                      {
+                        "component": "text",
+                        "id": "intro",
+                        "props": {
+                          "type": "body"
+                        },
+                        "text": "Select a slot next week and confirm your booking."
+                      },
+                      {
+                        "component": "text-input",
+                        "id": "name-input",
+                        "props": {
+                          "label": "Your name",
+                          "placeholder": "Ada Lovelace",
+                          "isRequired": true
+                        }
+                      },
+                      {
+                        "component": "text",
+                        "id": "status",
+                        "props": {
+                          "type": "supporting"
+                        },
+                        "text": "Choose a time:"
+                      },
+                      {
+                        "component": "button",
+                        "id": "slot-mon-0900",
+                        "props": {
+                          "label": "Mon 9:00 AM",
+                          "variant": "secondary"
+                        }
+                      },
+                      {
+                        "component": "button",
+                        "id": "slot-tue-1030",
+                        "props": {
+                          "label": "Tue 10:30 AM",
+                          "variant": "secondary"
+                        }
+                      },
+                      {
+                        "component": "button",
+                        "id": "slot-wed-1400",
+                        "props": {
+                          "label": "Wed 2:00 PM",
+                          "variant": "secondary"
+                        }
+                      },
+                      {
+                        "component": "button",
+                        "id": "slot-thu-0930",
+                        "props": {
+                          "label": "Thu 9:30 AM",
+                          "variant": "secondary"
+                        }
+                      },
+                      {
+                        "component": "button",
+                        "id": "confirm",
+                        "props": {
+                          "label": "Confirm booking",
+                          "variant": "primary"
+                        }
+                      },
+                      {
+                        "component": "button",
+                        "id": "cancel",
+                        "props": {
+                          "label": "Start over",
+                          "variant": "ghost"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "model": "gpt-oss:latest",
+                "usage": {
+                  "inputTokens": 1636,
+                  "outputTokens": 303
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 10586834083,
+                  "load_duration": 278377416,
+                  "prompt_eval_duration": 18249000,
+                  "eval_duration": 5405851000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "PASS"
+                  }
+                ],
+                "findings": []
+              }
+            ],
+            "repairMessages": [],
+            "outcome": "passed",
+            "emitted": {
+              "target": "a2ui",
+              "surfaceMessages": {
+                "messages": [
+                  {
+                    "version": "v0.9",
+                    "createSurface": {
+                      "surfaceId": "scheduling",
+                      "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+                      "theme": {
+                        "agentDisplayName": "Astryx via dspack"
+                      }
+                    }
+                  },
+                  {
+                    "version": "v0.9",
+                    "updateComponents": {
+                      "surfaceId": "scheduling",
+                      "components": [
+                        {
+                          "id": "root",
+                          "component": "Card",
+                          "child": "root_col"
+                        },
+                        {
+                          "id": "title",
+                          "component": "Text",
+                          "variant": "h2",
+                          "text": "Book a 30‑minute consultation"
+                        },
+                        {
+                          "id": "intro",
+                          "component": "Text",
+                          "variant": "body",
+                          "text": "Select a slot next week and confirm your booking."
+                        },
+                        {
+                          "id": "name_input",
+                          "component": "TextField",
+                          "label": "Your name",
+                          "placeholder": "Ada Lovelace",
+                          "isRequired": true
+                        },
+                        {
+                          "id": "status",
+                          "component": "Text",
+                          "variant": "caption",
+                          "text": "Choose a time:"
+                        },
+                        {
+                          "id": "slot_mon_0900",
+                          "component": "Button",
+                          "label": "Mon 9:00 AM",
+                          "variant": "secondary",
+                          "action": {
+                            "event": {
+                              "name": "slot_mon_0900",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "slot_tue_1030",
+                          "component": "Button",
+                          "label": "Tue 10:30 AM",
+                          "variant": "secondary",
+                          "action": {
+                            "event": {
+                              "name": "slot_tue_1030",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "slot_wed_1400",
+                          "component": "Button",
+                          "label": "Wed 2:00 PM",
+                          "variant": "secondary",
+                          "action": {
+                            "event": {
+                              "name": "slot_wed_1400",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "slot_thu_0930",
+                          "component": "Button",
+                          "label": "Thu 9:30 AM",
+                          "variant": "secondary",
+                          "action": {
+                            "event": {
+                              "name": "slot_thu_0930",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "confirm",
+                          "component": "Button",
+                          "label": "Confirm booking",
+                          "variant": "primary",
+                          "action": {
+                            "event": {
+                              "name": "confirm",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "cancel",
+                          "component": "Button",
+                          "label": "Start over",
+                          "variant": "ghost",
+                          "action": {
+                            "event": {
+                              "name": "cancel",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "root_col",
+                          "component": "Column",
+                          "children": [
+                            "title",
+                            "intro",
+                            "name_input",
+                            "status",
+                            "slot_mon_0900",
+                            "slot_tue_1030",
+                            "slot_wed_1400",
+                            "slot_thu_0930",
+                            "confirm",
+                            "cancel"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "warnings": [
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[4]: A2UI requires a declarative action on Button; synthesized event 'slot_mon_0900'."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[5]: A2UI requires a declarative action on Button; synthesized event 'slot_tue_1030'."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[6]: A2UI requires a declarative action on Button; synthesized event 'slot_wed_1400'."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[7]: A2UI requires a declarative action on Button; synthesized event 'slot_thu_0930'."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[8]: A2UI requires a declarative action on Button; synthesized event 'confirm'."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[9]: A2UI requires a declarative action on Button; synthesized event 'cancel'."
+                },
+                {
+                  "code": "surface-synthesized-wrap",
+                  "message": "$.root: 10 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                }
+              ],
+              "validations": [
+                {
+                  "a2uiVersion": "0.9.1",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                },
+                {
+                  "a2uiVersion": "1.0",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                }
+              ]
+            },
+            "timings": {
+              "totalMs": 10681
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 10687,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "live-1784058367459"
+      }
+    },
+    {
+      "atMs": 10886,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.resolved",
+        "value": {
+          "actionId": "b1bab32f-818e-4066-b700-db8da7c3ed90",
+          "originalName": "select_slot",
+          "capability": "select_slot",
+          "method": "exact-name"
+        }
+      }
+    },
+    {
+      "atMs": 10887,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.pending",
+        "value": {
+          "actionId": "b1bab32f-818e-4066-b700-db8da7c3ed90",
+          "scenario": "appointment-booking",
+          "name": "select_slot",
+          "capability": "select_slot",
+          "surfaceId": "scheduling",
+          "sourceComponentId": "slot_mon_0900",
+          "context": {
+            "slot": "Mon 9:00 AM",
+            "name": "Ada"
+          },
+          "modelRef": "ollama:gpt-oss:latest"
+        }
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "action-b1bab32f-818e-4066-b700-db8da7c3ed90",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "action-b1bab32f-818e-4066-b700-db8da7c3ed90",
+        "delta": "{\"surfaceId\":\"scheduling\"}"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "action-b1bab32f-818e-4066-b700-db8da7c3ed90"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "action-b1bab32f-818e-4066-b700-db8da7c3ed90-result",
+        "toolCallId": "action-b1bab32f-818e-4066-b700-db8da7c3ed90",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"scheduling\",\"path\":\"/booking/name\",\"value\":\"Ada\"}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"scheduling\",\"path\":\"/booking/slot\",\"value\":\"Mon 9:00 AM\"}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"scheduling\",\"path\":\"/booking/status\",\"value\":\"Holding Mon 9:00 AM for Ada.\"}}]}"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.accepted",
+        "value": {
+          "actionId": "b1bab32f-818e-4066-b700-db8da7c3ed90",
+          "name": "select_slot",
+          "context": {
+            "slot": "Mon 9:00 AM",
+            "name": "Ada"
+          }
+        }
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.run.start",
+        "value": {
+          "intent": "scheduling",
+          "prompt": "Ask the user to confirm booking the Mon 9:00 AM consultation slot held for Ada. The question must be an alert dialog whose confirm action names the slot, plus a ghost button back to the time list.",
+          "adapterId": "ollama:gpt-oss:latest",
+          "ruleIds": [
+            "rule.alertdialog-carries-content",
+            "rule.alertdialog-action-label-specific",
+            "rule.button-carries-label",
+            "rule.input-carries-label",
+            "rule.dialog-no-nested-overlays"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 0,
+          "model": "gpt-oss:latest",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "scheduling",
+            "root": {
+              "component": "alert-dialog",
+              "id": "confirm-booking",
+              "props": {
+                "title": "Confirm booking",
+                "description": "You are about to book the Mon 9:00 AM consultation slot for Ada.",
+                "actionLabel": "Book Mon 9:00 AM",
+                "cancelLabel": "Back to list",
+                "actionVariant": "primary"
+              }
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "PASS"
+            }
+          ],
+          "findings": []
+        }
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.emit",
+        "value": {
+          "validations": [
+            {
+              "a2uiVersion": "0.9.1",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            },
+            {
+              "a2uiVersion": "1.0",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            }
+          ],
+          "warnings": [
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root: A2UI requires a declarative action on AlertDialog; synthesized event 'confirm_booking'."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "question-b1bab32f-818e-4066-b700-db8da7c3ed90-a2ui-0",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "question-b1bab32f-818e-4066-b700-db8da7c3ed90-a2ui-0",
+        "delta": "{\"surfaceId\":\"scheduling\"}"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "question-b1bab32f-818e-4066-b700-db8da7c3ed90-a2ui-0"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "question-b1bab32f-818e-4066-b700-db8da7c3ed90-a2ui-0-result",
+        "toolCallId": "question-b1bab32f-818e-4066-b700-db8da7c3ed90-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"scheduling_question\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"scheduling_question\",\"components\":[{\"id\":\"root\",\"component\":\"AlertDialog\",\"title\":\"Confirm booking\",\"description\":\"You are about to book the Mon 9:00 AM consultation slot for Ada.\",\"actionLabel\":\"Book Mon 9:00 AM\",\"cancelLabel\":\"Back to list\",\"actionVariant\":\"primary\",\"action\":{\"event\":{\"name\":\"confirm_booking\",\"context\":{\"slot\":\"Mon 9:00 AM\",\"name\":\"Ada\"}}}}]}}]}"
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.surface.enhanced",
+        "value": {
+          "scenario": "appointment-booking",
+          "notes": [
+            "re-scoped the question delivery to surface 'scheduling_question'",
+            "grounded the AlertDialog 'root' as confirm_booking('Mon 9:00 AM' for 'Ada')",
+            "no unambiguous decline affordance (0 ghost Buttons); the dialog's confirm is the only grounded action"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 20611,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.audit",
+        "value": {
+          "outcome": "passed",
+          "exitCode": 0,
+          "report": {
+            "reportVersion": "1",
+            "createdAt": "2026-07-14T19:46:18.348Z",
+            "request": {
+              "prompt": "Ask the user to confirm booking the Mon 9:00 AM consultation slot held for Ada. The question must be an alert dialog whose confirm action names the slot, plus a ghost button back to the time list.",
+              "intent": "scheduling",
+              "contract": {
+                "name": "Astryx",
+                "dspack": "0.4",
+                "sha256": "f3e3dc40b60dd92532d8c78fdf00aa192f1863a1d94dde02fb35358ea68d57bc"
+              }
+            },
+            "generation": {
+              "adapterId": "ollama:gpt-oss:latest",
+              "schemaSha256": "97b7d5d63aa90e0c1aee6ae4d49b972a8baec37ce2cc1d36a69b970834c02765",
+              "maxRepairs": 2,
+              "ruleSteering": true,
+              "repairTemplate": "standard"
+            },
+            "attempts": [
+              {
+                "index": 0,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "scheduling",
+                  "root": {
+                    "component": "alert-dialog",
+                    "id": "confirm-booking",
+                    "props": {
+                      "title": "Confirm booking",
+                      "description": "You are about to book the Mon 9:00 AM consultation slot for Ada.",
+                      "actionLabel": "Book Mon 9:00 AM",
+                      "cancelLabel": "Back to list",
+                      "actionVariant": "primary"
+                    }
+                  }
+                },
+                "model": "gpt-oss:latest",
+                "usage": {
+                  "inputTokens": 1853,
+                  "outputTokens": 86
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 9645908167,
+                  "load_duration": 296386167,
+                  "prompt_eval_duration": 18498000,
+                  "eval_duration": 1538929000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "PASS"
+                  }
+                ],
+                "findings": []
+              }
+            ],
+            "repairMessages": [],
+            "outcome": "passed",
+            "emitted": {
+              "target": "a2ui",
+              "surfaceMessages": {
+                "messages": [
+                  {
+                    "version": "v0.9",
+                    "createSurface": {
+                      "surfaceId": "scheduling",
+                      "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+                      "theme": {
+                        "agentDisplayName": "Astryx via dspack"
+                      }
+                    }
+                  },
+                  {
+                    "version": "v0.9",
+                    "updateComponents": {
+                      "surfaceId": "scheduling",
+                      "components": [
+                        {
+                          "id": "root",
+                          "component": "AlertDialog",
+                          "title": "Confirm booking",
+                          "description": "You are about to book the Mon 9:00 AM consultation slot for Ada.",
+                          "actionLabel": "Book Mon 9:00 AM",
+                          "cancelLabel": "Back to list",
+                          "actionVariant": "primary",
+                          "action": {
+                            "event": {
+                              "name": "confirm_booking",
+                              "context": {}
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "warnings": [
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root: A2UI requires a declarative action on AlertDialog; synthesized event 'confirm_booking'."
+                }
+              ],
+              "validations": [
+                {
+                  "a2uiVersion": "0.9.1",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                },
+                {
+                  "a2uiVersion": "1.0",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                }
+              ]
+            },
+            "timings": {
+              "totalMs": 9720
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 20851,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.resolved",
+        "value": {
+          "actionId": "328cb39e-f9e0-4127-8b88-f713368a6b00",
+          "originalName": "confirm_booking",
+          "capability": "confirm_booking",
+          "method": "exact-name"
+        }
+      }
+    },
+    {
+      "atMs": 20852,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.pending",
+        "value": {
+          "actionId": "328cb39e-f9e0-4127-8b88-f713368a6b00",
+          "scenario": "appointment-booking",
+          "name": "confirm_booking",
+          "capability": "confirm_booking",
+          "surfaceId": "scheduling_question",
+          "sourceComponentId": "root",
+          "context": {
+            "slot": "Mon 9:00 AM",
+            "name": "Ada"
+          },
+          "modelRef": "ollama:gpt-oss:latest"
+        }
+      }
+    },
+    {
+      "atMs": 20859,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "action-328cb39e-f9e0-4127-8b88-f713368a6b00",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 20859,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "action-328cb39e-f9e0-4127-8b88-f713368a6b00",
+        "delta": "{\"surfaceId\":\"surface\"}"
+      }
+    },
+    {
+      "atMs": 20859,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "action-328cb39e-f9e0-4127-8b88-f713368a6b00"
+      }
+    },
+    {
+      "atMs": 20859,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "action-328cb39e-f9e0-4127-8b88-f713368a6b00-result",
+        "toolCallId": "action-328cb39e-f9e0-4127-8b88-f713368a6b00",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"deleteSurface\":{\"surfaceId\":\"scheduling_question\"}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"scheduling\",\"path\":\"/booking/confirmed\",\"value\":true}},{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"scheduling\",\"path\":\"/booking/status\",\"value\":\"Booked Mon 9:00 AM for Ada. See you then!\"}}]}"
+      }
+    },
+    {
+      "atMs": 20859,
+      "event": {
+        "type": "CUSTOM",
+        "name": "studio.action.accepted",
+        "value": {
+          "actionId": "328cb39e-f9e0-4127-8b88-f713368a6b00",
+          "name": "confirm_booking",
+          "context": {
+            "slot": "Mon 9:00 AM",
+            "name": "Ada"
+          }
+        }
+      }
+    }
+  ]
+}

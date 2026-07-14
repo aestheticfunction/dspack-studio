@@ -86,6 +86,9 @@ export function useLiveRun(agentUrl: string): LiveRunState & LiveRunControls {
   }, []);
 
   const pendingActions = useRef(new Set<string>());
+  // The active run's adapter, so HITL round-trips can tell the agent which
+  // model (if any) should generate its follow-up question (FM-7).
+  const lastModelRef = useRef<string | undefined>(undefined);
 
   const appendEvent = useCallback((event: Record<string, unknown>) => {
     setEvents((prev) => [...prev, { atMs: Date.now() - t0.current, event: event as any }]);
@@ -97,7 +100,9 @@ export function useLiveRun(agentUrl: string): LiveRunState & LiveRunControls {
       const dedupeKey = `${action.name}:${action.sourceComponentId ?? ""}`;
       if (pendingActions.current.has(dedupeKey)) return;
       pendingActions.current.add(dedupeKey);
-      void dispatchAction(agentUrl, action as any, appendEvent).finally(() => pendingActions.current.delete(dedupeKey));
+      void dispatchAction(agentUrl, { ...action, modelRef: lastModelRef.current } as any, appendEvent).finally(() =>
+        pendingActions.current.delete(dedupeKey),
+      );
     },
     [agentUrl, appendEvent],
   );
@@ -105,6 +110,7 @@ export function useLiveRun(agentUrl: string): LiveRunState & LiveRunControls {
   const run = useCallback(
     (input: { prompt: string; intent: string; modelRef: string; scenario?: string }) => {
       subscription.current?.unsubscribe();
+      lastModelRef.current = input.modelRef;
       setEvents([]);
       setError(undefined);
       setStatus("streaming");
