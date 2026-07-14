@@ -20,7 +20,7 @@
  */
 export interface PermalinkState {
   scenario?: string;
-  view?: "replay" | "live" | "break" | "canvas";
+  view?: "replay" | "live" | "break" | "canvas" | "home";
   fixture?: string;
   fork?: { parentKey: string; forkIndex: number };
   breakCondition?: string;
@@ -30,7 +30,7 @@ export interface PermalinkState {
 }
 
 const PANELS = new Set(["receipt", "wire", "pipeline"]);
-const VIEWS = new Set(["replay", "live", "break", "canvas"]);
+const VIEWS = new Set(["replay", "live", "break", "canvas", "home"]);
 
 export function parsePermalink(hash: string): { state: PermalinkState; error?: string } {
   const raw = hash.replace(/^#\/?/, "");

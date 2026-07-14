@@ -19,15 +19,18 @@ const AGENT_URL = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 import { LiveView } from "./live-view";
 import { BreakView } from "./break-view";
 import { RestyleView } from "./restyle-view";
+import { TakeHomeView } from "./take-home-view";
 import { useAgentStatus } from "./use-agent-status";
 import { btnClass, linkClass } from "./ui";
 
 /** One plain sentence of context per view, shown under the switcher. */
-function viewHelp(view: "replay" | "live" | "break" | "canvas", agentOnline: boolean | null): string {
+function viewHelp(view: "replay" | "live" | "break" | "canvas" | "home", agentOnline: boolean | null): string {
   const offline = agentOnline === false;
   switch (view) {
     case "replay":
       return "Recorded real runs, replayed from their event streams. Works everywhere, no setup.";
+    case "home":
+      return "The ecosystem in your own editor: the MCP config, the contract, the validator, and the local agent. Same packages, published versions.";
     case "live":
       return offline
         ? "Streams a new run from an agent on your machine. The local agent is offline; start it: pnpm --filter agent dev. Replay works without it."
@@ -410,7 +413,7 @@ function ReplayPane({ scenario, deepLink, onLinkError }: { scenario: Scenario; d
 
 export function Studio() {
   const [scenarioId, setScenarioId] = useState(readyScenarios[0]?.id);
-  const [view, setView] = useState<"replay" | "live" | "break" | "canvas">("replay");
+  const [view, setView] = useState<"replay" | "live" | "break" | "canvas" | "home">("replay");
   // A planned scenario the visitor tapped: its "what it needs" line replaces
   // the tagline until a ready scenario is chosen or it is tapped again.
   const [revealedPlanned, setRevealedPlanned] = useState<string | null>(null);
@@ -597,6 +600,9 @@ export function Studio() {
         <button data-testid="view-canvas" className={btnClass(view === "canvas")} onClick={() => setView("canvas")}>
           restyle it
         </button>
+        <button data-testid="view-home" className={btnClass(view === "home")} onClick={() => setView("home")}>
+          take it home
+        </button>
       </div>
       <p data-testid="view-help" style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 20px", maxWidth: 720 }}>
         {viewHelp(view, agentOnline)}
@@ -625,6 +631,7 @@ export function Studio() {
         />
       )}
       {view === "canvas" && scenario && <RestyleView scenario={scenario} />}
+      {view === "home" && <TakeHomeView agentOnline={agentOnline} />}
       {/* Orientation, below the primary experience: the approved pipeline
           language and the existing capabilities, stated once, compactly. */}
       <section aria-label="how it works" style={{ marginTop: 44, fontSize: 12 }}>
