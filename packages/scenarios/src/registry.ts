@@ -5,8 +5,8 @@
  * governance content, per the project plan).
  *
  * Order is intentional: ready scenarios first (recipe co-editing leads as the
- * default, then booking, then project deletion), planned ones grouped after.
- * readyScenarios[0] is the studio's default scenario.
+ * default, then booking, then project deletion, then support triage), planned
+ * ones grouped after. readyScenarios[0] is the studio's default scenario.
  */
 import type { Scenario } from "./types";
 import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
@@ -17,6 +17,8 @@ import fixture006 from "@dspack-studio/replay/fixtures/fixture-006.json";
 import fixture007 from "@dspack-studio/replay/fixtures/fixture-007.json";
 import fixture008 from "@dspack-studio/replay/fixtures/fixture-008.json";
 import fixture009 from "@dspack-studio/replay/fixtures/fixture-009.json";
+import fixture010 from "@dspack-studio/replay/fixtures/fixture-010.json";
+import fixture011 from "@dspack-studio/replay/fixtures/fixture-011.json";
 
 export const scenarios: Scenario[] = [
   {
@@ -120,6 +122,38 @@ export const scenarios: Scenario[] = [
     ],
   },
   {
+    id: "support-triage",
+    name: "Support-ticket triage",
+    tagline: "Collections choose tables; status becomes badges: component choice at scale.",
+    intent: "record-collection",
+    status: "ready",
+    seedPrompts: [
+      "A triage view of open support tickets with status and priority.",
+      "Show the open support tickets as a simple stacked list of short text lines. Keep it minimal: no table, no grid, just plain text per ticket.",
+    ],
+    breakItPrompts: [
+      {
+        ruleId: "rule.record-collection-requires-table",
+        prompt:
+          "Show the open support tickets as a simple stacked list of short text lines. Keep it minimal: no table, no grid, just plain text per ticket.",
+      },
+    ],
+    fixtures: [
+      {
+        key: "argues-back",
+        label: "the interface argues back",
+        blurb: "One governed repair: the model stacks the tickets as plain prose, the table rule catches it, and the repaired surface ships a filled triage table with a status badge strip.",
+        fixture: fixture010,
+      },
+      {
+        key: "clean",
+        label: "clean first pass",
+        blurb: "No violations: one attempt, straight through the gates to a five-row triage table with status badges summarizing the queue.",
+        fixture: fixture011,
+      },
+    ],
+  },
+  {
     id: "onboarding",
     name: "Signup / onboarding",
     tagline: "Labeled inputs, enforced: every field carries a visible label or it does not ship.",
@@ -127,16 +161,6 @@ export const scenarios: Scenario[] = [
     status: "planned",
     needs: ["design-system rules for signup and form screens", "a recorded real run to replay"],
     seedPrompts: ["A signup form asking for name and email, with a clear call to action."],
-    fixtures: [],
-  },
-  {
-    id: "support-triage",
-    name: "Support-ticket triage",
-    tagline: "Collections choose tables; status becomes badges: component choice at scale.",
-    intent: "record-collection",
-    status: "planned",
-    needs: ["design-system rules for lists of records and statuses", "a recorded real run to replay"],
-    seedPrompts: ["A triage view of open support tickets with status and priority."],
     fixtures: [],
   },
   {

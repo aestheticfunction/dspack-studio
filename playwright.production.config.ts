@@ -30,6 +30,7 @@ export default defineConfig({
       name: "studio",
       testMatch: [
         "replay.spec.ts",
+        "support-triage.spec.ts",
         "alive.spec.ts",
         "permalinks.spec.ts",
         "tour-xray-wire.spec.ts",
