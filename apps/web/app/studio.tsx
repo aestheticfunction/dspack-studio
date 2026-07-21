@@ -428,14 +428,18 @@ export function Studio() {
   // Guided tour: drives the SAME deep-link mechanism as permalinks, so
   // every step is a real, reachable UI state. Non-blocking, restartable.
   const [tourStep, setTourStep] = useState<number | null>(null);
-  const [tourOffered, setTourOffered] = useState(false);
   useEffect(() => {
     try {
-      if (!localStorage.getItem("dspack-studio-tour-done") && !location.hash) setTourOffered(true);
-    } catch { /* storage unavailable: no offer, tour stays reachable via the header button */ }
+      if (localStorage.getItem("dspack-studio-tour-done") || location.hash) return;
+      // Auto-start only when the dismissal can be REMEMBERED: a storage that
+      // reads fine but throws on write would re-launch the tour every visit.
+      localStorage.setItem("dspack-studio-tour-probe", "1");
+      localStorage.removeItem("dspack-studio-tour-probe");
+      startTour(0);
+    } catch { /* storage unavailable: no auto-start, tour stays reachable via the header button */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const startTour = (n = 0) => {
-    setTourOffered(false);
     setLinkError(null);
     setView("replay");
     setScenarioId(TOUR_STEPS[n].state.scenario!);
@@ -535,7 +539,7 @@ export function Studio() {
         </p>
         <p style={{ fontSize: 13, margin: "10px 0 0" }}>
           <button data-testid="tour-start" onClick={() => startTour(0)} className={linkClass}>
-            {tourOffered ? "first time here? take the one-minute tour" : "guided tour"}
+            guided tour
           </button>
         </p>
       </header>
