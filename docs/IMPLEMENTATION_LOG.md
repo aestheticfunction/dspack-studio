@@ -959,3 +959,45 @@ old registry (shelf "(planned)", missing fixtures, permalink "unknown
 or not-yet-ready"); upstream, three new grammar-alignment assertions
 failed on dspack-gen 0.1.1. shadcn intent parity stays deferred to the
 standing owner-authored contract-extension item.
+
+## 2026-07-21 — signup/onboarding: fifth ready scenario (data-collection)
+
+Same template as support-triage: replay-first, zero per-scenario code, an
+atomic PR of governance + recordings + registry + tests + docs.
+
+Honesty split, stated everywhere it matters: labels were ALWAYS enforced
+(`rule.input-carries-label` is universal, no appliesTo) — the scenario's
+old "Labeled inputs, enforced" tagline over-claimed and was rewritten.
+What the new intent adds is structural:
+`rule.data-collection-requires-input-and-action` (component-choice,
+must) — an ask without a field is not a form, and a form that cannot be
+submitted does not ship. No layout, field count, or form shape is
+mandated, deliberately: data collection is not equivalent to signup
+forms. Rationales quote the Astryx TextInput and Button docs verbatim.
+
+Durability check (owner requirement: the intent must remain durable
+beyond the signup example): a non-signup probe — "request access to a
+private workspace: name, work email, team" — produced an honest form
+under the same intent and rules. It also produced, unforced, the
+scenario's refusal story: the model picked `dropdown-menu` for the team
+select, which lints clean but the astryx profile cannot project. That
+recording ships as the third fixture; it documents the vocabulary's
+real limit (no select), which is a component gap (the hotel-reservations
+blocker class), not an intent-design flaw.
+
+Recording (Spark, ollama:gpt-oss:latest, dspack-gen 0.1.2 published):
+fixture-012 clean — first pass to a labeled name+email form with one
+primary action (close to the worked example's shape; the few-shot
+steers hard, noted honestly). fixture-013 argues-back — first
+`--require-repair` attempt: the model obeys the text-only prompt with a
+card and welcome text, S3 fails on the new rule (both missing
+components), repair ships a labeled email field and a "Join now"
+action. fixture-014 refusal — reproduced on the second roll (first
+was a clean pass, discarded).
+
+Fail-first evidence: pre-contract recording fails with getIntent's
+"intent 'data-collection' is not registered" (pasted in the PR); the
+five onboarding.spec.ts tests fail on the old registry.
+`studio-shell.spec.ts`'s planned-reveal test retargeted
+`scenario-onboarding` → `scenario-hotel-reservations` (the last planned
+entry) — a retarget, not a new assertion; it passes on both builds.

@@ -12,7 +12,7 @@ export interface BreakCondition {
   id: string;
   label: string;
   /** The scenario this condition belongs to; absent when scenarioIndependent. */
-  scenarioId?: "project-deletion" | "appointment-booking" | "recipe-creator" | "support-triage";
+  scenarioId?: "project-deletion" | "appointment-booking" | "recipe-creator" | "support-triage" | "onboarding";
   /**
    * True for conditions that belong to every scenario: pure client-side
    * demonstrations that never start a run or read scenario state.
@@ -137,6 +137,22 @@ export const breakConditions: BreakCondition[] = [
       scenarioId: "support-triage",
       fixtureKey: "argues-back",
       note: "In this recorded real run the model stacked the tickets as plain prose; the table rule caught it and the repaired surface shipped a filled triage table with status badges.",
+    },
+  },
+  {
+    id: "ask-without-a-form",
+    label: "data collection without a form",
+    scenarioId: "onboarding",
+    intent: "data-collection",
+    kind: "governed-repair",
+    expected:
+      "S3 fails with rule.data-collection-requires-input-and-action (the TextInput and Button docs' own rationale, verbatim), a repair message is sent, and the repaired surface ships a labeled field and an explicit action.",
+    prompt:
+      "Invite people to join the product: just a friendly welcome message telling them to sign up. Keep it to text only, no form fields, no buttons.",
+    recordedCatch: {
+      scenarioId: "onboarding",
+      fixtureKey: "argues-back",
+      note: "In this recorded real run the model shipped a text-only welcome with nothing to fill in; the form rule caught it and the repaired surface added a labeled email field and an explicit action.",
     },
   },
   {

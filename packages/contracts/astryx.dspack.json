@@ -430,6 +430,11 @@
       "id": "record-collection",
       "name": "Record collection",
       "description": "Surfaces that present many records of the same kind — support tickets, orders, members — for scanning and action. Records share uniform fields, so the collection renders as a table; each record carries a status the user reads at a glance, summarized with badges where attention is needed and plain text otherwise."
+    },
+    {
+      "id": "data-collection",
+      "name": "Data collection",
+      "description": "Surfaces that ask the user for information and submit it — signup, contact, profile edits, an RSVP. The ask is stated, the fields are labeled, and the submit action is explicit: at minimum, something to fill in and a way to send it."
     }
   ],
   "rules": [
@@ -605,6 +610,28 @@
         "structure"
       ],
       "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Table/Table.doc.mjs"
+    },
+    {
+      "id": "rule.data-collection-requires-input-and-action",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "data-collection"
+        ]
+      },
+      "require": [
+        "text-input",
+        "button"
+      ],
+      "rationale": "\"TextInput collects short-form text like names, emails, or search queries\"; Button \"triggers an action when clicked. Use it for form submissions, confirmations, navigation, or any interaction that needs a clear call to action\". An ask without a field is not a form, and a form that cannot be submitted does not ship: a data-collection surface carries at least one input and an explicit action. No layout, field count, or form shape is mandated. — Astryx TextInput and Button docs, v0.1.4",
+      "examples": [
+        "ex.signup-basic"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/TextInput/TextInput.doc.mjs"
     }
   ],
   "examples": [
@@ -965,6 +992,68 @@
                   }
                 ],
                 "density": "compact"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.signup-basic",
+      "intent": "data-collection",
+      "name": "Signup, name and email",
+      "prompt": "a signup form asking for name and email, with a clear call to action",
+      "description": "A card stating the ask, two labeled fields, and one explicit primary action — something to fill in and a way to send it, every field labeled.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "data-collection",
+        "root": {
+          "component": "card",
+          "id": "signup-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Create your account"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Name and email is all it takes. You can add the rest later."
+            },
+            {
+              "component": "text-input",
+              "id": "name-input",
+              "props": {
+                "label": "Your name",
+                "placeholder": "Ada Lovelace",
+                "isRequired": true
+              }
+            },
+            {
+              "component": "text-input",
+              "id": "email-input",
+              "props": {
+                "type": "email",
+                "label": "Email address",
+                "placeholder": "ada@example.com",
+                "description": "We send a confirmation link, nothing else.",
+                "isRequired": true
+              }
+            },
+            {
+              "component": "button",
+              "id": "submit",
+              "props": {
+                "label": "Create account",
+                "variant": "primary"
               }
             }
           ]

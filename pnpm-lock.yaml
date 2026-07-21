@@ -49,7 +49,7 @@ importers:
   apps/web:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.1.2
+        specifier: ^0.1.1
         version: 0.1.2(zod@4.4.3)
       '@astryxdesign/core':
         specifier: 0.1.4

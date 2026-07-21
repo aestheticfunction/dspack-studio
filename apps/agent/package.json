@@ -13,7 +13,7 @@
     "record:catch": "tsx src/record-catch.ts"
   },
   "dependencies": {
-    "@aestheticfunction/dspack-gen": "^0.1.1",
+    "@aestheticfunction/dspack-gen": "^0.1.2",
     "@dspack-studio/agui-bridge": "workspace:*",
     "@dspack-studio/contracts": "workspace:*",
     "@dspack-studio/replay": "workspace:*"

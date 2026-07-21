@@ -31,6 +31,7 @@ export default defineConfig({
       testMatch: [
         "replay.spec.ts",
         "support-triage.spec.ts",
+        "onboarding.spec.ts",
         "alive.spec.ts",
         "permalinks.spec.ts",
         "tour-xray-wire.spec.ts",
