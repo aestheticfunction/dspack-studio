@@ -92,7 +92,8 @@ test("malformed and unknown links fail clearly and fall back", async ({ page }) 
   await expect(page.getByTestId("link-error")).toContainText("did not parse");
   await expect(page.getByTestId("fixture-meta")).toBeVisible(); // default view still works
 
-  await page.goto("/#s=hotel-reservations");
+  // No planned scenarios remain, so an invented id exercises the same path.
+  await page.goto("/#s=not-a-scenario");
   await page.reload();
   await expect(page.getByTestId("link-error")).toContainText("unknown or not-yet-ready");
 

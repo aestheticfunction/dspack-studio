@@ -1001,3 +1001,55 @@ five onboarding.spec.ts tests fail on the old registry.
 `studio-shell.spec.ts`'s planned-reveal test retargeted
 `scenario-onboarding` → `scenario-hotel-reservations` (the last planned
 entry) — a retarget, not a new assertion; it passes on both builds.
+
+## 2026-07-21 — selection vocabulary + hotel reservations: the shelf completes
+
+Two PRs, per the approved platform design: the vocabulary first (inert
+until governed), then the intent and the scenario that validates it,
+atomically.
+
+Vocabulary (PR A): `list`, `selectable-card`, `metadata-list` — each a
+faithful projection of a real upstream Astryx component, none
+hotel-specific. metadata-list is data-driven ({label,value} items,
+grammar-required) because sub-components carry no props under
+grammar-constrained generation; the one deliberate upstream divergence
+is declared as `x-drift` on the prop, and drift-check now reports
+x-drift props as acknowledged divergences. Renderers landed in BOTH
+design systems (Dialog stays the sole shadcn placeholder, 11 of 12).
+The record-collection table rule's "widen to a choice set" caveat was
+revised honestly: choice sets are inexpressible (component-choice
+require is conjunctive); requireOneOf noted as candidate dspack-gen
+work.
+
+Governance + scenario (PR B): intent `transactional-review` with five
+floor rules (options-in-a-collection with an explicit action; ≥2
+alternatives per list; every option states attributes; metadata carries
+items; every option is named). Exact counts, upper bounds, and
+"exactly one primary action per option" are inexpressible in current
+rule types and remain prose guidance, stated in the rules' own
+rationales. The worked example is deliberately NOT a hotel —
+`ex.plan-comparison`, pricing plans — so the vocabulary's domain
+neutrality is exercised before any hotel copy exists.
+
+Recording (Spark, ollama:gpt-oss:latest, published dspack-gen 0.1.2):
+the very first live run on the deepest composite yet (card → list →
+selectable-cards → metadata-lists) passed clean with populated
+attributes — the 0.1.2 required-props grammar mechanism carrying over.
+fixture-015 (clean): three named, badged hotels, each with a 3-item
+metadata list, one "Book now" action, first pass. fixture-016
+(argues-back): asked for a single no-options recommendation, the model
+shipped a bare apology text node; rule.review-presents-options caught a
+surface with nothing to choose (three findings — list, selectable-card,
+button all absent) and the repair shipped two named hotels compared on
+their attributes. First --require-repair attempt, unforced.
+
+Break-it: `review-without-options` (recordedCatch → argues-back). The
+planned-entry shelf machinery keeps its code path but nothing renders
+it: studio-shell's planned-reveal test became "six ready, no planned
+placeholders", and permalinks' not-ready-link test now uses an invented
+id. Docs: AUDIT Scenarios row goes Complete (6 ready / 0 planned).
+
+Fail-first evidence: pre-contract, recording with the new intent failed
+with getIntent's "intent 'transactional-review' is not registered"; all
+four hotel-reservations.spec.ts tests and the rewritten studio-shell
+assertion failed on the pre-scenario build.

@@ -568,6 +568,11 @@
       "id": "data-collection",
       "name": "Data collection",
       "description": "Surfaces that ask the user for information and submit it — signup, contact, profile edits, an RSVP. The ask is stated, the fields are labeled, and the submit action is explicit: at minimum, something to fill in and a way to send it."
+    },
+    {
+      "id": "transactional-review",
+      "name": "Transactional review",
+      "description": "Surfaces that present alternatives for a consequential choice — plans, offers, bookings, products — compared on stated attributes and committed with an explicit action. Options are named, comparable, and at least two; the commitment is a labeled action."
     }
   ],
   "rules": [
@@ -765,6 +770,128 @@
         "structure"
       ],
       "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/TextInput/TextInput.doc.mjs"
+    },
+    {
+      "id": "rule.review-presents-options",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "require": [
+        "list",
+        "selectable-card",
+        "button"
+      ],
+      "rationale": "SelectableCard is for \"plan pickers, filter chips, or option grids\"; List renders \"ordered or unordered groups of related content\" — \"lists imply a meaningful collection\"; Button \"triggers an action when clicked … any interaction that needs a clear call to action\". A review surface presents its options as a collection of named selectable cards with an explicit committing action — not prose, not a bare recommendation. — Astryx SelectableCard, List, and Button docs, v0.1.4",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/SelectableCard/SelectableCard.doc.mjs"
+    },
+    {
+      "id": "rule.review-offers-alternatives",
+      "type": "required-composition",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "list",
+      "requiredSubComponents": [
+        {
+          "id": "selectable-card",
+          "min": 2
+        }
+      ],
+      "rationale": "A choice of one is not a comparison: a review's option list carries at least two selectable cards. (Under this intent, lists are option groups; the floor applies to every list on the surface. Exact counts and upper bounds are inexpressible in current rule types and remain guidance.)",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/List/List.doc.mjs"
+    },
+    {
+      "id": "rule.option-states-attributes",
+      "type": "required-composition",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "selectable-card",
+      "requiredSubComponents": [
+        {
+          "id": "metadata-list",
+          "min": 1
+        }
+      ],
+      "rationale": "\"MetadataList displays key-value pairs for object attributes\" — an option you can compare states what it offers as structured attributes, not free prose. Every selectable card under this intent carries a metadata list. — Astryx MetadataList docs, v0.1.4",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/MetadataList/MetadataList.doc.mjs"
+    },
+    {
+      "id": "rule.metadata-carries-items",
+      "type": "required-props",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "metadata-list",
+      "requiredProps": [
+        {
+          "prop": "items"
+        }
+      ],
+      "rationale": "The catalog's MetadataList is data-driven: attributes are `{ label, value }` records. A metadata list without its items renders an empty shell, attributes nowhere to be seen — the same class of failure rule.table-carries-data guards against for tables.",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/MetadataList/MetadataList.doc.mjs"
+    },
+    {
+      "id": "rule.option-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "selectable-card",
+      "requiredProps": [
+        {
+          "prop": "label"
+        }
+      ],
+      "rationale": "Every option is named: SelectableCard's label is how an alternative is identified, compared, and announced. An unnamed option cannot be chosen deliberately. — Astryx SelectableCard docs, v0.1.4",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "accessibility",
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/SelectableCard/SelectableCard.doc.mjs"
     }
   ],
   "examples": [
@@ -1186,6 +1313,126 @@
               "id": "submit",
               "props": {
                 "label": "Create account",
+                "variant": "primary"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.plan-comparison",
+      "intent": "transactional-review",
+      "name": "Plan comparison",
+      "prompt": "compare the available plans and choose one",
+      "description": "Two named plans as selectable cards in a list, each stating its attributes as a metadata list, with one explicit committing action. Deliberately not a hotel: the intent is domain-neutral, and the scenario that validates it comes from a different domain.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "transactional-review",
+        "root": {
+          "component": "card",
+          "id": "compare-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Choose a plan"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Two plans, compared on what they include. Pick one to continue."
+            },
+            {
+              "component": "list",
+              "id": "plans",
+              "props": {
+                "density": "balanced"
+              },
+              "children": [
+                {
+                  "component": "selectable-card",
+                  "id": "plan-basic",
+                  "props": {
+                    "label": "Basic",
+                    "isSelected": false
+                  },
+                  "children": [
+                    {
+                      "component": "metadata-list",
+                      "id": "basic-attrs",
+                      "props": {
+                        "items": [
+                          {
+                            "label": "Price",
+                            "value": "$5/mo"
+                          },
+                          {
+                            "label": "Storage",
+                            "value": "50 GB"
+                          },
+                          {
+                            "label": "Support",
+                            "value": "Community"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "component": "selectable-card",
+                  "id": "plan-pro",
+                  "props": {
+                    "label": "Pro",
+                    "isSelected": true,
+                    "variant": "blue"
+                  },
+                  "children": [
+                    {
+                      "component": "metadata-list",
+                      "id": "pro-attrs",
+                      "props": {
+                        "items": [
+                          {
+                            "label": "Price",
+                            "value": "$12/mo"
+                          },
+                          {
+                            "label": "Storage",
+                            "value": "1 TB"
+                          },
+                          {
+                            "label": "Support",
+                            "value": "Priority"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "component": "badge",
+                      "id": "pro-badge",
+                      "props": {
+                        "variant": "info",
+                        "label": "Most popular"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "component": "button",
+              "id": "choose",
+              "props": {
+                "label": "Choose plan",
                 "variant": "primary"
               }
             }
