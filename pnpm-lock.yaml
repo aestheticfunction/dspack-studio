@@ -18,8 +18,8 @@ importers:
   apps/agent:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.1.1
-        version: 0.1.1(zod@4.4.3)
+        specifier: ^0.1.2
+        version: 0.1.2(zod@4.4.3)
       '@dspack-studio/agui-bridge':
         specifier: workspace:*
         version: link:../../packages/agui-bridge
@@ -49,8 +49,8 @@ importers:
   apps/web:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.1.1
-        version: 0.1.1(zod@4.4.3)
+        specifier: ^0.1.2
+        version: 0.1.2(zod@4.4.3)
       '@astryxdesign/core':
         specifier: 0.1.4
         version: 0.1.4(@stylexjs/stylex@0.18.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -319,8 +319,8 @@ packages:
   '@aestheticfunction/dspack-emit@0.3.1':
     resolution: {integrity: sha512-0vCFP5rvWGoIPvnBlB3puXkhoJhEyq/FQHrfj3JfPwf37WfASZb5ZOK3tPzB8ZhZTFkxvhjrvHeEYgRDOGm04w==}
 
-  '@aestheticfunction/dspack-gen@0.1.1':
-    resolution: {integrity: sha512-AkPSSgXWEa4p8/2TI/Bgu1XwaePejxanNfnEB1+6YFiYGAppS/iNRgJOzbsGoiVVlAaLbbaeaaloIxeEd0LDvQ==}
+  '@aestheticfunction/dspack-gen@0.1.2':
+    resolution: {integrity: sha512-u64Khv8+/HsIDwC5ciyW2gTNFmgrRH+CjQFbFBlj1s1veZQAifwE/gQXN23QmcdPKdEwDVMJuIhEYXirfV82Mg==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -2176,7 +2176,7 @@ snapshots:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
 
-  '@aestheticfunction/dspack-gen@0.1.1(zod@4.4.3)':
+  '@aestheticfunction/dspack-gen@0.1.2(zod@4.4.3)':
     dependencies:
       '@aestheticfunction/dspack-emit': 0.3.1
       '@anthropic-ai/sdk': 0.109.1(zod@4.4.3)
