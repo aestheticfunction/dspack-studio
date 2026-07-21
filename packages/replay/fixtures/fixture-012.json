@@ -1,0 +1,498 @@
+{
+  "replayFixture": "0.1",
+  "id": "fixture-012",
+  "name": "Clean signup form",
+  "recordedAt": "2026-07-21T21:10:37.666Z",
+  "mode": "live",
+  "adapterId": "ollama:gpt-oss:latest",
+  "intent": "data-collection",
+  "prompt": "A signup form asking for name and email, with a clear call to action.",
+  "events": [
+    {
+      "atMs": 2,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "fixture-012"
+      }
+    },
+    {
+      "atMs": 2,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.run.start",
+        "value": {
+          "intent": "data-collection",
+          "prompt": "A signup form asking for name and email, with a clear call to action.",
+          "adapterId": "ollama:gpt-oss:latest",
+          "ruleIds": [
+            "rule.alertdialog-carries-content",
+            "rule.alertdialog-action-label-specific",
+            "rule.button-carries-label",
+            "rule.input-carries-label",
+            "rule.dialog-no-nested-overlays",
+            "rule.data-collection-requires-input-and-action"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 72050,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 72050,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 0,
+          "model": "gpt-oss:latest",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "data-collection",
+            "root": {
+              "component": "card",
+              "id": "signup-card",
+              "children": [
+                {
+                  "component": "text",
+                  "id": "title",
+                  "props": {
+                    "type": "display-3"
+                  },
+                  "text": "Create your account"
+                },
+                {
+                  "component": "text",
+                  "id": "intro",
+                  "props": {
+                    "type": "body"
+                  },
+                  "text": "Name and email is all it takes. You can add the rest later."
+                },
+                {
+                  "component": "text-input",
+                  "id": "name-input",
+                  "props": {
+                    "label": "Your name",
+                    "placeholder": "Ada Lovelace",
+                    "isRequired": true
+                  }
+                },
+                {
+                  "component": "text-input",
+                  "id": "email-input",
+                  "props": {
+                    "type": "email",
+                    "label": "Email address",
+                    "placeholder": "ada@example.com",
+                    "description": "We send a confirmation link, nothing else.",
+                    "isRequired": true
+                  }
+                },
+                {
+                  "component": "button",
+                  "id": "submit",
+                  "props": {
+                    "label": "Create account",
+                    "variant": "primary"
+                  }
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "PASS"
+            }
+          ],
+          "findings": []
+        }
+      }
+    },
+    {
+      "atMs": 72050,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 72138,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.emit",
+        "value": {
+          "validations": [
+            {
+              "a2uiVersion": "0.9.1",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            },
+            {
+              "a2uiVersion": "1.0",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            }
+          ],
+          "warnings": [
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[4]: A2UI requires a declarative action on Button; synthesized event 'submit'."
+            },
+            {
+              "code": "surface-synthesized-wrap",
+              "message": "$.root: 5 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 72139,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "fixture-012-a2ui-0",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 72139,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "fixture-012-a2ui-0",
+        "delta": "{\"surfaceId\":\"data_collection\"}"
+      }
+    },
+    {
+      "atMs": 72139,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "fixture-012-a2ui-0"
+      }
+    },
+    {
+      "atMs": 72139,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "fixture-012-a2ui-0-result",
+        "toolCallId": "fixture-012-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"data_collection\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"data_collection\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Create your account\"},{\"id\":\"intro\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Name and email is all it takes. You can add the rest later.\"},{\"id\":\"name_input\",\"component\":\"TextField\",\"label\":\"Your name\",\"placeholder\":\"Ada Lovelace\",\"isRequired\":true},{\"id\":\"email_input\",\"component\":\"TextField\",\"variant\":\"shortText\",\"label\":\"Email address\",\"placeholder\":\"ada@example.com\",\"description\":\"We send a confirmation link, nothing else.\",\"isRequired\":true},{\"id\":\"submit\",\"component\":\"Button\",\"label\":\"Create account\",\"variant\":\"primary\",\"action\":{\"event\":{\"name\":\"submit\",\"context\":{}}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"intro\",\"name_input\",\"email_input\",\"submit\"]}]}}]}"
+      }
+    },
+    {
+      "atMs": 72139,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.audit",
+        "value": {
+          "outcome": "passed",
+          "exitCode": 0,
+          "report": {
+            "reportVersion": "1",
+            "createdAt": "2026-07-21T21:09:25.527Z",
+            "request": {
+              "prompt": "A signup form asking for name and email, with a clear call to action.",
+              "intent": "data-collection",
+              "contract": {
+                "name": "Astryx",
+                "dspack": "0.4",
+                "sha256": "ec7289f199304b127b4b615483b1980820a73fde30d3c03d82c722a1f2f2cb86"
+              }
+            },
+            "generation": {
+              "adapterId": "ollama:gpt-oss:latest",
+              "schemaSha256": "2d54e53a05663ea6caf22c237027bb82fe0174f68d5b56edc1997b02d345b573",
+              "maxRepairs": 2,
+              "ruleSteering": true,
+              "repairTemplate": "standard"
+            },
+            "attempts": [
+              {
+                "index": 0,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "data-collection",
+                  "root": {
+                    "component": "card",
+                    "id": "signup-card",
+                    "children": [
+                      {
+                        "component": "text",
+                        "id": "title",
+                        "props": {
+                          "type": "display-3"
+                        },
+                        "text": "Create your account"
+                      },
+                      {
+                        "component": "text",
+                        "id": "intro",
+                        "props": {
+                          "type": "body"
+                        },
+                        "text": "Name and email is all it takes. You can add the rest later."
+                      },
+                      {
+                        "component": "text-input",
+                        "id": "name-input",
+                        "props": {
+                          "label": "Your name",
+                          "placeholder": "Ada Lovelace",
+                          "isRequired": true
+                        }
+                      },
+                      {
+                        "component": "text-input",
+                        "id": "email-input",
+                        "props": {
+                          "type": "email",
+                          "label": "Email address",
+                          "placeholder": "ada@example.com",
+                          "description": "We send a confirmation link, nothing else.",
+                          "isRequired": true
+                        }
+                      },
+                      {
+                        "component": "button",
+                        "id": "submit",
+                        "props": {
+                          "label": "Create account",
+                          "variant": "primary"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "model": "gpt-oss:latest",
+                "usage": {
+                  "inputTokens": 1732,
+                  "outputTokens": 187
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 71921067713,
+                  "load_duration": 4110364781,
+                  "prompt_eval_duration": 62909000,
+                  "eval_duration": 11942396000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "PASS"
+                  }
+                ],
+                "findings": []
+              }
+            ],
+            "repairMessages": [],
+            "outcome": "passed",
+            "emitted": {
+              "target": "a2ui",
+              "surfaceMessages": {
+                "messages": [
+                  {
+                    "version": "v0.9",
+                    "createSurface": {
+                      "surfaceId": "data_collection",
+                      "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+                      "theme": {
+                        "agentDisplayName": "Astryx via dspack"
+                      }
+                    }
+                  },
+                  {
+                    "version": "v0.9",
+                    "updateComponents": {
+                      "surfaceId": "data_collection",
+                      "components": [
+                        {
+                          "id": "root",
+                          "component": "Card",
+                          "child": "root_col"
+                        },
+                        {
+                          "id": "title",
+                          "component": "Text",
+                          "variant": "h2",
+                          "text": "Create your account"
+                        },
+                        {
+                          "id": "intro",
+                          "component": "Text",
+                          "variant": "body",
+                          "text": "Name and email is all it takes. You can add the rest later."
+                        },
+                        {
+                          "id": "name_input",
+                          "component": "TextField",
+                          "label": "Your name",
+                          "placeholder": "Ada Lovelace",
+                          "isRequired": true
+                        },
+                        {
+                          "id": "email_input",
+                          "component": "TextField",
+                          "variant": "shortText",
+                          "label": "Email address",
+                          "placeholder": "ada@example.com",
+                          "description": "We send a confirmation link, nothing else.",
+                          "isRequired": true
+                        },
+                        {
+                          "id": "submit",
+                          "component": "Button",
+                          "label": "Create account",
+                          "variant": "primary",
+                          "action": {
+                            "event": {
+                              "name": "submit",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "root_col",
+                          "component": "Column",
+                          "children": [
+                            "title",
+                            "intro",
+                            "name_input",
+                            "email_input",
+                            "submit"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "warnings": [
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[4]: A2UI requires a declarative action on Button; synthesized event 'submit'."
+                },
+                {
+                  "code": "surface-synthesized-wrap",
+                  "message": "$.root: 5 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                }
+              ],
+              "validations": [
+                {
+                  "a2uiVersion": "0.9.1",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                },
+                {
+                  "a2uiVersion": "1.0",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                }
+              ]
+            },
+            "timings": {
+              "totalMs": 72139
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 72139,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "fixture-012"
+      }
+    }
+  ]
+}

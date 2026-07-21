@@ -42,7 +42,8 @@ test("the pipeline diagram names the honest pipeline in reading order", async ({
 
 test("planned scenarios reveal what they need, by keyboard", async ({ page }) => {
   await page.goto("/");
-  const planned = page.getByTestId("scenario-onboarding");
+  // hotel-reservations is the last remaining planned scenario.
+  const planned = page.getByTestId("scenario-hotel-reservations");
   await expect(planned).toContainText("(planned)");
   await planned.focus();
   await page.keyboard.press("Enter");

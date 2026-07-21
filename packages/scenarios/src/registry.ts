@@ -5,8 +5,9 @@
  * governance content, per the project plan).
  *
  * Order is intentional: ready scenarios first (recipe co-editing leads as the
- * default, then booking, then project deletion, then support triage), planned
- * ones grouped after. readyScenarios[0] is the studio's default scenario.
+ * default, then booking, then project deletion, then support triage, then
+ * signup/onboarding), planned ones grouped after. readyScenarios[0] is the
+ * studio's default scenario.
  */
 import type { Scenario } from "./types";
 import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
@@ -19,6 +20,9 @@ import fixture008 from "@dspack-studio/replay/fixtures/fixture-008.json";
 import fixture009 from "@dspack-studio/replay/fixtures/fixture-009.json";
 import fixture010 from "@dspack-studio/replay/fixtures/fixture-010.json";
 import fixture011 from "@dspack-studio/replay/fixtures/fixture-011.json";
+import fixture012 from "@dspack-studio/replay/fixtures/fixture-012.json";
+import fixture013 from "@dspack-studio/replay/fixtures/fixture-013.json";
+import fixture014 from "@dspack-studio/replay/fixtures/fixture-014.json";
 
 export const scenarios: Scenario[] = [
   {
@@ -156,12 +160,41 @@ export const scenarios: Scenario[] = [
   {
     id: "onboarding",
     name: "Signup / onboarding",
-    tagline: "Labeled inputs, enforced: every field carries a visible label or it does not ship.",
+    tagline: "An ask needs a form: something to fill in, a way to send it — and every field keeps its label.",
     intent: "data-collection",
-    status: "planned",
-    needs: ["design-system rules for signup and form screens", "a recorded real run to replay"],
-    seedPrompts: ["A signup form asking for name and email, with a clear call to action."],
-    fixtures: [],
+    status: "ready",
+    seedPrompts: [
+      "A signup form asking for name and email, with a clear call to action.",
+      "Invite people to join the product: just a friendly welcome message telling them to sign up. Keep it to text only, no form fields, no buttons.",
+      "A form to request access to a private workspace: your name, work email, and which team you are on, with a clear submit action.",
+    ],
+    breakItPrompts: [
+      {
+        ruleId: "rule.data-collection-requires-input-and-action",
+        prompt:
+          "Invite people to join the product: just a friendly welcome message telling them to sign up. Keep it to text only, no form fields, no buttons.",
+      },
+    ],
+    fixtures: [
+      {
+        key: "argues-back",
+        label: "the interface argues back",
+        blurb: "One governed repair: the model ships a text-only welcome with nothing to fill in, the form rule catches it, and the repaired surface adds a labeled email field and an explicit action.",
+        fixture: fixture013,
+      },
+      {
+        key: "clean",
+        label: "clean first pass",
+        blurb: "No violations: one attempt, straight through the gates to a labeled name-and-email form with one explicit primary action.",
+        fixture: fixture012,
+      },
+      {
+        key: "refusal",
+        label: "the emitter refuses",
+        blurb: "A non-signup ask — a workspace access request — lints clean but picks a team select (dropdown-menu) the protocol profile cannot project: the pipeline refuses, with receipts.",
+        fixture: fixture014,
+      },
+    ],
   },
   {
     id: "hotel-reservations",
