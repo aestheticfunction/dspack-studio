@@ -33,6 +33,9 @@ const ASTRYX_NAME: Record<string, string> = {
   "dropdown-menu": "DropdownMenu",
   table: "Table",
   text: "Text",
+  list: "List",
+  "selectable-card": "SelectableCard",
+  "metadata-list": "MetadataList",
 };
 
 interface AstryxProp {
@@ -73,6 +76,13 @@ for (const [id, comp] of Object.entries<any>(doc.components ?? {})) {
   for (const [propName, propDef] of Object.entries<any>(comp.props ?? {})) {
     const ap = byName.get(propName);
     if (!ap) {
+      // A contract prop with an `x-drift` note is an acknowledged, documented
+      // divergence from the upstream API (e.g. the data-props idiom standing
+      // in for children-based composition). Reported, never a finding.
+      if (typeof propDef?.["x-drift"] === "string") {
+        unverified.push(`${id}.${propName}: acknowledged divergence — ${propDef["x-drift"]}`);
+        continue;
+      }
       findings.push(`${id}.${propName}: prop not found on Astryx ${astryxName}`);
       continue;
     }

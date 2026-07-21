@@ -30,7 +30,7 @@ test("honesty: the receipt hash is identical under both design systems; the pixe
   // Swap the design system in the restyle view (shell-level state).
   await page.getByTestId("view-canvas").click();
   await page.getByTestId("design-system-shadcn").click();
-  await expect(page.getByTestId("design-system-note")).toContainText("8 of 9");
+  await expect(page.getByTestId("design-system-note")).toContainText("11 of 12");
 
   // Back in replay, the same run renders through shadcn/ui.
   await page.getByTestId("view-replay").click();

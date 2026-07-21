@@ -32,13 +32,13 @@ export const DESIGN_SYSTEMS: Record<DesignSystemId, DesignSystemDef> = {
     id: "astryx",
     label: "Astryx",
     registry: astryxRegistry,
-    note: "All 9 catalog components render through @astryxdesign/core, with 8 runtime themes.",
+    note: "All 12 catalog components render through @astryxdesign/core, with 8 runtime themes.",
   },
   shadcn: {
     id: "shadcn",
     label: "shadcn/ui",
     registry: shadcnRegistry,
-    note: "8 of 9 catalog components render through vendored shadcn/ui visuals; Dialog shows the unimplemented placeholder (incremental adoption, stated plainly).",
+    note: "11 of 12 catalog components render through vendored shadcn/ui visuals; Dialog shows the unimplemented placeholder (incremental adoption, stated plainly).",
   },
 };
 

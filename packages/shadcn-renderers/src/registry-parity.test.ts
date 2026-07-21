@@ -22,7 +22,7 @@ describe("shadcn registry parity (catalog owns vocabulary; registry owns pixels)
     expect([...plan.reuseBasic, ...plan.custom, ...plan.unimplemented].sort()).toEqual([...names].sort());
     expect(plan.unimplemented).toEqual(["Dialog"]);
     expect(plan.custom.sort()).toEqual(
-      ["AlertDialog", "Badge", "Button", "Card", "Column", "Table", "Text", "TextField"].sort(),
+      ["AlertDialog", "Badge", "Button", "Card", "Column", "List", "MetadataList", "SelectableCard", "Table", "Text", "TextField"].sort(),
     );
   });
 
