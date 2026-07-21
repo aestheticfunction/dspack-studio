@@ -12,7 +12,7 @@ export interface BreakCondition {
   id: string;
   label: string;
   /** The scenario this condition belongs to; absent when scenarioIndependent. */
-  scenarioId?: "project-deletion" | "appointment-booking" | "recipe-creator";
+  scenarioId?: "project-deletion" | "appointment-booking" | "recipe-creator" | "support-triage";
   /**
    * True for conditions that belong to every scenario: pure client-side
    * demonstrations that never start a run or read scenario state.
@@ -121,6 +121,22 @@ export const breakConditions: BreakCondition[] = [
       scenarioId: "recipe-creator",
       fixtureKey: "invalid-constraint",
       note: "In this recording this exact constraint ('keto') was submitted: the same responder that answers live rejected it recoverably and the session kept going. Deterministic, labeled scripted.",
+    },
+  },
+  {
+    id: "records-as-prose",
+    label: "record collection without a table",
+    scenarioId: "support-triage",
+    intent: "record-collection",
+    kind: "governed-repair",
+    expected:
+      "S3 fails with rule.record-collection-requires-table (the Table docs' own rationale, verbatim), a repair message is sent, and the repaired surface ships a filled triage table.",
+    prompt:
+      "Show the open support tickets as a simple stacked list of short text lines. Keep it minimal: no table, no grid, just plain text per ticket.",
+    recordedCatch: {
+      scenarioId: "support-triage",
+      fixtureKey: "argues-back",
+      note: "In this recorded real run the model stacked the tickets as plain prose; the table rule caught it and the repaired surface shipped a filled triage table with status badges.",
     },
   },
   {

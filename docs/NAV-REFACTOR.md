@@ -70,8 +70,8 @@ session file, or run it live and download one."*
 
 - **Scenario** = `scenarioId` (React state in `Studio`), canonical ids from
   `packages/scenarios/src/registry.ts`: ready `recipe-creator`,
-  `appointment-booking`, `project-deletion`; planned (not selectable)
-  `onboarding`, `support-triage`, `hotel-reservations`.
+  `appointment-booking`, `project-deletion`, `support-triage`; planned
+  (not selectable) `onboarding`, `hotel-reservations`.
 - **Operation** = `view` state: `"replay" | "live" | "break" | "canvas"`.
   X-ray and Fork/diff are not top-level views: they are controls inside
   `RunView` and operate on whatever run is loaded — already
@@ -156,8 +156,8 @@ local agent · **gap** = no support yet. Cells marked † change with this work.
 | `appointment-booking` | **recorded** (fixture-005) | **live-only** (interactive: `bookingRespond`) | `ambiguous-action`: **live-only** today → **recorded** catch† | **gap** today → **universal**† via fixture-005 | **universal** | **universal** (continuation live-only) |
 | `project-deletion` | **recorded** ×3 (fixtures 001/002/003) | **live-only** (generation: `scripted` deterministic or `ollama:*`) | `no-alertdialog` **recorded** (catch=argues-back) · `ok-label` **recorded** (argues-back) · `unsupported-component` **recorded** (refusal) · `malformed-generation` **live-only** (scripted, needs agent) | **recorded** today (the hardcode) → **universal**† via fixture-001 | **universal** | **universal** |
 | *(any scenario)* | — | — | `malformed-import`: **universal** (client-side validator; mislabeled project-deletion → `scenarioIndependent`†) | — | — | — |
+| `support-triage` | **recorded** ×2 (fixtures 010/011) | **live-only** (generation: `scripted` deterministic or `ollama:*`; zero agent code, same as project-deletion) | `records-as-prose` **recorded** (catch=argues-back) | **universal** via fixture-011 final surface | **universal** | **universal** |
 | `onboarding` (planned) | **gap** (not selectable; shelf states needs) | **gap** | **gap** | **gap** | n/a until a run loads | n/a |
-| `support-triage` (planned) | **gap** (same) | **gap** | **gap** | **gap** | n/a | n/a |
 | `hotel-reservations` (planned) | **gap** (same) | **gap** | **gap** | **gap** | n/a | n/a |
 
 Unused asset worth noting: `packages/replay/fixtures/fixture-004.json`

@@ -284,6 +284,7 @@
         "data": {
           "type": "array",
           "description": "Row records: each { cells: string[] } aligned with columns.",
+          "required": true,
           "items": {
             "type": "object",
             "properties": {
@@ -302,6 +303,7 @@
         "columns": {
           "type": "array",
           "description": "Header labels for the data columns, e.g. [\"Ingredient\", \"Amount\"]. (The full Astryx TableColumn object shape is not yet contract-specified.)",
+          "required": true,
           "items": {
             "type": "string"
           }
@@ -569,6 +571,33 @@
         "table"
       ],
       "rationale": "\"Table displays structured data in rows and columns with consistent dimensionality\"; \"Use Table for data sets with uniform structure; for simpler or inconsistent data, consider a list or card layout instead\". A record collection is uniform by definition — same fields on every record — so it renders as a table, not as prose or ad-hoc stacks. (Valid while table is this catalog's only collection structure; widen to a choice set if a list component lands.) — Astryx Table docs, v0.1.4",
+      "examples": [
+        "ex.support-ticket-triage"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Table/Table.doc.mjs"
+    },
+    {
+      "id": "rule.table-carries-data",
+      "type": "required-props",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "record-collection"
+        ]
+      },
+      "component": "table",
+      "requiredProps": [
+        {
+          "prop": "columns"
+        },
+        {
+          "prop": "data"
+        }
+      ],
+      "rationale": "The catalog's Table is \"DATA-DRIVEN: rows and columns are array props (`data`, `columns`), not sub-components\" — a table without its `data` prop renders an empty shell, records nowhere to be seen. Born from observed live runs: gpt-oss reliably emitted the table shell and omitted the rows until this rule made the pipeline ask for them. — Astryx Table docs, v0.1.4",
       "examples": [
         "ex.support-ticket-triage"
       ],

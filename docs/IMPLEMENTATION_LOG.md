@@ -905,3 +905,57 @@ Fail-first evidence: 6 new unit assertions failed on the old responder
 interactive e2e specs failed on a clean origin/main worktree with
 "element(s) not found" for [data-a2ui-surface=scheduling_question]; both
 captured before implementation and pasted in the PR.
+
+## 2026-07-21 — support-ticket triage: fourth ready scenario (record-collection)
+
+The first scenario shipped since the plan's "new scenarios need
+owner-authored contract intents/rules" deferral, and the template for
+the next one: replay-first, non-interactive, zero per-scenario code
+anywhere (no agent SCENARIOS entry, no capabilities, no authored
+surface, no web UI) — a registry record, owner-authored governance, and
+two live recordings.
+
+Contract (astryx.dspack.json): intent `record-collection`; rule
+`rule.record-collection-requires-table` (component-choice, must,
+rationale verbatim from the Astryx Table docs via `npx astryx component
+Table --json`); rule `rule.table-carries-data` (required-props: a
+data-driven table must carry `columns` and `data`); worked example
+`ex.support-ticket-triage` (badge strip above a compact tickets table —
+the contract's table is data-driven strings, so badges live beside it,
+never in cells). Status badges are deliberately example-steered, not
+ruled: the linter renders a should-severity miss as "Required component
+does not appear" under a passing gate — a contradiction — and Badge's
+own docs endorse plain text when no action is needed.
+
+Recording (Spark, OLLAMA_HOST, ollama:gpt-oss:latest) surfaced a real
+generation bug: across ~20 live runs on two models the table's nested
+`data` rows were NEVER emitted (optional scalar props were), so every
+run shipped an empty table shell — and with the data rule active, runs
+exhausted repairs instead. Root cause upstream: dspack-gen's generation
+schema marked every prop optional, and grammar-constrained decoders
+skip optional heavy branches; a repair round cannot fix what the
+grammar never demands. Fix in dspack-gen (feat/required-props-grammar,
+targeting 0.1.2): prop descriptors may declare `required: true`, which
+reaches the props schema's `required` and makes `props` itself required
+on the node branch. The contract now flags table `columns` and `data`
+required. With the fix: fixture-011 (clean) is a first-pass five-row
+triage table with a status badge strip; fixture-010 (argues-back) is
+the flagship catch — the model obeys a prose-list prompt with a lone
+text node, S3 fails on the table rule, and the repaired surface ships
+the filled table. `--require-repair` rejected 3 compliant runs before a
+genuine violation landed (recorded as rejected, not distorted). The
+optional emitter-refusal class was attempted once honestly; the model
+built a clean table instead, so no third fixture ships.
+
+Break-it: `records-as-prose` (governed-repair, recordedCatch →
+argues-back; no scriptedRef — break-scripts untouched). Docs: AUDIT
+count 4 ready / 2 planned; NAV-REFACTOR matrix row filled.
+
+Fail-first evidence: pre-contract, recording with the new intent failed
+with getIntent's "intent 'record-collection' is not registered"
+(pasted in the PR); post-contract the scripted smoke plays the worked
+example clean. All four support-triage.spec.ts assertions failed on the
+old registry (shelf "(planned)", missing fixtures, permalink "unknown
+or not-yet-ready"); upstream, three new grammar-alignment assertions
+failed on dspack-gen 0.1.1. shadcn intent parity stays deferred to the
+standing owner-authored contract-extension item.

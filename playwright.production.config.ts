@@ -12,6 +12,7 @@ export default defineConfig({
   testDir: "e2e",
   testMatch: [
     "replay.spec.ts",
+    "support-triage.spec.ts",
     "alive.spec.ts",
     "permalinks.spec.ts",
     "tour-xray-wire.spec.ts",

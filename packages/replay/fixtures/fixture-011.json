@@ -1,0 +1,620 @@
+{
+  "replayFixture": "0.1",
+  "id": "fixture-011",
+  "name": "Clean triage table",
+  "recordedAt": "2026-07-21T20:21:00.710Z",
+  "mode": "live",
+  "adapterId": "ollama:gpt-oss:latest",
+  "intent": "record-collection",
+  "prompt": "A triage view of open support tickets with status and priority.",
+  "events": [
+    {
+      "atMs": 2,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "fixture-011"
+      }
+    },
+    {
+      "atMs": 2,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.run.start",
+        "value": {
+          "intent": "record-collection",
+          "prompt": "A triage view of open support tickets with status and priority.",
+          "adapterId": "ollama:gpt-oss:latest",
+          "ruleIds": [
+            "rule.alertdialog-carries-content",
+            "rule.alertdialog-action-label-specific",
+            "rule.button-carries-label",
+            "rule.input-carries-label",
+            "rule.dialog-no-nested-overlays",
+            "rule.record-collection-requires-table",
+            "rule.table-carries-data"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 109331,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 109331,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 0,
+          "model": "gpt-oss:latest",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "record-collection",
+            "root": {
+              "component": "card",
+              "id": "support-triage-card",
+              "children": [
+                {
+                  "component": "text",
+                  "id": "title",
+                  "props": {
+                    "type": "display-3"
+                  },
+                  "text": "Open Support Tickets"
+                },
+                {
+                  "component": "badge",
+                  "id": "badge-urgent",
+                  "props": {
+                    "variant": "error",
+                    "label": "2 urgent"
+                  }
+                },
+                {
+                  "component": "badge",
+                  "id": "badge-high",
+                  "props": {
+                    "variant": "warning",
+                    "label": "3 high"
+                  }
+                },
+                {
+                  "component": "badge",
+                  "id": "badge-normal",
+                  "props": {
+                    "variant": "neutral",
+                    "label": "5 normal"
+                  }
+                },
+                {
+                  "component": "table",
+                  "props": {
+                    "data": [
+                      {
+                        "cells": [
+                          "#4812",
+                          "Cannot export session receipts",
+                          "Waiting on support",
+                          "Urgent"
+                        ]
+                      },
+                      {
+                        "cells": [
+                          "#4809",
+                          "Replay stalls at event 12",
+                          "Replied",
+                          "High"
+                        ]
+                      },
+                      {
+                        "cells": [
+                          "#4801",
+                          "Billing address will not save",
+                          "Waiting on customer",
+                          "Normal"
+                        ]
+                      },
+                      {
+                        "cells": [
+                          "#4800",
+                          "Error when uploading file",
+                          "In progress",
+                          "High"
+                        ]
+                      },
+                      {
+                        "cells": [
+                          "#4798",
+                          "Feature request: dark mode",
+                          "Closed",
+                          "Low"
+                        ]
+                      }
+                    ],
+                    "columns": [
+                      "Ticket ID",
+                      "Subject",
+                      "Status",
+                      "Priority"
+                    ],
+                    "density": "compact",
+                    "dividers": "rows",
+                    "isStriped": true
+                  },
+                  "id": "tickets-table"
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "PASS"
+            }
+          ],
+          "findings": []
+        }
+      }
+    },
+    {
+      "atMs": 109331,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 109420,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.emit",
+        "value": {
+          "validations": [
+            {
+              "a2uiVersion": "0.9.1",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            },
+            {
+              "a2uiVersion": "1.0",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            }
+          ],
+          "warnings": [
+            {
+              "code": "surface-synthesized-wrap",
+              "message": "$.root: 5 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 109421,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "fixture-011-a2ui-0",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 109421,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "fixture-011-a2ui-0",
+        "delta": "{\"surfaceId\":\"record_collection\"}"
+      }
+    },
+    {
+      "atMs": 109421,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "fixture-011-a2ui-0"
+      }
+    },
+    {
+      "atMs": 109421,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "fixture-011-a2ui-0-result",
+        "toolCallId": "fixture-011-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"record_collection\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"record_collection\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Open Support Tickets\"},{\"id\":\"badge_urgent\",\"component\":\"Badge\",\"variant\":\"error\",\"label\":\"2 urgent\"},{\"id\":\"badge_high\",\"component\":\"Badge\",\"variant\":\"warning\",\"label\":\"3 high\"},{\"id\":\"badge_normal\",\"component\":\"Badge\",\"variant\":\"neutral\",\"label\":\"5 normal\"},{\"id\":\"tickets_table\",\"component\":\"Table\",\"density\":\"compact\",\"dividers\":\"rows\",\"isStriped\":true,\"columns\":[\"Ticket ID\",\"Subject\",\"Status\",\"Priority\"],\"data\":[{\"cells\":[\"#4812\",\"Cannot export session receipts\",\"Waiting on support\",\"Urgent\"]},{\"cells\":[\"#4809\",\"Replay stalls at event 12\",\"Replied\",\"High\"]},{\"cells\":[\"#4801\",\"Billing address will not save\",\"Waiting on customer\",\"Normal\"]},{\"cells\":[\"#4800\",\"Error when uploading file\",\"In progress\",\"High\"]},{\"cells\":[\"#4798\",\"Feature request: dark mode\",\"Closed\",\"Low\"]}]},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"badge_urgent\",\"badge_high\",\"badge_normal\",\"tickets_table\"]}]}}]}"
+      }
+    },
+    {
+      "atMs": 109421,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.audit",
+        "value": {
+          "outcome": "passed",
+          "exitCode": 0,
+          "report": {
+            "reportVersion": "1",
+            "createdAt": "2026-07-21T20:19:11.290Z",
+            "request": {
+              "prompt": "A triage view of open support tickets with status and priority.",
+              "intent": "record-collection",
+              "contract": {
+                "name": "Astryx",
+                "dspack": "0.4",
+                "sha256": "95bb434fd87cb13b81fd650d66f391f1d560139303e089c2d91a6a18e124fdb4"
+              }
+            },
+            "generation": {
+              "adapterId": "ollama:gpt-oss:latest",
+              "schemaSha256": "e3010cf21f0d900ccf0bc741d3623588e1aea726e496f50acf0059121b7b74ab",
+              "maxRepairs": 2,
+              "ruleSteering": true,
+              "repairTemplate": "standard"
+            },
+            "attempts": [
+              {
+                "index": 0,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "record-collection",
+                  "root": {
+                    "component": "card",
+                    "id": "support-triage-card",
+                    "children": [
+                      {
+                        "component": "text",
+                        "id": "title",
+                        "props": {
+                          "type": "display-3"
+                        },
+                        "text": "Open Support Tickets"
+                      },
+                      {
+                        "component": "badge",
+                        "id": "badge-urgent",
+                        "props": {
+                          "variant": "error",
+                          "label": "2 urgent"
+                        }
+                      },
+                      {
+                        "component": "badge",
+                        "id": "badge-high",
+                        "props": {
+                          "variant": "warning",
+                          "label": "3 high"
+                        }
+                      },
+                      {
+                        "component": "badge",
+                        "id": "badge-normal",
+                        "props": {
+                          "variant": "neutral",
+                          "label": "5 normal"
+                        }
+                      },
+                      {
+                        "component": "table",
+                        "props": {
+                          "data": [
+                            {
+                              "cells": [
+                                "#4812",
+                                "Cannot export session receipts",
+                                "Waiting on support",
+                                "Urgent"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4809",
+                                "Replay stalls at event 12",
+                                "Replied",
+                                "High"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4801",
+                                "Billing address will not save",
+                                "Waiting on customer",
+                                "Normal"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4800",
+                                "Error when uploading file",
+                                "In progress",
+                                "High"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4798",
+                                "Feature request: dark mode",
+                                "Closed",
+                                "Low"
+                              ]
+                            }
+                          ],
+                          "columns": [
+                            "Ticket ID",
+                            "Subject",
+                            "Status",
+                            "Priority"
+                          ],
+                          "density": "compact",
+                          "dividers": "rows",
+                          "isStriped": true
+                        },
+                        "id": "tickets-table"
+                      }
+                    ]
+                  }
+                },
+                "model": "gpt-oss:latest",
+                "usage": {
+                  "inputTokens": 2322,
+                  "outputTokens": 261
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 109252057136,
+                  "load_duration": 4702830523,
+                  "prompt_eval_duration": 71613000,
+                  "eval_duration": 16510697000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "PASS"
+                  }
+                ],
+                "findings": []
+              }
+            ],
+            "repairMessages": [],
+            "outcome": "passed",
+            "emitted": {
+              "target": "a2ui",
+              "surfaceMessages": {
+                "messages": [
+                  {
+                    "version": "v0.9",
+                    "createSurface": {
+                      "surfaceId": "record_collection",
+                      "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+                      "theme": {
+                        "agentDisplayName": "Astryx via dspack"
+                      }
+                    }
+                  },
+                  {
+                    "version": "v0.9",
+                    "updateComponents": {
+                      "surfaceId": "record_collection",
+                      "components": [
+                        {
+                          "id": "root",
+                          "component": "Card",
+                          "child": "root_col"
+                        },
+                        {
+                          "id": "title",
+                          "component": "Text",
+                          "variant": "h2",
+                          "text": "Open Support Tickets"
+                        },
+                        {
+                          "id": "badge_urgent",
+                          "component": "Badge",
+                          "variant": "error",
+                          "label": "2 urgent"
+                        },
+                        {
+                          "id": "badge_high",
+                          "component": "Badge",
+                          "variant": "warning",
+                          "label": "3 high"
+                        },
+                        {
+                          "id": "badge_normal",
+                          "component": "Badge",
+                          "variant": "neutral",
+                          "label": "5 normal"
+                        },
+                        {
+                          "id": "tickets_table",
+                          "component": "Table",
+                          "density": "compact",
+                          "dividers": "rows",
+                          "isStriped": true,
+                          "columns": [
+                            "Ticket ID",
+                            "Subject",
+                            "Status",
+                            "Priority"
+                          ],
+                          "data": [
+                            {
+                              "cells": [
+                                "#4812",
+                                "Cannot export session receipts",
+                                "Waiting on support",
+                                "Urgent"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4809",
+                                "Replay stalls at event 12",
+                                "Replied",
+                                "High"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4801",
+                                "Billing address will not save",
+                                "Waiting on customer",
+                                "Normal"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4800",
+                                "Error when uploading file",
+                                "In progress",
+                                "High"
+                              ]
+                            },
+                            {
+                              "cells": [
+                                "#4798",
+                                "Feature request: dark mode",
+                                "Closed",
+                                "Low"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "root_col",
+                          "component": "Column",
+                          "children": [
+                            "title",
+                            "badge_urgent",
+                            "badge_high",
+                            "badge_normal",
+                            "tickets_table"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "warnings": [
+                {
+                  "code": "surface-synthesized-wrap",
+                  "message": "$.root: 5 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                }
+              ],
+              "validations": [
+                {
+                  "a2uiVersion": "0.9.1",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                },
+                {
+                  "a2uiVersion": "1.0",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                }
+              ]
+            },
+            "timings": {
+              "totalMs": 109420
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 109421,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "fixture-011"
+      }
+    }
+  ]
+}
