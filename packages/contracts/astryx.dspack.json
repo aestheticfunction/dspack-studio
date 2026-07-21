@@ -423,6 +423,11 @@
       "id": "structured-editing",
       "name": "Structured editing",
       "description": "Surfaces the user and agent edit together: a structured object rendered for co-editing, with explicit actions to change it."
+    },
+    {
+      "id": "record-collection",
+      "name": "Record collection",
+      "description": "Surfaces that present many records of the same kind — support tickets, orders, members — for scanning and action. Records share uniform fields, so the collection renders as a table; each record carries a status the user reads at a glance, summarized with badges where attention is needed and plain text otherwise."
     }
   ],
   "rules": [
@@ -550,6 +555,27 @@
         "interaction"
       ],
       "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Dialog/Dialog.doc.mjs"
+    },
+    {
+      "id": "rule.record-collection-requires-table",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "record-collection"
+        ]
+      },
+      "require": [
+        "table"
+      ],
+      "rationale": "\"Table displays structured data in rows and columns with consistent dimensionality\"; \"Use Table for data sets with uniform structure; for simpler or inconsistent data, consider a list or card layout instead\". A record collection is uniform by definition — same fields on every record — so it renders as a table, not as prose or ad-hoc stacks. (Valid while table is this catalog's only collection structure; widen to a choice set if a list component lands.) — Astryx Table docs, v0.1.4",
+      "examples": [
+        "ex.support-ticket-triage"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Table/Table.doc.mjs"
     }
   ],
   "examples": [
@@ -813,6 +839,103 @@
               "props": {
                 "label": "Regenerate recipe",
                 "variant": "primary"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.support-ticket-triage",
+      "intent": "record-collection",
+      "name": "Support-ticket triage",
+      "prompt": "a triage view of open support tickets with status and priority",
+      "description": "A card leading with a badge strip summarizing queue status, above a compact table of the open tickets — the collection renders as a table; statuses that need attention are badged, the rest stay plain text.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "record-collection",
+        "root": {
+          "component": "card",
+          "id": "triage-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Open support tickets"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Newest first. Statuses update as agents respond."
+            },
+            {
+              "component": "badge",
+              "id": "badge-urgent",
+              "props": {
+                "variant": "error",
+                "label": "2 urgent"
+              }
+            },
+            {
+              "component": "badge",
+              "id": "badge-waiting",
+              "props": {
+                "variant": "warning",
+                "label": "3 waiting"
+              }
+            },
+            {
+              "component": "badge",
+              "id": "badge-replied",
+              "props": {
+                "variant": "info",
+                "label": "4 replied"
+              }
+            },
+            {
+              "component": "table",
+              "id": "tickets",
+              "props": {
+                "columns": [
+                  "Ticket",
+                  "Subject",
+                  "Status",
+                  "Priority"
+                ],
+                "data": [
+                  {
+                    "cells": [
+                      "#4812",
+                      "Cannot export session receipts",
+                      "Waiting on support",
+                      "Urgent"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "#4809",
+                      "Replay stalls at event 12",
+                      "Replied",
+                      "High"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "#4801",
+                      "Billing address will not save",
+                      "Waiting on customer",
+                      "Normal"
+                    ]
+                  }
+                ],
+                "density": "compact"
               }
             }
           ]
