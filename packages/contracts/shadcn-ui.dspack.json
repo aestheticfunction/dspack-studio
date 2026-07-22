@@ -3,7 +3,7 @@
   "dspack": "0.4",
   "name": "shadcn/ui",
   "description": "A collection of reusable components built with Radix UI and Tailwind CSS. Components are copied into your project, not installed as a dependency.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "metadata": {
     "source": "https://ui.shadcn.com",
     "license": "MIT"
@@ -1038,6 +1038,12 @@
       "name": "Destructive action",
       "description": "The requested UI performs an irreversible or high-consequence operation: deleting records or accounts, revoking access, removing members.",
       "relatedPatterns": ["destructive-action-confirmation"]
+    },
+    {
+      "id": "record-collection",
+      "name": "Record collection",
+      "description": "Surfaces that present many records of the same kind — support tickets, orders, members — for scanning and action. Records share uniform fields, so the collection renders as a semantic data table built from the Table primitives; status stays readable as text (badges are appropriate, color is never the only signal). Per-row actions and destructive confirmations follow the data-table-with-row-actions pattern as guidance until the dropdown-menu item vocabulary is specified.",
+      "relatedPatterns": ["data-table-with-row-actions"]
     }
   ],
   "rules": [
@@ -1094,6 +1100,41 @@
       "forbiddenCategories": ["overlay"],
       "rationale": "An alert dialog is a single focused interruption. Stacking another overlay (dialog, dropdown menu, another alert dialog) inside it breaks focus containment and dismiss semantics and buries the confirmation decision under a second layer.",
       "tags": ["accessibility", "interaction"]
+    },
+    {
+      "id": "rule.record-collection-requires-table",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": { "intents": ["record-collection"] },
+      "require": ["table"],
+      "rationale": "The data-table-with-row-actions pattern: a record collection is built from the Table primitives, not prose or ad-hoc stacks. Records share uniform fields; a semantic table is how they stay scannable, sortable, and navigable by assistive technology.",
+      "examples": ["ex.support-ticket-queue"],
+      "tags": ["structure"]
+    },
+    {
+      "id": "rule.table-carries-structure",
+      "type": "required-composition",
+      "severity": "must",
+      "appliesTo": { "intents": ["record-collection"] },
+      "component": "table",
+      "requiredSubComponents": [
+        { "id": "table-header", "min": 1 },
+        { "id": "table-body", "min": 1 }
+      ],
+      "rationale": "The table's own constraints demand semantic structure: header cells as th within a TableHeader so screen readers can associate columns, and records inside a TableBody. A table without both is a grid of divs wearing table styling.",
+      "examples": ["ex.support-ticket-queue"],
+      "tags": ["structure", "accessibility"]
+    },
+    {
+      "id": "rule.table-carries-caption",
+      "type": "required-composition",
+      "severity": "must",
+      "appliesTo": { "intents": ["record-collection"] },
+      "component": "table",
+      "requiredSubComponents": [{ "id": "table-caption", "min": 1 }],
+      "rationale": "The data-table-with-row-actions pattern requires an accessible name via TableCaption or an aria-label. The pattern permits either; the contract can only govern the declarative form, so the caption is the enforceable floor — an aria-label alternative is legitimate but inexpressible in current rule types and remains guidance.",
+      "examples": ["ex.support-ticket-queue"],
+      "tags": ["accessibility"]
     }
   ],
   "examples": [
@@ -1138,6 +1179,79 @@
                         { "component": "alert-dialog-action", "text": "Delete account" }
                       ]
                     }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.support-ticket-queue",
+      "intent": "record-collection",
+      "name": "Support ticket queue",
+      "prompt": "a queue of open support tickets with status and priority",
+      "description": "A semantic data table from the Table primitives: a caption naming the collection, header cells for column association, and ticket rows in the body. Status renders as a Badge whose text stays readable — the variant reflects state, color is never the only signal.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "shadcn/ui",
+        "intent": "record-collection",
+        "root": {
+          "component": "table",
+          "children": [
+            { "component": "table-caption", "text": "Open support tickets, newest first." },
+            {
+              "component": "table-header",
+              "children": [
+                {
+                  "component": "table-row",
+                  "children": [
+                    { "component": "table-head", "text": "Ticket" },
+                    { "component": "table-head", "text": "Subject" },
+                    { "component": "table-head", "text": "Status" },
+                    { "component": "table-head", "text": "Priority" }
+                  ]
+                }
+              ]
+            },
+            {
+              "component": "table-body",
+              "children": [
+                {
+                  "component": "table-row",
+                  "children": [
+                    { "component": "table-cell", "text": "#4812" },
+                    { "component": "table-cell", "text": "Cannot export billing statement" },
+                    {
+                      "component": "table-cell",
+                      "children": [{ "component": "badge", "props": { "variant": "destructive" }, "text": "Urgent" }]
+                    },
+                    { "component": "table-cell", "text": "P1" }
+                  ]
+                },
+                {
+                  "component": "table-row",
+                  "children": [
+                    { "component": "table-cell", "text": "#4809" },
+                    { "component": "table-cell", "text": "Two-factor codes arrive late" },
+                    {
+                      "component": "table-cell",
+                      "children": [{ "component": "badge", "props": { "variant": "secondary" }, "text": "Waiting on customer" }]
+                    },
+                    { "component": "table-cell", "text": "P2" }
+                  ]
+                },
+                {
+                  "component": "table-row",
+                  "children": [
+                    { "component": "table-cell", "text": "#4801" },
+                    { "component": "table-cell", "text": "Dark mode contrast on invoices" },
+                    {
+                      "component": "table-cell",
+                      "children": [{ "component": "badge", "props": { "variant": "outline" }, "text": "Open" }]
+                    },
+                    { "component": "table-cell", "text": "P3" }
                   ]
                 }
               ]
