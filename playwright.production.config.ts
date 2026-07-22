@@ -32,6 +32,7 @@ export default defineConfig({
         "replay.spec.ts",
         "support-triage.spec.ts",
         "onboarding.spec.ts",
+        "hotel-reservations.spec.ts",
         "alive.spec.ts",
         "permalinks.spec.ts",
         "tour-xray-wire.spec.ts",

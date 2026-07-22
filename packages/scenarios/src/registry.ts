@@ -4,10 +4,11 @@
  * (usually contract expansion — new intents/rules/examples are owner-authored
  * governance content, per the project plan).
  *
- * Order is intentional: ready scenarios first (recipe co-editing leads as the
- * default, then booking, then project deletion, then support triage, then
- * signup/onboarding), planned ones grouped after. readyScenarios[0] is the
- * studio's default scenario.
+ * Order is intentional: recipe co-editing leads as the default, then booking,
+ * project deletion, support triage, signup/onboarding, and hotel
+ * reservations. Every scenario is ready; the shelf's planned-entry treatment
+ * stands by for the next expansion. readyScenarios[0] is the studio's
+ * default scenario.
  */
 import type { Scenario } from "./types";
 import fixture001 from "@dspack-studio/replay/fixtures/fixture-001.json";
@@ -23,6 +24,8 @@ import fixture011 from "@dspack-studio/replay/fixtures/fixture-011.json";
 import fixture012 from "@dspack-studio/replay/fixtures/fixture-012.json";
 import fixture013 from "@dspack-studio/replay/fixtures/fixture-013.json";
 import fixture014 from "@dspack-studio/replay/fixtures/fixture-014.json";
+import fixture015 from "@dspack-studio/replay/fixtures/fixture-015.json";
+import fixture016 from "@dspack-studio/replay/fixtures/fixture-016.json";
 
 export const scenarios: Scenario[] = [
   {
@@ -199,12 +202,34 @@ export const scenarios: Scenario[] = [
   {
     id: "hotel-reservations",
     name: "Hotel reservations",
-    tagline: "Search, compare, reserve, once the contract carries the vocabulary for it.",
+    tagline: "Search, compare, reserve: options as selectable cards, attributes as metadata, one explicit action.",
     intent: "transactional-review",
-    status: "planned",
-    needs: ["new design-system components for search, compare, and reserve", "a recorded real run to replay"],
-    seedPrompts: ["Find a hotel in Lisbon for two nights in September."],
-    fixtures: [],
+    status: "ready",
+    seedPrompts: [
+      "Find a hotel in Lisbon for two nights in September.",
+      "Just tell me which Lisbon hotel is best in a short paragraph. No cards, no lists, no options — just your one recommendation.",
+    ],
+    breakItPrompts: [
+      {
+        ruleId: "rule.review-presents-options",
+        prompt:
+          "Just tell me which Lisbon hotel is best in a short paragraph. No cards, no lists, no options — just your one recommendation.",
+      },
+    ],
+    fixtures: [
+      {
+        key: "argues-back",
+        label: "the interface argues back",
+        blurb: "One governed repair: asked for a single no-options recommendation, the model ships a bare apology; the review rules catch a surface with nothing to choose, and the repaired surface ships two named hotels compared on their attributes.",
+        fixture: fixture016,
+      },
+      {
+        key: "clean",
+        label: "clean first pass",
+        blurb: "No violations: one attempt, straight through the gates to three named hotels — each a selectable card stating its attributes as metadata, badged, with one explicit booking action.",
+        fixture: fixture015,
+      },
+    ],
   },
 ];
 

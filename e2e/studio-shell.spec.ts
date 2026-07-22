@@ -40,21 +40,25 @@ test("the pipeline diagram names the honest pipeline in reading order", async ({
   await expect(figure.locator("figcaption")).toContainText("One pipeline, inspectable at every joint");
 });
 
-test("planned scenarios reveal what they need, by keyboard", async ({ page }) => {
+test("the shelf carries six ready scenarios and no planned placeholders", async ({ page }) => {
   await page.goto("/");
-  // hotel-reservations is the last remaining planned scenario.
-  const planned = page.getByTestId("scenario-hotel-reservations");
-  await expect(planned).toContainText("(planned)");
-  await planned.focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByTestId("planned-needs")).toContainText(/planned, not built/i);
-  await expect(page.getByTestId("planned-needs")).toContainText(/needs/i);
-  // Revealing never selects the scenario: the ready experience is untouched
-  // (recipe-creator is the default, so its recording stays on screen).
-  await expect(page.getByTestId("fixture-generated-cooked")).toBeVisible();
-  // Tapping again dismisses the reveal.
-  await planned.click();
+  // The example-expansion milestone completed: every scenario is ready. The
+  // planned-entry treatment (dimmed chip revealing its needs) stands by in
+  // the shelf code for the next expansion, but nothing renders it today.
+  for (const id of [
+    "recipe-creator",
+    "appointment-booking",
+    "project-deletion",
+    "support-triage",
+    "onboarding",
+    "hotel-reservations",
+  ]) {
+    await expect(page.getByTestId(`scenario-${id}`)).not.toContainText("(planned)");
+  }
   await expect(page.getByTestId("planned-needs")).toHaveCount(0);
+  // The last-flipped scenario actually selects.
+  await page.getByTestId("scenario-hotel-reservations").click();
+  await expect(page.getByTestId("fixture-argues-back")).toBeVisible();
 });
 
 test("restyle themes the active scenario's own surface", async ({ page }) => {

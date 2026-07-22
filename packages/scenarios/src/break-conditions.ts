@@ -12,7 +12,7 @@ export interface BreakCondition {
   id: string;
   label: string;
   /** The scenario this condition belongs to; absent when scenarioIndependent. */
-  scenarioId?: "project-deletion" | "appointment-booking" | "recipe-creator" | "support-triage" | "onboarding";
+  scenarioId?: "project-deletion" | "appointment-booking" | "recipe-creator" | "support-triage" | "onboarding" | "hotel-reservations";
   /**
    * True for conditions that belong to every scenario: pure client-side
    * demonstrations that never start a run or read scenario state.
@@ -153,6 +153,22 @@ export const breakConditions: BreakCondition[] = [
       scenarioId: "onboarding",
       fixtureKey: "argues-back",
       note: "In this recorded real run the model shipped a text-only welcome with nothing to fill in; the form rule caught it and the repaired surface added a labeled email field and an explicit action.",
+    },
+  },
+  {
+    id: "review-without-options",
+    label: "a review with nothing to choose",
+    scenarioId: "hotel-reservations",
+    intent: "transactional-review",
+    kind: "governed-repair",
+    expected:
+      "S3 fails with rule.review-presents-options (the SelectableCard, List, and Button docs' own rationale, verbatim), a repair message is sent, and the repaired surface ships named options compared on their attributes.",
+    prompt:
+      "Just tell me which Lisbon hotel is best in a short paragraph. No cards, no lists, no options — just your one recommendation.",
+    recordedCatch: {
+      scenarioId: "hotel-reservations",
+      fixtureKey: "argues-back",
+      note: "In this recorded real run the model shipped a bare apology instead of options; the review rules caught a surface with nothing to choose and the repaired surface shipped two named hotels compared on their attributes.",
     },
   },
   {

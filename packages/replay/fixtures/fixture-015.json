@@ -1,0 +1,846 @@
+{
+  "replayFixture": "0.1",
+  "id": "fixture-015",
+  "name": "Clean hotel comparison",
+  "recordedAt": "2026-07-21T23:16:46.966Z",
+  "mode": "live",
+  "adapterId": "ollama:gpt-oss:latest",
+  "intent": "transactional-review",
+  "prompt": "Find a hotel in Lisbon for two nights in September.",
+  "events": [
+    {
+      "atMs": 2,
+      "event": {
+        "type": "RUN_STARTED",
+        "threadId": "studio",
+        "runId": "fixture-015"
+      }
+    },
+    {
+      "atMs": 2,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.run.start",
+        "value": {
+          "intent": "transactional-review",
+          "prompt": "Find a hotel in Lisbon for two nights in September.",
+          "adapterId": "ollama:gpt-oss:latest",
+          "ruleIds": [
+            "rule.alertdialog-carries-content",
+            "rule.alertdialog-action-label-specific",
+            "rule.button-carries-label",
+            "rule.input-carries-label",
+            "rule.dialog-no-nested-overlays",
+            "rule.review-presents-options",
+            "rule.review-offers-alternatives",
+            "rule.option-states-attributes",
+            "rule.metadata-carries-items",
+            "rule.option-carries-label"
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 97472,
+      "event": {
+        "type": "STEP_STARTED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 97472,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.gates",
+        "value": {
+          "index": 0,
+          "model": "gpt-oss:latest",
+          "surface": {
+            "dspackSurface": "0.1",
+            "system": "Astryx",
+            "intent": "transactional-review",
+            "root": {
+              "component": "card",
+              "id": "hotel-search",
+              "children": [
+                {
+                  "component": "text",
+                  "id": "title",
+                  "props": {
+                    "type": "display-3",
+                    "as": "p"
+                  },
+                  "text": "Find a hotel in Lisbon"
+                },
+                {
+                  "component": "text",
+                  "id": "intro",
+                  "props": {
+                    "type": "body",
+                    "as": "p"
+                  },
+                  "text": "Choose from the options below for your two-night stay in September."
+                },
+                {
+                  "component": "list",
+                  "id": "hotels",
+                  "props": {
+                    "density": "balanced"
+                  },
+                  "children": [
+                    {
+                      "component": "selectable-card",
+                      "props": {
+                        "label": "Hotel Belém",
+                        "isSelected": false
+                      },
+                      "children": [
+                        {
+                          "component": "metadata-list",
+                          "props": {
+                            "items": [
+                              {
+                                "label": "Price per night",
+                                "value": "$120"
+                              },
+                              {
+                                "label": "Rating",
+                                "value": "4.5/5"
+                              },
+                              {
+                                "label": "Distance to city center",
+                                "value": "0.3 km"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "component": "badge",
+                          "id": "belém-badge",
+                          "props": {
+                            "variant": "info",
+                            "label": "Best value"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "component": "selectable-card",
+                      "props": {
+                        "label": "Lisbon Marriott",
+                        "isSelected": true,
+                        "variant": "blue"
+                      },
+                      "children": [
+                        {
+                          "component": "metadata-list",
+                          "props": {
+                            "items": [
+                              {
+                                "label": "Price per night",
+                                "value": "$200"
+                              },
+                              {
+                                "label": "Rating",
+                                "value": "4.8/5"
+                              },
+                              {
+                                "label": "Distance to city center",
+                                "value": "0.1 km"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "component": "badge",
+                          "id": "marriott-badge",
+                          "props": {
+                            "variant": "info",
+                            "label": "Most popular"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "component": "selectable-card",
+                      "props": {
+                        "label": "Lisbon Boutique Hotel",
+                        "isSelected": false
+                      },
+                      "children": [
+                        {
+                          "component": "metadata-list",
+                          "props": {
+                            "items": [
+                              {
+                                "label": "Price per night",
+                                "value": "$150"
+                              },
+                              {
+                                "label": "Rating",
+                                "value": "4.6/5"
+                              },
+                              {
+                                "label": "Distance to city center",
+                                "value": "0.2 km"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "component": "badge",
+                          "id": "boutique-badge",
+                          "props": {
+                            "variant": "info",
+                            "label": "Boutique"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "component": "button",
+                  "id": "book-now",
+                  "props": {
+                    "label": "Book now",
+                    "variant": "primary"
+                  }
+                }
+              ]
+            }
+          },
+          "gates": [
+            {
+              "gate": "S1",
+              "name": "surface-schema",
+              "status": "PASS"
+            },
+            {
+              "gate": "S2",
+              "name": "contract-vocabulary",
+              "status": "PASS"
+            },
+            {
+              "gate": "S3",
+              "name": "governance",
+              "status": "PASS"
+            }
+          ],
+          "findings": []
+        }
+      }
+    },
+    {
+      "atMs": 97472,
+      "event": {
+        "type": "STEP_FINISHED",
+        "stepName": "attempt-0"
+      }
+    },
+    {
+      "atMs": 97554,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.emit",
+        "value": {
+          "validations": [
+            {
+              "a2uiVersion": "0.9.1",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            },
+            {
+              "a2uiVersion": "1.0",
+              "gates": [
+                {
+                  "gate": "A1",
+                  "name": "schema-compile + no-external-ref",
+                  "pass": true
+                },
+                {
+                  "gate": "A2",
+                  "name": "catalog-shape",
+                  "pass": true
+                },
+                {
+                  "gate": "A3",
+                  "name": "instance",
+                  "pass": true
+                }
+              ]
+            }
+          ],
+          "warnings": [
+            {
+              "code": "surface-prop-dropped",
+              "message": "$.root.children[0]: prop 'as' on 'text' has no A2UI projection; dropped."
+            },
+            {
+              "code": "surface-prop-dropped",
+              "message": "$.root.children[1]: prop 'as' on 'text' has no A2UI projection; dropped."
+            },
+            {
+              "code": "surface-id-deduplicated",
+              "message": "$.root.children[2].children[1]: node id 'selectablecard' already used; emitted as 'selectablecard_2'."
+            },
+            {
+              "code": "surface-id-deduplicated",
+              "message": "$.root.children[2].children[1].children[0]: node id 'metadatalist' already used; emitted as 'metadatalist_2'."
+            },
+            {
+              "code": "surface-id-deduplicated",
+              "message": "$.root.children[2].children[2]: node id 'selectablecard' already used; emitted as 'selectablecard_3'."
+            },
+            {
+              "code": "surface-id-deduplicated",
+              "message": "$.root.children[2].children[2].children[0]: node id 'metadatalist' already used; emitted as 'metadatalist_3'."
+            },
+            {
+              "code": "surface-synthesized-action",
+              "message": "$.root.children[3]: A2UI requires a declarative action on Button; synthesized event 'book_now'."
+            },
+            {
+              "code": "surface-synthesized-wrap",
+              "message": "$.root: 4 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 97554,
+      "event": {
+        "type": "TOOL_CALL_START",
+        "toolCallId": "fixture-015-a2ui-0",
+        "toolCallName": "generate_a2ui"
+      }
+    },
+    {
+      "atMs": 97554,
+      "event": {
+        "type": "TOOL_CALL_ARGS",
+        "toolCallId": "fixture-015-a2ui-0",
+        "delta": "{\"surfaceId\":\"transactional_review\"}"
+      }
+    },
+    {
+      "atMs": 97554,
+      "event": {
+        "type": "TOOL_CALL_END",
+        "toolCallId": "fixture-015-a2ui-0"
+      }
+    },
+    {
+      "atMs": 97554,
+      "event": {
+        "type": "TOOL_CALL_RESULT",
+        "messageId": "fixture-015-a2ui-0-result",
+        "toolCallId": "fixture-015-a2ui-0",
+        "content": "{\"a2ui_operations\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"transactional_review\",\"catalogId\":\"https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json\",\"theme\":{\"agentDisplayName\":\"Astryx via dspack\"}}},{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"transactional_review\",\"components\":[{\"id\":\"root\",\"component\":\"Card\",\"child\":\"root_col\"},{\"id\":\"title\",\"component\":\"Text\",\"variant\":\"h2\",\"text\":\"Find a hotel in Lisbon\"},{\"id\":\"intro\",\"component\":\"Text\",\"variant\":\"body\",\"text\":\"Choose from the options below for your two-night stay in September.\"},{\"id\":\"hotels\",\"component\":\"List\",\"density\":\"balanced\",\"children\":[\"selectablecard\",\"selectablecard_2\",\"selectablecard_3\"]},{\"id\":\"selectablecard\",\"component\":\"SelectableCard\",\"label\":\"Hotel Belém\",\"isSelected\":false,\"children\":[\"metadatalist\",\"bel_m_badge\"]},{\"id\":\"metadatalist\",\"component\":\"MetadataList\",\"items\":[{\"label\":\"Price per night\",\"value\":\"$120\"},{\"label\":\"Rating\",\"value\":\"4.5/5\"},{\"label\":\"Distance to city center\",\"value\":\"0.3 km\"}]},{\"id\":\"bel_m_badge\",\"component\":\"Badge\",\"variant\":\"info\",\"label\":\"Best value\"},{\"id\":\"selectablecard_2\",\"component\":\"SelectableCard\",\"label\":\"Lisbon Marriott\",\"isSelected\":true,\"variant\":\"blue\",\"children\":[\"metadatalist_2\",\"marriott_badge\"]},{\"id\":\"metadatalist_2\",\"component\":\"MetadataList\",\"items\":[{\"label\":\"Price per night\",\"value\":\"$200\"},{\"label\":\"Rating\",\"value\":\"4.8/5\"},{\"label\":\"Distance to city center\",\"value\":\"0.1 km\"}]},{\"id\":\"marriott_badge\",\"component\":\"Badge\",\"variant\":\"info\",\"label\":\"Most popular\"},{\"id\":\"selectablecard_3\",\"component\":\"SelectableCard\",\"label\":\"Lisbon Boutique Hotel\",\"isSelected\":false,\"children\":[\"metadatalist_3\",\"boutique_badge\"]},{\"id\":\"metadatalist_3\",\"component\":\"MetadataList\",\"items\":[{\"label\":\"Price per night\",\"value\":\"$150\"},{\"label\":\"Rating\",\"value\":\"4.6/5\"},{\"label\":\"Distance to city center\",\"value\":\"0.2 km\"}]},{\"id\":\"boutique_badge\",\"component\":\"Badge\",\"variant\":\"info\",\"label\":\"Boutique\"},{\"id\":\"book_now\",\"component\":\"Button\",\"label\":\"Book now\",\"variant\":\"primary\",\"action\":{\"event\":{\"name\":\"book_now\",\"context\":{}}}},{\"id\":\"root_col\",\"component\":\"Column\",\"children\":[\"title\",\"intro\",\"hotels\",\"book_now\"]}]}}]}"
+      }
+    },
+    {
+      "atMs": 97554,
+      "event": {
+        "type": "CUSTOM",
+        "name": "dspack.audit",
+        "value": {
+          "outcome": "passed",
+          "exitCode": 0,
+          "report": {
+            "reportVersion": "1",
+            "createdAt": "2026-07-21T23:15:09.413Z",
+            "request": {
+              "prompt": "Find a hotel in Lisbon for two nights in September.",
+              "intent": "transactional-review",
+              "contract": {
+                "name": "Astryx",
+                "dspack": "0.4",
+                "sha256": "20692f4acc622e6ad220d3ae27d00dd5b610b2aead113cd8e03bea656cb55081"
+              }
+            },
+            "generation": {
+              "adapterId": "ollama:gpt-oss:latest",
+              "schemaSha256": "cf0056e411fa9e7c4ad6f69fe03d84909a9fc9176e232dcdee7665049552a53d",
+              "maxRepairs": 2,
+              "ruleSteering": true,
+              "repairTemplate": "standard"
+            },
+            "attempts": [
+              {
+                "index": 0,
+                "surface": {
+                  "dspackSurface": "0.1",
+                  "system": "Astryx",
+                  "intent": "transactional-review",
+                  "root": {
+                    "component": "card",
+                    "id": "hotel-search",
+                    "children": [
+                      {
+                        "component": "text",
+                        "id": "title",
+                        "props": {
+                          "type": "display-3",
+                          "as": "p"
+                        },
+                        "text": "Find a hotel in Lisbon"
+                      },
+                      {
+                        "component": "text",
+                        "id": "intro",
+                        "props": {
+                          "type": "body",
+                          "as": "p"
+                        },
+                        "text": "Choose from the options below for your two-night stay in September."
+                      },
+                      {
+                        "component": "list",
+                        "id": "hotels",
+                        "props": {
+                          "density": "balanced"
+                        },
+                        "children": [
+                          {
+                            "component": "selectable-card",
+                            "props": {
+                              "label": "Hotel Belém",
+                              "isSelected": false
+                            },
+                            "children": [
+                              {
+                                "component": "metadata-list",
+                                "props": {
+                                  "items": [
+                                    {
+                                      "label": "Price per night",
+                                      "value": "$120"
+                                    },
+                                    {
+                                      "label": "Rating",
+                                      "value": "4.5/5"
+                                    },
+                                    {
+                                      "label": "Distance to city center",
+                                      "value": "0.3 km"
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "component": "badge",
+                                "id": "belém-badge",
+                                "props": {
+                                  "variant": "info",
+                                  "label": "Best value"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "component": "selectable-card",
+                            "props": {
+                              "label": "Lisbon Marriott",
+                              "isSelected": true,
+                              "variant": "blue"
+                            },
+                            "children": [
+                              {
+                                "component": "metadata-list",
+                                "props": {
+                                  "items": [
+                                    {
+                                      "label": "Price per night",
+                                      "value": "$200"
+                                    },
+                                    {
+                                      "label": "Rating",
+                                      "value": "4.8/5"
+                                    },
+                                    {
+                                      "label": "Distance to city center",
+                                      "value": "0.1 km"
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "component": "badge",
+                                "id": "marriott-badge",
+                                "props": {
+                                  "variant": "info",
+                                  "label": "Most popular"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "component": "selectable-card",
+                            "props": {
+                              "label": "Lisbon Boutique Hotel",
+                              "isSelected": false
+                            },
+                            "children": [
+                              {
+                                "component": "metadata-list",
+                                "props": {
+                                  "items": [
+                                    {
+                                      "label": "Price per night",
+                                      "value": "$150"
+                                    },
+                                    {
+                                      "label": "Rating",
+                                      "value": "4.6/5"
+                                    },
+                                    {
+                                      "label": "Distance to city center",
+                                      "value": "0.2 km"
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "component": "badge",
+                                "id": "boutique-badge",
+                                "props": {
+                                  "variant": "info",
+                                  "label": "Boutique"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "button",
+                        "id": "book-now",
+                        "props": {
+                          "label": "Book now",
+                          "variant": "primary"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "model": "gpt-oss:latest",
+                "usage": {
+                  "inputTokens": 2660,
+                  "outputTokens": 433
+                },
+                "meta": {
+                  "provider": "ollama",
+                  "total_duration": 97402082614,
+                  "load_duration": 328866152,
+                  "prompt_eval_duration": 71913000,
+                  "eval_duration": 27888293000
+                },
+                "gates": [
+                  {
+                    "gate": "S1",
+                    "name": "surface-schema",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S2",
+                    "name": "contract-vocabulary",
+                    "status": "PASS"
+                  },
+                  {
+                    "gate": "S3",
+                    "name": "governance",
+                    "status": "PASS"
+                  }
+                ],
+                "findings": []
+              }
+            ],
+            "repairMessages": [],
+            "outcome": "passed",
+            "emitted": {
+              "target": "a2ui",
+              "surfaceMessages": {
+                "messages": [
+                  {
+                    "version": "v0.9",
+                    "createSurface": {
+                      "surfaceId": "transactional_review",
+                      "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+                      "theme": {
+                        "agentDisplayName": "Astryx via dspack"
+                      }
+                    }
+                  },
+                  {
+                    "version": "v0.9",
+                    "updateComponents": {
+                      "surfaceId": "transactional_review",
+                      "components": [
+                        {
+                          "id": "root",
+                          "component": "Card",
+                          "child": "root_col"
+                        },
+                        {
+                          "id": "title",
+                          "component": "Text",
+                          "variant": "h2",
+                          "text": "Find a hotel in Lisbon"
+                        },
+                        {
+                          "id": "intro",
+                          "component": "Text",
+                          "variant": "body",
+                          "text": "Choose from the options below for your two-night stay in September."
+                        },
+                        {
+                          "id": "hotels",
+                          "component": "List",
+                          "density": "balanced",
+                          "children": [
+                            "selectablecard",
+                            "selectablecard_2",
+                            "selectablecard_3"
+                          ]
+                        },
+                        {
+                          "id": "selectablecard",
+                          "component": "SelectableCard",
+                          "label": "Hotel Belém",
+                          "isSelected": false,
+                          "children": [
+                            "metadatalist",
+                            "bel_m_badge"
+                          ]
+                        },
+                        {
+                          "id": "metadatalist",
+                          "component": "MetadataList",
+                          "items": [
+                            {
+                              "label": "Price per night",
+                              "value": "$120"
+                            },
+                            {
+                              "label": "Rating",
+                              "value": "4.5/5"
+                            },
+                            {
+                              "label": "Distance to city center",
+                              "value": "0.3 km"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "bel_m_badge",
+                          "component": "Badge",
+                          "variant": "info",
+                          "label": "Best value"
+                        },
+                        {
+                          "id": "selectablecard_2",
+                          "component": "SelectableCard",
+                          "label": "Lisbon Marriott",
+                          "isSelected": true,
+                          "variant": "blue",
+                          "children": [
+                            "metadatalist_2",
+                            "marriott_badge"
+                          ]
+                        },
+                        {
+                          "id": "metadatalist_2",
+                          "component": "MetadataList",
+                          "items": [
+                            {
+                              "label": "Price per night",
+                              "value": "$200"
+                            },
+                            {
+                              "label": "Rating",
+                              "value": "4.8/5"
+                            },
+                            {
+                              "label": "Distance to city center",
+                              "value": "0.1 km"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "marriott_badge",
+                          "component": "Badge",
+                          "variant": "info",
+                          "label": "Most popular"
+                        },
+                        {
+                          "id": "selectablecard_3",
+                          "component": "SelectableCard",
+                          "label": "Lisbon Boutique Hotel",
+                          "isSelected": false,
+                          "children": [
+                            "metadatalist_3",
+                            "boutique_badge"
+                          ]
+                        },
+                        {
+                          "id": "metadatalist_3",
+                          "component": "MetadataList",
+                          "items": [
+                            {
+                              "label": "Price per night",
+                              "value": "$150"
+                            },
+                            {
+                              "label": "Rating",
+                              "value": "4.6/5"
+                            },
+                            {
+                              "label": "Distance to city center",
+                              "value": "0.2 km"
+                            }
+                          ]
+                        },
+                        {
+                          "id": "boutique_badge",
+                          "component": "Badge",
+                          "variant": "info",
+                          "label": "Boutique"
+                        },
+                        {
+                          "id": "book_now",
+                          "component": "Button",
+                          "label": "Book now",
+                          "variant": "primary",
+                          "action": {
+                            "event": {
+                              "name": "book_now",
+                              "context": {}
+                            }
+                          }
+                        },
+                        {
+                          "id": "root_col",
+                          "component": "Column",
+                          "children": [
+                            "title",
+                            "intro",
+                            "hotels",
+                            "book_now"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "warnings": [
+                {
+                  "code": "surface-prop-dropped",
+                  "message": "$.root.children[0]: prop 'as' on 'text' has no A2UI projection; dropped."
+                },
+                {
+                  "code": "surface-prop-dropped",
+                  "message": "$.root.children[1]: prop 'as' on 'text' has no A2UI projection; dropped."
+                },
+                {
+                  "code": "surface-id-deduplicated",
+                  "message": "$.root.children[2].children[1]: node id 'selectablecard' already used; emitted as 'selectablecard_2'."
+                },
+                {
+                  "code": "surface-id-deduplicated",
+                  "message": "$.root.children[2].children[1].children[0]: node id 'metadatalist' already used; emitted as 'metadatalist_2'."
+                },
+                {
+                  "code": "surface-id-deduplicated",
+                  "message": "$.root.children[2].children[2]: node id 'selectablecard' already used; emitted as 'selectablecard_3'."
+                },
+                {
+                  "code": "surface-id-deduplicated",
+                  "message": "$.root.children[2].children[2].children[0]: node id 'metadatalist' already used; emitted as 'metadatalist_3'."
+                },
+                {
+                  "code": "surface-synthesized-action",
+                  "message": "$.root.children[3]: A2UI requires a declarative action on Button; synthesized event 'book_now'."
+                },
+                {
+                  "code": "surface-synthesized-wrap",
+                  "message": "$.root: 4 children wrapped in a synthesized Column ('root_col') — the target slot takes a single child."
+                }
+              ],
+              "validations": [
+                {
+                  "a2uiVersion": "0.9.1",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                },
+                {
+                  "a2uiVersion": "1.0",
+                  "gates": [
+                    {
+                      "gate": "A1",
+                      "name": "schema-compile + no-external-ref",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A2",
+                      "name": "catalog-shape",
+                      "pass": true
+                    },
+                    {
+                      "gate": "A3",
+                      "name": "instance",
+                      "pass": true
+                    }
+                  ]
+                }
+              ]
+            },
+            "timings": {
+              "totalMs": 97553
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 97554,
+      "event": {
+        "type": "RUN_FINISHED",
+        "threadId": "studio",
+        "runId": "fixture-015"
+      }
+    }
+  ]
+}
