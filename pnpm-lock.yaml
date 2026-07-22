@@ -218,8 +218,8 @@ importers:
   packages/contracts:
     dependencies:
       '@aestheticfunction/dspack-emit':
-        specifier: 0.3.1
-        version: 0.3.1
+        specifier: 0.3.2
+        version: 0.3.2
     devDependencies:
       '@astryxdesign/cli':
         specifier: 0.1.4
@@ -318,6 +318,9 @@ packages:
 
   '@aestheticfunction/dspack-emit@0.3.1':
     resolution: {integrity: sha512-0vCFP5rvWGoIPvnBlB3puXkhoJhEyq/FQHrfj3JfPwf37WfASZb5ZOK3tPzB8ZhZTFkxvhjrvHeEYgRDOGm04w==}
+
+  '@aestheticfunction/dspack-emit@0.3.2':
+    resolution: {integrity: sha512-jkygjjByRJWeUbfGygcz7fkYQ7mTx9lRswCwE/zWNj/ChOiBhjvoEEQGOvrFbOw/J0m4o2REvKQKIhXV55ytdA==}
 
   '@aestheticfunction/dspack-gen@0.1.2':
     resolution: {integrity: sha512-u64Khv8+/HsIDwC5ciyW2gTNFmgrRH+CjQFbFBlj1s1veZQAifwE/gQXN23QmcdPKdEwDVMJuIhEYXirfV82Mg==}
@@ -2172,6 +2175,11 @@ snapshots:
       zod-to-json-schema: 3.25.2(zod@3.25.76)
 
   '@aestheticfunction/dspack-emit@0.3.1':
+    dependencies:
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+
+  '@aestheticfunction/dspack-emit@0.3.2':
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
