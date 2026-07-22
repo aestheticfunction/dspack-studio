@@ -94,22 +94,28 @@ for (const version of ["0.9.1", "1.0"] as A2uiVersion[]) {
 // owner-authored upstream extension (intents beyond destructive-action);
 // the catalog emission and gates run today.
 const shadcnDoc = JSON.parse(readFileSync(join(root, "shadcn-ui.dspack.json"), "utf8")) as DspackDoc;
-const shadcnExample = (shadcnDoc as any).examples?.[0];
-if (!shadcnExample?.surface) {
+const shadcnExamples = ((shadcnDoc as any).examples ?? []) as Array<{ id: string; surface: unknown }>;
+if (shadcnExamples.length === 0 || !shadcnExamples[0]?.surface) {
   console.error("shadcn contract has no worked example surface; A3 would be vacuous");
   process.exit(1);
 }
+// EVERY worked example must emit (P1.E): the example set is the contract's
+// own definition of "expressible", and a nominally-mapped component whose
+// sub-family refuses only surfaces when its example is actually emitted.
+// examples[0] additionally feeds the A3 instance gate below.
 let shadcnSurfaceMessages: unknown = { messages: [] };
-try {
-  const emitted = emitSurface(shadcnExample.surface as DspackSurface, shadcnDoc, { profile: shadcnProfile });
-  shadcnSurfaceMessages = { messages: emitted.messages };
-  for (const w of emitted.warnings) console.log(`  [shadcn surface warn] ${w.code}: ${w.message}`);
-} catch (err) {
-  if (err instanceof EmitSurfaceError) {
-    console.error(`shadcn surface emission failed: ${err.message}`);
-    process.exit(4);
+for (const [i, example] of shadcnExamples.entries()) {
+  try {
+    const emitted = emitSurface(example.surface as DspackSurface, shadcnDoc, { profile: shadcnProfile });
+    if (i === 0) shadcnSurfaceMessages = { messages: emitted.messages };
+    for (const w of emitted.warnings) console.log(`  [shadcn surface warn] ${example.id} ${w.code}: ${w.message}`);
+  } catch (err) {
+    if (err instanceof EmitSurfaceError) {
+      console.error(`shadcn surface emission failed (${example.id}): ${err.message}`);
+      process.exit(4);
+    }
+    throw err;
   }
-  throw err;
 }
 for (const version of ["0.9.1", "1.0"] as A2uiVersion[]) {
   const { catalog, validation, report } = transform(shadcnDoc, version, shadcnSurfaceMessages, shadcnProfile);
