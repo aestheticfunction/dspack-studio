@@ -20,11 +20,10 @@ jobs:
       - name: Contract gates (A2UI 0.9.1 + 1.0) and scenario surfaces
         run: pnpm --filter @dspack-studio/contracts build:catalogs
       - name: Contract copies match the authoritative dspack main (sync check)
-        run: |
-          curl -sf https://raw.githubusercontent.com/aestheticfunction/dspack/main/examples/astryx.dspack.json \
-            | diff - packages/contracts/astryx.dspack.json
-          curl -sf https://raw.githubusercontent.com/aestheticfunction/dspack/main/examples/shadcn-ui.dspack.json \
-            | diff - packages/contracts/shadcn-ui.dspack.json
+        # THE INVARIANT (PHASE-NEXT P0): at every green commit on main, the
+        # canonical Astryx contract in dspack and the copy consumed here are
+        # byte-identical. Locally: pnpm --filter @dspack-studio/contracts check:sync
+        run: pnpm --filter @dspack-studio/contracts check:sync
       - name: Astryx vocabulary drift check (report-only, local CLI)
         run: pnpm --filter @dspack-studio/contracts drift-check
       - name: Unit tests

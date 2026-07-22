@@ -34,12 +34,21 @@ blocks the shipped experience.
   imports only in their own renderer package.
 - Published packages are consumed from npm, never vendored, with the single
   documented exception of ds-mcp's build-time core bundle.
-- `packages/contracts/astryx.dspack.json` byte-syncs with dspack main.
-  **This constraint is currently unmet** — see P0. The example-expansion
-  milestone authored governance (3 intents, 9 rules, 3 examples, 3
-  components) directly in the studio copy through reviewed PRs; upstream
-  `dspack/examples/astryx.dspack.json` still carries the 3-intent,
-  9-component edition. Restoring the sync is the roadmap's first item.
+- **The synchronization invariant** (restored and formalized by P0): at
+  every green commit on main, the canonical Astryx contract in
+  `dspack/examples/` and the copy consumed in `packages/contracts/` are
+  **byte-identical** — enforced by `check:sync` in this repo's CI and by
+  dspack-gen's check-sync on its fixture copy. Repository
+  synchronization is absolute byte equality; design-system fidelity
+  (documented `x-drift` divergences from the Astryx component API,
+  checked by `drift-check.ts`) lives *inside* the synchronized artifact.
+  The two are never conflated: `x-drift` annotates the contract's
+  relationship to Astryx, not any repo-to-repo difference.
+- **Contract-change merge protocol (the definition of done)**: the
+  canonical change lands in `dspack` first; the consuming dspack-studio
+  PR carries the byte-copied file (which keeps intent-plus-scenario PRs
+  atomic — the studio PR merges after its paired upstream PR);
+  synchronization checks are green in both repositories.
 - All governance content (intents, rules, rationales, examples) is
   owner-authored. This document specifies required shapes only.
 - Public-facing copy follows AF brand voice: declarative, unhyped,
@@ -53,19 +62,19 @@ output pasted into the PR); fixtures ship only from real model runs;
 copy is written from recorded events, never the reverse; new intents land
 atomically with the scenario or surface that validates them.
 
-## P0 — Contract re-sync upstream (restores a standing constraint)
+## P0 — Contract re-sync upstream — **DELIVERED 2026-07-21**
 
-The studio's Astryx contract is the current source of truth in fact but
-not in declared direction: the byte-sync discipline names dspack main as
-canonical, and the take-home view tells visitors the downloaded contract
-"is the byte-synced copy of dspack main". Until upstream catches up, that
-user-facing sentence over-claims.
-
-Work: propagate the studio's `astryx.dspack.json` (and the unchanged
-`shadcn-ui.dspack.json`) to `dspack/examples/` via a dspack-repo PR, then
-re-assert byte-equality here. Owner decision folded in: whether the sync
-direction stays studio-led during active milestones or reverts to
-upstream-led between them. Small, mechanical, high honesty value.
+The one-time studio → dspack catch-up landed as dspack #22 (the
+milestone's governance consumed into the canonical copy; verified
+superset, nothing upstream-only lost). Steady state is upstream-first:
+canonical changes land in dspack, the studio consumes byte-identical
+copies. Enforcement: `packages/contracts/scripts/check-sync.mjs`
+(`pnpm --filter @dspack-studio/contracts check:sync`, `--write` to
+re-sync locally), run by CI on every push and PR; dspack-gen's existing
+check-sync guards its fixture copy the same way. The invariant and the
+contract-change merge protocol are stated in the standing constraints
+above. The take-home view's "byte-synced copy of dspack main" sentence
+is accurate again.
 
 ## P1 — shadcn contract parity (owner-authored, upstream)
 
@@ -130,9 +139,9 @@ for any documented divergence) is established and mechanical.
 
 ## The first task
 
-As always, the highest-leverage first task is the one that restores a
-stated invariant: **P0's byte-equality check**. Sync the contract
-upstream, then add the studio-side assertion that
-`packages/contracts/astryx.dspack.json` byte-matches the dspack-main
-copy, failing output first. Everything else on this roadmap can proceed
-in any order after it.
+P0 delivered the invariant-restoring first task (sync landed, check
+wired, failing output captured first). The next milestone's
+highest-leverage opening move belongs to **P1**: the owner-authored
+shadcn intent extension upstream in `dspack/examples/shadcn-ui.dspack.json`
+— which now flows through the P0 protocol by construction: canonical
+change first, byte-copied consumption second, both sync checks green.

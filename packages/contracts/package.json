@@ -14,6 +14,7 @@
   "scripts": {
     "build:catalogs": "tsx src/build.ts",
     "drift-check": "tsx src/drift-check.ts",
+    "check:sync": "node scripts/check-sync.mjs",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json"
   },
