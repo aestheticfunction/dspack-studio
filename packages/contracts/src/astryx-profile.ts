@@ -394,6 +394,119 @@ export const astryxProfile: Profile = {
       required: [],
       surfacePlan: { textProp: "text", childrenProp: "children" },
     },
+
+    {
+      a2ui: "List",
+      dspackId: "list",
+      commons: ["ComponentCommon"],
+      structural: {
+        children: {
+          schema: { $ref: "#/$defs/ChildList" },
+          description: "Child component IDs rendered as the list's items, in order.",
+          synthNote:
+            "The contract's List takes arbitrary children (upstream List accepts ReactNode); " +
+            "projected as an ordered child list. For a comparison, the children are " +
+            "SelectableCards.",
+        },
+      },
+      propMap: {
+        density: {
+          a2ui: "density",
+          kind: "enum",
+          targetEnum: ["compact", "balanced", "spacious"],
+          default: "balanced",
+          description: "Item density, carried verbatim.",
+        },
+        hasDividers: {
+          a2ui: "hasDividers",
+          kind: "boolean",
+          description: "Renders dividers between items.",
+        },
+      },
+      required: ["children"],
+      surfacePlan: { childrenProp: "children" },
+    },
+
+    {
+      a2ui: "SelectableCard",
+      dspackId: "selectable-card",
+      commons: ["ComponentCommon"],
+      structural: {
+        children: {
+          schema: { $ref: "#/$defs/ChildList" },
+          description: "IDs of the option's content components: attributes, badges, actions.",
+          synthNote:
+            "The contract's SelectableCard takes arbitrary children (ReactNode); projected " +
+            "as a child list.",
+        },
+      },
+      propMap: {
+        label: {
+          a2ui: "label",
+          kind: "string",
+          description: "The option's name, carried verbatim.",
+        },
+        isSelected: {
+          a2ui: "isSelected",
+          kind: "boolean",
+          description:
+            "Selected state, carried verbatim. Presentational: selection lives in the shared " +
+            "data model and re-delivers this prop; the card itself carries no action " +
+            "(upstream onChange is the interaction overlay's territory, out of contract scope).",
+        },
+        isDisabled: {
+          a2ui: "isDisabled",
+          kind: "boolean",
+          description: "Whether the option can be chosen.",
+        },
+        variant: {
+          a2ui: "variant",
+          kind: "enum",
+          targetEnum: [
+            "default", "transparent", "muted",
+            "blue", "cyan", "gray", "green", "orange", "pink", "purple", "red", "teal", "yellow",
+          ],
+          default: "default",
+          description: "Card background variant, carried verbatim from SelectableCard's union.",
+        },
+      },
+      required: ["label"],
+      surfacePlan: { childrenProp: "children" },
+    },
+
+    {
+      a2ui: "MetadataList",
+      dspackId: "metadata-list",
+      commons: ["ComponentCommon"],
+      structural: {
+        items: {
+          schema: { type: "array", items: { type: "object" } },
+          description: "Attribute records, each { label, value }.",
+          synthNote:
+            "The contract carries items as data-props (the Table idiom) because " +
+            "sub-components carry no props under grammar-constrained generation; the " +
+            "renderer synthesizes upstream MetadataListItem children from this array.",
+        },
+      },
+      propMap: {
+        columns: {
+          a2ui: "columns",
+          kind: "enum",
+          targetEnum: ["single", "multi"],
+          default: "single",
+          description: "Column layout for the attribute grid, carried verbatim.",
+        },
+        orientation: {
+          a2ui: "orientation",
+          kind: "enum",
+          targetEnum: ["vertical", "horizontal"],
+          default: "vertical",
+          description: "Label/value flow direction, carried verbatim.",
+        },
+      },
+      required: ["items"],
+      surfacePlan: { structuralPassthrough: ["items"] },
+    },
   ],
 
   synthesized: [

@@ -16,6 +16,9 @@ import { TableRender } from "./components/TableRender";
 import { AlertDialogRender } from "./components/AlertDialogRender";
 import { DialogRender } from "./components/DialogRender";
 import { ColumnRender } from "./components/ColumnRender";
+import { ListRender } from "./components/ListRender";
+import { SelectableCardRender } from "./components/SelectableCardRender";
+import { MetadataListRender } from "./components/MetadataListRender";
 
 const renders = {
   Text: TextRender,
@@ -27,6 +30,9 @@ const renders = {
   AlertDialog: AlertDialogRender,
   Dialog: DialogRender,
   Column: ColumnRender,
+  List: ListRender,
+  SelectableCard: SelectableCardRender,
+  MetadataList: MetadataListRender,
 };
 
 export const astryxRegistry: Registry = {

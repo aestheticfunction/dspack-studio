@@ -378,6 +378,139 @@
       "composition": {
         "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
       }
+    },
+    "list": {
+      "name": "List",
+      "description": "A vertical collection of items with consistent spacing, dividers, and optional markers.",
+      "whenToUse": "Use it to display ordered or unordered groups of related content — including groups of selectable options. Lists imply a meaningful collection.",
+      "whenNotToUse": "Do not use a list for a single item or for laying out unrelated content. Records with uniform fields belong in a table.",
+      "props": {
+        "density": {
+          "type": "enum",
+          "values": [
+            "compact",
+            "balanced",
+            "spacious"
+          ],
+          "description": "Item density.",
+          "default": "balanced"
+        },
+        "hasDividers": {
+          "type": "boolean",
+          "description": "Renders dividers between items."
+        }
+      },
+      "categories": [
+        "table-list",
+        "container"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/List/List.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express items as child nodes — for a comparison, selectable-card children."
+      }
+    },
+    "selectable-card": {
+      "name": "SelectableCard",
+      "description": "A card that toggles between selected and unselected states with an accent border.",
+      "whenToUse": "Use for plan pickers, filter chips, or option grids — one named option among alternatives, with its selected state visible.",
+      "whenNotToUse": "Do not use for navigation; use ClickableCard for that (not in this contract).",
+      "props": {
+        "label": {
+          "type": "string",
+          "description": "The option's name. Every option is named.",
+          "required": true
+        },
+        "isSelected": {
+          "type": "boolean",
+          "description": "Whether this option is currently selected. Presentational: selection state lives in the shared data model and re-delivers this prop."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "Whether the option can be chosen."
+        },
+        "variant": {
+          "type": "enum",
+          "values": [
+            "default",
+            "transparent",
+            "muted",
+            "blue",
+            "cyan",
+            "gray",
+            "green",
+            "orange",
+            "pink",
+            "purple",
+            "red",
+            "teal",
+            "yellow"
+          ],
+          "description": "Card background variant, verbatim from SelectableCard's union; color variants categorize rather than signal status.",
+          "default": "default"
+        }
+      },
+      "categories": [
+        "container",
+        "data-input"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/SelectableCard/SelectableCard.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); an option's content — attributes, badges, actions — are child nodes."
+      }
+    },
+    "metadata-list": {
+      "name": "MetadataList",
+      "description": "Key-value pairs for object attributes, in a structured layout. DATA-DRIVEN: items are an array prop, the same Astryx data-props idiom as Table.",
+      "whenToUse": "MetadataList displays key-value pairs for object attributes like quality, condition, and status. Use it for detail panels, settings summaries, and record information — the attributes that make options comparable.",
+      "whenNotToUse": "Do not use for extensive form input (use a form layout) or for data without a clear key-value structure.",
+      "props": {
+        "items": {
+          "type": "array",
+          "description": "Attribute records, each { label, value } — e.g. { \"label\": \"Storage\", \"value\": \"1 TB\" }.",
+          "required": true,
+          "x-drift": "upstream MetadataList is children-based (MetadataListItem); the contract carries items as data-props because sub-components carry no props under grammar-constrained generation",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ]
+          }
+        },
+        "columns": {
+          "type": "enum",
+          "values": [
+            "single",
+            "multi"
+          ],
+          "description": "Column layout for the attribute grid.",
+          "default": "single"
+        },
+        "orientation": {
+          "type": "enum",
+          "values": [
+            "vertical",
+            "horizontal"
+          ],
+          "description": "Label/value flow direction.",
+          "default": "vertical"
+        }
+      },
+      "categories": [
+        "content"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/MetadataList/MetadataList.doc.mjs",
+      "composition": {
+        "notes": "Upstream MetadataList takes MetadataListItem children; the contract carries items as data-props because sub-components carry no props under grammar-constrained generation — the renderer synthesizes the item children."
+      }
     }
   },
   "categories": {
@@ -575,7 +708,7 @@
       "require": [
         "table"
       ],
-      "rationale": "\"Table displays structured data in rows and columns with consistent dimensionality\"; \"Use Table for data sets with uniform structure; for simpler or inconsistent data, consider a list or card layout instead\". A record collection is uniform by definition — same fields on every record — so it renders as a table, not as prose or ad-hoc stacks. (Valid while table is this catalog's only collection structure; widen to a choice set if a list component lands.) — Astryx Table docs, v0.1.4",
+      "rationale": "\"Table displays structured data in rows and columns with consistent dimensionality\"; \"Use Table for data sets with uniform structure; for simpler or inconsistent data, consider a list or card layout instead\". A record collection is uniform by definition — same fields on every record — so it renders as a table, not as prose or ad-hoc stacks. (The catalog's list component serves heterogeneous and selectable content, per the same docs; uniform records still choose tables. A table-or-list choice set is inexpressible in current rule types — component-choice require is conjunctive — noted as candidate dspack-gen work if a scenario ever needs it.) — Astryx Table docs, v0.1.4",
       "examples": [
         "ex.support-ticket-triage"
       ],
