@@ -1053,3 +1053,36 @@ Fail-first evidence: pre-contract, recording with the new intent failed
 with getIntent's "intent 'transactional-review' is not registered"; all
 four hotel-reservations.spec.ts tests and the rewritten studio-shell
 assertion failed on the pre-scenario build.
+
+## 2026-07-21 — example-expansion milestone: close-out
+
+Merged this milestone, in order: #16 (tour auto-start for first-time
+visitors + first-run/studio Playwright projects), #17 (support-triage,
+record-collection), #18 (signup/onboarding, data-collection), #19
+(selection vocabulary: list, selectable-card, metadata-list; x-drift
+acknowledged-divergence lane in drift-check), #20 (transactional-review
++ hotel-reservations). Cross-repo: dspack-gen 0.1.2 published
+(contract-declared required props reach the constrained-decoding
+grammar; dspack-gen #43), consumed from npm.
+
+Final verified state on main at 7db93d8: 6 of 6 scenarios ready, none
+planned; Astryx contract at 12 components / 6 intents / 14 rules / 6
+worked examples; fixtures 001-016 (004 bundled-unreferenced,
+pre-existing); every scenario replay/permalink/X-ray/Break-It/Restyle
+capable with live-recorded fixtures and fail-first e2e in both suites.
+Gates at close: pnpm -r typecheck/test clean; contracts build:catalogs
++ drift-check clean; local Playwright 106 passed / 4 skipped;
+production config against the deploy artifact 86 passed; live agent
+runs verified for record-collection, data-collection, and
+transactional-review on the published generator.
+
+Deliberate deferrals, now platform work (roadmap rewritten in
+docs/PHASE-NEXT.md): contract re-sync upstream to dspack/examples (the
+byte-sync constraint is currently unmet — the milestone authored
+governance in the studio copy through reviewed PRs while upstream still
+carries the 3-intent edition; P0), shadcn contract parity (8/1/5 vs
+12/6/14; P1), transactional-review interactivity (P2), generator
+expressiveness ceilings (requireOneOf, cardinality, per-parent child
+grammars; P3), dropdown-menu item vocabulary (P4), search-class
+components (P5). Technical debt introduced: none identified beyond
+those declared deferrals.
