@@ -4,6 +4,10 @@ The design system governs what the agent ships. An agent proposes an interface; 
 
 ![An agent proposes a destructive-action surface without an AlertDialog; the S3 gate fails with rule.destructive-requires-alertdialog, a repair message is sent, and the repaired surface renders.](docs/assets/dspack-studio-catch.gif)
 
+> Part of the [dspack ecosystem](https://github.com/aestheticfunction) — the organization profile has the full map of how the repositories fit together.
+>
+> **Kind:** application (pnpm monorepo: static web app + local agent server; not an npm package) · **Audience:** anyone who wants to see contract-governed generation working, and contributors to the studio itself · **Hosted replay:** [studio.aesthetic-function.com](https://studio.aesthetic-function.com) — recorded real runs, session import, and Break-it Mode with no keys or local model; live generation is bring-your-own-machine (below)
+
 Status: MVP experience assembled — replayable recorded runs, live governed
 generation, imported sessions, an interactive appointment-booking scenario,
 a recipe co-editor with real ingredients and instructions, Break-it Mode
