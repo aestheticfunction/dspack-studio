@@ -1,0 +1,26 @@
+{
+  "dspackSurface": "0.1",
+  "system": "Acme UI",
+  "intent": "status-report",
+  "root": {
+    "component": "info-card",
+    "children": [
+      {
+        "component": "info-card-body",
+        "children": [
+          {
+            "component": "mini-stepper",
+            "props": {
+              "steps": [
+                {
+                  "label": "Build",
+                  "done": true
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

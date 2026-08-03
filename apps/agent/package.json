@@ -16,7 +16,11 @@
     "@aestheticfunction/dspack-gen": "^0.1.2",
     "@dspack-studio/agui-bridge": "workspace:*",
     "@dspack-studio/contracts": "workspace:*",
-    "@dspack-studio/replay": "workspace:*"
+    "@dspack-studio/replay": "workspace:*",
+    "@aestheticfunction/dspack-emit": "^0.3.2",
+    "@aestheticfunction/dspack-export": "^0.3.0",
+    "@aestheticfunction/dspack-spec": "^0.4.1",
+    "@dspack-studio/composer-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -1,0 +1,23 @@
+:root {
+  --acme-surface: #ffffff;
+  --acme-wash: #f4f4f2;
+  --acme-line: #d9d7d2;
+  --acme-ink: #1e1d1a;
+  --acme-ink-dim: #6d6a63;
+  --acme-brand: #2f5d3a;
+  --acme-danger: #a3332b;
+  --acme-danger-wash: #f9e8e6;
+  --acme-ok: #2f5d3a;
+  --acme-ok-wash: #e8f1ea;
+  --acme-warn: #8a6d1f;
+  --acme-warn-wash: #f7f0dc;
+  --acme-radius: 6px;
+}
+
+.dark {
+  --acme-surface: #191815;
+  --acme-wash: #23221e;
+  --acme-line: #3a3833;
+  --acme-ink: #e9e4d9;
+  --acme-ink-dim: #97927f;
+}

@@ -25,6 +25,7 @@ import {
   type PipelineEvent,
 } from "@dspack-studio/agui-bridge";
 import { governedQuestion, governedRun } from "./pipeline.js";
+import { handleProjectRoute } from "./project.js";
 import {
   bookingRespond,
   bookingStartOps,
@@ -217,6 +218,10 @@ const server = createServer(async (req, res) => {
     res.writeHead(400, { "content-type": "text/plain", ...CORS }).end("body must be JSON");
     return;
   }
+
+  // Composer project routes (connect/discover/emit/validate/save/run) — thin
+  // orchestration over published packages against a local project directory.
+  if (await handleProjectRoute(path, body ?? {}, res, CORS, req.headers.accept, json)) return;
 
   // FM-3 deterministic continuation: rebuild the scenario's state from a
   // fork's event prefix — reset, restore recorded grounding, then replay

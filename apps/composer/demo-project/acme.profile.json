@@ -1,0 +1,179 @@
+{
+  "profileVersion": "1",
+  "catalogTitle": "Acme UI — A2UI catalog (compiled from dspack)",
+  "catalogDescription": "A2UI catalog compiled from the Acme UI dspack v0.4 contract. Component shapes and variant enums are projected onto A2UI-conventional names so existing React registries can render them.",
+  "catalogIdBase": "https://acme.example/catalogs/acme-ui",
+  "instructions": "For layout, use the Column component to organize other components.",
+  "primaryColorToken": { "category": "color", "name": "acme-brand" },
+  "surfaceSynthesis": {
+    "textComponent": "Text",
+    "textProp": "text",
+    "wrapComponent": "Column",
+    "wrapChildrenProp": "children"
+  },
+  "components": [
+    {
+      "a2ui": "Button",
+      "dspackId": "action-button",
+      "commons": ["ComponentCommon", "Checkable"],
+      "structural": {
+        "action": {
+          "schema": { "$ref": "#/$defs/Action" },
+          "description": "The interaction dispatched when the button is activated.",
+          "synthNote": "A2UI requires a declarative action; Acme expresses this as an onClick handler, which is not representable in a declarative catalog."
+        }
+      },
+      "propMap": {
+        "label": {
+          "a2ui": "label",
+          "kind": "string",
+          "description": "Visible label. Acme buttons never render bare icons."
+        },
+        "tone": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": ["primary", "secondary", "ghost", "destructive"],
+          "valueMap": {
+            "brand": "primary",
+            "danger": "destructive",
+            "outline": "secondary",
+            "quiet": "ghost",
+            "plain": "ghost"
+          },
+          "default": "primary",
+          "description": "Button intent, projected from Acme tones onto the registry-conventional variant vocabulary."
+        },
+        "density": {
+          "a2ui": "size",
+          "kind": "enum",
+          "targetEnum": ["sm", "md", "lg"],
+          "valueMap": { "compact": "sm", "cozy": "md", "comfortable": "lg" },
+          "default": "md",
+          "description": "Control rhythm, projected one to one from Acme densities."
+        }
+      },
+      "required": ["label", "action"],
+      "surfacePlan": { "actionProp": "action" }
+    },
+    {
+      "a2ui": "Card",
+      "dspackId": "info-card",
+      "commons": ["ComponentCommon"],
+      "structural": {
+        "child": {
+          "schema": { "$ref": "#/$defs/ComponentId" },
+          "description": "The ID of the single child component. Wrap multiple elements in a Column and pass its ID.",
+          "synthNote": "A2UI Card takes exactly one child by ID; Acme InfoCard composes via sub-components (header/title/body/footer), which flatten and collapse to a single, possibly Column-wrapped, child slot."
+        }
+      },
+      "required": ["child"],
+      "surfacePlan": {
+        "childProp": "child",
+        "subFlatten": {
+          "transparent": ["info-card-header", "info-card-body", "info-card-footer"],
+          "asText": { "info-card-title": "h3" }
+        }
+      },
+      "subCoverage": {
+        "info-card-header": "transparent grouping: children splice inline, in order (subFlatten strategy)",
+        "info-card-title": "text -> synthesized Text (variant h3)",
+        "info-card-body": "transparent grouping: children splice inline, in order",
+        "info-card-footer": "transparent grouping: children splice inline, in order"
+      }
+    },
+    {
+      "a2ui": "Badge",
+      "dspackId": "tag-pill",
+      "commons": ["ComponentCommon"],
+      "structural": {},
+      "propMap": {
+        "label": {
+          "a2ui": "label",
+          "kind": "string",
+          "description": "Short status text."
+        },
+        "hue": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": ["secondary", "default", "destructive", "outline"],
+          "valueMap": { "gray": "secondary", "green": "default", "red": "destructive", "amber": "outline" },
+          "default": "secondary",
+          "description": "Status hue, projected one to one onto the registry-conventional badge variants."
+        }
+      },
+      "required": ["label"],
+      "surfacePlan": {}
+    },
+    {
+      "a2ui": "TextField",
+      "dspackId": "note-field",
+      "commons": ["ComponentCommon", "Checkable"],
+      "structural": {
+        "value": {
+          "schema": { "$ref": "#/$defs/DynamicString" },
+          "description": "The bound value of the field.",
+          "synthNote": "A2UI two-way-binds value; Acme NoteField has no value prop in the contract."
+        }
+      },
+      "propMap": {
+        "label": {
+          "a2ui": "label",
+          "kind": "string",
+          "description": "Visible field label."
+        },
+        "resizable": {
+          "a2ui": "resizable",
+          "kind": "boolean",
+          "description": "Allow the user to drag-resize vertically."
+        }
+      },
+      "required": ["label"],
+      "surfacePlan": {}
+    }
+  ],
+  "synthesized": [
+    {
+      "a2ui": "Text",
+      "commons": ["ComponentCommon"],
+      "description": "Displays text content. Synthesized A2UI content primitive (not in the Acme contract).",
+      "structural": {
+        "text": {
+          "schema": { "$ref": "#/$defs/DynamicString" },
+          "description": "The text content to display.",
+          "synthNote": "A2UI content primitive required to render labels/titles in a surface."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": ["h1", "h2", "h3", "h4", "h5", "caption", "body"],
+          "default": "body",
+          "description": "A hint for the base text style."
+        }
+      },
+      "required": ["text"]
+    },
+    {
+      "a2ui": "Column",
+      "commons": ["ComponentCommon"],
+      "description": "Arranges children vertically. Synthesized A2UI structural primitive (the Acme contract has no layout component).",
+      "structural": {
+        "children": {
+          "schema": { "$ref": "#/$defs/ChildList" },
+          "description": "Child component IDs (or a template).",
+          "synthNote": "A2UI structural primitive required to compose multiple children."
+        }
+      },
+      "required": ["children"]
+    }
+  ],
+  "casualtyComponents": [
+    {
+      "dspackId": "mini-stepper",
+      "attempted": "(none)",
+      "class": "cannot-represent",
+      "reason": "steps is an array prop with no declared item vocabulary (label/done are free-form step data); admitting it would let generation invent step shapes the contract does not govern. Same posture as the canonical dropdown-menu casualty."
+    }
+  ]
+}
