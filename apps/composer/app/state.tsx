@@ -14,13 +14,14 @@ import {
   agentConnect,
   agentDiscover,
   agentEmit,
+  agentRediscover,
   agentSave,
-  agentValidate,
   probeAgent,
   type EmitPayload,
   type ValidatePayload,
 } from "./agent-client";
-import { DEMO_CONTRACT, DEMO_EMIT, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
+import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
+import { DEMO_CONTRACT, DEMO_EXTRA_SURFACES, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
 
 export type Mode = "demo" | "agent";
 
@@ -41,10 +42,11 @@ export interface ComposerState {
   connect: (path: string) => Promise<void>;
   loadDemo: () => void;
   discover: () => Promise<void>;
+  rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
   saveProfile: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
   runEmit: () => Promise<void>;
-  runValidate: () => Promise<void>;
+  runValidate: () => void;
 }
 
 const Ctx = createContext<ComposerState | null>(null);
@@ -67,6 +69,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [extraSurfaces, setExtraSurfaces] = useState<Array<{ name: string; surface: unknown }>>([]);
 
   useEffect(() => {
     void probeAgent().then(setAgentUp);
@@ -76,18 +79,39 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setLedger(doc ? await ledgerStatus(doc) : null);
   }, []);
 
+  /**
+   * The live loop: every contract/profile change re-emits IN THE BROWSER
+   * (the same published implementations the agent runs) so gates, coverage,
+   * and fidelity are instant in both modes. The agent's emit remains the
+   * twin that writes out/ on save.
+   */
+  const recomputeEmit = useCallback((doc: Record<string, any> | null, prof: Record<string, any> | null, extras: Array<{ name: string; surface: unknown }> = extraSurfaces) => {
+    if (!doc || !prof) {
+      setEmit(null);
+      return;
+    }
+    try {
+      setEmit(browserEmit(doc, prof, [...contractSurfaces(doc), ...extras]) as EmitPayload);
+    } catch (e) {
+      setNotice(`Emit failed in the browser: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, [extraSurfaces]);
+
   const loadDemo = useCallback(() => {
     setMode("demo");
     setProjectPath("");
     setManifest(DEMO_MANIFEST as ProjectManifest);
-    setContract(structuredClone(DEMO_CONTRACT));
-    setProfile(structuredClone(DEMO_PROFILE));
-    setEmit(structuredClone(DEMO_EMIT) as EmitPayload);
+    const doc = structuredClone(DEMO_CONTRACT);
+    const prof = structuredClone(DEMO_PROFILE);
+    setContract(doc);
+    setProfile(prof);
+    setExtraSurfaces(DEMO_EXTRA_SURFACES);
+    recomputeEmit(doc, prof, DEMO_EXTRA_SURFACES);
     setValidate(null);
     setSelected(null);
-    setNotice("Demo project loaded (pre-emitted at build time). Edits stay in memory; run the local agent to work on real files.");
-    void refreshLedger(DEMO_CONTRACT);
-  }, [refreshLedger]);
+    setNotice("Demo project loaded. Edits stay in memory and every gate runs live in this browser; run the local agent to work on real files.");
+    void refreshLedger(doc);
+  }, [refreshLedger, recomputeEmit]);
 
   useEffect(() => {
     loadDemo();
@@ -106,15 +130,18 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setMode("agent");
       setProjectPath(path);
       setManifest(v.manifest);
-      setContract((v.contract as Record<string, any>) ?? null);
-      setProfile((v.profile as Record<string, any>) ?? null);
+      const doc = (v.contract as Record<string, any>) ?? null;
+      const prof = (v.profile as Record<string, any>) ?? null;
+      setContract(doc);
+      setProfile(prof);
       setLedger(v.ledger);
-      setEmit(null);
+      setExtraSurfaces(v.extraSurfaces ?? []);
+      recomputeEmit(doc, prof, v.extraSurfaces ?? []);
       setValidate(null);
       setSelected(null);
       setNotice(v.profileIssue ? `Connected. Profile issue: ${v.profileIssue}` : `Connected to ${path}.`);
     },
-    [],
+    [recomputeEmit],
   );
 
   const discover = useCallback(async () => {
@@ -132,13 +159,44 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     }
     setContract(result.value.contract as Record<string, any>);
     setLedger(result.value.ledger);
+    recomputeEmit(result.value.contract as Record<string, any>, profile);
     setNotice(`Discovery complete: ${result.value.log}`);
-  }, [mode, projectPath]);
+  }, [mode, projectPath, profile, recomputeEmit]);
+
+  /**
+   * Section-scoped rediscovery (dspack-export regenerateSections): refresh
+   * tool-owned sections, preserve human-owned + governance, add newly
+   * discovered components. Refusals are the tool's own words.
+   */
+  const rediscover = useCallback(async () => {
+    if (mode !== "agent") {
+      setNotice("Rediscovery re-runs dspack-export on your machine; connect through the local agent first.");
+      return;
+    }
+    setBusy("rediscovering");
+    const result = await agentRediscover(projectPath);
+    setBusy(null);
+    if (!result.ok) {
+      setNotice(`Rediscovery refused: ${result.error}`);
+      return;
+    }
+    const v = result.value;
+    setContract(v.contract as Record<string, any>);
+    setLedger(v.ledger);
+    recomputeEmit(v.contract as Record<string, any>, profile);
+    const r = v.report;
+    setNotice(
+      `Rediscovery merged: refreshed [${r.refreshed.join(", ") || "none"}]; preserved human-owned [${r.preservedHumanOwned.join(", ") || "none"}]` +
+        (r.addedComponents.length ? `; new components added: ${r.addedComponents.join(", ")}` : "") +
+        (r.keptMissingInFresh.length ? `; kept despite missing in fresh: ${r.keptMissingInFresh.join(", ")}` : ""),
+    );
+  }, [mode, projectPath, profile, recomputeEmit]);
 
   const saveContract = useCallback(
     async (doc: Record<string, any>) => {
       setContract(doc);
       void refreshLedger(doc);
+      recomputeEmit(doc, profile);
       if (mode !== "agent") return { savedInMemory: true as const };
       const result = await agentSave(projectPath, "contract", doc);
       if (!result.ok) {
@@ -164,6 +222,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const saveProfile = useCallback(
     async (doc: Record<string, any>) => {
       setProfile(doc);
+      recomputeEmit(contract, doc);
       if (mode !== "agent") return { savedInMemory: true as const };
       const result = await agentSave(projectPath, "profile", doc);
       if (!result.ok) {
@@ -201,60 +260,19 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setNotice(result.value.ok ? "Emitted: catalog gates green." : "Emitted with failures — see Validate.");
   }, [mode, projectPath]);
 
-  const runValidate = useCallback(async () => {
-    if (mode === "agent") {
-      setBusy("validating");
-      const result = await agentValidate(projectPath);
-      setBusy(null);
-      if (!result.ok) {
-        setNotice(`Validate failed: ${result.error}`);
-        return;
-      }
-      setValidate(result.value);
-      return;
+  /**
+   * Validation runs FULLY in the browser in both modes now: the dspack
+   * harness is importable (spec lib), S1–S3 come from dspack-gen/core, and
+   * the wording is the CLI's by construction. Synchronous and instant.
+   */
+  const runValidate = useCallback(() => {
+    if (!contract) return;
+    const findings: ComposerFinding[] = [...validateContract(contract)];
+    for (const { name, surface } of contractSurfaces(contract)) {
+      findings.push(...lintOneSurface(name, surface, contract));
     }
-    // Demo mode: S1–S3 run IN the browser (dspack-gen/core is pure); the
-    // contract harness needs the local agent and is listed as such.
-    setBusy("validating");
-    try {
-      const { lintSurface } = await import("@aestheticfunction/dspack-gen/core");
-      const findings: ComposerFinding[] = [
-        {
-          gate: "document",
-          code: "requires-agent",
-          severity: "info",
-          target: "",
-          message: "The dspack-validate harness runs on your machine; connect through the local agent to include it.",
-        },
-      ];
-      const surfaces: Array<{ name: string; surface: unknown }> = [];
-      for (const example of contract?.examples ?? []) {
-        if (example.surface) surfaces.push({ name: example.id ?? "example", surface: example.surface });
-      }
-      for (const { name, surface } of surfaces) {
-        const report = lintSurface(surface, contract as never);
-        for (const gate of report.gates) {
-          if (gate.status === "FAIL") {
-            for (const error of gate.errors ?? []) {
-              findings.push({ gate: gate.gate as ComposerFinding["gate"], code: "lint", severity: "error", target: name, message: error });
-            }
-          }
-        }
-        for (const f of report.findings) {
-          findings.push({
-            gate: "S3",
-            code: f.ruleId,
-            severity: f.level === "error" ? "error" : "warn",
-            target: `${name} ${f.location.path}`,
-            message: `${f.message} — ${f.rationale}`,
-          });
-        }
-      }
-      setValidate({ ok: findings.every((f) => f.severity !== "error"), findings });
-    } finally {
-      setBusy(null);
-    }
-  }, [mode, projectPath, contract]);
+    setValidate({ ok: findings.every((f) => f.severity !== "error"), findings });
+  }, [contract]);
 
   const value = useMemo<ComposerState>(
     () => ({
@@ -274,12 +292,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       connect,
       loadDemo,
       discover,
+      rediscover,
       saveContract,
       saveProfile,
       runEmit,
       runValidate,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, emit, validate, busy, notice, selected, connect, loadDemo, discover, saveContract, saveProfile, runEmit, runValidate],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, runEmit, runValidate],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -6,16 +6,20 @@ import { ProjectView } from "./views/project-view";
 import { InventoryView } from "./views/inventory-view";
 import { ComponentView } from "./views/component-view";
 import { MapperView } from "./views/mapper-view";
+import { GovernanceView } from "./views/governance-view";
+import { ScenarioView } from "./views/scenario-view";
 import { PreviewView } from "./views/preview-view";
 import { ValidateView } from "./views/validate-view";
 
-type View = "project" | "inventory" | "component" | "mapper" | "preview" | "validate";
+export type View = "project" | "inventory" | "component" | "mapper" | "governance" | "scenarios" | "preview" | "validate";
 
 const VIEWS: Array<{ id: View; label: string }> = [
   { id: "project", label: "Project" },
   { id: "inventory", label: "Inventory" },
   { id: "component", label: "Component" },
   { id: "mapper", label: "Mapper" },
+  { id: "governance", label: "Governance" },
+  { id: "scenarios", label: "Scenarios" },
   { id: "preview", label: "Preview" },
   { id: "validate", label: "Validate" },
 ];
@@ -57,10 +61,12 @@ function Shell() {
         </p>
       )}
 
-      {view === "project" && <ProjectView />}
+      {view === "project" && <ProjectView onNavigate={setView} />}
       {view === "inventory" && <InventoryView onOpen={() => setView("component")} />}
       {view === "component" && <ComponentView />}
       {view === "mapper" && <MapperView />}
+      {view === "governance" && <GovernanceView />}
+      {view === "scenarios" && <ScenarioView />}
       {view === "preview" && <PreviewView />}
       {view === "validate" && <ValidateView />}
     </div>

@@ -18,17 +18,17 @@ importers:
   apps/agent:
     dependencies:
       '@aestheticfunction/dspack-emit':
+        specifier: ^0.4.1
+        version: 0.4.1
+      '@aestheticfunction/dspack-export':
         specifier: ^0.4.0
         version: 0.4.0
-      '@aestheticfunction/dspack-export':
-        specifier: ^0.3.0
-        version: 0.3.0
       '@aestheticfunction/dspack-gen':
         specifier: ^0.1.3
         version: 0.1.3(zod@4.4.3)
       '@aestheticfunction/dspack-spec':
-        specifier: ^0.4.1
-        version: 0.4.1
+        specifier: ^0.4.2
+        version: 0.4.2
       '@dspack-studio/agui-bridge':
         specifier: workspace:*
         version: link:../../packages/agui-bridge
@@ -63,6 +63,9 @@ importers:
       '@aestheticfunction/dspack-gen':
         specifier: ^0.1.3
         version: 0.1.3(zod@4.4.3)
+      '@aestheticfunction/dspack-spec':
+        specifier: ^0.4.2
+        version: 0.4.2
       '@dspack-studio/a2ui-ingest':
         specifier: workspace:*
         version: link:../../packages/a2ui-ingest
@@ -86,8 +89,8 @@ importers:
         version: 19.2.7(react@19.2.7)
     devDependencies:
       '@aestheticfunction/dspack-emit':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: ^0.4.1
+        version: 0.4.1
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.1
@@ -289,8 +292,8 @@ importers:
   packages/contracts:
     dependencies:
       '@aestheticfunction/dspack-emit':
-        specifier: 0.4.0
-        version: 0.4.0
+        specifier: 0.4.1
+        version: 0.4.1
     devDependencies:
       '@astryxdesign/cli':
         specifier: 0.1.4
@@ -412,12 +415,12 @@ packages:
   '@a2ui/web_core@0.10.3':
     resolution: {integrity: sha512-B0+zhC1gac4vweqrWxcW1tlmdspMuZl8YzNXSrza3ppayoFYcJblMuvu8g8+6l++aycNQK5D4WaBX85KVvVx+g==}
 
-  '@aestheticfunction/dspack-emit@0.4.0':
-    resolution: {integrity: sha512-KNX8DUqcm6VS3sMNqqaXRWtFIHGoLwVRrwu93BANJaHrc67IAQYVx8hJWpG40OHGVC8GrqBztLm9Iqxy6TKrSw==}
+  '@aestheticfunction/dspack-emit@0.4.1':
+    resolution: {integrity: sha512-/p1Y4dAWlcwtPcfM81t2EjPChifCb9VvnIQCZ9A1dkbU13mSVYk+AQquxvY51PV9naxFAktFYLdx1mFjIOZqrQ==}
     hasBin: true
 
-  '@aestheticfunction/dspack-export@0.3.0':
-    resolution: {integrity: sha512-HHyvEDyE7qaAZgXBaflWLdlSkEWE3M5u2KRhPnJPnFVJcnG9N+dSWkBxWkKkQ0UKvAs0fYkg8OGLUrdIt+qAnA==}
+  '@aestheticfunction/dspack-export@0.4.0':
+    resolution: {integrity: sha512-Y7q5ZcwnpxOXMWvnEBQ422LPBXSaluXKKr1xWZPv3xaq26DpB3WSU8rPrqpPhqZ0LLb4wUQ7I57I8t+QGlsFlg==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -426,8 +429,8 @@ packages:
     engines: {node: '>=20.0.0'}
     hasBin: true
 
-  '@aestheticfunction/dspack-spec@0.4.1':
-    resolution: {integrity: sha512-VxqDTMJFNK1SjzNFII5ZI0sAWI0U1CgNU/GBQNSZ7zr44slFx7eW7kbgtcRuYhnqqEqc3Y/c+eGUA6UcdX9KXQ==}
+  '@aestheticfunction/dspack-spec@0.4.2':
+    resolution: {integrity: sha512-c7sOcYfhqU7N4MOEJOH3GPIrjLqfMbRwO+XiIn3mumw6Is/5OCIVSvQupy703G8c2e0dotcnxxKNJs5A91eQ/g==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -2317,12 +2320,12 @@ snapshots:
       zod: 3.25.76
       zod-to-json-schema: 3.25.2(zod@3.25.76)
 
-  '@aestheticfunction/dspack-emit@0.4.0':
+  '@aestheticfunction/dspack-emit@0.4.1':
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
 
-  '@aestheticfunction/dspack-export@0.3.0':
+  '@aestheticfunction/dspack-export@0.4.0':
     dependencies:
       '@babel/parser': 7.29.7
       '@babel/traverse': 7.29.7
@@ -2337,7 +2340,7 @@ snapshots:
 
   '@aestheticfunction/dspack-gen@0.1.3(zod@4.4.3)':
     dependencies:
-      '@aestheticfunction/dspack-emit': 0.4.0
+      '@aestheticfunction/dspack-emit': 0.4.1
       '@anthropic-ai/sdk': 0.109.1(zod@4.4.3)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
@@ -2345,7 +2348,7 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@aestheticfunction/dspack-spec@0.4.1':
+  '@aestheticfunction/dspack-spec@0.4.2':
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)

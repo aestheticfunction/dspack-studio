@@ -55,8 +55,8 @@ describe("connect", () => {
     expect(byName.components).toBe("human-owned"); // enriched after bootstrap
     expect(byName.tokens).toBe("tool-owned");
     expect(byName.rules).toBe("human-authored");
-    expect(payload.surfaces).toContain("ex.status-report-basic");
-    expect(payload.surfaces).toContain("uses-casualty");
+    expect(payload.extraSurfaces.map((s: any) => s.name)).toEqual(["uses-casualty"]);
+    expect(payload.extraSurfaces[0].surface.dspackSurface).toBe("0.1");
     expect(payload.profileIssue).toBeNull();
   });
 
@@ -93,6 +93,39 @@ describe("validate", () => {
     expect(payload.findings.filter((f: any) => f.gate === "document")).toEqual([]);
     expect(payload.findings.filter((f: any) => f.severity === "error")).toEqual([]);
     expect(payload.ok).toBe(true);
+  });
+});
+
+describe("rediscover", () => {
+  it("merges a real source change at ledger granularity: adds the new component, preserves enrichment", async () => {
+    // A genuinely new component appears in source after enrichment.
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(
+      join(root, "components", "ui", "spark-line.tsx"),
+      [
+        "import * as React from 'react';",
+        "export interface SparkLineProps extends React.HTMLAttributes<SVGElement> {",
+        "  /** Data points, newest last. */",
+        "  points: number[];",
+        "}",
+        "/** Tiny inline trend line. */",
+        "export const SparkLine = ({ points, ...props }: SparkLineProps) => (",
+        "  <svg {...props} className=\"acme-spark-line\" />",
+        ");",
+      ].join("\n"),
+    );
+    const { status, payload } = await call("rediscover", { path: root });
+    expect(status).toBe(200);
+    expect(payload.report.addedComponents).toContain("spark-line");
+    // Human-owned components section preserved: enrichment survives the merge.
+    expect(payload.report.preservedHumanOwned).toContain("components");
+    expect(payload.contract.components["action-button"].props.label.required).toBe(true);
+    expect(payload.contract.components["action-button"].whenToUse).toBeTruthy();
+    // Governance carried over verbatim.
+    expect(payload.contract.rules.length).toBeGreaterThan(0);
+    // Ledger still reports the section human-owned after the merge.
+    const byName = Object.fromEntries(payload.ledger.sections.map((s: any) => [s.section, s.state]));
+    expect(byName.components).toBe("human-owned");
   });
 });
 

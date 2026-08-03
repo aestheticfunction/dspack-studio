@@ -35,6 +35,8 @@ import {
 } from "@aestheticfunction/dspack-emit";
 import { lintSurface } from "@aestheticfunction/dspack-gen/core";
 import { runPipeline, ScriptedAdapter, adapterFor, OllamaAdapter } from "@aestheticfunction/dspack-gen";
+import { exportProject, regenerateSections } from "@aestheticfunction/dspack-export";
+import { compileSchemaSet, documentReport, type ValidatorMap } from "@aestheticfunction/dspack-spec/lib/validate.mjs";
 import {
   ledgerStatus,
   parseProjectManifest,
@@ -57,6 +59,26 @@ const execFileP = promisify(execFile);
 /** Resolve a sibling package's file without relying on its exports map. */
 function packageFile(pkg: string, rel: string): string {
   return join(dirname(require.resolve(`${pkg}/package.json`)), rel);
+}
+
+/**
+ * The dspack harness, in-process: schemas read once from the installed
+ * dspack-spec package, checks imported from its lib — identical wording to
+ * the dspack-validate CLI by construction (one-validator principle).
+ */
+let harness: ValidatorMap | undefined;
+function specValidators(): ValidatorMap {
+  if (!harness) {
+    const schemaDir = packageFile("@aestheticfunction/dspack-spec", "schema");
+    const schemas: Record<string, unknown> = {};
+    for (const file of readdirSync(schemaDir).filter((f) => f.endsWith(".schema.json"))) {
+      schemas[file] = JSON.parse(readFileSync(join(schemaDir, file), "utf8"));
+    }
+    const { validators, failures } = compileSchemaSet(schemas);
+    if (failures.length) throw new Error(`dspack-spec schemas failed to compile: ${failures.join("; ")}`);
+    harness = validators;
+  }
+  return harness;
 }
 
 class ProjectError extends Error {
@@ -160,30 +182,71 @@ async function connect(ctx: ProjectContext) {
     ledger: contract ? await ledgerStatus(contract) : null,
     profile: profileExists ? readJson(ctx.profilePath) : null,
     profileIssue,
-    surfaces: contract ? projectSurfaces(ctx, contract).map((s) => s.name) : [],
+    // surfacesDir extras ship with content so the browser's live emit loop
+    // covers them; contract examples are derivable from the contract itself.
+    extraSurfaces: contract
+      ? projectSurfaces(ctx, contract).filter(
+          (s) => !((contract.examples as Array<{ id?: string }> | undefined) ?? []).some((e) => e.id === s.name),
+        )
+      : [],
   };
 }
 
-async function discover(ctx: ProjectContext) {
+function exportConfig(ctx: ProjectContext): string {
   const configRel = ctx.manifest.exportConfigPath;
   if (!configRel) {
     throw new ProjectError(400, "this project has no exportConfigPath (imported contract; discovery does not apply)");
   }
-  const config = inside(ctx.root, configRel);
-  const cli = packageFile("@aestheticfunction/dspack-export", "dist/cli.js");
-  try {
-    const { stdout } = await execFileP(
-      process.execPath,
-      [cli, "generate", "--config", config, "--out", ctx.contractPath],
-      { cwd: ctx.root, timeout: 120_000 },
-    );
-    const contract = readJson(ctx.contractPath) as Record<string, unknown>;
-    return { ok: true, log: stdout.trim(), contract, ledger: await ledgerStatus(contract) };
-  } catch (e) {
-    // dspack-export's refusal table speaks in its own words — pass it through.
-    const err = e as { stdout?: string; stderr?: string; message?: string };
-    throw new ProjectError(409, (err.stderr || err.stdout || err.message || "discovery failed").trim());
+  return inside(ctx.root, configRel);
+}
+
+async function discover(ctx: ProjectContext) {
+  const config = exportConfig(ctx);
+  // First bootstrap only: the whole-file refusal table applies when a
+  // contract already exists (use /project/rediscover for the iterative path).
+  if (existsSync(ctx.contractPath)) {
+    const { decideRegeneration } = await import("@aestheticfunction/dspack-export");
+    const decision = decideRegeneration(readFileSync(ctx.contractPath, "utf8"));
+    if (!decision.allow) throw new ProjectError(409, decision.reason);
   }
+  try {
+    const { document, warnings } = exportProject(config);
+    atomicWriteJson(ctx.contractPath, document);
+    const contract = document as unknown as Record<string, unknown>;
+    return {
+      ok: true,
+      log: warnings.length ? `discovery warnings: ${warnings.join("; ")}` : "discovery clean",
+      contract,
+      ledger: await ledgerStatus(contract),
+    };
+  } catch (e) {
+    // dspack-export's own words pass through — refusals are never rephrased.
+    throw new ProjectError(409, (e instanceof Error ? e.message : String(e)).trim());
+  }
+}
+
+/**
+ * Section-scoped rediscovery: fresh extraction merged at the ledger's
+ * granularity (dspack-export regenerateSections) — tool-owned refreshes,
+ * human-owned and governance preserved, new components added.
+ */
+async function rediscover(ctx: ProjectContext) {
+  const config = exportConfig(ctx);
+  if (!existsSync(ctx.contractPath)) {
+    throw new ProjectError(409, "no contract exists yet; run discovery first");
+  }
+  const existing = readJson(ctx.contractPath) as Parameters<typeof regenerateSections>[0];
+  let fresh;
+  try {
+    fresh = exportProject(config).document;
+  } catch (e) {
+    throw new ProjectError(409, (e instanceof Error ? e.message : String(e)).trim());
+  }
+  const result = regenerateSections(existing, fresh);
+  if (!result.ok) throw new ProjectError(409, result.reason);
+  atomicWriteJson(ctx.contractPath, result.document);
+  const contract = result.document as unknown as Record<string, unknown>;
+  return { ok: true, contract, ledger: await ledgerStatus(contract), report: result.report };
 }
 
 function emit(ctx: ProjectContext) {
@@ -267,12 +330,9 @@ function emit(ctx: ProjectContext) {
 
 async function validate(ctx: ProjectContext) {
   const findings: ComposerFinding[] = [];
-  const harness = packageFile("@aestheticfunction/dspack-spec", "scripts/validate.mjs");
-  try {
-    await execFileP(process.execPath, [harness, "--file", ctx.contractPath], { timeout: 60_000 });
-  } catch (e) {
-    const err = e as { stdout?: string; stderr?: string };
-    findings.push(finding("document", "dspack-validate", "error", "", (err.stderr || err.stdout || "contract failed dspack-validate").trim().slice(0, 4000)));
+  const report = documentReport(readJson(ctx.contractPath), specValidators());
+  for (const error of report.errors) {
+    findings.push(finding("document", "harness", "error", "", error));
   }
 
   const contract = readJson(ctx.contractPath) as Record<string, unknown>;
@@ -318,15 +378,9 @@ async function save(ctx: ProjectContext, body: Record<string, unknown>) {
       findings: [finding("ledger", "ledger-dropped", "error", 'metadata["x-bootstrap"]', "a save may not remove the bootstrap ledger; edits make sections human-owned, deleting provenance is refused")],
     };
   }
-  const tmp = join(ctx.outDir, `.contract-check-${process.pid}.json`);
-  mkdirSync(ctx.outDir, { recursive: true });
-  writeFileSync(tmp, JSON.stringify(document, null, 2));
-  const harness = packageFile("@aestheticfunction/dspack-spec", "scripts/validate.mjs");
-  try {
-    await execFileP(process.execPath, [harness, "--file", tmp], { timeout: 60_000 });
-  } catch (e) {
-    const err = e as { stdout?: string; stderr?: string };
-    return { ok: false, findings: [finding("document", "dspack-validate", "error", "", (err.stderr || err.stdout || "contract failed dspack-validate").trim().slice(0, 4000))] };
+  const report = documentReport(document, specValidators());
+  if (!report.valid) {
+    return { ok: false, findings: report.errors.map((e) => finding("document", "harness", "error", "", e)) };
   }
   atomicWriteJson(ctx.contractPath, document);
   return { ok: true, findings: [], ledger: await ledgerStatus(document) };
@@ -417,6 +471,9 @@ export async function handleProjectRoute(
         return true;
       case "discover":
         json(res, 200, await discover(ctx), cors);
+        return true;
+      case "rediscover":
+        json(res, 200, await rediscover(ctx), cors);
         return true;
       case "emit":
         json(res, 200, emit(ctx), cors);
