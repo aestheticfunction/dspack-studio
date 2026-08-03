@@ -36,6 +36,29 @@ Production smoke suite (agent-free specs against the deployed site):
 npx playwright test --config playwright.production.config.ts
 ```
 
+## The composer (second Worker, same posture)
+
+**https://composer.aesthetic-function.com** is the catalog composer
+(`apps/composer`), deployed as its **own** Worker so the exhibit and the
+composer keep independent deploy cadences. Configured by
+`wrangler.composer.jsonc` at the repository root — Static Assets from
+`apps/composer/out`, the custom domain declared in `routes` (wrangler
+attaches it; Cloudflare manages DNS), and **zero runtime bindings**: no AI,
+KV, Durable Objects, databases, or secrets. The hosted composer ships the
+pre-emitted demo project only; connecting a real project, emitting, saving,
+and generation all run on the visitor's machine via the local agent
+(`pnpm --filter agent dev`), stated plainly in the UI. No user project
+source is ever uploaded or executed.
+
+```sh
+pnpm build:deploy:composer                          # demo assets + static export -> apps/composer/out
+npx wrangler deploy --config wrangler.composer.jsonc
+npx playwright test --config playwright.composer-production.config.ts   # smoke against the deployed URL
+```
+
+Rollback: `npx wrangler rollback --config wrangler.composer.jsonc` (or
+redeploy the previous commit); the exhibit Worker is untouched either way.
+
 ## Recommended topology
 
 **Launch topology: static-only.** Do NOT set `NEXT_PUBLIC_AGENT_URL`: the

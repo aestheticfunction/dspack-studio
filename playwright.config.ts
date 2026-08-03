@@ -40,7 +40,9 @@ export default defineConfig({
       name: "studio",
       // prod-smoke asserts the DEPLOYED site's properties (no local agent,
       // injected analytics); it runs via playwright.production.config.ts only.
-      testIgnore: ["prod-smoke.spec.ts", "tour-first-run.spec.ts"],
+      // composer-prod-smoke targets the DEPLOYED composer app; it runs via
+      // playwright.composer-production.config.ts only.
+      testIgnore: ["prod-smoke.spec.ts", "composer-prod-smoke.spec.ts", "tour-first-run.spec.ts"],
       use: {
         storageState: {
           cookies: [],

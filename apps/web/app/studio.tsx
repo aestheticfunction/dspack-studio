@@ -508,8 +508,15 @@ export function Studio() {
             Aesthetic Function <span style={{ color: "var(--green-bright)" }}>/ Studio</span>
           </h1>
           <a
-            href="https://aesthetic-function.com"
+            href="https://composer.aesthetic-function.com"
+            data-testid="composer-link"
             style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-dim)", textDecoration: "none" }}
+          >
+            composer ↗
+          </a>
+          <a
+            href="https://aesthetic-function.com"
+            style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-dim)", textDecoration: "none" }}
           >
             aesthetic-function.com ↗
           </a>

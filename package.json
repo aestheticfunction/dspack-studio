@@ -16,7 +16,8 @@
     "dev": "pnpm --filter web dev",
     "e2e": "pnpm --filter web build && playwright test",
     "typecheck": "pnpm -r typecheck",
-    "build:deploy": "pnpm build:contracts && pnpm --filter web build && node -e \"require('node:fs').accessSync('apps/web/out/index.html'); console.log('deploy artifact ready: apps/web/out')\""
+    "build:deploy": "pnpm build:contracts && pnpm --filter web build && node -e \"require('node:fs').accessSync('apps/web/out/index.html'); console.log('deploy artifact ready: apps/web/out')\"",
+    "build:deploy:composer": "pnpm --filter composer build && node -e \"require('node:fs').accessSync('apps/composer/out/index.html'); console.log('deploy artifact ready: apps/composer/out')\""
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
