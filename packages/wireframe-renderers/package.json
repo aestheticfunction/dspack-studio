@@ -2,7 +2,7 @@
   "name": "@dspack-studio/wireframe-renderers",
   "version": "0.1.0",
   "private": true,
-  "description": "The universal preview fallback: a Registry whose visuals are derived from the catalog itself — every catalog name renders as an honest labeled wireframe (scalar props as a table, child refs as nested slots, actions as inert buttons). Zero user code executes; works for any conformant catalog, including targets with no native renderer.",
+  "description": "The universal preview fallback: a Registry whose visuals are derived from the catalog itself \u2014 every catalog name renders as an honest labeled wireframe (scalar props as a table, child refs as nested slots, actions as inert buttons). Zero user code executes; works for any conformant catalog, including targets with no native renderer.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -23,6 +23,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.7.2",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "@types/react-dom": "^19.0.0"
   }
 }
