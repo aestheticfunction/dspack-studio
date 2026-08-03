@@ -96,6 +96,39 @@ describe("validate", () => {
   });
 });
 
+describe("rediscover", () => {
+  it("merges a real source change at ledger granularity: adds the new component, preserves enrichment", async () => {
+    // A genuinely new component appears in source after enrichment.
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(
+      join(root, "components", "ui", "spark-line.tsx"),
+      [
+        "import * as React from 'react';",
+        "export interface SparkLineProps extends React.HTMLAttributes<SVGElement> {",
+        "  /** Data points, newest last. */",
+        "  points: number[];",
+        "}",
+        "/** Tiny inline trend line. */",
+        "export const SparkLine = ({ points, ...props }: SparkLineProps) => (",
+        "  <svg {...props} className=\"acme-spark-line\" />",
+        ");",
+      ].join("\n"),
+    );
+    const { status, payload } = await call("rediscover", { path: root });
+    expect(status).toBe(200);
+    expect(payload.report.addedComponents).toContain("spark-line");
+    // Human-owned components section preserved: enrichment survives the merge.
+    expect(payload.report.preservedHumanOwned).toContain("components");
+    expect(payload.contract.components["action-button"].props.label.required).toBe(true);
+    expect(payload.contract.components["action-button"].whenToUse).toBeTruthy();
+    // Governance carried over verbatim.
+    expect(payload.contract.rules.length).toBeGreaterThan(0);
+    // Ledger still reports the section human-owned after the merge.
+    const byName = Object.fromEntries(payload.ledger.sections.map((s: any) => [s.section, s.state]));
+    expect(byName.components).toBe("human-owned");
+  });
+});
+
 describe("save", () => {
   it("refuses dropping the bootstrap ledger", async () => {
     const contract = JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
