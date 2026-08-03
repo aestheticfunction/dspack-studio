@@ -1,0 +1,4 @@
+app/demo/generated/
+.next/
+out/
+next-env.d.ts

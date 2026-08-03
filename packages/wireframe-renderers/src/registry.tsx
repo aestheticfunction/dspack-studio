@@ -15,7 +15,7 @@
  */
 import type { CSSProperties, FC } from "react";
 import { withProvenance, type Registry } from "@dspack-studio/a2ui-ingest";
-import { classifyProps, type WireProp } from "./classify-props.js";
+import { classifyProps, type WireProp } from "./classify-props";
 
 const box: CSSProperties = {
   border: "1px dashed var(--line, #8884)",

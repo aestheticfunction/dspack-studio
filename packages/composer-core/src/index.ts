@@ -5,7 +5,7 @@ export {
   type ProjectManifest,
   type ManifestIssue,
   type ParseManifestResult,
-} from "./project.js";
+} from "./project";
 export {
   sectionHash,
   ledgerStatus,
@@ -13,8 +13,8 @@ export {
   type LedgerStatus,
   type SectionStatus,
   type SectionState,
-} from "./ledger.js";
-export { finding, countBySeverity, type ComposerFinding, type FindingGate, type FindingSeverity } from "./findings.js";
+} from "./ledger";
+export { finding, countBySeverity, type ComposerFinding, type FindingGate, type FindingSeverity } from "./findings";
 export {
   COMPOSER_ADAPTERS,
   composerAdapter,
@@ -23,4 +23,4 @@ export {
   type MappingRef,
   type RenderingRef,
   type DriftRef,
-} from "./adapters.js";
+} from "./adapters";

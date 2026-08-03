@@ -14,8 +14,8 @@ import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { planRegistry } from "@dspack-studio/a2ui-ingest";
-import { classifyProps } from "./classify-props.js";
-import { wireframeRegistryFor } from "./registry.js";
+import { classifyProps } from "./classify-props";
+import { wireframeRegistryFor } from "./registry";
 
 // The canonical shadcn catalog shape is stable and committed in contracts'
 // build output during CI; for a self-contained unit test we use the acme

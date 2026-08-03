@@ -12,10 +12,10 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { parseProjectManifest } from "./project.js";
-import { ledgerStatus, preservesLedger, sectionHash } from "./ledger.js";
-import { countBySeverity, finding } from "./findings.js";
-import { COMPOSER_ADAPTERS, composerAdapter } from "./adapters.js";
+import { parseProjectManifest } from "./project";
+import { ledgerStatus, preservesLedger, sectionHash } from "./ledger";
+import { countBySeverity, finding } from "./findings";
+import { COMPOSER_ADAPTERS, composerAdapter } from "./adapters";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url)), "utf8"));

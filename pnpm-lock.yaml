@@ -61,6 +61,52 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
 
+  apps/composer:
+    dependencies:
+      '@aestheticfunction/dspack-gen':
+        specifier: ^0.1.2
+        version: 0.1.2(zod@4.4.3)
+      '@dspack-studio/a2ui-ingest':
+        specifier: workspace:*
+        version: link:../../packages/a2ui-ingest
+      '@dspack-studio/composer-core':
+        specifier: workspace:*
+        version: link:../../packages/composer-core
+      '@dspack-studio/shadcn-renderers':
+        specifier: workspace:*
+        version: link:../../packages/shadcn-renderers
+      '@dspack-studio/wireframe-renderers':
+        specifier: workspace:*
+        version: link:../../packages/wireframe-renderers
+      next:
+        specifier: 15.3.2
+        version: 15.3.2(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: 19.2.7
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@aestheticfunction/dspack-emit':
+        specifier: link:/Users/ryandombrowski/Desktop/dspack-emit/.claude/worktrees/feat-profile-as-data
+        version: link:../../../../../../dspack-emit/.claude/worktrees/feat-profile-as-data
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.17)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
+
   apps/web:
     dependencies:
       '@aestheticfunction/dspack-gen':
@@ -3657,7 +3703,7 @@ snapshots:
 
   postcss@8.4.31:
     dependencies:
-      nanoid: 3.3.15
+      nanoid: 3.3.17
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
