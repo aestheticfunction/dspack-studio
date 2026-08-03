@@ -4,14 +4,30 @@
     {
       "name": "studio-static",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["e2e/serve-static.mjs"],
+      "runtimeArgs": [
+        "e2e/serve-static.mjs"
+      ],
       "port": 3311
     },
     {
       "name": "agent",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "agent", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "agent",
+        "dev"
+      ],
       "port": 8787
+    },
+    {
+      "name": "composer",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "composer",
+        "dev"
+      ],
+      "port": 3001
     }
   ]
 }

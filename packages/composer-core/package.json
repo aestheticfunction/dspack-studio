@@ -1,0 +1,22 @@
+{
+  "name": "@dspack-studio/composer-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure data layer of the catalog composer: the project manifest schema, x-bootstrap ledger reading (WebCrypto, isomorphic), the normalized finding shape, and the adapter manifests binding the three existing seams (discovery / mapping / rendering) by reference. No protocol dependencies, no React, no Node-only APIs.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

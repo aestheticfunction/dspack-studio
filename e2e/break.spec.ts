@@ -66,7 +66,9 @@ test("unsupported component: lint-clean surface, emitter refusal with the verbat
   await page.getByTestId("break-run").click();
   await expect(page.getByTestId("break-status")).toContainText("finished", { timeout: 20_000 });
   await expect(page.getByTestId("gate-ticker")).toContainText(/attempt 0:\s*S1✓\s*S2✓\s*S3✓/);
-  await expect(page.getByTestId("failure-panel")).toContainText("unknown component 'dropdown-menu'");
+  // dspack-emit 0.4.0: a declared casualty refuses with the profile's
+  // authored class + reason — the verbatim reason this test always wanted.
+  await expect(page.getByTestId("failure-panel")).toContainText("'dropdown-menu' is a declared casualty");
 });
 
 test("ungroundable action: resolution rejects client-side, recorded as unresolved", async ({ page }) => {

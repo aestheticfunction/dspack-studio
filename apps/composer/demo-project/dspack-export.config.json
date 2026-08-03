@@ -1,0 +1,10 @@
+{
+  "name": "Acme UI",
+  "version": "0.1.0",
+  "description": "Small non-canonical React component library used to evidence the composer spike.",
+  "source": ".",
+  "components": ["components/ui/*.tsx"],
+  "css": ["styles/globals.css"],
+  "tsconfig": "tsconfig.json",
+  "output": "acme-ui.dspack.json"
+}

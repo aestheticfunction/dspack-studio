@@ -1,0 +1,12 @@
+{
+  "composerProject": "0.1",
+  "name": "Acme UI",
+  "adapter": "react-generic",
+  "catalogIdBase": "https://acme.example/catalogs/acme-ui",
+  "contractPath": "acme-ui.dspack.json",
+  "profilePath": "acme.profile.json",
+  "exportConfigPath": "dspack-export.config.json",
+  "surfacesDir": "surfaces",
+  "outDir": "out",
+  "previewRegistry": "wireframe"
+}
