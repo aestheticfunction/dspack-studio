@@ -24,7 +24,7 @@ export interface ConnectPayload {
   ledger: LedgerStatus | null;
   profile: Record<string, unknown> | null;
   profileIssue: string | null;
-  surfaces: string[];
+  extraSurfaces: Array<{ name: string; surface: unknown }>;
 }
 
 export type AgentResult<T> = { ok: true; value: T } | { ok: false; error: string };

@@ -182,7 +182,13 @@ async function connect(ctx: ProjectContext) {
     ledger: contract ? await ledgerStatus(contract) : null,
     profile: profileExists ? readJson(ctx.profilePath) : null,
     profileIssue,
-    surfaces: contract ? projectSurfaces(ctx, contract).map((s) => s.name) : [],
+    // surfacesDir extras ship with content so the browser's live emit loop
+    // covers them; contract examples are derivable from the contract itself.
+    extraSurfaces: contract
+      ? projectSurfaces(ctx, contract).filter(
+          (s) => !((contract.examples as Array<{ id?: string }> | undefined) ?? []).some((e) => e.id === s.name),
+        )
+      : [],
   };
 }
 

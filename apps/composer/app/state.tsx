@@ -21,7 +21,7 @@ import {
   type ValidatePayload,
 } from "./agent-client";
 import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
-import { DEMO_CONTRACT, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
+import { DEMO_CONTRACT, DEMO_EXTRA_SURFACES, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
 
 export type Mode = "demo" | "agent";
 
@@ -69,6 +69,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [extraSurfaces, setExtraSurfaces] = useState<Array<{ name: string; surface: unknown }>>([]);
 
   useEffect(() => {
     void probeAgent().then(setAgentUp);
@@ -84,17 +85,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
    * and fidelity are instant in both modes. The agent's emit remains the
    * twin that writes out/ on save.
    */
-  const recomputeEmit = useCallback((doc: Record<string, any> | null, prof: Record<string, any> | null) => {
+  const recomputeEmit = useCallback((doc: Record<string, any> | null, prof: Record<string, any> | null, extras: Array<{ name: string; surface: unknown }> = extraSurfaces) => {
     if (!doc || !prof) {
       setEmit(null);
       return;
     }
     try {
-      setEmit(browserEmit(doc, prof, contractSurfaces(doc)) as EmitPayload);
+      setEmit(browserEmit(doc, prof, [...contractSurfaces(doc), ...extras]) as EmitPayload);
     } catch (e) {
       setNotice(`Emit failed in the browser: ${e instanceof Error ? e.message : String(e)}`);
     }
-  }, []);
+  }, [extraSurfaces]);
 
   const loadDemo = useCallback(() => {
     setMode("demo");
@@ -104,7 +105,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     const prof = structuredClone(DEMO_PROFILE);
     setContract(doc);
     setProfile(prof);
-    recomputeEmit(doc, prof);
+    setExtraSurfaces(DEMO_EXTRA_SURFACES);
+    recomputeEmit(doc, prof, DEMO_EXTRA_SURFACES);
     setValidate(null);
     setSelected(null);
     setNotice("Demo project loaded. Edits stay in memory and every gate runs live in this browser; run the local agent to work on real files.");
@@ -133,7 +135,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setContract(doc);
       setProfile(prof);
       setLedger(v.ledger);
-      recomputeEmit(doc, prof);
+      setExtraSurfaces(v.extraSurfaces ?? []);
+      recomputeEmit(doc, prof, v.extraSurfaces ?? []);
       setValidate(null);
       setSelected(null);
       setNotice(v.profileIssue ? `Connected. Profile issue: ${v.profileIssue}` : `Connected to ${path}.`);

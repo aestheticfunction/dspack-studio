@@ -96,3 +96,28 @@ New studio pieces, all thin:
    change, surfaced in the agent findings and the Preview's refused chip).
 4. The composer app's `test` uses `--passWithNoTests` (contracts precedent);
    its logic lives in tested packages and the agent.
+
+## Phase 2: authoring depth (2026-08-03)
+
+- **Validation is whole, everywhere**: the dspack harness is importable
+  (dspack#34), so document validation, S1–S3, and the full emit loop
+  (browser-safe dspack-emit, dspack-emit#25) run IN the browser with the
+  CLI's wording — the "requires the local agent" validation caveat is
+  retired. Every contract/profile edit re-emits live in both modes.
+- **Governance forms**: intents and the four rule types as pure form
+  projections; the rationale gates saving ("write the rationale first");
+  every save re-lints all worked examples (the governance-impact rail).
+- **Scenario editor**: dsurface trees built through forms constrained to
+  the contract's vocabulary, live S1–S3 + live wireframe preview per edit,
+  save-gated on clean gates; a saved scenario IS a contract worked example.
+- **Rediscovery**: /project/rediscover merges fresh extraction at the
+  ledger's granularity (dspack-export#12 regenerateSections) — tool-owned
+  refreshes, human-owned + governance preserved, new components added,
+  refusals verbatim.
+- **Project home**: the derived "What remains" checklist (described /
+  props / mapped / intents / rules / examples / gates), each row linking to
+  the view where the work happens.
+
+Temporary state: pnpm overrides point dspack-spec/emit/export at the three
+Phase 2 upstream branches until 0.4.2 / 0.4.1 / 0.4.0 release (the same
+paired-PR protocol Phase 1 used).

@@ -55,8 +55,8 @@ describe("connect", () => {
     expect(byName.components).toBe("human-owned"); // enriched after bootstrap
     expect(byName.tokens).toBe("tool-owned");
     expect(byName.rules).toBe("human-authored");
-    expect(payload.surfaces).toContain("ex.status-report-basic");
-    expect(payload.surfaces).toContain("uses-casualty");
+    expect(payload.extraSurfaces.map((s: any) => s.name)).toEqual(["uses-casualty"]);
+    expect(payload.extraSurfaces[0].surface.dspackSurface).toBe("0.1");
     expect(payload.profileIssue).toBeNull();
   });
 

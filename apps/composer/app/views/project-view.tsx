@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useComposer } from "../state";
+import type { View } from "../composer";
 
 const STATE_COLOR: Record<string, string> = {
   "tool-owned": "var(--info)",
@@ -10,9 +11,41 @@ const STATE_COLOR: Record<string, string> = {
   absent: "var(--fg-faint)",
 };
 
-export function ProjectView() {
-  const { mode, agentUp, manifest, ledger, connect, loadDemo, discover, busy } = useComposer();
+/**
+ * The authorship progress model: what remains between "connected" and "a
+ * governed catalog", every row derived (never stored) and linked to the
+ * view where the work happens. This is awaitingAuthorship turned into a
+ * product surface.
+ */
+function progressRows(state: ReturnType<typeof useComposer>): Array<{ label: string; done: boolean; detail: string; view: View }> {
+  const { contract, profile, emit } = state;
+  if (!contract) return [];
+  const components = Object.entries((contract.components ?? {}) as Record<string, any>);
+  const described = components.filter(([, c]) => c.whenToUse).length;
+  const bare = components.filter(([, c]) => Object.keys(c.props ?? {}).length === 0).length;
+  const plans = new Set(((profile?.components ?? []) as any[]).map((p) => p.dspackId));
+  const casualties = new Set(((profile?.casualtyComponents ?? []) as any[]).map((c) => c.dspackId));
+  const unmapped = components.filter(([id]) => !plans.has(id) && !casualties.has(id)).length;
+  const intents = (contract.intents ?? []).length;
+  const rules = (contract.rules ?? []).length;
+  const examples = (contract.examples ?? []).length;
+  const errors = (emit?.findings ?? []).filter((f) => f.severity === "error").length;
+  return [
+    { label: "Components described", done: described === components.length, detail: `${described}/${components.length} carry whenToUse`, view: "inventory" },
+    { label: "Props enriched", done: bare === 0, detail: bare ? `${bare} component(s) have no props — discovery is variant-centric; add content props` : "every component declares props", view: "inventory" },
+    { label: "Mapping decided", done: unmapped === 0, detail: unmapped ? `${unmapped} component(s) neither mapped nor declared casualties` : "every component mapped or a declared casualty", view: "mapper" },
+    { label: "Intents authored", done: intents > 0, detail: `${intents} intent(s) — the scoping vocabulary generation runs under`, view: "governance" },
+    { label: "Rules authored", done: rules > 0, detail: `${rules} rule(s), each carrying its written rationale`, view: "governance" },
+    { label: "Worked examples", done: examples > 0, detail: `${examples} scenario(s) — the few-shot and preview corpus`, view: "scenarios" },
+    { label: "Gates green", done: (emit?.ok ?? false) && errors === 0, detail: errors ? `${errors} error finding(s) across the gates` : emit?.ok ? "document, S-gates, and catalog gates pass" : "emit has not run", view: "validate" },
+  ];
+}
+
+export function ProjectView({ onNavigate }: { onNavigate: (view: View) => void }) {
+  const state = useComposer();
+  const { mode, agentUp, manifest, ledger, connect, loadDemo, discover, rediscover, busy } = state;
   const [path, setPath] = useState("");
+  const rows = progressRows(state);
 
   return (
     <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(280px, 1fr) minmax(280px, 1fr)" }}>
@@ -44,14 +77,40 @@ export function ProjectView() {
           Load demo project
         </button>
         {mode === "agent" && manifest?.exportConfigPath && (
-          <div style={{ marginTop: 14 }}>
-            <button className="st-btn" disabled={busy !== null} onClick={() => void discover()} data-testid="discover">
-              Re-run discovery
+          <div style={{ marginTop: 14, display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+            <button className="st-btn" disabled={busy !== null} onClick={() => void rediscover()} data-testid="rediscover">
+              Rediscover
             </button>
-            <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-              Discovery (dspack-export) refuses rather than touch human-owned sections; its refusal is shown verbatim.
+            <button className="st-btn st-btn--dashed" disabled={busy !== null} onClick={() => void discover()} data-testid="discover">
+              First bootstrap
+            </button>
+            <p style={{ fontSize: 12, color: "var(--fg-dim)", flexBasis: "100%" }}>
+              Rediscover merges at the ledger's granularity: tool-owned sections refresh, human-owned sections and
+              governance are preserved, newly discovered components are added. First bootstrap keeps the whole-file
+              refusal table; refusals are shown verbatim.
             </p>
           </div>
+        )}
+
+        {rows.length > 0 && (
+          <>
+            <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)", marginTop: 20 }}>
+              What remains
+            </h2>
+            <ul style={{ listStyle: "none", padding: 0, fontSize: 13 }} data-testid="progress">
+              {rows.map((row) => (
+                <li key={row.label} style={{ borderTop: "1px solid var(--line-soft)", padding: "7px 0", display: "flex", gap: 10, alignItems: "baseline" }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: row.done ? "var(--ok)" : "var(--warn)", width: 14 }}>
+                    {row.done ? "✓" : "•"}
+                  </span>
+                  <button className="st-link" style={{ fontSize: 13 }} onClick={() => onNavigate(row.view)} data-testid={`progress-${row.view}-${row.label.split(" ")[0].toLowerCase()}`}>
+                    {row.label}
+                  </button>
+                  <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>{row.detail}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 

@@ -66,12 +66,15 @@ test("mapper shows the projection grid and fidelity evidence for a component", a
   await expect(page.locator("body")).toContainText(/lossy/i);
 });
 
-test("validation runs in the browser (S1-S3) and states what needs the agent", async ({ page }) => {
+test("validation runs COMPLETELY in the browser: document harness + S1-S3", async ({ page }) => {
+  // Phase 2: the dspack harness is importable, so the former
+  // "contract harness requires the local agent" caveat is retired —
+  // hosted validation is whole, not partial.
   await page.goto("/");
   await page.getByTestId("nav-validate").click();
   await page.getByTestId("run-validate").click();
   await expect(page.getByTestId("validate-status")).toContainText("PASS");
-  await expect(page.getByTestId("finding-document-requires-agent")).toContainText(/local agent/i);
+  await expect(page.locator("body")).not.toContainText("requires the local agent to include it");
 });
 
 test("preview renders the wireframe canvas and the honest casualty refusal", async ({ page }) => {
@@ -89,6 +92,42 @@ test("reloading and directly opening the app never hits a platform 404", async (
   const second = await page.reload();
   expect(second?.status()).toBe(200);
   await expect(page.getByTestId("notice")).toContainText("Demo project loaded");
+});
+
+test("the project home derives the authorship progress checklist", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("progress")).toContainText("Components described");
+  await expect(page.getByTestId("progress")).toContainText("Rules authored");
+  await expect(page.getByTestId("progress")).toContainText("Gates green");
+});
+
+test("rule builder is rationale-first: no rationale, no save", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-governance").click();
+  await page.getByTestId("rule-id").fill("rule.smoke-test");
+  await page.getByTestId("rule-type").selectOption("component-choice");
+  // Pick one required component so the type is complete; rationale still empty.
+  await page.getByTestId("rule-require").getByText("info-card", { exact: true }).click();
+  await expect(page.getByTestId("save-rule")).toBeDisabled();
+  await page.getByTestId("rule-rationale").fill("A smoke-level rationale long enough to count as written intent.");
+  await expect(page.getByTestId("save-rule")).toBeEnabled();
+});
+
+test("scenario editor: live gates fire on a violation and block saving", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-scenarios").click();
+  await page.getByTestId("edit-ex.status-report-basic").click();
+  await expect(page.getByTestId("lint-clean")).toContainText("S1 S2 S3 clean");
+  await expect(page.getByTestId("scenario-preview")).toBeVisible();
+  // Root becomes action-button: the demo contract's component-choice rule
+  // (info-card required for status-report) fires live, and save gates on it.
+  await page.getByTestId("node-component-0").selectOption("action-button");
+  await expect(page.getByTestId("lint-findings")).toContainText("rule.status-report.info-card-required");
+  await expect(page.getByTestId("save-scenario")).toBeDisabled();
+  // Restore: gates clean again, save re-enabled.
+  await page.getByTestId("node-component-0").selectOption("info-card");
+  await expect(page.getByTestId("lint-clean")).toContainText("S1 S2 S3 clean");
+  await expect(page.getByTestId("save-scenario")).toBeEnabled();
 });
 
 test("client traffic carries no private hosts, local paths, or key material", async ({ page }) => {
