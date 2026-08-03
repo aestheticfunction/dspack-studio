@@ -19,10 +19,10 @@
     "next": "15.3.2",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "@aestheticfunction/dspack-spec": "^0.4.1"
+    "@aestheticfunction/dspack-spec": "^0.4.2"
   },
   "devDependencies": {
-    "@aestheticfunction/dspack-emit": "^0.4.0",
+    "@aestheticfunction/dspack-emit": "^0.4.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
