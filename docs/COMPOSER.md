@@ -12,6 +12,9 @@ Status: Phase 1 vertical slice. The full architecture proposal and phased
 roadmap live in the planning document that produced this slice; deltas from
 that plan are recorded below.
 
+Hosted at **https://composer.aesthetic-function.com** (its own zero-binding
+Worker; see [deployment.md](./deployment.md#the-composer-second-worker-same-posture)).
+
 ## Run it
 
 ```
