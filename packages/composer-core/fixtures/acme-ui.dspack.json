@@ -1,0 +1,247 @@
+{
+  "dspack": "0.4",
+  "name": "Acme UI",
+  "description": "Small non-canonical React component library used to evidence the composer spike.",
+  "version": "0.1.0",
+  "metadata": {
+    "generatedBy": "@aestheticfunction/dspack-export@0.3.0",
+    "generatedAt": "2026-08-03T18:19:44.394Z",
+    "source": ".",
+    "note": "Generated snapshot. Hand-authored sections (patterns, antiPatterns, whenToUse, accessibility, composition, constraints) are not generated; regeneration refuses to overwrite a document containing human-authored content (see metadata[\"x-bootstrap\"]).",
+    "x-bootstrap": {
+      "spec": "0.4",
+      "generated": {
+        "tokens": "19a25ccff090fe44ae83e997cafbee2d49a6e9f3d2afec4557c86699340f6f45",
+        "components": "2f81ce51d4280a90e8532880a0ebb90085ba1c5aec0adf672c65531cb942cc3d",
+        "frameworkBindings": "1fa677ffda17075341c6b6534cc8c7cf2dbdb005e889fa4afb8155e0174100d4",
+        "themes": "4254e5c12a38bdee0fd751a638307fefd94088d47f5c01b0a2c0caffd0a39832",
+        "layout": "84240158ff29a8c25fd428fdf24f3409df36710fabef89086d711704bc0130c2"
+      },
+      "awaitingAuthorship": [
+        "categories",
+        "intents",
+        "rules",
+        "examples",
+        "patterns",
+        "antiPatterns",
+        "components.*.whenToUse",
+        "components.*.accessibility",
+        "components.*.composition",
+        "components.*.constraints"
+      ]
+    }
+  },
+  "tokens": {
+    "color": {
+      "description": "Semantic color tokens extracted from CSS custom properties. Values are the default (light) theme.",
+      "tier": "semantic",
+      "values": {
+        "acme-surface": {
+          "value": "#ffffff",
+          "type": "color"
+        },
+        "acme-wash": {
+          "value": "#f4f4f2",
+          "type": "color"
+        },
+        "acme-line": {
+          "value": "#d9d7d2",
+          "type": "color"
+        },
+        "acme-ink": {
+          "value": "#1e1d1a",
+          "type": "color"
+        },
+        "acme-ink-dim": {
+          "value": "#6d6a63",
+          "type": "color"
+        },
+        "acme-brand": {
+          "value": "#2f5d3a",
+          "type": "color"
+        },
+        "acme-danger": {
+          "value": "#a3332b",
+          "type": "color"
+        },
+        "acme-danger-wash": {
+          "value": "#f9e8e6",
+          "type": "color"
+        },
+        "acme-ok": {
+          "value": "#2f5d3a",
+          "type": "color"
+        },
+        "acme-ok-wash": {
+          "value": "#e8f1ea",
+          "type": "color"
+        },
+        "acme-warn": {
+          "value": "#8a6d1f",
+          "type": "color"
+        },
+        "acme-warn-wash": {
+          "value": "#f7f0dc",
+          "type": "color"
+        }
+      }
+    }
+  },
+  "components": {
+    "action-button": {
+      "name": "ActionButton",
+      "description": "The one button. Tone carries intent; density carries rhythm.",
+      "x-componentKey": "ui/ActionButton",
+      "props": {
+        "tone": {
+          "type": "enum",
+          "values": [
+            "brand",
+            "danger",
+            "quiet",
+            "outline",
+            "plain"
+          ],
+          "default": "brand"
+        },
+        "density": {
+          "type": "enum",
+          "values": [
+            "compact",
+            "cozy",
+            "comfortable"
+          ],
+          "default": "cozy",
+          "propRole": "dimension"
+        }
+      }
+    },
+    "info-card": {
+      "name": "InfoCard",
+      "description": "Structured content container. Compose with InfoCardHeader, InfoCardBody, InfoCardFooter.",
+      "x-componentKey": "ui/InfoCard"
+    },
+    "info-card-header": {
+      "name": "InfoCardHeader",
+      "description": "Title strip. Exactly one per InfoCard.",
+      "x-componentKey": "ui/InfoCardHeader"
+    },
+    "info-card-body": {
+      "name": "InfoCardBody",
+      "description": "Main content region.",
+      "x-componentKey": "ui/InfoCardBody"
+    },
+    "info-card-footer": {
+      "name": "InfoCardFooter",
+      "description": "Action strip. Optional; holds ActionButtons.",
+      "x-componentKey": "ui/InfoCardFooter"
+    },
+    "mini-stepper": {
+      "name": "MiniStepper",
+      "description": "Compact progress indicator. Steps are data, not children.",
+      "x-componentKey": "ui/MiniStepper"
+    },
+    "note-field": {
+      "name": "NoteField",
+      "description": "Multi-line text entry with a mandatory visible label.",
+      "x-componentKey": "ui/NoteField"
+    },
+    "tag-pill": {
+      "name": "TagPill",
+      "description": "Status marker. Hue is semantic, not decorative.",
+      "x-componentKey": "ui/TagPill",
+      "props": {
+        "hue": {
+          "type": "enum",
+          "values": [
+            "gray",
+            "green",
+            "red",
+            "amber"
+          ],
+          "default": "gray"
+        }
+      }
+    }
+  },
+  "frameworkBindings": {
+    "react": {
+      "name": "React",
+      "components": {
+        "action-button": {
+          "importPath": "./components/ui/action-button",
+          "exportName": "ActionButton"
+        },
+        "info-card": {
+          "importPath": "./components/ui/info-card",
+          "exportName": "InfoCard"
+        },
+        "info-card-header": {
+          "importPath": "./components/ui/info-card",
+          "exportName": "InfoCardHeader"
+        },
+        "info-card-body": {
+          "importPath": "./components/ui/info-card",
+          "exportName": "InfoCardBody"
+        },
+        "info-card-footer": {
+          "importPath": "./components/ui/info-card",
+          "exportName": "InfoCardFooter"
+        },
+        "mini-stepper": {
+          "importPath": "./components/ui/mini-stepper",
+          "exportName": "MiniStepper"
+        },
+        "note-field": {
+          "importPath": "./components/ui/note-field",
+          "exportName": "NoteField"
+        },
+        "tag-pill": {
+          "importPath": "./components/ui/tag-pill",
+          "exportName": "TagPill"
+        }
+      }
+    }
+  },
+  "themes": {
+    "dark": {
+      "name": "Dark",
+      "description": "Dark theme overrides extracted from the .dark CSS block.",
+      "overrides": {
+        "color.acme-surface": "#191815",
+        "color.acme-wash": "#23221e",
+        "color.acme-line": "#3a3833",
+        "color.acme-ink": "#e9e4d9",
+        "color.acme-ink-dim": "#97927f"
+      }
+    }
+  },
+  "layout": {
+    "breakpoints": {
+      "sm": {
+        "minWidth": "640px",
+        "description": "Small devices and large phones in landscape."
+      },
+      "md": {
+        "minWidth": "768px",
+        "description": "Tablets."
+      },
+      "lg": {
+        "minWidth": "1024px",
+        "description": "Laptops and small desktops."
+      },
+      "xl": {
+        "minWidth": "1280px",
+        "description": "Desktops."
+      },
+      "2xl": {
+        "minWidth": "1536px",
+        "description": "Large desktops."
+      }
+    },
+    "spacingScale": {
+      "baseUnit": "0.25rem",
+      "description": "Spacing follows a 0.25rem base unit; use integer multiples of the scale."
+    }
+  }
+}

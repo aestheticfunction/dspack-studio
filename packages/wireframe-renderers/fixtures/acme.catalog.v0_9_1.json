@@ -1,0 +1,625 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acme.example/catalogs/acme-ui/v0_9_1/catalog.json",
+  "title": "Acme UI — A2UI catalog (compiled from dspack)",
+  "description": "A2UI catalog compiled from the Acme UI dspack v0.4 contract. Component shapes and variant enums are projected onto A2UI-conventional names so existing React registries can render them.",
+  "catalogId": "https://acme.example/catalogs/acme-ui/v0_9_1/catalog.json",
+  "components": {
+    "Button": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/Checkable"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Button"
+            },
+            "action": {
+              "$ref": "#/$defs/Action",
+              "description": "The interaction dispatched when the button is activated."
+            },
+            "label": {
+              "type": "string",
+              "description": "Visible label. Acme buttons never render bare icons.",
+              "x-dspack-source": {
+                "sourceProp": "label",
+                "sourceType": "string"
+              }
+            },
+            "variant": {
+              "type": "string",
+              "description": "Button intent, projected from Acme tones onto the registry-conventional variant vocabulary.",
+              "enum": [
+                "primary",
+                "secondary",
+                "ghost",
+                "destructive"
+              ],
+              "default": "primary",
+              "x-dspack-source": {
+                "sourceProp": "tone",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "brand",
+                  "danger",
+                  "quiet",
+                  "outline",
+                  "plain"
+                ],
+                "valueMap": {
+                  "brand": "primary",
+                  "danger": "destructive",
+                  "outline": "secondary",
+                  "quiet": "ghost",
+                  "plain": "ghost"
+                }
+              }
+            },
+            "size": {
+              "type": "string",
+              "description": "Control rhythm, projected one to one from Acme densities.",
+              "enum": [
+                "sm",
+                "md",
+                "lg"
+              ],
+              "default": "md",
+              "x-dspack-source": {
+                "sourceProp": "density",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "compact",
+                  "cozy",
+                  "comfortable"
+                ],
+                "valueMap": {
+                  "compact": "sm",
+                  "cozy": "md",
+                  "comfortable": "lg"
+                }
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label",
+            "action"
+          ],
+          "description": "The one button. Tone carries intent; density carries rhythm.",
+          "x-dspack": {
+            "sourceId": "action-button"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Card": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Card"
+            },
+            "child": {
+              "$ref": "#/$defs/ComponentId",
+              "description": "The ID of the single child component. Wrap multiple elements in a Column and pass its ID."
+            }
+          },
+          "required": [
+            "component",
+            "child"
+          ],
+          "description": "Structured content container. Compose with InfoCardHeader, InfoCardBody, InfoCardFooter.",
+          "x-dspack": {
+            "sourceId": "info-card"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Badge": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Badge"
+            },
+            "label": {
+              "type": "string",
+              "description": "Short status text.",
+              "x-dspack-source": {
+                "sourceProp": "label",
+                "sourceType": "string"
+              }
+            },
+            "variant": {
+              "type": "string",
+              "description": "Status hue, projected one to one onto the registry-conventional badge variants.",
+              "enum": [
+                "secondary",
+                "default",
+                "destructive",
+                "outline"
+              ],
+              "default": "secondary",
+              "x-dspack-source": {
+                "sourceProp": "hue",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "gray",
+                  "green",
+                  "red",
+                  "amber"
+                ],
+                "valueMap": {
+                  "gray": "secondary",
+                  "green": "default",
+                  "red": "destructive",
+                  "amber": "outline"
+                }
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label"
+          ],
+          "description": "Status marker. Hue is semantic, not decorative.",
+          "x-dspack": {
+            "sourceId": "tag-pill"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "TextField": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/Checkable"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "TextField"
+            },
+            "value": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The bound value of the field."
+            },
+            "label": {
+              "type": "string",
+              "description": "Visible field label.",
+              "x-dspack-source": {
+                "sourceProp": "label",
+                "sourceType": "string"
+              }
+            },
+            "resizable": {
+              "type": "boolean",
+              "description": "Allow the user to drag-resize vertically.",
+              "x-dspack-source": {
+                "sourceProp": "resizable",
+                "sourceType": "boolean"
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label"
+          ],
+          "description": "Multi-line text entry with a mandatory visible label.",
+          "x-dspack": {
+            "sourceId": "note-field"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Text": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Text"
+            },
+            "text": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The text content to display."
+            },
+            "variant": {
+              "type": "string",
+              "description": "A hint for the base text style.",
+              "enum": [
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "caption",
+                "body"
+              ],
+              "default": "body"
+            }
+          },
+          "required": [
+            "component",
+            "text"
+          ],
+          "description": "Displays text content. Synthesized A2UI content primitive (not in the Acme contract)."
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Column": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Column"
+            },
+            "children": {
+              "$ref": "#/$defs/ChildList",
+              "description": "Child component IDs (or a template)."
+            }
+          },
+          "required": [
+            "component",
+            "children"
+          ],
+          "description": "Arranges children vertically. Synthesized A2UI structural primitive (the Acme contract has no layout component)."
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  },
+  "$defs": {
+    "ComponentId": {
+      "type": "string",
+      "description": "The unique identifier for a component, used for both definitions and references within the same surface."
+    },
+    "AccessibilityAttributes": {
+      "type": "object",
+      "description": "Attributes to enhance accessibility when using assistive technologies like screen readers.",
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "description": {
+          "$ref": "#/$defs/DynamicString"
+        }
+      }
+    },
+    "ComponentCommon": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "accessibility": {
+          "$ref": "#/$defs/AccessibilityAttributes"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "DataBinding": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "A JSON Pointer path to a value in the data model."
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "FunctionCall": {
+      "type": "object",
+      "description": "Invokes a named function on the client.",
+      "properties": {
+        "call": {
+          "type": "string",
+          "description": "The name of the function to call."
+        },
+        "args": {
+          "type": "object",
+          "description": "Arguments passed to the function.",
+          "additionalProperties": true
+        },
+        "returnType": {
+          "type": "string",
+          "description": "The expected return type of the function call.",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "array",
+            "object",
+            "any",
+            "void"
+          ],
+          "default": "boolean"
+        }
+      },
+      "required": [
+        "call"
+      ]
+    },
+    "DynamicValue": {
+      "description": "A value that can be a literal, a path, or a function call returning any type.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "array"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "$ref": "#/$defs/FunctionCall"
+        }
+      ]
+    },
+    "DynamicString": {
+      "description": "Represents a string",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FunctionCall"
+            },
+            {
+              "properties": {
+                "returnType": {
+                  "const": "string"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "DynamicBoolean": {
+      "description": "Represents a boolean",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FunctionCall"
+            },
+            {
+              "properties": {
+                "returnType": {
+                  "const": "boolean"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "ChildList": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "A static list of child component IDs."
+        },
+        {
+          "type": "object",
+          "description": "A template for generating a dynamic list of children from a data model list.",
+          "properties": {
+            "componentId": {
+              "$ref": "#/$defs/ComponentId"
+            },
+            "path": {
+              "type": "string",
+              "description": "The path to the list of component property objects in the data model."
+            }
+          },
+          "required": [
+            "componentId",
+            "path"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CheckRule": {
+      "type": "object",
+      "description": "A single validation rule applied to an input component.",
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/DynamicBoolean"
+        },
+        "message": {
+          "type": "string",
+          "description": "The error message to display if the check fails."
+        }
+      },
+      "required": [
+        "condition",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "Checkable": {
+      "type": "object",
+      "description": "Properties for components that support client-side checks.",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "description": "A list of checks to perform.",
+          "items": {
+            "$ref": "#/$defs/CheckRule"
+          }
+        }
+      }
+    },
+    "Action": {
+      "description": "Defines an interaction handler that can either trigger a server-side event or execute a local client-side function.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Triggers a server-side event.",
+          "properties": {
+            "event": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "context": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/DynamicValue"
+                  }
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "event"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Executes a local client-side function.",
+          "properties": {
+            "functionCall": {
+              "$ref": "#/$defs/FunctionCall"
+            }
+          },
+          "required": [
+            "functionCall"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "anyComponent": {
+      "oneOf": [
+        {
+          "$ref": "#/components/Button"
+        },
+        {
+          "$ref": "#/components/Card"
+        },
+        {
+          "$ref": "#/components/Badge"
+        },
+        {
+          "$ref": "#/components/TextField"
+        },
+        {
+          "$ref": "#/components/Text"
+        },
+        {
+          "$ref": "#/components/Column"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "component"
+      }
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "primaryColor": {
+          "type": "string",
+          "description": "The primary brand color used for highlights (e.g., primary buttons, active borders). Format: Hexadecimal code (e.g., '#00BFFF').",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "default": "#2f5d3a",
+          "x-dspack-source": "tokens.color.acme-brand"
+        },
+        "iconUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL for an image that identifies the agent or tool associated with the surface."
+        },
+        "agentDisplayName": {
+          "type": "string",
+          "description": "Text displayed next to the surface to identify the agent or tool that created it."
+        }
+      },
+      "additionalProperties": true,
+      "x-dspack-tokens": {
+        "color": {
+          "acme-surface": "#ffffff",
+          "acme-wash": "#f4f4f2",
+          "acme-line": "#d9d7d2",
+          "acme-ink": "#1e1d1a",
+          "acme-ink-dim": "#6d6a63",
+          "acme-brand": "#2f5d3a",
+          "acme-danger": "#a3332b",
+          "acme-danger-wash": "#f9e8e6",
+          "acme-ok": "#2f5d3a",
+          "acme-ok-wash": "#e8f1ea",
+          "acme-warn": "#8a6d1f",
+          "acme-warn-wash": "#f7f0dc"
+        }
+      }
+    }
+  }
+}

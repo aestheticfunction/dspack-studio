@@ -215,6 +215,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/composer-core:
+    dependencies:
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
+
   packages/contracts:
     dependencies:
       '@aestheticfunction/dspack-emit':
@@ -291,6 +304,28 @@ importers:
       tailwindcss:
         specifier: ^4.1.0
         version: 4.3.2
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)
+
+  packages/wireframe-renderers:
+    dependencies:
+      '@dspack-studio/a2ui-ingest':
+        specifier: workspace:*
+        version: link:../a2ui-ingest
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.17
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
