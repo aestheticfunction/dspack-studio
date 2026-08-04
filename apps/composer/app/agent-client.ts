@@ -3,6 +3,7 @@
  * every helper resolves to a typed error the UI states plainly ("requires the
  * local agent") instead of simulating results.
  */
+import { HttpAgent, type BaseEvent } from "@dspack-studio/agui-bridge";
 import type { ComposerFinding, LedgerStatus, ProjectManifest } from "@dspack-studio/composer-core";
 
 export interface EmitPayload {
@@ -98,3 +99,63 @@ export const agentEmit = (path: string) => post<EmitPayload>("/project/emit", { 
 export const agentValidate = (path: string) => post<ValidatePayload>("/project/validate", { path });
 export const agentSave = (path: string, kind: "contract" | "profile", document: unknown) =>
   post<{ ok: boolean; findings: Array<{ path?: string; target?: string; message: string }>; ledger?: LedgerStatus }>("/project/save", { path, kind, document });
+
+/** Model refs the local agent can run right now ("scripted" + local Ollama tags). */
+export async function agentModels(): Promise<string[]> {
+  try {
+    const res = await fetch(`${agentUrl()}/models`, { signal: AbortSignal.timeout(3000) });
+    const body = (await res.json()) as { models?: string[] };
+    return Array.isArray(body.models) && body.models.length ? body.models : ["scripted"];
+  } catch {
+    return ["scripted"];
+  }
+}
+
+export interface BuildRunInput {
+  path: string;
+  prompt: string;
+  intent: string;
+  modelRef: string;
+  /** Refinement seed: the prior turn's ask + generated surface, verbatim. */
+  conversation?: Array<{ role: "user" | "assistant"; content: string }>;
+}
+
+/**
+ * Stream a project-scoped generation run (AG-UI SSE over /project/run).
+ * Events arrive as plain mapper-shaped JSON for composer-core's fold; the
+ * returned handle cancels the subscription.
+ */
+export function streamProjectRun(
+  input: BuildRunInput,
+  handlers: { onEvent(event: Record<string, unknown>): void; onError(message: string): void; onComplete(): void },
+): { cancel(): void } {
+  const agent = new HttpAgent({ url: `${agentUrl()}/project/run` });
+  const observable = agent.run({
+    threadId: `build-${input.path}`,
+    runId: `build-${Date.now()}`,
+    messages: [],
+    tools: [],
+    context: [],
+    state: {},
+    forwardedProps: input,
+  } as never);
+  const subscription = (observable as { subscribe(o: object): { unsubscribe(): void } }).subscribe({
+    next: (event: BaseEvent) => handlers.onEvent(event as unknown as Record<string, unknown>),
+    error: (err: unknown) => handlers.onError(err instanceof Error ? err.message : String(err)),
+    complete: () => handlers.onComplete(),
+  });
+  return { cancel: () => subscription.unsubscribe() };
+}
+
+export interface AcceptedExample {
+  id: string;
+  intent: string;
+  name?: string;
+  prompt: string;
+  description?: string;
+  surface: Record<string, unknown>;
+}
+
+/** Server-side fail-closed acceptance of a build result as a worked example. */
+export const agentSaveExample = (path: string, example: AcceptedExample) =>
+  post<{ ok: boolean; findings: ComposerFinding[]; example?: AcceptedExample; ledger?: LedgerStatus }>("/project/save-example", { path, example });

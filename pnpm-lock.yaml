@@ -24,8 +24,8 @@ importers:
         specifier: ^0.5.0
         version: 0.5.0
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.1.3
-        version: 0.1.3(zod@4.4.3)
+        specifier: ^0.2.0
+        version: 0.2.0(zod@4.4.3)
       '@aestheticfunction/dspack-spec':
         specifier: ^0.4.2
         version: 0.4.2
@@ -61,14 +61,17 @@ importers:
   apps/composer:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.1.3
-        version: 0.1.3(zod@4.4.3)
+        specifier: ^0.2.0
+        version: 0.2.0(zod@4.4.3)
       '@aestheticfunction/dspack-spec':
         specifier: ^0.4.2
         version: 0.4.2
       '@dspack-studio/a2ui-ingest':
         specifier: workspace:*
         version: link:../../packages/a2ui-ingest
+      '@dspack-studio/agui-bridge':
+        specifier: workspace:*
+        version: link:../../packages/agui-bridge
       '@dspack-studio/composer-core':
         specifier: workspace:*
         version: link:../../packages/composer-core
@@ -110,8 +113,8 @@ importers:
   apps/web:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.1.3
-        version: 0.1.3(zod@4.4.3)
+        specifier: ^0.2.0
+        version: 0.2.0(zod@4.4.3)
       '@astryxdesign/core':
         specifier: 0.1.4
         version: 0.1.4(@stylexjs/stylex@0.18.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -424,8 +427,8 @@ packages:
     engines: {node: '>=22.0.0'}
     hasBin: true
 
-  '@aestheticfunction/dspack-gen@0.1.3':
-    resolution: {integrity: sha512-UXtAHeAQTrsvwgybEmbRd87yKs6ZZqTL6kngTTjr1q3k3EqapxbwalD6S1x+HuZnpKRUVC0zqeDynANrj4IwiA==}
+  '@aestheticfunction/dspack-gen@0.2.0':
+    resolution: {integrity: sha512-+oaMqk/pRH0FkK8On7vDKRBQvAw+qROujaP9yRduvm9xbElTk7KAkgNYhYqbLTnY16+rbqAk22Zud+fgsJ4paQ==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -2338,7 +2341,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@aestheticfunction/dspack-gen@0.1.3(zod@4.4.3)':
+  '@aestheticfunction/dspack-gen@0.2.0(zod@4.4.3)':
     dependencies:
       '@aestheticfunction/dspack-emit': 0.4.1
       '@anthropic-ai/sdk': 0.109.1(zod@4.4.3)

@@ -42,6 +42,7 @@ async function migrated(page: Page, options: DemoOptions = {}) {
 test("a ledger-v1 project renders ONLY the section-level ownership experience", async ({ page }) => {
   const project = demoProject();
   await connect(page, project.root);
+  await page.getByTestId("nav-project").click(); // Build-first: ownership lives on Project
 
   await expect(page.getByTestId("ledger-components")).toContainText("human-owned");
   await expect(page.getByTestId("ledger-tokens")).toContainText("tool-owned");
@@ -187,6 +188,7 @@ test("a decision survives a full page reload and reconnect", async ({ page }) =>
 
   await page.reload();
   await connect(page, project.root);
+  await page.getByTestId("nav-project").click();
   await expect(page.getByTestId(`entry-${PENDING}`)).toContainText("tombstoned");
   expect(project.ledger().doNotRediscover).toEqual([PENDING]);
 });
@@ -244,6 +246,7 @@ test("decisions are operable by keyboard, and focus is never dropped to the body
 test("an acknowledged casualty reads as a decision, not unfinished work (#30)", async ({ page }) => {
   const project = demoProject();
   await connect(page, project.root);
+  await page.getByTestId("nav-project").click(); // Build-first: the checklist lives on Project
 
   // The project home: gates pass, the acknowledgement reported alongside.
   const row = page.getByTestId("progress").filter({ hasText: "Gates green" });
@@ -263,6 +266,7 @@ test("an acknowledged casualty reads as a decision, not unfinished work (#30)", 
   // The decision survives a reload.
   await page.reload();
   await connect(page, project.root);
+  await page.getByTestId("nav-project").click();
   await expect(page.getByTestId("progress").filter({ hasText: "Gates green" })).toContainText("acknowledged casualty");
 });
 

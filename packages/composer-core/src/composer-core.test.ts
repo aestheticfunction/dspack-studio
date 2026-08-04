@@ -32,6 +32,7 @@ import {
   unresolvedErrors,
 } from "./findings";
 import { COMPOSER_ADAPTERS, composerAdapter } from "./adapters";
+import { buildReadiness, foldBuildEvents, vocabularyGap } from "./build";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url)), "utf8"));
@@ -425,5 +426,93 @@ describe("gate arithmetic and summary (#30)", () => {
 
   it("stays not-done when emit has not run, whatever the findings say", () => {
     expect(gatesSummary([], false)).toEqual({ done: false, detail: "emit has not run" });
+  });
+});
+
+
+describe("build readiness (the runway to Build)", () => {
+  const readyArgs = () => ({
+    contract: {
+      intents: [{ id: "status-report" }],
+      components: { a: {}, b: {} },
+      examples: [{ id: "ex.one" }],
+    },
+    profile: { components: [{ dspackId: "a" }], casualtyComponents: [{ dspackId: "b" }] },
+    findings: [] as ReturnType<typeof finding>[],
+    emitOk: true,
+  });
+
+  it("is ready only when contract, profile, intent, mapping, gates, and an example all exist", () => {
+    expect(buildReadiness(readyArgs())).toEqual({ ready: true });
+  });
+
+  it("names the exact blocking condition for every gap", () => {
+    expect(buildReadiness({ ...readyArgs(), contract: null }).reason).toMatch(/no contract/);
+    expect(buildReadiness({ ...readyArgs(), profile: null }).reason).toMatch(/profile/);
+    const noIntents = readyArgs();
+    noIntents.contract.intents = [];
+    expect(buildReadiness(noIntents).reason).toMatch(/no intents authored/);
+    const unmapped = readyArgs();
+    unmapped.profile = { components: [], casualtyComponents: [] };
+    expect(buildReadiness(unmapped).reason).toMatch(/2 component\(s\) unmapped/);
+    expect(buildReadiness({ ...readyArgs(), findings: null }).reason).toMatch(/emit has not run/);
+    expect(buildReadiness({ ...readyArgs(), findings: [finding("A1", "x", "error", "", "boom")] }).reason).toMatch(/gates not green/);
+    const noExamples = readyArgs();
+    noExamples.contract.examples = [];
+    expect(buildReadiness(noExamples).reason).toMatch(/no worked example/);
+  });
+
+  it("acknowledged casualties do not block building", () => {
+    const args = readyArgs();
+    args.findings = [{ ...finding("A3", "emit-surface", "error", "s", "declared casualty"), acknowledged: { componentId: "b", class: "cannot-represent", reason: "r" } } as never];
+    expect(buildReadiness(args)).toEqual({ ready: true });
+  });
+});
+
+describe("folding a streamed build run", () => {
+  const stream = [
+    { type: "RUN_STARTED" },
+    { type: "STEP_STARTED", stepName: "attempt-0" },
+    { type: "CUSTOM", name: "dspack.gates", value: { gates: [{ gate: "S1", status: "PASS" }, { gate: "S2", status: "FAIL", errors: ["component 'not-a-component' is not contract vocabulary"] }] } },
+    { type: "STEP_FINISHED", stepName: "attempt-0" },
+    { type: "CUSTOM", name: "dspack.repair", value: { index: 0, message: "fix it" } },
+    { type: "STEP_STARTED", stepName: "attempt-1" },
+    { type: "CUSTOM", name: "dspack.gates", value: { gates: [{ gate: "S1", status: "PASS" }, { gate: "S2", status: "PASS" }, { gate: "S3", status: "PASS" }] } },
+    { type: "STEP_FINISHED", stepName: "attempt-1" },
+    { type: "CUSTOM", name: "dspack.emit", value: { validations: [{ gate: "A1", pass: true }], warnings: [] } },
+    { type: "CUSTOM", name: "dspack.audit", value: { outcome: "passed", exitCode: 0, report: { attempts: [{ index: 0, surface: { root: 1 } }, { index: 1, surface: { root: { component: "info-card" } } }] } } },
+    { type: "RUN_FINISHED" },
+  ];
+
+  it("yields attempts with gates, the verbatim repair, emit, and the final surface", () => {
+    const turn = foldBuildEvents(stream);
+    expect(turn.status).toBe("finished");
+    expect(turn.attempts.map((a) => a.index)).toEqual([0, 1]);
+    expect(turn.attempts[0].repair).toBe("fix it");
+    expect(turn.attempts[0].gates[1].status).toBe("FAIL");
+    expect(turn.outcome).toBe("passed");
+    expect(turn.surface).toEqual({ root: { component: "info-card" } });
+    expect(turn.emit?.validations).toBeDefined();
+  });
+
+  it("distinguishes a vocabulary gap from a formatting failure, structurally", () => {
+    // Final attempt failing S2 with a named component = a gap.
+    const gapTurn = foldBuildEvents(stream.slice(0, 4).concat([{ type: "CUSTOM", name: "dspack.audit", value: { outcome: "failed-lint-exhausted", exitCode: 2, report: { attempts: [] } } }, { type: "RUN_FINISHED" }]));
+    expect(vocabularyGap(gapTurn)).toEqual(["not-a-component"]);
+    // Final attempt failing S1 only = formatting, no gap.
+    const s1Turn = foldBuildEvents([
+      { type: "STEP_STARTED", stepName: "attempt-0" },
+      { type: "CUSTOM", name: "dspack.gates", value: { gates: [{ gate: "S1", status: "FAIL", errors: ["(root) must be object"] }] } },
+      { type: "RUN_FINISHED" },
+    ]);
+    expect(vocabularyGap(s1Turn)).toEqual([]);
+    // A repaired S2 failure is not a standing gap.
+    expect(vocabularyGap(foldBuildEvents(stream))).toEqual([]);
+  });
+
+  it("surfaces stream errors as an error status", () => {
+    const turn = foldBuildEvents([{ type: "RUN_STARTED" }, { type: "RUN_ERROR", message: "agent gone" }]);
+    expect(turn.status).toBe("error");
+    expect(turn.error).toBe("agent gone");
   });
 });

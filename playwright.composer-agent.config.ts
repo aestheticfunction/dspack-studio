@@ -31,7 +31,7 @@ export default defineConfig({
   projects: [
     {
       name: "composer-agent",
-      testMatch: ["composer-agent.spec.ts", "composer-agent-a11y.spec.ts"],
+      testMatch: ["composer-agent.spec.ts", "composer-agent-a11y.spec.ts", "composer-build.spec.ts", "composer-build-a11y.spec.ts"],
     },
   ],
   webServer: [

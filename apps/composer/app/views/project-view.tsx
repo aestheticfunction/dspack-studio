@@ -255,6 +255,14 @@ export function ProjectView({ onNavigate }: { onNavigate: (view: View) => void }
             <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)", marginTop: 20 }}>
               What remains
             </h2>
+            <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Set up your design system, then build with it — this checklist is the runway.</p>
+            {state.readiness.ready && state.mode === "agent" && (
+              <p>
+                <button className="st-btn" onClick={() => onNavigate("build")} data-testid="start-building">
+                  Start building
+                </button>
+              </p>
+            )}
             <ul style={{ listStyle: "none", padding: 0, fontSize: 13 }} data-testid="progress">
               {rows.map((row) => (
                 <li key={row.label} style={{ borderTop: "1px solid var(--line-soft)", padding: "7px 0", display: "flex", gap: 10, alignItems: "baseline" }}>
