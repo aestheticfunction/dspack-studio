@@ -405,6 +405,24 @@ describe("gate arithmetic and summary (#30)", () => {
     expect(gatesSummary([err("schema-compile")], true)).toEqual({ done: false, detail: "1 error finding" });
   });
 
+  it("acknowledgement never spreads to other findings on the same surface", () => {
+    // Only the emission refusal itself is a decision; a lint or coverage
+    // finding targeting the same surface is unrelated unresolved work.
+    const surface = "uses-casualty";
+    const findings = [
+      ack(surface),
+      finding("S2", "unknown-component", "error", surface, "component is not contract vocabulary"),
+      finding("coverage", "unclassified", "error", surface, "neither mapped nor a declared casualty"),
+      finding("fidelity", "lossy", "warn", surface, "5 -> 4 projection"),
+    ];
+    expect(acknowledgedCasualties(findings).map((f) => f.gate)).toEqual(["A3"]);
+    expect(unresolvedErrors(findings).map((f) => f.gate)).toEqual(["S2", "coverage"]);
+    expect(gatesSummary(findings, true)).toEqual({
+      done: false,
+      detail: "2 error findings · 1 acknowledged casualty",
+    });
+  });
+
   it("stays not-done when emit has not run, whatever the findings say", () => {
     expect(gatesSummary([], false)).toEqual({ done: false, detail: "emit has not run" });
   });

@@ -133,8 +133,15 @@ const authoredReason = (c: CasualtyDeclaration): string | null =>
   typeof c.reason === "string" && c.reason.trim().length > 0 ? c.reason : null;
 
 /**
- * Classify one surface's emit refusal. Returns the acknowledged casualty, or
+ * Classify ONE surface's emit refusal. Returns the acknowledged casualty, or
  * null when the refusal is not provably one (the conservative default).
+ *
+ * SCOPE BOUNDARY. Acknowledgement applies to that single surface-level
+ * emission refusal and to nothing else. Schema, mapping, coverage, lint,
+ * generation, and every other finding — including ones targeting the SAME
+ * surface — stay unclassified and keep counting as unresolved work. A
+ * surface carrying both an acknowledged casualty and a genuine failure
+ * leaves the project failed, with both categories reported.
  */
 export function classifySurfaceRefusal(
   surface: unknown,
