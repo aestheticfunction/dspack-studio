@@ -11,22 +11,49 @@ Two artifacts, deliberately separable:
 
 **https://studio.aesthetic-function.com** runs the static-only topology on
 **Cloudflare Workers Static Assets**, configured by the committed
-`wrangler.jsonc` at the repository root:
+`wrangler.jsonc` at the repository root.
 
-| Setting | Value |
-|---|---|
-| Repository path | `/` (repo root) |
-| Application build command | `pnpm --dir apps/web run build` (the dashboard's actual setting; `pnpm build:deploy` works too) |
-| Deploy command | `npx wrangler deploy` |
-| Static asset directory | `apps/web/out` (from `wrangler.jsonc`) |
-| Environment variables | none (`NEXT_PUBLIC_AGENT_URL` deliberately unset) |
+**Deployment is explicit (issue #34).** CI verifies every merge to `main`;
+production deploys only when a person dispatches the
+`deploy-exhibit` GitHub Actions workflow (frozen install → contract gates →
+`pnpm build:deploy` → rollback-anchor capture → `npx wrangler deploy
+--config wrangler.jsonc` → production smoke), or runs the same sequence
+locally:
+
+```sh
+pnpm build:deploy                       # contracts + static export -> apps/web/out
+npx wrangler deployments list --config wrangler.jsonc   # record the rollback anchor FIRST
+npx wrangler deploy --config wrangler.jsonc
+npx playwright test --config playwright.production.config.ts
+```
+
+Rollback: `npx wrangler rollback --config wrangler.jsonc` — fully
+independent from the composer Worker (`wrangler.composer.jsonc`); neither
+rollback touches the other.
+
+The workflow authenticates with the repository secret
+`CLOUDFLARE_API_TOKEN` (Account → Workers Scripts → Edit, that account
+only). Until the secret exists the workflow is inert.
+
+**The previous implicit path (being retired):** the `dspack-studio` Worker
+carried a Cloudflare Workers Builds Git integration — repository
+`aestheticfunction/dspack-studio`, production branch `main`, root directory
+`/`, build command `pnpm --dir apps/web run build`, deploy command
+`npx wrangler deploy`, no path filters, no environment variables — which
+rebuilt and redeployed the exhibit on **every** push to `main` (observed
+four consecutive times on 2026-08-04, three of them from commits touching
+nothing the exhibit consumes; evidence in #34). It must be disabled in the
+dashboard: Workers & Pages → `dspack-studio` → Settings → Build →
+disconnect the Git repository. Disabling stops future git-triggered builds
+only — it does not remove the Worker, its versions, its route, or the
+custom domain. The composer Worker has no such integration; its deploys
+were always explicit.
 
 The web build is self-sufficient on a clean checkout: `apps/web`'s `build`
 script generates the gated contract artifacts first (`packages/contracts/out`
 is gitignored emission output) and then runs the Next.js static export.
 `pnpm build:deploy` remains the canonical local command: it does the same
-and additionally verifies `apps/web/out` exists. Cloudflare installs
-dependencies itself; do not fold `pnpm install` into the build command.
+and additionally verifies `apps/web/out` exists.
 
 Analytics: Cloudflare Web Analytics (zone-injected beacon, cookieless).
 
