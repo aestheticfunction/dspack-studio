@@ -229,11 +229,18 @@ async function discover(ctx: ProjectContext) {
  * Section-scoped rediscovery: fresh extraction merged at the ledger's
  * granularity (dspack-export regenerateSections) — tool-owned refreshes,
  * human-owned and governance preserved, new components added.
+ * `restoreTopLevel` passes explicit owner intents through (the ratified
+ * "Restore top-level" conflict resolution); the tool's refusals are
+ * returned verbatim.
  */
-async function rediscover(ctx: ProjectContext) {
+async function rediscover(ctx: ProjectContext, body: Record<string, unknown>) {
   const config = exportConfig(ctx);
   if (!existsSync(ctx.contractPath)) {
     throw new ProjectError(409, "no contract exists yet; run discovery first");
+  }
+  const restoreTopLevel = body.restoreTopLevel;
+  if (restoreTopLevel !== undefined && (!Array.isArray(restoreTopLevel) || restoreTopLevel.some((id) => typeof id !== "string"))) {
+    throw new ProjectError(400, "restoreTopLevel must be an array of component id strings");
   }
   const existing = readJson(ctx.contractPath) as Parameters<typeof regenerateSections>[0];
   let fresh;
@@ -242,7 +249,7 @@ async function rediscover(ctx: ProjectContext) {
   } catch (e) {
     throw new ProjectError(409, (e instanceof Error ? e.message : String(e)).trim());
   }
-  const result = regenerateSections(existing, fresh);
+  const result = regenerateSections(existing, fresh, restoreTopLevel ? { restoreTopLevel: restoreTopLevel as string[] } : undefined);
   if (!result.ok) throw new ProjectError(409, result.reason);
   atomicWriteJson(ctx.contractPath, result.document);
   const contract = result.document as unknown as Record<string, unknown>;
@@ -473,7 +480,7 @@ export async function handleProjectRoute(
         json(res, 200, await discover(ctx), cors);
         return true;
       case "rediscover":
-        json(res, 200, await rediscover(ctx), cors);
+        json(res, 200, await rediscover(ctx, body), cors);
         return true;
       case "emit":
         json(res, 200, emit(ctx), cors);

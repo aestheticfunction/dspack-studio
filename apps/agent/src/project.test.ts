@@ -167,6 +167,46 @@ describe("rediscover", () => {
     expect(second.payload.contract.components["spark-line"]).toBeUndefined();
     expect(second.payload.ledger.componentEntries.find((e: any) => e.id === "spark-line").state).toBe("tombstoned");
   });
+
+  it("restoredConflict: authored sub-component blocks re-add until the explicit restore-top-level intent", async () => {
+    // Undo the tombstone and author spark-line as a sub-component of
+    // action-button (the #13 restructure shape, through the real routes).
+    const contract = JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
+    contract.metadata["x-bootstrap"].doNotRediscover = [];
+    contract.components["action-button"].composition = {
+      subComponents: [{ id: "spark-line", name: "SparkLine", description: "Inline trend inside the button." }],
+    };
+    const saved = await call("save", { path: root, kind: "contract", document: contract });
+    expect(saved.payload.ok).toBe(true);
+
+    // Outcome 3 first (leave unresolved): reported, never re-added.
+    const unresolved = await call("rediscover", { path: root });
+    expect(unresolved.status).toBe(200);
+    // The shipped demo project carries its own #13-shaped conflicts
+    // (info-card sub-vocabulary discovered top-level in source), so assert
+    // on spark-line specifically rather than the whole list.
+    expect(unresolved.payload.report.components.restoredConflict).toContainEqual({ id: "spark-line", parent: "action-button" });
+    expect(unresolved.payload.contract.components["spark-line"]).toBeUndefined();
+
+    // A contradictory intent refuses with the tool's words (nothing partial).
+    const contradicted = await call("rediscover", { path: root, restoreTopLevel: ["not-in-source"] });
+    expect(contradicted.status).toBe(409);
+    expect(contradicted.payload.error).toContain("not-in-source");
+
+    // Outcome 2: the explicit intent restores tool-owned, nested preserved.
+    const restored = await call("rediscover", { path: root, restoreTopLevel: ["spark-line"] });
+    expect(restored.status).toBe(200);
+    expect(restored.payload.report.components.restoredTopLevel).toEqual([{ id: "spark-line", parent: "action-button" }]);
+    expect(restored.payload.report.components.restoredConflict.map((x: any) => x.id)).not.toContain("spark-line");
+    expect(restored.payload.contract.components["spark-line"]).toBeDefined();
+    expect(restored.payload.contract.components["action-button"].composition.subComponents[0].id).toBe("spark-line");
+    expect(restored.payload.ledger.componentEntries.find((e: any) => e.id === "spark-line").state).toBe("tool-owned");
+
+    // Subsequent runs treat it as ordinary tool-owned; the conflict is gone.
+    const after = await call("rediscover", { path: root });
+    expect(after.payload.report.components.restoredConflict.map((x: any) => x.id)).not.toContain("spark-line");
+    expect(after.payload.report.components.unchanged).toContain("spark-line");
+  });
 });
 
 describe("save", () => {

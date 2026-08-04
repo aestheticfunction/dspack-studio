@@ -83,14 +83,18 @@ export interface RediscoverReport {
     suppressed: string[];
     suppressedButPresent: string[];
     restoredConflict: Array<{ id: string; parent: string }>;
+    restoredTopLevel: Array<{ id: string; parent?: string }>;
     entryHashRetired: string[];
   };
 }
 
 export const agentConnect = (path: string) => post<ConnectPayload>("/project/connect", { path });
 export const agentDiscover = (path: string) => post<{ ok: boolean; log: string; contract: Record<string, unknown>; ledger: LedgerStatus }>("/project/discover", { path });
-export const agentRediscover = (path: string) =>
-  post<{ ok: boolean; contract: Record<string, unknown>; ledger: LedgerStatus; report: RediscoverReport }>("/project/rediscover", { path });
+export const agentRediscover = (path: string, restoreTopLevel?: string[]) =>
+  post<{ ok: boolean; contract: Record<string, unknown>; ledger: LedgerStatus; report: RediscoverReport }>(
+    "/project/rediscover",
+    restoreTopLevel ? { path, restoreTopLevel } : { path },
+  );
 export const agentEmit = (path: string) => post<EmitPayload>("/project/emit", { path });
 export const agentValidate = (path: string) => post<ValidatePayload>("/project/validate", { path });
 export const agentSave = (path: string, kind: "contract" | "profile", document: unknown) =>

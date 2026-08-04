@@ -52,7 +52,7 @@ function progressRows(state: ReturnType<typeof useComposer>): Array<{ label: str
  * its own — the buttons ARE the acceptance.
  */
 function RediscoveryReport() {
-  const { rediscovery, resolveDeletion, acceptFreshFact, busy } = useComposer();
+  const { rediscovery, resolveDeletion, resolveConflict, acceptFreshFact, busy } = useComposer();
   if (!rediscovery) return null;
   const c = rediscovery.components;
   const line = (label: string, ids: string[], color = "var(--fg-body)") =>
@@ -78,6 +78,7 @@ function RediscoveryReport() {
         {line("kept, missing in source", c.keptMissingInFresh, "var(--warn)")}
         {line("skipped (tombstoned)", c.suppressed, "var(--fg-faint)")}
         {line("tombstoned but present", c.suppressedButPresent, "var(--warn)")}
+        {line("restored top-level (both exist)", c.restoredTopLevel.map((x) => (x.parent ? `${x.id} (nested in ${x.parent} kept)` : x.id)), "var(--ok)")}
         {line("hash retired", c.entryHashRetired, "var(--fg-faint)")}
       </ul>
 
@@ -104,14 +105,25 @@ function RediscoveryReport() {
       )}
 
       {c.restoredConflict.length > 0 && (
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 10 }} data-testid="conflicts-awaiting">
           <h3 style={{ fontSize: 13, color: "var(--warn)" }}>Restructured, not re-added</h3>
+          <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+            Each of these exists in source as a top-level component, but you authored it as a sub-component of another
+            entry. Rediscovery never decides which representation you meant: keep yours nested, restore the top-level
+            entry alongside it, or decide later — nothing changes until you choose.
+          </p>
           {c.restoredConflict.map(({ id, parent }) => (
-            <p key={id} style={{ fontSize: 12, color: "var(--fg-body)", margin: "2px 0" }}>
-              <code>{id}</code> exists in source as a top-level component but you authored it as a sub-component of{" "}
-              <code>{parent}</code>; rediscovery will not re-add it on top of your structure. Tombstone it (above, once
-              deleted) to silence this permanently.
-            </p>
+            <div key={id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }} data-testid={`conflict-${id}`}>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 12, flex: 1 }}>
+                {id} <span style={{ color: "var(--fg-dim)" }}>nested in {parent}</span>
+              </span>
+              <button className="st-btn" disabled={busy !== null} onClick={() => void resolveConflict(id, "keep-nested")} data-testid={`keep-nested-${id}`}>
+                Keep nested
+              </button>
+              <button className="st-btn st-btn--dashed" disabled={busy !== null} onClick={() => void resolveConflict(id, "restore-top-level")} data-testid={`restore-top-level-${id}`}>
+                Restore top-level
+              </button>
+            </div>
           ))}
         </div>
       )}

@@ -60,6 +60,8 @@ export interface ComposerState {
   saveProfile: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
   /** Explicit deletion decisions (ledger v2): restore or tombstone an id. */
   resolveDeletion: (id: string, decision: "restore" | "tombstone") => Promise<void>;
+  /** Explicit restoredConflict decisions, phrased as intent (ratified). */
+  resolveConflict: (id: string, decision: "keep-nested" | "restore-top-level") => Promise<void>;
   clearTombstone: (id: string) => Promise<void>;
   /** Explicit acceptance of one fresh-side fact into a human-owned entry. */
   acceptFreshFact: (componentId: string, fact: FreshFact) => Promise<void>;
@@ -304,6 +306,63 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     [contract, saveContract],
   );
 
+  /**
+   * The ratified restoredConflict outcomes, phrased as intent:
+   * - keep nested: tombstone the id + retire the memory (a document edit
+   *   saved through the ordinary ledger-preserving path); the conflict
+   *   stops reporting on subsequent rediscoveries.
+   * - restore top-level: a one-shot explicit intent passed to the tool —
+   *   the entry returns from fresh extraction as tool-owned alongside the
+   *   nested authored one. Refusals are the tool's words verbatim.
+   * Not calling either is the third outcome: nothing changes, the memory
+   * and the report persist.
+   */
+  const resolveConflict = useCallback(
+    async (id: string, decision: "keep-nested" | "restore-top-level") => {
+      if (!contract) return;
+      if (decision === "keep-nested") {
+        const result = addTombstone(contract, id);
+        if (!result.ok) {
+          setNotice(`Cannot keep '${id}' nested: ${result.reason}`);
+          return;
+        }
+        await saveContract(result.document);
+        setRediscovery((r) =>
+          r
+            ? {
+                ...r,
+                components: {
+                  ...r.components,
+                  restoredConflict: r.components.restoredConflict.filter((c) => c.id !== id),
+                  suppressed: [...r.components.suppressed, id],
+                },
+              }
+            : r,
+        );
+        setNotice(`Keeping '${id}' nested: rediscovery will never re-add the top-level entry (tombstoned; removable in the Ownership panel).`);
+        return;
+      }
+      if (mode !== "agent") {
+        setNotice("Restoring the top-level entry re-runs dspack-export on your machine; connect through the local agent first.");
+        return;
+      }
+      setBusy("restoring");
+      const result = await agentRediscover(projectPath, [id]);
+      setBusy(null);
+      if (!result.ok) {
+        setNotice(`Restore refused: ${result.error}`);
+        return;
+      }
+      const v = result.value;
+      setContract(v.contract as Record<string, any>);
+      setLedger(v.ledger);
+      setRediscovery(v.report);
+      recomputeEmit(v.contract as Record<string, any>, profile);
+      setNotice(`'${id}' restored as a top-level component (tool-owned); your nested representation is untouched — both now exist.`);
+    },
+    [contract, mode, projectPath, profile, recomputeEmit, saveContract],
+  );
+
   const clearTombstone = useCallback(
     async (id: string) => {
       if (!contract) return;
@@ -398,12 +457,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       saveContract,
       saveProfile,
       resolveDeletion,
+      resolveConflict,
       clearTombstone,
       acceptFreshFact,
       runEmit,
       runValidate,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, resolveDeletion, clearTombstone, acceptFreshFact, runEmit, runValidate],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
