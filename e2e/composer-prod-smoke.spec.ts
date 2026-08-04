@@ -94,6 +94,17 @@ test("reloading and directly opening the app never hits a platform 404", async (
   await expect(page.getByTestId("notice")).toContainText("Demo project loaded");
 });
 
+test("the shipped demo's authored casualty reads as an acknowledged decision (#30)", async ({ page }) => {
+  await page.goto("/");
+  const row = page.getByTestId("progress").filter({ hasText: "Gates green" });
+  await expect(row).toContainText("Gates pass · 1 acknowledged casualty");
+  await expect(row).not.toContainText("error finding");
+  // The evidence stays visible and verbatim in Validate.
+  await page.getByTestId("nav-validate").click();
+  await expect(page.getByTestId("finding-A3-emit-surface")).toContainText(/declared casualty/i);
+  await expect(page.getByTestId("acknowledged-uses-casualty")).toBeVisible();
+});
+
 test("the project home derives the authorship progress checklist", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("progress")).toContainText("Components described");

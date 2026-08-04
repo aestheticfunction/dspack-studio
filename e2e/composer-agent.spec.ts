@@ -240,3 +240,47 @@ test("decisions are operable by keyboard, and focus is never dropped to the body
   const active = await page.evaluate(() => document.activeElement?.tagName.toLowerCase() ?? "");
   expect(active, "focus fell to the document body after the decided row disappeared").not.toBe("body");
 });
+
+test("an acknowledged casualty reads as a decision, not unfinished work (#30)", async ({ page }) => {
+  const project = demoProject();
+  await connect(page, project.root);
+
+  // The project home: gates pass, the acknowledgement reported alongside.
+  const row = page.getByTestId("progress").filter({ hasText: "Gates green" });
+  await expect(row).toContainText("Gates pass · 1 acknowledged casualty");
+  await expect(row).not.toContainText("error finding");
+
+  // The Validate view still shows the refusal, its severity, and the
+  // authored reason verbatim — classified, never suppressed.
+  await page.getByTestId("nav-validate").click();
+  const refusal = page.getByTestId("finding-A3-emit-surface");
+  await expect(refusal).toContainText("error");
+  await expect(refusal).toContainText("uses-casualty");
+  await expect(refusal).toContainText(/declared casualty/i);
+  await expect(refusal).toContainText(/steps is an array prop/);
+  await expect(page.getByTestId("acknowledged-uses-casualty")).toBeVisible();
+
+  // The decision survives a reload.
+  await page.reload();
+  await connect(page, project.root);
+  await expect(page.getByTestId("progress").filter({ hasText: "Gates green" })).toContainText("acknowledged casualty");
+});
+
+test("a real error alongside an acknowledged casualty keeps the row failed (#30)", async ({ page }) => {
+  const project = demoProject();
+  // A surface referencing a component the profile does not map at all: a
+  // genuine unresolved refusal, sitting beside the authored casualty.
+  const { writeFileSync } = await import("node:fs");
+  writeFileSync(
+    `${project.root}/surfaces/unknown-component.dsurface.json`,
+    JSON.stringify({ dspackSurface: "0.1", system: "Acme UI", intent: "unknown-probe", root: { component: "not-a-component" } }, null, 2),
+  );
+  await connect(page, project.root);
+
+  const row = page.getByTestId("progress").filter({ hasText: "Gates green" });
+  await expect(row).toContainText("1 error finding · 1 acknowledged casualty");
+  await page.getByTestId("nav-validate").click();
+  // Only the authored one is classified; the unknown component is not.
+  await expect(page.getByTestId("acknowledged-uses-casualty")).toBeVisible();
+  await expect(page.getByTestId("acknowledged-unknown-component")).toHaveCount(0);
+});

@@ -60,7 +60,18 @@ export function ValidateView() {
                   {f.gate}
                   <span style={{ color: "var(--fg-faint)" }}> {f.code}</span>
                 </td>
-                <td style={{ padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 11, color: SEV_COLOR[f.severity] }}>{f.severity}</td>
+                <td style={{ padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 11, color: SEV_COLOR[f.severity] }}>
+                  {f.severity}
+                  {f.acknowledged && (
+                    <span
+                      data-testid={`acknowledged-${f.target}`}
+                      title={`Declared a ${f.acknowledged.class} casualty of ${f.acknowledged.componentId}`}
+                      style={{ display: "block", fontSize: 10, textTransform: "uppercase", color: "var(--ok)" }}
+                    >
+                      acknowledged
+                    </span>
+                  )}
+                </td>
                 <td style={{ padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-body)" }}>{f.target || "—"}</td>
                 <td style={{ padding: "6px 8px", color: "var(--fg-body)" }}>{f.message}</td>
               </tr>

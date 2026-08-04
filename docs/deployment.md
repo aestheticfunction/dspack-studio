@@ -56,6 +56,17 @@ npx wrangler deploy --config wrangler.composer.jsonc
 npx playwright test --config playwright.composer-production.config.ts   # smoke against the deployed URL
 ```
 
+**Stop any local agent on `localhost:8787` before running the composer
+production smoke.** The deployed page probes that port from the visitor's
+browser — that is the product working as designed — so an agent running on
+the machine executing the smoke makes the hosted page report
+`agent: connected`, and the spec asserting honest degradation without an
+agent fails. The failure is environmental, not a regression: stop the agent
+(the `pnpm --filter agent dev` process) and re-run. Do not "fix" this by
+changing the product's localhost connection behavior, and do not weaken the
+assertion — degrading honestly when no agent is present is exactly what the
+spec exists to protect.
+
 Rollback: `npx wrangler rollback --config wrangler.composer.jsonc` (or
 redeploy the previous commit); the exhibit Worker is untouched either way.
 

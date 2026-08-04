@@ -24,7 +24,18 @@ export {
   type LedgerActionResult,
   type FreshFact,
 } from "./ledger";
-export { finding, countBySeverity, type ComposerFinding, type FindingGate, type FindingSeverity } from "./findings";
+export {
+  finding,
+  countBySeverity,
+  classifySurfaceRefusal,
+  unresolvedErrors,
+  acknowledgedCasualties,
+  gatesSummary,
+  type ComposerFinding,
+  type FindingGate,
+  type FindingSeverity,
+  type AcknowledgedCasualty,
+} from "./findings";
 export {
   COMPOSER_ADAPTERS,
   composerAdapter,

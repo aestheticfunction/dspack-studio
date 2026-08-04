@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { gatesSummary } from "@dspack-studio/composer-core";
 import { useComposer } from "../state";
 import type { View } from "../composer";
 
@@ -34,7 +35,9 @@ function progressRows(state: ReturnType<typeof useComposer>): Array<{ label: str
   const intents = (contract.intents ?? []).length;
   const rules = (contract.rules ?? []).length;
   const examples = (contract.examples ?? []).length;
-  const errors = (emit?.findings ?? []).filter((f) => f.severity === "error").length;
+  // Acknowledged casualties are decisions, not unresolved work: they never
+  // count as errors, and never make a failing project look green.
+  const gates = gatesSummary(emit?.findings ?? [], emit !== null);
   return [
     { label: "Components described", done: described === components.length, detail: `${described}/${components.length} carry whenToUse`, view: "inventory" },
     { label: "Props enriched", done: bare === 0, detail: bare ? `${bare} component(s) have no props — discovery is variant-centric; add content props` : "every component declares props", view: "inventory" },
@@ -42,7 +45,7 @@ function progressRows(state: ReturnType<typeof useComposer>): Array<{ label: str
     { label: "Intents authored", done: intents > 0, detail: `${intents} intent(s) — the scoping vocabulary generation runs under`, view: "governance" },
     { label: "Rules authored", done: rules > 0, detail: `${rules} rule(s), each carrying its written rationale`, view: "governance" },
     { label: "Worked examples", done: examples > 0, detail: `${examples} scenario(s) — the few-shot and preview corpus`, view: "scenarios" },
-    { label: "Gates green", done: (emit?.ok ?? false) && errors === 0, detail: errors ? `${errors} error finding(s) across the gates` : emit?.ok ? "document, S-gates, and catalog gates pass" : "emit has not run", view: "validate" },
+    { label: "Gates green", done: (emit?.ok ?? false) && gates.done, detail: gates.detail, view: "validate" },
   ];
 }
 
