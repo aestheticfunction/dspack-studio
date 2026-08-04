@@ -53,6 +53,14 @@ jobs:
       # skip in CI by design.
       - name: Playwright (replay, live-deterministic, interactive, inspectors, break-it, import/export)
         run: pnpm exec playwright test
+      # The composer's ledger-v2 decision controls only render in AGENT mode
+      # against a real project on disk, so neither the exhibit suite above
+      # nor the deployed-composer smoke can reach them (dspack-studio#32).
+      # This drives the real static export + the real agent + real files.
+      - name: Composer static export (the agent-mode suite's artifact)
+        run: pnpm --filter composer build
+      - name: Playwright (composer agent-mode decisions + accessibility)
+        run: pnpm exec playwright test --config playwright.composer-agent.config.ts
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -42,7 +42,7 @@ export default defineConfig({
       // injected analytics); it runs via playwright.production.config.ts only.
       // composer-prod-smoke targets the DEPLOYED composer app; it runs via
       // playwright.composer-production.config.ts only.
-      testIgnore: ["prod-smoke.spec.ts", "composer-prod-smoke.spec.ts", "tour-first-run.spec.ts"],
+      testIgnore: ["prod-smoke.spec.ts", "composer-prod-smoke.spec.ts", "composer-agent.spec.ts", "composer-agent-a11y.spec.ts", "tour-first-run.spec.ts"],
       use: {
         storageState: {
           cookies: [],

@@ -56,7 +56,11 @@ function Shell() {
       </nav>
 
       {state.notice && (
-        <p data-testid="notice" style={{ fontSize: 13, color: "var(--fg-dim)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 12px" }}>
+        <p
+          data-testid="notice"
+          role="status"
+          aria-live="polite"
+          style={{ fontSize: 13, color: "var(--fg-dim)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 12px" }}>
           {state.notice}
         </p>
       )}
