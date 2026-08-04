@@ -35,19 +35,19 @@ The workflow authenticates with the repository secret
 `CLOUDFLARE_API_TOKEN` (Account → Workers Scripts → Edit, that account
 only). Until the secret exists the workflow is inert.
 
-**The previous implicit path (being retired):** the `dspack-studio` Worker
-carried a Cloudflare Workers Builds Git integration — repository
+**The previous implicit path (disconnected 2026-08-04):** the
+`dspack-studio` Worker carried a Cloudflare Workers Builds Git integration — repository
 `aestheticfunction/dspack-studio`, production branch `main`, root directory
 `/`, build command `pnpm --dir apps/web run build`, deploy command
 `npx wrangler deploy`, no path filters, no environment variables — which
 rebuilt and redeployed the exhibit on **every** push to `main` (observed
-four consecutive times on 2026-08-04, three of them from commits touching
-nothing the exhibit consumes; evidence in #34). It must be disabled in the
-dashboard: Workers & Pages → `dspack-studio` → Settings → Build →
-disconnect the Git repository. Disabling stops future git-triggered builds
-only — it does not remove the Worker, its versions, its route, or the
-custom domain. The composer Worker has no such integration; its deploys
-were always explicit.
+six consecutive times on 2026-08-04, four of them from commits touching
+nothing the exhibit consumes; evidence in #34). The owner disconnected it
+on 2026-08-04 (Workers & Pages → `dspack-studio` → Settings → Build →
+disconnect the Git repository); disconnecting stops future git-triggered
+builds only — the Worker, its versions, its route, and the custom domain
+are unaffected. The composer Worker never had such an integration; its
+deploys were always explicit.
 
 The web build is self-sufficient on a clean checkout: `apps/web`'s `build`
 script generates the gated contract artifacts first (`packages/contracts/out`
