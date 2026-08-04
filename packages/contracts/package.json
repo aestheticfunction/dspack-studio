@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build:catalogs": "tsx src/build.ts",
+    "prepare": "pnpm run build:catalogs",
     "drift-check": "tsx src/drift-check.ts",
     "check:sync": "node scripts/check-sync.mjs",
     "test": "vitest run --passWithNoTests",
