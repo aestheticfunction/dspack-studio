@@ -61,11 +61,30 @@ export async function probeAgent(): Promise<boolean> {
   }
 }
 
+/**
+ * dspack-export 0.5.0's RegenerateReport (shape owned there). The entry-
+ * level classes are the ratified regeneration-state table; every one is
+ * rendered, none is acted on without an explicit human decision.
+ */
 export interface RediscoverReport {
   refreshed: string[];
   preservedHumanOwned: string[];
   keptMissingInFresh: string[];
-  addedComponents: string[];
+  migration?: "tool-owned" | "human-owned";
+  components: {
+    added: string[];
+    refreshed: string[];
+    unchanged: string[];
+    readopted: string[];
+    preservedEnriched: Array<{ id: string; freshDelta: Array<{ path: string; fresh: unknown }> }>;
+    removedWithSource: string[];
+    keptMissingInFresh: string[];
+    deletedAwaitingDecision: string[];
+    suppressed: string[];
+    suppressedButPresent: string[];
+    restoredConflict: Array<{ id: string; parent: string }>;
+    entryHashRetired: string[];
+  };
 }
 
 export const agentConnect = (path: string) => post<ConnectPayload>("/project/connect", { path });

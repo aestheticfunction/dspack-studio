@@ -8,10 +8,13 @@ import { useComposer } from "../state";
  * the profile), renderable/validated read from the latest emit.
  */
 export function InventoryView({ onOpen }: { onOpen: () => void }) {
-  const { contract, profile, emit, setSelected } = useComposer();
+  const { contract, profile, emit, ledger, setSelected } = useComposer();
   if (!contract) return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No contract loaded.</p>;
 
   const components = Object.entries((contract.components ?? {}) as Record<string, any>);
+  // Ledger v2 only: per-entry ownership (v1 documents show section-level
+  // ownership on the Project view instead of inventing entry states here).
+  const ownership = new Map((ledger?.componentEntries ?? []).map((e) => [e.id, e]));
   const plans = new Map<string, any>((profile?.components ?? []).map((p: any) => [p.dspackId, p]));
   const casualties = new Map<string, any>((profile?.casualtyComponents ?? []).map((c: any) => [c.dspackId, c]));
   const coverageFindings = new Set((emit?.findings ?? []).filter((f) => f.gate === "coverage").map((f) => f.target));
@@ -59,6 +62,17 @@ export function InventoryView({ onOpen }: { onOpen: () => void }) {
               <td style={{ padding: "8px" }}>
                 {entry.whenToUse ? chip("described", "var(--ok)") : chip("bare", "var(--fg-faint)")}
                 {props.length === 0 && chip("needs props", "var(--warn)")}
+                {(() => {
+                  const own = ownership.get(id);
+                  if (!own) return null;
+                  const label = own.state === "unattributed" ? "yours" : own.state === "human-owned" ? "yours" : own.state;
+                  return (
+                    <>
+                      {chip(label, own.state === "tool-owned" ? "var(--info)" : "var(--ok)")}
+                      {own.alsoTombstoned && chip("tombstoned", "var(--warn)")}
+                    </>
+                  );
+                })()}
               </td>
               <td style={{ padding: "8px" }}>
                 {casualty

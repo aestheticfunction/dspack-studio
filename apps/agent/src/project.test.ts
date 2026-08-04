@@ -116,16 +116,56 @@ describe("rediscover", () => {
     );
     const { status, payload } = await call("rediscover", { path: root });
     expect(status).toBe(200);
-    expect(payload.report.addedComponents).toContain("spark-line");
-    // Human-owned components section preserved: enrichment survives the merge.
-    expect(payload.report.preservedHumanOwned).toContain("components");
+    expect(payload.report.components.added).toContain("spark-line");
+    // The demo project ships a v1 ledger: this first rediscovery migrates it
+    // (human-owned components section -> entries unattributed, byte-identical
+    // ones re-adopted as tool-owned).
+    expect(payload.report.migration).toBe("human-owned");
+    expect(payload.contract.metadata["x-bootstrap"].ledger).toBe("2");
+    // Human-owned entries preserved verbatim: enrichment survives the merge.
     expect(payload.contract.components["action-button"].props.label.required).toBe(true);
     expect(payload.contract.components["action-button"].whenToUse).toBeTruthy();
     // Governance carried over verbatim.
     expect(payload.contract.rules.length).toBeGreaterThan(0);
-    // Ledger still reports the section human-owned after the merge.
+    // Section state derives from entries under v2: enrichment keeps it human-owned.
     const byName = Object.fromEntries(payload.ledger.sections.map((s: any) => [s.section, s.state]));
     expect(byName.components).toBe("human-owned");
+    // The ledger now reports entry-level states to the composer.
+    expect(payload.ledger.entryLevel).toBe(true);
+    const entries = Object.fromEntries(payload.ledger.componentEntries.map((e: any) => [e.id, e.state]));
+    expect(entries["spark-line"]).toBe("tool-owned"); // newly added, tool-owned
+    expect(["human-owned", "unattributed"]).toContain(entries["action-button"]); // enriched, yours
+  });
+
+  it("skip-and-ask: a hand-deleted entry is never silently restored; tombstoning ends the asking", async () => {
+    const { writeFileSync } = await import("node:fs");
+    // Hand-delete spark-line from the document (the ledger hash remains).
+    const contract = JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
+    delete contract.components["spark-line"];
+    writeFileSync(join(root, "acme-ui.dspack.json"), JSON.stringify(contract, null, 2) + "\n");
+
+    // Rediscovery: the source still has spark-line, but restoration is skipped.
+    const first = await call("rediscover", { path: root });
+    expect(first.status).toBe(200);
+    expect(first.payload.contract.components["spark-line"]).toBeUndefined();
+    expect(first.payload.report.components.deletedAwaitingDecision).toContain("spark-line");
+    const orphan = first.payload.ledger.componentEntries.find((e: any) => e.id === "spark-line");
+    expect(orphan.state).toBe("orphaned"); // deletion memory survives the merge
+
+    // Decide: tombstone it (what the composer's "Never rediscover" button saves).
+    const decided = structuredClone(first.payload.contract);
+    decided.metadata["x-bootstrap"].doNotRediscover = ["spark-line"];
+    delete decided.metadata["x-bootstrap"].components["spark-line"];
+    const saved = await call("save", { path: root, kind: "contract", document: decided });
+    expect(saved.payload.ok).toBe(true);
+
+    // Rediscovery now skips it unambiguously, and keeps skipping it.
+    const second = await call("rediscover", { path: root });
+    expect(second.status).toBe(200);
+    expect(second.payload.report.components.suppressed).toContain("spark-line");
+    expect(second.payload.report.components.deletedAwaitingDecision).not.toContain("spark-line");
+    expect(second.payload.contract.components["spark-line"]).toBeUndefined();
+    expect(second.payload.ledger.componentEntries.find((e: any) => e.id === "spark-line").state).toBe("tombstoned");
   });
 });
 
