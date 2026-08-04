@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useComposer } from "../state";
 import type { View } from "../composer";
 
@@ -10,8 +10,10 @@ const STATE_COLOR: Record<string, string> = {
   "human-authored": "var(--ok)",
   unattributed: "var(--ok)",
   orphaned: "var(--warn)",
-  tombstoned: "var(--fg-faint)",
-  absent: "var(--fg-faint)",
+  // --fg-faint is 3.25:1 on the app background: below AA for this 11px
+  // text. Decided states must stay legible, so they use --fg-dim (5.40:1).
+  tombstoned: "var(--fg-dim)",
+  absent: "var(--fg-dim)",
 };
 
 /**
@@ -53,6 +55,16 @@ function progressRows(state: ReturnType<typeof useComposer>): Array<{ label: str
  */
 function RediscoveryReport() {
   const { rediscovery, resolveDeletion, resolveConflict, acceptFreshFact, busy } = useComposer();
+  // A decided row disappears from under the pointer; keyboard users would
+  // otherwise be dropped to the document body. Focus returns to the report
+  // heading, next to the status message that says what happened.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const decide = useCallback(
+    (run: () => Promise<void>) => () => {
+      void run().then(() => heading.current?.focus());
+    },
+    [],
+  );
   if (!rediscovery) return null;
   const c = rediscovery.components;
   const line = (label: string, ids: string[], color = "var(--fg-body)") =>
@@ -66,7 +78,7 @@ function RediscoveryReport() {
 
   return (
     <div style={{ marginTop: 18 }} data-testid="rediscovery-report">
-      <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>
+      <h2 ref={heading} tabIndex={-1} style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>
         Last rediscovery
       </h2>
       <ul style={{ listStyle: "none", padding: 0, fontSize: 13, margin: "6px 0 0" }}>
@@ -76,26 +88,38 @@ function RediscoveryReport() {
         {line("preserved (yours)", c.preservedEnriched.map((p) => p.id), "var(--ok)")}
         {line("removed with source", c.removedWithSource, "var(--warn)")}
         {line("kept, missing in source", c.keptMissingInFresh, "var(--warn)")}
-        {line("skipped (tombstoned)", c.suppressed, "var(--fg-faint)")}
+        {line("skipped (tombstoned)", c.suppressed, "var(--fg-dim)")}
         {line("tombstoned but present", c.suppressedButPresent, "var(--warn)")}
         {line("restored top-level (both exist)", c.restoredTopLevel.map((x) => (x.parent ? `${x.id} (nested in ${x.parent} kept)` : x.id)), "var(--ok)")}
       </ul>
 
       {c.deletedAwaitingDecision.length > 0 && (
-        <div style={{ marginTop: 10 }} data-testid="deletions-awaiting">
-          <h3 style={{ fontSize: 13, color: "var(--warn)" }}>Deletions awaiting your decision</h3>
+        <div style={{ marginTop: 10 }} data-testid="deletions-awaiting" role="group" aria-labelledby="decisions-deletions">
+          <h3 id="decisions-deletions" style={{ fontSize: 13, color: "var(--warn)" }}>Deletions awaiting your decision</h3>
           <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-            These were deleted from the document but still exist in source. Rediscovery never restores them on its own:
-            restore to bring one back from source next time, tombstone it so it is never re-added, or decide later —
-            the memory keeps.
+            These exist in source but not in your document — either you deleted them, or they appeared after a snapshot
+            this tool could not attribute. Rediscovery never adds them on its own: restore to bring one in from source
+            next time, tombstone it so it is never re-added, or decide later — the memory keeps.
           </p>
           {c.deletedAwaitingDecision.map((id) => (
             <div key={id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }} data-testid={`deletion-${id}`}>
               <span style={{ fontFamily: "var(--mono)", fontSize: 12, flex: 1 }}>{id}</span>
-              <button className="st-btn" disabled={busy !== null} onClick={() => void resolveDeletion(id, "restore")} data-testid={`restore-${id}`}>
+              <button
+                className="st-btn"
+                disabled={busy !== null}
+                aria-label={`Restore ${id}`}
+                onClick={decide(() => resolveDeletion(id, "restore"))}
+                data-testid={`restore-${id}`}
+              >
                 Restore
               </button>
-              <button className="st-btn st-btn--dashed" disabled={busy !== null} onClick={() => void resolveDeletion(id, "tombstone")} data-testid={`tombstone-${id}`}>
+              <button
+                className="st-btn st-btn--dashed"
+                disabled={busy !== null}
+                aria-label={`Never rediscover ${id}`}
+                onClick={decide(() => resolveDeletion(id, "tombstone"))}
+                data-testid={`tombstone-${id}`}
+              >
                 Never rediscover
               </button>
             </div>
@@ -104,8 +128,8 @@ function RediscoveryReport() {
       )}
 
       {c.restoredConflict.length > 0 && (
-        <div style={{ marginTop: 10 }} data-testid="conflicts-awaiting">
-          <h3 style={{ fontSize: 13, color: "var(--warn)" }}>Restructured, not re-added</h3>
+        <div style={{ marginTop: 10 }} data-testid="conflicts-awaiting" role="group" aria-labelledby="decisions-conflicts">
+          <h3 id="decisions-conflicts" style={{ fontSize: 13, color: "var(--warn)" }}>Restructured, not re-added</h3>
           <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
             Each of these exists in source as a top-level component, but you authored it as a sub-component of another
             entry. Rediscovery never decides which representation you meant: keep yours nested, restore the top-level
@@ -116,10 +140,22 @@ function RediscoveryReport() {
               <span style={{ fontFamily: "var(--mono)", fontSize: 12, flex: 1 }}>
                 {id} <span style={{ color: "var(--fg-dim)" }}>nested in {parent}</span>
               </span>
-              <button className="st-btn" disabled={busy !== null} onClick={() => void resolveConflict(id, "keep-nested")} data-testid={`keep-nested-${id}`}>
+              <button
+                className="st-btn"
+                disabled={busy !== null}
+                aria-label={`Keep ${id} nested`}
+                onClick={decide(() => resolveConflict(id, "keep-nested"))}
+                data-testid={`keep-nested-${id}`}
+              >
                 Keep nested
               </button>
-              <button className="st-btn st-btn--dashed" disabled={busy !== null} onClick={() => void resolveConflict(id, "restore-top-level")} data-testid={`restore-top-level-${id}`}>
+              <button
+                className="st-btn st-btn--dashed"
+                disabled={busy !== null}
+                aria-label={`Restore ${id} as a top-level component`}
+                onClick={decide(() => resolveConflict(id, "restore-top-level"))}
+                data-testid={`restore-top-level-${id}`}
+              >
                 Restore top-level
               </button>
             </div>
@@ -128,8 +164,8 @@ function RediscoveryReport() {
       )}
 
       {enrichedWithFacts.length > 0 && (
-        <div style={{ marginTop: 10 }} data-testid="fresh-facts">
-          <h3 style={{ fontSize: 13, color: "var(--fg)" }}>Fresh facts on entries you own</h3>
+        <div style={{ marginTop: 10 }} data-testid="fresh-facts" role="group" aria-labelledby="decisions-facts">
+          <h3 id="decisions-facts" style={{ fontSize: 13, color: "var(--fg)" }}>Fresh facts on entries you own</h3>
           <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
             Review information from the latest extraction — never merged on its own. Accepting writes the one fact into
             your entry (which stays yours); anything more than a scalar or a pure addition is authored by hand.
@@ -142,7 +178,13 @@ function RediscoveryReport() {
                   <span style={{ color: "var(--fg-dim)" }}>{fact.path}</span> ={" "}
                   <span style={{ color: "var(--fg-body)" }}>{JSON.stringify(fact.fresh)}</span>
                 </span>
-                <button className="st-btn" disabled={busy !== null} onClick={() => void acceptFreshFact(p.id, fact)} data-testid={`accept-${p.id}${fact.path.replaceAll("/", "-")}`}>
+                <button
+                  className="st-btn"
+                  disabled={busy !== null}
+                  aria-label={`Accept ${fact.path} for ${p.id}`}
+                  onClick={decide(() => acceptFreshFact(p.id, fact))}
+                  data-testid={`accept-${p.id}${fact.path.replaceAll("/", "-")}`}
+                >
                   Accept
                 </button>
               </div>
@@ -264,16 +306,34 @@ export function ProjectView({ onNavigate }: { onNavigate: (view: View) => void }
                         <td style={{ padding: "3px 0" }}>
                           {e.state === "orphaned" && (
                             <>
-                              <button className="st-btn" disabled={busy !== null} onClick={() => void resolveDeletion(e.id, "restore")} data-testid={`ownership-restore-${e.id}`}>
+                              <button
+                                className="st-btn"
+                                disabled={busy !== null}
+                                aria-label={`Restore ${e.id} from the ownership panel`}
+                                onClick={() => void resolveDeletion(e.id, "restore")}
+                                data-testid={`ownership-restore-${e.id}`}
+                              >
                                 Restore
                               </button>{" "}
-                              <button className="st-btn st-btn--dashed" disabled={busy !== null} onClick={() => void resolveDeletion(e.id, "tombstone")} data-testid={`ownership-tombstone-${e.id}`}>
+                              <button
+                                className="st-btn st-btn--dashed"
+                                disabled={busy !== null}
+                                aria-label={`Never rediscover ${e.id}, from the ownership panel`}
+                                onClick={() => void resolveDeletion(e.id, "tombstone")}
+                                data-testid={`ownership-tombstone-${e.id}`}
+                              >
                                 Never rediscover
                               </button>
                             </>
                           )}
                           {(e.state === "tombstoned" || e.alsoTombstoned) && (
-                            <button className="st-btn st-btn--dashed" disabled={busy !== null} onClick={() => void clearTombstone(e.id)} data-testid={`ownership-untombstone-${e.id}`}>
+                            <button
+                              className="st-btn st-btn--dashed"
+                              disabled={busy !== null}
+                              aria-label={`Remove the tombstone from ${e.id}`}
+                              onClick={() => void clearTombstone(e.id)}
+                              data-testid={`ownership-untombstone-${e.id}`}
+                            >
                               Remove tombstone
                             </button>
                           )}

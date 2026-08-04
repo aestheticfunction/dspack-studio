@@ -60,7 +60,7 @@ export function InventoryView({ onOpen }: { onOpen: () => void }) {
                 {subs > 0 && <span style={{ color: "var(--fg-dim)" }}> · {subs} subs</span>}
               </td>
               <td style={{ padding: "8px" }}>
-                {entry.whenToUse ? chip("described", "var(--ok)") : chip("bare", "var(--fg-faint)")}
+                {entry.whenToUse ? chip("described", "var(--ok)") : chip("bare", "var(--fg-dim)")}
                 {props.length === 0 && chip("needs props", "var(--warn)")}
                 {(() => {
                   const own = ownership.get(id);

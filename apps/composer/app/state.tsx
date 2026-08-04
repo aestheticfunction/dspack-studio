@@ -140,7 +140,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     void refreshLedger(doc);
   }, [refreshLedger, recomputeEmit]);
 
+  /**
+   * The demo is the STARTING state, not a state to fall back into: this
+   * effect must fire once. Tracking loadDemo's identity re-ran it whenever
+   * its dependencies changed — including `extraSurfaces`, which `connect`
+   * sets — so connecting to a real project snapped straight back to the
+   * demo and agent mode was unreachable in the built app.
+   */
+  const bootstrapped = useRef(false);
   useEffect(() => {
+    if (bootstrapped.current) return;
+    bootstrapped.current = true;
     loadDemo();
   }, [loadDemo]);
 
@@ -285,6 +295,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     async (id: string, decision: "restore" | "tombstone") => {
       if (!contract || decisionLock.current) return;
       decisionLock.current = true;
+      setBusy(decision === "restore" ? "restoring" : "tombstoning");
       try {
       const result = decision === "restore" ? restoreComponent(contract, id) : addTombstone(contract, id);
       if (!result.ok) {
@@ -311,6 +322,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       );
       } finally {
         decisionLock.current = false;
+        setBusy(null);
       }
     },
     [contract, saveContract],
@@ -331,6 +343,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     async (id: string, decision: "keep-nested" | "restore-top-level") => {
       if (!contract || decisionLock.current) return;
       decisionLock.current = true;
+      setBusy(decision === "keep-nested" ? "keeping nested" : "restoring");
       try {
       if (decision === "keep-nested") {
         const result = addTombstone(contract, id);
@@ -358,9 +371,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         setNotice("Restoring the top-level entry re-runs dspack-export on your machine; connect through the local agent first.");
         return;
       }
-      setBusy("restoring");
       const result = await agentRediscover(projectPath, [id]);
-      setBusy(null);
       if (!result.ok) {
         setNotice(`Restore refused: ${result.error}`);
         return;
@@ -373,6 +384,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setNotice(`'${id}' restored as a top-level component (tool-owned); your nested representation is untouched — both now exist.`);
       } finally {
         decisionLock.current = false;
+        setBusy(null);
       }
     },
     [contract, mode, projectPath, profile, recomputeEmit, saveContract],
@@ -382,6 +394,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       if (!contract || decisionLock.current) return;
       decisionLock.current = true;
+      setBusy("removing tombstone");
       try {
       const result = removeTombstone(contract, id);
       if (!result.ok) {
@@ -392,6 +405,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setNotice(`Tombstone removed: the next rediscovery may re-add '${id}'.`);
       } finally {
         decisionLock.current = false;
+        setBusy(null);
       }
     },
     [contract, saveContract],
@@ -401,6 +415,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     async (componentId: string, fact: FreshFact) => {
       if (!contract || decisionLock.current) return;
       decisionLock.current = true;
+      setBusy("accepting");
       try {
       const result = applyFreshFact(contract, componentId, fact);
       if (!result.ok) {
@@ -424,6 +439,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setNotice(`Accepted ${fact.path} into '${componentId}' (the entry stays human-owned).`);
       } finally {
         decisionLock.current = false;
+        setBusy(null);
       }
     },
     [contract, saveContract],
