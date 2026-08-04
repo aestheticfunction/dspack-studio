@@ -84,7 +84,6 @@ export interface RediscoverReport {
     suppressedButPresent: string[];
     restoredConflict: Array<{ id: string; parent: string }>;
     restoredTopLevel: Array<{ id: string; parent?: string }>;
-    entryHashRetired: string[];
   };
 }
 

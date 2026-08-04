@@ -292,6 +292,9 @@ export function applyFreshFact(doc: Record<string, unknown>, componentId: string
     if (!descriptor) return { ok: false, reason: `prop '${segments[1]}' is not in the entry` };
     if (segments[2] === "values") {
       if (!Array.isArray(fact.fresh)) return { ok: false, reason: "a values fact must be a list of added values" };
+      if (descriptor.values !== undefined && !Array.isArray(descriptor.values)) {
+        return { ok: false, reason: `authored values on '${segments[1]}' is not a list; accepting would replace it — author this change by hand` };
+      }
       const current = Array.isArray(descriptor.values) ? descriptor.values : [];
       const known = new Set(current.map((v) => JSON.stringify(v)));
       descriptor.values = [...current, ...fact.fresh.filter((v) => !known.has(JSON.stringify(v)))];

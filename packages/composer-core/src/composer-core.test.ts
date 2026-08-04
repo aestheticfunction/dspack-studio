@@ -247,6 +247,44 @@ describe("freshDelta acceptance (explicit, scalar leaves and pure additions only
     expect(applyFreshFact(doc, "button", { path: "/composition/subComponents", fresh: [] }).ok).toBe(false);
     expect(applyFreshFact(doc, "missing", { path: "/description", fresh: "x" }).ok).toBe(false);
   });
+
+  it("preserves authored order (append-only) and refuses non-list authored values", () => {
+    const doc = structuredClone(v2) as any;
+    const prop = Object.keys(doc.components.button.props)[0];
+    doc.components.button.props[prop] = { type: "string", values: ["alpha", "beta"] };
+    const r = applyFreshFact(doc, "button", { path: `/props/${prop}/values`, fresh: ["beta", "gamma"] });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect((r.document.components as any).button.props[prop].values).toEqual(["alpha", "beta", "gamma"]);
+    // Authored non-list values must never be replaced by acceptance.
+    const authored = structuredClone(v2) as any;
+    authored.components.button.props[prop] = { type: "string", values: "sm | lg" };
+    const refused = applyFreshFact(authored, "button", { path: `/props/${prop}/values`, fresh: ["xl"] });
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.reason).toContain("by hand");
+  });
+
+  it("addTombstone deduplicates and is byte-bounded; clearTombstone removes exactly one id", () => {
+    const doc = structuredClone(v2) as any;
+    delete doc.components.badge;
+    const once = addTombstone(doc, "badge");
+    expect(once.ok).toBe(true);
+    if (!once.ok) return;
+    const twice = addTombstone(once.document, "badge");
+    expect(twice.ok).toBe(true);
+    if (!twice.ok) return;
+    expect((twice.document.metadata as any)["x-bootstrap"].doNotRediscover).toEqual(["badge"]);
+    // Byte-identical outside the two intended ledger edits.
+    const expected = structuredClone(doc);
+    (expected.metadata as any)["x-bootstrap"].doNotRediscover = ["badge"];
+    delete (expected.metadata as any)["x-bootstrap"].components.badge;
+    expect(JSON.stringify(twice.document)).toBe(JSON.stringify(expected));
+    // Exactly one id leaves a multi-entry list; the others are decisions too.
+    const multi = structuredClone(v2) as any;
+    multi.metadata["x-bootstrap"].doNotRediscover = ["alpha", "badge", "omega"];
+    const cleared = removeTombstone(multi, "badge");
+    expect(cleared.ok).toBe(true);
+    if (cleared.ok) expect((cleared.document.metadata as any)["x-bootstrap"].doNotRediscover).toEqual(["alpha", "omega"]);
+  });
 });
 
 describe("findings", () => {

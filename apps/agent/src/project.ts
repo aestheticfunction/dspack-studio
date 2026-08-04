@@ -251,6 +251,13 @@ async function rediscover(ctx: ProjectContext, body: Record<string, unknown>) {
   }
   const result = regenerateSections(existing, fresh, restoreTopLevel ? { restoreTopLevel: restoreTopLevel as string[] } : undefined);
   if (!result.ok) throw new ProjectError(409, result.reason);
+  // One-validator principle: every contract write passes the same harness
+  // gate as /project/save — a merge that produced an invalid document is
+  // refused, not persisted.
+  const report = documentReport(result.document as unknown as Record<string, unknown>, specValidators());
+  if (!report.valid) {
+    throw new ProjectError(409, `rediscovery produced a document the harness rejects; nothing was written: ${report.errors.join("; ")}`);
+  }
   atomicWriteJson(ctx.contractPath, result.document);
   const contract = result.document as unknown as Record<string, unknown>;
   return { ok: true, contract, ledger: await ledgerStatus(contract), report: result.report };

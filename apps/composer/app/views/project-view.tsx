@@ -79,7 +79,6 @@ function RediscoveryReport() {
         {line("skipped (tombstoned)", c.suppressed, "var(--fg-faint)")}
         {line("tombstoned but present", c.suppressedButPresent, "var(--warn)")}
         {line("restored top-level (both exist)", c.restoredTopLevel.map((x) => (x.parent ? `${x.id} (nested in ${x.parent} kept)` : x.id)), "var(--ok)")}
-        {line("hash retired", c.entryHashRetired, "var(--fg-faint)")}
       </ul>
 
       {c.deletedAwaitingDecision.length > 0 && (

@@ -8,7 +8,7 @@
  *              edits live in memory only.
  * Files are the source of truth; this state is a view of them.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   addTombstone,
   applyFreshFact,
@@ -91,6 +91,11 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [extraSurfaces, setExtraSurfaces] = useState<Array<{ name: string; surface: unknown }>>([]);
+  // Serializes the ledger-decision actions: two rapid clicks would otherwise
+  // both compute from the same stale contract closure and the second save
+  // would silently drop the first decision. A ref, not state — the guard
+  // must hold before React re-renders the disabled buttons.
+  const decisionLock = useRef(false);
 
   useEffect(() => {
     void probeAgent().then(setAgentUp);
@@ -278,7 +283,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
    */
   const resolveDeletion = useCallback(
     async (id: string, decision: "restore" | "tombstone") => {
-      if (!contract) return;
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
       const result = decision === "restore" ? restoreComponent(contract, id) : addTombstone(contract, id);
       if (!result.ok) {
         setNotice(`Cannot ${decision} '${id}': ${result.reason}`);
@@ -302,6 +309,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           ? `'${id}' will be restored from source on the next rediscovery (deletion memory cleared).`
           : `'${id}' tombstoned: rediscovery will never re-add it. Remove the tombstone from the Ownership panel to undo.`,
       );
+      } finally {
+        decisionLock.current = false;
+      }
     },
     [contract, saveContract],
   );
@@ -319,7 +329,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
    */
   const resolveConflict = useCallback(
     async (id: string, decision: "keep-nested" | "restore-top-level") => {
-      if (!contract) return;
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
       if (decision === "keep-nested") {
         const result = addTombstone(contract, id);
         if (!result.ok) {
@@ -359,13 +371,18 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setRediscovery(v.report);
       recomputeEmit(v.contract as Record<string, any>, profile);
       setNotice(`'${id}' restored as a top-level component (tool-owned); your nested representation is untouched — both now exist.`);
+      } finally {
+        decisionLock.current = false;
+      }
     },
     [contract, mode, projectPath, profile, recomputeEmit, saveContract],
   );
 
   const clearTombstone = useCallback(
     async (id: string) => {
-      if (!contract) return;
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
       const result = removeTombstone(contract, id);
       if (!result.ok) {
         setNotice(`Cannot remove tombstone '${id}': ${result.reason}`);
@@ -373,13 +390,18 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       }
       await saveContract(result.document);
       setNotice(`Tombstone removed: the next rediscovery may re-add '${id}'.`);
+      } finally {
+        decisionLock.current = false;
+      }
     },
     [contract, saveContract],
   );
 
   const acceptFreshFact = useCallback(
     async (componentId: string, fact: FreshFact) => {
-      if (!contract) return;
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
       const result = applyFreshFact(contract, componentId, fact);
       if (!result.ok) {
         setNotice(`Cannot accept ${fact.path} on '${componentId}': ${result.reason}`);
@@ -400,6 +422,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           : r,
       );
       setNotice(`Accepted ${fact.path} into '${componentId}' (the entry stays human-owned).`);
+      } finally {
+        decisionLock.current = false;
+      }
     },
     [contract, saveContract],
   );

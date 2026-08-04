@@ -116,12 +116,16 @@ describe("rediscover", () => {
     );
     const { status, payload } = await call("rediscover", { path: root });
     expect(status).toBe(200);
-    expect(payload.report.components.added).toContain("spark-line");
     // The demo project ships a v1 ledger: this first rediscovery migrates it
     // (human-owned components section -> entries unattributed, byte-identical
-    // ones re-adopted as tool-owned).
+    // ones re-adopted as tool-owned). Migration cannot distinguish
+    // "hand-deleted" from "new since the snapshot", so the fresh-only id
+    // ASKS instead of silently adding.
     expect(payload.report.migration).toBe("human-owned");
     expect(payload.contract.metadata["x-bootstrap"].ledger).toBe("2");
+    expect(payload.report.components.added).toEqual([]);
+    expect(payload.report.components.deletedAwaitingDecision).toContain("spark-line");
+    expect(payload.contract.components["spark-line"]).toBeUndefined();
     // Human-owned entries preserved verbatim: enrichment survives the merge.
     expect(payload.contract.components["action-button"].props.label.required).toBe(true);
     expect(payload.contract.components["action-button"].whenToUse).toBeTruthy();
@@ -130,11 +134,21 @@ describe("rediscover", () => {
     // Section state derives from entries under v2: enrichment keeps it human-owned.
     const byName = Object.fromEntries(payload.ledger.sections.map((s: any) => [s.section, s.state]));
     expect(byName.components).toBe("human-owned");
-    // The ledger now reports entry-level states to the composer.
     expect(payload.ledger.entryLevel).toBe(true);
-    const entries = Object.fromEntries(payload.ledger.componentEntries.map((e: any) => [e.id, e.state]));
-    expect(entries["spark-line"]).toBe("tool-owned"); // newly added, tool-owned
+    // Restoring the genuinely-new component is one explicit decision.
+    const restored = await call("rediscover", { path: root, restoreTopLevel: ["spark-line"] });
+    expect(restored.status).toBe(200);
+    expect(restored.payload.report.components.restoredTopLevel).toEqual([{ id: "spark-line" }]);
+    expect(restored.payload.contract.components["spark-line"]).toBeDefined();
+    const entries = Object.fromEntries(restored.payload.ledger.componentEntries.map((e: any) => [e.id, e.state]));
+    expect(entries["spark-line"]).toBe("tool-owned"); // restored tool-owned
     expect(["human-owned", "unattributed"]).toContain(entries["action-button"]); // enriched, yours
+  });
+
+  it("refuses a malformed restoreTopLevel with 400 before touching the project", async () => {
+    const bad = await call("rediscover", { path: root, restoreTopLevel: [42] });
+    expect(bad.status).toBe(400);
+    expect(bad.payload.error).toContain("array of component id strings");
   });
 
   it("skip-and-ask: a hand-deleted entry is never silently restored; tombstoning ends the asking", async () => {
