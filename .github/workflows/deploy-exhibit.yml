@@ -1,0 +1,82 @@
+name: deploy-exhibit
+
+# Explicit production deployment for the EXHIBIT Worker (`dspack-studio`,
+# studio.aesthetic-function.com) — issue #34.
+#
+# Deployment is a decision, not a side effect of merging: this workflow runs
+# only when a person dispatches it. CI (ci.yml) verifies every merge; this
+# workflow re-verifies the exhibit path, records the rollback anchor, deploys
+# through the checked-in wrangler.jsonc, and gates on the production smoke.
+# The composer Worker (wrangler.composer.jsonc) is untouched — the two keep
+# independent deploy cadences by design (docs/deployment.md).
+#
+# Auth: repository secret CLOUDFLARE_API_TOKEN (scoped: Account > Workers
+# Scripts > Edit on the one account; nothing broader). The workflow is inert
+# until that secret exists — see docs/deployment.md for the exact setup.
+#
+# Rollback (from any machine with wrangler auth):
+#   npx wrangler rollback --config wrangler.jsonc
+# targeting the anchor version recorded in this run's summary. Independent
+# from the composer Worker's rollback (wrangler.composer.jsonc).
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy-exhibit" to confirm a production deployment of the exhibit Worker'
+        required: true
+
+concurrency:
+  group: deploy-exhibit
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm == 'deploy-exhibit' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Frozen-lockfile install
+        run: pnpm install --frozen-lockfile
+      - name: Gates — contract artifacts, sync invariant, exhibit unit tests
+        run: |
+          pnpm --filter @dspack-studio/contracts build:catalogs
+          pnpm --filter @dspack-studio/contracts check:sync
+          pnpm --filter web test
+      - name: Build the deploy artifact (apps/web/out)
+        run: pnpm build:deploy
+      - name: Record the rollback anchor (currently active version)
+        run: |
+          echo '## Exhibit deployment' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "source commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          npx wrangler deployments list --config wrangler.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy (exhibit Worker only, checked-in config)
+        run: npx wrangler deploy --config wrangler.jsonc
+      - name: Record the deployed version
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npx wrangler deployments list --config wrangler.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo 'rollback: npx wrangler rollback --config wrangler.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Production smoke (agent-free specs against the deployed site)
+        run: npx playwright test --config playwright.production.config.ts
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-exhibit-playwright-report
+          path: playwright-report/
+          retention-days: 7
