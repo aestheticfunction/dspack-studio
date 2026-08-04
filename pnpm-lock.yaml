@@ -21,8 +21,8 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1
       '@aestheticfunction/dspack-export':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: ^0.5.0
+        version: 0.5.0
       '@aestheticfunction/dspack-gen':
         specifier: ^0.1.3
         version: 0.1.3(zod@4.4.3)
@@ -419,8 +419,8 @@ packages:
     resolution: {integrity: sha512-/p1Y4dAWlcwtPcfM81t2EjPChifCb9VvnIQCZ9A1dkbU13mSVYk+AQquxvY51PV9naxFAktFYLdx1mFjIOZqrQ==}
     hasBin: true
 
-  '@aestheticfunction/dspack-export@0.4.0':
-    resolution: {integrity: sha512-Y7q5ZcwnpxOXMWvnEBQ422LPBXSaluXKKr1xWZPv3xaq26DpB3WSU8rPrqpPhqZ0LLb4wUQ7I57I8t+QGlsFlg==}
+  '@aestheticfunction/dspack-export@0.5.0':
+    resolution: {integrity: sha512-wW0bVYww8ylG4oosAClWUwQXWMcPsBkx5XmP0x5ytQEMAcBOUKXrSk9hFAiwON41lfP22mNpR7SLyAHPBZvOtA==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -2325,7 +2325,7 @@ snapshots:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
 
-  '@aestheticfunction/dspack-export@0.4.0':
+  '@aestheticfunction/dspack-export@0.5.0':
     dependencies:
       '@babel/parser': 7.29.7
       '@babel/traverse': 7.29.7

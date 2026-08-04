@@ -1,0 +1,318 @@
+{
+  "dspack": "0.4",
+  "name": "Shadcn Demo",
+  "description": "Demo shadcn-style design system used as the dspack-export golden fixture.",
+  "version": "1.0.0",
+  "metadata": {
+    "generatedBy": "@aestheticfunction/dspack-export@0.5.0",
+    "generatedAt": "2026-06-10T00:00:00.000Z",
+    "source": "fixtures/shadcn-demo",
+    "note": "Generated snapshot. Hand-authored sections (patterns, antiPatterns, whenToUse, accessibility, composition, constraints) are not generated; regeneration refuses to overwrite a document containing human-authored content (see metadata[\"x-bootstrap\"]).",
+    "x-bootstrap": {
+      "ledger": "2",
+      "spec": "0.4",
+      "generated": {
+        "tokens": "d031a79c0a10556c38b099145be82d26eed263713c60922efab56338aca69f15",
+        "components": "452923cc85bea76d7cd784299cf28dcd79b853961a0c65aa7d31cd186c9f74cd",
+        "frameworkBindings": "9dea8ada96c2e74adcbf96dc3234d13994b88c6a3a96f12a7e68ed354d89bd1e",
+        "themes": "46510dd813828a275bd601d0f0348934b9cd1b8b29b4cc525538472f3958173f",
+        "layout": "84240158ff29a8c25fd428fdf24f3409df36710fabef89086d711704bc0130c2"
+      },
+      "components": {
+        "badge": "8441ce8aef1597b09e3e9ad14e71e1dba5b00e519a90b7e0cfd139263d4085f6",
+        "button": "115d3bed70bd9ceab5338e9f1e3e379ac61f3b0c35992ee83fe7dd59e6dfb573",
+        "card": "3c0e8da41c1130bd245a08bea4c9287812cfe449a5e468dd03e7c3c36c459644",
+        "card-header": "5467b6377f5a356856ab89ba2a45120b89b2e98a1f926b842d95339b5dadcc8a",
+        "card-title": "b475008cd40f61288baa5bd7af9c7a947bdd0a890756ee865025b2a83f51d479",
+        "card-content": "6464cf3e1ef6f041a2feb434c95bd74cd6a92ef023f900d4c7b5bf5f05a573df",
+        "input": "e591c2b2c642c2a169fdead4a85ccc4123a76db88d7cfb918a32f9aca6677a9c"
+      },
+      "doNotRediscover": [],
+      "awaitingAuthorship": [
+        "categories",
+        "intents",
+        "rules",
+        "examples",
+        "patterns",
+        "antiPatterns",
+        "components.*.whenToUse",
+        "components.*.accessibility",
+        "components.*.composition",
+        "components.*.constraints"
+      ]
+    }
+  },
+  "tokens": {
+    "color": {
+      "description": "Semantic color tokens extracted from CSS custom properties. Values are the default (light) theme.",
+      "tier": "semantic",
+      "values": {
+        "background": {
+          "value": "hsl(0 0% 100%)",
+          "type": "color",
+          "description": "Page background color."
+        },
+        "foreground": {
+          "value": "hsl(222.2 84% 4.9%)",
+          "type": "color",
+          "description": "Default text color on the page background."
+        },
+        "card": {
+          "value": "hsl(0 0% 100%)",
+          "type": "color",
+          "description": "Card surface background."
+        },
+        "card-foreground": {
+          "value": "hsl(222.2 84% 4.9%)",
+          "type": "color",
+          "description": "Text color on card surfaces."
+        },
+        "primary": {
+          "value": "hsl(222.2 47.4% 11.2%)",
+          "type": "color",
+          "description": "Primary brand color for prominent interactive elements."
+        },
+        "primary-foreground": {
+          "value": "hsl(210 40% 98%)",
+          "type": "color",
+          "description": "Text color on primary-colored surfaces."
+        },
+        "secondary": {
+          "value": "hsl(210 40% 96.1%)",
+          "type": "color",
+          "description": "Secondary surface color for less prominent elements."
+        },
+        "secondary-foreground": {
+          "value": "hsl(222.2 47.4% 11.2%)",
+          "type": "color",
+          "description": "Text color on secondary surfaces."
+        },
+        "muted": {
+          "value": "hsl(210 40% 96.1%)",
+          "type": "color",
+          "description": "Muted background for subdued UI regions."
+        },
+        "muted-foreground": {
+          "value": "hsl(215.4 16.3% 46.9%)",
+          "type": "color",
+          "description": "Subdued text color."
+        },
+        "accent": {
+          "value": "hsl(210 40% 96.1%)",
+          "type": "color",
+          "description": "Accent background for hover and highlight states."
+        },
+        "accent-foreground": {
+          "value": "hsl(222.2 47.4% 11.2%)",
+          "type": "color",
+          "description": "Text color on accent surfaces."
+        },
+        "destructive": {
+          "value": "hsl(0 84.2% 60.2%)",
+          "type": "color",
+          "description": "Color for destructive actions and errors."
+        },
+        "destructive-foreground": {
+          "value": "hsl(210 40% 98%)",
+          "type": "color",
+          "description": "Text color on destructive surfaces."
+        },
+        "border": {
+          "value": "hsl(214.3 31.8% 91.4%)",
+          "type": "color",
+          "description": "Default border color."
+        },
+        "input": {
+          "value": "hsl(214.3 31.8% 91.4%)",
+          "type": "color",
+          "description": "Form input border color."
+        },
+        "ring": {
+          "value": "hsl(222.2 84% 4.9%)",
+          "type": "color",
+          "description": "Focus ring color."
+        }
+      }
+    },
+    "radius": {
+      "description": "Border radius tokens extracted from CSS custom properties.",
+      "tier": "semantic",
+      "values": {
+        "radius": {
+          "value": "0.5rem",
+          "type": "borderRadius"
+        }
+      }
+    }
+  },
+  "components": {
+    "badge": {
+      "name": "Badge",
+      "description": "Displays a badge or a component that looks like a badge.",
+      "x-componentKey": "ui/Badge",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "default",
+            "secondary",
+            "destructive",
+            "outline"
+          ],
+          "default": "default",
+          "propRole": "choice"
+        }
+      }
+    },
+    "button": {
+      "name": "Button",
+      "description": "Displays a button or a component that looks like a button.",
+      "x-componentKey": "ui/Button",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "default",
+            "destructive",
+            "outline",
+            "secondary",
+            "ghost",
+            "link"
+          ],
+          "default": "default",
+          "propRole": "choice"
+        },
+        "size": {
+          "type": "enum",
+          "values": [
+            "default",
+            "sm",
+            "lg",
+            "icon"
+          ],
+          "default": "default",
+          "propRole": "dimension"
+        },
+        "asChild": {
+          "type": "boolean",
+          "propRole": "flag",
+          "description": "Render as the child element via Radix Slot instead of a native button.",
+          "default": false
+        }
+      }
+    },
+    "card": {
+      "name": "Card",
+      "description": "Displays a card container with header, content, and footer sections.",
+      "x-componentKey": "ui/Card"
+    },
+    "card-header": {
+      "name": "CardHeader",
+      "description": "Header section of a Card.",
+      "x-componentKey": "ui/CardHeader"
+    },
+    "card-title": {
+      "name": "CardTitle",
+      "description": "Title text within a CardHeader.",
+      "x-componentKey": "ui/CardTitle"
+    },
+    "card-content": {
+      "name": "CardContent",
+      "description": "Main content section of a Card.",
+      "x-componentKey": "ui/CardContent"
+    },
+    "input": {
+      "name": "Input",
+      "description": "Displays a form input field.",
+      "x-componentKey": "ui/Input"
+    }
+  },
+  "frameworkBindings": {
+    "react": {
+      "name": "React",
+      "components": {
+        "badge": {
+          "importPath": "./components/ui/badge",
+          "exportName": "Badge"
+        },
+        "button": {
+          "importPath": "./components/ui/button",
+          "exportName": "Button"
+        },
+        "card": {
+          "importPath": "./components/ui/card",
+          "exportName": "Card"
+        },
+        "card-header": {
+          "importPath": "./components/ui/card",
+          "exportName": "CardHeader"
+        },
+        "card-title": {
+          "importPath": "./components/ui/card",
+          "exportName": "CardTitle"
+        },
+        "card-content": {
+          "importPath": "./components/ui/card",
+          "exportName": "CardContent"
+        },
+        "input": {
+          "importPath": "./components/ui/input",
+          "exportName": "Input"
+        }
+      }
+    }
+  },
+  "themes": {
+    "dark": {
+      "name": "Dark",
+      "description": "Dark theme overrides extracted from the .dark CSS block.",
+      "overrides": {
+        "color.background": "hsl(222.2 84% 4.9%)",
+        "color.foreground": "hsl(210 40% 98%)",
+        "color.card": "hsl(222.2 84% 4.9%)",
+        "color.card-foreground": "hsl(210 40% 98%)",
+        "color.primary": "hsl(210 40% 98%)",
+        "color.primary-foreground": "hsl(222.2 47.4% 11.2%)",
+        "color.secondary": "hsl(217.2 32.6% 17.5%)",
+        "color.secondary-foreground": "hsl(210 40% 98%)",
+        "color.muted": "hsl(217.2 32.6% 17.5%)",
+        "color.muted-foreground": "hsl(215 20.2% 65.1%)",
+        "color.accent": "hsl(217.2 32.6% 17.5%)",
+        "color.accent-foreground": "hsl(210 40% 98%)",
+        "color.destructive": "hsl(0 62.8% 30.6%)",
+        "color.destructive-foreground": "hsl(210 40% 98%)",
+        "color.border": "hsl(217.2 32.6% 17.5%)",
+        "color.input": "hsl(217.2 32.6% 17.5%)",
+        "color.ring": "hsl(212.7 26.8% 83.9%)"
+      }
+    }
+  },
+  "layout": {
+    "breakpoints": {
+      "sm": {
+        "minWidth": "640px",
+        "description": "Small devices and large phones in landscape."
+      },
+      "md": {
+        "minWidth": "768px",
+        "description": "Tablets."
+      },
+      "lg": {
+        "minWidth": "1024px",
+        "description": "Laptops and small desktops."
+      },
+      "xl": {
+        "minWidth": "1280px",
+        "description": "Desktops."
+      },
+      "2xl": {
+        "minWidth": "1536px",
+        "description": "Large desktops."
+      }
+    },
+    "spacingScale": {
+      "baseUnit": "0.25rem",
+      "description": "Spacing follows a 0.25rem base unit; use integer multiples of the scale."
+    }
+  }
+}

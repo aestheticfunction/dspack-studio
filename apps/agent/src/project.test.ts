@@ -116,16 +116,110 @@ describe("rediscover", () => {
     );
     const { status, payload } = await call("rediscover", { path: root });
     expect(status).toBe(200);
-    expect(payload.report.addedComponents).toContain("spark-line");
-    // Human-owned components section preserved: enrichment survives the merge.
-    expect(payload.report.preservedHumanOwned).toContain("components");
+    // The demo project ships a v1 ledger: this first rediscovery migrates it
+    // (human-owned components section -> entries unattributed, byte-identical
+    // ones re-adopted as tool-owned). Migration cannot distinguish
+    // "hand-deleted" from "new since the snapshot", so the fresh-only id
+    // ASKS instead of silently adding.
+    expect(payload.report.migration).toBe("human-owned");
+    expect(payload.contract.metadata["x-bootstrap"].ledger).toBe("2");
+    expect(payload.report.components.added).toEqual([]);
+    expect(payload.report.components.deletedAwaitingDecision).toContain("spark-line");
+    expect(payload.contract.components["spark-line"]).toBeUndefined();
+    // Human-owned entries preserved verbatim: enrichment survives the merge.
     expect(payload.contract.components["action-button"].props.label.required).toBe(true);
     expect(payload.contract.components["action-button"].whenToUse).toBeTruthy();
     // Governance carried over verbatim.
     expect(payload.contract.rules.length).toBeGreaterThan(0);
-    // Ledger still reports the section human-owned after the merge.
+    // Section state derives from entries under v2: enrichment keeps it human-owned.
     const byName = Object.fromEntries(payload.ledger.sections.map((s: any) => [s.section, s.state]));
     expect(byName.components).toBe("human-owned");
+    expect(payload.ledger.entryLevel).toBe(true);
+    // Restoring the genuinely-new component is one explicit decision.
+    const restored = await call("rediscover", { path: root, restoreTopLevel: ["spark-line"] });
+    expect(restored.status).toBe(200);
+    expect(restored.payload.report.components.restoredTopLevel).toEqual([{ id: "spark-line" }]);
+    expect(restored.payload.contract.components["spark-line"]).toBeDefined();
+    const entries = Object.fromEntries(restored.payload.ledger.componentEntries.map((e: any) => [e.id, e.state]));
+    expect(entries["spark-line"]).toBe("tool-owned"); // restored tool-owned
+    expect(["human-owned", "unattributed"]).toContain(entries["action-button"]); // enriched, yours
+  });
+
+  it("refuses a malformed restoreTopLevel with 400 before touching the project", async () => {
+    const bad = await call("rediscover", { path: root, restoreTopLevel: [42] });
+    expect(bad.status).toBe(400);
+    expect(bad.payload.error).toContain("array of component id strings");
+  });
+
+  it("skip-and-ask: a hand-deleted entry is never silently restored; tombstoning ends the asking", async () => {
+    const { writeFileSync } = await import("node:fs");
+    // Hand-delete spark-line from the document (the ledger hash remains).
+    const contract = JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
+    delete contract.components["spark-line"];
+    writeFileSync(join(root, "acme-ui.dspack.json"), JSON.stringify(contract, null, 2) + "\n");
+
+    // Rediscovery: the source still has spark-line, but restoration is skipped.
+    const first = await call("rediscover", { path: root });
+    expect(first.status).toBe(200);
+    expect(first.payload.contract.components["spark-line"]).toBeUndefined();
+    expect(first.payload.report.components.deletedAwaitingDecision).toContain("spark-line");
+    const orphan = first.payload.ledger.componentEntries.find((e: any) => e.id === "spark-line");
+    expect(orphan.state).toBe("orphaned"); // deletion memory survives the merge
+
+    // Decide: tombstone it (what the composer's "Never rediscover" button saves).
+    const decided = structuredClone(first.payload.contract);
+    decided.metadata["x-bootstrap"].doNotRediscover = ["spark-line"];
+    delete decided.metadata["x-bootstrap"].components["spark-line"];
+    const saved = await call("save", { path: root, kind: "contract", document: decided });
+    expect(saved.payload.ok).toBe(true);
+
+    // Rediscovery now skips it unambiguously, and keeps skipping it.
+    const second = await call("rediscover", { path: root });
+    expect(second.status).toBe(200);
+    expect(second.payload.report.components.suppressed).toContain("spark-line");
+    expect(second.payload.report.components.deletedAwaitingDecision).not.toContain("spark-line");
+    expect(second.payload.contract.components["spark-line"]).toBeUndefined();
+    expect(second.payload.ledger.componentEntries.find((e: any) => e.id === "spark-line").state).toBe("tombstoned");
+  });
+
+  it("restoredConflict: authored sub-component blocks re-add until the explicit restore-top-level intent", async () => {
+    // Undo the tombstone and author spark-line as a sub-component of
+    // action-button (the #13 restructure shape, through the real routes).
+    const contract = JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
+    contract.metadata["x-bootstrap"].doNotRediscover = [];
+    contract.components["action-button"].composition = {
+      subComponents: [{ id: "spark-line", name: "SparkLine", description: "Inline trend inside the button." }],
+    };
+    const saved = await call("save", { path: root, kind: "contract", document: contract });
+    expect(saved.payload.ok).toBe(true);
+
+    // Outcome 3 first (leave unresolved): reported, never re-added.
+    const unresolved = await call("rediscover", { path: root });
+    expect(unresolved.status).toBe(200);
+    // The shipped demo project carries its own #13-shaped conflicts
+    // (info-card sub-vocabulary discovered top-level in source), so assert
+    // on spark-line specifically rather than the whole list.
+    expect(unresolved.payload.report.components.restoredConflict).toContainEqual({ id: "spark-line", parent: "action-button" });
+    expect(unresolved.payload.contract.components["spark-line"]).toBeUndefined();
+
+    // A contradictory intent refuses with the tool's words (nothing partial).
+    const contradicted = await call("rediscover", { path: root, restoreTopLevel: ["not-in-source"] });
+    expect(contradicted.status).toBe(409);
+    expect(contradicted.payload.error).toContain("not-in-source");
+
+    // Outcome 2: the explicit intent restores tool-owned, nested preserved.
+    const restored = await call("rediscover", { path: root, restoreTopLevel: ["spark-line"] });
+    expect(restored.status).toBe(200);
+    expect(restored.payload.report.components.restoredTopLevel).toEqual([{ id: "spark-line", parent: "action-button" }]);
+    expect(restored.payload.report.components.restoredConflict.map((x: any) => x.id)).not.toContain("spark-line");
+    expect(restored.payload.contract.components["spark-line"]).toBeDefined();
+    expect(restored.payload.contract.components["action-button"].composition.subComponents[0].id).toBe("spark-line");
+    expect(restored.payload.ledger.componentEntries.find((e: any) => e.id === "spark-line").state).toBe("tool-owned");
+
+    // Subsequent runs treat it as ordinary tool-owned; the conflict is gone.
+    const after = await call("rediscover", { path: root });
+    expect(after.payload.report.components.restoredConflict.map((x: any) => x.id)).not.toContain("spark-line");
+    expect(after.payload.report.components.unchanged).toContain("spark-line");
   });
 });
 

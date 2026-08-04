@@ -8,8 +8,18 @@
  *              edits live in memory only.
  * Files are the source of truth; this state is a view of them.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ledgerStatus, type ComposerFinding, type LedgerStatus, type ProjectManifest } from "@dspack-studio/composer-core";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  addTombstone,
+  applyFreshFact,
+  ledgerStatus,
+  removeTombstone,
+  restoreComponent,
+  type ComposerFinding,
+  type FreshFact,
+  type LedgerStatus,
+  type ProjectManifest,
+} from "@dspack-studio/composer-core";
 import {
   agentConnect,
   agentDiscover,
@@ -18,6 +28,7 @@ import {
   agentSave,
   probeAgent,
   type EmitPayload,
+  type RediscoverReport,
   type ValidatePayload,
 } from "./agent-client";
 import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
@@ -33,6 +44,8 @@ export interface ComposerState {
   contract: Record<string, any> | null;
   profile: Record<string, any> | null;
   ledger: LedgerStatus | null;
+  /** The last rediscovery's full report; review surface, never auto-acted. */
+  rediscovery: RediscoverReport | null;
   emit: EmitPayload | null;
   validate: ValidatePayload | null;
   busy: string | null;
@@ -45,6 +58,13 @@ export interface ComposerState {
   rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
   saveProfile: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
+  /** Explicit deletion decisions (ledger v2): restore or tombstone an id. */
+  resolveDeletion: (id: string, decision: "restore" | "tombstone") => Promise<void>;
+  /** Explicit restoredConflict decisions, phrased as intent (ratified). */
+  resolveConflict: (id: string, decision: "keep-nested" | "restore-top-level") => Promise<void>;
+  clearTombstone: (id: string) => Promise<void>;
+  /** Explicit acceptance of one fresh-side fact into a human-owned entry. */
+  acceptFreshFact: (componentId: string, fact: FreshFact) => Promise<void>;
   runEmit: () => Promise<void>;
   runValidate: () => void;
 }
@@ -64,12 +84,18 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [contract, setContract] = useState<Record<string, any> | null>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [ledger, setLedger] = useState<LedgerStatus | null>(null);
+  const [rediscovery, setRediscovery] = useState<RediscoverReport | null>(null);
   const [emit, setEmit] = useState<EmitPayload | null>(null);
   const [validate, setValidate] = useState<ValidatePayload | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [extraSurfaces, setExtraSurfaces] = useState<Array<{ name: string; surface: unknown }>>([]);
+  // Serializes the ledger-decision actions: two rapid clicks would otherwise
+  // both compute from the same stale contract closure and the second save
+  // would silently drop the first decision. A ref, not state — the guard
+  // must hold before React re-renders the disabled buttons.
+  const decisionLock = useRef(false);
 
   useEffect(() => {
     void probeAgent().then(setAgentUp);
@@ -107,6 +133,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setProfile(prof);
     setExtraSurfaces(DEMO_EXTRA_SURFACES);
     recomputeEmit(doc, prof, DEMO_EXTRA_SURFACES);
+    setRediscovery(null);
     setValidate(null);
     setSelected(null);
     setNotice("Demo project loaded. Edits stay in memory and every gate runs live in this browser; run the local agent to work on real files.");
@@ -137,6 +164,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setLedger(v.ledger);
       setExtraSurfaces(v.extraSurfaces ?? []);
       recomputeEmit(doc, prof, v.extraSurfaces ?? []);
+      setRediscovery(null);
       setValidate(null);
       setSelected(null);
       setNotice(v.profileIssue ? `Connected. Profile issue: ${v.profileIssue}` : `Connected to ${path}.`);
@@ -159,6 +187,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     }
     setContract(result.value.contract as Record<string, any>);
     setLedger(result.value.ledger);
+    setRediscovery(null);
     recomputeEmit(result.value.contract as Record<string, any>, profile);
     setNotice(`Discovery complete: ${result.value.log}`);
   }, [mode, projectPath, profile, recomputeEmit]);
@@ -183,12 +212,15 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     const v = result.value;
     setContract(v.contract as Record<string, any>);
     setLedger(v.ledger);
+    setRediscovery(v.report);
     recomputeEmit(v.contract as Record<string, any>, profile);
-    const r = v.report;
+    const c = v.report.components;
+    const decisions = c.deletedAwaitingDecision.length + c.restoredConflict.length;
     setNotice(
-      `Rediscovery merged: refreshed [${r.refreshed.join(", ") || "none"}]; preserved human-owned [${r.preservedHumanOwned.join(", ") || "none"}]` +
-        (r.addedComponents.length ? `; new components added: ${r.addedComponents.join(", ")}` : "") +
-        (r.keptMissingInFresh.length ? `; kept despite missing in fresh: ${r.keptMissingInFresh.join(", ")}` : ""),
+      `Rediscovery merged per entry: ${c.added.length} added, ${c.refreshed.length} refreshed, ${c.unchanged.length} unchanged, ` +
+        `${c.preservedEnriched.length} preserved human-owned, ${c.removedWithSource.length} removed with source` +
+        (v.report.migration ? ` (ledger migrated to v2, ${v.report.migration} section)` : "") +
+        (decisions ? ` — ${decisions} decision(s) awaiting you below.` : "."),
     );
   }, [mode, projectPath, profile, recomputeEmit]);
 
@@ -244,6 +276,159 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     [mode, projectPath],
   );
 
+  /**
+   * Ledger-v2 decisions. Every one is a named human action on the contract
+   * document — the tool computes the edit, the person authorizes it, the
+   * ordinary save path (ledger-preserving, shape-gated) persists it.
+   */
+  const resolveDeletion = useCallback(
+    async (id: string, decision: "restore" | "tombstone") => {
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
+      const result = decision === "restore" ? restoreComponent(contract, id) : addTombstone(contract, id);
+      if (!result.ok) {
+        setNotice(`Cannot ${decision} '${id}': ${result.reason}`);
+        return;
+      }
+      await saveContract(result.document);
+      setRediscovery((r) =>
+        r
+          ? {
+              ...r,
+              components: {
+                ...r.components,
+                deletedAwaitingDecision: r.components.deletedAwaitingDecision.filter((d) => d !== id),
+                ...(decision === "tombstone" ? { suppressed: [...r.components.suppressed, id] } : {}),
+              },
+            }
+          : r,
+      );
+      setNotice(
+        decision === "restore"
+          ? `'${id}' will be restored from source on the next rediscovery (deletion memory cleared).`
+          : `'${id}' tombstoned: rediscovery will never re-add it. Remove the tombstone from the Ownership panel to undo.`,
+      );
+      } finally {
+        decisionLock.current = false;
+      }
+    },
+    [contract, saveContract],
+  );
+
+  /**
+   * The ratified restoredConflict outcomes, phrased as intent:
+   * - keep nested: tombstone the id + retire the memory (a document edit
+   *   saved through the ordinary ledger-preserving path); the conflict
+   *   stops reporting on subsequent rediscoveries.
+   * - restore top-level: a one-shot explicit intent passed to the tool —
+   *   the entry returns from fresh extraction as tool-owned alongside the
+   *   nested authored one. Refusals are the tool's words verbatim.
+   * Not calling either is the third outcome: nothing changes, the memory
+   * and the report persist.
+   */
+  const resolveConflict = useCallback(
+    async (id: string, decision: "keep-nested" | "restore-top-level") => {
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
+      if (decision === "keep-nested") {
+        const result = addTombstone(contract, id);
+        if (!result.ok) {
+          setNotice(`Cannot keep '${id}' nested: ${result.reason}`);
+          return;
+        }
+        await saveContract(result.document);
+        setRediscovery((r) =>
+          r
+            ? {
+                ...r,
+                components: {
+                  ...r.components,
+                  restoredConflict: r.components.restoredConflict.filter((c) => c.id !== id),
+                  suppressed: [...r.components.suppressed, id],
+                },
+              }
+            : r,
+        );
+        setNotice(`Keeping '${id}' nested: rediscovery will never re-add the top-level entry (tombstoned; removable in the Ownership panel).`);
+        return;
+      }
+      if (mode !== "agent") {
+        setNotice("Restoring the top-level entry re-runs dspack-export on your machine; connect through the local agent first.");
+        return;
+      }
+      setBusy("restoring");
+      const result = await agentRediscover(projectPath, [id]);
+      setBusy(null);
+      if (!result.ok) {
+        setNotice(`Restore refused: ${result.error}`);
+        return;
+      }
+      const v = result.value;
+      setContract(v.contract as Record<string, any>);
+      setLedger(v.ledger);
+      setRediscovery(v.report);
+      recomputeEmit(v.contract as Record<string, any>, profile);
+      setNotice(`'${id}' restored as a top-level component (tool-owned); your nested representation is untouched — both now exist.`);
+      } finally {
+        decisionLock.current = false;
+      }
+    },
+    [contract, mode, projectPath, profile, recomputeEmit, saveContract],
+  );
+
+  const clearTombstone = useCallback(
+    async (id: string) => {
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
+      const result = removeTombstone(contract, id);
+      if (!result.ok) {
+        setNotice(`Cannot remove tombstone '${id}': ${result.reason}`);
+        return;
+      }
+      await saveContract(result.document);
+      setNotice(`Tombstone removed: the next rediscovery may re-add '${id}'.`);
+      } finally {
+        decisionLock.current = false;
+      }
+    },
+    [contract, saveContract],
+  );
+
+  const acceptFreshFact = useCallback(
+    async (componentId: string, fact: FreshFact) => {
+      if (!contract || decisionLock.current) return;
+      decisionLock.current = true;
+      try {
+      const result = applyFreshFact(contract, componentId, fact);
+      if (!result.ok) {
+        setNotice(`Cannot accept ${fact.path} on '${componentId}': ${result.reason}`);
+        return;
+      }
+      await saveContract(result.document);
+      setRediscovery((r) =>
+        r
+          ? {
+              ...r,
+              components: {
+                ...r.components,
+                preservedEnriched: r.components.preservedEnriched.map((p) =>
+                  p.id === componentId ? { ...p, freshDelta: p.freshDelta.filter((f) => f.path !== fact.path) } : p,
+                ),
+              },
+            }
+          : r,
+      );
+      setNotice(`Accepted ${fact.path} into '${componentId}' (the entry stays human-owned).`);
+      } finally {
+        decisionLock.current = false;
+      }
+    },
+    [contract, saveContract],
+  );
+
   const runEmit = useCallback(async () => {
     if (mode !== "agent") {
       setNotice("Live re-emission runs dspack-emit on your files — the demo shows the build-time emit. Connect through the local agent to re-emit.");
@@ -283,6 +468,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       contract,
       profile,
       ledger,
+      rediscovery,
       emit,
       validate,
       busy,
@@ -295,10 +481,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       rediscover,
       saveContract,
       saveProfile,
+      resolveDeletion,
+      resolveConflict,
+      clearTombstone,
+      acceptFreshFact,
       runEmit,
       runValidate,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, runEmit, runValidate],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

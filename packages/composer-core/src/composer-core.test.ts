@@ -13,7 +13,16 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseProjectManifest } from "./project";
-import { ledgerStatus, preservesLedger, sectionHash } from "./ledger";
+import {
+  addTombstone,
+  applyFreshFact,
+  componentEntryStatuses,
+  ledgerStatus,
+  preservesLedger,
+  removeTombstone,
+  restoreComponent,
+  sectionHash,
+} from "./ledger";
 import { countBySeverity, finding } from "./findings";
 import { COMPOSER_ADAPTERS, composerAdapter } from "./adapters";
 
@@ -22,6 +31,10 @@ const fixture = (name: string) =>
 
 const pristine = fixture("acme-ui.dspack.json");
 const enriched = fixture("acme-ui.enriched.dspack.json");
+// A real dspack-export 0.5.0 golden (the shadcn-demo fixture): ledger v2
+// with per-entry hashes. Entry-hash fidelity and every entry-level state
+// below are pinned against this artifact, not hand-written ledgers.
+const v2 = fixture("shadcn-demo.v2.dspack.json");
 
 describe("project manifest", () => {
   const valid = {
@@ -89,6 +102,188 @@ describe("ledger reading (pinned to real dspack-export output)", () => {
     expect(preservesLedger(pristine, stripped)).toBe(false);
     // A document that never had a ledger is unconstrained.
     expect(preservesLedger({ metadata: {} }, { metadata: {} })).toBe(true);
+  });
+});
+
+describe("ledger v2 (entry-level, pinned to a real dspack-export 0.5.0 golden)", () => {
+  it("matches dspack-export's per-entry hashes byte for byte", async () => {
+    const recorded = v2.metadata["x-bootstrap"].components as Record<string, string>;
+    expect(Object.keys(recorded).length).toBeGreaterThan(0);
+    for (const [id, hash] of Object.entries(recorded)) {
+      expect(await sectionHash(v2.components[id]), id).toBe(hash);
+    }
+  });
+
+  it("reports the pristine v2 golden all tool-owned, section state derived from entries", async () => {
+    const status = await ledgerStatus(v2);
+    expect(status.entryLevel).toBe(true);
+    expect(status.componentEntries.every((e) => e.state === "tool-owned")).toBe(true);
+    expect(status.sections.find((s) => s.section === "components")?.state).toBe("tool-owned");
+  });
+
+  it("v1 documents stay section-level: no entry states invented", async () => {
+    const status = await ledgerStatus(enriched);
+    expect(status.entryLevel).toBe(false);
+    expect(status.componentEntries).toEqual([]);
+  });
+
+  it("distinguishes human-owned, unattributed, orphaned, and tombstoned entries", async () => {
+    const doc = structuredClone(v2);
+    doc.components.button.whenToUse = "Any user-initiated action."; // stale hash
+    delete doc.metadata["x-bootstrap"].components.card; // present, no record
+    delete doc.components.badge; // record, no entry
+    doc.metadata["x-bootstrap"].doNotRediscover = ["input"];
+    delete doc.components.input;
+    delete doc.metadata["x-bootstrap"].components.input;
+
+    const byId = Object.fromEntries((await componentEntryStatuses(doc)).map((e) => [e.id, e.state]));
+    expect(byId.button).toBe("human-owned");
+    expect(byId.card).toBe("unattributed");
+    expect(byId.badge).toBe("orphaned");
+    expect(byId.input).toBe("tombstoned");
+    // Any non-tool-owned state makes the section human-owned at v2.
+    const status = await ledgerStatus(doc);
+    expect(status.sections.find((s) => s.section === "components")?.state).toBe("human-owned");
+  });
+
+  it("round-trips byte-stably through save/reload with ownership intact", async () => {
+    const doc = structuredClone(v2);
+    doc.components.button.whenToUse = "Any user-initiated action.";
+    delete doc.components.badge; // orphan = deletion memory
+    const before = JSON.stringify(doc);
+    const reloaded = JSON.parse(before); // the save/export/reload path IS JSON
+    expect(JSON.stringify(reloaded)).toBe(before);
+    const a = await componentEntryStatuses(doc);
+    const b = await componentEntryStatuses(reloaded);
+    expect(b).toEqual(a); // ownership, orphan memory, and hashes all survive
+    expect(b.find((e) => e.id === "badge")?.state).toBe("orphaned");
+  });
+
+  it("restoreComponent clears exactly the orphaned record, nothing else", async () => {
+    const doc = structuredClone(v2);
+    delete doc.components.badge;
+    const result = restoreComponent(doc, "badge");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const ledger = (result.document.metadata as any)["x-bootstrap"];
+    expect(ledger.components.badge).toBeUndefined();
+    // Byte-identical outside that one record.
+    const expected = structuredClone(doc);
+    delete (expected.metadata as any)["x-bootstrap"].components.badge;
+    expect(JSON.stringify(result.document)).toBe(JSON.stringify(expected));
+    // Refuses when there is no deletion to resolve.
+    expect(restoreComponent(v2, "badge").ok).toBe(false);
+    expect(restoreComponent(doc, "not-a-component").ok).toBe(false);
+  });
+
+  it("addTombstone/removeTombstone round-trip; tombstoning an orphan retires its hash", () => {
+    const doc = structuredClone(v2);
+    delete doc.components.badge;
+    const dead = addTombstone(doc, "badge");
+    expect(dead.ok).toBe(true);
+    if (!dead.ok) return;
+    const ledger = (dead.document.metadata as any)["x-bootstrap"];
+    expect(ledger.doNotRediscover).toEqual(["badge"]);
+    expect(ledger.components.badge).toBeUndefined(); // decision made, memory retired
+    const undone = removeTombstone(dead.document, "badge");
+    expect(undone.ok).toBe(true);
+    if (!undone.ok) return;
+    expect((undone.document.metadata as any)["x-bootstrap"].doNotRediscover).toEqual([]);
+    expect(removeTombstone(doc, "badge").ok).toBe(false); // nothing to remove
+  });
+
+  it("v2 actions refuse on v1 documents (version floor)", () => {
+    expect(restoreComponent(enriched, "action-button").ok).toBe(false);
+    expect(addTombstone(enriched, "action-button").ok).toBe(false);
+  });
+
+  it("preservesLedger also guards wholesale deletion-memory destruction on v2", () => {
+    const doc = structuredClone(v2);
+    (doc.metadata as any)["x-bootstrap"].doNotRediscover = ["badge"];
+    const noMap = structuredClone(doc);
+    delete (noMap.metadata as any)["x-bootstrap"].components;
+    expect(preservesLedger(doc, noMap)).toBe(false);
+    const noTombstones = structuredClone(doc);
+    delete (noTombstones.metadata as any)["x-bootstrap"].doNotRediscover;
+    expect(preservesLedger(doc, noTombstones)).toBe(false);
+    const downgraded = structuredClone(doc);
+    delete (downgraded.metadata as any)["x-bootstrap"].ledger;
+    expect(preservesLedger(doc, downgraded)).toBe(false);
+    // Granular decisions keep the structures present and pass.
+    const tombstoned = addTombstone(structuredClone(doc), "another");
+    expect(tombstoned.ok && preservesLedger(doc, tombstoned.document)).toBe(true);
+  });
+});
+
+describe("freshDelta acceptance (explicit, scalar leaves and pure additions only)", () => {
+  it("applies a scalar leaf replacement to the entry", () => {
+    const result = applyFreshFact(v2, "button", { path: "/description", fresh: "A clickable control." });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect((result.document.components as any).button.description).toBe("A clickable control.");
+    expect((v2.components as any).button.description).not.toBe("A clickable control."); // input untouched
+  });
+
+  it("applies a pure prop addition, refuses overwriting an existing prop", () => {
+    const added = applyFreshFact(v2, "button", { path: "/props/loading", fresh: { type: "boolean" } });
+    expect(added.ok).toBe(true);
+    if (added.ok) expect((added.document.components as any).button.props.loading).toEqual({ type: "boolean" });
+    const existing = Object.keys((v2.components as any).button.props)[0];
+    expect(applyFreshFact(v2, "button", { path: `/props/${existing}`, fresh: {} }).ok).toBe(false);
+  });
+
+  it("appends only new enum values; refuses unsupported paths", () => {
+    const doc = structuredClone(v2);
+    const [prop, descriptor] = Object.entries((doc.components as any).button.props).find(
+      ([, d]: [string, any]) => Array.isArray(d.values),
+    ) as [string, any];
+    const had = descriptor.values.length;
+    const result = applyFreshFact(doc, "button", { path: `/props/${prop}/values`, fresh: [descriptor.values[0], "brand-new"] });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const values = (result.document.components as any).button.props[prop].values;
+      expect(values.length).toBe(had + 1); // the known value was not duplicated
+      expect(values).toContain("brand-new");
+    }
+    expect(applyFreshFact(doc, "button", { path: "/composition/subComponents", fresh: [] }).ok).toBe(false);
+    expect(applyFreshFact(doc, "missing", { path: "/description", fresh: "x" }).ok).toBe(false);
+  });
+
+  it("preserves authored order (append-only) and refuses non-list authored values", () => {
+    const doc = structuredClone(v2) as any;
+    const prop = Object.keys(doc.components.button.props)[0];
+    doc.components.button.props[prop] = { type: "string", values: ["alpha", "beta"] };
+    const r = applyFreshFact(doc, "button", { path: `/props/${prop}/values`, fresh: ["beta", "gamma"] });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect((r.document.components as any).button.props[prop].values).toEqual(["alpha", "beta", "gamma"]);
+    // Authored non-list values must never be replaced by acceptance.
+    const authored = structuredClone(v2) as any;
+    authored.components.button.props[prop] = { type: "string", values: "sm | lg" };
+    const refused = applyFreshFact(authored, "button", { path: `/props/${prop}/values`, fresh: ["xl"] });
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.reason).toContain("by hand");
+  });
+
+  it("addTombstone deduplicates and is byte-bounded; clearTombstone removes exactly one id", () => {
+    const doc = structuredClone(v2) as any;
+    delete doc.components.badge;
+    const once = addTombstone(doc, "badge");
+    expect(once.ok).toBe(true);
+    if (!once.ok) return;
+    const twice = addTombstone(once.document, "badge");
+    expect(twice.ok).toBe(true);
+    if (!twice.ok) return;
+    expect((twice.document.metadata as any)["x-bootstrap"].doNotRediscover).toEqual(["badge"]);
+    // Byte-identical outside the two intended ledger edits.
+    const expected = structuredClone(doc);
+    (expected.metadata as any)["x-bootstrap"].doNotRediscover = ["badge"];
+    delete (expected.metadata as any)["x-bootstrap"].components.badge;
+    expect(JSON.stringify(twice.document)).toBe(JSON.stringify(expected));
+    // Exactly one id leaves a multi-entry list; the others are decisions too.
+    const multi = structuredClone(v2) as any;
+    multi.metadata["x-bootstrap"].doNotRediscover = ["alpha", "badge", "omega"];
+    const cleared = removeTombstone(multi, "badge");
+    expect(cleared.ok).toBe(true);
+    if (cleared.ok) expect((cleared.document.metadata as any)["x-bootstrap"].doNotRediscover).toEqual(["alpha", "omega"]);
   });
 });
 
