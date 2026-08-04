@@ -121,3 +121,34 @@ New studio pieces, all thin:
 Temporary state: pnpm overrides point dspack-spec/emit/export at the three
 Phase 2 upstream branches until 0.4.2 / 0.4.1 / 0.4.0 release (the same
 paired-PR protocol Phase 1 used).
+
+## Acknowledged casualties (2026-08-04, #30)
+
+A component the profile author declared a **casualty with a written reason**
+is an owner decision, not unresolved work. `composer-core`'s
+`classifySurfaceRefusal` decides this from structured data only — the
+surface's referenced component ids, minus the profile's mapped plans, minus
+the contract's declared sub-components; acknowledged only when what remains
+is non-empty and *every* id in it is a declared casualty carrying a
+non-empty reason. Message text is never parsed.
+
+**Scope boundary.** The classification applies to that one surface-level
+emission refusal and nothing else. Schema, mapping, coverage, lint,
+generation, and any other finding — including findings targeting the *same*
+surface — remain unclassified and keep counting as unresolved. A surface
+carrying both an acknowledged casualty and a genuine failure leaves the
+project failed and reports both categories
+(`2 error findings · 1 acknowledged casualty`). An acknowledged casualty can
+never make a failing project look green.
+
+The finding itself is never altered: severity, code, target, and the verbatim
+refusal (including the authored reason) all survive, and Validate marks it
+`ACKNOWLEDGED` rather than hiding it.
+
+Known emitter limitation: `EmitSurfaceError` exposes only `message` and
+`path`, and `path` addresses the emitter's *normalized* emission tree — in
+the shipped demo it resolves to the compound child, not to the casualty — so
+it cannot identify the component responsible for a refusal. The profile's
+authored declaration is therefore the only sound provenance today; see the
+upstream follow-up for a structured cause.
+

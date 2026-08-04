@@ -76,11 +76,64 @@ describe("emit", () => {
     expect(casualty.target).toBe("uses-casualty");
     expect(casualty.message).toContain("declared casualty");
     expect(casualty.message).toContain("dropdown-menu casualty".split(" ")[0] === "dropdown-menu" ? "steps" : "steps");
+    // #30: the refusal is an AUTHORED decision — classified structurally from
+    // the profile's casualty declaration, with severity/code/message intact.
+    expect(casualty.severity).toBe("error");
+    expect(casualty.acknowledged).toEqual({
+      componentId: "mini-stepper",
+      class: "cannot-represent",
+      reason: expect.stringContaining("steps is an array prop"),
+    });
     // Catalogs + reports land in out/.
     const catalog = JSON.parse(readFileSync(join(root, "out", "catalog.v0_9_1.json"), "utf8"));
     expect(catalog.catalogId).toContain("https://acme.example/catalogs/acme-ui");
     // ok is false because one surface refused? No: ok reflects catalog gates.
     expect(payload.ok).toBe(true);
+  });
+});
+
+describe("acknowledged casualties (#30)", () => {
+  it("stops acknowledging when the authored reason is removed, without touching other findings", async () => {
+    const { writeFileSync } = await import("node:fs");
+    const path = join(root, "acme.profile.json");
+    const original = readFileSync(path, "utf8");
+    const profile = JSON.parse(original);
+    profile.casualtyComponents[0].reason = "   ";
+    writeFileSync(path, JSON.stringify(profile, null, 2));
+    try {
+      const { payload } = await call("emit", { path: root });
+      const refusal = payload.findings.find((f: any) => f.code === "emit-surface");
+      // Either the profile refuses to load (its own contract), or the refusal
+      // stands unacknowledged. Never acknowledged without a written reason.
+      if (refusal) expect(refusal.acknowledged).toBeUndefined();
+      else expect(payload.findings.some((f: any) => f.gate === "profile")).toBe(true);
+    } finally {
+      writeFileSync(path, original);
+    }
+  });
+
+  it("never acknowledges a refusal caused by an unknown component", async () => {
+    const { writeFileSync, rmSync } = await import("node:fs");
+    const surface = join(root, "surfaces", "unknown-component.dsurface.json");
+    writeFileSync(
+      surface,
+      JSON.stringify(
+        { dspackSurface: "0.1", system: "Acme UI", intent: "unknown-probe", root: { component: "not-a-component" } },
+        null,
+        2,
+      ),
+    );
+    try {
+      const { payload } = await call("emit", { path: root });
+      const refusal = payload.findings.find((f: any) => f.code === "emit-surface" && f.target === "unknown-component");
+      expect(refusal).toBeDefined();
+      expect(refusal.acknowledged).toBeUndefined();
+      // The demo's genuine casualty is still acknowledged alongside it.
+      const casualty = payload.findings.find((f: any) => f.code === "emit-surface" && f.target === "uses-casualty");
+      expect(casualty.acknowledged).toBeDefined();
+    } finally {
+      rmSync(surface, { force: true });
+    }
   });
 });
 

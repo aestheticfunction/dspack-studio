@@ -42,6 +42,7 @@ import {
   parseProjectManifest,
   preservesLedger,
   finding,
+  classifySurfaceRefusal,
   type ComposerFinding,
   type ProjectManifest,
 } from "@dspack-studio/composer-core";
@@ -265,9 +266,12 @@ async function rediscover(ctx: ProjectContext, body: Record<string, unknown>) {
 
 function emit(ctx: ProjectContext) {
   const contract = readJson(ctx.contractPath) as Record<string, unknown>;
+  // The profile as authored (JSON): casualty declarations and their written
+  // reasons are read from this, never from emitted message text.
+  const profileJson = readJson(ctx.profilePath) as Record<string, unknown>;
   let profile: Profile;
   try {
-    profile = loadProfile(readJson(ctx.profilePath));
+    profile = loadProfile(profileJson);
   } catch (e) {
     if (e instanceof ProfileLoadError) {
       return {
@@ -329,7 +333,17 @@ function emit(ctx: ProjectContext) {
     }
   }
   for (const { name, warnings, error } of emitted) {
-    if (error) findings.push(finding("A3", "emit-surface", "error", name, error));
+    if (error) {
+      // An emit refusal caused solely by components the profile author
+      // declared casualties (with a written reason) is an acknowledged
+      // decision, not unresolved work. The finding keeps its severity,
+      // code, target, and verbatim message; the classification is
+      // structured evidence attached alongside.
+      const base = finding("A3", "emit-surface", "error", name, error);
+      const surface = surfaces.find((s) => s.name === name)?.surface;
+      const acknowledged = classifySurfaceRefusal(surface, contract, profileJson);
+      findings.push(acknowledged ? { ...base, acknowledged } : base);
+    }
     for (const w of warnings) findings.push(finding("A3", w.code, "info", name, w.message));
   }
 

@@ -27,7 +27,7 @@ import {
   ProfileLoadError,
   type Profile,
 } from "@aestheticfunction/dspack-emit";
-import { finding, type ComposerFinding } from "@dspack-studio/composer-core";
+import { finding, classifySurfaceRefusal, type ComposerFinding } from "@dspack-studio/composer-core";
 
 let compiled: ValidatorMap | undefined;
 function validators(): ValidatorMap {
@@ -81,6 +81,26 @@ export interface BrowserEmitResult {
  * /project/emit remains the twin that also WRITES out/; this one powers
  * instant feedback on unsaved edits and full demo-mode function.
  */
+/**
+ * The A3 refusal finding, classified. An emit refusal caused solely by
+ * components the profile author declared casualties (with a written reason)
+ * is an acknowledged decision — the finding keeps its severity, code,
+ * target, and verbatim message, and gains structured evidence of the
+ * acknowledgement. See composer-core's classifySurfaceRefusal for the rule.
+ */
+function refusalFinding(
+  name: string,
+  error: string,
+  surfaces: Array<{ name: string; surface: unknown }>,
+  contract: Record<string, any>,
+  profileJson: Record<string, unknown>,
+): ComposerFinding {
+  const base = finding("A3", "emit-surface", "error", name, error);
+  const surface = surfaces.find((s) => s.name === name)?.surface;
+  const acknowledged = classifySurfaceRefusal(surface, contract, profileJson as Record<string, any>);
+  return acknowledged ? { ...base, acknowledged } : base;
+}
+
 export function browserEmit(
   contract: Record<string, unknown>,
   profileJson: Record<string, unknown>,
@@ -135,7 +155,7 @@ export function browserEmit(
     }
   }
   for (const { name, warnings, error } of emitted) {
-    if (error) findings.push(finding("A3", "emit-surface", "error", name, error));
+    if (error) findings.push(refusalFinding(name, error, surfaces, contract, profileJson));
     for (const w of warnings) findings.push(finding("A3", w.code, "info", name, w.message));
   }
 

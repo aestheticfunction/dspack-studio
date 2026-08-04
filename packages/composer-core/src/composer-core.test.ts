@@ -23,7 +23,14 @@ import {
   restoreComponent,
   sectionHash,
 } from "./ledger";
-import { countBySeverity, finding } from "./findings";
+import {
+  acknowledgedCasualties,
+  classifySurfaceRefusal,
+  countBySeverity,
+  finding,
+  gatesSummary,
+  unresolvedErrors,
+} from "./findings";
 import { COMPOSER_ADAPTERS, composerAdapter } from "./adapters";
 
 const fixture = (name: string) =>
@@ -303,5 +310,120 @@ describe("adapter manifests", () => {
     expect(composerAdapter("react-generic")?.rendering).toBeUndefined(); // wireframe fallback
     expect(composerAdapter("shadcn")?.rendering?.registryId).toBe("shadcn");
     expect(composerAdapter("astryx")?.drift?.runtime).toBe("agent");
+  });
+});
+
+
+describe("acknowledged casualties (#30)", () => {
+  /**
+   * Structured inputs only — the contract's sub-component vocabulary, the
+   * profile's mapped plans, the profile's authored casualty declarations,
+   * and the surface's referenced component ids. No message text is ever read.
+   */
+  const contract = {
+    components: {
+      "info-card": { composition: { subComponents: [{ id: "info-card-body" }] } },
+      "mini-stepper": {},
+      "note-field": {},
+    },
+  };
+  const profile = {
+    components: [{ dspackId: "info-card", a2ui: "Card" }, { dspackId: "note-field", a2ui: "TextField" }],
+    casualtyComponents: [
+      { dspackId: "mini-stepper", class: "cannot-represent", reason: "steps is free-form step data." },
+    ],
+  };
+  const surfaceUsing = (...ids: string[]) => ({
+    root: { component: ids[0], children: ids.slice(1).map((id) => ({ component: id })) },
+  });
+
+  it("classifies a refusal whose only unresolvable id is an authored casualty with a reason", () => {
+    const ack = classifySurfaceRefusal(surfaceUsing("info-card", "info-card-body", "mini-stepper"), contract, profile);
+    expect(ack).toEqual({ componentId: "mini-stepper", class: "cannot-represent", reason: "steps is free-form step data." });
+  });
+
+  it("does NOT classify an unknown component, however similarly the message might read", () => {
+    expect(classifySurfaceRefusal(surfaceUsing("info-card", "not-a-component"), contract, profile)).toBeNull();
+  });
+
+  it("does NOT classify a casualty declared without a usable reason", () => {
+    for (const reason of [undefined, "", "   "]) {
+      const bare = { ...profile, casualtyComponents: [{ dspackId: "mini-stepper", class: "cannot-represent", reason }] };
+      expect(classifySurfaceRefusal(surfaceUsing("info-card", "mini-stepper"), contract, bare), String(reason)).toBeNull();
+    }
+  });
+
+  it("refuses to classify when an unknown component accompanies the casualty (ambiguous cause)", () => {
+    const mixed = surfaceUsing("info-card", "mini-stepper", "not-a-component");
+    expect(classifySurfaceRefusal(mixed, contract, profile)).toBeNull();
+  });
+
+  it("does NOT classify a refusal with no unresolvable id (some other defect)", () => {
+    expect(classifySurfaceRefusal(surfaceUsing("info-card", "info-card-body"), contract, profile)).toBeNull();
+  });
+
+  it("never reads message text: an ordinary error mentioning a casualty stays unresolved", () => {
+    const findings = [
+      finding("A3", "emit-surface", "error", "other", "component 'mini-stepper' is a declared casualty (cannot-represent): steps is free-form."),
+    ];
+    expect(acknowledgedCasualties(findings)).toEqual([]);
+    expect(unresolvedErrors(findings)).toHaveLength(1);
+  });
+});
+
+describe("gate arithmetic and summary (#30)", () => {
+  const ack = (target: string) => ({
+    ...finding("A3", "emit-surface", "error", target, `component is a declared casualty: because.`),
+    acknowledged: { componentId: "x", class: "cannot-represent", reason: "because." },
+  });
+  const err = (code: string) => finding("A1", code, "error", "a2ui@0.9.1", "gate failed");
+
+  it("keeps acknowledged casualties out of the unresolved-error count but preserves the finding", () => {
+    const findings = [ack("uses-casualty")];
+    expect(unresolvedErrors(findings)).toEqual([]);
+    expect(acknowledgedCasualties(findings)).toHaveLength(1);
+    // Severity, code, target, message and the authored reason all survive.
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].code).toBe("emit-surface");
+    expect(findings[0].acknowledged.reason).toBe("because.");
+    expect(countBySeverity(findings).error).toBe(1); // raw counts untouched
+  });
+
+  it("summarizes a passing project with singular and plural acknowledgements", () => {
+    expect(gatesSummary([ack("a")], true)).toEqual({ done: true, detail: "Gates pass · 1 acknowledged casualty" });
+    expect(gatesSummary([ack("a"), ack("b")], true)).toEqual({ done: true, detail: "Gates pass · 2 acknowledged casualties" });
+    expect(gatesSummary([], true)).toEqual({ done: true, detail: "document, S-gates, and catalog gates pass" });
+  });
+
+  it("never lets an acknowledged casualty make a failing project look green", () => {
+    const mixed = [err("schema-compile"), err("catalog-shape"), ack("a")];
+    expect(gatesSummary(mixed, true)).toEqual({ done: false, detail: "2 error findings · 1 acknowledged casualty" });
+    expect(gatesSummary([err("schema-compile"), ack("a")], true)).toEqual({
+      done: false,
+      detail: "1 error finding · 1 acknowledged casualty",
+    });
+    expect(gatesSummary([err("schema-compile")], true)).toEqual({ done: false, detail: "1 error finding" });
+  });
+
+  it("acknowledgement never spreads to other findings on the same surface", () => {
+    // Only the emission refusal itself is a decision; a lint or coverage
+    // finding targeting the same surface is unrelated unresolved work.
+    const surface = "uses-casualty";
+    const findings = [
+      ack(surface),
+      finding("S2", "unknown-component", "error", surface, "component is not contract vocabulary"),
+      finding("coverage", "unclassified", "error", surface, "neither mapped nor a declared casualty"),
+      finding("fidelity", "lossy", "warn", surface, "5 -> 4 projection"),
+    ];
+    expect(acknowledgedCasualties(findings).map((f) => f.gate)).toEqual(["A3"]);
+    expect(unresolvedErrors(findings).map((f) => f.gate)).toEqual(["S2", "coverage"]);
+    expect(gatesSummary(findings, true)).toEqual({
+      done: false,
+      detail: "2 error findings · 1 acknowledged casualty",
+    });
+  });
+
+  it("stays not-done when emit has not run, whatever the findings say", () => {
+    expect(gatesSummary([], false)).toEqual({ done: false, detail: "emit has not run" });
   });
 });
