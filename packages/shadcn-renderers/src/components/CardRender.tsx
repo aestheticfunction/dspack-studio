@@ -1,15 +1,21 @@
 /**
- * Catalog `Card` -> shadcn/ui Card markup. The catalog's Astryx color
- * variants have no shadcn equivalent (shadcn cards are token-neutral); the
- * projection keeps `muted` (secondary background) and renders every color
- * variant on the token background — vocabulary accepted, treatment native
- * to this design system.
+ * Catalog `Card` -> shadcn/ui Card markup. shadcn cards are token-neutral, so
+ * the catalog's color variants are projected onto shadcn's accented-surface
+ * idiom (token card plus a Tailwind color tint) in `surface-variants.ts` —
+ * every catalog value keeps its own treatment rather than collapsing onto the
+ * default background.
  */
 import type { FC } from "react";
 import { cn } from "../cn";
+import { surfaceVariant } from "../surface-variants";
 
 export const CardRender: FC<any> = ({ props, buildChild }) => (
-  <div className={cn("rounded-xl border bg-card text-card-foreground shadow p-6", props.variant === "muted" && "bg-secondary")}>
+  <div
+    className={cn(
+      "rounded-xl border text-card-foreground shadow p-6",
+      surfaceVariant(props.variant),
+    )}
+  >
     {props.child ? buildChild(props.child) : null}
   </div>
 );
