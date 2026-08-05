@@ -5,6 +5,7 @@
  * requirement here is asserted on the rendered app, with the file on disk
  * as the second witness.
  */
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { connect, demoProject, type DemoProject } from "./support/agent-project";
 
@@ -13,6 +14,20 @@ async function ready(page: Page): Promise<DemoProject> {
   await connect(page, project.root);
   await expect(page.getByTestId("nav-build")).toBeEnabled();
   await page.getByTestId("nav-build").click();
+  // Wait for the Build surface itself: readiness is derived from the live
+  // browser emit, so the view can briefly render its not-ready panel. If it
+  // never opens, report WHY rather than timing out on a missing locator.
+  const prompt = page.getByTestId("build-prompt");
+  const notReady = page.getByTestId("build-not-ready");
+  const needsAgent = page.getByTestId("build-needs-agent");
+  await expect
+    .poll(async () => {
+      if (await prompt.count()) return "ready";
+      if (await notReady.count()) return `not ready: ${await notReady.innerText()}`;
+      if (await needsAgent.count()) return "needs agent (demo mode)";
+      return "no build panel rendered";
+    }, { timeout: 20_000 })
+    .toBe("ready");
   return project;
 }
 
@@ -93,12 +108,14 @@ test("Accept persists the worked example, survives reload, and the next run rece
   await expect(page.getByTestId("build-canvas-2")).toContainText("(refined)", { timeout: 30_000 });
 
   await page.getByTestId("build-accept-2").click();
-  await expect(page.getByTestId("build-accepted-2")).toContainText("ex.chat-2");
+  await expect(page.getByTestId("build-accepted-2")).toContainText(/ex\.chat-\d+/);
 
   // Persisted on disk with the ledger intact.
   const doc = project.contract();
-  const saved = doc.examples.find((e: any) => e.id === "ex.chat-2");
+  const saved = doc.examples.find((e: any) => /^ex\.chat-\d+$/.test(e.id));
   expect(saved.intent).toBe("status-report");
+  // Truthful provenance: the ORIGINAL ask leads, the refinement is recorded.
+  expect(saved.prompt).toBe("a deployment status screen — refined: make the title clearer");
   expect(JSON.stringify(saved.surface)).toContain("(refined)");
   expect(doc.metadata["x-bootstrap"]).toBeDefined();
 
@@ -106,7 +123,7 @@ test("Accept persists the worked example, survives reload, and the next run rece
   await page.reload();
   await connect(page, project.root);
   await page.getByTestId("nav-scenarios").click();
-  await expect(page.locator("body")).toContainText("ex.chat-2");
+  await expect(page.locator("body")).toContainText(saved.id);
 
   // Few-shot round-trip, user-visible: a fresh scripted run now converges on
   // the LATEST accepted example — the accepted result feeds the next run.
@@ -179,5 +196,182 @@ test("double submission and double acceptance are locked", async ({ page }) => {
   await accept.dispatchEvent("click").catch(() => undefined);
   await expect(page.getByTestId("build-accepted-1")).toBeVisible();
   const doc = project.contract();
-  expect(doc.examples.filter((e: any) => e.id === "ex.chat-1")).toHaveLength(1); // exactly once
+  expect(doc.examples.filter((e: any) => /^ex\.chat-\d+$/.test(e.id))).toHaveLength(1); // exactly once
+});
+
+
+test("an S3 governance failure shows the exact rule and the owner's rationale (#41)", async ({ page }) => {
+  const project = demoProject();
+  // A governed violation the contract's OWN rule catches: the demo's rule
+  // set is authored, so we drive the corpus into violating it.
+  const doc = project.contract();
+  // A GOVERNANCE-only violation (rule.status-report.info-card-required,
+  // severity must, with the owner's authored rationale): a status-report
+  // surface whose root is not the required InfoCard. Emit stays clean, so
+  // Build remains open — S3 is what rejects it.
+  const rule = doc.rules.find((r: any) => r.id === "rule.status-report.info-card-required");
+  expect(rule?.rationale, "the demo contract must ship an authored rationale").toBeTruthy();
+  doc.examples[0].surface = {
+    dspackSurface: "0.1",
+    system: doc.name,
+    intent: "status-report",
+    root: { component: "note-field", id: "notes", props: { label: "Operator notes", resizable: true } },
+  };
+  project.writeContract(doc);
+  await connect(page, project.root);
+  await expect(page.getByTestId("nav-build")).toBeEnabled();
+  await page.getByTestId("nav-build").click();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await page.getByTestId("build-prompt").fill("a status screen");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-outcome-1")).toContainText("failed", { timeout: 30_000 });
+
+  const failure = page.getByTestId("build-failure-1");
+  await expect(failure).toBeVisible();
+  await expect(failure).toContainText("stopped at");
+  // The exact rule id, its message, and the OWNER'S rationale, verbatim.
+  await expect(failure).toContainText("rule.status-report.info-card-required");
+  await expect(page.getByTestId("build-rationale-1")).toContainText(rule.rationale);
+  // The full report stays available for inspection.
+  await expect(failure.getByText("full audit report")).toBeVisible();
+  // Neither action is offered for a turn without a valid surface.
+  await expect(page.getByTestId("build-accept-1")).toHaveCount(0);
+  await expect(page.getByTestId("build-refine")).toBeDisabled();
+});
+
+test("an emit refusal shows the emitter's verbatim evidence, not a bare failed-gate (#41)", async ({ page }) => {
+  const project = await ready(page);
+  // The demo's authored casualty: a surface using it is lint-clean but the
+  // emitter refuses it with its written reason.
+  const doc = project.contract();
+  const casualty = JSON.parse(readFileSync(`${project.root}/surfaces/uses-casualty.dsurface.json`, "utf8"));
+  doc.examples[0].surface = casualty;
+  project.writeContract(doc);
+  await page.getByTestId("build-prompt").fill("a screen using the casualty");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-outcome-1")).toContainText("failed-gate", { timeout: 30_000 });
+
+  const failure = page.getByTestId("build-failure-1");
+  await expect(failure).toContainText(/declared casualty/i);
+  await expect(failure).toContainText(/steps is an array prop/); // the authored reason, verbatim
+  await expect(page.getByTestId("build-accept-1")).toHaveCount(0);
+});
+
+test("an adapter failure explains itself actionably (#41)", async ({ page }) => {
+  const project = demoProject();
+  await connect(page, project.root);
+  await page.getByTestId("nav-build").click();
+  // Select a model ref the agent will try to reach and fail on.
+  await page.getByTestId("build-model").selectOption({ index: 0 }).catch(() => undefined);
+  await page.evaluate(() => {
+    const select = document.querySelector('[data-testid="build-model"]') as HTMLSelectElement;
+    const option = document.createElement("option");
+    option.value = "ollama:definitely-not-a-model";
+    option.textContent = "ollama:definitely-not-a-model";
+    select.appendChild(option);
+    select.value = "ollama:definitely-not-a-model";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await page.getByTestId("build-prompt").fill("anything");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-failure-1")).toBeVisible({ timeout: 60_000 });
+  const failure = page.getByTestId("build-failure-1");
+  await expect(failure).toContainText(/model provider|stream ended/i);
+  const text = await failure.innerText();
+  expect(text).not.toMatch(/^outcome: failed-adapter$/m);
+});
+
+test("a refused Accept renders the agent's findings, not an HTTP status (#41)", async ({ page }) => {
+  const project = await ready(page);
+  await runScripted(page, "a deployment status screen");
+  // Sabotage the corpus AFTER generating: the accept gate re-lints and refuses.
+  const doc = project.contract();
+  doc.components["not-approved-anymore"] = undefined;
+  delete doc.components["tag-pill"]; // the generated surface now references unknown vocabulary
+  project.writeContract(doc);
+
+  await page.getByTestId("build-accept-1").click();
+  const findings = page.getByTestId("build-accept-findings-1");
+  await expect(findings).toBeVisible();
+  await expect(findings).toContainText(/S2|S1|document/);
+  await expect(page.getByTestId("notice")).not.toContainText("agent replied");
+  await expect(page.getByTestId("notice")).toContainText(/refused/i);
+});
+
+test("two accepts across a reload mint distinct ids and preserve both examples (#42)", async ({ page }) => {
+  const project = await ready(page);
+  const before = project.contract().examples.map((e: any) => e.id);
+  await runScripted(page, "a deployment status screen");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toBeVisible();
+  const first = project.contract().examples.at(-1).id;
+
+  // A reload resets every page-local counter — identity must not depend on it.
+  await page.reload();
+  await connect(page, project.root);
+  await page.getByTestId("nav-build").click();
+  await runScripted(page, "another status screen");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toBeVisible();
+
+  const ids = project.contract().examples.map((e: any) => e.id);
+  const second = ids.at(-1);
+  expect(second).not.toBe(first);
+  expect(ids).toEqual(expect.arrayContaining([...before, first, second]));
+  expect(new Set(ids).size).toBe(ids.length); // no duplicates
+});
+
+test("an explicit id collision is refused, never an overwrite (#42)", async ({ page }) => {
+  const project = await ready(page);
+  const existing = project.contract().examples[0];
+  const before = JSON.stringify(existing);
+  await runScripted(page, "a deployment status screen");
+  await page.getByTestId("build-example-id-1").fill(existing.id);
+  await page.getByTestId("build-accept-1").click();
+
+  await expect(page.getByTestId("build-accept-findings-1")).toContainText(existing.id);
+  await expect(page.getByTestId("build-accepted-1")).toHaveCount(0);
+  expect(JSON.stringify(project.contract().examples[0])).toBe(before); // byte-identical
+});
+
+test("an intent with no example cannot borrow another intent's (#43)", async ({ page }) => {
+  const project = await ready(page);
+  const doc = project.contract();
+  doc.intents = [...doc.intents, { id: "onboarding", description: "Welcome a new operator." }];
+  project.writeContract(doc);
+  // Reconnect so the view sees the new intent, then select it.
+  await connect(page, project.root);
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-intent").selectOption("onboarding");
+  await expect(page.getByTestId("build-no-fewshot")).toContainText("onboarding");
+
+  await page.getByTestId("build-prompt").fill("an onboarding screen");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-status")).toContainText(/latest outcome|turn/, { timeout: 30_000 });
+  // Honest refusal, and nothing from the other intent was rendered.
+  await expect(page.getByTestId("build-canvas-1")).toHaveCount(0);
+  await expect(page.locator("body")).toContainText(/worked example/i);
+});
+
+test("two consecutive refinements each use the immediately prior surface, non-vacuously (#43)", async ({ page }) => {
+  const project = await ready(page);
+  await runScripted(page, "a deployment status screen");
+  const first = await page.getByTestId("build-canvas-1").innerText();
+
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-canvas-2")).toBeVisible({ timeout: 30_000 });
+  const second = await page.getByTestId("build-canvas-2").innerText();
+
+  await page.getByTestId("build-prompt").fill("and say it once more");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-canvas-3")).toBeVisible({ timeout: 30_000 });
+  const third = await page.getByTestId("build-canvas-3").innerText();
+
+  // Turn 3 built on turn 2 — and is NOT a byte-identical no-op reported as success.
+  expect(second).not.toBe(first);
+  expect(third, "the second refinement must not be a silent no-op").not.toBe(second);
+  await expect(page.getByTestId("build-outcome-3")).toContainText("passed");
+  // All three remain in the thread for comparison and audit.
+  await expect(page.getByTestId("build-canvas-1")).toBeVisible();
 });

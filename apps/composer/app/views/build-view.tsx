@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
 import { shadcnRegistry } from "@dspack-studio/shadcn-renderers";
+import { buildFailure, canAcceptTurn, canRefineTurn } from "@dspack-studio/composer-core";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
 import { browserEmit } from "../validation";
@@ -47,7 +48,9 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 
 function TurnBlock({ turn }: { turn: BuildTurn }) {
   const { acceptBuildTurn, buildBusy, busy } = useComposer();
-  const [exampleId, setExampleId] = useState(`ex.chat-${turn.id}`);
+  // Blank by default: identity is minted from the contract ON DISK, so a
+  // reload or a second tab can never collide with saved work (#42).
+  const [exampleId, setExampleId] = useState("");
   const locked = buildBusy || busy !== null;
   // The Accept button unmounts on success; a keyboard user's focus must
   // land on the confirmation, never fall to the document body.
@@ -92,6 +95,67 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
         {turn.progress.error && <li style={{ color: "var(--err)" }}>{turn.progress.error}</li>}
       </ol>
 
+      {(() => {
+        const failure = buildFailure(turn.progress);
+        if (!failure) return null;
+        return (
+          <div data-testid={`build-failure-${turn.id}`} style={{ border: "1px solid var(--err)", borderRadius: 2, padding: "8px 10px", marginTop: 8 }}>
+            <p style={{ fontSize: 13, color: "var(--err)", margin: 0 }}>{failure.headline}</p>
+            <p style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--fg-dim)", margin: "2px 0 6px" }}>
+              stopped at {failure.stoppedAt}
+            </p>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 12 }}>
+              {failure.reasons.map((reason, i) => (
+                <li key={i} style={{ padding: "3px 0", borderTop: i ? "1px solid var(--line-soft)" : undefined }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--warn)" }}>
+                    {[reason.gate, reason.code].filter(Boolean).join(" ")}
+                    {reason.target ? ` · ${reason.target}` : ""}
+                  </span>
+                  <br />
+                  <span style={{ color: "var(--fg-body)" }}>{reason.message}</span>
+                  {reason.rationale && (
+                    <>
+                      <br />
+                      <span data-testid={`build-rationale-${turn.id}`} style={{ color: "var(--fg-dim)", fontStyle: "italic" }}>
+                        Why this rule exists: {reason.rationale}
+                      </span>
+                    </>
+                  )}
+                </li>
+              ))}
+              {failure.reasons.length === 0 && (
+                <li style={{ color: "var(--fg-dim)" }}>No structured reason was reported; the full audit report is below.</li>
+              )}
+            </ul>
+            <details style={{ marginTop: 6 }}>
+              <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--fg-dim)" }}>full audit report</summary>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: 10, color: "var(--fg-dim)", maxHeight: 220, overflow: "auto" }}>
+                {JSON.stringify(turn.progress.report ?? {}, null, 1)}
+              </pre>
+            </details>
+          </div>
+        );
+      })()}
+
+      {turn.acceptFindings && turn.acceptFindings.length > 0 && (
+        <div data-testid={`build-accept-findings-${turn.id}`} style={{ border: "1px solid var(--err)", borderRadius: 2, padding: "8px 10px", marginTop: 8 }}>
+          <p style={{ fontSize: 13, color: "var(--err)", margin: "0 0 4px" }}>
+            The agent refused to save this surface as a worked example.
+          </p>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 12 }}>
+            {turn.acceptFindings.map((f, i) => (
+              <li key={i} style={{ padding: "2px 0" }}>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--warn)" }}>
+                  {f.gate} {f.code}
+                  {f.target ? ` · ${f.target}` : ""}
+                </span>{" "}
+                <span style={{ color: "var(--fg-body)" }}>{f.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {turn.gaps.length > 0 && (
         <p data-testid={`build-gap-${turn.id}`} style={{ fontSize: 12, color: "var(--warn)", border: "1px dashed var(--warn)", borderRadius: 2, padding: "6px 10px" }}>
           Vocabulary gap: this ask needs {turn.gaps.map((g) => `'${g}'`).join(", ")}, which no approved component provides. Building
@@ -102,20 +166,21 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 
       <TurnCanvas turn={turn} />
 
-      {turn.progress.status === "finished" && turn.progress.outcome === "passed" && !turn.accepted && (
+      {canAcceptTurn(turn.progress) && !turn.accepted && (
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
           <input
             value={exampleId}
             onChange={(e) => setExampleId(e.target.value)}
-            aria-label={`Example id for turn ${turn.id}`}
+            placeholder="(agent mints a free id)"
+            aria-label={`Example id for turn ${turn.id} — leave blank to let the agent mint a collision-free id`}
             style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", border: "1px solid var(--line)", color: "var(--fg)", padding: "5px 8px", borderRadius: 2 }}
             data-testid={`build-example-id-${turn.id}`}
           />
           <button
             className="st-btn"
             disabled={locked}
-            aria-label={`Accept turn ${turn.id} as worked example ${exampleId}`}
-            onClick={() => void acceptBuildTurn(turn.id, exampleId)}
+            aria-label={`Accept turn ${turn.id} as a worked example${exampleId ? ` with id ${exampleId}` : ""}`}
+            onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined)}
             data-testid={`build-accept-${turn.id}`}
           >
             Accept as worked example
@@ -139,7 +204,10 @@ export function BuildView() {
   const [intent, setIntent] = useState<string>("");
   const activeIntent = intent || intents[0] || "";
   const streamStatus = useRef<HTMLParagraphElement>(null);
-  const canRefine = buildTurns.some((t) => t.progress.surface);
+  const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
+  // Scripted replays THIS intent's own example; a model runs without few-shot
+  // context. Either way the absence is stated, never papered over (#43).
+  const examplesForIntent = ((contract?.examples ?? []) as Array<{ intent?: string }>).filter((e) => e.intent === activeIntent).length;
 
   const submit = (refine: boolean) => {
     if (!prompt.trim() || buildBusy) return;
@@ -211,6 +279,14 @@ export function BuildView() {
           </select>
         </label>
       </div>
+
+      {examplesForIntent === 0 && (
+        <p data-testid="build-no-fewshot" style={{ fontSize: 12, color: "var(--warn)" }}>
+          No worked example for <code>{activeIntent}</code> yet. <code>scripted</code> replays this intent's own example, so it
+          cannot run; a model generates from the scoped contract with no few-shot context. Accepting a build here creates the
+          first one.
+        </p>
+      )}
 
       <div style={{ display: "flex", gap: 8 }}>
         <input
