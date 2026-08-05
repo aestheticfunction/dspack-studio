@@ -47,10 +47,17 @@ export {
 } from "./adapters";
 export {
   buildReadiness,
+  buildFailure,
+  canAcceptTurn,
+  canRefineTurn,
+  examplePromptFor,
   foldBuildEvents,
   vocabularyGap,
   type BuildReadiness,
   type BuildTurnProgress,
+  type BuildFailure,
+  type BuildFailureKind,
+  type BuildFailureReason,
   type TurnAttempt,
   type TurnGate,
 } from "./build";

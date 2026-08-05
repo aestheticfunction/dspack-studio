@@ -46,7 +46,7 @@ test("Build, Refine, and Accept carry unambiguous accessible names; keyboard ope
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("build-status")).toContainText(/latest outcome/, { timeout: 30_000 });
 
-  const accept = page.getByRole("button", { name: /Accept turn 1 as worked example ex\.chat-1/ });
+  const accept = page.getByRole("button", { name: /Accept turn 1 as a worked example/ });
   await expect(accept).toBeVisible();
   await accept.focus();
   await expect(accept).toBeFocused();

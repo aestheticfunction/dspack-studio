@@ -481,9 +481,22 @@ function scriptedRunAdapter(example: { surface: unknown }, conversation: Convers
       try {
         const refined = JSON.parse(priorRaw) as Record<string, unknown>;
         const textNode = firstTextNode(refined);
-        if (textNode && !textNode.text.endsWith(" (refined)")) textNode.text = `${textNode.text} (refined)`;
-        else if (!textNode) (refined as { id?: string }).id = "refined";
-        return new ScriptedAdapter([{ output: refined }]);
+        if (textNode) {
+          // MONOTONIC, never idempotent: successive refinements must each
+          // produce a genuinely different surface, or the twin would report
+          // a byte-identical no-op as a successful refinement (#43).
+          const existing = /^(.*?)(?: \(refined(?: (\d+))?\))$/.exec(textNode.text);
+          const base = existing ? existing[1] : textNode.text;
+          const next = existing ? Number(existing[2] ?? 1) + 1 : 1;
+          textNode.text = next === 1 ? `${base} (refined)` : `${base} (refined ${next})`;
+        } else {
+          const previous = /^refined(?: (\d+))?$/.exec(String((refined as { id?: string }).id ?? ""));
+          const next = previous ? Number(previous[1] ?? 1) + 1 : 1;
+          (refined as { id?: string }).id = next === 1 ? "refined" : `refined ${next}`;
+        }
+        // Three entries so a refinement can survive bounded repair too — a
+        // refinement run must never die with a script-exhaustion error.
+        return new ScriptedAdapter([{ output: refined }, { output: refined }, { output: refined }]);
       } catch {
         // Fall through: an unparseable prior surface behaves like a fresh run.
       }
@@ -512,12 +525,18 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
   const conversation = parseConversation(props.conversation);
 
   const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
-  // LAST match: accepted chat results join the corpus at the end, and the
-  // deterministic twin plays the owner's latest accepted example.
-  const matching = examples.filter((e) => e.intent === intent);
-  const example = matching.at(-1) ?? examples.at(-1);
+  // LAST match FOR THIS INTENT: accepted chat results join the corpus at the
+  // end, and the deterministic twin plays the owner's latest accepted
+  // example. Never borrow another intent's example — a screen built for a
+  // different intent is not a deterministic stand-in, it is a wrong answer
+  // reported as a right one (#43).
+  const example = examples.filter((e) => e.intent === intent).at(-1);
   if (modelRef === "scripted" && !example) {
-    throw new ProjectError(400, "scripted mode needs at least one worked example in the contract");
+    throw new ProjectError(
+      400,
+      `scripted mode replays this intent's own worked example, and '${intent}' has none yet. ` +
+        `Author one in Scenarios, or run with a model — generation works from the scoped contract without few-shot context.`,
+    );
   }
   const adapter =
     modelRef === "scripted"
@@ -553,6 +572,16 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
 }
 
 
+/** The next free `ex.chat-N` for this contract (monotonic, gap-tolerant). */
+function nextExampleId(existing: string[]): string {
+  let n = 0;
+  for (const id of existing) {
+    const match = /^ex\.chat-(\d+)$/.exec(id);
+    if (match) n = Math.max(n, Number(match[1]));
+  }
+  return `ex.chat-${n + 1}`;
+}
+
 /**
  * Accept a build result as a governed worked example — the ONLY save format
  * for chat-accepted surfaces, and fail-closed SERVER-SIDE: a disabled
@@ -565,15 +594,33 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
 async function saveExample(ctx: ProjectContext, body: Record<string, unknown>) {
   const raw = body.example as Record<string, unknown> | undefined;
   if (!raw || typeof raw !== "object") throw new ProjectError(400, "example is required");
-  const id = String(raw.id ?? "");
-  if (!/^ex\.[a-z0-9][a-z0-9-]*$/.test(id)) {
-    throw new ProjectError(400, "example.id must be kebab-case with the 'ex.' prefix");
-  }
   if (!raw.surface || typeof raw.surface !== "object") throw new ProjectError(400, "example.surface must be a surface document");
   const prompt = String(raw.prompt ?? "");
   if (!prompt) throw new ProjectError(400, "example.prompt is required (the ask that produced this surface)");
 
   const contract = readJson(ctx.contractPath) as Record<string, unknown>;
+  const existing = ((contract.examples as Array<{ id?: unknown }> | undefined) ?? []).map((e) => String(e?.id ?? ""));
+
+  // Identity is derived from the contract ON DISK, never from a page-local
+  // counter: a browser that reloaded (or a second tab) cannot mint an id
+  // that collides with work already saved. An EXPLICIT id that already
+  // exists is refused outright — accepting a build result never overwrites
+  // an existing worked example, least of all an owner-authored one (#42).
+  const requested = raw.id === undefined ? "" : String(raw.id);
+  if (requested && !/^ex\.[a-z0-9][a-z0-9-]*$/.test(requested)) {
+    throw new ProjectError(400, "example.id must be kebab-case with the 'ex.' prefix");
+  }
+  if (requested && existing.includes(requested)) {
+    return {
+      status: 409,
+      payload: {
+        ok: false,
+        findings: [finding("document", "example-exists", "error", "example.id", `'${requested}' already exists in this contract; accepting would overwrite it. Choose another id, or leave it blank to mint the next free one.`)],
+      },
+    };
+  }
+  const id = requested || nextExampleId(existing);
+
   const intents = ((contract.intents as Array<{ id: string }> | undefined) ?? []).map((i) => i.id);
   const intent = String(raw.intent ?? "");
   if (!intents.includes(intent)) {
@@ -606,9 +653,7 @@ async function saveExample(ctx: ProjectContext, body: Record<string, unknown>) {
   };
   const document = structuredClone(contract);
   const examples = ((document.examples as unknown[] | undefined) ?? []) as Array<{ id: string }>;
-  const at = examples.findIndex((e) => e.id === id);
-  if (at >= 0) examples[at] = entry as never;
-  else examples.push(entry as never);
+  examples.push(entry as never); // append-only: the id was proven free above
   document.examples = examples;
 
   // The same guarded write as /project/save: ledger preserved, harness clean.

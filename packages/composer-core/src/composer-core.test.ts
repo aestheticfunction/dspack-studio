@@ -32,7 +32,15 @@ import {
   unresolvedErrors,
 } from "./findings";
 import { COMPOSER_ADAPTERS, composerAdapter } from "./adapters";
-import { buildReadiness, foldBuildEvents, vocabularyGap } from "./build";
+import {
+  buildFailure,
+  buildReadiness,
+  canAcceptTurn,
+  canRefineTurn,
+  examplePromptFor,
+  foldBuildEvents,
+  vocabularyGap,
+} from "./build";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url)), "utf8"));
@@ -514,5 +522,181 @@ describe("folding a streamed build run", () => {
     const turn = foldBuildEvents([{ type: "RUN_STARTED" }, { type: "RUN_ERROR", message: "agent gone" }]);
     expect(turn.status).toBe("error");
     expect(turn.error).toBe("agent gone");
+  });
+});
+
+
+describe("structured build failures (#41)", () => {
+  const run = (outcome: string, report: Record<string, any>, extra: Array<Record<string, any>> = []) =>
+    foldBuildEvents([
+      { type: "RUN_STARTED" },
+      { type: "STEP_STARTED", stepName: "attempt-0" },
+      ...extra,
+      { type: "CUSTOM", name: "dspack.audit", value: { outcome, exitCode: outcome === "passed" ? 0 : 2, report } },
+      { type: "RUN_FINISHED" },
+    ]);
+
+  it("an S3 governance failure names the rule, its message, its location, and the owner's rationale", () => {
+    const f = buildFailure(
+      run("failed-lint-exhausted", {
+        attempts: [
+          {
+            index: 0,
+            surface: { root: {} },
+            gates: [
+              { gate: "S1", name: "surface-schema", status: "PASS" },
+              { gate: "S2", name: "contract-vocabulary", status: "PASS" },
+              { gate: "S3", name: "governance", status: "FAIL" },
+            ],
+            findings: [
+              {
+                ruleId: "rule.destructive-requires-alertdialog",
+                level: "error",
+                message: "destructive action without an AlertDialog",
+                rationale: "Irreversible actions must be confirmed deliberately.",
+                location: { path: "$.root.children[0]", component: "action-button" },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(f?.kind).toBe("lint");
+    expect(f?.stoppedAt).toMatch(/attempt 1.*S3/);
+    expect(f?.reasons).toHaveLength(1);
+    expect(f?.reasons[0]).toMatchObject({
+      gate: "S3",
+      code: "rule.destructive-requires-alertdialog",
+      target: "$.root.children[0]",
+      message: "destructive action without an AlertDialog",
+      rationale: "Irreversible actions must be confirmed deliberately.",
+    });
+  });
+
+  it("an S1/S2 failure reports its gate errors verbatim (no findings exist for those gates)", () => {
+    const f = buildFailure(
+      run("failed-lint-exhausted", {
+        attempts: [
+          {
+            index: 0,
+            gates: [
+              { gate: "S1", name: "surface-schema", status: "PASS" },
+              { gate: "S2", name: "contract-vocabulary", status: "FAIL", errors: ["component 'nope' is not contract vocabulary"] },
+              { gate: "S3", name: "governance", status: "SKIPPED" },
+            ],
+            findings: [],
+          },
+        ],
+      }),
+    );
+    expect(f?.kind).toBe("lint");
+    expect(f?.reasons[0]).toMatchObject({ gate: "S2", message: "component 'nope' is not contract vocabulary" });
+    expect(f?.reasons[0].rationale).toBeUndefined();
+  });
+
+  it("an emit refusal renders the emitter's verbatim refusal, not a bare outcome", () => {
+    const f = buildFailure(
+      run("failed-gate", {
+        attempts: [{ index: 0, surface: { root: {} }, gates: [{ gate: "S1", name: "surface-schema", status: "PASS" }], findings: [] }],
+        emitted: { target: "a2ui", warnings: [], validations: [], refusal: "component 'mini-stepper' is a declared casualty (cannot-represent): steps is free-form." },
+      }),
+    );
+    expect(f?.kind).toBe("emit-refusal");
+    expect(f?.reasons[0].message).toContain("declared casualty");
+    expect(f?.stoppedAt).toMatch(/emit/i);
+  });
+
+  it("an emit A-gate failure names the gate and its errors", () => {
+    const f = buildFailure(
+      run("failed-gate", {
+        attempts: [{ index: 0, surface: { root: {} }, gates: [], findings: [] }],
+        emitted: {
+          target: "a2ui",
+          warnings: [],
+          validations: [{ a2uiVersion: "0.9.1", gates: [{ gate: "A3", name: "instance", pass: false, errors: ["TextField requires label"] }] }],
+        },
+      }),
+    );
+    expect(f?.kind).toBe("emit-gate");
+    expect(f?.reasons[0]).toMatchObject({ gate: "A3", message: "TextField requires label" });
+  });
+
+  it("an adapter failure carries the typed error and an actionable explanation", () => {
+    const f = buildFailure(run("failed-adapter", { attempts: [{ index: 0, adapterError: "fetch failed: connect ECONNREFUSED 127.0.0.1:11434" }] }));
+    expect(f?.kind).toBe("adapter");
+    expect(f?.reasons[0].message).toContain("ECONNREFUSED");
+    expect(f?.headline).toMatch(/model|provider/i);
+  });
+
+  it("repair exhaustion is named as such, with the last attempt's reasons", () => {
+    const gates = [{ gate: "S2", name: "contract-vocabulary", status: "FAIL", errors: ["component 'x' is not contract vocabulary"] }];
+    const f = buildFailure(
+      run("failed-lint-exhausted", {
+        attempts: [
+          { index: 0, gates, findings: [] },
+          { index: 1, gates, findings: [] },
+          { index: 2, gates, findings: [] },
+        ],
+        repairMessages: ["r1", "r2"],
+      }),
+    );
+    expect(f?.kind).toBe("repair-exhausted");
+    expect(f?.headline).toMatch(/repair/i);
+    expect(f?.reasons[0].gate).toBe("S2");
+  });
+
+  it("a passing run has no failure, and successful gates are never hidden", () => {
+    const progress = run("passed", { attempts: [{ index: 0, surface: { root: { component: "x" } }, gates: [{ gate: "S1", name: "s", status: "PASS" }], findings: [] }] });
+    expect(buildFailure(progress)).toBeNull();
+    expect(progress.attempts[0].gates).toHaveLength(1); // the fold keeps every gate
+  });
+
+  it("Refine and Accept are offered only for a completed run with a valid surface", () => {
+    const passed = run("passed", { attempts: [{ index: 0, surface: { root: {} }, gates: [], findings: [] }] });
+    expect(canAcceptTurn(passed)).toBe(true);
+    expect(canRefineTurn(passed)).toBe(true);
+
+    // A failed turn may still carry a surface from its last attempt — neither action applies.
+    const failed = run("failed-lint-exhausted", { attempts: [{ index: 0, surface: { root: {} }, gates: [], findings: [] }] });
+    expect(canAcceptTurn(failed)).toBe(false);
+    expect(canRefineTurn(failed)).toBe(false);
+
+    const adapter = run("failed-adapter", { attempts: [{ index: 0, adapterError: "boom" }] });
+    expect(canAcceptTurn(adapter)).toBe(false);
+    expect(canRefineTurn(adapter)).toBe(false);
+
+    const streaming = foldBuildEvents([{ type: "RUN_STARTED" }]);
+    expect(canAcceptTurn(streaming)).toBe(false);
+    expect(canRefineTurn(streaming)).toBe(false);
+  });
+
+  it("a vocabulary gap stays distinguishable from malformed model output", () => {
+    const gap = run("failed-lint-exhausted", {
+      attempts: [{ index: 0, gates: [{ gate: "S2", name: "contract-vocabulary", status: "FAIL", errors: ["component 'timeline' is not contract vocabulary"] }], findings: [] }],
+    });
+    expect(vocabularyGap(gap)).toEqual(["timeline"]);
+    expect(buildFailure(gap)?.kind).toBe("lint");
+
+    const malformed = run("failed-lint-exhausted", {
+      attempts: [{ index: 0, gates: [{ gate: "S1", name: "surface-schema", status: "FAIL", errors: ["(root) must be object"] }], findings: [] }],
+    });
+    expect(vocabularyGap(malformed)).toEqual([]);
+    expect(buildFailure(malformed)?.reasons[0].gate).toBe("S1");
+  });
+});
+
+describe("worked-example prompt provenance (#42)", () => {
+  it("keeps the ORIGINAL request as the prompt and records refinements deterministically", () => {
+    expect(examplePromptFor(["a deployment status screen"])).toBe("a deployment status screen");
+    expect(examplePromptFor(["a deployment status screen", "make the title clearer"])).toBe(
+      "a deployment status screen — refined: make the title clearer",
+    );
+    expect(examplePromptFor(["a status screen", "make the title clearer", "add the region"])).toBe(
+      "a status screen — refined: make the title clearer; add the region",
+    );
+    // Deterministic and stable: same chain, same string.
+    expect(examplePromptFor(["a", "b"])).toBe(examplePromptFor(["a", "b"]));
+    // Never merely the last instruction.
+    expect(examplePromptFor(["original", "last"])).toContain("original");
   });
 });

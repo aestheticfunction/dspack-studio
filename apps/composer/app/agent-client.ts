@@ -28,7 +28,14 @@ export interface ConnectPayload {
   extraSurfaces: Array<{ name: string; surface: unknown }>;
 }
 
-export type AgentResult<T> = { ok: true; value: T } | { ok: false; error: string };
+/**
+ * A refusal keeps its STRUCTURED evidence: routes that answer 4xx with a
+ * findings array (the fail-closed accept gate) must not be flattened to
+ * "agent replied 422" — the gate reasons are the whole point (#41).
+ */
+export type AgentResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: string; findings?: ComposerFinding[]; status?: number };
 
 const DEFAULT_AGENT = process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787";
 
@@ -45,7 +52,15 @@ async function post<T>(route: string, body: unknown): Promise<AgentResult<T>> {
       signal: AbortSignal.timeout(180_000),
     });
     const payload = await res.json();
-    if (!res.ok) return { ok: false, error: String(payload.error ?? `agent replied ${res.status}`) };
+    if (!res.ok) {
+      const findings = Array.isArray(payload?.findings) ? (payload.findings as ComposerFinding[]) : undefined;
+      return {
+        ok: false,
+        status: res.status,
+        ...(findings ? { findings } : {}),
+        error: String(payload?.error ?? (findings?.length ? findings.map((f) => f.message).join("; ") : `agent replied ${res.status}`)),
+      };
+    }
     return { ok: true, value: payload as T };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -148,7 +163,8 @@ export function streamProjectRun(
 }
 
 export interface AcceptedExample {
-  id: string;
+  /** Omit to let the agent mint a collision-free id from the contract (#42). */
+  id?: string;
   intent: string;
   name?: string;
   prompt: string;

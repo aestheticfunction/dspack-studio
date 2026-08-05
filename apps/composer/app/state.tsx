@@ -13,6 +13,8 @@ import {
   addTombstone,
   applyFreshFact,
   buildReadiness,
+  canRefineTurn,
+  examplePromptFor,
   foldBuildEvents,
   ledgerStatus,
   removeTombstone,
@@ -52,10 +54,14 @@ export interface BuildTurn {
   modelRef: string;
   /** True when this turn refined the previous surface (seed supplied). */
   refinement: boolean;
+  /** The turn this one refined, for truthful example provenance (#42). */
+  parentId?: number;
   progress: BuildTurnProgress;
   /** Component ids the ask needed but the owner has not approved (S2 evidence). */
   gaps: string[];
   accepted?: string; // the saved example id
+  /** Structured findings from a refused Accept, rendered in place (#41). */
+  acceptFindings?: ComposerFinding[];
 }
 
 export interface ComposerState {
@@ -96,7 +102,8 @@ export interface ComposerState {
   /** Setup completeness for building; reason names the exact remaining work. */
   readiness: BuildReadiness;
   runBuild: (input: { prompt: string; intent: string; modelRef: string; refine?: boolean }) => Promise<void>;
-  acceptBuildTurn: (turnId: number, exampleId: string) => Promise<void>;
+  /** Accept a turn as a worked example; the agent mints the id (#42). */
+  acceptBuildTurn: (turnId: number, exampleId?: string) => Promise<void>;
   clearBuildThread: () => void;
 }
 
@@ -514,9 +521,12 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (buildBusy) return;
-      const prior = input.refine ? [...buildTurns].reverse().find((t) => t.progress.surface) : undefined;
+      // Only a completed, passing turn can seed a refinement (#43): a failed
+      // turn still carries its last attempt's surface, and seeding that
+      // regenerates from something the contract already rejected.
+      const prior = input.refine ? [...buildTurns].reverse().find((t) => canRefineTurn(t.progress)) : undefined;
       if (input.refine && !prior) {
-        setNotice("Nothing to refine yet — run a build first.");
+        setNotice("Nothing to refine yet — refinement starts from a completed build that passed its gates.");
         return;
       }
       setBuildBusy(true);
@@ -527,6 +537,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         intent: input.intent,
         modelRef: input.modelRef,
         refinement: !!prior,
+        ...(prior ? { parentId: prior.id } : {}),
         progress: { status: "streaming", attempts: [] },
         gaps: [],
       };
@@ -577,7 +588,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
    * format — and immediately joins that intent's few-shot corpus.
    */
   const acceptBuildTurn = useCallback(
-    async (turnId: number, exampleId: string) => {
+    async (turnId: number, exampleId?: string) => {
       if (!contract || decisionLock.current) return;
       const turn = buildTurns.find((t) => t.id === turnId);
       if (!turn?.progress.surface || turn.progress.outcome !== "passed") {
@@ -587,19 +598,32 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       decisionLock.current = true;
       setBusy("accepting build result");
       try {
+        // Truthful provenance: walk back to the ORIGINAL ask and record the
+        // refinements that shaped this surface (#42).
+        const chain: string[] = [];
+        for (let t: BuildTurn | undefined = turn; t; t = t.parentId ? buildTurns.find((x) => x.id === t!.parentId) : undefined) {
+          chain.unshift(t.prompt);
+        }
+        const prompt = examplePromptFor(chain);
         const result = await agentSaveExample(projectPath, {
-          id: exampleId,
+          ...(exampleId ? { id: exampleId } : {}), // omitted ⇒ the agent mints a collision-free id
           intent: turn.intent,
-          name: `Chat: ${turn.prompt.slice(0, 60)}`,
-          prompt: turn.prompt,
+          name: `Chat: ${chain[0].slice(0, 60)}`,
+          prompt,
           surface: turn.progress.surface,
         });
         if (!result.ok) {
-          setNotice(`Accept failed: ${result.error}`);
+          // Structured gate reasons, never a bare HTTP status (#41).
+          const detail = result.findings?.length
+            ? result.findings.map((f) => `${f.gate} ${f.code}: ${f.message}`).join(" · ")
+            : result.error;
+          setNotice(`Accept refused: ${detail}`);
+          setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, acceptFindings: result.findings ?? [] } : t)));
           return;
         }
         if (!result.value.ok) {
-          setNotice(`Accept refused by the gates: ${result.value.findings.map((f) => f.message).join("; ").slice(0, 300)}`);
+          setNotice(`Accept refused: ${result.value.findings.map((f) => `${f.gate} ${f.code}: ${f.message}`).join(" · ").slice(0, 400)}`);
+          setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, acceptFindings: result.value.findings } : t)));
           return;
         }
         if (result.value.ledger) setLedger(result.value.ledger);
@@ -611,8 +635,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         doc.examples = examples;
         setContract(doc);
         recomputeEmit(doc, profile);
-        setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, accepted: exampleId } : t)));
-        setNotice(`Accepted as worked example '${exampleId}' — it now seeds generation for '${turn.intent}'.`);
+        const savedId = result.value.example?.id ?? exampleId ?? "";
+        setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, accepted: savedId, acceptFindings: undefined } : t)));
+        setNotice(`Accepted as worked example '${savedId}' — it now seeds generation for '${turn.intent}'.`);
       } finally {
         decisionLock.current = false;
         setBusy(null);

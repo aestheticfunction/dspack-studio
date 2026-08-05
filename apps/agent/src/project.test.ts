@@ -454,3 +454,73 @@ describe("accepting a build result (/project/save-example, fail-closed)", () => 
     expect(JSON.stringify(surfaceOfRun(next.events).surface)).toBe(JSON.stringify(refined));
   });
 });
+
+
+describe("safe worked-example persistence (#42) and honest scripted absence (#43)", () => {
+  const contractOf = () => JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
+  const surfaceOf = () => structuredClone(contractOf().examples[0].surface);
+
+  it("mints a collision-free id from the contract on disk when the client supplies none", async () => {
+    const before = contractOf().examples.map((e: any) => e.id);
+    const a = await call("save-example", { path: root, example: { intent: "status-report", prompt: "first ask", surface: surfaceOf() } });
+    expect(a.status).toBe(200);
+    expect(a.payload.example.id).toMatch(/^ex\.chat-\d+$/);
+    expect(before).not.toContain(a.payload.example.id);
+
+    const b = await call("save-example", { path: root, example: { intent: "status-report", prompt: "second ask", surface: surfaceOf() } });
+    expect(b.status).toBe(200);
+    expect(b.payload.example.id).not.toBe(a.payload.example.id); // distinct across accepts
+
+    // Both survive; every pre-existing example is byte-identical.
+    const doc = contractOf();
+    expect(doc.examples.map((e: any) => e.id)).toEqual(expect.arrayContaining([a.payload.example.id, b.payload.example.id, ...before]));
+    for (const id of before) {
+      expect(JSON.stringify(doc.examples.find((e: any) => e.id === id))).toBe(
+        JSON.stringify(JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8")).examples.find((e: any) => e.id === id)),
+      );
+    }
+  });
+
+  it("REFUSES an explicit id that already exists rather than overwriting it", async () => {
+    const existing = contractOf().examples[0];
+    const before = JSON.stringify(existing);
+    const { status, payload } = await call("save-example", {
+      path: root,
+      example: { id: existing.id, intent: "status-report", prompt: "hostile overwrite", surface: surfaceOf() },
+    });
+    expect(status).toBe(409);
+    expect(payload.findings[0].code).toBe("example-exists");
+    expect(payload.findings[0].message).toContain(existing.id);
+    // Untouched, byte for byte.
+    expect(JSON.stringify(contractOf().examples.find((e: any) => e.id === existing.id))).toBe(before);
+  });
+
+  it("the newly accepted example is consumable as few-shot and scripted plays the latest without replacing older ones", async () => {
+    const refined = surfaceOf();
+    refined.root.children[0].children[0].text = "Rollout status";
+    const saved = await call("save-example", {
+      path: root,
+      example: { intent: "status-report", prompt: "a status screen — refined: say Rollout status", surface: refined },
+    });
+    expect(saved.status).toBe(200);
+    const doc = contractOf();
+    const { compileContext } = await import("@aestheticfunction/dspack-gen/core");
+    const context = compileContext(doc, "status-report");
+    expect(context.fewshot.some((m: any) => m.role === "assistant" && m.content.includes("Rollout status"))).toBe(true);
+    // Older examples still present and still served.
+    expect(doc.examples.length).toBeGreaterThan(1);
+    expect(context.fewshot.length).toBeGreaterThanOrEqual(doc.examples.filter((e: any) => e.intent === "status-report").length);
+  });
+
+  it("an intent with no matching example never borrows another intent's: scripted refuses honestly", async () => {
+    const doc = contractOf();
+    doc.intents = [...doc.intents, { id: "onboarding", description: "Welcome a new operator." }];
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(join(root, "acme-ui.dspack.json"), JSON.stringify(doc, null, 2) + "\n");
+
+    const { status, payload } = await call("run", { path: root, prompt: "an onboarding screen", intent: "onboarding", modelRef: "scripted" });
+    expect(status).toBe(400);
+    expect(String(payload.error)).toMatch(/onboarding/);
+    expect(String(payload.error)).toMatch(/worked example/i);
+  });
+});
