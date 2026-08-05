@@ -15,6 +15,28 @@ a recipe co-editor with real ingredients and instructions, Break-it Mode
 inspectors. See [docs/AUDIT.md](docs/AUDIT.md) for the plan-vs-implementation
 map.
 
+**The composer** ([composer.aesthetic-function.com](https://composer.aesthetic-function.com))
+is the second surface in this repository: where a team sets up its own design
+system and then builds with it.
+
+- **Build** — create governed interfaces through conversation, from the
+  project's approved components only. Each turn streams its generation,
+  S1–S3 gates, bounded repair, and emit result; renders through the project's
+  trusted registry; refines conversationally; and can be accepted as a
+  governed worked example. **The full Build workflow requires the local
+  agent** (`pnpm --filter agent dev`) — the hosted composer shows the demo
+  project's Catalog side and says so plainly.
+- **Catalog** — connect a project, discover and enrich its contract, map it
+  to A2UI, author governance, track ownership, and validate. This is where a
+  team teaches Studio what may be built.
+- **Scenarios** — author and inspect governed worked examples by hand.
+
+The hosted composer runs **no hosted AI and uploads no project source**:
+generation happens on your machine through the local agent, against models
+you choose (a deterministic `scripted` mode needs no model at all). Creating
+components that a catalog does not yet contain is future **Component
+Workshop** work — chat never generates component implementations.
+
 ## Try it
 
 ```sh
