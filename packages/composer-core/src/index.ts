@@ -45,3 +45,12 @@ export {
   type RenderingRef,
   type DriftRef,
 } from "./adapters";
+export {
+  buildReadiness,
+  foldBuildEvents,
+  vocabularyGap,
+  type BuildReadiness,
+  type BuildTurnProgress,
+  type TurnAttempt,
+  type TurnGate,
+} from "./build";

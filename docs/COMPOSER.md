@@ -152,3 +152,42 @@ it cannot identify the component responsible for a refusal. The profile's
 authored declaration is therefore the only sound provenance today; see the
 upstream follow-up for a structured cause.
 
+## Phase 3: Build — chat-driven creation (2026-08-04)
+
+The product model, in order: **Build** (chat-driven creation from approved
+components) · **Catalog** (discovery, mapping, governance, ownership,
+validation — the setup layer) · **Component Workshop** (a later, separate
+human-reviewed workflow for components that do not exist yet). Building
+never generates React component implementations; an ask the vocabulary
+cannot express is reported as a **vocabulary gap**, the Workshop hook.
+
+The slice: describe an interface → dspack-gen generates a governed dsurface
+under the project-scoped contract (`/project/run`, AG-UI SSE) → S1–S3 +
+bounded repair + emit stream visibly per turn → the surface renders through
+the trusted registry (wireframe/shadcn) → **Refine** seeds the prior
+surface + the new instruction (dspack-gen 0.2.0 `RunOptions.conversation`)
+and regenerates a COMPLETE surface through every gate, prior turns kept in
+the thread → **Accept** saves the result as a contract worked example via
+the server-side fail-closed `/project/save-example` (S1–S3 re-linted on the
+agent; unknown intents refused; ledger preserved) — and immediately joins
+that intent's few-shot corpus, so accepted results compound generation.
+
+Build-first IA: Build is the first nav item, the default view for a ready
+connected project, and visibly disabled with the exact remaining-setup
+reason otherwise ("Set up your design system, then build with it"; the
+project home gains **Start building** when ready — readiness =
+contract + profile + ≥1 intent + every component mapped-or-casualty +
+gates green + ≥1 worked example, `composer-core buildReadiness`).
+
+Providers: `scripted` is the always-available zero-model twin — a fresh run
+plays a contract-derived S2 violation then the intent's LATEST worked
+example (the governed fail→repair→pass loop, deterministically), and a
+refinement returns the prior surface with a deterministic textual change
+ONLY when the seed is present (the non-vacuous-refinement proof). Local
+Ollama is the first real provider (evidence: `gemma4:e4b` first-attempt
+pass over the scoped demo contract, and a seeded refinement that applied
+the requested changes — the same model that scored 0/72 on the full shadcn
+vocabulary). Anthropic keeps working through the agent's environment; no
+browser keys, no hosted AI, no new bindings. What leaves the machine, per
+provider, is stated in the Build view; project source never does.
+

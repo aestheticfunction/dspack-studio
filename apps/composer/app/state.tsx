@@ -12,9 +12,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import {
   addTombstone,
   applyFreshFact,
+  buildReadiness,
+  foldBuildEvents,
   ledgerStatus,
   removeTombstone,
   restoreComponent,
+  vocabularyGap,
+  type BuildReadiness,
+  type BuildTurnProgress,
   type ComposerFinding,
   type FreshFact,
   type LedgerStatus,
@@ -24,9 +29,12 @@ import {
   agentConnect,
   agentDiscover,
   agentEmit,
+  agentModels,
   agentRediscover,
   agentSave,
+  agentSaveExample,
   probeAgent,
+  streamProjectRun,
   type EmitPayload,
   type RediscoverReport,
   type ValidatePayload,
@@ -35,6 +43,20 @@ import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from 
 import { DEMO_CONTRACT, DEMO_EXTRA_SURFACES, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
 
 export type Mode = "demo" | "agent";
+
+/** One chat turn in the Build thread: the ask, its run, and its result. */
+export interface BuildTurn {
+  id: number;
+  prompt: string;
+  intent: string;
+  modelRef: string;
+  /** True when this turn refined the previous surface (seed supplied). */
+  refinement: boolean;
+  progress: BuildTurnProgress;
+  /** Component ids the ask needed but the owner has not approved (S2 evidence). */
+  gaps: string[];
+  accepted?: string; // the saved example id
+}
 
 export interface ComposerState {
   mode: Mode;
@@ -67,6 +89,15 @@ export interface ComposerState {
   acceptFreshFact: (componentId: string, fact: FreshFact) => Promise<void>;
   runEmit: () => Promise<void>;
   runValidate: () => void;
+  /* ---- Build (chat-driven creation) ---- */
+  buildTurns: BuildTurn[];
+  buildBusy: boolean;
+  buildModels: string[];
+  /** Setup completeness for building; reason names the exact remaining work. */
+  readiness: BuildReadiness;
+  runBuild: (input: { prompt: string; intent: string; modelRef: string; refine?: boolean }) => Promise<void>;
+  acceptBuildTurn: (turnId: number, exampleId: string) => Promise<void>;
+  clearBuildThread: () => void;
 }
 
 const Ctx = createContext<ComposerState | null>(null);
@@ -136,6 +167,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setRediscovery(null);
     setValidate(null);
     setSelected(null);
+    clearBuildThread();
     setNotice("Demo project loaded. Edits stay in memory and every gate runs live in this browser; run the local agent to work on real files.");
     void refreshLedger(doc);
   }, [refreshLedger, recomputeEmit]);
@@ -177,6 +209,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setRediscovery(null);
       setValidate(null);
       setSelected(null);
+      clearBuildThread();
       setNotice(v.profileIssue ? `Connected. Profile issue: ${v.profileIssue}` : `Connected to ${path}.`);
     },
     [recomputeEmit],
@@ -445,6 +478,149 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     [contract, saveContract],
   );
 
+  /* ---------------- Build (chat-driven creation) ---------------- */
+  const [buildTurns, setBuildTurns] = useState<BuildTurn[]>([]);
+  const [buildBusy, setBuildBusy] = useState(false);
+  const [buildModels, setBuildModels] = useState<string[]>(["scripted"]);
+  const buildStream = useRef<{ cancel(): void } | null>(null);
+  const turnSeq = useRef(0);
+
+  useEffect(() => {
+    if (agentUp) void agentModels().then(setBuildModels);
+  }, [agentUp]);
+
+  const readiness = useMemo(
+    () => buildReadiness({ contract, profile, findings: emit ? emit.findings : null, emitOk: emit?.ok ?? false }),
+    [contract, profile, emit],
+  );
+
+  const clearBuildThread = useCallback(() => {
+    buildStream.current?.cancel();
+    buildStream.current = null;
+    setBuildTurns([]);
+    setBuildBusy(false);
+  }, []);
+
+  /**
+   * One chat turn: stream the governed pipeline for the ask. A refinement
+   * seeds the conversation with the PRIOR turn's ask + generated surface —
+   * the model regenerates a COMPLETE surface; every gate runs again; prior
+   * turns stay in the thread for comparison and audit.
+   */
+  const runBuild = useCallback(
+    async (input: { prompt: string; intent: string; modelRef: string; refine?: boolean }) => {
+      if (mode !== "agent") {
+        setNotice("Building runs generation on your machine — connect a project through the local agent first.");
+        return;
+      }
+      if (buildBusy) return;
+      const prior = input.refine ? [...buildTurns].reverse().find((t) => t.progress.surface) : undefined;
+      if (input.refine && !prior) {
+        setNotice("Nothing to refine yet — run a build first.");
+        return;
+      }
+      setBuildBusy(true);
+      const id = ++turnSeq.current;
+      const turn: BuildTurn = {
+        id,
+        prompt: input.prompt,
+        intent: input.intent,
+        modelRef: input.modelRef,
+        refinement: !!prior,
+        progress: { status: "streaming", attempts: [] },
+        gaps: [],
+      };
+      setBuildTurns((prev) => [...prev, turn]);
+      const events: Array<Record<string, unknown>> = [];
+      const update = () => {
+        const progress = foldBuildEvents(events);
+        setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, progress, gaps: vocabularyGap(progress) } : t)));
+      };
+      await new Promise<void>((resolve) => {
+        buildStream.current = streamProjectRun(
+          {
+            path: projectPath,
+            prompt: input.prompt,
+            intent: input.intent,
+            modelRef: input.modelRef,
+            ...(prior
+              ? { conversation: [
+                  { role: "user" as const, content: prior.prompt },
+                  { role: "assistant" as const, content: JSON.stringify(prior.progress.surface) },
+                ] }
+              : {}),
+          },
+          {
+            onEvent: (event) => {
+              events.push(event);
+              update();
+            },
+            onError: (message) => {
+              events.push({ type: "RUN_ERROR", message });
+              update();
+              resolve();
+            },
+            onComplete: () => resolve(),
+          },
+        );
+      });
+      buildStream.current = null;
+      setBuildBusy(false);
+    },
+    [mode, projectPath, buildBusy, buildTurns],
+  );
+
+  /**
+   * Accept = the server-side fail-closed save: the agent re-lints the
+   * surface and refuses anything unresolved; a passing save lands the
+   * result as a worked example bound to the turn's intent — the ONLY save
+   * format — and immediately joins that intent's few-shot corpus.
+   */
+  const acceptBuildTurn = useCallback(
+    async (turnId: number, exampleId: string) => {
+      if (!contract || decisionLock.current) return;
+      const turn = buildTurns.find((t) => t.id === turnId);
+      if (!turn?.progress.surface || turn.progress.outcome !== "passed") {
+        setNotice("Only a fully completed, gate-green run can be accepted.");
+        return;
+      }
+      decisionLock.current = true;
+      setBusy("accepting build result");
+      try {
+        const result = await agentSaveExample(projectPath, {
+          id: exampleId,
+          intent: turn.intent,
+          name: `Chat: ${turn.prompt.slice(0, 60)}`,
+          prompt: turn.prompt,
+          surface: turn.progress.surface,
+        });
+        if (!result.ok) {
+          setNotice(`Accept failed: ${result.error}`);
+          return;
+        }
+        if (!result.value.ok) {
+          setNotice(`Accept refused by the gates: ${result.value.findings.map((f) => f.message).join("; ").slice(0, 300)}`);
+          return;
+        }
+        if (result.value.ledger) setLedger(result.value.ledger);
+        const doc = structuredClone(contract);
+        const examples = ((doc.examples as unknown[] | undefined) ?? []) as Array<{ id: string }>;
+        const at = examples.findIndex((e) => e.id === exampleId);
+        if (at >= 0) examples[at] = result.value.example as never;
+        else examples.push(result.value.example as never);
+        doc.examples = examples;
+        setContract(doc);
+        recomputeEmit(doc, profile);
+        setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, accepted: exampleId } : t)));
+        setNotice(`Accepted as worked example '${exampleId}' — it now seeds generation for '${turn.intent}'.`);
+      } finally {
+        decisionLock.current = false;
+        setBusy(null);
+      }
+    },
+    [contract, profile, projectPath, buildTurns, recomputeEmit],
+  );
+
   const runEmit = useCallback(async () => {
     if (mode !== "agent") {
       setNotice("Live re-emission runs dspack-emit on your files — the demo shows the build-time emit. Connect through the local agent to re-emit.");
@@ -503,8 +679,15 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptFreshFact,
       runEmit,
       runValidate,
+      buildTurns,
+      buildBusy,
+      buildModels,
+      readiness,
+      runBuild,
+      acceptBuildTurn,
+      clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

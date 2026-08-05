@@ -122,9 +122,24 @@ export async function connect(page: Page, root: string): Promise<void> {
  * race the merge. Wait on the real route, then on the busy flag clearing.
  */
 export async function rediscover(page: Page): Promise<void> {
+  // Build-first: a ready project opens on Build, and the rediscover button
+  // lives on the Project view.
+  await page.getByTestId("nav-project").click();
   const merged = page.waitForResponse((r) => r.url().includes("/project/rediscover"));
   await page.getByTestId("rediscover").click();
   await merged;
   await page.getByTestId("rediscovery-report").waitFor();
   await page.getByText("rediscovering…").waitFor({ state: "hidden" });
+}
+
+/**
+ * Bring a temp demo project to BUILD-READY through the real routes: connect,
+ * then emit once (readiness requires a produced emit result client-side; the
+ * Build view derives it from the live browser emit after connect, so
+ * connecting a complete project is sufficient — this helper just waits for
+ * the nav to unlock).
+ */
+export async function connectReady(page: Page, root: string): Promise<void> {
+  await connect(page, root);
+  await page.getByTestId("nav-build").isEnabled();
 }

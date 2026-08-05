@@ -429,23 +429,99 @@ function ollamaAdapterWithWindow(modelRef: string) {
   });
 }
 
+/** A conversation seed: prior chat turns for a refinement run (gen 0.2.0). */
+type ConversationTurn = { role: "user" | "assistant"; content: string };
+
+function parseConversation(raw: unknown): ConversationTurn[] | undefined {
+  if (raw === undefined) return undefined;
+  if (
+    !Array.isArray(raw) ||
+    raw.some((m) => !m || typeof m !== "object" || !["user", "assistant"].includes((m as { role?: unknown }).role as string) || typeof (m as { content?: unknown }).content !== "string")
+  ) {
+    throw new ProjectError(400, "conversation must be an array of { role: 'user' | 'assistant', content: string } turns");
+  }
+  return raw as ConversationTurn[];
+}
+
+/** Deep-walk a surface and return the first node carrying visible text. */
+function firstTextNode(node: unknown): { text: string } | null {
+  if (!node || typeof node !== "object") return null;
+  const record = node as Record<string, unknown>;
+  if (typeof record.text === "string") return record as { text: string };
+  for (const value of Object.values(record)) {
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        const found = firstTextNode(child);
+        if (found) return found;
+      }
+    } else if (value && typeof value === "object") {
+      const found = firstTextNode(value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * Scripted mode is the deterministic zero-model twin of a real chat run:
+ *  - a FRESH run scripts a contract-derived S2 violation first, then the
+ *    intent's LATEST worked example — so every scripted run demonstrates the
+ *    governed fail -> repair -> pass loop honestly, and accepting a chat
+ *    result visibly changes what scripted plays next (the example corpus is
+ *    the product's memory);
+ *  - a REFINEMENT run (conversation present) replays the prior surface from
+ *    the seed with a deterministic, gate-neutral textual change — different
+ *    output exists ONLY when the prior surface was supplied, which is the
+ *    ratified non-vacuous-refinement proof, executable with zero models.
+ */
+function scriptedRunAdapter(example: { surface: unknown }, conversation: ConversationTurn[] | undefined): ScriptedAdapter {
+  if (conversation && conversation.length > 0) {
+    const priorRaw = [...conversation].reverse().find((m) => m.role === "assistant")?.content;
+    if (priorRaw) {
+      try {
+        const refined = JSON.parse(priorRaw) as Record<string, unknown>;
+        const textNode = firstTextNode(refined);
+        if (textNode && !textNode.text.endsWith(" (refined)")) textNode.text = `${textNode.text} (refined)`;
+        else if (!textNode) (refined as { id?: string }).id = "refined";
+        return new ScriptedAdapter([{ output: refined }]);
+      } catch {
+        // Fall through: an unparseable prior surface behaves like a fresh run.
+      }
+    }
+  }
+  const violating = structuredClone(example.surface) as { root?: { children?: Array<Record<string, unknown>> } };
+  if (violating.root?.children?.[0]) violating.root.children[0] = { ...violating.root.children[0], component: "not-a-component" };
+  // Three entries cover maxRepairs=2 (≤3 generations): the run always ends
+  // in a real outcome — passed when the example is clean, or an honest
+  // failed-lint-exhausted when the corpus itself violates — never a script
+  // exhaustion error.
+  return new ScriptedAdapter([{ output: violating }, { output: example.surface }, { output: example.surface }]);
+}
+
 /** AG-UI SSE generation under the PROJECT contract + profile. */
 async function runProject(ctx: ProjectContext, body: Record<string, unknown>, res: ServerResponse, cors: Record<string, string>, accept: string | undefined) {
   const contract = readJson(ctx.contractPath) as Record<string, unknown>;
   const profile = loadProfile(readJson(ctx.profilePath));
-  const prompt = String(body.prompt ?? "");
+  // HttpAgent posts RunAgentInput with the run parameters in forwardedProps;
+  // plain JSON bodies keep working (the test surface and curl).
+  const props = ((body.forwardedProps as Record<string, unknown> | undefined) ?? body) as Record<string, unknown>;
+  const prompt = String(props.prompt ?? "");
   const intents = (contract.intents as Array<{ id: string }> | undefined) ?? [];
-  const intent = String(body.intent ?? intents[0]?.id ?? "");
-  const modelRef = String(body.modelRef ?? "scripted");
+  const intent = String(props.intent ?? intents[0]?.id ?? "");
+  const modelRef = String(props.modelRef ?? "scripted");
+  const conversation = parseConversation(props.conversation);
 
   const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
-  const example = examples.find((e) => e.intent === intent) ?? examples[0];
+  // LAST match: accepted chat results join the corpus at the end, and the
+  // deterministic twin plays the owner's latest accepted example.
+  const matching = examples.filter((e) => e.intent === intent);
+  const example = matching.at(-1) ?? examples.at(-1);
   if (modelRef === "scripted" && !example) {
     throw new ProjectError(400, "scripted mode needs at least one worked example in the contract");
   }
   const adapter =
     modelRef === "scripted"
-      ? new ScriptedAdapter([{ output: example!.surface }])
+      ? scriptedRunAdapter(example!, conversation)
       : modelRef.startsWith("ollama:")
         ? ollamaAdapterWithWindow(modelRef)
         : adapterFor(modelRef);
@@ -463,6 +539,7 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
       adapter,
       maxRepairs: 2,
       emitProfile: profile,
+      ...(conversation && conversation.length > 0 ? { conversation } : {}),
       onEvent: (event) => {
         // The bridge's PipelineEvent is a structural mirror of dspack-gen's
         // union (retired once dspack-gen#48 re-exports the type).
@@ -473,6 +550,77 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
     res.write(encoder.encode(runErrorEvent(error instanceof Error ? error.message : String(error))));
   }
   res.end();
+}
+
+
+/**
+ * Accept a build result as a governed worked example — the ONLY save format
+ * for chat-accepted surfaces, and fail-closed SERVER-SIDE: a disabled
+ * client button is a courtesy, this gate is the contract. Refuses unless
+ * the surface passes S1-S3 for the project contract and the intent is one
+ * the owner authored. Never touches intents, rules, mappings, casualty
+ * declarations, or any other governance; writes through the same
+ * ledger-preserving, harness-gated path as every contract save.
+ */
+async function saveExample(ctx: ProjectContext, body: Record<string, unknown>) {
+  const raw = body.example as Record<string, unknown> | undefined;
+  if (!raw || typeof raw !== "object") throw new ProjectError(400, "example is required");
+  const id = String(raw.id ?? "");
+  if (!/^ex\.[a-z0-9][a-z0-9-]*$/.test(id)) {
+    throw new ProjectError(400, "example.id must be kebab-case with the 'ex.' prefix");
+  }
+  if (!raw.surface || typeof raw.surface !== "object") throw new ProjectError(400, "example.surface must be a surface document");
+  const prompt = String(raw.prompt ?? "");
+  if (!prompt) throw new ProjectError(400, "example.prompt is required (the ask that produced this surface)");
+
+  const contract = readJson(ctx.contractPath) as Record<string, unknown>;
+  const intents = ((contract.intents as Array<{ id: string }> | undefined) ?? []).map((i) => i.id);
+  const intent = String(raw.intent ?? "");
+  if (!intents.includes(intent)) {
+    return {
+      status: 422,
+      payload: { ok: false, findings: [finding("document", "unknown-intent", "error", "example.intent", `'${intent}' is not an intent this contract's owner authored (${intents.join(", ") || "none"})`)] },
+    };
+  }
+
+  // The server-side gate: S1-S3 over the project contract, zero errors.
+  const lint = lintSurface(raw.surface as Parameters<typeof lintSurface>[0], contract as Parameters<typeof lintSurface>[1]);
+  const findings: ComposerFinding[] = [];
+  for (const gate of lint.gates) {
+    if (gate.status === "FAIL") {
+      findings.push(finding(gate.gate as "S1", gate.name, "error", id, (gate.errors ?? []).join("; ") || gate.name));
+    }
+  }
+  for (const f of lint.findings ?? []) {
+    if (f.level === "error") findings.push(finding("S3", f.ruleId, "error", `${id} ${f.location.path}`, `${f.message} — ${f.rationale}`));
+  }
+  if (findings.length > 0) return { status: 422, payload: { ok: false, findings } };
+
+  const entry = {
+    id,
+    intent,
+    ...(raw.name ? { name: String(raw.name) } : {}),
+    prompt,
+    ...(raw.description ? { description: String(raw.description) } : {}),
+    surface: raw.surface,
+  };
+  const document = structuredClone(contract);
+  const examples = ((document.examples as unknown[] | undefined) ?? []) as Array<{ id: string }>;
+  const at = examples.findIndex((e) => e.id === id);
+  if (at >= 0) examples[at] = entry as never;
+  else examples.push(entry as never);
+  document.examples = examples;
+
+  // The same guarded write as /project/save: ledger preserved, harness clean.
+  if (!preservesLedger(contract, document)) {
+    return { status: 200, payload: { ok: false, findings: [finding("ledger", "ledger-dropped", "error", 'metadata["x-bootstrap"]', "a save may not remove the bootstrap ledger")] } };
+  }
+  const report = documentReport(document, specValidators());
+  if (!report.valid) {
+    return { status: 422, payload: { ok: false, findings: report.errors.map((e) => finding("document", "harness", "error", "", e)) } };
+  }
+  atomicWriteJson(ctx.contractPath, document);
+  return { status: 200, payload: { ok: true, findings: [], example: entry, ledger: await ledgerStatus(document) } };
 }
 
 // ---------------------------------------------------------------------------
@@ -492,7 +640,7 @@ export async function handleProjectRoute(
   if (!path.startsWith("/project/")) return false;
   const route = path.slice("/project/".length);
   try {
-    const ctx = openProject(body.path);
+    const ctx = openProject(body.path ?? (body.forwardedProps as Record<string, unknown> | undefined)?.path);
     switch (route) {
       case "connect":
         json(res, 200, await connect(ctx), cors);
@@ -512,6 +660,11 @@ export async function handleProjectRoute(
       case "save":
         json(res, 200, await save(ctx, body), cors);
         return true;
+      case "save-example": {
+        const result = await saveExample(ctx, body);
+        json(res, result.status, result.payload, cors);
+        return true;
+      }
       case "run":
         await runProject(ctx, body, res, cors, accept);
         return true;

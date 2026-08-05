@@ -11,15 +11,16 @@
     "typecheck": "node scripts/demo-assets.mjs && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@aestheticfunction/dspack-gen": "^0.1.3",
+    "@aestheticfunction/dspack-gen": "^0.2.0",
+    "@aestheticfunction/dspack-spec": "^0.4.2",
     "@dspack-studio/a2ui-ingest": "workspace:*",
+    "@dspack-studio/agui-bridge": "workspace:*",
     "@dspack-studio/composer-core": "workspace:*",
     "@dspack-studio/shadcn-renderers": "workspace:*",
     "@dspack-studio/wireframe-renderers": "workspace:*",
     "next": "15.3.2",
     "react": "19.2.7",
-    "react-dom": "19.2.7",
-    "@aestheticfunction/dspack-spec": "^0.4.2"
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
     "@aestheticfunction/dspack-emit": "^0.4.1",
