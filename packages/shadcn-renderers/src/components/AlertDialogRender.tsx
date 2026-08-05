@@ -21,7 +21,12 @@ const actionVariants = cva(
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
       },
     },
-    defaultVariants: { variant: "destructive" },
+    // The catalog's declared default for `actionVariant` is `primary`, and
+    // A2UI's binder never applies the schema default — an omitted variant
+    // arrives as undefined. Defaulting to `destructive` here dressed every
+    // ungoverned confirmation as dangerous, which is the opposite failure to
+    // a destructive action that renders as an ordinary button.
+    defaultVariants: { variant: "primary" },
   },
 );
 
@@ -49,7 +54,7 @@ export const AlertDialogRender: FC<any> = ({ props }) => {
       )}
       <button
         type="button"
-        className={cn(actionVariants({ variant: (props.actionVariant as any) ?? "destructive" }))}
+        className={cn(actionVariants({ variant: (props.actionVariant as any) ?? "primary" }))}
         onClick={() => props.action?.()}
       >
         {String(props.actionLabel ?? "")}

@@ -14,6 +14,7 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 @source "./components";
 @source "./registry.tsx";
+@source "./surface-variants.ts";
 
 [data-design-system="shadcn"] {
   --background: oklch(1 0 0);
