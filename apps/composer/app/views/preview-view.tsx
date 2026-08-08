@@ -14,8 +14,34 @@ import { useComposer } from "../state";
 
 type RegistryId = "wireframe" | "shadcn";
 
+/**
+ * Export the emitted artifacts as a downloadable JSON bundle: the A2UI
+ * catalog (the vocabulary an A2UI/AG-UI client consumes) plus every emitted
+ * surface's messages (worked AG-UI payloads). Pure browser download — works
+ * in demo mode and agent mode alike, with no filesystem round-trip, so a
+ * hosted user can actually take the catalog away and use it.
+ */
+function exportBundle(emit: NonNullable<ReturnType<typeof useComposer>["emit"]>, name: string): void {
+  const bundle = {
+    a2uiCatalog: emit.catalog,
+    surfaces: (emit.surfaces ?? [])
+      .filter((s) => s.messages)
+      .map((s) => ({ name: s.name, messages: s.messages })),
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${name.replace(/[^a-z0-9-]+/gi, "-").toLowerCase() || "a2ui"}-catalog.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function PreviewView() {
-  const { emit } = useComposer();
+  const { emit, manifest } = useComposer();
   const [registryId, setRegistryId] = useState<RegistryId>("wireframe");
   const [canvasMode, setCanvasMode] = useState<"light" | "dark">("light");
   const [surfaceName, setSurfaceName] = useState<string | null>(null);
@@ -60,6 +86,15 @@ export function PreviewView() {
             ? `${coverage.unimplemented.length} of ${Object.keys(catalog.components).length} names unimplemented in this registry: ${coverage.unimplemented.join(", ")}`
             : "full native coverage"}
         </span>
+        <button
+          className="st-btn st-btn--dashed"
+          style={{ marginLeft: "auto" }}
+          onClick={() => emit && exportBundle(emit, manifest?.name ?? "a2ui")}
+          data-testid="export-catalog"
+          title="Download the emitted A2UI catalog + surface messages as JSON"
+        >
+          ↓ export catalog
+        </button>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>

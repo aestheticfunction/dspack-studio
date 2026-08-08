@@ -77,11 +77,26 @@ and generation all run on the visitor's machine via the local agent
 (`pnpm --filter agent dev`), stated plainly in the UI. No user project
 source is ever uploaded or executed.
 
+Deploy by dispatching the **`deploy-composer`** GitHub Actions workflow
+(same explicit-decision posture as `deploy-exhibit`): it re-verifies the
+composer, records the rollback anchor, deploys through the checked-in
+`wrangler.composer.jsonc`, and runs the production smoke. It is inert until
+the `CLOUDFLARE_API_TOKEN` repository secret exists. The equivalent local
+sequence:
+
 ```sh
 pnpm build:deploy:composer                          # demo assets + static export -> apps/composer/out
 npx wrangler deploy --config wrangler.composer.jsonc
 npx playwright test --config playwright.composer-production.config.ts   # smoke against the deployed URL
 ```
+
+For a **continuously-deployed integration environment** (auto-deploy on push
+to a branch), attach a Cloudflare Workers Builds Git integration to the
+composer Worker in the dashboard (Workers & Pages → the composer Worker →
+Settings → Build), build command `pnpm build:deploy:composer`, deploy command
+`npx wrangler deploy --config wrangler.composer.jsonc`. That is a
+dashboard-only, owner action; the explicit `deploy-composer` workflow above
+is the checked-in alternative and does not require it.
 
 **Stop any local agent on `localhost:8787` before running the composer
 production smoke.** The deployed page probes that port from the visitor's
