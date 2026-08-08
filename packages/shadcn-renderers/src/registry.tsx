@@ -3,10 +3,11 @@
  * each wrapped with the same data-a2ui-id provenance tagging as the Astryx
  * registry, so X-ray works identically under either design system.
  *
- * Coverage is deliberately 11 of the catalog's 12 names: `Dialog` has no
- * visual here and renders the a2ui-ingest `unimplemented` placeholder —
- * the incremental-adoption mechanism docs/renderer-abstraction.md names as
- * the intended migration path, exercised in production rather than claimed.
+ * Coverage is now 12 of the catalog's 12 names. `Dialog` was the last
+ * placeholder — the incremental-adoption mechanism docs/renderer-abstraction.md
+ * names — and is now a real shadcn visual (DialogRender), closing the one
+ * measured production renderer gap. The placeholder mechanism itself stays
+ * exercised by the parity suite, which proves the complement is now empty.
  */
 import type { Registry } from "@dspack-studio/a2ui-ingest";
 import { withProvenance } from "@dspack-studio/a2ui-ingest";
@@ -21,6 +22,7 @@ import { ColumnRender } from "./components/ColumnRender";
 import { ListRender } from "./components/ListRender";
 import { SelectableCardRender } from "./components/SelectableCardRender";
 import { MetadataListRender } from "./components/MetadataListRender";
+import { DialogRender } from "./components/DialogRender";
 
 const renders = {
   Text: TextRender,
@@ -34,8 +36,7 @@ const renders = {
   List: ListRender,
   SelectableCard: SelectableCardRender,
   MetadataList: MetadataListRender,
-  // Dialog: deliberately absent — renders the visible unimplemented
-  // placeholder (legal vocabulary, missing pixels; the run is unaffected).
+  Dialog: DialogRender,
 };
 
 export const shadcnRegistry: Registry = {

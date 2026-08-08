@@ -17,12 +17,12 @@ const catalog = JSON.parse(
 const names = Object.keys(catalog.components);
 
 describe("shadcn registry parity (catalog owns vocabulary; registry owns pixels)", () => {
-  it("covers exactly the catalog names, with Dialog as the deliberate placeholder", () => {
+  it("covers exactly the catalog names, with none left unimplemented", () => {
     const plan = planRegistry(names, shadcnRegistry);
     expect([...plan.reuseBasic, ...plan.custom, ...plan.unimplemented].sort()).toEqual([...names].sort());
-    expect(plan.unimplemented).toEqual(["Dialog"]);
+    expect(plan.unimplemented).toEqual([]);
     expect(plan.custom.sort()).toEqual(
-      ["AlertDialog", "Badge", "Button", "Card", "Column", "List", "MetadataList", "SelectableCard", "Table", "Text", "TextField"].sort(),
+      ["AlertDialog", "Badge", "Button", "Card", "Column", "Dialog", "List", "MetadataList", "SelectableCard", "Table", "Text", "TextField"].sort(),
     );
   });
 
