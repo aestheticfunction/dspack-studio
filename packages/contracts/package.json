@@ -20,7 +20,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@aestheticfunction/dspack-emit": "0.5.0"
+    "@aestheticfunction/dspack-emit": "^0.6.0"
   },
   "devDependencies": {
     "@astryxdesign/cli": "0.1.4",

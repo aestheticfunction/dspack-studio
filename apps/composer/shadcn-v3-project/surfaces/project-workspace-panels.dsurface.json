@@ -1,0 +1,193 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "panel-navigation",
+  "root": {
+    "component": "tabs",
+    "props": {
+      "defaultValue": "overview",
+      "activationMode": "manual"
+    },
+    "children": [
+      {
+        "component": "tabs-list",
+        "children": [
+          {
+            "component": "tabs-trigger",
+            "id": "overview",
+            "text": "Overview"
+          },
+          {
+            "component": "tabs-trigger",
+            "id": "activity",
+            "text": "Activity"
+          },
+          {
+            "component": "tabs-trigger",
+            "id": "access",
+            "text": "Access"
+          }
+        ]
+      },
+      {
+        "component": "tabs-content",
+        "id": "overview",
+        "children": [
+          {
+            "component": "card",
+            "children": [
+              {
+                "component": "card-header",
+                "children": [
+                  {
+                    "component": "card-title",
+                    "text": "Northwind Checkout"
+                  },
+                  {
+                    "component": "card-description",
+                    "text": "Production \u00b7 eu-west-1 \u00b7 last deploy 41 minutes ago"
+                  }
+                ]
+              },
+              {
+                "component": "card-content",
+                "children": [
+                  {
+                    "component": "alert",
+                    "children": [
+                      {
+                        "component": "alert-title",
+                        "text": "Two environments are running an outdated build"
+                      },
+                      {
+                        "component": "alert-description",
+                        "text": "Staging and preview are three commits behind production. Redeploy them to keep test results meaningful."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "tabs-content",
+        "id": "activity",
+        "children": [
+          {
+            "component": "scroll-area",
+            "props": {
+              "type": "auto"
+            },
+            "children": [
+              {
+                "component": "card",
+                "children": [
+                  {
+                    "component": "card-header",
+                    "children": [
+                      {
+                        "component": "card-title",
+                        "text": "Deploy 4f2c1a succeeded"
+                      },
+                      {
+                        "component": "card-description",
+                        "text": "Priya Raman \u00b7 41 minutes ago \u00b7 2 min 18 s"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "card",
+                "children": [
+                  {
+                    "component": "card-header",
+                    "children": [
+                      {
+                        "component": "card-title",
+                        "text": "Environment variable STRIPE_KEY rotated"
+                      },
+                      {
+                        "component": "card-description",
+                        "text": "Amara Okafor \u00b7 3 hours ago"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "card",
+                "children": [
+                  {
+                    "component": "card-header",
+                    "children": [
+                      {
+                        "component": "card-title",
+                        "text": "Deploy 91be07 rolled back"
+                      },
+                      {
+                        "component": "card-description",
+                        "text": "Jonas Weber \u00b7 yesterday \u00b7 checkout error rate above 2%"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "tabs-content",
+        "id": "access",
+        "children": [
+          {
+            "component": "card",
+            "children": [
+              {
+                "component": "card-header",
+                "children": [
+                  {
+                    "component": "card-title",
+                    "text": "Who can deploy"
+                  },
+                  {
+                    "component": "card-description",
+                    "text": "Applies to the production environment only."
+                  }
+                ]
+              },
+              {
+                "component": "card-content",
+                "children": [
+                  {
+                    "component": "field",
+                    "props": {
+                      "orientation": "horizontal"
+                    },
+                    "children": [
+                      {
+                        "component": "field-label",
+                        "text": "Require a second reviewer before production deploys"
+                      },
+                      {
+                        "component": "switch",
+                        "id": "require-review",
+                        "props": {
+                          "name": "requireReview",
+                          "defaultChecked": true
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "wayfinding",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "card-header",
+        "children": [
+          {
+            "component": "breadcrumb",
+            "props": {
+              "aria-label": "Breadcrumb"
+            },
+            "children": [
+              {
+                "component": "breadcrumb-list",
+                "children": [
+                  {
+                    "component": "breadcrumb-item",
+                    "children": [
+                      {
+                        "component": "breadcrumb-link",
+                        "text": "Docs"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "breadcrumb-separator"
+                  },
+                  {
+                    "component": "breadcrumb-item",
+                    "children": [
+                      {
+                        "component": "breadcrumb-link",
+                        "text": "Authentication"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "breadcrumb-separator"
+                  },
+                  {
+                    "component": "breadcrumb-item",
+                    "children": [
+                      {
+                        "component": "breadcrumb-page",
+                        "text": "Configuring SSO with Okta"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "card-title",
+            "text": "Configuring SSO with Okta"
+          },
+          {
+            "component": "card-description",
+            "text": "Updated 12 June 2026 \u00b7 about 6 minutes to read"
+          }
+        ]
+      },
+      {
+        "component": "card-content",
+        "children": [
+          {
+            "component": "alert",
+            "children": [
+              {
+                "component": "alert-title",
+                "text": "Available on Enterprise plans"
+              },
+              {
+                "component": "alert-description",
+                "text": "SAML single sign-on is not included on Team plans. Upgrading takes effect immediately, and existing sessions stay signed in."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "card-footer",
+        "children": [
+          {
+            "component": "pagination",
+            "props": {
+              "aria-label": "Article pages"
+            },
+            "children": [
+              {
+                "component": "pagination-content",
+                "children": [
+                  {
+                    "component": "pagination-item",
+                    "children": [
+                      {
+                        "component": "pagination-previous"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "pagination-item",
+                    "children": [
+                      {
+                        "component": "pagination-link",
+                        "text": "1"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "pagination-item",
+                    "children": [
+                      {
+                        "component": "pagination-link",
+                        "text": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "pagination-item",
+                    "children": [
+                      {
+                        "component": "pagination-link",
+                        "text": "3"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "pagination-item",
+                    "children": [
+                      {
+                        "component": "pagination-ellipsis"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "pagination-item",
+                    "children": [
+                      {
+                        "component": "pagination-link",
+                        "text": "9"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "pagination-item",
+                    "children": [
+                      {
+                        "component": "pagination-next"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

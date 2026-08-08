@@ -1,0 +1,53 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "destructive-action",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "alert-dialog",
+        "children": [
+          {
+            "component": "alert-dialog-trigger",
+            "children": [
+              {
+                "component": "button",
+                "props": {
+                  "variant": "destructive"
+                },
+                "text": "Delete account"
+              }
+            ]
+          },
+          {
+            "component": "alert-dialog-content",
+            "children": [
+              {
+                "component": "alert-dialog-title",
+                "text": "Delete your account?"
+              },
+              {
+                "component": "alert-dialog-description",
+                "text": "This will permanently delete your account and all associated data. This action cannot be undone."
+              },
+              {
+                "component": "alert-dialog-footer",
+                "children": [
+                  {
+                    "component": "alert-dialog-cancel",
+                    "text": "Cancel"
+                  },
+                  {
+                    "component": "alert-dialog-action",
+                    "text": "Delete account"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "composerProject": "0.1",
+  "name": "shadcn/ui v3",
+  "adapter": "react-generic",
+  "catalogIdBase": "https://aesthetic-function.com/catalogs/shadcn-v3",
+  "contractPath": "shadcn-ui.dspack.json",
+  "profilePath": "shadcn-v3.profile.json",
+  "surfacesDir": "surfaces",
+  "outDir": "out",
+  "previewRegistry": "wireframe"
+}
