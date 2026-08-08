@@ -6,8 +6,8 @@ name: deploy-exhibit
 # Deployment is a decision, not a side effect of merging: this workflow runs
 # only when a person dispatches it. CI (ci.yml) verifies every merge; this
 # workflow re-verifies the exhibit path, records the rollback anchor, deploys
-# through the checked-in wrangler.jsonc, and gates on the production smoke.
-# The composer Worker (wrangler.composer.jsonc) is untouched — the two keep
+# through the checked-in wrangler.exhibit.jsonc, and gates on the production smoke.
+# The composer Worker (wrangler.jsonc, repo root) is untouched — the two keep
 # independent deploy cadences by design (docs/deployment.md).
 #
 # Auth: repository secret CLOUDFLARE_API_TOKEN (scoped: Account > Workers
@@ -15,9 +15,9 @@ name: deploy-exhibit
 # until that secret exists — see docs/deployment.md for the exact setup.
 #
 # Rollback (from any machine with wrangler auth):
-#   npx wrangler rollback --config wrangler.jsonc
+#   npx wrangler rollback --config wrangler.exhibit.jsonc
 # targeting the anchor version recorded in this run's summary. Independent
-# from the composer Worker's rollback (wrangler.composer.jsonc).
+# from the composer Worker's rollback (wrangler.jsonc).
 
 on:
   workflow_dispatch:
@@ -59,15 +59,15 @@ jobs:
           echo '## Exhibit deployment' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "source commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          npx wrangler deployments list --config wrangler.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          npx wrangler deployments list --config wrangler.exhibit.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy (exhibit Worker only, checked-in config)
-        run: npx wrangler deploy --config wrangler.jsonc
+        run: npx wrangler deploy --config wrangler.exhibit.jsonc
       - name: Record the deployed version
         run: |
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          npx wrangler deployments list --config wrangler.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
-          echo 'rollback: npx wrangler rollback --config wrangler.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
+          npx wrangler deployments list --config wrangler.exhibit.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo 'rollback: npx wrangler rollback --config wrangler.exhibit.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Install Playwright chromium
         run: pnpm exec playwright install --with-deps chromium

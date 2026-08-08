@@ -1,0 +1,15 @@
+// Cloudflare Workers Static Assets: the dspack-studio EXHIBIT
+// (studio.aesthetic-function.com). Deployed explicitly via the deploy-exhibit
+// workflow (`npx wrangler deploy --config wrangler.exhibit.jsonc`) — it is NOT
+// the repo-root config, so the composer's Workers Builds Git integration
+// (which reads ./wrangler.jsonc) never touches the exhibit. Assets-only
+// Worker; compatibility_date is behaviourally inert.
+{
+  "name": "dspack-studio",
+  "compatibility_date": "2026-08-08",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./apps/web/out",
+    "not_found_handling": "404-page"
+  }
+}
