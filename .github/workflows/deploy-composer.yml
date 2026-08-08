@@ -1,0 +1,78 @@
+name: deploy-composer
+
+# Explicit deployment for the COMPOSER Worker
+# (composer.aesthetic-function.com) — the integration/validation environment.
+#
+# Same posture as deploy-exhibit (issue #34): deployment is a dispatched
+# decision, not a side effect of merging. This workflow re-verifies the
+# composer, records the rollback anchor, deploys through the checked-in
+# wrangler.composer.jsonc, and gates on the composer production smoke. The
+# exhibit Worker (wrangler.jsonc) is untouched — independent cadences.
+#
+# Auth: repository secret CLOUDFLARE_API_TOKEN (Account > Workers Scripts >
+# Edit on the one account). Inert until that secret exists.
+#
+# Rollback (from any machine with wrangler auth):
+#   npx wrangler rollback --config wrangler.composer.jsonc
+# targeting the anchor version recorded in this run's summary.
+#
+# Note: the hosted composer is agent-free — it ships the pre-emitted demo
+# project. Live authoring/generation still requires a local agent (BYO
+# machine); the deployed site is the preview/validate/export + demo surface.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy-composer" to confirm a deployment of the composer Worker'
+        required: true
+
+concurrency:
+  group: deploy-composer
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm == 'deploy-composer' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Frozen-lockfile install
+        run: pnpm install --frozen-lockfile
+      - name: Gates — composer typecheck + build the deploy artifact
+        run: pnpm build:deploy:composer
+      - name: Record the rollback anchor (currently active version)
+        run: |
+          echo '## Composer deployment' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "source commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          npx wrangler deployments list --config wrangler.composer.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy (composer Worker only, checked-in config)
+        run: npx wrangler deploy --config wrangler.composer.jsonc
+      - name: Record the deployed version
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npx wrangler deployments list --config wrangler.composer.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo 'rollback: npx wrangler rollback --config wrangler.composer.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Install Playwright chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Production smoke (agent-free specs against the deployed composer)
+        run: npx playwright test --config playwright.composer-production.config.ts
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-composer-playwright-report
+          path: playwright-report/
+          retention-days: 7
