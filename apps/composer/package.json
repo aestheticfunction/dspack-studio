@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@aestheticfunction/dspack-gen": "^0.3.1",
-    "@aestheticfunction/dspack-spec": "^0.4.2",
+    "@aestheticfunction/dspack-spec": "^0.4.4",
     "@dspack-studio/a2ui-ingest": "workspace:*",
     "@dspack-studio/agui-bridge": "workspace:*",
     "@dspack-studio/composer-core": "workspace:*",

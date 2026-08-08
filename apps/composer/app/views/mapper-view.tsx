@@ -10,6 +10,15 @@
 import { useState } from "react";
 import { useComposer } from "../state";
 
+/**
+ * A contract enum member is either a plain string (v1) or a
+ * `{ value, description }` object (v3). Everything that treats an enum value
+ * as text — labels, valueMap keys, React children — must go through this;
+ * rendering the object directly is React error #31.
+ */
+const enumLabel = (v: unknown): string =>
+  typeof v === "string" ? v : v && typeof v === "object" && "value" in v ? String((v as { value: unknown }).value) : String(v);
+
 const field = {
   fontFamily: "var(--mono)",
   fontSize: 12,
@@ -89,7 +98,7 @@ export function MapperView() {
                     <tr key={name} style={{ borderTop: "1px solid var(--line-soft)" }}>
                       <td style={{ padding: "6px", fontFamily: "var(--mono)" }}>
                         {name}
-                        {cprop.values && <div style={{ fontSize: 11, color: "var(--fg-dim)" }}>[{cprop.values.join(", ")}]</div>}
+                        {cprop.values && <div style={{ fontSize: 11, color: "var(--fg-dim)" }}>[{cprop.values.map(enumLabel).join(", ")}]</div>}
                       </td>
                       {pp ? (
                         <>
@@ -112,7 +121,12 @@ export function MapperView() {
                           <td style={{ padding: "6px" }}>
                             {pp.kind === "enum" && cprop.values ? (
                               <div style={{ display: "grid", gap: 3 }}>
-                                {cprop.values.map((v: string) => (
+                                {cprop.values.map((raw: unknown) => {
+                                  // v3 contracts carry enum members as {value, description};
+                                  // v1 carries plain strings. Normalise to the value string —
+                                  // rendering the object directly is React error #31.
+                                  const v = enumLabel(raw);
+                                  return (
                                   <span key={v} style={{ fontFamily: "var(--mono)", fontSize: 11 }}>
                                     {v} →{" "}
                                     <select
@@ -130,7 +144,8 @@ export function MapperView() {
                                       ))}
                                     </select>
                                   </span>
-                                ))}
+                                  );
+                                })}
                                 <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>target: [{(pp.targetEnum ?? []).join(", ")}]</span>
                               </div>
                             ) : (
