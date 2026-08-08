@@ -1,29 +1,22 @@
 import { defineConfig } from "@playwright/test";
 
 /**
- * Composer production smoke: agent-free specs against the DEPLOYED composer
- * (its hosted posture is the pre-emitted demo project; everything needing
- * files or models states plainly that it wants the local agent).
- *
- *   npx playwright test --config playwright.composer-production.config.ts
- *
- * COMPOSER_PROD_URL overrides the target (used pre-merge against a local
- * static serve of apps/composer/out).
+ * Production smoke for the deployed COMPOSER Worker
+ * (composer.aesthetic-function.com). Agent-free by construction: the hosted
+ * composer ships the pre-emitted demo project and no agent, which is exactly
+ * what composer-prod-smoke.spec.ts asserts. Separate from
+ * playwright.production.config.ts (the exhibit) so the two Workers keep
+ * independent deploy + smoke cadences (docs/deployment.md).
  */
-const PROD = process.env.COMPOSER_PROD_URL ?? "https://composer.aesthetic-function.com";
+const COMPOSER_PROD = process.env.COMPOSER_PROD_URL ?? "https://composer.aesthetic-function.com";
 
 export default defineConfig({
   testDir: "e2e",
   timeout: 30_000,
   retries: 1,
   use: {
-    baseURL: PROD,
+    baseURL: COMPOSER_PROD,
     contextOptions: { reducedMotion: "reduce" },
   },
-  projects: [
-    {
-      name: "composer",
-      testMatch: "composer-prod-smoke.spec.ts",
-    },
-  ],
+  projects: [{ name: "composer", testMatch: "composer-prod-smoke.spec.ts" }],
 });
