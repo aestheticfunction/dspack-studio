@@ -14,12 +14,12 @@ import { fileURLToPath } from "node:url";
 import { loadProfile, transformFromJson, emitSurface, EmitSurfaceError } from "@aestheticfunction/dspack-emit";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const project = join(here, "..", "demo-project");
+const project = join(here, "..", "shadcn-v3-project");
 const outDir = join(here, "..", "app", "demo", "generated");
 
 const read = (p) => JSON.parse(readFileSync(p, "utf8"));
-const contract = read(join(project, "acme-ui.dspack.json"));
-const profile = loadProfile(read(join(project, "acme.profile.json")));
+const contract = read(join(project, "shadcn-ui.dspack.json"));
+const profile = loadProfile(read(join(project, "shadcn-v3.profile.json")));
 
 const surfaces = [];
 for (const example of contract.examples ?? []) {
