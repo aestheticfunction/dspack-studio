@@ -4,9 +4,16 @@
 // deploy` uploads apps/web/out. Replay mode needs no environment: the
 // preview ships with recorded fixtures only (no NEXT_PUBLIC_AGENT_URL;
 // "run it live" states plainly that it needs a local agent).
+//
+// compatibility_date + observability reconcile the checked-in config with the
+// Worker Cloudflare provisioned when the GitHub build connection was restored
+// (2026-08-08). Assets-only Worker with no runtime script, so the
+// compatibility date is behaviourally inert; observability is declared so the
+// config matches the deployed Worker (Cloudflare enables it by default).
 {
   "name": "dspack-studio",
-  "compatibility_date": "2026-07-11",
+  "compatibility_date": "2026-08-08",
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./apps/web/out",
     "not_found_handling": "404-page"

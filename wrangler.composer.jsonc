@@ -6,9 +6,16 @@
 // model-touching runs on the visitor's machine via the local agent.
 // The custom domain is declared here so wrangler attaches it and Cloudflare
 // manages DNS — no hand-authored records.
+//
+// compatibility_date + observability reconcile the checked-in config with the
+// Worker Cloudflare provisioned when the GitHub build connection was restored
+// (2026-08-08). This is an assets-only Worker with no runtime script, so the
+// compatibility date is behaviourally inert; observability is declared so the
+// config matches the deployed Worker (Cloudflare enables it by default).
 {
   "name": "dspack-studio-composer",
-  "compatibility_date": "2026-07-11",
+  "compatibility_date": "2026-08-08",
+  "observability": { "enabled": true },
   "routes": [
     { "pattern": "composer.aesthetic-function.com", "custom_domain": true }
   ],
