@@ -11,7 +11,7 @@
     "typecheck": "node scripts/demo-assets.mjs && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@aestheticfunction/dspack-gen": "^0.2.0",
+    "@aestheticfunction/dspack-gen": "^0.2.1",
     "@aestheticfunction/dspack-spec": "^0.4.2",
     "@dspack-studio/a2ui-ingest": "workspace:*",
     "@dspack-studio/agui-bridge": "workspace:*",
@@ -23,7 +23,7 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@aestheticfunction/dspack-emit": "^0.4.1",
+    "@aestheticfunction/dspack-emit": "^0.5.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

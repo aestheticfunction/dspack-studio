@@ -13,9 +13,9 @@
     "record:catch": "tsx src/record-catch.ts"
   },
   "dependencies": {
-    "@aestheticfunction/dspack-emit": "^0.4.1",
+    "@aestheticfunction/dspack-emit": "^0.5.0",
     "@aestheticfunction/dspack-export": "^0.5.0",
-    "@aestheticfunction/dspack-gen": "^0.2.0",
+    "@aestheticfunction/dspack-gen": "^0.2.1",
     "@aestheticfunction/dspack-spec": "^0.4.2",
     "@dspack-studio/agui-bridge": "workspace:*",
     "@dspack-studio/composer-core": "workspace:*",
