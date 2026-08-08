@@ -18,14 +18,14 @@ importers:
   apps/agent:
     dependencies:
       '@aestheticfunction/dspack-emit':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       '@aestheticfunction/dspack-export':
         specifier: ^0.5.0
         version: 0.5.0
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.2.1
-        version: 0.2.1(zod@4.4.3)
+        specifier: ^0.3.1
+        version: 0.3.1(zod@4.4.3)
       '@aestheticfunction/dspack-spec':
         specifier: ^0.4.2
         version: 0.4.2
@@ -61,8 +61,8 @@ importers:
   apps/composer:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.2.1
-        version: 0.2.1(zod@4.4.3)
+        specifier: ^0.3.1
+        version: 0.3.1(zod@4.4.3)
       '@aestheticfunction/dspack-spec':
         specifier: ^0.4.2
         version: 0.4.2
@@ -92,8 +92,8 @@ importers:
         version: 19.2.7(react@19.2.7)
     devDependencies:
       '@aestheticfunction/dspack-emit':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.1
@@ -113,8 +113,8 @@ importers:
   apps/web:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.2.1
-        version: 0.2.1(zod@4.4.3)
+        specifier: ^0.3.1
+        version: 0.3.1(zod@4.4.3)
       '@astryxdesign/core':
         specifier: 0.1.4
         version: 0.1.4(@stylexjs/stylex@0.18.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -295,8 +295,8 @@ importers:
   packages/contracts:
     dependencies:
       '@aestheticfunction/dspack-emit':
-        specifier: 0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
     devDependencies:
       '@astryxdesign/cli':
         specifier: 0.1.4
@@ -424,8 +424,8 @@ packages:
   '@a2ui/web_core@0.10.3':
     resolution: {integrity: sha512-B0+zhC1gac4vweqrWxcW1tlmdspMuZl8YzNXSrza3ppayoFYcJblMuvu8g8+6l++aycNQK5D4WaBX85KVvVx+g==}
 
-  '@aestheticfunction/dspack-emit@0.5.0':
-    resolution: {integrity: sha512-PYGTyAV7tuKN9H5TkQbei5CamRBDHtHUZIX2xiWoxVqvDoziGvyXMOasOppar2JrE7m0XXa4a7pcpCC3l66cIw==}
+  '@aestheticfunction/dspack-emit@0.6.0':
+    resolution: {integrity: sha512-tgAQy6XPUf7R+YMco8ZYqkP3xMrxzgE8BjgmW5kIpF1n31bQRbr0WjFRJiPEYMWbjrcsTVxme34uBbg3VCgwnw==}
     hasBin: true
 
   '@aestheticfunction/dspack-export@0.5.0':
@@ -433,8 +433,8 @@ packages:
     engines: {node: '>=22.0.0'}
     hasBin: true
 
-  '@aestheticfunction/dspack-gen@0.2.1':
-    resolution: {integrity: sha512-cUiQMHOi0kIyhAtzF9Tn2pfYMETyHarIL1PPlghFk8h6qLQ5WzTd2GoPyn7GcrMgWyEGuJZ+VRqiRBNoKu0gZg==}
+  '@aestheticfunction/dspack-gen@0.3.1':
+    resolution: {integrity: sha512-0RGGoA85P9U5eKJuiZl0yxJujIFYgFJxptRk80NPU/zsrd57LJNBAFljB87kPEyfAyhogM4sZhGHIcWLcuTVKA==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -2329,7 +2329,7 @@ snapshots:
       zod: 3.25.76
       zod-to-json-schema: 3.25.2(zod@3.25.76)
 
-  '@aestheticfunction/dspack-emit@0.5.0':
+  '@aestheticfunction/dspack-emit@0.6.0':
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
@@ -2347,9 +2347,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@aestheticfunction/dspack-gen@0.2.1(zod@4.4.3)':
+  '@aestheticfunction/dspack-gen@0.3.1(zod@4.4.3)':
     dependencies:
-      '@aestheticfunction/dspack-emit': 0.5.0
+      '@aestheticfunction/dspack-emit': 0.6.0
       '@anthropic-ai/sdk': 0.109.1(zod@4.4.3)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
