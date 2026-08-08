@@ -80,7 +80,7 @@ function render(componentName: string, props: Record<string, any>): string {
 
 const visibleText = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-/** Instances this design system draws (Dialog is the deliberate placeholder). */
+/** Instances this design system draws (now every catalog name, Dialog included). */
 const renderable = (): EmittedInstance[] =>
   emittedInstances().filter((i) => Boolean((shadcnRegistry.custom as Record<string, any>)[i.component.component]));
 
@@ -126,13 +126,22 @@ describe("emitted-prop vs consumed-prop parity", () => {
     expect(ignored).toEqual([]);
   });
 
-  it("covers a corpus that actually exercises the registry", () => {
+  it("renders every component the corpus actually emits (no unimplemented instance)", () => {
     // A guard on the guard: if the corpus ever empties (a moved fixture
     // directory, a skipped contracts build) every check above passes vacuously.
-    const instances = renderable();
-    expect(instances.length).toBeGreaterThan(100);
-    const covered = new Set(instances.map((i) => i.component.component));
-    for (const name of Object.keys(shadcnRegistry.custom)) expect([...covered]).toContain(name);
+    // The correctness direction is emitted -> rendered: every instance the
+    // corpus produces must have a visual. The reverse (every renderer must be
+    // exercised by THIS corpus) is not a correctness property — a registry may
+    // legitimately cover catalog vocabulary a given corpus doesn't use.
+    // Measured 2026-08-08: the Astryx corpus emits 11 of the 12 catalog names;
+    // `Dialog` is declared vocabulary no worked example, scenario, or replay
+    // fixture emits, yet its renderer exists so a Dialog-bearing surface draws
+    // rather than falling back to the placeholder.
+    const all = emittedInstances();
+    expect(all.length).toBeGreaterThan(100);
+    const emitted = new Set(all.map((i) => i.component.component));
+    const rendererNames = Object.keys(shadcnRegistry.custom);
+    for (const name of emitted) expect(rendererNames).toContain(name);
   });
 });
 

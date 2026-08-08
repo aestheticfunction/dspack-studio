@@ -4,11 +4,16 @@ The studio's rendering stack is layered so the design system is a plug-in,
 not a foundation. This document states the boundaries as they exist in code
 today (verified by `packages/a2ui-ingest/src/registry-abstraction.test.ts`).
 Since the FM-10 groundwork the swap is real: `packages/shadcn-renderers`
-supplies a second registry (11 of 12 catalog names; `Dialog` renders the
-unimplemented placeholder by design), selected in the restyle view and
-applied to every canvas. The e2e proof (`e2e/design-swap.spec.ts`) replays
-one fixture under both design systems and asserts the receipt hash is
-identical while the rendered DOM differs.
+supplies a second registry covering all 12 catalog names (the `Dialog`
+placeholder was the last, closed 2026-08-08 once measurement showed the
+registry already rendered 100% of emitted instances — see
+`packages/shadcn-renderers/src/dialog-render.test.tsx`). The registry is
+selected in the restyle view and applied to every canvas. The
+`unimplemented` fallback mechanism itself remains — a registry is still
+free to leave a catalog name unrendered — and is exercised by the parity
+suite rather than by a shipped gap. The e2e proof
+(`e2e/design-swap.spec.ts`) replays one fixture under both design systems
+and asserts the receipt hash is identical while the rendered DOM differs.
 
 ## The layers
 

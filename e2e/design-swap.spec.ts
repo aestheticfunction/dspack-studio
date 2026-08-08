@@ -30,7 +30,7 @@ test("honesty: the receipt hash is identical under both design systems; the pixe
   // Swap the design system in the restyle view (shell-level state).
   await page.getByTestId("view-canvas").click();
   await page.getByTestId("design-system-shadcn").click();
-  await expect(page.getByTestId("design-system-note")).toContainText("11 of 12");
+  await expect(page.getByTestId("design-system-note")).toContainText("All 12 catalog components render");
 
   // Back in replay, the same run renders through shadcn/ui.
   await page.getByTestId("view-replay").click();
@@ -71,7 +71,7 @@ test("the restyle view swaps systems honestly: note, caption, and the theme dial
   // shadcn: Astryx themes do not pretend to apply to another design system.
   await expect(page.getByRole("button", { name: "butter" })).toHaveCount(0);
   await expect(page.getByTestId("fm5-caption")).toContainText("Only the design system did");
-  await expect(page.getByTestId("design-system-note")).toContainText("unimplemented placeholder");
+  await expect(page.getByTestId("design-system-note")).toContainText("All 12 catalog components render");
   await page.getByTestId("design-system-astryx").click();
   await expect(page.getByRole("button", { name: "butter" })).toBeVisible();
   await expect(page.getByTestId("fm5-caption")).toContainText("Only the design system's theme did");

@@ -38,7 +38,7 @@ export const DESIGN_SYSTEMS: Record<DesignSystemId, DesignSystemDef> = {
     id: "shadcn",
     label: "shadcn/ui",
     registry: shadcnRegistry,
-    note: "11 of 12 catalog components render through vendored shadcn/ui visuals; Dialog shows the unimplemented placeholder (incremental adoption, stated plainly).",
+    note: "All 12 catalog components render through vendored shadcn/ui visuals.",
   },
 };
 
