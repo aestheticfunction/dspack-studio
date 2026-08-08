@@ -11,24 +11,24 @@ Two artifacts, deliberately separable:
 
 **https://studio.aesthetic-function.com** runs the static-only topology on
 **Cloudflare Workers Static Assets**, configured by the committed
-`wrangler.jsonc` at the repository root.
+`wrangler.exhibit.jsonc` at the repository root.
 
 **Deployment is explicit (issue #34).** CI verifies every merge to `main`;
 production deploys only when a person dispatches the
 `deploy-exhibit` GitHub Actions workflow (frozen install → contract gates →
 `pnpm build:deploy` → rollback-anchor capture → `npx wrangler deploy
---config wrangler.jsonc` → production smoke), or runs the same sequence
+--config wrangler.exhibit.jsonc` → production smoke), or runs the same sequence
 locally:
 
 ```sh
 pnpm build:deploy                       # contracts + static export -> apps/web/out
-npx wrangler deployments list --config wrangler.jsonc   # record the rollback anchor FIRST
-npx wrangler deploy --config wrangler.jsonc
+npx wrangler deployments list --config wrangler.exhibit.jsonc   # record the rollback anchor FIRST
+npx wrangler deploy --config wrangler.exhibit.jsonc
 npx playwright test --config playwright.production.config.ts
 ```
 
-Rollback: `npx wrangler rollback --config wrangler.jsonc` — fully
-independent from the composer Worker (`wrangler.composer.jsonc`); neither
+Rollback: `npx wrangler rollback --config wrangler.exhibit.jsonc` — fully
+independent from the composer Worker (`wrangler.jsonc`); neither
 rollback touches the other.
 
 The workflow authenticates with the repository secret
@@ -67,26 +67,31 @@ npx playwright test --config playwright.production.config.ts
 
 **https://composer.aesthetic-function.com** is the catalog composer
 (`apps/composer`), deployed as its **own** Worker so the exhibit and the
-composer keep independent deploy cadences. Configured by
-`wrangler.composer.jsonc` at the repository root — Static Assets from
-`apps/composer/out`, the custom domain declared in `routes` (wrangler
-attaches it; Cloudflare manages DNS), and **zero runtime bindings**: no AI,
-KV, Durable Objects, databases, or secrets. The hosted composer ships the
-pre-emitted demo project only; connecting a real project, emitting, saving,
-and generation all run on the visitor's machine via the local agent
-(`pnpm --filter agent dev`), stated plainly in the UI. No user project
-source is ever uploaded or executed.
+composer keep independent deploy cadences. It is the **repo-root
+`wrangler.jsonc`** — deliberately, because the composer Worker
+(`dspack-studio-composer`) is the one connected to the GitHub → Cloudflare
+**Workers Builds** integration, which reads `./wrangler.jsonc` by default;
+the name, route, and assets there match the deployed Worker (Cloudflare's
+reconciliation request). Static Assets from `apps/composer/out`, the custom
+domain declared in `routes` (wrangler attaches it; Cloudflare manages DNS),
+and **zero runtime bindings**: no AI, KV, Durable Objects, databases, or
+secrets. The hosted composer ships the pre-emitted demo project only;
+connecting a real project, emitting, saving, and generation all run on the
+visitor's machine via the local agent (`pnpm --filter agent dev`), stated
+plainly in the UI. No user project source is ever uploaded or executed.
 
-Deploy by dispatching the **`deploy-composer`** GitHub Actions workflow
-(same explicit-decision posture as `deploy-exhibit`): it re-verifies the
-composer, records the rollback anchor, deploys through the checked-in
-`wrangler.composer.jsonc`, and runs the production smoke. It is inert until
-the `CLOUDFLARE_API_TOKEN` repository secret exists. The equivalent local
-sequence:
+The composer therefore has **two deploy paths**: the reconnected Workers
+Builds Git integration (auto-deploys the root `wrangler.jsonc` on push — the
+continuous integration environment), and the explicit **`deploy-composer`**
+GitHub Actions workflow for a dispatched, gate-checked deploy (same posture
+as `deploy-exhibit`): it re-verifies the composer, records the rollback
+anchor, deploys through `wrangler.jsonc`, and runs the production smoke. It
+is inert until the `CLOUDFLARE_API_TOKEN` repository secret exists. The
+equivalent local sequence:
 
 ```sh
 pnpm build:deploy:composer                          # demo assets + static export -> apps/composer/out
-npx wrangler deploy --config wrangler.composer.jsonc
+npx wrangler deploy --config wrangler.jsonc
 npx playwright test --config playwright.composer-production.config.ts   # smoke against the deployed URL
 ```
 
@@ -94,7 +99,7 @@ For a **continuously-deployed integration environment** (auto-deploy on push
 to a branch), attach a Cloudflare Workers Builds Git integration to the
 composer Worker in the dashboard (Workers & Pages → the composer Worker →
 Settings → Build), build command `pnpm build:deploy:composer`, deploy command
-`npx wrangler deploy --config wrangler.composer.jsonc`. That is a
+`npx wrangler deploy --config wrangler.jsonc`. That is a
 dashboard-only, owner action; the explicit `deploy-composer` workflow above
 is the checked-in alternative and does not require it.
 
@@ -109,7 +114,7 @@ changing the product's localhost connection behavior, and do not weaken the
 assertion — degrading honestly when no agent is present is exactly what the
 spec exists to protect.
 
-Rollback: `npx wrangler rollback --config wrangler.composer.jsonc` (or
+Rollback: `npx wrangler rollback --config wrangler.jsonc` (or
 redeploy the previous commit); the exhibit Worker is untouched either way.
 
 ## Recommended topology

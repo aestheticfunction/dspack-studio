@@ -1,14 +1,26 @@
-// Cloudflare Workers Static Assets: the dspack-studio static preview.
-// Build with the canonical `pnpm build:deploy` (generates the gated
-// contract artifacts, then the Next.js static export), then `wrangler
-// deploy` uploads apps/web/out. Replay mode needs no environment: the
-// preview ships with recorded fixtures only (no NEXT_PUBLIC_AGENT_URL;
-// "run it live" states plainly that it needs a local agent).
+// Cloudflare Workers Static Assets: the catalog COMPOSER
+// (composer.aesthetic-function.com), the integration/validation environment.
+//
+// This is the REPO-ROOT wrangler config because the composer Worker
+// (dspack-studio-composer) is the one connected to the GitHub -> Cloudflare
+// Workers Builds integration, which reads ./wrangler.jsonc by default. The
+// name, assets, and route here therefore MATCH the deployed Worker, per
+// Cloudflare's reconciliation request. Build with `pnpm build:deploy:composer`
+// (apps/composer/out); the custom domain is declared so wrangler attaches it.
+//
+// The exhibit lives in wrangler.exhibit.jsonc and deploys on its own explicit
+// cadence — the two Workers never share a config. Zero runtime bindings by
+// design: the hosted composer ships the pre-emitted demo project; file- and
+// model-touching work runs on the visitor's machine via the local agent.
 {
-  "name": "dspack-studio",
-  "compatibility_date": "2026-07-11",
+  "name": "dspack-studio-composer",
+  "compatibility_date": "2026-08-08",
+  "observability": { "enabled": true },
+  "routes": [
+    { "pattern": "composer.aesthetic-function.com", "custom_domain": true }
+  ],
   "assets": {
-    "directory": "./apps/web/out",
+    "directory": "./apps/composer/out",
     "not_found_handling": "404-page"
   }
 }
