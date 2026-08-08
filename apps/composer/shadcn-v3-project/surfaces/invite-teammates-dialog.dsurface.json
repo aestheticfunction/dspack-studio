@@ -1,0 +1,130 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "overlay-task",
+  "root": {
+    "component": "dialog",
+    "props": {
+      "modal": true
+    },
+    "children": [
+      {
+        "component": "dialog-trigger",
+        "children": [
+          {
+            "component": "button",
+            "text": "Invite people"
+          }
+        ]
+      },
+      {
+        "component": "dialog-content",
+        "children": [
+          {
+            "component": "dialog-header",
+            "children": [
+              {
+                "component": "dialog-title",
+                "text": "Invite people to Northwind"
+              },
+              {
+                "component": "dialog-description",
+                "text": "Each person receives an email invitation that expires in seven days."
+              }
+            ]
+          },
+          {
+            "component": "field",
+            "props": {
+              "orientation": "vertical"
+            },
+            "children": [
+              {
+                "component": "field-label",
+                "text": "Email addresses"
+              },
+              {
+                "component": "textarea",
+                "id": "invite-emails",
+                "props": {
+                  "name": "invitees",
+                  "rows": 3,
+                  "placeholder": "maya@example.com, sam@example.com"
+                }
+              },
+              {
+                "component": "field-description",
+                "text": "Separate addresses with a comma. Up to 20 people per invitation."
+              }
+            ]
+          },
+          {
+            "component": "field",
+            "props": {
+              "orientation": "vertical"
+            },
+            "children": [
+              {
+                "component": "field-label",
+                "text": "Role"
+              },
+              {
+                "component": "select",
+                "props": {
+                  "name": "role",
+                  "defaultValue": "member"
+                },
+                "children": [
+                  {
+                    "component": "select-trigger",
+                    "id": "invite-role",
+                    "children": [
+                      {
+                        "component": "select-value",
+                        "text": "Member"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "select-content",
+                    "children": [
+                      {
+                        "component": "select-item",
+                        "text": "Member \u2014 can read and comment"
+                      },
+                      {
+                        "component": "select-item",
+                        "text": "Editor \u2014 can change project settings"
+                      },
+                      {
+                        "component": "select-item",
+                        "text": "Admin \u2014 can manage members and billing"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "field-description",
+                "text": "Everyone in this invitation gets the same role. You can change it later."
+              }
+            ]
+          },
+          {
+            "component": "dialog-footer",
+            "children": [
+              {
+                "component": "dialog-close",
+                "text": "Cancel"
+              },
+              {
+                "component": "button",
+                "text": "Send invitations"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

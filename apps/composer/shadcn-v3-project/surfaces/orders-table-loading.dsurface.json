@@ -1,0 +1,229 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "loading-state",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "card-header",
+        "children": [
+          {
+            "component": "card-title",
+            "text": "Orders"
+          },
+          {
+            "component": "card-description",
+            "text": "The 50 most recent orders"
+          },
+          {
+            "component": "spinner",
+            "props": {
+              "className": "size-4",
+              "aria-label": "Loading orders"
+            }
+          }
+        ]
+      },
+      {
+        "component": "table",
+        "children": [
+          {
+            "component": "table-caption",
+            "text": "Recent orders. Rows are still loading."
+          },
+          {
+            "component": "table-header",
+            "children": [
+              {
+                "component": "table-row",
+                "children": [
+                  {
+                    "component": "table-head",
+                    "text": "Order"
+                  },
+                  {
+                    "component": "table-head",
+                    "text": "Customer"
+                  },
+                  {
+                    "component": "table-head",
+                    "text": "Status"
+                  },
+                  {
+                    "component": "table-head",
+                    "text": "Total"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "table-body",
+            "children": [
+              {
+                "component": "table-row",
+                "children": [
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-16",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-40",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-5 w-24 rounded-full",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-14",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "table-row",
+                "children": [
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-16",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-40",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-5 w-24 rounded-full",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-14",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "table-row",
+                "children": [
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-16",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-40",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-5 w-24 rounded-full",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-cell",
+                    "children": [
+                      {
+                        "component": "skeleton",
+                        "props": {
+                          "className": "h-4 w-14",
+                          "aria-hidden": true
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

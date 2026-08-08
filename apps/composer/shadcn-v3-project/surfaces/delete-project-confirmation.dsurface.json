@@ -1,0 +1,128 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "destructive-action",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "card-header",
+        "children": [
+          {
+            "component": "card-title",
+            "text": "Danger zone"
+          },
+          {
+            "component": "card-description",
+            "text": "Deleting a project removes its environments, deploys, and logs for everyone in the workspace."
+          }
+        ]
+      },
+      {
+        "component": "card-content",
+        "children": [
+          {
+            "component": "alert",
+            "props": {
+              "variant": "destructive"
+            },
+            "children": [
+              {
+                "component": "alert-title",
+                "text": "Deleting Northwind Checkout is permanent"
+              },
+              {
+                "component": "alert-description",
+                "text": "3 environments, 412 deploys, and 18 GB of build logs are destroyed immediately. There is no backup to restore from."
+              }
+            ]
+          },
+          {
+            "component": "field",
+            "props": {
+              "orientation": "vertical"
+            },
+            "children": [
+              {
+                "component": "field-label",
+                "text": "Type the project name to confirm"
+              },
+              {
+                "component": "input",
+                "id": "delete-project-confirm",
+                "props": {
+                  "type": "text",
+                  "placeholder": "Northwind Checkout"
+                }
+              },
+              {
+                "component": "field-description",
+                "text": "The name must match exactly, including capitalisation."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "card-footer",
+        "children": [
+          {
+            "component": "button",
+            "props": {
+              "variant": "outline"
+            },
+            "text": "Cancel"
+          },
+          {
+            "component": "alert-dialog",
+            "children": [
+              {
+                "component": "alert-dialog-trigger",
+                "children": [
+                  {
+                    "component": "button",
+                    "props": {
+                      "variant": "destructive"
+                    },
+                    "text": "Delete project"
+                  }
+                ]
+              },
+              {
+                "component": "alert-dialog-content",
+                "children": [
+                  {
+                    "component": "alert-dialog-header",
+                    "children": [
+                      {
+                        "component": "alert-dialog-title",
+                        "text": "Delete Northwind Checkout?"
+                      },
+                      {
+                        "component": "alert-dialog-description",
+                        "text": "The project, its three environments, and every deploy log are deleted immediately. Anyone with a link to a preview deploy will get a 404."
+                      }
+                    ]
+                  },
+                  {
+                    "component": "alert-dialog-footer",
+                    "children": [
+                      {
+                        "component": "alert-dialog-cancel",
+                        "text": "Keep project"
+                      },
+                      {
+                        "component": "alert-dialog-action",
+                        "text": "Delete project and all data"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

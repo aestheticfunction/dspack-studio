@@ -1,0 +1,176 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "preference-settings",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "card-header",
+        "children": [
+          {
+            "component": "card-title",
+            "text": "Notifications"
+          },
+          {
+            "component": "card-description",
+            "text": "Changes are saved as you make them."
+          }
+        ]
+      },
+      {
+        "component": "card-content",
+        "children": [
+          {
+            "component": "field-set",
+            "children": [
+              {
+                "component": "field-legend",
+                "text": "Email me when"
+              },
+              {
+                "component": "field-group",
+                "children": [
+                  {
+                    "component": "field",
+                    "props": {
+                      "orientation": "horizontal"
+                    },
+                    "children": [
+                      {
+                        "component": "field-label",
+                        "text": "A ticket is assigned to me"
+                      },
+                      {
+                        "component": "switch",
+                        "id": "notify-assigned",
+                        "props": {
+                          "name": "assigned",
+                          "defaultChecked": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "field",
+                    "props": {
+                      "orientation": "horizontal"
+                    },
+                    "children": [
+                      {
+                        "component": "field-label",
+                        "text": "A customer replies to a ticket I own"
+                      },
+                      {
+                        "component": "switch",
+                        "id": "notify-reply",
+                        "props": {
+                          "name": "reply",
+                          "defaultChecked": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "field",
+                    "props": {
+                      "orientation": "horizontal"
+                    },
+                    "children": [
+                      {
+                        "component": "field-label",
+                        "text": "A production deploy fails"
+                      },
+                      {
+                        "component": "switch",
+                        "id": "notify-deploy",
+                        "props": {
+                          "name": "deployFailed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "separator",
+            "props": {
+              "decorative": true,
+              "orientation": "horizontal"
+            }
+          },
+          {
+            "component": "field-set",
+            "children": [
+              {
+                "component": "field-legend",
+                "text": "Weekly digest"
+              },
+              {
+                "component": "field-group",
+                "children": [
+                  {
+                    "component": "radio-group",
+                    "props": {
+                      "name": "digest",
+                      "defaultValue": "monday"
+                    },
+                    "children": [
+                      {
+                        "component": "radio-group-item",
+                        "id": "digest-monday"
+                      },
+                      {
+                        "component": "label",
+                        "props": {
+                          "htmlFor": "digest-monday"
+                        },
+                        "text": "Monday morning"
+                      },
+                      {
+                        "component": "radio-group-item",
+                        "id": "digest-friday"
+                      },
+                      {
+                        "component": "label",
+                        "props": {
+                          "htmlFor": "digest-friday"
+                        },
+                        "text": "Friday afternoon"
+                      },
+                      {
+                        "component": "radio-group-item",
+                        "id": "digest-off"
+                      },
+                      {
+                        "component": "label",
+                        "props": {
+                          "htmlFor": "digest-off"
+                        },
+                        "text": "Do not send a digest"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "card-footer",
+        "children": [
+          {
+            "component": "button",
+            "props": {
+              "variant": "outline"
+            },
+            "text": "Restore defaults"
+          }
+        ]
+      }
+    ]
+  }
+}
