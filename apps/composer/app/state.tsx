@@ -32,6 +32,7 @@ import {
   agentDiscover,
   agentEmit,
   agentModels,
+  hostedModels,
   agentRediscover,
   agentSave,
   agentSaveExample,
@@ -494,7 +495,11 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const turnSeq = useRef(0);
 
   useEffect(() => {
+    // Agent up → the agent's models (scripted + any local Ollama). Otherwise the
+    // hosted origin decides: scripted alone, or scripted + hosted-ai when the
+    // deployed AI Gateway Worker is live.
     if (agentUp) void agentModels().then(setBuildModels);
+    else void hostedModels().then(setBuildModels);
   }, [agentUp]);
 
   const readiness = useMemo(

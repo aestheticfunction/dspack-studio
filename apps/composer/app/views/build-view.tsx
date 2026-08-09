@@ -249,9 +249,11 @@ export function BuildView() {
           Provider: <code>{modelRef}</code> —{" "}
           {modelRef === "scripted"
             ? "deterministic, zero model calls; nothing leaves this machine."
-            : modelRef.startsWith("ollama:")
-              ? "local Ollama; contract-derived context and your ask go to your local model only."
-              : "keys live in the agent's environment; contract-derived context and your ask go to the provider."}
+            : modelRef === "hosted-ai"
+              ? "managed Claude Haiku through the governed AI Gateway (Unified Billing — no API key in your browser); your ask and the contract-derived context go to the gateway, and every proposal is validated here before you see it."
+              : modelRef.startsWith("ollama:")
+                ? "local Ollama; contract-derived context and your ask go to your local model only."
+                : "keys live in the agent's environment; contract-derived context and your ask go to the provider."}
         </span>
       </p>
 
@@ -261,10 +263,23 @@ export function BuildView() {
           style={{ fontSize: 12, color: "var(--fg-body)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 10px", margin: "10px 0" }}
         >
           You&rsquo;re building in the hosted demo: the governed pipeline runs <em>entirely in this browser</em> against
-          the shipped demo project — no install, and nothing leaves your machine. <code>scripted</code> replays each
-          intent&rsquo;s worked example so you can watch a surface get proposed, checked against S1&ndash;S3, repaired,
-          and rendered. To generate with a live model, or to build against <em>your own</em> component library, run the
-          local agent (<code>pnpm --filter agent dev</code>) and connect a project
+          the shipped demo project — no install, and the deterministic gates (S1&ndash;S3, emit) never leave your
+          machine.{" "}
+          {buildModels.includes("hosted-ai") ? (
+            <>
+              <code>hosted-ai</code> proposes with managed Claude Haiku through the governed AI Gateway;{" "}
+              <code>scripted</code> replays each intent&rsquo;s worked example. Either way you watch the surface get
+              proposed, checked against S1&ndash;S3, repaired, and rendered — and every proposal is validated here
+              before you see it.
+            </>
+          ) : (
+            <>
+              <code>scripted</code> replays each intent&rsquo;s worked example so you can watch a surface get proposed,
+              checked against S1&ndash;S3, repaired, and rendered.
+            </>
+          )}{" "}
+          To build against <em>your own</em> component library, run the local agent (
+          <code>pnpm --filter agent dev</code>) and connect a project
           {agentUp ? " — detected, connect from Project" : "."}
         </p>
       )}

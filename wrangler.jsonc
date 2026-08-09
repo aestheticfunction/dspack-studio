@@ -9,18 +9,46 @@
 // (apps/composer/out); the custom domain is declared so wrangler attaches it.
 //
 // The exhibit lives in wrangler.exhibit.jsonc and deploys on its own explicit
-// cadence — the two Workers never share a config. Zero runtime bindings by
-// design: the hosted composer ships the pre-emitted demo project; file- and
-// model-touching work runs on the visitor's machine via the local agent.
+// cadence — the two Workers never share a config.
+//
+// STATIC-FIRST with ONE governed API namespace. The composer ships the
+// pre-emitted demo project and runs the whole DETERMINISTIC pipeline
+// (S1/S2/S3 → repair → emit → audit) in the visitor's browser — Cloudflare
+// Workers ban runtime `new Function` (AJV), so the pipeline cannot and does not
+// run here. The Worker's only job is the ONE nondeterministic step: forward a
+// generation request to Claude Haiku through the governed AI Gateway. The AI
+// binding is Unified Billing — no provider key, no BYOK credential, no gateway
+// secret; a request through the binding is pre-authenticated by the account.
+// `run_worker_first` is scoped to `/api/*`, so every other request is served by
+// the asset layer exactly as before (worker/index.mjs delegates to ASSETS).
 {
   "name": "dspack-studio-composer",
   "compatibility_date": "2026-08-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "apps/composer/worker/index.mjs",
   "observability": { "enabled": true },
   "routes": [
     { "pattern": "composer.aesthetic-function.com", "custom_domain": true }
   ],
   "assets": {
     "directory": "./apps/composer/out",
-    "not_found_handling": "404-page"
-  }
+    "not_found_handling": "404-page",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  // Reuses the SAME account-level ds-ai-gateway the af-site theme generator uses
+  // (composer.aesthetic-function.com and aesthetic-function.com share the zone,
+  // hence the account). The gateway id + collectLog:false live in worker/propose.mjs.
+  // Cost has TWO ceilings: the gateway's own zone-wide rate limit (the hard cap,
+  // shared with the theme generator) and the per-client limiter below.
+  "ai": { "binding": "AI" },
+  // Per-client rate limit for /api/propose — one abuser cannot consume the
+  // shared gateway allowance. Fully wrangler-configured (no dashboard resource,
+  // no secret); keyed by the Cloudflare-verified client IP in worker/propose.mjs.
+  "ratelimits": [
+    { "name": "PROPOSE_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ],
+  // Kill switch — flip to "off" to disable hosted AI generation without a deploy
+  // topology change (scripted mode and the local agent are unaffected).
+  "vars": { "HOSTED_AI": "on" }
 }

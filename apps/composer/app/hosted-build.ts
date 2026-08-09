@@ -22,6 +22,7 @@
 // and eval helpers (node:fs/node:path). Types come from app/gen-deep.d.ts.
 import { runPipeline } from "@composer/gen-run";
 import { ScriptedAdapter } from "@composer/gen-scripted";
+import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import { loadProfile } from "@aestheticfunction/dspack-emit";
 import { createPipelineEventMapper } from "@dspack-studio/agui-bridge";
 import type { BuildRunInput } from "./agent-client";
@@ -91,6 +92,52 @@ function demoProfile() {
   return (profileCache ??= loadProfile(DEMO_PROFILE as never));
 }
 
+/**
+ * Managed hosted AI — the proposal comes from Claude Haiku through the governed
+ * AI Gateway Worker (/api/propose). The pipeline built {system, messages,
+ * jsonSchema}; this adapter is a thin transport that forwards them and returns
+ * the raw proposal. It runs NO validation — S1/S2/S3, repair, and emit happen
+ * around it, here in the browser, exactly as for the scripted and local
+ * adapters. An endpoint failure throws AdapterOutputError so the pipeline
+ * records an honest `failed-adapter` outcome in the thread rather than crashing.
+ */
+const HOSTED_AI_ID = "hosted-ai:claude-haiku-4.5";
+
+function gatewayAdapter() {
+  return {
+    id: HOSTED_AI_ID,
+    async generate(request: { system: string; messages: unknown[]; jsonSchema: unknown }) {
+      let res: Response;
+      try {
+        res = await fetch("/api/propose", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ system: request.system, messages: request.messages, jsonSchema: request.jsonSchema }),
+        });
+      } catch (error) {
+        throw new AdapterOutputError(HOSTED_AI_ID, `hosted AI request failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      if (!res.ok) {
+        let message = `hosted AI endpoint returned ${res.status}`;
+        try {
+          const body = (await res.json()) as { message?: string };
+          if (body?.message) message = body.message;
+        } catch {
+          /* non-JSON error body: keep the status message */
+        }
+        throw new AdapterOutputError(HOSTED_AI_ID, message);
+      }
+      const body = (await res.json()) as { json: unknown; raw?: string; model?: string; usage?: unknown };
+      return {
+        json: body.json,
+        raw: body.raw ?? JSON.stringify(body.json),
+        model: body.model ?? "hosted-ai",
+        ...(body.usage ? { usage: body.usage } : {}),
+      };
+    },
+  };
+}
+
 export interface HostedRunHandlers {
   onEvent(event: Record<string, unknown>): void;
   onError(message: string): void;
@@ -116,35 +163,38 @@ export function streamHostedBuild(input: BuildRunInput, handlers: HostedRunHandl
       const intent = input.intent || intents[0]?.id || "";
       const modelRef = input.modelRef || "scripted";
 
-      if (modelRef !== "scripted") {
-        // Phase 2: the AI Gateway Worker answers the proposal for managed
-        // hosted AI. Until its binding is provisioned, be honest about the
-        // path rather than silently failing.
+      // The ONLY thing that varies by mode is the adapter answering the
+      // proposal. Everything after — S1/S2/S3, repair, emit, audit — is the
+      // SAME deterministic pipeline, running here in the browser.
+      let adapter;
+      if (modelRef === "hosted-ai") {
+        // Managed Claude Haiku through the governed AI Gateway Worker.
+        adapter = gatewayAdapter();
+      } else if (modelRef === "scripted") {
+        const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
+        // LAST match for THIS intent (accepted results join the corpus at the
+        // end): the scripted twin plays the owner's latest worked example, never
+        // another intent's — a screen built for a different intent is a wrong
+        // answer reported as a right one (#43).
+        const example = examples.filter((e) => e.intent === intent).at(-1);
+        if (!example) {
+          handlers.onError(
+            `Scripted mode replays this intent's own worked example, and '${intent || "(none)"}' has none. ` +
+              "Pick an intent that already has a worked scenario, or connect the local agent to generate from the contract without few-shot context.",
+          );
+          handlers.onComplete();
+          return;
+        }
+        adapter = scriptedRunAdapter(example.surface, input.conversation);
+      } else {
         handlers.onError(
-          "Hosted AI generation is being connected through the governed AI Gateway. " +
-            'For now choose "scripted" to watch the governed pipeline run on rails, ' +
-            "or connect the local agent to generate with a local model.",
+          `Model '${modelRef}' isn't available in the hosted demo. Choose "scripted" or "hosted-ai", ` +
+            "or connect the local agent for a local model.",
         );
         handlers.onComplete();
         return;
       }
 
-      const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
-      // LAST match for THIS intent (accepted results join the corpus at the
-      // end): the scripted twin plays the owner's latest worked example, never
-      // another intent's — a screen built for a different intent is a wrong
-      // answer reported as a right one (#43).
-      const example = examples.filter((e) => e.intent === intent).at(-1);
-      if (!example) {
-        handlers.onError(
-          `Scripted mode replays this intent's own worked example, and '${intent || "(none)"}' has none. ` +
-            "Pick an intent that already has a worked scenario, or connect the local agent to generate from the contract without few-shot context.",
-        );
-        handlers.onComplete();
-        return;
-      }
-
-      const adapter = scriptedRunAdapter(example.surface, input.conversation);
       const runId = `run-${Date.now()}`;
       const map = createPipelineEventMapper({ threadId: `build-${input.path}`, runId });
 

@@ -126,6 +126,25 @@ export async function agentModels(): Promise<string[]> {
   }
 }
 
+/**
+ * Hosted (agent-free) models, probed from the composer's own origin. The
+ * deployed Worker answers GET /api/models with what's actually available
+ * (["scripted"] plus "hosted-ai" when the AI Gateway binding is live and the
+ * kill switch is on); a static-only deploy or local `next dev` has no such
+ * route, so this falls back to scripted alone — "hosted-ai" is never offered
+ * where it cannot work.
+ */
+export async function hostedModels(): Promise<string[]> {
+  try {
+    const res = await fetch("/api/models", { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return ["scripted"];
+    const body = (await res.json()) as { models?: string[] };
+    return Array.isArray(body.models) && body.models.length ? body.models : ["scripted"];
+  } catch {
+    return ["scripted"];
+  }
+}
+
 export interface BuildRunInput {
   path: string;
   prompt: string;
