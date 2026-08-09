@@ -10,6 +10,7 @@ import "@dspack-studio/shadcn-renderers/styles.css";
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "./globals.css";
+import "./af-ui.css";
 import { fontVariables } from "./fonts";
 
 export const metadata: Metadata = {

@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ComposerProvider, useComposer } from "./state";
 import { BuildView } from "./views/build-view";
+import { ProjectsView } from "./views/projects-view";
 import { ProjectView } from "./views/project-view";
+import { SettingsView } from "./views/settings-view";
 import { InventoryView } from "./views/inventory-view";
 import { ComponentView } from "./views/component-view";
 import { MapperView } from "./views/mapper-view";
@@ -11,100 +13,145 @@ import { GovernanceView } from "./views/governance-view";
 import { ScenarioView } from "./views/scenario-view";
 import { PreviewView } from "./views/preview-view";
 import { ValidateView } from "./views/validate-view";
+import { Marks } from "./ui";
+import { getStoredTheme, applyTheme } from "./appearance";
 
-export type View = "build" | "project" | "inventory" | "component" | "mapper" | "governance" | "scenarios" | "preview" | "validate";
+export type View =
+  | "projects"
+  | "build"
+  | "preview"
+  | "inventory"
+  | "component"
+  | "mapper"
+  | "governance"
+  | "scenarios"
+  | "validate"
+  | "settings"
+  | "connect";
 
-const VIEWS: Array<{ id: View; label: string }> = [
+/** The working views, shown in the nav only when a project is open. Their order
+ *  is the product's, not the pipeline's: build, look, then the vocabulary and
+ *  rules behind it. Catalog is the inventory; Components/Mapper drill in from it;
+ *  Scenarios and Checks hang off Governance and Build. */
+const WORK_NAV: Array<{ id: View; label: string }> = [
   { id: "build", label: "Build" },
-  { id: "project", label: "Project" },
-  { id: "inventory", label: "Inventory" },
-  { id: "component", label: "Component" },
-  { id: "mapper", label: "Mapper" },
-  { id: "governance", label: "Governance" },
-  { id: "scenarios", label: "Scenarios" },
   { id: "preview", label: "Preview" },
-  { id: "validate", label: "Validate" },
+  { id: "inventory", label: "Catalog" },
+  { id: "governance", label: "Governance" },
 ];
 
 function Shell() {
-  const [view, setView] = useState<View>("project");
   const state = useComposer();
-  // Build-first: the moment a project's setup passes — the shipped hosted demo
-  // included — Build is the default view. A first-time visitor lands on the
-  // thing that demonstrates the product (describe a goal → governed build),
-  // not the connect-your-repository setup screen. Fires once; navigation wins
-  // after that.
-  const autoOpened = useRef(false);
-  const prevMode = useRef(state.mode);
+  const [view, setView] = useState<View>("projects");
+  const hasProject = !!state.activeProject;
+
+  // Apply the persisted appearance once on mount.
   useEffect(() => {
-    // Each mode entry (initial demo, or connecting an agent project) gets one
-    // Build-first auto-open; navigation wins after that within the mode.
-    if (prevMode.current !== state.mode) {
-      autoOpened.current = false;
-      prevMode.current = state.mode;
-    }
-    if (state.readiness.ready && !autoOpened.current) {
-      autoOpened.current = true;
-      setView("build");
-    }
-  }, [state.mode, state.readiness.ready]);
-  // Build stays visible when setup is incomplete, but says exactly why.
+    applyTheme(getStoredTheme());
+  }, []);
+
+  // Follow the project lifecycle: opening a project lands on Build; closing (or
+  // first run with none) lands on the hub. Fires only when the identity changes,
+  // so navigation within a project is never yanked away.
+  const prevProjectId = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const id = state.activeProject?.id ?? null;
+    if (prevProjectId.current !== undefined && prevProjectId.current === id) return;
+    prevProjectId.current = id;
+    setView(id ? "build" : "projects");
+  }, [state.activeProject?.id]);
+
   const buildBlocked = state.mode === "agent" && !state.readiness.ready ? state.readiness.reason : undefined;
+  const sourceKind = state.activeProject?.source.kind === "agent" ? "Local repository" : state.mode === "agent" ? "Local repository" : "Hosted";
 
   return (
-    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 20px 80px" }}>
-      <header style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap", marginBottom: 8 }}>
-        <h1 style={{ fontFamily: "var(--hl)", fontSize: 22, letterSpacing: "0.02em", color: "var(--fg)", margin: 0, textTransform: "uppercase" }}>
-          Catalog Composer
-        </h1>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-dim)" }}>
-          {state.manifest ? state.manifest.name : "no project"}
-          {" · "}
-          {state.mode === "demo" ? "demo project" : state.projectPath}
-        </span>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: state.agentUp ? "var(--ok)" : "var(--fg-faint)", marginLeft: "auto" }}>
-          agent: {state.agentUp ? "connected" : "not running"}
-        </span>
+    <div>
+      <header className="af-top">
+        <div className="af-top__in">
+          <button className="af-brand" onClick={() => setView("projects")} data-testid="brand-home" aria-label="Composer — projects">
+            <Marks trueCount={hasProject ? 3 : 0} />
+            <span style={{ display: "grid", lineHeight: 1.1 }}>
+              <span className="af-brand__name">Composer</span>
+              <span className="af-brand__sub">Aesthetic Function</span>
+            </span>
+          </button>
+
+          <nav className="af-nav" aria-label="Primary">
+            <button
+              className={`af-nav__link${view === "projects" ? " af-nav__link--active" : ""}`}
+              onClick={() => setView("projects")}
+              data-testid="nav-projects"
+            >
+              Projects
+            </button>
+            {hasProject &&
+              WORK_NAV.map((v) => (
+                <button
+                  key={v.id}
+                  className={`af-nav__link${view === v.id ? " af-nav__link--active" : ""}`}
+                  onClick={() => setView(v.id)}
+                  disabled={v.id === "build" && !!buildBlocked}
+                  title={v.id === "build" && buildBlocked ? `Not ready to build: ${buildBlocked}` : undefined}
+                  data-testid={`nav-${v.id}`}
+                >
+                  {v.label}
+                </button>
+              ))}
+          </nav>
+
+          <div className="af-spacer" />
+
+          {state.activeProject && (
+            <span className="af-ctx" data-testid="project-context" title={state.activeProject.description || state.activeProject.name}>
+              <span className="af-ctx__name">{state.activeProject.name}</span>
+              <span className="af-ctx__src">{sourceKind}</span>
+            </span>
+          )}
+          <button
+            className={`af-nav__link${view === "settings" ? " af-nav__link--active" : ""}`}
+            onClick={() => setView("settings")}
+            data-testid="nav-settings"
+          >
+            Settings
+          </button>
+        </div>
       </header>
 
-      <nav style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0 18px" }}>
-        {VIEWS.map((v) => (
-          <button
-            key={v.id}
-            className={`st-btn${view === v.id ? " st-btn--active" : ""}`}
-            onClick={() => setView(v.id)}
-            disabled={v.id === "build" && !!buildBlocked}
-            title={v.id === "build" && buildBlocked ? `Not ready to build: ${buildBlocked}` : undefined}
-            aria-label={v.id === "build" && buildBlocked ? `Build (not ready: ${buildBlocked})` : undefined}
-            data-testid={`nav-${v.id}`}
-          >
-            {v.label}
-          </button>
-        ))}
-        {state.busy && (
-          <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--warn)", alignSelf: "center" }}>{state.busy}…</span>
+      <main>
+        {state.notice && (
+          <div style={{ maxWidth: "var(--maxw,1180px)", margin: "0 auto", padding: "12px var(--gut,24px) 0" }}>
+            <p
+              data-testid="notice"
+              role="status"
+              aria-live="polite"
+              style={{ fontSize: 13, color: "var(--fg-dim)", border: "1px solid var(--line)", borderRadius: 3, padding: "8px 12px", margin: 0 }}
+            >
+              {state.notice}
+            </p>
+          </div>
         )}
-      </nav>
 
-      {state.notice && (
-        <p
-          data-testid="notice"
-          role="status"
-          aria-live="polite"
-          style={{ fontSize: 13, color: "var(--fg-dim)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 12px" }}>
-          {state.notice}
-        </p>
-      )}
+        {view === "projects" && <ProjectsView onOpen={() => setView("build")} onConnect={() => setView("connect")} />}
+        {view === "connect" && <ProjectView onNavigate={(v) => setView(v as View)} />}
+        {view === "settings" && <SettingsView />}
 
-      {view === "build" && <BuildView />}
-      {view === "project" && <ProjectView onNavigate={setView} />}
-      {view === "inventory" && <InventoryView onOpen={() => setView("component")} />}
-      {view === "component" && <ComponentView />}
-      {view === "mapper" && <MapperView />}
-      {view === "governance" && <GovernanceView />}
-      {view === "scenarios" && <ScenarioView />}
-      {view === "preview" && <PreviewView />}
-      {view === "validate" && <ValidateView />}
+        {/* Working views require a project; fall back to the hub otherwise. */}
+        {!hasProject && (view === "build" || view === "preview" || view === "inventory" || view === "governance") && (
+          <ProjectsView onOpen={() => setView("build")} onConnect={() => setView("connect")} />
+        )}
+        {hasProject && (
+          <div className="af-page" style={{ paddingTop: "clamp(20px,3vw,32px)" }}>
+            {view === "build" && <BuildView />}
+            {view === "preview" && <PreviewView />}
+            {view === "inventory" && <InventoryView onOpen={() => setView("component")} />}
+            {view === "component" && <ComponentView />}
+            {view === "mapper" && <MapperView />}
+            {view === "governance" && <GovernanceView />}
+            {view === "scenarios" && <ScenarioView />}
+            {view === "validate" && <ValidateView />}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

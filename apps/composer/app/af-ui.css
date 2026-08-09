@@ -1,0 +1,611 @@
+/*
+ * Composer's Aesthetic Function product layer.
+ *
+ * globals.css carries the shared AF brand tokens (transcribed from
+ * af-site/assets/af.css) and the studio's .st-btn / .st-link. This file adds
+ * the PRODUCT idioms Composer needs to read as a first-class AF application
+ * rather than a generic AI tool: the editorial masthead (eyebrow + Oswald
+ * display), the square/circle/triangle identity marks, the top-nav with its
+ * one sliding green underline, cards that lift and corner-check, honest empty
+ * states, and AF form controls.
+ *
+ * Doctrine followed (af-site CANON.md / MOTION.md): warm near-black + cream,
+ * sage green ONLY at the moment of correction/alignment, near-square geometry,
+ * one elevation, calm micro-motion under ~250ms, and everything settles. It is
+ * loaded unlayered after globals.css so it, too, wins over the canvas sheets.
+ */
+
+/* AF rhythm / elevation tokens the product layer needs, transcribed from
+ * af-site/assets/tokens.gen.css. Kept here (not the shared globals.css) so the
+ * studio's shared brand layer stays byte-stable. */
+:root {
+  --maxw: 1180px;
+  --prose: 690px;
+  --gut: clamp(20px, 5vw, 64px);
+  --section-gap: clamp(40px, 6vw, 72px);
+  --shadow-menu: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --on-accent: #10120c;
+  --drift-text: #c98768;
+  --drift-edge: #b46a4e;
+}
+
+/* AF appearance themes (af-site tokens.gen.css). All dark-scheme, so they only
+ * re-tint the studio chrome's accent + surfaces — the color-scheme axis is
+ * never touched, and the rendered design-system canvases keep their own look. */
+:root[data-theme="ember"] {
+  --green: #a3803f;
+  --green-bright: #c2a05c;
+  --green-deep: #7c6030;
+  --green-glow: rgba(156, 122, 60, 0.16);
+  --fg: #ecdfd0;
+  --fg-body: #cbbba9;
+  --fg-dim: #9a8c7c;
+  --fg-faint: #6e6357;
+  --bg: #171210;
+  --bg-1: #1d1713;
+  --bg-2: #241c17;
+  --line: #35291f;
+  --line-soft: #2a211a;
+  --ok: #c2a05c;
+}
+:root[data-theme="slate"] {
+  --green: #60917b;
+  --green-bright: #82b69d;
+  --green-deep: #4a7261;
+  --green-glow: rgba(95, 143, 122, 0.16);
+  --fg: #dde3e8;
+  --fg-body: #b5bec6;
+  --fg-dim: #8b96a1;
+  --fg-faint: #5d6874;
+  --bg: #101318;
+  --bg-1: #151a20;
+  --bg-2: #1a2027;
+  --line: #262e38;
+  --line-soft: #1f2630;
+  --ok: #82b69d;
+}
+
+/* ---- Editorial masthead ------------------------------------------------- */
+
+.af-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  margin: 0 0 14px;
+}
+.af-eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 1px;
+  background: var(--green);
+}
+
+.af-display {
+  font-family: var(--hl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  text-transform: uppercase;
+  color: var(--fg);
+  margin: 0;
+  font-size: clamp(30px, 4.4vw, 52px);
+  text-wrap: balance;
+}
+.af-display .af-accent {
+  color: var(--green);
+}
+.af-h2 {
+  font-family: var(--hl);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  color: var(--fg);
+  font-size: clamp(18px, 2.2vw, 24px);
+  margin: 0;
+}
+.af-lead {
+  font-family: var(--sans);
+  font-size: clamp(15px, 1.5vw, 17px);
+  line-height: 1.6;
+  color: var(--fg-body);
+  max-width: var(--prose, 690px);
+  margin: 14px 0 0;
+}
+.af-muted {
+  color: var(--fg-dim);
+}
+
+.af-divider {
+  height: 1px;
+  border: 0;
+  background: var(--line);
+  margin: var(--section-gap, 40px) 0;
+}
+
+/* ---- Identity marks (the resting field, at whisper scale) ---------------
+ * Square, circle, triangle: design / code / docs. Stroked in ink at rest;
+ * the "true" modifier resolves the stroke to green — the correction moment.
+ * Static by default; the optional data-af-live hook lets a view flash one. */
+.af-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.af-mark {
+  width: 11px;
+  height: 11px;
+  color: var(--fg-dim);
+  flex: none;
+}
+.af-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.af-mark svg * {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+.af-mark--true {
+  color: var(--green);
+  transition: color 0.55s var(--ease);
+}
+
+/* ---- Top navigation ----------------------------------------------------- */
+
+.af-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line-soft);
+}
+.af-top__in {
+  max-width: var(--maxw, 1180px);
+  margin: 0 auto;
+  padding: 12px var(--gut, 24px);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.af-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--fg);
+}
+.af-brand__name {
+  font-family: var(--hl);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.af-brand__sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.af-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.af-nav__link {
+  position: relative;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  background: none;
+  border: 0;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: color 0.16s var(--ease);
+}
+.af-nav__link:hover {
+  color: var(--fg);
+}
+.af-nav__link::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 1.5px;
+  background: var(--green);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.22s var(--ease);
+}
+.af-nav__link--active {
+  color: var(--fg);
+}
+.af-nav__link--active::after {
+  transform: scaleX(1);
+}
+.af-nav__link[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.af-nav__link[disabled]:hover {
+  color: var(--fg-dim);
+}
+.af-spacer {
+  margin-left: auto;
+}
+
+/* Project context chip in the nav (the open project) */
+.af-ctx {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg-1);
+  max-width: 260px;
+}
+.af-ctx__name {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.af-ctx__src {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  white-space: nowrap;
+}
+
+/* ---- Page frame --------------------------------------------------------- */
+
+.af-page {
+  max-width: var(--maxw, 1180px);
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 52px) var(--gut, 24px) 96px;
+}
+.af-page--prose {
+  max-width: 940px;
+}
+
+/* ---- Cards -------------------------------------------------------------- */
+
+.af-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.af-card {
+  position: relative;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-1);
+  padding: 18px 18px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition:
+    border-color 0.18s var(--ease),
+    transform 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+button.af-card {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+.af-card:hover {
+  border-color: color-mix(in srgb, var(--green) 60%, var(--line));
+  transform: translateY(-2px);
+  background: var(--bg-2);
+}
+/* the corner-check: a small square dot tracing the top-left corner on hover */
+.af-card::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--green);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+.af-card:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+.af-card__k {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.af-card__title {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.3;
+}
+.af-card__desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fg-body);
+}
+.af-card__meta {
+  margin-top: auto;
+  padding-top: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-faint);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Selectable card (design-system source, provider) — a radio you can see. */
+.af-choice {
+  position: relative;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-1);
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition:
+    border-color 0.18s var(--ease),
+    background 0.18s var(--ease);
+}
+button.af-choice {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+.af-choice:hover {
+  border-color: color-mix(in srgb, var(--green) 50%, var(--line));
+}
+.af-choice--active {
+  border-color: var(--green);
+  background: var(--green-glow);
+}
+.af-choice--active::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+}
+.af-choice__title {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.af-choice__desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fg-dim);
+}
+.af-choice[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---- Forms -------------------------------------------------------------- */
+
+.af-field {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+.af-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.af-input,
+.af-textarea,
+.af-select {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--fg);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 10px 12px;
+  transition: border-color 0.16s var(--ease);
+  width: 100%;
+}
+.af-input--mono {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.af-textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+.af-input:focus,
+.af-textarea:focus,
+.af-select:focus {
+  outline: none;
+  border-color: var(--green);
+}
+.af-input::placeholder,
+.af-textarea::placeholder {
+  color: var(--fg-faint);
+}
+.af-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-dim);
+}
+
+/* ---- Buttons (extends .st-btn from globals) ----------------------------- */
+
+.af-btn-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.st-btn--primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-accent, #10120c);
+  font-weight: 600;
+}
+.st-btn--primary:hover {
+  background: var(--green-bright);
+  border-color: var(--green-bright);
+  color: var(--on-accent, #10120c);
+}
+.st-btn--lg {
+  font-size: 13px;
+  padding: 9px 16px;
+}
+.st-btn:active:not([disabled]) {
+  transform: scale(0.97);
+}
+
+/* ---- Pills / status ----------------------------------------------------- */
+
+.af-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+}
+.af-pill--ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--line));
+}
+.af-pill--drift {
+  color: var(--drift-text, var(--warn));
+  border-color: color-mix(in srgb, var(--warn) 40%, var(--line));
+}
+.af-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---- Empty state (states, does not advertise) --------------------------- */
+
+.af-empty {
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  background: var(--bg-1);
+  padding: clamp(28px, 5vw, 48px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.af-empty .af-marks {
+  margin-bottom: 4px;
+}
+.af-empty__title {
+  font-family: var(--hl);
+  font-size: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  color: var(--fg);
+}
+.af-empty__body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fg-body);
+  max-width: 460px;
+}
+
+/* ---- Popover (the one elevation) ---------------------------------------- */
+
+.af-pop {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-1);
+  box-shadow: var(--shadow-menu, 0 10px 30px rgba(0, 0, 0, 0.4));
+  padding: 8px;
+}
+
+@media (max-width: 720px) {
+  .af-top__in {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .af-nav {
+    order: 3;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-nav__link::after,
+  .af-card,
+  .af-card::before,
+  .af-choice,
+  .af-mark--true,
+  .st-btn:active:not([disabled]) {
+    transition: none;
+  }
+  .af-card:hover {
+    transform: none;
+  }
+}

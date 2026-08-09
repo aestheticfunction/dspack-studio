@@ -47,6 +47,19 @@ import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from 
 import { streamHostedBuild } from "./hosted-build";
 import { planGoal } from "./planning";
 import { REFERENCES, REFERENCE_LIST, DEFAULT_REFERENCE, type Reference } from "./demo-data";
+import {
+  createProject,
+  listProjects,
+  getProject,
+  touchProject,
+  duplicateProject as dupStoredProject,
+  removeProject as rmStoredProject,
+  renameProject as renameStoredProject,
+  getLastOpened,
+  setLastOpened,
+  type StoredProject,
+  type ProjectSource,
+} from "./projects";
 
 export type Mode = "demo" | "agent";
 
@@ -101,6 +114,20 @@ export interface ComposerState {
   loadReference: (id: string) => void;
   /** Every packaged reference the project-start picker can offer. */
   references: Reference[];
+  /* ---- Projects (first-class objects) ---- */
+  /** All saved projects, most-recently-opened first. */
+  projects: StoredProject[];
+  /** The open project, or null on the hub (first run / after closing). */
+  activeProject: StoredProject | null;
+  /** Create a named project from a governed source and open it. */
+  newProject: (input: { name: string; description?: string; source: ProjectSource }) => StoredProject;
+  /** Open a saved project by id (loads its vocabulary). */
+  openProject: (id: string) => void;
+  /** Return to the hub without a project loaded. */
+  closeProject: () => void;
+  renameProject: (id: string, name: string) => void;
+  duplicateProject: (id: string) => StoredProject | null;
+  deleteProject: (id: string) => void;
   discover: () => Promise<void>;
   rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
@@ -118,6 +145,9 @@ export interface ComposerState {
   buildTurns: BuildTurn[];
   buildBusy: boolean;
   buildModels: string[];
+  /** The active provider/model, shared between Settings and Build. */
+  activeModel: string;
+  setActiveModel: (m: string) => void;
   /** Setup completeness for building; reason names the exact remaining work. */
   readiness: BuildReadiness;
   runBuild: (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => Promise<void>;
@@ -138,6 +168,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // The governed design system a demo/blank project builds from. Selecting a
   // different one loads that reference; it never forks the pipeline.
   const [referenceId, setReferenceId] = useState<string>(DEFAULT_REFERENCE);
+  // Projects are the entry point. `activeProjectId === null` means no project is
+  // open — the app shows the Projects hub (first run / after closing).
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [projects, setProjects] = useState<StoredProject[]>([]);
   const [agentUp, setAgentUp] = useState(false);
   const [projectPath, setProjectPath] = useState("");
   const [manifest, setManifest] = useState<ProjectManifest | null>(null);
@@ -211,22 +245,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     void refreshLedger(doc);
   }, [refreshLedger, recomputeEmit]);
 
-  // Back-compat entry point for the single consumer that predates selection.
+  // Load a reference's vocabulary directly (used by openProject and quick-start).
   const loadDemo = useCallback(() => loadReference(DEFAULT_REFERENCE), [loadReference]);
-
-  /**
-   * The demo is the STARTING state, not a state to fall back into: this
-   * effect must fire once. Tracking loadDemo's identity re-ran it whenever
-   * its dependencies changed — including `extraSurfaces`, which `connect`
-   * sets — so connecting to a real project snapped straight back to the
-   * demo and agent mode was unreachable in the built app.
-   */
-  const bootstrapped = useRef(false);
-  useEffect(() => {
-    if (bootstrapped.current) return;
-    bootstrapped.current = true;
-    loadDemo();
-  }, [loadDemo]);
 
   const connect = useCallback(
     async (path: string) => {
@@ -256,6 +276,84 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     },
     [recomputeEmit],
   );
+
+  /* ---------------- Projects (first-class objects) ---------------- */
+
+  /** Open a stored project by loading the vocabulary its source describes: a
+   *  packaged reference is cloned fresh in the browser; an agent project is
+   *  reconnected on the user's machine. Identity + recency persist. */
+  const openProject = useCallback(
+    (id: string) => {
+      const p = getProject(id);
+      if (!p) {
+        setNotice("That project could not be found.");
+        return;
+      }
+      setActiveProjectId(p.id);
+      setLastOpened(p.id);
+      touchProject(p.id);
+      setProjects(listProjects());
+      if (p.source.kind === "agent") {
+        void connect(p.source.path);
+      } else {
+        loadReference(p.source.referenceId);
+        setNotice(`Opened “${p.name}”. Edits stay in this browser; connect the local agent to work on real files.`);
+      }
+    },
+    [connect, loadReference],
+  );
+
+  const newProject = useCallback(
+    (input: { name: string; description?: string; source: ProjectSource }) => {
+      const p = createProject(input);
+      setProjects(listProjects());
+      openProject(p.id);
+      return p;
+    },
+    [openProject],
+  );
+
+  /** Return to the hub without loading a project. */
+  const closeProject = useCallback(() => {
+    setActiveProjectId(null);
+    setLastOpened(null);
+    clearBuildThread();
+  }, []);
+
+  const renameProject = useCallback((id: string, name: string) => {
+    renameStoredProject(id, name);
+    setProjects(listProjects());
+  }, []);
+
+  const duplicateProject = useCallback((id: string) => {
+    const dup = dupStoredProject(id);
+    setProjects(listProjects());
+    return dup;
+  }, []);
+
+  const deleteProject = useCallback(
+    (id: string) => {
+      rmStoredProject(id);
+      setProjects(listProjects());
+      if (id === activeProjectId) {
+        setActiveProjectId(null);
+        setLastOpened(null);
+        clearBuildThread();
+      }
+    },
+    [activeProjectId],
+  );
+
+  /** Entry point: reopen the last project if there is one; otherwise land on
+   *  the hub with nothing loaded (first run). Projects replaced the auto-demo. */
+  const bootstrapped = useRef(false);
+  useEffect(() => {
+    if (bootstrapped.current) return;
+    bootstrapped.current = true;
+    setProjects(listProjects());
+    const last = getLastOpened();
+    if (last && getProject(last)) openProject(last);
+  }, [openProject]);
 
   const discover = useCallback(async () => {
     if (mode !== "agent") {
@@ -524,6 +622,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [buildTurns, setBuildTurns] = useState<BuildTurn[]>([]);
   const [buildBusy, setBuildBusy] = useState(false);
   const [buildModels, setBuildModels] = useState<string[]>(["scripted"]);
+  // The active provider/model — shared so Settings configures it and Build
+  // reflects it. Provider choice changes proposal generation, never the product.
+  const [activeModel, setActiveModel] = useState<string>("");
   const buildStream = useRef<{ cancel(): void } | null>(null);
   const turnSeq = useRef(0);
 
@@ -534,6 +635,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     if (agentUp) void agentModels().then(setBuildModels);
     else void hostedModels().then(setBuildModels);
   }, [agentUp]);
+
+  // Keep the active model valid and defaulted to the best available: managed
+  // hosted AI is the wow moment; agent + offline fall back to scripted.
+  useEffect(() => {
+    setActiveModel((cur) => {
+      if (cur && buildModels.includes(cur)) return cur;
+      if (mode !== "agent" && buildModels.includes("hosted-ai")) return "hosted-ai";
+      if (agentUp && buildModels.some((m) => m.startsWith("ollama:"))) return buildModels.find((m) => m.startsWith("ollama:"))!;
+      return buildModels[0] ?? "scripted";
+    });
+  }, [buildModels, mode, agentUp]);
 
   const readiness = useMemo(
     () => buildReadiness({ contract, profile, findings: emit ? emit.findings : null, emitOk: emit?.ok ?? false }),
@@ -754,6 +866,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setValidate({ ok: findings.every((f) => f.severity !== "error"), findings });
   }, [contract]);
 
+  const activeProject: StoredProject | null = activeProjectId
+    ? projects.find((p) => p.id === activeProjectId) ?? getProject(activeProjectId)
+    : null;
+
   const value = useMemo<ComposerState>(
     () => ({
       mode,
@@ -775,6 +891,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       referenceId,
       loadReference,
       references: REFERENCE_LIST,
+      projects,
+      activeProject,
+      newProject,
+      openProject,
+      closeProject,
+      renameProject,
+      duplicateProject,
+      deleteProject,
       discover,
       rediscover,
       saveContract,
@@ -788,12 +912,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       buildTurns,
       buildBusy,
       buildModels,
+      activeModel,
+      setActiveModel,
       readiness,
       runBuild,
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, activeModel, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
