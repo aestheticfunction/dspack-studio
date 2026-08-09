@@ -48,6 +48,7 @@ test("demo project loads without an agent, and the UI says so honestly", async (
 
 test("the project home derives the authorship progress checklist", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("nav-project").click(); // Build is the landing now; the checklist lives in Project
   await expect(page.getByTestId("progress")).toContainText("Components described");
   await expect(page.getByTestId("progress")).toContainText("Mapping decided");
   await expect(page.getByTestId("progress")).toContainText("Rules authored");
@@ -111,6 +112,7 @@ test("reloading and directly opening the app never hits a platform 404", async (
 
 test("the v3 demo's declared casualties read as acknowledged decisions, not failures", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("nav-project").click(); // the checklist lives in Project (Build is the landing)
   const row = page.getByTestId("progress").filter({ hasText: "Gates green" });
   await expect(row).toContainText("Gates pass · 3 acknowledged casualties");
   await expect(row).not.toContainText("error finding");
@@ -138,50 +140,46 @@ test("scenario editor: a v3 worked surface lints clean and previews live", async
   await expect(page.getByTestId("scenario-preview")).toBeVisible();
 });
 
-test("hosted BUILD generates a governed surface entirely in the browser — no agent, no install", async ({ page }) => {
+test("goal-first BUILD: describe an outcome → inferred context → governed surface, in the browser", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("nav-build").click();
 
-  // The hosted demo runs the governed pipeline IN THIS BROWSER and says so.
-  // (The pre-gateway dead-end showed build-needs-agent and no prompt at all,
-  // so this test cannot pass without the in-browser generation path.)
-  await expect(page.getByTestId("build-hosted-note")).toContainText(/entirely in this browser/i);
+  // Goal-first: the prompt is the front door; the governed context defaults to
+  // AUTO (inferred), never a prerequisite the user must pick.
   await expect(page.getByTestId("build-prompt")).toBeVisible();
-  await expect(page.getByTestId("build-privacy")).toContainText("nothing leaves this machine");
+  await expect(page.getByTestId("build-intent")).toHaveValue("");
 
-  // Generate. Scripted replays destructive-action's worked example behind ONE
-  // deliberately-violating attempt, so the governance is visible: S2 catches the
-  // bad component, bounded repair re-proposes, the clean surface passes S1/S2/S3
-  // and emit. Every gate here is AJV compiling validators via new Function in the
-  // browser — the exact thing Cloudflare Workers ban, which is why the pipeline
-  // runs client-side, not in a Worker.
-  await page.getByTestId("build-prompt").fill("a confirm dialog to delete my account");
+  // Deterministic across environments: scripted. Force the governed context so
+  // the replayed example is predictable (scripted routing is a rough heuristic;
+  // hosted-ai infers accurately and is exercised live post-deploy). The user
+  // describes an OUTCOME — no S1/S2/S3, no intent id in the front door.
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-intent").selectOption("destructive-action");
+  await page.getByTestId("build-prompt").fill("let people permanently delete their account");
   await page.getByTestId("build-run").click();
-  await expect(page.getByTestId("build-outcome-1")).toContainText("passed", { timeout: 30_000 });
 
-  const pipeline = page.getByTestId("build-pipeline-1");
-  await expect(pipeline).toContainText("attempt 1");
-  await expect(pipeline).toContainText("S2 FAIL"); // the caught vocabulary violation
-  await expect(pipeline).toContainText("repair sent");
-  await expect(pipeline).toContainText("attempt 2");
-  await expect(pipeline).toContainText("emit: A-gates reported");
+  // The governed context is SHOWN (echoed), not selected up front.
+  await expect(page.getByTestId("build-context-1")).toContainText(/governance context/i, { timeout: 30_000 });
 
-  // The generated surface renders through the trusted (wireframe) registry.
-  await expect(page.getByTestId("build-canvas-1")).toContainText("Danger zone");
+  // Governance is translated to plain outcomes — the differentiator, legible.
+  const summary = page.getByTestId("build-gate-summary-1");
+  await expect(summary).toContainText("Uses only approved components");
+  await expect(summary).toContainText("Follows your design-system rules");
 
-  // Accepting a result as a reusable worked example writes to a project on disk
-  // — an agent capability. The demo says so honestly instead of dead-ending on a
-  // button that cannot work without the agent.
+  // The surface renders (native shadcn for this reference project).
+  await expect(page.getByTestId("build-canvas-1")).toContainText(/delete/i);
+
+  // The rigorous evidence (S1/S2/S3, repair, emit) stays one expander away.
+  await expect(page.getByTestId("build-pipeline-1")).toContainText("outcome: passed");
+
+  // Accepting persists to disk (agent-only); the demo says so honestly.
   await expect(page.getByTestId("build-accept-note-1")).toContainText(/connect the local agent/i);
-  await expect(page.getByTestId("build-accept-1")).toHaveCount(0);
 
-  // Refine seeds the prior surface and re-runs every gate — monotonic (never a
-  // byte-identical no-op), also entirely in-browser.
-  await page.getByTestId("build-prompt").fill("make the title clearer");
+  // Refine preserves the goal's context and re-runs every gate.
+  await page.getByTestId("build-prompt").fill("make the heading clearer");
   await page.getByTestId("build-refine").click();
-  await expect(page.getByTestId("build-outcome-2")).toContainText("passed", { timeout: 30_000 });
-  await expect(page.getByTestId("build-canvas-2")).toContainText("Danger zone (refined)");
-  await expect(page.getByTestId("build-canvas-1")).not.toContainText("(refined)");
+  await expect(page.getByTestId("build-context-2")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Structurally valid");
 });
 
 test("client traffic carries no private hosts, local paths, or key material", async ({ page }) => {

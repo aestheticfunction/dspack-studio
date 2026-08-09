@@ -37,10 +37,10 @@ test("stream status is a live region and announces progress and settlement", asy
 
 test("Build, Refine, and Accept carry unambiguous accessible names; keyboard operates the flow", async ({ page }) => {
   await ready(page);
-  await expect(page.getByRole("button", { name: "Build a new surface from this ask" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Refine the previous surface with this ask" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Build a governed surface for this goal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Refine the previous surface with this instruction" })).toBeVisible();
 
-  // Keyboard: type the ask, Enter submits.
+  // Keyboard: type the goal, Enter submits.
   await page.getByTestId("build-prompt").focus();
   await page.keyboard.type("a deployment status screen");
   await page.keyboard.press("Enter");

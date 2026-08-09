@@ -108,6 +108,9 @@ export function appendSource(root: string, file: string, text: string): void {
 /** Connect the composer UI to a project directory, the way a person does. */
 export async function connect(page: Page, root: string): Promise<void> {
   await page.goto("/");
+  // Build-first: the shipped demo opens on Build; the Connect control lives on
+  // the Project view.
+  await page.getByTestId("nav-project").click();
   await page.getByTestId("connect").waitFor();
   await page.getByTestId("project-path").fill(root);
   const connected = page.waitForResponse((r) => r.url().includes("/project/connect"));

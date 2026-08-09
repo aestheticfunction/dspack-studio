@@ -42,7 +42,13 @@ export function hostedModelsFor(env) {
 }
 
 export function handleModels(env) {
-  return json(200, { models: hostedModelsFor(env) });
+  // `rl` is a side-effect-free diagnostic for the rate-limit investigation:
+  // whether the binding was actually deployed and is shaped as expected. It
+  // never calls .limit(), so it costs nothing and cannot rate-limit anyone.
+  return json(200, {
+    models: hostedModelsFor(env),
+    rl: { present: !!env?.PROPOSE_RATE_LIMIT, hasLimit: typeof env?.PROPOSE_RATE_LIMIT?.limit === "function" },
+  });
 }
 
 /* The generation schema goes to the model as PROMPT GUIDANCE, not as a
