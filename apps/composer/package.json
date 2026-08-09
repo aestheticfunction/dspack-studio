@@ -2,7 +2,7 @@
   "name": "composer",
   "version": "0.1.0",
   "private": true,
-  "description": "The catalog composer: connect a project, inspect and enrich its discovered contract, map it through a data profile, preview the emitted A2UI catalog (wireframe or native registries), and validate the governed artifacts. Authoring UI only \u2014 every transform runs in published packages, locally via the agent.",
+  "description": "The catalog composer: connect a project, inspect and enrich its discovered contract, map it through a data profile, preview the emitted A2UI catalog (wireframe or native registries), and validate the governed artifacts. Authoring UI only — every transform runs in published packages, locally via the agent.",
   "license": "Apache-2.0",
   "scripts": {
     "dev": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/demo-assets.mjs && NODE_OPTIONS=--localstorage-file=/tmp/dspack-composer-dev-localstorage next dev --port 3001",
@@ -11,7 +11,7 @@
     "typecheck": "node scripts/demo-assets.mjs && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@aestheticfunction/dspack-gen": "^0.3.1",
+    "@aestheticfunction/dspack-gen": "^0.3.2",
     "@aestheticfunction/dspack-spec": "^0.4.4",
     "@dspack-studio/a2ui-ingest": "workspace:*",
     "@dspack-studio/agui-bridge": "workspace:*",
