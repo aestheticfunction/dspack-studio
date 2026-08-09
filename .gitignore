@@ -11,3 +11,6 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 apps/web/public/take-home/
+
+# Cloudflare Wrangler local state
+.wrangler/

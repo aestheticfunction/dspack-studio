@@ -47,7 +47,7 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 }
 
 function TurnBlock({ turn }: { turn: BuildTurn }) {
-  const { acceptBuildTurn, buildBusy, busy } = useComposer();
+  const { acceptBuildTurn, buildBusy, busy, mode } = useComposer();
   // Blank by default: identity is minted from the contract ON DISK, so a
   // reload or a second tab can never collide with saved work (#42).
   const [exampleId, setExampleId] = useState("");
@@ -166,7 +166,7 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 
       <TurnCanvas turn={turn} />
 
-      {canAcceptTurn(turn.progress) && !turn.accepted && (
+      {canAcceptTurn(turn.progress) && !turn.accepted && mode === "agent" && (
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
           <input
             value={exampleId}
@@ -187,6 +187,13 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
           </button>
         </div>
       )}
+      {canAcceptTurn(turn.progress) && !turn.accepted && mode !== "agent" && (
+        <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 10 }}>
+          This surface passed every gate in your browser. Accepting it as a reusable worked example writes to a project on
+          disk — connect the local agent (<code>pnpm --filter agent dev</code>) to keep it and have it seed future
+          generation for <code>{turn.intent}</code>.
+        </p>
+      )}
       {turn.accepted && (
         <p ref={accepted} tabIndex={-1} data-testid={`build-accepted-${turn.id}`} style={{ fontSize: 12, color: "var(--ok)" }}>
           Accepted as <code>{turn.accepted}</code> — now part of this intent's few-shot corpus.
@@ -202,7 +209,12 @@ export function BuildView() {
   const [modelRef, setModelRef] = useState("scripted");
   const intents = ((contract?.intents ?? []) as Array<{ id: string }>).map((i) => i.id);
   const [intent, setIntent] = useState<string>("");
-  const activeIntent = intent || intents[0] || "";
+  // In the hosted demo (no agent), default to an intent that already has a
+  // worked example so the scripted path is runnable on first landing. Agent
+  // mode keeps the original default (intents[0]) — a model runs for any intent.
+  const intentsWithExample = new Set(((contract?.examples ?? []) as Array<{ intent?: string }>).map((e) => e.intent));
+  const runnableDefault = mode !== "agent" ? intents.find((i) => intentsWithExample.has(i)) : undefined;
+  const activeIntent = intent || runnableDefault || intents[0] || "";
   const streamStatus = useRef<HTMLParagraphElement>(null);
   const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
   // Scripted replays THIS intent's own example; a model runs without few-shot
@@ -214,20 +226,6 @@ export function BuildView() {
     void runBuild({ prompt: prompt.trim(), intent: activeIntent, modelRef, refine });
     setPrompt("");
   };
-
-  if (mode !== "agent") {
-    return (
-      <section>
-        <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
-        <p style={{ fontSize: 13, color: "var(--fg-body)" }} data-testid="build-needs-agent">
-          Building generates governed surfaces on <em>your</em> machine — nothing about your project leaves it. Start the
-          local agent (<code>pnpm --filter agent dev</code>) and connect a project; the demo project here shows the
-          Catalog side only.
-        </p>
-        {!agentUp && <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>The agent is not running.</p>}
-      </section>
-    );
-  }
 
   if (!readiness.ready) {
     return (
@@ -256,6 +254,20 @@ export function BuildView() {
               : "keys live in the agent's environment; contract-derived context and your ask go to the provider."}
         </span>
       </p>
+
+      {mode !== "agent" && (
+        <p
+          data-testid="build-hosted-note"
+          style={{ fontSize: 12, color: "var(--fg-body)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 10px", margin: "10px 0" }}
+        >
+          You&rsquo;re building in the hosted demo: the governed pipeline runs <em>entirely in this browser</em> against
+          the shipped demo project — no install, and nothing leaves your machine. <code>scripted</code> replays each
+          intent&rsquo;s worked example so you can watch a surface get proposed, checked against S1&ndash;S3, repaired,
+          and rendered. To generate with a live model, or to build against <em>your own</em> component library, run the
+          local agent (<code>pnpm --filter agent dev</code>) and connect a project
+          {agentUp ? " — detected, connect from Project" : "."}
+        </p>
+      )}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "10px 0" }}>
         <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>

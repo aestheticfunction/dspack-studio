@@ -35,6 +35,7 @@ jobs:
           pnpm --filter @dspack-studio/shadcn-renderers test
           pnpm --filter agent test
           pnpm --filter web test
+          pnpm --filter composer test
       - name: Type checks
         run: pnpm -r typecheck
       - name: Static export (the deploy artifact)
@@ -59,6 +60,13 @@ jobs:
       # This drives the real static export + the real agent + real files.
       - name: Composer static export (the agent-mode suite's artifact)
         run: pnpm --filter composer build
+      # The hosted/demo experience: the same static export served with NO agent,
+      # exactly what a visitor gets. Exercises the in-browser governed BUILD
+      # (propose → S1/S2/S3 → repair → emit → render → refine), validation,
+      # preview, export, and client-bundle hygiene — the deployed acceptance
+      # criteria, verified BEFORE deploy.
+      - name: Playwright (composer hosted/demo smoke — in-browser Build, repair, refine, hygiene)
+        run: pnpm exec playwright test --config playwright.composer-smoke.config.ts
       - name: Playwright (composer agent-mode decisions + accessibility)
         run: pnpm exec playwright test --config playwright.composer-agent.config.ts
       - name: Upload Playwright report on failure
