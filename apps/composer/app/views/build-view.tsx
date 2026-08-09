@@ -18,6 +18,7 @@ import { registryFor, canvasScopeFor } from "../registries";
 import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel } from "@dspack-studio/composer-core";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
+import { Eyebrow } from "../ui";
 import { browserEmit } from "../validation";
 
 const GATE_COLOR: Record<string, string> = { PASS: "var(--ok)", FAIL: "var(--err)", SKIPPED: "var(--fg-dim)" };
@@ -331,17 +332,13 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 }
 
 export function BuildView() {
-  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, runBuild, references, referenceId, loadReference } =
+  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, runBuild, activeModel, setActiveModel } =
     useComposer();
   const [prompt, setPrompt] = useState("");
-  const [modelRef, setModelRef] = useState<string | null>(null);
   // "" = auto: the governed context is INFERRED from the goal. A specific value
   // is an advanced override for catalog authors — never the normal prerequisite.
   const [intentOverride, setIntentOverride] = useState<string>("");
   const intents = ((contract?.intents ?? []) as Array<{ id: string }>).map((i) => i.id);
-  // Default the hosted demo to real AI (the wow moment); agent + offline stay scripted.
-  const defaultModel = mode !== "agent" && buildModels.includes("hosted-ai") ? "hosted-ai" : "scripted";
-  const activeModel = modelRef ?? defaultModel;
   const streamStatus = useRef<HTMLParagraphElement>(null);
   const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
 
@@ -364,55 +361,29 @@ export function BuildView() {
   }
 
   return (
-    <section style={{ maxWidth: 860 }}>
-      <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
-      <p style={{ fontSize: 13, color: "var(--fg-body)" }}>
-        Describe what you want to build, in your own words. The Composer works out the governed context, builds it from
-        this project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
+    <section style={{ maxWidth: 840 }}>
+      <Eyebrow>Build</Eyebrow>
+      <p className="af-lead" style={{ marginTop: 0, fontSize: 15 }}>
+        Describe what you want, in your own words. Composer works out the governed context, builds it from this
+        project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
       </p>
 
-      {mode !== "agent" && (
-        <div style={{ margin: "12px 0 2px" }} data-testid="ds-source-picker">
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: "var(--fg-dim)" }}>
-            <span>design system</span>
-            {references.map((r) => (
-              <button
-                key={r.id}
-                className={`st-btn${referenceId === r.id ? " st-btn--active" : ""}`}
-                onClick={() => loadReference(r.id)}
-                disabled={buildBusy}
-                title={r.blurb}
-                data-testid={`ds-source-${r.id}`}
-                aria-pressed={referenceId === r.id}
-              >
-                {r.label}
-              </button>
-            ))}
-            <span style={{ color: "var(--fg-faint)" }}>
-              · or import a dspack contract / connect your own library via the local agent
-            </span>
-          </div>
-          <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "5px 0 0" }} data-testid="ds-source-blurb">
-            {references.find((r) => r.id === referenceId)?.blurb}
-          </p>
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: 8, margin: "12px 0 6px" }}>
+      <div style={{ display: "flex", gap: 8, margin: "20px 0 8px" }}>
         <input
+          className="af-input af-input--mono"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit(false)}
           placeholder="e.g. a form to invite teammates by email · a confirmation for deleting a project · a table of orders"
           aria-label="Describe what you want to build"
-          style={{ flex: 1, fontFamily: "var(--mono)", fontSize: 13, background: "var(--bg-1)", border: "1px solid var(--line)", color: "var(--fg)", padding: "9px 11px", borderRadius: 2 }}
+          style={{ flex: 1 }}
           data-testid="build-prompt"
         />
-        <button className="st-btn" disabled={buildBusy || !prompt.trim()} onClick={() => submit(false)} aria-label="Build a governed surface for this goal" data-testid="build-run">
+        <button className="st-btn st-btn--primary st-btn--lg" disabled={buildBusy || !prompt.trim()} onClick={() => submit(false)} aria-label="Build a governed surface for this goal" data-testid="build-run">
           Build
         </button>
         <button
-          className="st-btn st-btn--dashed"
+          className="st-btn st-btn--dashed st-btn--lg"
           disabled={buildBusy || !prompt.trim() || !canRefine}
           onClick={() => submit(true)}
           aria-label="Refine the previous surface with this instruction"
@@ -423,10 +394,12 @@ export function BuildView() {
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", margin: "2px 0 8px", fontSize: 12, color: "var(--fg-dim)" }}>
-        <label>
-          model{" "}
-          <select value={activeModel} onChange={(e) => setModelRef(e.target.value)} data-testid="build-model" aria-label="Model" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px" }}>
+      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", margin: "2px 0 8px", fontSize: 12, color: "var(--fg-dim)" }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span className="af-label" style={{ margin: 0 }}>
+            provider
+          </span>
+          <select value={activeModel} onChange={(e) => setActiveModel(e.target.value)} data-testid="build-model" aria-label="Provider" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2 }}>
             {buildModels.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -434,9 +407,11 @@ export function BuildView() {
             ))}
           </select>
         </label>
-        <label title="Advanced: force a governed context instead of inferring it from your goal.">
-          context{" "}
-          <select value={intentOverride} onChange={(e) => setIntentOverride(e.target.value)} data-testid="build-intent" aria-label="Governance context (advanced override)" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px" }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }} title="Advanced: force a governed context instead of inferring it from your goal.">
+          <span className="af-label" style={{ margin: 0 }}>
+            context
+          </span>
+          <select value={intentOverride} onChange={(e) => setIntentOverride(e.target.value)} data-testid="build-intent" aria-label="Governance context (advanced override)" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2 }}>
             <option value="">auto — inferred from your goal</option>
             {intents.map((i) => (
               <option key={i} value={i}>

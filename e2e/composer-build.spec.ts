@@ -50,7 +50,7 @@ test("Build is disabled with the exact setup reason when readiness fails", async
   const nav = page.getByTestId("nav-build");
   await expect(nav).toBeDisabled();
   await expect(nav).toHaveAttribute("aria-label", /no intents authored/);
-  await page.getByTestId("nav-project").click();
+  await page.getByTestId("nav-repository").click();
   await expect(page.getByTestId("start-building")).toHaveCount(0);
 });
 
@@ -61,7 +61,7 @@ test("Build unlocks when readiness passes, becomes the default view, and the hom
   await expect(page.getByTestId("nav-build")).toBeEnabled();
   await expect(page.getByTestId("build-prompt")).toBeVisible();
   await expect(page.getByTestId("build-privacy")).toContainText("nothing leaves this machine");
-  await page.getByTestId("nav-project").click();
+  await page.getByTestId("nav-repository").click();
   await expect(page.getByTestId("start-building")).toBeVisible();
   await page.getByTestId("start-building").click();
   await expect(page.getByTestId("build-prompt")).toBeVisible();
@@ -143,7 +143,7 @@ test("an ask beyond the approved vocabulary is a named gap, never silently inven
   const example = doc.examples[0];
   example.surface.root.children[0].component = "not-a-component"; // corpus now violates
   project.writeContract(doc);
-  await page.getByTestId("nav-project").click();
+  await page.getByTestId("nav-repository").click();
   await page.getByTestId("nav-build").click();
 
   await page.getByTestId("build-prompt").fill("a screen needing something unapproved");

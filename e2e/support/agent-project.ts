@@ -108,10 +108,14 @@ export function appendSource(root: string, file: string, text: string): void {
 /** Connect the composer UI to a project directory, the way a person does. */
 export async function connect(page: Page, root: string): Promise<void> {
   await page.goto("/");
-  // Build-first: the shipped demo opens on Build; the Connect control lives on
-  // the Project view.
-  await page.getByTestId("nav-project").click();
-  await page.getByTestId("connect").waitFor();
+  // New flow: the Projects hub is the entry; "Connect a repository" opens the
+  // Connect view, where a path becomes a project bound to that repository. Go
+  // to the hub explicitly — a reload/reconnect reopens the last project onto
+  // Build, and the hub's source picker is only there.
+  await page.getByTestId("nav-projects").click();
+  await page.getByTestId("new-source-connect").click();
+  await page.getByTestId("new-project-connect").click();
+  await page.getByTestId("project-path").waitFor();
   await page.getByTestId("project-path").fill(root);
   const connected = page.waitForResponse((r) => r.url().includes("/project/connect"));
   await page.getByTestId("connect").click();
@@ -125,9 +129,9 @@ export async function connect(page: Page, root: string): Promise<void> {
  * race the merge. Wait on the real route, then on the busy flag clearing.
  */
 export async function rediscover(page: Page): Promise<void> {
-  // Build-first: a ready project opens on Build, and the rediscover button
-  // lives on the Project view.
-  await page.getByTestId("nav-project").click();
+  // A connected local-repository project surfaces a Repository view where the
+  // rediscover control lives.
+  await page.getByTestId("nav-repository").click();
   const merged = page.waitForResponse((r) => r.url().includes("/project/rediscover"));
   await page.getByTestId("rediscover").click();
   await merged;
