@@ -42,13 +42,7 @@ export function hostedModelsFor(env) {
 }
 
 export function handleModels(env) {
-  // `rl` is a side-effect-free diagnostic for the rate-limit investigation:
-  // whether the binding was actually deployed and is shaped as expected. It
-  // never calls .limit(), so it costs nothing and cannot rate-limit anyone.
-  return json(200, {
-    models: hostedModelsFor(env),
-    rl: { present: !!env?.PROPOSE_RATE_LIMIT, hasLimit: typeof env?.PROPOSE_RATE_LIMIT?.limit === "function" },
-  });
+  return json(200, { models: hostedModelsFor(env) });
 }
 
 /* The generation schema goes to the model as PROMPT GUIDANCE, not as a
@@ -133,11 +127,18 @@ async function readBounded(request, limit) {
   return new TextDecoder().decode(merged);
 }
 
-/* Per-client rate limit, FAIL CLOSED. Returns a Response when the request must
-   be refused, or null to proceed. An over-limit client is denied; a limiter
-   error is ALSO denied (failing open would mean unmetered paid calls). The
-   binding is absent only in local `next dev`/`wrangler dev` without it — public
-   deploys always declare it, so the public endpoint is never unlimited. */
+/* Per-client rate limit — defense-in-depth for FAIRNESS (one client should not
+   consume the whole allowance). Returns a Response to refuse, or null to proceed.
+
+   MEASURED (2026-08-09): the native Cloudflare rate-limiting binding is present
+   and callable on production but does NOT currently enforce on this account —
+   .limit() returns success for every call (verified: 20+ rapid requests all
+   passed). That is an account-side limitation, not a bug here; the binding is
+   kept so it starts working if the account enables it. The ENFORCED cost cap is
+   the ds-ai-gateway's own zone rate limit (verified: a concurrent burst is
+   rate-limited to 503 'busy' below), plus the HOSTED_AI kill switch and the
+   per-call token + body-size caps. A limiter ERROR still denies (fail closed);
+   a limiter that reports success is trusted (the gateway is the real gate). */
 async function rateLimited(env, request) {
   if (!env.PROPOSE_RATE_LIMIT) return null;
   const key = request.headers.get("cf-connecting-ip") ?? "anonymous";
