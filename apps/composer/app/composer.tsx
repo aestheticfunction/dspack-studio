@@ -5,6 +5,7 @@ import { ComposerProvider, useComposer } from "./state";
 import { BuildView } from "./views/build-view";
 import { ProjectsView } from "./views/projects-view";
 import { ProjectView } from "./views/project-view";
+import { RepositoryView } from "./views/repository-view";
 import { SettingsView } from "./views/settings-view";
 import { InventoryView } from "./views/inventory-view";
 import { ComponentView } from "./views/component-view";
@@ -27,7 +28,8 @@ export type View =
   | "scenarios"
   | "validate"
   | "settings"
-  | "connect";
+  | "connect"
+  | "repository";
 
 /** The working views, shown in the nav only when a project is open. Their order
  *  is the product's, not the pipeline's: build, look, then the vocabulary and
@@ -62,7 +64,8 @@ function Shell() {
   }, [state.activeProject?.id]);
 
   const buildBlocked = state.mode === "agent" && !state.readiness.ready ? state.readiness.reason : undefined;
-  const sourceKind = state.activeProject?.source.kind === "agent" ? "Local repository" : state.mode === "agent" ? "Local repository" : "Hosted";
+  const isAgentProject = state.activeProject?.source.kind === "agent" || state.mode === "agent";
+  const sourceKind = isAgentProject ? "Local repository" : "Hosted";
 
   return (
     <div>
@@ -97,6 +100,15 @@ function Shell() {
                   {v.label}
                 </button>
               ))}
+            {hasProject && isAgentProject && (
+              <button
+                className={`af-nav__link${view === "repository" ? " af-nav__link--active" : ""}`}
+                onClick={() => setView("repository")}
+                data-testid="nav-repository"
+              >
+                Repository
+              </button>
+            )}
           </nav>
 
           <div className="af-spacer" />
@@ -149,6 +161,7 @@ function Shell() {
             {view === "governance" && <GovernanceView />}
             {view === "scenarios" && <ScenarioView />}
             {view === "validate" && <ValidateView />}
+            {view === "repository" && <RepositoryView onNavigate={(v) => setView(v as View)} />}
           </div>
         )}
       </main>
