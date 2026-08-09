@@ -29,15 +29,24 @@ const VIEWS: Array<{ id: View; label: string }> = [
 function Shell() {
   const [view, setView] = useState<View>("project");
   const state = useComposer();
-  // Build-first: once a connected project's setup passes, Build is the
-  // default working view (the catalog is setup FOR building).
+  // Build-first: the moment a project's setup passes — the shipped hosted demo
+  // included — Build is the default view. A first-time visitor lands on the
+  // thing that demonstrates the product (describe a goal → governed build),
+  // not the connect-your-repository setup screen. Fires once; navigation wins
+  // after that.
   const autoOpened = useRef(false);
+  const prevMode = useRef(state.mode);
   useEffect(() => {
-    if (state.mode === "agent" && state.readiness.ready && !autoOpened.current) {
+    // Each mode entry (initial demo, or connecting an agent project) gets one
+    // Build-first auto-open; navigation wins after that within the mode.
+    if (prevMode.current !== state.mode) {
+      autoOpened.current = false;
+      prevMode.current = state.mode;
+    }
+    if (state.readiness.ready && !autoOpened.current) {
       autoOpened.current = true;
       setView("build");
     }
-    if (state.mode !== "agent") autoOpened.current = false;
   }, [state.mode, state.readiness.ready]);
   // Build stays visible when setup is incomplete, but says exactly why.
   const buildBlocked = state.mode === "agent" && !state.readiness.ready ? state.readiness.reason : undefined;

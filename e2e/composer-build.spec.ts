@@ -339,11 +339,12 @@ test("an intent with no example cannot borrow another intent's (#43)", async ({ 
   const doc = project.contract();
   doc.intents = [...doc.intents, { id: "onboarding", description: "Welcome a new operator." }];
   project.writeContract(doc);
-  // Reconnect so the view sees the new intent, then select it.
+  // Reconnect so the view sees the new intent, then force it via the advanced
+  // governance-context override (goal-first infers by default; catalog authors
+  // can pin a context). 'onboarding' has no worked example.
   await connect(page, project.root);
   await page.getByTestId("nav-build").click();
   await page.getByTestId("build-intent").selectOption("onboarding");
-  await expect(page.getByTestId("build-no-fewshot")).toContainText("onboarding");
 
   await page.getByTestId("build-prompt").fill("an onboarding screen");
   await page.getByTestId("build-run").click();

@@ -24,6 +24,7 @@ import {
   type BuildTurnProgress,
   type ComposerFinding,
   type FreshFact,
+  type GoalPlan,
   type LedgerStatus,
   type ProjectManifest,
 } from "@dspack-studio/composer-core";
@@ -44,6 +45,7 @@ import {
 } from "./agent-client";
 import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
 import { streamHostedBuild } from "./hosted-build";
+import { planGoal } from "./planning";
 import { DEMO_CONTRACT, DEMO_EXTRA_SURFACES, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
 
 export type Mode = "demo" | "agent";
@@ -51,7 +53,9 @@ export type Mode = "demo" | "agent";
 /** One chat turn in the Build thread: the ask, its run, and its result. */
 export interface BuildTurn {
   id: number;
+  /** The user's GOAL, in their own words — not our intent taxonomy. */
   prompt: string;
+  /** The governed context, INFERRED from the goal (or overridden in advanced). */
   intent: string;
   modelRef: string;
   /** True when this turn refined the previous surface (seed supplied). */
@@ -64,6 +68,13 @@ export interface BuildTurn {
   accepted?: string; // the saved example id
   /** Structured findings from a refused Accept, rendered in place (#41). */
   acceptFindings?: ComposerFinding[];
+  /** The inferred governed context + feasibility for this turn (goal-first). */
+  plan?: GoalPlan;
+  /** While the goal is being routed to a governed context. */
+  planPending?: boolean;
+  /** "surface" = a governed surface was generated; "vocab-gap" = the approved
+   *  vocabulary cannot express the goal (the bridge toward catalog evolution). */
+  kind?: "surface" | "vocab-gap";
 }
 
 export interface ComposerState {
@@ -103,7 +114,7 @@ export interface ComposerState {
   buildModels: string[];
   /** Setup completeness for building; reason names the exact remaining work. */
   readiness: BuildReadiness;
-  runBuild: (input: { prompt: string; intent: string; modelRef: string; refine?: boolean }) => Promise<void>;
+  runBuild: (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => Promise<void>;
   /** Accept a turn as a worked example; the agent mints the id (#42). */
   acceptBuildTurn: (turnId: number, exampleId?: string) => Promise<void>;
   clearBuildThread: () => void;
@@ -515,17 +526,22 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * One chat turn: stream the governed pipeline for the ask. A refinement
-   * seeds the conversation with the PRIOR turn's ask + generated surface —
-   * the model regenerates a COMPLETE surface; every gate runs again; prior
-   * turns stay in the thread for comparison and audit.
+   * One chat turn, GOAL-FIRST: the user describes an outcome; the Composer
+   * (1) infers the governed context (intent) + judges whether the approved
+   * vocabulary can express it, then (2) runs the unchanged deterministic
+   * pipeline under that context. Intent is inferred, never a prerequisite. A
+   * vocabulary gap becomes a conversational turn (loop #2), not a silent
+   * failure. A refinement preserves the ORIGINAL goal's context and seeds the
+   * prior surface; every gate runs again; prior turns stay for audit.
    */
   const runBuild = useCallback(
-    async (input: { prompt: string; intent: string; modelRef: string; refine?: boolean }) => {
+    async (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => {
       if (buildBusy) return;
-      // Only a completed, passing turn can seed a refinement (#43): a failed
-      // turn still carries its last attempt's surface, and seeding that
-      // regenerates from something the contract already rejected.
+      if (!contract) {
+        setNotice("No project loaded yet.");
+        return;
+      }
+      // Only a completed, passing turn can seed a refinement (#43).
       const prior = input.refine ? [...buildTurns].reverse().find((t) => canRefineTurn(t.progress)) : undefined;
       if (input.refine && !prior) {
         setNotice("Nothing to refine yet — refinement starts from a completed build that passed its gates.");
@@ -535,28 +551,56 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       const id = ++turnSeq.current;
       const turn: BuildTurn = {
         id,
-        prompt: input.prompt,
-        intent: input.intent,
+        prompt: input.goal,
+        intent: prior?.intent ?? "",
         modelRef: input.modelRef,
         refinement: !!prior,
         ...(prior ? { parentId: prior.id } : {}),
         progress: { status: "streaming", attempts: [] },
         gaps: [],
+        kind: "surface",
+        planPending: !prior,
       };
       setBuildTurns((prev) => [...prev, turn]);
+
+      // --- ROUTE: infer the governed context (fresh builds only; a refinement
+      // keeps the original goal's context so it never re-routes mid-thread) ---
+      let plan: GoalPlan;
+      if (prior?.plan) {
+        plan = prior.plan;
+      } else {
+        plan = await planGoal(input.goal, input.modelRef, contract);
+        if (input.intentOverride) plan = { ...plan, intent: input.intentOverride, source: "model" };
+      }
+      const intent = input.intentOverride ?? plan.intent;
+      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, plan, intent, planPending: false } : t)));
+
+      // --- GAP: the approved vocabulary cannot express this goal. No generation
+      // is attempted (inventing a component would violate governance); the gap
+      // is surfaced conversationally as the bridge toward catalog evolution. ---
+      if (!prior && plan.feasible === false && plan.missingCapability) {
+        setBuildTurns((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, kind: "vocab-gap", progress: { status: "finished", attempts: [] } } : t)),
+        );
+        buildStream.current = null;
+        setBuildBusy(false);
+        return;
+      }
+
+      // --- GENERATE: the SAME deterministic pipeline, now under the inferred
+      // context. Two homes (agent over your files; browser over the demo);
+      // both stream identical AG-UI events into foldBuildEvents. ---
       const events: Array<Record<string, unknown>> = [];
       const update = () => {
         const progress = foldBuildEvents(events);
         setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, progress, gaps: vocabularyGap(progress) } : t)));
       };
-      // One generation, two homes for the SAME pipeline: the local agent runs
-      // it over your project files; demo mode runs it in THIS browser against
-      // the shipped demo contract (no install). Both stream identical AG-UI
-      // events into foldBuildEvents, so everything downstream is mode-agnostic.
       const runInput = {
         path: projectPath,
-        prompt: input.prompt,
-        intent: input.intent,
+        // Fresh builds generate from the model's clean restatement of the goal;
+        // refinements carry the raw instruction against the prior surface.
+        prompt: prior ? input.goal : plan.restated,
+        intent,
         modelRef: input.modelRef,
         ...(prior
           ? { conversation: [
@@ -583,7 +627,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       buildStream.current = null;
       setBuildBusy(false);
     },
-    [mode, projectPath, buildBusy, buildTurns],
+    [mode, projectPath, buildBusy, buildTurns, contract],
   );
 
   /**

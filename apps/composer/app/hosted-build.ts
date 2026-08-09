@@ -137,6 +137,22 @@ function gatewayAdapter() {
   };
 }
 
+/**
+ * Run one lightweight {system, messages, jsonSchema} request through the hosted
+ * AI Gateway and return the parsed JSON. Used for the goal-planning step (a
+ * SMALL schema), which shares the provider path with a full proposal but is not
+ * a surface generation. Throws on an endpoint/model failure so the caller can
+ * fall back deterministically.
+ */
+export async function runGatewayRequest(request: {
+  system: string;
+  messages: unknown[];
+  jsonSchema: unknown;
+}): Promise<unknown> {
+  const result = await gatewayAdapter().generate(request as never);
+  return (result as { json: unknown }).json;
+}
+
 export interface HostedRunHandlers {
   onEvent(event: Record<string, unknown>): void;
   onError(message: string): void;

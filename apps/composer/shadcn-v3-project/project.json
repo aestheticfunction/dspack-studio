@@ -6,5 +6,5 @@
   "contractPath": "shadcn-ui.dspack.json",
   "profilePath": "shadcn-v3.profile.json",
   "outDir": "out",
-  "previewRegistry": "wireframe"
+  "previewRegistry": "shadcn"
 }

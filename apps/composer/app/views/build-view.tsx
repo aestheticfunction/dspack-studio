@@ -16,12 +16,118 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
 import { shadcnRegistry } from "@dspack-studio/shadcn-renderers";
-import { buildFailure, canAcceptTurn, canRefineTurn } from "@dspack-studio/composer-core";
+import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel } from "@dspack-studio/composer-core";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
 import { browserEmit } from "../validation";
 
 const GATE_COLOR: Record<string, string> = { PASS: "var(--ok)", FAIL: "var(--err)", SKIPPED: "var(--fg-dim)" };
+
+/** Governance in plain language — S1/S2/S3 are implementation codes; a first-time
+ *  user reads outcomes. The deterministic evidence is unchanged; the raw gates,
+ *  rule ids, and rationales stay one expander away (advanced detail). */
+const GATE_MEANING: Record<string, string> = {
+  S1: "Structurally valid",
+  S2: "Uses only approved components",
+  S3: "Follows your design-system rules",
+};
+
+/** One-line, honest privacy/provenance note per provider. */
+function providerCopy(modelRef: string): string {
+  if (modelRef === "scripted") return "deterministic, zero model calls — nothing leaves this machine.";
+  if (modelRef === "hosted-ai") return "managed Claude Haiku via the governed AI Gateway (no API key in your browser); every proposal is validated here before you see it.";
+  if (modelRef.startsWith("ollama:")) return "your local Ollama model — nothing leaves your machine.";
+  return "keys live in the agent's environment; contract-derived context and your goal go to the provider.";
+}
+
+/** The translated governance summary for a settled turn. */
+function GateSummary({ turn }: { turn: BuildTurn }) {
+  const last = turn.progress.attempts.at(-1);
+  if (!turn.progress.outcome || !last) return null;
+  const byGate = new Map(last.gates.map((g) => [g.gate, g.status] as const));
+  const passed = turn.progress.outcome === "passed";
+  const row = (gate: string) => {
+    const status = byGate.get(gate) ?? "SKIPPED";
+    const mark = status === "PASS" ? "✓" : status === "FAIL" ? "✗" : "–";
+    const color = status === "PASS" ? "var(--ok)" : status === "FAIL" ? "var(--err)" : "var(--fg-dim)";
+    return (
+      <span key={gate} style={{ color, marginRight: 14, fontSize: 12 }}>
+        {mark} {GATE_MEANING[gate]}
+      </span>
+    );
+  };
+  return (
+    <div data-testid={`build-gate-summary-${turn.id}`} style={{ margin: "8px 0", display: "flex", flexWrap: "wrap", alignItems: "center" }}>
+      {["S1", "S2", "S3"].map(row)}
+      {passed && turn.progress.emit && <span style={{ color: "var(--ok)", fontSize: 12, marginRight: 14 }}>✓ Renders in your design system</span>}
+    </div>
+  );
+}
+
+/** The inferred governed context, shown AFTER the goal (never selected before it). */
+function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => void }) {
+  const { contract } = useComposer();
+  if (turn.planPending) {
+    return (
+      <p data-testid={`build-plan-pending-${turn.id}`} style={{ fontSize: 12, color: "var(--warn)", margin: "2px 0" }}>
+        Understanding your request…
+      </p>
+    );
+  }
+  if (!turn.plan || !turn.intent) return null;
+  const label = intentLabel((contract ?? {}) as Record<string, unknown>, turn.intent);
+  const also = turn.plan.alsoConsidered.map((i) => intentLabel((contract ?? {}) as Record<string, unknown>, i));
+  return (
+    <p data-testid={`build-context-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", margin: "2px 0 8px" }}>
+      <span style={{ fontFamily: "var(--mono)", textTransform: "uppercase", fontSize: 11 }}>Governance context:</span>{" "}
+      <span style={{ color: "var(--info)" }}>{label}</span>
+      {also.length > 0 && <span> (also touches {also.join(", ")})</span>}
+      {turn.plan.reason && <span> — {turn.plan.reason}</span>}
+      {turn.plan.source === "scripted" && !turn.refinement && (
+        <span style={{ display: "block", color: "var(--warn)", marginTop: 2 }}>
+          Scripted mode replays a representative example for this context — switch to <code>hosted-ai</code> to generate
+          for your exact words.
+        </span>
+      )}
+      {onChange && (
+        <>
+          {" "}
+          <button
+            type="button"
+            className="st-btn st-btn--dashed"
+            style={{ fontSize: 11, padding: "1px 6px" }}
+            onClick={onChange}
+            data-testid={`build-context-change-${turn.id}`}
+          >
+            Change
+          </button>
+        </>
+      )}
+    </p>
+  );
+}
+
+/** A vocabulary gap: the goal is understood, but the approved catalog cannot
+ *  express it. Surfaced conversationally (never a silent generation failure),
+ *  and framed as the bridge toward catalog evolution — without inventing a
+ *  component, which would break the governance guarantee. */
+function VocabGap({ turn }: { turn: BuildTurn }) {
+  const cap = turn.plan?.missingCapability;
+  return (
+    <div data-testid={`build-vocab-gap-${turn.id}`} style={{ border: "1px dashed var(--warn)", borderRadius: 2, padding: "10px 12px", marginTop: 8 }}>
+      <p style={{ fontSize: 13, color: "var(--warn)", margin: 0 }}>Your current catalog can&rsquo;t express this yet.</p>
+      <p style={{ fontSize: 13, color: "var(--fg-body)", margin: "6px 0 0" }}>
+        This needs {cap ? <strong>{cap}</strong> : "a capability"}, and no approved component provides it. The Composer
+        never invents components — that would break the guarantee that everything it builds is governed. To build this,
+        the catalog has to grow: find a real component for it, map its semantics, and admit it under governance.
+      </p>
+      <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "6px 0 0" }}>
+        Evolving the catalog is the next authoring loop. In the meantime, try describing the outcome differently, or pick
+        a goal your approved components already cover.
+      </p>
+    </div>
+  );
+}
 
 /** Render one finished turn's surface through the trusted registry. */
 function TurnCanvas({ turn }: { turn: BuildTurn }) {
@@ -38,9 +144,18 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
   }, [contract, profile, turn.id, turn.progress.surface]);
 
   if (!emitted) return null;
-  const registry = manifest?.previewRegistry === "shadcn" ? shadcnRegistry : wireframeRegistryFor(emitted.catalog as never);
+  // Native design-system rendering is the default; wireframe is the universal
+  // fallback/inspection mode. shadcn components need a light canvas + the
+  // design-system scope (mirrors the Preview view).
+  const isShadcn = manifest?.previewRegistry === "shadcn";
+  const registry = isShadcn ? shadcnRegistry : wireframeRegistryFor(emitted.catalog as never);
   return (
-    <div data-testid={`build-canvas-${turn.id}`} data-project-canvas="build" style={{ border: "1px solid var(--line)", borderRadius: 2, padding: 12, marginTop: 8 }}>
+    <div
+      data-testid={`build-canvas-${turn.id}`}
+      data-project-canvas="build"
+      {...(isShadcn ? { "data-design-system": "shadcn", "data-mode": "light" } : {})}
+      style={{ border: "1px solid var(--line)", borderRadius: 4, padding: 16, marginTop: 8, background: isShadcn ? "#ffffff" : "var(--bg-1)" }}
+    >
       <A2uiCanvas catalog={emitted.catalog as never} registry={registry} messages={emitted.messages as never} onAction={() => undefined} />
     </div>
   );
@@ -63,37 +178,49 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
     <article data-testid={`build-turn-${turn.id}`} style={{ borderTop: "1px solid var(--line)", padding: "14px 0" }} aria-label={`Turn ${turn.id}: ${turn.prompt}`}>
       <p style={{ fontSize: 13, color: "var(--fg)" }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, textTransform: "uppercase", color: "var(--fg-dim)" }}>
-          {turn.refinement ? "refine" : "ask"} · {turn.intent} · {turn.modelRef}
+          {turn.refinement ? "refine" : "goal"} · {turn.modelRef}
         </span>
         <br />
         {turn.prompt}
       </p>
 
-      <ol data-testid={`build-pipeline-${turn.id}`} style={{ listStyle: "none", padding: 0, fontSize: 12, fontFamily: "var(--mono)" }}>
-        {turn.progress.attempts.map((attempt) => (
-          <li key={attempt.index} style={{ padding: "3px 0" }}>
-            attempt {attempt.index + 1}:{" "}
-            {attempt.gates.map((g) => (
-              <span key={g.gate} style={{ color: GATE_COLOR[g.status] ?? "var(--fg-body)", marginRight: 8 }} title={(g.errors ?? []).join("; ")}>
-                {g.gate} {g.status}
-              </span>
-            ))}
-            {attempt.repair && (
-              <details style={{ marginTop: 2 }}>
-                <summary style={{ cursor: "pointer", color: "var(--warn)" }}>repair sent</summary>
-                <pre style={{ whiteSpace: "pre-wrap", fontSize: 11, color: "var(--fg-dim)", maxHeight: 160, overflow: "auto" }}>{attempt.repair}</pre>
-              </details>
-            )}
-          </li>
-        ))}
-        {turn.progress.emit && <li style={{ color: "var(--info)" }}>emit: A-gates reported</li>}
-        {turn.progress.outcome && (
-          <li data-testid={`build-outcome-${turn.id}`} style={{ color: turn.progress.outcome === "passed" ? "var(--ok)" : "var(--err)" }}>
-            outcome: {turn.progress.outcome}
-          </li>
-        )}
-        {turn.progress.error && <li style={{ color: "var(--err)" }}>{turn.progress.error}</li>}
-      </ol>
+      <ContextChip turn={turn} />
+
+      {turn.kind === "vocab-gap" ? (
+        <VocabGap turn={turn} />
+      ) : (
+        <>
+          <GateSummary turn={turn} />
+          <details style={{ marginBottom: 4 }}>
+            <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--fg-dim)" }}>validation detail (gates, repairs, emit)</summary>
+            <ol data-testid={`build-pipeline-${turn.id}`} style={{ listStyle: "none", padding: "4px 0 0", fontSize: 12, fontFamily: "var(--mono)" }}>
+              {turn.progress.attempts.map((attempt) => (
+                <li key={attempt.index} style={{ padding: "3px 0" }}>
+                  attempt {attempt.index + 1}:{" "}
+                  {attempt.gates.map((g) => (
+                    <span key={g.gate} style={{ color: GATE_COLOR[g.status] ?? "var(--fg-body)", marginRight: 8 }} title={(g.errors ?? []).join("; ")}>
+                      {g.gate} {g.status}
+                    </span>
+                  ))}
+                  {attempt.repair && (
+                    <details style={{ marginTop: 2 }}>
+                      <summary style={{ cursor: "pointer", color: "var(--warn)" }}>repair sent</summary>
+                      <pre style={{ whiteSpace: "pre-wrap", fontSize: 11, color: "var(--fg-dim)", maxHeight: 160, overflow: "auto" }}>{attempt.repair}</pre>
+                    </details>
+                  )}
+                </li>
+              ))}
+              {turn.progress.emit && <li style={{ color: "var(--info)" }}>emit: A-gates reported</li>}
+              {turn.progress.outcome && (
+                <li data-testid={`build-outcome-${turn.id}`} style={{ color: turn.progress.outcome === "passed" ? "var(--ok)" : "var(--err)" }}>
+                  outcome: {turn.progress.outcome}
+                </li>
+              )}
+              {turn.progress.error && <li style={{ color: "var(--err)" }}>{turn.progress.error}</li>}
+            </ol>
+          </details>
+        </>
+      )}
 
       {(() => {
         const failure = buildFailure(turn.progress);
@@ -206,24 +333,20 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 export function BuildView() {
   const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, runBuild } = useComposer();
   const [prompt, setPrompt] = useState("");
-  const [modelRef, setModelRef] = useState("scripted");
+  const [modelRef, setModelRef] = useState<string | null>(null);
+  // "" = auto: the governed context is INFERRED from the goal. A specific value
+  // is an advanced override for catalog authors — never the normal prerequisite.
+  const [intentOverride, setIntentOverride] = useState<string>("");
   const intents = ((contract?.intents ?? []) as Array<{ id: string }>).map((i) => i.id);
-  const [intent, setIntent] = useState<string>("");
-  // In the hosted demo (no agent), default to an intent that already has a
-  // worked example so the scripted path is runnable on first landing. Agent
-  // mode keeps the original default (intents[0]) — a model runs for any intent.
-  const intentsWithExample = new Set(((contract?.examples ?? []) as Array<{ intent?: string }>).map((e) => e.intent));
-  const runnableDefault = mode !== "agent" ? intents.find((i) => intentsWithExample.has(i)) : undefined;
-  const activeIntent = intent || runnableDefault || intents[0] || "";
+  // Default the hosted demo to real AI (the wow moment); agent + offline stay scripted.
+  const defaultModel = mode !== "agent" && buildModels.includes("hosted-ai") ? "hosted-ai" : "scripted";
+  const activeModel = modelRef ?? defaultModel;
   const streamStatus = useRef<HTMLParagraphElement>(null);
   const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
-  // Scripted replays THIS intent's own example; a model runs without few-shot
-  // context. Either way the absence is stated, never papered over (#43).
-  const examplesForIntent = ((contract?.examples ?? []) as Array<{ intent?: string }>).filter((e) => e.intent === activeIntent).length;
 
   const submit = (refine: boolean) => {
     if (!prompt.trim() || buildBusy) return;
-    void runBuild({ prompt: prompt.trim(), intent: activeIntent, modelRef, refine });
+    void runBuild({ goal: prompt.trim(), modelRef: activeModel, refine, ...(intentOverride ? { intentOverride } : {}) });
     setPrompt("");
   };
 
@@ -242,62 +365,40 @@ export function BuildView() {
   return (
     <section style={{ maxWidth: 860 }}>
       <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
-      <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-        Describe an interface; it is generated from this project's approved components only, validated in front of you,
-        and rendered through the trusted registry.{" "}
-        <span data-testid="build-privacy">
-          Provider: <code>{modelRef}</code> —{" "}
-          {modelRef === "scripted"
-            ? "deterministic, zero model calls; nothing leaves this machine."
-            : modelRef === "hosted-ai"
-              ? "managed Claude Haiku through the governed AI Gateway (Unified Billing — no API key in your browser); your ask and the contract-derived context go to the gateway, and every proposal is validated here before you see it."
-              : modelRef.startsWith("ollama:")
-                ? "local Ollama; contract-derived context and your ask go to your local model only."
-                : "keys live in the agent's environment; contract-derived context and your ask go to the provider."}
-        </span>
+      <p style={{ fontSize: 13, color: "var(--fg-body)" }}>
+        Describe what you want to build, in your own words. The Composer works out the governed context, builds it from
+        this project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
       </p>
 
-      {mode !== "agent" && (
-        <p
-          data-testid="build-hosted-note"
-          style={{ fontSize: 12, color: "var(--fg-body)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 10px", margin: "10px 0" }}
+      <div style={{ display: "flex", gap: 8, margin: "12px 0 6px" }}>
+        <input
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit(false)}
+          placeholder="e.g. a form to invite teammates by email · a confirmation for deleting a project · a table of orders"
+          aria-label="Describe what you want to build"
+          style={{ flex: 1, fontFamily: "var(--mono)", fontSize: 13, background: "var(--bg-1)", border: "1px solid var(--line)", color: "var(--fg)", padding: "9px 11px", borderRadius: 2 }}
+          data-testid="build-prompt"
+        />
+        <button className="st-btn" disabled={buildBusy || !prompt.trim()} onClick={() => submit(false)} aria-label="Build a governed surface for this goal" data-testid="build-run">
+          Build
+        </button>
+        <button
+          className="st-btn st-btn--dashed"
+          disabled={buildBusy || !prompt.trim() || !canRefine}
+          onClick={() => submit(true)}
+          aria-label="Refine the previous surface with this instruction"
+          title={canRefine ? "Applies this instruction to the previous surface; re-runs every gate" : "Build something first"}
+          data-testid="build-refine"
         >
-          You&rsquo;re building in the hosted demo: the governed pipeline runs <em>entirely in this browser</em> against
-          the shipped demo project — no install, and the deterministic gates (S1&ndash;S3, emit) never leave your
-          machine.{" "}
-          {buildModels.includes("hosted-ai") ? (
-            <>
-              <code>hosted-ai</code> proposes with managed Claude Haiku through the governed AI Gateway;{" "}
-              <code>scripted</code> replays each intent&rsquo;s worked example. Either way you watch the surface get
-              proposed, checked against S1&ndash;S3, repaired, and rendered — and every proposal is validated here
-              before you see it.
-            </>
-          ) : (
-            <>
-              <code>scripted</code> replays each intent&rsquo;s worked example so you can watch a surface get proposed,
-              checked against S1&ndash;S3, repaired, and rendered.
-            </>
-          )}{" "}
-          To build against <em>your own</em> component library, run the local agent (
-          <code>pnpm --filter agent dev</code>) and connect a project
-          {agentUp ? " — detected, connect from Project" : "."}
-        </p>
-      )}
+          Refine
+        </button>
+      </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", margin: "10px 0" }}>
-        <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-          intent{" "}
-          <select value={activeIntent} onChange={(e) => setIntent(e.target.value)} data-testid="build-intent" aria-label="Intent" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px" }}>
-            {intents.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", margin: "2px 0 8px", fontSize: 12, color: "var(--fg-dim)" }}>
+        <label>
           model{" "}
-          <select value={modelRef} onChange={(e) => setModelRef(e.target.value)} data-testid="build-model" aria-label="Model" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px" }}>
+          <select value={activeModel} onChange={(e) => setModelRef(e.target.value)} data-testid="build-model" aria-label="Model" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px" }}>
             {buildModels.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -305,47 +406,51 @@ export function BuildView() {
             ))}
           </select>
         </label>
+        <label title="Advanced: force a governed context instead of inferring it from your goal.">
+          context{" "}
+          <select value={intentOverride} onChange={(e) => setIntentOverride(e.target.value)} data-testid="build-intent" aria-label="Governance context (advanced override)" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px" }}>
+            <option value="">auto — inferred from your goal</option>
+            {intents.map((i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span data-testid="build-privacy">
+          <code>{activeModel}</code>: {providerCopy(activeModel)}
+        </span>
       </div>
 
-      {examplesForIntent === 0 && (
-        <p data-testid="build-no-fewshot" style={{ fontSize: 12, color: "var(--warn)" }}>
-          No worked example for <code>{activeIntent}</code> yet. <code>scripted</code> replays this intent's own example, so it
-          cannot run; a model generates from the scoped contract with no few-shot context. Accepting a build here creates the
-          first one.
+      {mode !== "agent" && (
+        <p
+          data-testid="build-hosted-note"
+          style={{ fontSize: 12, color: "var(--fg-body)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 10px", margin: "6px 0" }}
+        >
+          You&rsquo;re in the hosted demo — no install.{" "}
+          {buildModels.includes("hosted-ai") ? (
+            <>
+              <code>hosted-ai</code> generates for your goal with managed Claude Haiku; the deterministic gates and
+              rendering run <em>entirely in this browser</em>.
+            </>
+          ) : (
+            <>
+              the governed pipeline runs <em>entirely in this browser</em> against the shipped demo project.
+            </>
+          )}{" "}
+          To build against <em>your own</em> component library, run the local agent (<code>pnpm --filter agent dev</code>)
+          and connect a project{agentUp ? " — detected, connect from Project" : "."}
         </p>
       )}
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit(false)}
-          placeholder="Describe the interface to build…"
-          aria-label="Describe the interface to build"
-          style={{ flex: 1, fontFamily: "var(--mono)", fontSize: 13, background: "var(--bg-1)", border: "1px solid var(--line)", color: "var(--fg)", padding: "8px 10px", borderRadius: 2 }}
-          data-testid="build-prompt"
-        />
-        <button className="st-btn" disabled={buildBusy || !prompt.trim()} onClick={() => submit(false)} aria-label="Build a new surface from this ask" data-testid="build-run">
-          Build
-        </button>
-        <button
-          className="st-btn st-btn--dashed"
-          disabled={buildBusy || !prompt.trim() || !canRefine}
-          onClick={() => submit(true)}
-          aria-label="Refine the previous surface with this ask"
-          title={canRefine ? "Sends the previous surface plus this instruction; regenerates completely and re-runs every gate" : "Run a build first"}
-          data-testid="build-refine"
-        >
-          Refine
-        </button>
-      </div>
-
       <p ref={streamStatus} role="status" aria-live="polite" data-testid="build-status" style={{ fontSize: 12, color: buildBusy ? "var(--warn)" : "var(--fg-dim)", minHeight: 18 }}>
         {buildBusy
-          ? "generating — attempts, gates, and repairs stream below"
+          ? "working — understanding your goal, then building and checking it"
           : buildTurns.length
-            ? `${buildTurns.length} turn(s); latest outcome: ${buildTurns.at(-1)?.progress.outcome ?? buildTurns.at(-1)?.progress.status}`
-            : "no turns yet"}
+            ? buildTurns.at(-1)?.kind === "vocab-gap"
+              ? `${buildTurns.length} build(s); latest: needs a new component`
+              : `${buildTurns.length} build(s); latest outcome: ${buildTurns.at(-1)?.progress.outcome ?? buildTurns.at(-1)?.progress.status}`
+            : "no builds yet"}
       </p>
 
       <div>

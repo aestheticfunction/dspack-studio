@@ -61,3 +61,11 @@ export {
   type TurnAttempt,
   type TurnGate,
 } from "./build";
+export {
+  buildPlanRequest,
+  planSchema,
+  planDeterministic,
+  reconcilePlan,
+  intentLabel,
+  type GoalPlan,
+} from "./plan";
