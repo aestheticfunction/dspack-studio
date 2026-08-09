@@ -39,7 +39,15 @@
   // Reuses the SAME account-level ds-ai-gateway the af-site theme generator uses
   // (composer.aesthetic-function.com and aesthetic-function.com share the zone,
   // hence the account). The gateway id + collectLog:false live in worker/propose.mjs.
+  // Cost has TWO ceilings: the gateway's own zone-wide rate limit (the hard cap,
+  // shared with the theme generator) and the per-client limiter below.
   "ai": { "binding": "AI" },
+  // Per-client rate limit for /api/propose — one abuser cannot consume the
+  // shared gateway allowance. Fully wrangler-configured (no dashboard resource,
+  // no secret); keyed by the Cloudflare-verified client IP in worker/propose.mjs.
+  "ratelimits": [
+    { "name": "PROPOSE_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ],
   // Kill switch — flip to "off" to disable hosted AI generation without a deploy
   // topology change (scripted mode and the local agent are unaffected).
   "vars": { "HOSTED_AI": "on" }

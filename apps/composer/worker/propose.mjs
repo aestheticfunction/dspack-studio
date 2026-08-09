@@ -45,19 +45,31 @@ export function handleModels(env) {
   return json(200, { models: hostedModelsFor(env) });
 }
 
-/* Anthropic takes `system` as a top-level parameter and structured output via
-   output_config.format; Workers AI takes a system message and response_format.
-   Sending Anthropic a system message returns error 7003. */
+/* The generation schema goes to the model as PROMPT GUIDANCE, not as a
+   structured-output constraint. The A2UI surface schema is large and RECURSIVE
+   (~230 KB, `$defs`/`$ref`), which the providers' constrained-decoding formats
+   reject (Anthropic: 7003 User Input Error). This matches dspack-gen's own
+   honesty note — "constrained decoding cannot be assumed; conformance is judged
+   by the surface gates S1/S2/S3 over the artifact." So the Worker asks for a
+   bare JSON object and the BROWSER's gates are the authoritative validator;
+   callModel strips any ```json fence and parses. Anthropic takes `system`
+   top-level; Workers AI takes it as a leading system message. */
+function guidedSystem(system, jsonSchema) {
+  return (
+    `${system}\n\n` +
+    "Return ONE JSON object and nothing else — no prose, no explanation, no markdown code fences. " +
+    "The object MUST validate against this JSON Schema:\n" +
+    JSON.stringify(jsonSchema)
+  );
+}
+
 function inputFor(model, { system, messages, jsonSchema }) {
   const base = { max_tokens: MAX_OUTPUT_TOKENS };
+  const guided = guidedSystem(system, jsonSchema);
   if (model.startsWith("anthropic/")) {
-    return { ...base, system, messages, output_config: { format: { type: "json_schema", schema: jsonSchema } } };
+    return { ...base, system: guided, messages };
   }
-  return {
-    ...base,
-    messages: [{ role: "system", content: system }, ...messages],
-    response_format: { type: "json_schema", json_schema: jsonSchema },
-  };
+  return { ...base, messages: [{ role: "system", content: guided }, ...messages] };
 }
 
 function extractText(raw) {
@@ -88,6 +100,51 @@ async function callModel(env, model, request) {
   };
 }
 
+/* Reads at most `limit` bytes and rejects if the body exceeds it — enforced even
+   when Content-Length is absent, so a chunked body cannot stream past the cap.
+   Fails CLOSED (throws) rather than buffering an unbounded request. */
+async function readBounded(request, limit) {
+  const reader = request.body?.getReader();
+  if (!reader) return "";
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel();
+      throw new Error("body too large");
+    }
+    chunks.push(value);
+  }
+  const merged = new Uint8Array(total);
+  let at = 0;
+  for (const c of chunks) {
+    merged.set(c, at);
+    at += c.byteLength;
+  }
+  return new TextDecoder().decode(merged);
+}
+
+/* Per-client rate limit, FAIL CLOSED. Returns a Response when the request must
+   be refused, or null to proceed. An over-limit client is denied; a limiter
+   error is ALSO denied (failing open would mean unmetered paid calls). The
+   binding is absent only in local `next dev`/`wrangler dev` without it — public
+   deploys always declare it, so the public endpoint is never unlimited. */
+async function rateLimited(env, request) {
+  if (!env.PROPOSE_RATE_LIMIT) return null;
+  const key = request.headers.get("cf-connecting-ip") ?? "anonymous";
+  let allowed;
+  try {
+    ({ success: allowed } = await env.PROPOSE_RATE_LIMIT.limit({ key }));
+  } catch {
+    return json(503, { error: "unavailable", message: "Generation is briefly unavailable. Try again in a moment, or use scripted mode." });
+  }
+  if (allowed) return null;
+  return json(429, { error: "rate-limited", message: "You've generated several times in the last minute. Try again shortly, or use scripted mode." });
+}
+
 export async function handlePropose(request, env) {
   if (request.method !== "POST") return json(405, { error: "method-not-allowed", message: "This endpoint accepts POST only." });
   if ((env?.HOSTED_AI ?? "on") !== "on" || !env?.AI) {
@@ -97,18 +154,26 @@ export async function handlePropose(request, env) {
     });
   }
 
+  // Rate-limit EARLY — before reading the body — so a spammer is bounded
+  // regardless of payload, and well before the paid model call.
+  const limited = await rateLimited(env, request);
+  if (limited) return limited;
+
   const contentType = request.headers.get("content-type") ?? "";
   if (!/^application\/json\s*(;|$)/i.test(contentType)) {
     return json(415, { error: "unsupported-media-type", message: "Send application/json." });
   }
-  const declared = Number(request.headers.get("content-length") ?? NaN);
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+
+  // Size ceiling enforced by a bounded read (Content-Length may be absent).
+  let raw;
+  try {
+    raw = await readBounded(request, MAX_BODY_BYTES);
+  } catch {
     return json(413, { error: "payload-too-large", message: "The generation request is larger than this endpoint accepts." });
   }
-
   let body;
   try {
-    body = await request.json();
+    body = JSON.parse(raw);
   } catch {
     return json(400, { error: "malformed-json", message: "The request body is not valid JSON." });
   }
