@@ -27,7 +27,8 @@ import {
   type PipelineEvent,
 } from "@dspack-studio/agui-bridge";
 import { governedQuestion, governedRun } from "./pipeline.js";
-import { handleProjectRoute } from "./project.js";
+import { handleProjectRoute, runInlineGenerate } from "./project.js";
+import { testProvider } from "./providers.js";
 import {
   bookingRespond,
   bookingStartOps,
@@ -235,6 +236,23 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // Connection test + model discovery for a user-configured local provider.
+  // The browser sends the endpoint (and optional credential); the agent does
+  // the probing and hands back what it found — reachable, and which models.
+  if (req.method === "POST" && path === "/provider/test") {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    let cfg: { kind?: string; baseUrl?: string; apiKey?: string };
+    try {
+      cfg = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+    } catch {
+      json(res, 400, { ok: false, models: [], error: "body must be JSON" }, CORS);
+      return;
+    }
+    json(res, 200, await testProvider({ kind: String(cfg.kind ?? ""), baseUrl: cfg.baseUrl, apiKey: cfg.apiKey }), CORS);
+    return;
+  }
+
   if (req.method === "GET" && path === "/models") {
     const models: string[] = ["scripted"];
     try {
@@ -269,6 +287,14 @@ const server = createServer(async (req, res) => {
   // Composer project routes (connect/discover/emit/validate/save/run) — thin
   // orchestration over published packages against a local project directory.
   if (await handleProjectRoute(path, body ?? {}, res, CORS, req.headers.accept, json)) return;
+
+  // Inline governed generation: a hosted/reference project (no files on disk)
+  // running a LOCAL model through the agent. The browser supplies the contract
+  // + profile + provider config; the pipeline and gates are identical.
+  if (path === "/generate") {
+    await runInlineGenerate(body ?? {}, res, CORS, req.headers.accept);
+    return;
+  }
 
   // FM-3 deterministic continuation: rebuild the scenario's state from a
   // fork's event prefix — reset, restore recorded grounding, then replay
