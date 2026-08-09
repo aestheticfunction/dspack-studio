@@ -46,7 +46,7 @@ import {
 import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
 import { streamHostedBuild } from "./hosted-build";
 import { planGoal } from "./planning";
-import { DEMO_CONTRACT, DEMO_EXTRA_SURFACES, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
+import { REFERENCES, REFERENCE_LIST, DEFAULT_REFERENCE, type Reference } from "./demo-data";
 
 export type Mode = "demo" | "agent";
 
@@ -95,6 +95,12 @@ export interface ComposerState {
   setSelected: (id: string | null) => void;
   connect: (path: string) => Promise<void>;
   loadDemo: () => void;
+  /** The governed design system the current demo/blank project builds from. */
+  referenceId: string;
+  /** Start a blank project from a packaged reference (shadcn/ui or Astryx). */
+  loadReference: (id: string) => void;
+  /** Every packaged reference the project-start picker can offer. */
+  references: Reference[];
   discover: () => Promise<void>;
   rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
@@ -129,6 +135,9 @@ export const useComposer = (): ComposerState => {
 
 export function ComposerProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>("demo");
+  // The governed design system a demo/blank project builds from. Selecting a
+  // different one loads that reference; it never forks the pipeline.
+  const [referenceId, setReferenceId] = useState<string>(DEFAULT_REFERENCE);
   const [agentUp, setAgentUp] = useState(false);
   const [projectPath, setProjectPath] = useState("");
   const [manifest, setManifest] = useState<ProjectManifest | null>(null);
@@ -174,23 +183,36 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     }
   }, [extraSurfaces]);
 
-  const loadDemo = useCallback(() => {
+  /**
+   * Start a blank project from a packaged governed design system (shadcn/ui or
+   * Astryx). "Blank" is a NEW project seeded with that reference's vocabulary —
+   * never empty. The SAME in-browser pipeline runs over whichever reference is
+   * chosen; the design system is data, not a code path.
+   */
+  const loadReference = useCallback((id: string) => {
+    const ref: Reference = REFERENCES[id] ?? REFERENCES[DEFAULT_REFERENCE];
+    setReferenceId(ref.id);
     setMode("demo");
     setProjectPath("");
-    setManifest(DEMO_MANIFEST as ProjectManifest);
-    const doc = structuredClone(DEMO_CONTRACT);
-    const prof = structuredClone(DEMO_PROFILE);
+    setManifest(ref.manifest as ProjectManifest);
+    const doc = structuredClone(ref.contract);
+    const prof = structuredClone(ref.profile);
     setContract(doc);
     setProfile(prof);
-    setExtraSurfaces(DEMO_EXTRA_SURFACES);
-    recomputeEmit(doc, prof, DEMO_EXTRA_SURFACES);
+    setExtraSurfaces(ref.extraSurfaces);
+    recomputeEmit(doc, prof, ref.extraSurfaces);
     setRediscovery(null);
     setValidate(null);
     setSelected(null);
     clearBuildThread();
-    setNotice("Demo project loaded. Edits stay in memory and every gate runs live in this browser; run the local agent to work on real files.");
+    setNotice(
+      `${ref.label} project loaded. Edits stay in memory and every gate runs live in this browser; run the local agent to work on real files.`,
+    );
     void refreshLedger(doc);
   }, [refreshLedger, recomputeEmit]);
+
+  // Back-compat entry point for the single consumer that predates selection.
+  const loadDemo = useCallback(() => loadReference(DEFAULT_REFERENCE), [loadReference]);
 
   /**
    * The demo is the STARTING state, not a state to fall back into: this
@@ -537,7 +559,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const runBuild = useCallback(
     async (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => {
       if (buildBusy) return;
-      if (!contract) {
+      if (!contract || !profile) {
         setNotice("No project loaded yet.");
         return;
       }
@@ -609,7 +631,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
             ] }
           : {}),
       };
-      const runStream = mode === "agent" ? streamProjectRun : streamHostedBuild;
+      // Same signature, same events, same downstream pipeline. The hosted twin
+      // gets the ACTIVE reference's documents so any design system traverses it;
+      // the agent runs over the connected project's own files.
+      const runStream =
+        mode === "agent"
+          ? streamProjectRun
+          : (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
+              streamHostedBuild(inp, handlers, { contract, profile });
       await new Promise<void>((resolve) => {
         buildStream.current = runStream(runInput, {
           onEvent: (event) => {
@@ -627,7 +656,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       buildStream.current = null;
       setBuildBusy(false);
     },
-    [mode, projectPath, buildBusy, buildTurns, contract],
+    [mode, projectPath, buildBusy, buildTurns, contract, profile],
   );
 
   /**
@@ -743,6 +772,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setSelected,
       connect,
       loadDemo,
+      referenceId,
+      loadReference,
+      references: REFERENCE_LIST,
       discover,
       rediscover,
       saveContract,
@@ -761,7 +793,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

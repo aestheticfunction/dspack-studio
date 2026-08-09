@@ -25,7 +25,14 @@ import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types"
 import { loadProfile } from "@aestheticfunction/dspack-emit";
 import { createPipelineEventMapper } from "@dspack-studio/agui-bridge";
 import type { BuildRunInput } from "./agent-client";
-import { DEMO_CONTRACT, DEMO_PROFILE } from "./demo-data";
+
+/** The active reference's governed documents the hosted pipeline runs over.
+ *  Passed by the caller so the SAME pipeline serves any design system — there
+ *  is no hardcoded demo, and no Astryx-specific path. */
+export interface HostedReference {
+  contract: Record<string, unknown>;
+  profile: Record<string, unknown>;
+}
 
 /** First node in the surface tree carrying a text string (refinement anchor). */
 function firstTextNode(node: unknown): { text: string } | null {
@@ -85,10 +92,16 @@ function scriptedRunAdapter(surface: unknown, conversation: BuildRunInput["conve
   return new ScriptedAdapter([{ output: violating }, { output: surface }, { output: surface }]);
 }
 
-// loadProfile is pure over the doc; cache the parsed demo profile.
-let profileCache: ReturnType<typeof loadProfile> | null = null;
-function demoProfile() {
-  return (profileCache ??= loadProfile(DEMO_PROFILE as never));
+// loadProfile is pure over the doc; cache per profile object identity so each
+// reference's profile parses once (the reference objects are stable).
+const profileCache = new WeakMap<object, ReturnType<typeof loadProfile>>();
+function loadedProfile(profile: Record<string, unknown>): ReturnType<typeof loadProfile> {
+  let parsed = profileCache.get(profile);
+  if (!parsed) {
+    parsed = loadProfile(profile as never);
+    profileCache.set(profile, parsed);
+  }
+  return parsed;
 }
 
 /**
@@ -165,7 +178,11 @@ export interface HostedRunHandlers {
  * pipeline can't be interrupted mid-attempt, but cancel() stops further events
  * from reaching the (possibly unmounted) caller.
  */
-export function streamHostedBuild(input: BuildRunInput, handlers: HostedRunHandlers): { cancel(): void } {
+export function streamHostedBuild(
+  input: BuildRunInput,
+  handlers: HostedRunHandlers,
+  reference: HostedReference,
+): { cancel(): void } {
   let cancelled = false;
   const emit = (event: Record<string, unknown>) => {
     if (!cancelled) handlers.onEvent(event);
@@ -173,7 +190,7 @@ export function streamHostedBuild(input: BuildRunInput, handlers: HostedRunHandl
 
   void (async () => {
     try {
-      const contract = DEMO_CONTRACT as Record<string, unknown>;
+      const contract = reference.contract;
       const intents = (contract.intents as Array<{ id: string }> | undefined) ?? [];
       const intent = input.intent || intents[0]?.id || "";
       const modelRef = input.modelRef || "scripted";
@@ -219,7 +236,7 @@ export function streamHostedBuild(input: BuildRunInput, handlers: HostedRunHandl
         prompt: input.prompt,
         adapter,
         maxRepairs: 2,
-        emitProfile: demoProfile(),
+        emitProfile: loadedProfile(reference.profile),
         ...(input.conversation && input.conversation.length > 0 ? { conversation: input.conversation } : {}),
         onEvent: (event) => {
           for (const agui of map(event as never)) emit(agui as unknown as Record<string, unknown>);
