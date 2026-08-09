@@ -80,6 +80,34 @@ test("the saved project appears on the hub and reopens", async ({ page }) => {
   await expect(page.getByTestId("project-context")).toContainText("Reopen me");
 });
 
+test("a project exports to a portable file and imports back, ready to keep building", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Portable project");
+
+  // Export the open project — capture the download and confirm it's the
+  // dedicated project artifact, not a catalog.
+  await page.getByTestId("nav-projects").click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator('[data-testid^="project-export-"]').first().click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.composerproject\.json$/);
+  const file = await download.path();
+
+  // Import the same file: a NEW project is created and opens straight into Build.
+  await page.getByTestId("import-project-input").setInputFiles(file!);
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await expect(page.getByTestId("project-context")).toContainText("Portable project");
+
+  // Continue working: a governed build runs on the imported vocabulary.
+  await scriptedBuild(page, "destructive-action", "let people delete their account");
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Uses only approved components");
+
+  // The hub now shows the imported project, distinctly labelled from a reference.
+  await page.getByTestId("nav-projects").click();
+  await expect(page.getByTestId("projects-grid")).toContainText("Imported");
+});
+
 test("design-system neutrality: Astryx traverses the SAME product with its own vocabulary", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "astryx", "Scheduling");

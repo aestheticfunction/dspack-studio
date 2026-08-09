@@ -10,7 +10,7 @@
  * marks, cards that lift and corner-check, sage green only where something has
  * aligned.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useComposer } from "../state";
 import { Marks, Eyebrow, relativeTime } from "../ui";
 import type { StoredProject } from "../projects";
@@ -19,11 +19,13 @@ type SourceChoice = { kind: "reference"; id: string } | { kind: "connect" } | nu
 
 function sourceLabel(p: StoredProject, referenceLabel: (id: string) => string): string {
   if (p.source.kind === "reference") return referenceLabel(p.source.referenceId);
+  if (p.source.kind === "imported") return "Imported";
   return "Local repository";
 }
 
 export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConnect: () => void }) {
-  const { projects, references, newProject, openProject, duplicateProject, deleteProject, renameProject } = useComposer();
+  const { projects, references, newProject, openProject, duplicateProject, deleteProject, renameProject, importProject, exportProject } =
+    useComposer();
   const referenceLabel = (id: string) => references.find((r) => r.id === id)?.label ?? id;
 
   const [name, setName] = useState("");
@@ -32,6 +34,26 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onImportFile = async (file: File | null) => {
+    setImportError(null);
+    if (!file) return;
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      setImportError("That file could not be read.");
+      return;
+    }
+    const result = importProject(text);
+    if (!result.ok) {
+      setImportError(result.error);
+      return;
+    }
+    onOpen(); // a valid import opens straight into Build
+  };
 
   const readySource = source?.kind === "reference";
   const canCreate = readySource && name.trim().length > 0;
@@ -133,7 +155,7 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
             </button>
           </div>
 
-          <div className="af-btn-row" style={{ marginTop: 20 }}>
+          <div className="af-btn-row" style={{ marginTop: 20, alignItems: "center" }}>
             {source?.kind === "connect" ? (
               <button className="st-btn st-btn--primary st-btn--lg" onClick={onConnect} data-testid="new-project-connect">
                 Connect a repository &rarr;
@@ -143,10 +165,30 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
                 Create &amp; build
               </button>
             )}
+            <span className="af-hint" style={{ color: "var(--fg-dim)" }}>or</span>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: "none" }}
+              data-testid="import-project-input"
+              onChange={(e) => {
+                void onImportFile(e.target.files?.[0] ?? null);
+                e.target.value = ""; // allow re-importing the same file
+              }}
+            />
+            <button className="st-btn st-btn--dashed st-btn--lg" onClick={() => fileRef.current?.click()} data-testid="import-project">
+              Import a project&hellip;
+            </button>
             {!readySource && source?.kind !== "connect" && (
-              <span className="af-hint">Choose a design system to start, or connect your repository.</span>
+              <span className="af-hint">Choose a design system to start, connect your repository, or import a project file.</span>
             )}
           </div>
+          {importError && (
+            <p className="af-hint" data-testid="import-error" style={{ color: "var(--err)", marginTop: 10 }}>
+              {importError}
+            </p>
+          )}
         </div>
       </section>
 
@@ -222,6 +264,14 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
                   </button>
                   <button className="st-btn st-btn--dashed" onClick={() => duplicateProject(p.id)} data-testid={`project-duplicate-${p.id}`}>
                     Duplicate
+                  </button>
+                  <button
+                    className="st-btn st-btn--dashed"
+                    onClick={() => exportProject(p.id)}
+                    title="Download this project as a portable file"
+                    data-testid={`project-export-${p.id}`}
+                  >
+                    Export
                   </button>
                   {confirmDelete === p.id ? (
                     <button

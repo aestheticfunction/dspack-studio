@@ -18,7 +18,12 @@
 /** Where a project's governed vocabulary comes from. */
 export type ProjectSource =
   | { kind: "reference"; referenceId: string }
-  | { kind: "agent"; path: string };
+  | { kind: "agent"; path: string }
+  /** An imported project: its governed vocabulary (contract + profile +
+   *  previewRegistry) travelled in a file and is stored inline, keyed by id.
+   *  This is what makes a project portable off one machine and back — the
+   *  reference need not be bundled and no on-disk path is assumed. */
+  | { kind: "imported" };
 
 export interface StoredProject {
   id: string;
@@ -77,8 +82,60 @@ function isValidProject(p: unknown): p is StoredProject {
     typeof r.name === "string" &&
     !!r.source &&
     typeof r.source === "object" &&
-    (["reference", "agent"] as const).includes((r.source as { kind?: string }).kind as never)
+    (["reference", "agent", "imported"] as const).includes((r.source as { kind?: string }).kind as never)
   );
+}
+
+/* ----------------------- Imported-project vocabulary -----------------------
+ * An imported project carries its governed vocabulary with it. We keep that
+ * (potentially ~100KB) payload OUT of the project index — one key per project,
+ * loaded only when the project opens — so listing the hub stays cheap and a
+ * single oversized import can never corrupt the whole index. */
+
+export type PreviewRegistry = "wireframe" | "shadcn" | "astryx";
+
+export interface ProjectVocab {
+  contract: Record<string, unknown>;
+  profile: Record<string, unknown>;
+  previewRegistry: PreviewRegistry;
+}
+
+const vocabKey = (id: string): string => `composer.project.vocab.${id}`;
+
+export function saveVocab(id: string, vocab: ProjectVocab): boolean {
+  const s = storage();
+  if (!s) return false;
+  try {
+    s.setItem(vocabKey(id), JSON.stringify(vocab));
+    return true;
+  } catch {
+    // Quota exceeded (a large contract on a near-full store): report honestly
+    // so the caller can refuse the import rather than create a project whose
+    // vocabulary silently failed to persist.
+    return false;
+  }
+}
+
+export function loadVocab(id: string): ProjectVocab | null {
+  const s = storage();
+  if (!s) return null;
+  try {
+    const raw = s.getItem(vocabKey(id));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ProjectVocab;
+    if (!parsed || typeof parsed !== "object" || !parsed.contract || !parsed.profile) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function removeVocab(id: string): void {
+  try {
+    storage()?.removeItem(vocabKey(id));
+  } catch {
+    /* best-effort cleanup */
+  }
 }
 
 /** A stable-ish id without pulling a dep; crypto.randomUUID where available. */
@@ -152,15 +209,23 @@ export function touchProject(id: string): void {
 export function duplicateProject(id: string): StoredProject | null {
   const original = getProject(id);
   if (!original) return null;
-  return createProject({
+  const copy = createProject({
     name: `${original.name} copy`,
     description: original.description,
     source: original.source,
   });
+  // An imported project's vocabulary lives under its own id — carry it to the
+  // copy so the duplicate is a real, openable project, not a dangling source.
+  if (original.source.kind === "imported") {
+    const vocab = loadVocab(original.id);
+    if (vocab) saveVocab(copy.id, vocab);
+  }
+  return copy;
 }
 
 export function removeProject(id: string): void {
   writeAll(readAll().filter((p) => p.id !== id));
+  removeVocab(id);
   if (getLastOpened() === id) setLastOpened(null);
 }
 

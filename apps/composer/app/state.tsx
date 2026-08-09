@@ -46,6 +46,7 @@ import {
 import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
 import { streamHostedBuild } from "./hosted-build";
 import { planGoal } from "./planning";
+import { buildProjectExport, downloadProjectExport, parseProjectImport } from "./project-portability";
 import { REFERENCES, REFERENCE_LIST, DEFAULT_REFERENCE, type Reference } from "./demo-data";
 import {
   createProject,
@@ -57,8 +58,12 @@ import {
   renameProject as renameStoredProject,
   getLastOpened,
   setLastOpened,
+  saveVocab,
+  loadVocab,
   type StoredProject,
   type ProjectSource,
+  type ProjectVocab,
+  type PreviewRegistry,
 } from "./projects";
 
 export type Mode = "demo" | "agent";
@@ -128,6 +133,10 @@ export interface ComposerState {
   renameProject: (id: string, name: string) => void;
   duplicateProject: (id: string) => StoredProject | null;
   deleteProject: (id: string) => void;
+  /** Import a project from an exported file (validates, stores, opens). */
+  importProject: (text: string) => { ok: true; name: string } | { ok: false; error: string };
+  /** Export a project to a downloadable, portable file. */
+  exportProject: (id: string) => void;
   discover: () => Promise<void>;
   rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
@@ -248,6 +257,50 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // Load a reference's vocabulary directly (used by openProject and quick-start).
   const loadDemo = useCallback(() => loadReference(DEFAULT_REFERENCE), [loadReference]);
 
+  /**
+   * Open an imported project: its governed vocabulary travelled in a file and
+   * lives inline (keyed by project id). Same in-browser pipeline as a reference
+   * — the design system is data — but sourced from the import rather than a
+   * bundled reference. A missing/corrupt payload lands on the hub, not a crash.
+   */
+  const loadImported = useCallback(
+    (id: string, name: string) => {
+      const vocab = loadVocab(id);
+      if (!vocab) {
+        setNotice("This imported project’s data could not be read — it may have been cleared. Re-import the file to restore it.");
+        setActiveProjectId(null);
+        setLastOpened(null);
+        return;
+      }
+      setReferenceId(id);
+      setMode("demo");
+      setProjectPath("");
+      setManifest({
+        composerProject: "0.1",
+        name,
+        adapter: "imported",
+        catalogIdBase: "https://composer.aesthetic-function.com/imported",
+        contractPath: "contract.dspack.json",
+        profilePath: "profile.json",
+        outDir: "out",
+        previewRegistry: vocab.previewRegistry,
+      } as ProjectManifest);
+      const doc = structuredClone(vocab.contract) as Record<string, any>;
+      const prof = structuredClone(vocab.profile) as Record<string, any>;
+      setContract(doc);
+      setProfile(prof);
+      setExtraSurfaces([]);
+      recomputeEmit(doc, prof, []);
+      setRediscovery(null);
+      setValidate(null);
+      setSelected(null);
+      clearBuildThread();
+      setNotice(`Opened “${name}”. This project was imported; edits stay in this browser. Export again to move it on.`);
+      void refreshLedger(doc);
+    },
+    [refreshLedger, recomputeEmit],
+  );
+
   const connect = useCallback(
     async (path: string) => {
       setBusy("connecting");
@@ -295,12 +348,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setProjects(listProjects());
       if (p.source.kind === "agent") {
         void connect(p.source.path);
+      } else if (p.source.kind === "imported") {
+        loadImported(p.id, p.name);
       } else {
         loadReference(p.source.referenceId);
         setNotice(`Opened “${p.name}”. Edits stay in this browser; connect the local agent to work on real files.`);
       }
     },
-    [connect, loadReference],
+    [connect, loadReference, loadImported],
   );
 
   const newProject = useCallback(
@@ -311,6 +366,59 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       return p;
     },
     [openProject],
+  );
+
+  /**
+   * Import a project from an exported file: validate it (fail-closed — the
+   * profile must load), store its governed vocabulary inline, and open it.
+   * Returns a typed result so the hub can state a refusal in plain words.
+   */
+  const importProject = useCallback(
+    (text: string): { ok: true; name: string } | { ok: false; error: string } => {
+      const parsed = parseProjectImport(text);
+      if (!parsed.ok) return parsed;
+      const p = createProject({ name: parsed.name, description: parsed.description, source: { kind: "imported" } });
+      if (!saveVocab(p.id, parsed.vocab)) {
+        rmStoredProject(p.id);
+        return { ok: false, error: "This project is too large to keep in the browser, or local storage is full." };
+      }
+      setProjects(listProjects());
+      openProject(p.id);
+      return { ok: true, name: parsed.name };
+    },
+    [openProject],
+  );
+
+  /**
+   * Export a project to a downloadable file — its identity plus its governed
+   * vocabulary, nothing machine-specific. The OPEN project exports exactly
+   * what's loaded (this session's edits included); a reference or imported
+   * project can export from its source without opening; an agent project must
+   * be open, because its vocabulary lives on your machine through the agent.
+   */
+  const exportProject = useCallback(
+    (id: string) => {
+      const p = getProject(id);
+      if (!p) {
+        setNotice("That project could not be found.");
+        return;
+      }
+      let vocab: ProjectVocab | null = null;
+      if (id === activeProjectId && contract && profile) {
+        vocab = { contract, profile, previewRegistry: (manifest?.previewRegistry ?? "wireframe") as PreviewRegistry };
+      } else if (p.source.kind === "reference") {
+        const ref = REFERENCES[p.source.referenceId];
+        if (ref) vocab = { contract: ref.contract, profile: ref.profile, previewRegistry: (ref.manifest?.previewRegistry ?? "wireframe") as PreviewRegistry };
+      } else if (p.source.kind === "imported") {
+        vocab = loadVocab(id);
+      }
+      if (!vocab) {
+        setNotice("Open this project first to export it — its vocabulary lives on your machine, through the agent.");
+        return;
+      }
+      downloadProjectExport(buildProjectExport({ name: p.name, description: p.description, vocab, exportedAt: new Date().toISOString() }));
+    },
+    [activeProjectId, contract, profile, manifest],
   );
 
   /** Return to the hub without loading a project. */
@@ -899,6 +1007,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       renameProject,
       duplicateProject,
       deleteProject,
+      importProject,
+      exportProject,
       discover,
       rediscover,
       saveContract,
@@ -919,7 +1029,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, activeModel, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, activeModel, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
