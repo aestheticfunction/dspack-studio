@@ -8,11 +8,10 @@
  */
 import { useMemo, useState } from "react";
 import { A2uiCanvas, planRegistry, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
-import { shadcnRegistry } from "@dspack-studio/shadcn-renderers";
-import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
 import { useComposer } from "../state";
+import { registryFor, canvasScopeFor, isNativeRegistry, type PreviewRegistryId } from "../registries";
 
-type RegistryId = "wireframe" | "shadcn";
+type RegistryId = "wireframe" | PreviewRegistryId;
 
 /**
  * Export the emitted artifacts as a downloadable JSON bundle: the A2UI
@@ -51,10 +50,17 @@ export function PreviewView() {
   const surfaces = (emit?.surfaces ?? []).filter((s) => s.messages);
   const active = surfaces.find((s) => s.name === surfaceName) ?? surfaces[0];
 
+  // The registry choices are wireframe (always) + the project's native design
+  // system, whichever it is. A stale selection from a previous project clamps
+  // back to wireframe rather than rendering the wrong catalog.
+  const nativeId = isNativeRegistry(manifest?.previewRegistry) ? manifest.previewRegistry : undefined;
+  const registryChoices: RegistryId[] = nativeId ? ["wireframe", nativeId] : ["wireframe"];
+  const activeRegistryId: RegistryId = registryChoices.includes(registryId) ? registryId : "wireframe";
+
   const registry: Registry | null = useMemo(() => {
     if (!catalog) return null;
-    return registryId === "wireframe" ? wireframeRegistryFor(catalog) : shadcnRegistry;
-  }, [catalog, registryId]);
+    return registryFor(activeRegistryId, catalog);
+  }, [catalog, activeRegistryId]);
 
   const coverage = useMemo(() => {
     if (!catalog || !registry) return null;
@@ -71,12 +77,12 @@ export function PreviewView() {
     <section>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>registry:</span>
-        {(["wireframe", "shadcn"] as const).map((id) => (
-          <button key={id} className={`st-btn${registryId === id ? " st-btn--active" : ""}`} onClick={() => setRegistryId(id)} data-testid={`registry-${id}`}>
+        {registryChoices.map((id) => (
+          <button key={id} className={`st-btn${activeRegistryId === id ? " st-btn--active" : ""}`} onClick={() => setRegistryId(id)} data-testid={`registry-${id}`}>
             {id}
           </button>
         ))}
-        {registryId === "shadcn" && (
+        {activeRegistryId === "shadcn" && (
           <button className="st-btn st-btn--dashed" onClick={() => setCanvasMode(canvasMode === "light" ? "dark" : "light")}>
             canvas: {canvasMode}
           </button>
@@ -113,17 +119,17 @@ export function PreviewView() {
 
       {active?.messages ? (
         <div
-          {...(registryId === "shadcn" ? { "data-design-system": "shadcn", "data-mode": canvasMode } : {})}
+          {...canvasScopeFor(activeRegistryId, canvasMode).attrs}
           data-project-canvas="composer"
           style={{
             border: "1px solid var(--line)",
             borderRadius: 4,
             padding: 20,
-            background: registryId === "shadcn" ? (canvasMode === "dark" ? "#0c0a09" : "#ffffff") : "var(--bg-1)",
+            background: canvasScopeFor(activeRegistryId, canvasMode).background,
           }}
         >
           <A2uiCanvas
-            key={`${active.name}:${registryId}`}
+            key={`${active.name}:${activeRegistryId}`}
             catalog={catalog}
             registry={registry}
             messages={active.messages}

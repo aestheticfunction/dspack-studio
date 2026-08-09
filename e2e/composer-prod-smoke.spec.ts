@@ -31,7 +31,7 @@ test("loads over HTTPS with no console errors and no failed requests", async ({ 
   page.on("response", (r) => r.status() >= 400 && failed.push(`${r.url()} ${r.status()}`));
 
   await page.goto("/");
-  await expect(page.getByTestId("notice")).toContainText("Demo project loaded");
+  await expect(page.getByTestId("notice")).toContainText("project loaded");
   await expect(page.locator("header")).toContainText("shadcn/ui v3");
   const realConsole = consoleErrors.filter((e) => !expected(e));
   const realFailed = failed.filter((f) => !expected(f));
@@ -107,7 +107,7 @@ test("reloading and directly opening the app never hits a platform 404", async (
   await page.getByTestId("nav-preview").click();
   const second = await page.reload();
   expect(second?.status()).toBe(200);
-  await expect(page.getByTestId("notice")).toContainText("Demo project loaded");
+  await expect(page.getByTestId("notice")).toContainText("project loaded");
 });
 
 test("the v3 demo's declared casualties read as acknowledged decisions, not failures", async ({ page }) => {
@@ -182,6 +182,35 @@ test("goal-first BUILD: describe an outcome → inferred context → governed su
   await expect(page.getByTestId("build-gate-summary-2")).toContainText("Structurally valid");
 });
 
+test("cross-design-system: Astryx is a first-class reference through the SAME goal-first pipeline", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-build").click();
+
+  // The design-system source picker offers both packaged references — a hosted
+  // visitor starts a blank project from either governed vocabulary.
+  await expect(page.getByTestId("ds-source-shadcn")).toBeVisible();
+  const astryx = page.getByTestId("ds-source-astryx");
+  await expect(astryx).toBeVisible();
+
+  // Selecting Astryx loads its reference: header, notice, and the governed-context
+  // taxonomy all follow the LOADED contract — the planner reads it, no fork.
+  await astryx.click();
+  await expect(page.locator("header")).toContainText("Astryx");
+  await expect(page.getByTestId("notice")).toContainText("Astryx project loaded");
+  // An Astryx-only intent proves the taxonomy came from the Astryx contract.
+  await expect(page.getByTestId("build-intent")).toContainText("transactional-review");
+
+  // The SAME deterministic pipeline builds and renders natively through
+  // @astryxdesign/core — governance translated identically, no shadcn assumption.
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-intent").selectOption("destructive-action");
+  await page.getByTestId("build-prompt").fill("let people permanently delete a project");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-canvas-1")).toContainText(/delete/i);
+  await expect(page.getByTestId("build-pipeline-1")).toContainText("outcome: passed");
+});
+
 test("client traffic carries no private hosts, local paths, or key material", async ({ page }) => {
   const bodies: string[] = [];
   page.on("response", async (r) => {
@@ -195,7 +224,7 @@ test("client traffic carries no private hosts, local paths, or key material", as
     }
   });
   await page.goto("/");
-  await expect(page.getByTestId("notice")).toContainText("Demo project loaded");
+  await expect(page.getByTestId("notice")).toContainText("project loaded");
   const leaks: string[] = [];
   for (const body of bodies) {
     for (const pattern of [/\/Users\/[a-z]+/i, /sk-[A-Za-z0-9]{20}/, /AKIA[A-Z0-9]{16}/]) {

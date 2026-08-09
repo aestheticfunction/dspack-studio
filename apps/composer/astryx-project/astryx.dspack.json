@@ -1,0 +1,1444 @@
+{
+  "$schema": "../schema/dspack.v0.4.schema.json",
+  "dspack": "0.4",
+  "name": "Astryx",
+  "description": "A nine-component slice of Meta's Astryx design system (open source, MIT; 160+ components; explicitly guidance-over-enforcement: design opinions live in docs, components render whatever they are passed). This contract converts a subset of that prose guidance into machine-checkable governance. Components and guidance are sourced from the repository's structured *.doc.mjs files at the pinned tag.",
+  "version": "0.1.4",
+  "metadata": {
+    "source": "https://github.com/facebook/astryx/tree/v0.1.4",
+    "license": "MIT",
+    "x-upstream": {
+      "repo": "https://github.com/facebook/astryx",
+      "tag": "v0.1.4",
+      "commit": "7b76c68ae07cbc798e3b7f4125eb99ec596f0779"
+    }
+  },
+  "components": {
+    "alert-dialog": {
+      "name": "AlertDialog",
+      "description": "A modal dialog that asks the user to confirm a destructive action. Props-based: title, description, and action/cancel labels are string props (there is no trigger sub-component; visibility is controlled).",
+      "whenToUse": "AlertDialog asks the user to confirm a destructive or irreversible action before it happens. Use it for things like deleting content, revoking access, or discarding unsaved changes.",
+      "whenNotToUse": "Do not use AlertDialog for non-destructive actions; use a standard Dialog instead.",
+      "props": {
+        "title": {
+          "type": "string",
+          "description": "Dialog title. Linked via aria-labelledby."
+        },
+        "description": {
+          "type": "string",
+          "description": "Consequence description. Linked via aria-describedby."
+        },
+        "actionLabel": {
+          "type": "string",
+          "description": "Action button label. Make it specific: 'Delete project' is better than 'OK' or 'Confirm'."
+        },
+        "cancelLabel": {
+          "type": "string",
+          "description": "Cancel button label.",
+          "default": "Cancel"
+        },
+        "actionVariant": {
+          "type": "enum",
+          "values": [
+            "primary",
+            "secondary",
+            "ghost",
+            "destructive"
+          ],
+          "description": "Action button variant.",
+          "default": "destructive"
+        }
+      },
+      "categories": [
+        "overlay"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    "dialog": {
+      "name": "Dialog",
+      "description": "A modal window over the page content. Takes arbitrary children; dismissal behavior is controlled by `purpose`.",
+      "whenNotToUse": "Do not use Dialog for destructive confirmations; use AlertDialog.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "standard",
+            "fullscreen"
+          ],
+          "description": "Dialog variant: fullscreen expands to fill the viewport.",
+          "default": "standard"
+        },
+        "purpose": {
+          "type": "enum",
+          "values": [
+            "required",
+            "form",
+            "info"
+          ],
+          "description": "Controls dismissal: 'required' disables Escape and backdrop click; 'form' disables backdrop click only.",
+          "default": "info"
+        }
+      },
+      "categories": [
+        "overlay"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Dialog/Dialog.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
+      }
+    },
+    "button": {
+      "name": "Button",
+      "description": "Triggers an action when clicked. The accessible label is a REQUIRED string prop (rendered as visible text; used as aria-label when isIconOnly).",
+      "whenToUse": "Use for form submissions, confirmations, or any interaction that needs a clear call to action.",
+      "whenNotToUse": "Do not use a button for navigation; if it only takes the user to another page, use a link instead.",
+      "props": {
+        "label": {
+          "type": "string",
+          "description": "Accessible label. Rendered as visible text by default; used as aria-label when isIconOnly."
+        },
+        "variant": {
+          "type": "enum",
+          "values": [
+            "primary",
+            "secondary",
+            "ghost",
+            "destructive"
+          ],
+          "description": "Reserve primary for the single most important action in the view. Use destructive for irreversible actions.",
+          "default": "primary"
+        },
+        "size": {
+          "type": "enum",
+          "values": [
+            "sm",
+            "md",
+            "lg"
+          ],
+          "description": "Button size.",
+          "default": "md"
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "Whether the button is non-interactive.",
+          "default": false
+        },
+        "isIconOnly": {
+          "type": "boolean",
+          "description": "Icon-only rendering; the label becomes the aria-label.",
+          "default": false
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Tooltip text; recommended for icon-only buttons."
+        }
+      },
+      "categories": [
+        "action"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Button/Button.doc.mjs"
+    },
+    "badge": {
+      "name": "Badge",
+      "description": "A small status or category label.",
+      "whenToUse": "Badge states where the user needs to notice or act. Use success/warning/error only for system status that demands attention; use color variants for category tags.",
+      "whenNotToUse": "Do not apply a success badge to every healthy/active item; if all rows show green badges, none of them communicate anything.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "neutral",
+            "info",
+            "success",
+            "warning",
+            "error",
+            "blue",
+            "cyan",
+            "green",
+            "orange",
+            "pink",
+            "purple",
+            "red",
+            "teal",
+            "yellow"
+          ],
+          "description": "Status variants (neutral/info/success/warning/error) for system state; color variants for category tags."
+        },
+        "label": {
+          "type": "string",
+          "description": "Badge text. Keep to one or two words."
+        }
+      },
+      "categories": [
+        "feedback"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Badge/Badge.doc.mjs"
+    },
+    "card": {
+      "name": "Card",
+      "description": "A container for a discrete item that could be reordered or removed independently.",
+      "whenNotToUse": "Do not default to cards for visual grouping; a heading plus spacing often creates hierarchy without chrome.",
+      "props": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "default",
+            "muted",
+            "blue",
+            "cyan",
+            "gray",
+            "green",
+            "orange",
+            "pink",
+            "purple",
+            "red",
+            "teal",
+            "yellow"
+          ],
+          "description": "Background color variant: 'default' is the standard card background, 'muted' de-emphasises the card. Color variants are for categorization, not status (use Badge or a banner for status).",
+          "default": "default"
+        }
+      },
+      "categories": [
+        "container"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Card/Card.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
+      }
+    },
+    "text-input": {
+      "name": "TextInput",
+      "description": "A single-line text input. The visible label is a REQUIRED string prop.",
+      "whenToUse": "Use for short free-form text. Always provide a visible label; only hide it when surrounding context makes the purpose unambiguous.",
+      "props": {
+        "type": {
+          "type": "enum",
+          "values": [
+            "text",
+            "password",
+            "email"
+          ],
+          "description": "Input type."
+        },
+        "label": {
+          "type": "string",
+          "description": "Visible field label (required by the component API)."
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder text."
+        },
+        "description": {
+          "type": "string",
+          "description": "Helper text below the field."
+        },
+        "isLabelHidden": {
+          "type": "boolean",
+          "description": "Visually hides the label (still announced to screen readers)."
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Marks the field required."
+        },
+        "size": {
+          "type": "enum",
+          "values": [
+            "sm",
+            "md",
+            "lg"
+          ],
+          "description": "Input size.",
+          "default": "md"
+        }
+      },
+      "categories": [
+        "data-input"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/TextInput/TextInput.doc.mjs"
+    },
+    "dropdown-menu": {
+      "name": "DropdownMenu",
+      "description": "A menu opened from a trigger button. DATA-DRIVEN: menu entries are an `items` array prop, not child components — a deliberate Astryx idiom this contract documents as an array-typed prop.",
+      "props": {
+        "items": {
+          "type": "array",
+          "description": "Menu entries: [{label, ...}]. Handlers inside items are not surface-expressible; generation carries labels only."
+        },
+        "hasChevron": {
+          "type": "boolean",
+          "description": "Shows a chevron on the trigger.",
+          "default": true
+        }
+      },
+      "categories": [
+        "action",
+        "overlay"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/DropdownMenu/DropdownMenu.doc.mjs"
+    },
+    "table": {
+      "name": "Table",
+      "description": "Tabular data. DATA-DRIVEN: rows and columns are array props (`data`, `columns`), not sub-components — the second instance of the Astryx data-props idiom.",
+      "props": {
+        "data": {
+          "type": "array",
+          "description": "Row records: each { cells: string[] } aligned with columns.",
+          "required": true,
+          "items": {
+            "type": "object",
+            "properties": {
+              "cells": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "cells"
+            ]
+          }
+        },
+        "columns": {
+          "type": "array",
+          "description": "Header labels for the data columns, e.g. [\"Ingredient\", \"Amount\"]. (The full Astryx TableColumn object shape is not yet contract-specified.)",
+          "required": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "density": {
+          "type": "enum",
+          "values": [
+            "compact",
+            "balanced",
+            "spacious"
+          ],
+          "description": "Row density.",
+          "default": "balanced"
+        },
+        "dividers": {
+          "type": "enum",
+          "values": [
+            "rows",
+            "columns",
+            "grid",
+            "none"
+          ],
+          "description": "Divider style.",
+          "default": "rows"
+        },
+        "isStriped": {
+          "type": "boolean",
+          "description": "Striped rows.",
+          "default": false
+        }
+      },
+      "categories": [
+        "table-list"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Table/Table.doc.mjs"
+    },
+    "text": {
+      "name": "Text",
+      "description": "Body text content.",
+      "props": {
+        "type": {
+          "type": "enum",
+          "values": [
+            "body",
+            "large",
+            "label",
+            "supporting",
+            "code",
+            "display-1",
+            "display-2",
+            "display-3"
+          ],
+          "description": "Semantic text type; determines size, weight, and line-height from the theme. Headings are expressed via the display types (or Astryx's separate Heading component), never via the rendered element.",
+          "default": "body"
+        },
+        "as": {
+          "type": "enum",
+          "values": [
+            "span",
+            "p",
+            "div",
+            "label"
+          ],
+          "description": "Rendered HTML element. Heading tags are not accepted; use `type` for heading-scale text.",
+          "default": "span"
+        }
+      },
+      "categories": [
+        "content"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Text/Text.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express them as child nodes."
+      }
+    },
+    "list": {
+      "name": "List",
+      "description": "A vertical collection of items with consistent spacing, dividers, and optional markers.",
+      "whenToUse": "Use it to display ordered or unordered groups of related content — including groups of selectable options. Lists imply a meaningful collection.",
+      "whenNotToUse": "Do not use a list for a single item or for laying out unrelated content. Records with uniform fields belong in a table.",
+      "props": {
+        "density": {
+          "type": "enum",
+          "values": [
+            "compact",
+            "balanced",
+            "spacious"
+          ],
+          "description": "Item density.",
+          "default": "balanced"
+        },
+        "hasDividers": {
+          "type": "boolean",
+          "description": "Renders dividers between items."
+        }
+      },
+      "categories": [
+        "table-list",
+        "container"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/List/List.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); surfaces express items as child nodes — for a comparison, selectable-card children."
+      }
+    },
+    "selectable-card": {
+      "name": "SelectableCard",
+      "description": "A card that toggles between selected and unselected states with an accent border.",
+      "whenToUse": "Use for plan pickers, filter chips, or option grids — one named option among alternatives, with its selected state visible.",
+      "whenNotToUse": "Do not use for navigation; use ClickableCard for that (not in this contract).",
+      "props": {
+        "label": {
+          "type": "string",
+          "description": "The option's name. Every option is named.",
+          "required": true
+        },
+        "isSelected": {
+          "type": "boolean",
+          "description": "Whether this option is currently selected. Presentational: selection state lives in the shared data model and re-delivers this prop."
+        },
+        "isDisabled": {
+          "type": "boolean",
+          "description": "Whether the option can be chosen."
+        },
+        "variant": {
+          "type": "enum",
+          "values": [
+            "default",
+            "transparent",
+            "muted",
+            "blue",
+            "cyan",
+            "gray",
+            "green",
+            "orange",
+            "pink",
+            "purple",
+            "red",
+            "teal",
+            "yellow"
+          ],
+          "description": "Card background variant, verbatim from SelectableCard's union; color variants categorize rather than signal status.",
+          "default": "default"
+        }
+      },
+      "categories": [
+        "container",
+        "data-input"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/SelectableCard/SelectableCard.doc.mjs",
+      "composition": {
+        "notes": "Takes arbitrary children (ReactNode); an option's content — attributes, badges, actions — are child nodes."
+      }
+    },
+    "metadata-list": {
+      "name": "MetadataList",
+      "description": "Key-value pairs for object attributes, in a structured layout. DATA-DRIVEN: items are an array prop, the same Astryx data-props idiom as Table.",
+      "whenToUse": "MetadataList displays key-value pairs for object attributes like quality, condition, and status. Use it for detail panels, settings summaries, and record information — the attributes that make options comparable.",
+      "whenNotToUse": "Do not use for extensive form input (use a form layout) or for data without a clear key-value structure.",
+      "props": {
+        "items": {
+          "type": "array",
+          "description": "Attribute records, each { label, value } — e.g. { \"label\": \"Storage\", \"value\": \"1 TB\" }.",
+          "required": true,
+          "x-drift": "upstream MetadataList is children-based (MetadataListItem); the contract carries items as data-props because sub-components carry no props under grammar-constrained generation",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "value"
+            ]
+          }
+        },
+        "columns": {
+          "type": "enum",
+          "values": [
+            "single",
+            "multi"
+          ],
+          "description": "Column layout for the attribute grid.",
+          "default": "single"
+        },
+        "orientation": {
+          "type": "enum",
+          "values": [
+            "vertical",
+            "horizontal"
+          ],
+          "description": "Label/value flow direction.",
+          "default": "vertical"
+        }
+      },
+      "categories": [
+        "content"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/MetadataList/MetadataList.doc.mjs",
+      "composition": {
+        "notes": "Upstream MetadataList takes MetadataListItem children; the contract carries items as data-props because sub-components carry no props under grammar-constrained generation — the renderer synthesizes the item children."
+      }
+    }
+  },
+  "categories": {
+    "action": {
+      "name": "Action",
+      "description": "Triggers an operation when activated. Mirrors Astryx's own 'Action' docs category."
+    },
+    "overlay": {
+      "name": "Overlay",
+      "description": "Renders above the page with its own focus and dismiss semantics. Mirrors Astryx's 'Overlay' docs category."
+    },
+    "container": {
+      "name": "Container",
+      "description": "Groups discrete content. Mirrors Astryx's 'Container' docs category."
+    },
+    "content": {
+      "name": "Content",
+      "description": "Static content presentation. Mirrors Astryx's 'Content' docs category."
+    },
+    "data-input": {
+      "name": "Data Input",
+      "description": "Collects user input. Mirrors Astryx's 'Data Input' docs category."
+    },
+    "feedback": {
+      "name": "Feedback & Status",
+      "description": "Communicates state or draws attention. Mirrors Astryx's 'Feedback & Status' docs category."
+    },
+    "table-list": {
+      "name": "Table & List",
+      "description": "Tabular and list data presentation. Mirrors Astryx's 'Table & List' docs category."
+    }
+  },
+  "intents": [
+    {
+      "id": "destructive-action",
+      "name": "Destructive action",
+      "description": "The requested UI performs an irreversible or high-consequence operation: deleting content, revoking access, discarding unsaved changes."
+    },
+    {
+      "id": "scheduling",
+      "name": "Scheduling",
+      "description": "Surfaces that collect a time choice and confirm it."
+    },
+    {
+      "id": "structured-editing",
+      "name": "Structured editing",
+      "description": "Surfaces the user and agent edit together: a structured object rendered for co-editing, with explicit actions to change it."
+    },
+    {
+      "id": "record-collection",
+      "name": "Record collection",
+      "description": "Surfaces that present many records of the same kind — support tickets, orders, members — for scanning and action. Records share uniform fields, so the collection renders as a table; each record carries a status the user reads at a glance, summarized with badges where attention is needed and plain text otherwise."
+    },
+    {
+      "id": "data-collection",
+      "name": "Data collection",
+      "description": "Surfaces that ask the user for information and submit it — signup, contact, profile edits, an RSVP. The ask is stated, the fields are labeled, and the submit action is explicit: at minimum, something to fill in and a way to send it."
+    },
+    {
+      "id": "transactional-review",
+      "name": "Transactional review",
+      "description": "Surfaces that present alternatives for a consequential choice — plans, offers, bookings, products — compared on stated attributes and committed with an explicit action. Options are named, comparable, and at least two; the commitment is a labeled action."
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule.destructive-requires-alertdialog",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "destructive-action"
+        ]
+      },
+      "require": [
+        "alert-dialog"
+      ],
+      "forbid": [
+        "dialog"
+      ],
+      "rationale": "\"Don't use AlertDialog for non-destructive actions; use a standard Dialog instead\" — and its converse: AlertDialog \"asks the user to confirm a destructive or irreversible action before it happens\". A destructive flow must use the confirmation dialog, not the dismissible one — Astryx AlertDialog docs, v0.1.4",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "safety"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    {
+      "id": "rule.alertdialog-carries-content",
+      "type": "required-props",
+      "severity": "must",
+      "component": "alert-dialog",
+      "requiredProps": [
+        {
+          "prop": "title"
+        },
+        {
+          "prop": "description"
+        },
+        {
+          "prop": "actionLabel"
+        }
+      ],
+      "rationale": "title, description, and actionLabel are required by the component API (aria-labelledby / aria-describedby wiring), and \"describe what will happen in the description so the user knows the consequences before confirming\". The schema does not check prop presence; this rule does — Astryx AlertDialog docs, v0.1.4",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "accessibility",
+        "safety"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    {
+      "id": "rule.alertdialog-action-label-specific",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "alert-dialog",
+      "forbiddenProps": [
+        {
+          "prop": "actionLabel",
+          "values": [
+            "OK",
+            "Confirm",
+            "Yes",
+            "Continue"
+          ]
+        }
+      ],
+      "rationale": "\"Make the action button label specific: 'Delete project' is better than 'OK' or 'Confirm'\". The forbidden values are the generic labels the guidance names (plus their nearest kin) — Astryx AlertDialog docs, v0.1.4",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "content"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/AlertDialog/AlertDialog.doc.mjs"
+    },
+    {
+      "id": "rule.button-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "component": "button",
+      "requiredProps": [
+        {
+          "prop": "label"
+        }
+      ],
+      "rationale": "\"Always provide a label for icon-only buttons so screen readers can announce what the button does\" — and label is the component's required accessible name in every mode. The schema does not check prop presence; this rule does — Astryx Button docs, v0.1.4",
+      "examples": [
+        "ex.delete-project-confirmation"
+      ],
+      "tags": [
+        "accessibility"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Button/Button.doc.mjs"
+    },
+    {
+      "id": "rule.input-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "component": "text-input",
+      "requiredProps": [
+        {
+          "prop": "label"
+        }
+      ],
+      "rationale": "\"Always provide a visible label so users know what the field is for. Only hide the label when surrounding context makes the purpose unambiguous\" (and then via isLabelHidden, which keeps it announced — never by omitting it) — Astryx TextInput docs, v0.1.4",
+      "tags": [
+        "accessibility"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/TextInput/TextInput.doc.mjs"
+    },
+    {
+      "id": "rule.dialog-no-nested-overlays",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "dialog",
+      "forbiddenCategories": [
+        "overlay"
+      ],
+      "rationale": "A dialog is a single layer of focus; stacking another overlay (dialog, alert dialog, dropdown menu) inside it breaks focus containment and dismissal semantics. Astryx renders whatever it is passed (guidance-over-enforcement); this rule is the enforcement its docs' modality guidance implies.",
+      "tags": [
+        "accessibility",
+        "interaction"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Dialog/Dialog.doc.mjs"
+    },
+    {
+      "id": "rule.record-collection-requires-table",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "record-collection"
+        ]
+      },
+      "require": [
+        "table"
+      ],
+      "rationale": "\"Table displays structured data in rows and columns with consistent dimensionality\"; \"Use Table for data sets with uniform structure; for simpler or inconsistent data, consider a list or card layout instead\". A record collection is uniform by definition — same fields on every record — so it renders as a table, not as prose or ad-hoc stacks. (The catalog's list component serves heterogeneous and selectable content, per the same docs; uniform records still choose tables. A table-or-list choice set is inexpressible in current rule types — component-choice require is conjunctive — noted as candidate dspack-gen work if a scenario ever needs it.) — Astryx Table docs, v0.1.4",
+      "examples": [
+        "ex.support-ticket-triage"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Table/Table.doc.mjs"
+    },
+    {
+      "id": "rule.table-carries-data",
+      "type": "required-props",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "record-collection"
+        ]
+      },
+      "component": "table",
+      "requiredProps": [
+        {
+          "prop": "columns"
+        },
+        {
+          "prop": "data"
+        }
+      ],
+      "rationale": "The catalog's Table is \"DATA-DRIVEN: rows and columns are array props (`data`, `columns`), not sub-components\" — a table without its `data` prop renders an empty shell, records nowhere to be seen. Born from observed live runs: gpt-oss reliably emitted the table shell and omitted the rows until this rule made the pipeline ask for them. — Astryx Table docs, v0.1.4",
+      "examples": [
+        "ex.support-ticket-triage"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/Table/Table.doc.mjs"
+    },
+    {
+      "id": "rule.data-collection-requires-input-and-action",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "data-collection"
+        ]
+      },
+      "require": [
+        "text-input",
+        "button"
+      ],
+      "rationale": "\"TextInput collects short-form text like names, emails, or search queries\"; Button \"triggers an action when clicked. Use it for form submissions, confirmations, navigation, or any interaction that needs a clear call to action\". An ask without a field is not a form, and a form that cannot be submitted does not ship: a data-collection surface carries at least one input and an explicit action. No layout, field count, or form shape is mandated. — Astryx TextInput and Button docs, v0.1.4",
+      "examples": [
+        "ex.signup-basic"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/TextInput/TextInput.doc.mjs"
+    },
+    {
+      "id": "rule.review-presents-options",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "require": [
+        "list",
+        "selectable-card",
+        "button"
+      ],
+      "rationale": "SelectableCard is for \"plan pickers, filter chips, or option grids\"; List renders \"ordered or unordered groups of related content\" — \"lists imply a meaningful collection\"; Button \"triggers an action when clicked … any interaction that needs a clear call to action\". A review surface presents its options as a collection of named selectable cards with an explicit committing action — not prose, not a bare recommendation. — Astryx SelectableCard, List, and Button docs, v0.1.4",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/SelectableCard/SelectableCard.doc.mjs"
+    },
+    {
+      "id": "rule.review-offers-alternatives",
+      "type": "required-composition",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "list",
+      "requiredSubComponents": [
+        {
+          "id": "selectable-card",
+          "min": 2
+        }
+      ],
+      "rationale": "A choice of one is not a comparison: a review's option list carries at least two selectable cards. (Under this intent, lists are option groups; the floor applies to every list on the surface. Exact counts and upper bounds are inexpressible in current rule types and remain guidance.)",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/List/List.doc.mjs"
+    },
+    {
+      "id": "rule.option-states-attributes",
+      "type": "required-composition",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "selectable-card",
+      "requiredSubComponents": [
+        {
+          "id": "metadata-list",
+          "min": 1
+        }
+      ],
+      "rationale": "\"MetadataList displays key-value pairs for object attributes\" — an option you can compare states what it offers as structured attributes, not free prose. Every selectable card under this intent carries a metadata list. — Astryx MetadataList docs, v0.1.4",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/MetadataList/MetadataList.doc.mjs"
+    },
+    {
+      "id": "rule.metadata-carries-items",
+      "type": "required-props",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "metadata-list",
+      "requiredProps": [
+        {
+          "prop": "items"
+        }
+      ],
+      "rationale": "The catalog's MetadataList is data-driven: attributes are `{ label, value }` records. A metadata list without its items renders an empty shell, attributes nowhere to be seen — the same class of failure rule.table-carries-data guards against for tables.",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/MetadataList/MetadataList.doc.mjs"
+    },
+    {
+      "id": "rule.option-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "appliesTo": {
+        "intents": [
+          "transactional-review"
+        ]
+      },
+      "component": "selectable-card",
+      "requiredProps": [
+        {
+          "prop": "label"
+        }
+      ],
+      "rationale": "Every option is named: SelectableCard's label is how an alternative is identified, compared, and announced. An unnamed option cannot be chosen deliberately. — Astryx SelectableCard docs, v0.1.4",
+      "examples": [
+        "ex.plan-comparison"
+      ],
+      "tags": [
+        "accessibility",
+        "structure"
+      ],
+      "x-source": "https://github.com/facebook/astryx/blob/v0.1.4/packages/core/src/SelectableCard/SelectableCard.doc.mjs"
+    }
+  ],
+  "examples": [
+    {
+      "id": "ex.delete-project-confirmation",
+      "intent": "destructive-action",
+      "name": "Delete project confirmation",
+      "prompt": "a screen to delete a project",
+      "description": "A card presenting the destructive entry point (a labeled destructive button) alongside the AlertDialog carrying its required title, consequence description, and a specific action label — the Astryx props-based idiom (no trigger sub-component).",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "destructive-action",
+        "root": {
+          "component": "card",
+          "children": [
+            {
+              "component": "text",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Danger zone"
+            },
+            {
+              "component": "text",
+              "props": {
+                "as": "p"
+              },
+              "text": "Deleting a project removes all of its data permanently."
+            },
+            {
+              "component": "button",
+              "props": {
+                "label": "Delete project",
+                "variant": "destructive"
+              }
+            },
+            {
+              "component": "alert-dialog",
+              "props": {
+                "title": "Delete this project?",
+                "description": "This action cannot be undone. The project and all its data will be permanently removed.",
+                "actionLabel": "Delete project",
+                "cancelLabel": "Cancel",
+                "actionVariant": "destructive"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.book-consultation",
+      "intent": "scheduling",
+      "name": "Book a consultation",
+      "prompt": "a screen to book a consultation time",
+      "description": "A card collecting the booker's name (labeled, required) beside selectable time buttons and an explicit, specifically-labeled confirm action — time choice and confirmation on one surface.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "scheduling",
+        "root": {
+          "component": "card",
+          "id": "booking-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Book a consultation"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Pick a time that works. Your name is required to hold the slot."
+            },
+            {
+              "component": "text-input",
+              "id": "name-input",
+              "props": {
+                "label": "Your name",
+                "placeholder": "Ada Lovelace",
+                "isRequired": true
+              }
+            },
+            {
+              "component": "text",
+              "id": "status",
+              "props": {
+                "type": "supporting"
+              },
+              "text": "Pick a time to begin."
+            },
+            {
+              "component": "button",
+              "id": "slot-0900",
+              "props": {
+                "label": "9:00",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "slot-1030",
+              "props": {
+                "label": "10:30",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "slot-1400",
+              "props": {
+                "label": "14:00",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "confirm",
+              "props": {
+                "label": "Confirm booking",
+                "variant": "primary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "cancel",
+              "props": {
+                "label": "Start over",
+                "variant": "ghost"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.recipe-creator",
+      "intent": "structured-editing",
+      "name": "Recipe creator",
+      "prompt": "an editable weeknight recipe with servings and dietary constraints",
+      "description": "A card presenting a co-edited structured object: a titled recipe with a dietary badge, labeled servings controls, an ingredients table, a labeled constraint input, a bound status line, and explicit edit/regenerate actions.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "structured-editing",
+        "root": {
+          "component": "card",
+          "id": "recipe-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Weeknight pasta"
+            },
+            {
+              "component": "badge",
+              "id": "diet-badge",
+              "props": {
+                "label": "no constraints",
+                "variant": "neutral"
+              }
+            },
+            {
+              "component": "text",
+              "id": "servings-label",
+              "props": {
+                "type": "body"
+              },
+              "text": "Servings: 2"
+            },
+            {
+              "component": "button",
+              "id": "servings-down",
+              "props": {
+                "label": "Fewer servings",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "button",
+              "id": "servings-up",
+              "props": {
+                "label": "More servings",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "table",
+              "id": "ingredients",
+              "props": {
+                "columns": [
+                  "Ingredient",
+                  "Amount"
+                ],
+                "data": [
+                  {
+                    "cells": [
+                      "Spaghetti",
+                      "180 g"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "Pancetta",
+                      "80 g"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "Parmesan",
+                      "50 g"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "Cherry tomatoes",
+                      "240 g"
+                    ]
+                  }
+                ],
+                "density": "compact"
+              }
+            },
+            {
+              "component": "text-input",
+              "id": "constraint-input",
+              "props": {
+                "label": "Dietary constraint",
+                "placeholder": "vegetarian, vegan, or gluten-free"
+              }
+            },
+            {
+              "component": "button",
+              "id": "apply-constraint",
+              "props": {
+                "label": "Apply constraint",
+                "variant": "secondary"
+              }
+            },
+            {
+              "component": "text",
+              "id": "status",
+              "props": {
+                "type": "supporting"
+              },
+              "text": "Edit servings or add a constraint."
+            },
+            {
+              "component": "button",
+              "id": "regenerate",
+              "props": {
+                "label": "Regenerate recipe",
+                "variant": "primary"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.support-ticket-triage",
+      "intent": "record-collection",
+      "name": "Support-ticket triage",
+      "prompt": "a triage view of open support tickets with status and priority",
+      "description": "A card leading with a badge strip summarizing queue status, above a compact table of the open tickets — the collection renders as a table; statuses that need attention are badged, the rest stay plain text.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "record-collection",
+        "root": {
+          "component": "card",
+          "id": "triage-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Open support tickets"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Newest first. Statuses update as agents respond."
+            },
+            {
+              "component": "badge",
+              "id": "badge-urgent",
+              "props": {
+                "variant": "error",
+                "label": "2 urgent"
+              }
+            },
+            {
+              "component": "badge",
+              "id": "badge-waiting",
+              "props": {
+                "variant": "warning",
+                "label": "3 waiting"
+              }
+            },
+            {
+              "component": "badge",
+              "id": "badge-replied",
+              "props": {
+                "variant": "info",
+                "label": "4 replied"
+              }
+            },
+            {
+              "component": "table",
+              "id": "tickets",
+              "props": {
+                "columns": [
+                  "Ticket",
+                  "Subject",
+                  "Status",
+                  "Priority"
+                ],
+                "data": [
+                  {
+                    "cells": [
+                      "#4812",
+                      "Cannot export session receipts",
+                      "Waiting on support",
+                      "Urgent"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "#4809",
+                      "Replay stalls at event 12",
+                      "Replied",
+                      "High"
+                    ]
+                  },
+                  {
+                    "cells": [
+                      "#4801",
+                      "Billing address will not save",
+                      "Waiting on customer",
+                      "Normal"
+                    ]
+                  }
+                ],
+                "density": "compact"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.signup-basic",
+      "intent": "data-collection",
+      "name": "Signup, name and email",
+      "prompt": "a signup form asking for name and email, with a clear call to action",
+      "description": "A card stating the ask, two labeled fields, and one explicit primary action — something to fill in and a way to send it, every field labeled.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "data-collection",
+        "root": {
+          "component": "card",
+          "id": "signup-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Create your account"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Name and email is all it takes. You can add the rest later."
+            },
+            {
+              "component": "text-input",
+              "id": "name-input",
+              "props": {
+                "label": "Your name",
+                "placeholder": "Ada Lovelace",
+                "isRequired": true
+              }
+            },
+            {
+              "component": "text-input",
+              "id": "email-input",
+              "props": {
+                "type": "email",
+                "label": "Email address",
+                "placeholder": "ada@example.com",
+                "description": "We send a confirmation link, nothing else.",
+                "isRequired": true
+              }
+            },
+            {
+              "component": "button",
+              "id": "submit",
+              "props": {
+                "label": "Create account",
+                "variant": "primary"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ex.plan-comparison",
+      "intent": "transactional-review",
+      "name": "Plan comparison",
+      "prompt": "compare the available plans and choose one",
+      "description": "Two named plans as selectable cards in a list, each stating its attributes as a metadata list, with one explicit committing action. Deliberately not a hotel: the intent is domain-neutral, and the scenario that validates it comes from a different domain.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "Astryx",
+        "intent": "transactional-review",
+        "root": {
+          "component": "card",
+          "id": "compare-card",
+          "children": [
+            {
+              "component": "text",
+              "id": "title",
+              "props": {
+                "type": "display-3"
+              },
+              "text": "Choose a plan"
+            },
+            {
+              "component": "text",
+              "id": "intro",
+              "props": {
+                "type": "body"
+              },
+              "text": "Two plans, compared on what they include. Pick one to continue."
+            },
+            {
+              "component": "list",
+              "id": "plans",
+              "props": {
+                "density": "balanced"
+              },
+              "children": [
+                {
+                  "component": "selectable-card",
+                  "id": "plan-basic",
+                  "props": {
+                    "label": "Basic",
+                    "isSelected": false
+                  },
+                  "children": [
+                    {
+                      "component": "metadata-list",
+                      "id": "basic-attrs",
+                      "props": {
+                        "items": [
+                          {
+                            "label": "Price",
+                            "value": "$5/mo"
+                          },
+                          {
+                            "label": "Storage",
+                            "value": "50 GB"
+                          },
+                          {
+                            "label": "Support",
+                            "value": "Community"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "component": "selectable-card",
+                  "id": "plan-pro",
+                  "props": {
+                    "label": "Pro",
+                    "isSelected": true,
+                    "variant": "blue"
+                  },
+                  "children": [
+                    {
+                      "component": "metadata-list",
+                      "id": "pro-attrs",
+                      "props": {
+                        "items": [
+                          {
+                            "label": "Price",
+                            "value": "$12/mo"
+                          },
+                          {
+                            "label": "Storage",
+                            "value": "1 TB"
+                          },
+                          {
+                            "label": "Support",
+                            "value": "Priority"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "component": "badge",
+                      "id": "pro-badge",
+                      "props": {
+                        "variant": "info",
+                        "label": "Most popular"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "component": "button",
+              "id": "choose",
+              "props": {
+                "label": "Choose plan",
+                "variant": "primary"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

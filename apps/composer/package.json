@@ -13,8 +13,11 @@
   "dependencies": {
     "@aestheticfunction/dspack-gen": "^0.3.2",
     "@aestheticfunction/dspack-spec": "^0.4.4",
+    "@astryxdesign/core": "0.1.4",
+    "@astryxdesign/theme-neutral": "0.1.4",
     "@dspack-studio/a2ui-ingest": "workspace:*",
     "@dspack-studio/agui-bridge": "workspace:*",
+    "@dspack-studio/astryx-renderers": "workspace:*",
     "@dspack-studio/composer-core": "workspace:*",
     "@dspack-studio/shadcn-renderers": "workspace:*",
     "@dspack-studio/wireframe-renderers": "workspace:*",

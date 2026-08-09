@@ -18,6 +18,7 @@ import {
   transform,
   emitSurface,
   shadcnProfile,
+  loadProfile,
   EmitSurfaceError,
   type A2uiVersion,
   type DspackDoc,
@@ -128,6 +129,72 @@ for (const version of ["0.9.1", "1.0"] as A2uiVersion[]) {
     if (!gate.pass && gate.errors) for (const e of gate.errors) console.log(`      ${e}`);
   }
   if (!validation.pass) failed = true;
+}
+
+// 4) The PRODUCTION shadcn catalog (shadcn/ui v3.2.0): the studio-authored
+// contract the hosted composer actually renders — 27 A2UI components including
+// Select and Alert — baked HERE so the packaged shadcn renderers can be
+// validated in-package against the real vocabulary they serve. `contracts/out`
+// is rebuilt by this package's `prepare`; the composer's own project `out/` is
+// gitignored and not present in a fresh CI checkout, so a package test cannot
+// read it. This file is a DRIFT-GUARDED byte-copy of
+// apps/composer/shadcn-v3-project/{shadcn-ui.dspack.json,shadcn-v3.profile.json}
+// (the studio's established copy idiom; the composer suite asserts equality).
+// Ownership consolidates into this package when the reference projects are
+// unified — the composer then consumes this packaged reference.
+//
+// TOLERANT of per-example emission refusals: unlike the minimal upstream
+// reference above, the production contract carries acknowledged casualties
+// (pagination/breadcrumb/tooltip), so an example that refuses is recorded, not
+// fatal. The CATALOG gates still bind (they pass: the hosted composer ships
+// this catalog), exactly as the composer's own tolerant demo bake does.
+const shadcnV3Doc = JSON.parse(readFileSync(join(root, "shadcn-v3.dspack.json"), "utf8")) as DspackDoc;
+const shadcnV3Profile = loadProfile(
+  JSON.parse(readFileSync(join(root, "shadcn-v3.profile.json"), "utf8")),
+);
+const shadcnV3Examples = ((shadcnV3Doc as any).examples ?? []) as Array<{ id: string; surface: unknown }>;
+const shadcnV3Messages: unknown[] = [];
+let shadcnV3Casualties = 0;
+for (const example of shadcnV3Examples) {
+  if (!example?.surface) continue;
+  try {
+    const emitted = emitSurface(example.surface as DspackSurface, shadcnV3Doc, { profile: shadcnV3Profile });
+    shadcnV3Messages.push(...emitted.messages);
+  } catch (err) {
+    if (err instanceof EmitSurfaceError) {
+      shadcnV3Casualties += 1;
+      console.log(`  [shadcn-v3 casualty] ${example.id}: ${err.message}`);
+      continue;
+    }
+    throw err;
+  }
+}
+for (const version of ["0.9.1", "1.0"] as A2uiVersion[]) {
+  const { catalog, validation, report } = transform(
+    shadcnV3Doc,
+    version,
+    { messages: shadcnV3Messages },
+    shadcnV3Profile,
+  );
+  writeFileSync(join(outDir, `catalog.shadcn-v3.v${fileTag(version)}.json`), JSON.stringify(catalog, null, 2));
+  writeFileSync(join(outDir, `report.shadcn-v3.v${fileTag(version)}.json`), JSON.stringify(report, null, 2));
+  const componentCount = Object.keys(catalog.components).length;
+  console.log(
+    `A2UI ${version} (shadcn-v3 production contract): ${componentCount} components, ${shadcnV3Casualties} casualty examples`,
+  );
+  for (const gate of validation.gates) {
+    if (!gate.pass) {
+      console.log(`  [FAIL] ${gate.name} — ${gate.detail}`);
+      if (gate.errors) for (const e of gate.errors) console.log(`      ${e}`);
+    }
+  }
+  if (!validation.pass) failed = true;
+  // Sanity floor: a truly broken bake must be loud even if the gates somehow
+  // passed. Select/Alert are the two renderers this milestone made native.
+  if (!catalog.components.Select || !catalog.components.Alert) {
+    console.error(`shadcn-v3 catalog missing Select/Alert (${componentCount} components) — bake is wrong`);
+    failed = true;
+  }
 }
 
 if (failed) {

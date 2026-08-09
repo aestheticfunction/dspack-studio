@@ -23,6 +23,8 @@ import { ListRender } from "./components/ListRender";
 import { SelectableCardRender } from "./components/SelectableCardRender";
 import { MetadataListRender } from "./components/MetadataListRender";
 import { DialogRender } from "./components/DialogRender";
+import { SelectRender } from "./components/SelectRender";
+import { AlertRender } from "./components/AlertRender";
 
 const renders = {
   Text: TextRender,
@@ -37,6 +39,8 @@ const renders = {
   SelectableCard: SelectableCardRender,
   MetadataList: MetadataListRender,
   Dialog: DialogRender,
+  Select: SelectRender,
+  Alert: AlertRender,
 };
 
 export const shadcnRegistry: Registry = {

@@ -1,0 +1,10 @@
+{
+  "composerProject": "0.1",
+  "name": "Astryx",
+  "adapter": "react-generic",
+  "catalogIdBase": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx",
+  "contractPath": "astryx.dspack.json",
+  "profilePath": "astryx.profile.json",
+  "outDir": "out",
+  "previewRegistry": "astryx"
+}

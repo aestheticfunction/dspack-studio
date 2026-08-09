@@ -14,8 +14,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
-import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
-import { shadcnRegistry } from "@dspack-studio/shadcn-renderers";
+import { registryFor, canvasScopeFor } from "../registries";
 import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel } from "@dspack-studio/composer-core";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
@@ -145,16 +144,17 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 
   if (!emitted) return null;
   // Native design-system rendering is the default; wireframe is the universal
-  // fallback/inspection mode. shadcn components need a light canvas + the
-  // design-system scope (mirrors the Preview view).
-  const isShadcn = manifest?.previewRegistry === "shadcn";
-  const registry = isShadcn ? shadcnRegistry : wireframeRegistryFor(emitted.catalog as never);
+  // fallback/inspection mode. The project's previewRegistry picks which — no
+  // per-design-system branching lives here (see ../registries).
+  const registryId = manifest?.previewRegistry;
+  const registry = registryFor(registryId, emitted.catalog);
+  const scope = canvasScopeFor(registryId);
   return (
     <div
       data-testid={`build-canvas-${turn.id}`}
       data-project-canvas="build"
-      {...(isShadcn ? { "data-design-system": "shadcn", "data-mode": "light" } : {})}
-      style={{ border: "1px solid var(--line)", borderRadius: 4, padding: 16, marginTop: 8, background: isShadcn ? "#ffffff" : "var(--bg-1)" }}
+      {...scope.attrs}
+      style={{ border: "1px solid var(--line)", borderRadius: 4, padding: 16, marginTop: 8, background: scope.background }}
     >
       <A2uiCanvas catalog={emitted.catalog as never} registry={registry} messages={emitted.messages as never} onAction={() => undefined} />
     </div>
@@ -331,7 +331,8 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 }
 
 export function BuildView() {
-  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, runBuild } = useComposer();
+  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, runBuild, references, referenceId, loadReference } =
+    useComposer();
   const [prompt, setPrompt] = useState("");
   const [modelRef, setModelRef] = useState<string | null>(null);
   // "" = auto: the governed context is INFERRED from the goal. A specific value
@@ -369,6 +370,33 @@ export function BuildView() {
         Describe what you want to build, in your own words. The Composer works out the governed context, builds it from
         this project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
       </p>
+
+      {mode !== "agent" && (
+        <div style={{ margin: "12px 0 2px" }} data-testid="ds-source-picker">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: "var(--fg-dim)" }}>
+            <span>design system</span>
+            {references.map((r) => (
+              <button
+                key={r.id}
+                className={`st-btn${referenceId === r.id ? " st-btn--active" : ""}`}
+                onClick={() => loadReference(r.id)}
+                disabled={buildBusy}
+                title={r.blurb}
+                data-testid={`ds-source-${r.id}`}
+                aria-pressed={referenceId === r.id}
+              >
+                {r.label}
+              </button>
+            ))}
+            <span style={{ color: "var(--fg-faint)" }}>
+              · or import a dspack contract / connect your own library via the local agent
+            </span>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "5px 0 0" }} data-testid="ds-source-blurb">
+            {references.find((r) => r.id === referenceId)?.blurb}
+          </p>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 8, margin: "12px 0 6px" }}>
         <input

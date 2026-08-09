@@ -1,0 +1,1748 @@
+{
+  "profileVersion": "2",
+  "catalogTitle": "shadcn/ui v3 — production A2UI catalog",
+  "catalogDescription": "Production profile for the shadcn/ui v3 contract (34 components), authored on the dspack-emit v2 representation vocabulary (T1-T4 + A0). Promoted from the measured eval fixture; the four families A2UI cannot yet represent are declared casualties with reasons.",
+  "catalogIdBase": "https://aesthetic-function.com/catalogs/shadcn-v3",
+  "instructions": "For layout, use the Column component to organize other components.",
+  "primaryColorToken": {
+    "category": "color",
+    "name": "primary"
+  },
+  "components": [
+    {
+      "a2ui": "Button",
+      "dspackId": "button",
+      "commons": [
+        "ComponentCommon",
+        "Checkable"
+      ],
+      "structural": {
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The ID of the child component to render inside the button (e.g. a Text). Referenced by ID; not defined inline.",
+          "synthNote": "A2UI Buttons render a child component by ID; dspack Button has no equivalent slot (children are arbitrary React nodes)."
+        },
+        "action": {
+          "schema": {
+            "$ref": "#/$defs/Action"
+          },
+          "description": "The interaction dispatched when the button is activated.",
+          "synthNote": "A2UI requires a declarative action; dspack expresses this as an onClick handler prop, which is not representable in a declarative catalog."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "default",
+            "primary",
+            "borderless"
+          ],
+          "valueMap": {
+            "default": "primary",
+            "destructive": "default",
+            "outline": "default",
+            "secondary": "default",
+            "ghost": "borderless",
+            "link": "borderless"
+          },
+          "default": "primary",
+          "description": "Button style hint, projected from shadcn variants onto the A2UI basic vocabulary."
+        }
+      },
+      "required": [
+        "child",
+        "action"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.text"
+            ],
+            "to": "textChild:child",
+            "overwrite": true
+          },
+          {
+            "from": [
+              "synthesized.action"
+            ],
+            "to": "action:action"
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "AlertDialog",
+      "dspackId": "alert-dialog",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "triggerLabel": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Label of the button that opens the confirmation.",
+          "synthNote": "Trigger modeled as a label, not an AlertDialogTrigger sub-component."
+        },
+        "title": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Confirmation title.",
+          "synthNote": "From AlertDialogTitle."
+        },
+        "description": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Consequence description shown in the confirmation.",
+          "synthNote": "From AlertDialogDescription."
+        },
+        "confirmLabel": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Label of the destructive confirm action.",
+          "synthNote": "From AlertDialogAction."
+        },
+        "cancelLabel": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Label of the cancel action.",
+          "synthNote": "From AlertDialogCancel."
+        },
+        "action": {
+          "schema": {
+            "$ref": "#/$defs/Action"
+          },
+          "description": "Event dispatched when the user confirms the destructive action.",
+          "synthNote": "A2UI declarative action; dspack expresses this as an onClick handler."
+        }
+      },
+      "required": [
+        "triggerLabel",
+        "title",
+        "action"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(alert-dialog-title).text"
+            ],
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-cancel).text"
+            ],
+            "to": "prop:cancelLabel"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-action).text"
+            ],
+            "to": "prop:confirmLabel"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-trigger).label",
+              "sub(alert-dialog-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "synthesized.action"
+            ],
+            "to": "action:action"
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Dialog",
+      "dspackId": "dialog",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "title": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The dialog's title (aria-labelledby).",
+          "synthNote": "Lifted from dialog-title."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting context under the title.",
+          "synthNote": "Lifted from dialog-description."
+        },
+        "triggerLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the control that opens the dialog.",
+          "synthNote": "Lifted from the trigger's button label (the alert-dialog idiom)."
+        },
+        "closeLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the explicit close control.",
+          "synthNote": "Lifted from dialog-close."
+        },
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The dialog body: content minus the claimed regions, Column-wrapped when several.",
+          "synthNote": "T4 slot route from dialog-content's children."
+        },
+        "footer": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The action row minus the close control.",
+          "synthNote": "T4 slot route from dialog-footer's children."
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(dialog-title).text"
+            ],
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(dialog-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(dialog-trigger).label",
+              "sub(dialog-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(dialog-close).text"
+            ],
+            "to": "prop:closeLabel"
+          },
+          {
+            "from": [
+              "sub(dialog-content).children"
+            ],
+            "to": "slot:child"
+          },
+          {
+            "from": [
+              "sub(dialog-footer).children"
+            ],
+            "to": "slot:footer"
+          }
+        ],
+        "subs": {
+          "dialog-header": "transparent"
+        }
+      }
+    },
+    {
+      "a2ui": "Card",
+      "dspackId": "card",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The ID of the single child component. Wrap multiple elements in a Column and pass its ID.",
+          "synthNote": "A2UI Card takes exactly one child by ID; dspack Card composes via sub-components (CardHeader/CardContent/CardFooter), which flatten (subFlatten strategy: grouping subs splice their children inline; title/description synthesize Text) and collapse to a single, possibly Column-wrapped, child slot."
+        }
+      },
+      "required": [
+        "child"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "children"
+            ],
+            "to": "slot:child"
+          }
+        ],
+        "subs": {
+          "card-header": "transparent",
+          "card-content": "transparent",
+          "card-footer": "transparent",
+          "card-title": {
+            "asText": "h3"
+          },
+          "card-description": {
+            "asText": "caption"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "TextField",
+      "dspackId": "input",
+      "commons": [
+        "ComponentCommon",
+        "Checkable"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The text label for the input field.",
+          "synthNote": "A2UI TextField owns its label; dspack Input relies on an external <label> element, so the label is synthesized."
+        },
+        "value": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The bound value of the text field.",
+          "synthNote": "A2UI two-way-binds value; dspack Input has no value prop in the contract."
+        }
+      },
+      "propMap": {
+        "type": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "shortText",
+            "longText",
+            "number",
+            "obscured"
+          ],
+          "valueMap": {
+            "text": "shortText",
+            "email": "shortText",
+            "search": "shortText",
+            "password": "obscured",
+            "number": "number"
+          },
+          "default": "shortText",
+          "description": "Input kind, projected from the HTML input type onto A2UI TextField variants."
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.text"
+            ],
+            "to": "prop:label",
+            "overwrite": true
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Badge",
+      "dspackId": "badge",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The badge text.",
+          "synthNote": "A2UI has no Badge; the label is synthesized from the badge's text child."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "default",
+            "secondary",
+            "outline",
+            "destructive"
+          ],
+          "default": "default",
+          "description": "Badge visual treatment (carried verbatim from shadcn; the React visual honors all four)."
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.text"
+            ],
+            "to": "prop:label",
+            "overwrite": true
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "DropdownMenu",
+      "dspackId": "dropdown-menu",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "triggerLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the element that opens the menu.",
+          "synthNote": "Lifted from the trigger's button label."
+        },
+        "menuLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The non-interactive heading above the items.",
+          "synthNote": "Lifted from dropdown-menu-label."
+        },
+        "items": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": "The actionable menu items, in order.",
+          "synthNote": "T2 item-mode collect — the menu is DATA, not slots; measurement overruled the historic T4 classification."
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(dropdown-menu-trigger).label",
+              "sub(dropdown-menu-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(dropdown-menu-label).text"
+            ],
+            "to": "prop:menuLabel"
+          }
+        ],
+        "collects": [
+          {
+            "of": [
+              "dropdown-menu-item"
+            ],
+            "into": "prop:items",
+            "item": {
+              "label": "self.text"
+            }
+          }
+        ],
+        "subs": {
+          "dropdown-menu-separator": {
+            "drop": "a visual divider between item groups; grouping is not carried by the flat items shape"
+          },
+          "dropdown-menu-group": {
+            "drop": "grouping chrome; no worked example gives it meaning beyond adjacency"
+          },
+          "dropdown-menu-checkbox-item": {
+            "drop": "no worked example exercises it; a toggleable item is a different record shape to measure, not guess"
+          },
+          "dropdown-menu-radio-group": {
+            "drop": "no worked example exercises it"
+          },
+          "dropdown-menu-radio-item": {
+            "drop": "no worked example exercises it"
+          },
+          "dropdown-menu-sub": {
+            "drop": "nested menus are unmeasured; representing them is a decision for evidence, not defaults"
+          },
+          "dropdown-menu-sub-trigger": {
+            "drop": "belongs to the unmeasured nested-menu shape"
+          },
+          "dropdown-menu-sub-content": {
+            "drop": "belongs to the unmeasured nested-menu shape"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "Table",
+      "dspackId": "table",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "caption": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Accessible caption naming the table.",
+          "synthNote": "A2UI has no Table; caption synthesized from TableCaption."
+        },
+        "columns": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Header labels for the data columns (a trailing status column is rendered separately).",
+          "synthNote": "Static column labels; A2UI has no table-header primitive."
+        },
+        "rows": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "description": "Row records, each { cells: string[] }.",
+          "synthNote": "Row data carried as a static array; A2UI has no tabular data model."
+        }
+      },
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.props.caption"
+            ],
+            "to": "prop:caption"
+          },
+          {
+            "from": [
+              "self.props.columns"
+            ],
+            "to": "prop:columns"
+          },
+          {
+            "from": [
+              "self.props.rows"
+            ],
+            "to": "prop:rows"
+          },
+          {
+            "from": [
+              "sub(table-caption).subtreeText"
+            ],
+            "to": "prop:caption"
+          }
+        ],
+        "collects": [
+          {
+            "of": [
+              "table-header"
+            ],
+            "into": "prop:columns",
+            "shape": "flat",
+            "row": [
+              "table-row"
+            ],
+            "cells": [
+              "table-cell",
+              "table-head"
+            ]
+          },
+          {
+            "of": [
+              "table-body"
+            ],
+            "into": "prop:rows",
+            "shape": "records",
+            "field": "cells",
+            "row": [
+              "table-row"
+            ],
+            "cells": [
+              "table-cell",
+              "table-head"
+            ]
+          }
+        ],
+        "subs": {
+          "table-footer": {
+            "drop": "summary rows have no slot in the synthesized caption/columns/rows shape"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "Popover",
+      "dspackId": "popover",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "title": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The panel's visible title.",
+          "synthNote": "Lifted from popover-title."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting copy beneath the title.",
+          "synthNote": "Lifted from popover-description."
+        },
+        "triggerLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the control that toggles the popover.",
+          "synthNote": "Lifted from the trigger's button label."
+        },
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The panel body beyond title and description; absent when the measured body is empty.",
+          "synthNote": "T4 slot route from popover-content's children; the worked example's body is empty after the header dissolves."
+        }
+      },
+      "required": [
+        "triggerLabel"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(popover-title).text"
+            ],
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(popover-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(popover-trigger).label",
+              "sub(popover-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(popover-content).children"
+            ],
+            "to": "slot:child"
+          }
+        ],
+        "subs": {
+          "popover-header": "transparent",
+          "popover-anchor": {
+            "drop": "no worked example exercises it; an alternative positioning reference is presentation until measured"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "Sheet",
+      "dspackId": "sheet",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "title": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The panel's title.",
+          "synthNote": "Lifted from sheet-title."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting copy beneath the title.",
+          "synthNote": "Lifted from sheet-description."
+        },
+        "triggerLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the control that opens the sheet.",
+          "synthNote": "Lifted from the trigger's button label."
+        },
+        "closeLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the explicit close control.",
+          "synthNote": "Lifted from sheet-close."
+        },
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The panel body: content minus the claimed regions, Column-wrapped when several.",
+          "synthNote": "T4 slot route from sheet-content's children."
+        },
+        "footer": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The action row minus the close control.",
+          "synthNote": "T4 slot route from sheet-footer's children."
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(sheet-title).text"
+            ],
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(sheet-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(sheet-trigger).label",
+              "sub(sheet-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(sheet-close).text"
+            ],
+            "to": "prop:closeLabel"
+          },
+          {
+            "from": [
+              "sub(sheet-content).children"
+            ],
+            "to": "slot:child"
+          },
+          {
+            "from": [
+              "sub(sheet-footer).children"
+            ],
+            "to": "slot:footer"
+          }
+        ],
+        "subs": {
+          "sheet-header": "transparent"
+        }
+      }
+    },
+    {
+      "a2ui": "Field",
+      "dspackId": "field",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "surface": {
+        "transparent": {
+          "donate": [
+            {
+              "from": "sub(field-label).text",
+              "to": "prop:label"
+            }
+          ]
+        },
+        "subs": {
+          "field-content": "transparent",
+          "field-title": {
+            "asText": "h4"
+          },
+          "field-description": {
+            "asText": "caption"
+          },
+          "field-error": {
+            "drop": "validation state is runtime data the declarative surface does not carry (mirrors form-message)"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "FieldSet",
+      "dspackId": "field-set",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "surface": {
+        "transparent": true,
+        "subs": {
+          "field-legend": {
+            "asText": "h4"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "FieldGroup",
+      "dspackId": "field-group",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "surface": {
+        "transparent": true,
+        "subs": {
+          "field-separator": {
+            "drop": "a visual section boundary; its optional inline text is presentation of the divider, and no worked example carries one"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "Form",
+      "dspackId": "form",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "surface": {
+        "transparent": true,
+        "subs": {
+          "form-field": "transparent",
+          "form-control": "transparent",
+          "form-item": {
+            "transparent": {
+              "donate": [
+                {
+                  "from": "sub(form-label).text",
+                  "to": "prop:label"
+                }
+              ]
+            }
+          },
+          "form-description": {
+            "asText": "caption"
+          },
+          "form-message": {
+            "drop": "validation state is runtime data the declarative surface does not carry"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "Separator",
+      "dspackId": "separator",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "propMap": {
+        "orientation": {
+          "a2ui": "orientation",
+          "kind": "enum",
+          "targetEnum": [
+            "horizontal",
+            "vertical"
+          ],
+          "default": "horizontal",
+          "description": "The axis the rule divides across. Horizontal separates stacked content; vertical separates content sitting side by side."
+        },
+        "decorative": {
+          "a2ui": "decorative",
+          "kind": "boolean",
+          "description": "Whether the rule is purely visual. At the default of true the element renders role=\"none\" and assistive technology skips it entirely. Set it to false when the divider marks a real boundary — the element then renders role=\"separator\", and a vertical one also carries aria-orientation=\"vertical\"."
+        }
+      }
+    },
+    {
+      "a2ui": "Avatar",
+      "dspackId": "avatar",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "fallback": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Initials shown while no image is available.",
+          "synthNote": "Lifted from the avatar-fallback sub's text."
+        }
+      },
+      "propMap": {
+        "size": {
+          "a2ui": "size",
+          "kind": "enum",
+          "targetEnum": [
+            "sm",
+            "default",
+            "lg"
+          ],
+          "default": "default"
+        }
+      },
+      "required": [
+        "fallback"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(avatar-fallback).text"
+            ],
+            "to": "prop:fallback"
+          }
+        ],
+        "subs": {
+          "avatar-image": {
+            "drop": "the contract declares no src/alt on avatar-image — an empty node carries nothing to project (contract-gap class, cf. dspack#39)"
+          },
+          "avatar-badge": {
+            "drop": "no worked example exercises it; no measured shape to project — revisit with usage evidence"
+          },
+          "avatar-group": {
+            "drop": "no worked example exercises it; a grouped-avatars shape is repetition to be measured, not guessed"
+          },
+          "avatar-group-count": {
+            "drop": "no worked example exercises it; belongs to the unmeasured avatar-group shape"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "ScrollArea",
+      "dspackId": "scroll-area",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "surface": {
+        "transparent": true,
+        "subs": {
+          "scroll-area-scrollbar": {
+            "drop": "scrollbar chrome: presentation of the scroll container, not content"
+          },
+          "scroll-area-thumb": {
+            "drop": "the scrollbar's drag indicator: chrome, not content"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "AspectRatio",
+      "dspackId": "aspect-ratio",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "propMap": {
+        "ratio": {
+          "a2ui": "ratio",
+          "kind": "number",
+          "description": "Width divided by height. Write it as a division — 16 / 9 for video, 4 / 3 for classic photography, 1 for a square, 9 / 16 for portrait — so the intent survives review. Left unset the box is square, which is rarely what the design meant."
+        }
+      }
+    },
+    {
+      "a2ui": "Tabs",
+      "dspackId": "tabs",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "sections": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                },
+                "child": {
+                  "$ref": "#/$defs/ComponentId"
+                }
+              },
+              "required": [
+                "title",
+                "child"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": "The tab sections: a title and the panel it reveals.",
+          "synthNote": "A2UI models paired trigger/panel families as one array of {title, child} records (T3 declared join; the worked example keys on ids)."
+        }
+      },
+      "propMap": {
+        "defaultValue": {
+          "a2ui": "defaultValue",
+          "kind": "string"
+        }
+      },
+      "required": [
+        "sections"
+      ],
+      "surface": {
+        "collects": [
+          {
+            "of": [
+              "tabs-trigger"
+            ],
+            "into": "prop:sections",
+            "item": {
+              "title": "self.text",
+              "value": "self.id"
+            },
+            "join": {
+              "with": [
+                "tabs-content"
+              ],
+              "on": {
+                "left": "self.id",
+                "right": "self.id"
+              },
+              "fields": {
+                "child": "children"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Label",
+      "dspackId": "label",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "text": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The component's text content.",
+          "synthNote": "Scaffolded: observed carrying text in worked example 'ex.workspace-members-directory'."
+        }
+      },
+      "required": [],
+      "propMap": {
+        "htmlFor": {
+          "a2ui": "htmlFor",
+          "kind": "string",
+          "description": "The id of the form control this label names. Must match that control's id exactly and that id must be unique on the page. Required unless the control is rendered inside the Label."
+        },
+        "asChild": {
+          "a2ui": "asChild",
+          "kind": "boolean",
+          "description": "When true, merges the label's props and behavior onto its single child element instead of rendering a label element. Use only when the child is itself a labelling element; otherwise the association is lost."
+        }
+      },
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.text"
+            ],
+            "to": "prop:text"
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Textarea",
+      "dspackId": "textarea",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming the long-text entry.",
+          "synthNote": "Sourced by the T1 field-label/form-label donation, exactly as on input."
+        }
+      },
+      "required": [],
+      "propMap": {
+        "value": {
+          "a2ui": "value",
+          "kind": "string",
+          "description": "Controlled text content. Pair with onChange; a value without a change handler renders a read-only field that appears broken to the user."
+        },
+        "defaultValue": {
+          "a2ui": "defaultValue",
+          "kind": "string",
+          "description": "Initial text for an uncontrolled textarea. Use this when the form reads its value on submit rather than on every keystroke."
+        },
+        "placeholder": {
+          "a2ui": "placeholder",
+          "kind": "string",
+          "description": "Hint text shown while the field is empty. Use it for an example of the expected content, never as the field's name — it disappears as soon as the user types."
+        },
+        "rows": {
+          "a2ui": "rows",
+          "kind": "number",
+          "description": "Native attribute for the initial visible line count. shadcn's textarea sets field-sizing-content over a minimum height, so the rendered height follows the content; set a floor or ceiling with height classes rather than relying on rows."
+        },
+        "maxLength": {
+          "a2ui": "maxLength",
+          "kind": "number",
+          "description": "Maximum number of characters the browser will accept. Enforcement is silent — the field simply stops accepting input — so pair it with a visible count."
+        },
+        "disabled": {
+          "a2ui": "disabled",
+          "kind": "boolean",
+          "description": "Whether the field is non-interactive. Disabled fields are skipped by the tab order and are not submitted with the form."
+        },
+        "readOnly": {
+          "a2ui": "readOnly",
+          "kind": "boolean",
+          "description": "Whether the content is visible and selectable but not editable. Unlike disabled, a read-only field stays focusable and is still submitted."
+        },
+        "required": {
+          "a2ui": "required",
+          "kind": "boolean",
+          "description": "Whether the field must be filled in before the form can be submitted. Mark the requirement visibly in the Label too, not only in markup."
+        },
+        "name": {
+          "a2ui": "name",
+          "kind": "string",
+          "description": "Form field name under which the value is submitted."
+        }
+      }
+    },
+    {
+      "a2ui": "Checkbox",
+      "dspackId": "checkbox",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming what checking the box asserts.",
+          "synthNote": "Sourced by the T1 form-label donation (ex.expense-report-form's billable field)."
+        }
+      },
+      "required": [],
+      "propMap": {
+        "disabled": {
+          "a2ui": "disabled",
+          "kind": "boolean",
+          "description": "Whether the checkbox is non-interactive. Disabled checkboxes leave the tab order and are not submitted; if the reason is not obvious from context, explain it in nearby text."
+        },
+        "required": {
+          "a2ui": "required",
+          "kind": "boolean",
+          "description": "Whether the box must be checked before the form can be submitted. Use it for consent gates, and mark the requirement visibly in the Label as well."
+        },
+        "name": {
+          "a2ui": "name",
+          "kind": "string",
+          "description": "Form field name applied to the hidden native input, under which the value is submitted."
+        },
+        "value": {
+          "a2ui": "value",
+          "kind": "string",
+          "default": "on",
+          "description": "Value submitted when the box is checked. Set it when a group of checkboxes shares one name and the server distinguishes them by value."
+        }
+      }
+    },
+    {
+      "a2ui": "Switch",
+      "dspackId": "switch",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming what the switch turns on or off.",
+          "synthNote": "Sourced by the T1 field-label/form-label donation; 4/4 worked-example switches sit inside a field."
+        }
+      },
+      "required": [],
+      "propMap": {
+        "checked": {
+          "a2ui": "checked",
+          "kind": "boolean",
+          "description": "Controlled on/off state. Pair it with onCheckedChange; because the change is applied immediately, drive this from the value your backend acknowledged rather than from an unreconciled optimistic guess."
+        },
+        "defaultChecked": {
+          "a2ui": "defaultChecked",
+          "kind": "boolean",
+          "description": "Initial state for an uncontrolled switch."
+        },
+        "size": {
+          "a2ui": "size",
+          "kind": "enum",
+          "targetEnum": [
+            "default",
+            "sm"
+          ],
+          "default": "default",
+          "description": "Switch size. shadcn adds this on top of the Radix primitive."
+        },
+        "disabled": {
+          "a2ui": "disabled",
+          "kind": "boolean",
+          "description": "Whether the switch is non-interactive. Explain in nearby text why a setting is locked — a disabled switch on its own reads as an unexplained dead control."
+        },
+        "required": {
+          "a2ui": "required",
+          "kind": "boolean",
+          "description": "Whether the switch must be on before the form can be submitted. Rarely appropriate: a required toggle usually indicates the choice belongs to a Checkbox in a submitted form."
+        },
+        "name": {
+          "a2ui": "name",
+          "kind": "string",
+          "description": "Form field name applied to the hidden native input, under which the value is submitted."
+        },
+        "value": {
+          "a2ui": "value",
+          "kind": "string",
+          "default": "on",
+          "description": "Value submitted when the switch is on."
+        }
+      }
+    },
+    {
+      "a2ui": "RadioGroup",
+      "dspackId": "radio-group",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The group-level label naming the choice being made.",
+          "synthNote": "Sourced by T1 form-label donation when the group sits inside a form field; a group without one relies on context."
+        },
+        "options": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": "The selectable options, one record per item.",
+          "synthNote": "A2UI models repeated options as data on the group; dspack models them as repeated sub-components (T2 item-mode collection)."
+        }
+      },
+      "propMap": {
+        "name": {
+          "a2ui": "name",
+          "kind": "string"
+        },
+        "defaultValue": {
+          "a2ui": "defaultValue",
+          "kind": "string"
+        }
+      },
+      "required": [
+        "options"
+      ],
+      "surface": {
+        "collects": [
+          {
+            "of": [
+              "radio-group-item"
+            ],
+            "into": "prop:options",
+            "item": {
+              "value": "self.id"
+            },
+            "join": {
+              "with": [
+                "label"
+              ],
+              "on": {
+                "left": "self.id",
+                "right": "self.props.htmlFor"
+              },
+              "fields": {
+                "label": "self.text"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Select",
+      "dspackId": "select",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "options": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": "The selectable options.",
+          "synthNote": "A2UI models repeated options as data on the control (T2 item-mode collection)."
+        },
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming the choice being made.",
+          "synthNote": "Sourced by the T1 field-label/form-label donation when the select is a field's control (ex.invite-teammates-dialog)."
+        }
+      },
+      "propMap": {
+        "defaultValue": {
+          "a2ui": "defaultValue",
+          "kind": "string"
+        }
+      },
+      "required": [
+        "options"
+      ],
+      "surface": {
+        "collects": [
+          {
+            "of": [
+              "select-item"
+            ],
+            "into": "prop:options",
+            "item": {
+              "label": "self.text"
+            }
+          }
+        ],
+        "subs": {
+          "select-trigger": {
+            "drop": "the trigger renders from the bound value, not authored content"
+          },
+          "select-value": {
+            "drop": "the visible value is runtime state derived from the selection"
+          },
+          "select-label": {
+            "drop": "group headings are not carried by the flat options shape"
+          },
+          "select-separator": {
+            "drop": "visual grouping chrome with no data meaning"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "Alert",
+      "dspackId": "alert",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "title": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The one-line heading naming what happened.",
+          "synthNote": "Lifted from the alert-title sub (5/5 worked examples carry it there)."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting detail under the title.",
+          "synthNote": "Lifted from the alert-description sub."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "default",
+            "destructive"
+          ],
+          "default": "default"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(alert-title).text"
+            ],
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(alert-description).text"
+            ],
+            "to": "prop:description"
+          }
+        ],
+        "subs": {
+          "alert-action": {
+            "drop": "an action slot holds component children (a button), and routing a sub's children to a slot is T4's mechanism — dropped WITH RECORD until T4, not approximated (one production instance: ex.import-run-status)"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "Progress",
+      "dspackId": "progress",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming what is progressing.",
+          "synthNote": "Sourced by the T1 field-label donation; 2/2 worked-example progress bars sit inside a field."
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "propMap": {
+        "value": {
+          "a2ui": "value",
+          "kind": "number",
+          "description": "How much of the task is complete, on a 0–100 scale. Radix treats a missing or null value as indeterminate and drops aria-valuenow, but the shadcn wrapper computes the indicator offset as translateX(-${100 - (value || 0)}%), so omitting value paints a permanently empty track instead of an indeterminate animation. Always pass a number; when the duration is unknown, use Spinner instead."
+        },
+        "max": {
+          "a2ui": "max",
+          "kind": "number",
+          "description": "Upper bound of value, published as aria-valuemax. Radix falls back to 100 when max is absent or not greater than zero. Note that the shipped indicator transform is hardcoded to a 0–100 scale: setting max to anything else keeps the ARIA values correct while rendering the bar at the wrong width. Normalise your value to a percentage before passing it, or edit the transform in progress.tsx."
+        },
+        "className": {
+          "a2ui": "className",
+          "kind": "string",
+          "description": "Additional CSS classes. Use it to constrain the width (the track is w-full and fills its parent) and to override the shipped track height. Colour comes from the primary and muted tokens; restyling the indicator means editing progress.tsx, as the indicator is not reachable through props."
+        }
+      }
+    },
+    {
+      "a2ui": "Skeleton",
+      "dspackId": "skeleton",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [
+        "className"
+      ],
+      "propMap": {
+        "className": {
+          "a2ui": "className",
+          "kind": "string",
+          "description": "Utility classes that give the placeholder its size and shape. The component ships with no width and no height, so a Skeleton with no className renders a zero-size element and is invisible. Always pass at least a height and a width (h-4 w-[250px]), add rounded-full for avatars and other circles, and match the values to the real content so the layout does not shift on swap."
+        },
+        "aria-hidden": {
+          "a2ui": "aria-hidden",
+          "kind": "boolean",
+          "description": "Removes the placeholder from the accessibility tree. Skeletons carry no information — a screen reader walking a tree of empty divs learns nothing — so hide them and announce the loading state once on the containing region instead. The component does not set this for you."
+        }
+      }
+    },
+    {
+      "a2ui": "Spinner",
+      "dspackId": "spinner",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "propMap": {
+        "className": {
+          "a2ui": "className",
+          "kind": "string",
+          "description": "Utility classes. Size the spinner with size-* — it ships at size-4 — and colour it with a text-* class. The icon draws with currentColor, so by default it inherits the colour of whatever it sits inside, which is usually what you want inside a Button or Badge."
+        },
+        "aria-label": {
+          "a2ui": "aria-label",
+          "kind": "string",
+          "default": "Loading",
+          "description": "Accessible name of the indicator. The component sets \"Loading\" and spreads incoming props afterwards, so passing aria-label replaces it. Make it specific when more than one thing on the page can be loading (\"Loading search results\"), and localise it — the built-in string is English and is not translated."
+        },
+        "aria-hidden": {
+          "a2ui": "aria-hidden",
+          "kind": "boolean",
+          "description": "Removes the spinner from the accessibility tree. Set it to true whenever the surrounding control already announces the state — a Button whose accessible name changes to \"Saving…\", or a region with its own role=\"status\" — so the wait is announced once rather than twice."
+        }
+      }
+    },
+    {
+      "a2ui": "Sonner",
+      "dspackId": "sonner",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {},
+      "required": [],
+      "propMap": {
+        "position": {
+          "a2ui": "position",
+          "kind": "enum",
+          "targetEnum": [
+            "bottom-right",
+            "bottom-center",
+            "bottom-left",
+            "top-right",
+            "top-center",
+            "top-left"
+          ],
+          "default": "bottom-right",
+          "description": "Where the stack is anchored in the viewport. It also determines the default swipe-to-dismiss directions. Individual toasts can override it per call, but a stable position is easier to learn."
+        },
+        "theme": {
+          "a2ui": "theme",
+          "kind": "enum",
+          "targetEnum": [
+            "system",
+            "light",
+            "dark"
+          ],
+          "default": "system",
+          "description": "Colour scheme of the toasts. The shadcn wrapper already reads the app theme from next-themes and passes it down, so you normally leave this alone; because props are spread last, passing it explicitly overrides the wired-up theme and can desynchronise toasts from the rest of the UI."
+        },
+        "richColors": {
+          "a2ui": "richColors",
+          "kind": "boolean",
+          "description": "Tints success, error, warning, and info toasts with their semantic colours instead of the neutral popover surface. The built-in icons already distinguish the types, so treat this as emphasis rather than as the signal — and check the tinted surfaces for contrast in both themes before enabling it."
+        },
+        "closeButton": {
+          "a2ui": "closeButton",
+          "kind": "boolean",
+          "description": "Renders a dismiss button on every toast. Turn it on when toasts carry actions or text that takes longer than the duration to read; without it a toast can only be dismissed by swiping or by waiting it out."
+        },
+        "expand": {
+          "a2ui": "expand",
+          "kind": "boolean",
+          "description": "Shows the stack expanded rather than collapsed. By default only the front toast is fully visible and the stack expands on hover or when the notification hotkey is pressed."
+        },
+        "visibleToasts": {
+          "a2ui": "visibleToasts",
+          "kind": "number",
+          "description": "How many toasts are rendered at once; the rest queue behind them. Raising it makes the stack harder to scan and pushes more content over the page, so prefer fixing the code that emits a flood of toasts."
+        },
+        "duration": {
+          "a2ui": "duration",
+          "kind": "number",
+          "description": "Milliseconds a toast stays on screen before auto-dismissing, applied to every toast unless a call overrides it. Four seconds is not enough time to read a message, decide, and act, so raise it for any toast that carries an action."
+        },
+        "dir": {
+          "a2ui": "dir",
+          "kind": "enum",
+          "targetEnum": [
+            "ltr",
+            "rtl",
+            "auto"
+          ],
+          "default": "ltr",
+          "description": "Text direction of the toast list. It also affects which swipe directions dismiss a toast, so set it rather than relying on CSS alone in bidirectional interfaces."
+        },
+        "invert": {
+          "a2ui": "invert",
+          "kind": "boolean",
+          "description": "Inverts toast colours against the current theme so they read as the opposite surface. Use it sparingly: it breaks the visual relationship between the toast and the rest of the interface, and it interacts badly with richColors."
+        },
+        "containerAriaLabel": {
+          "a2ui": "containerAriaLabel",
+          "kind": "string",
+          "default": "Notifications",
+          "description": "Accessible name of the notification region, before the hotkey label is appended to it. The default is English; localise it in any non-English interface."
+        },
+        "className": {
+          "a2ui": "className",
+          "kind": "string",
+          "description": "Classes applied to the toast list element. The shipped wrapper already sets \"toaster group\" on it, and because props are spread last, passing className replaces that rather than adding to it. To style individual toasts, use toastOptions.classNames."
+        }
+      }
+    }
+  ],
+  "synthesized": [
+    {
+      "a2ui": "Text",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "description": "Displays text content. Synthesized A2UI content primitive (not in the contract).",
+      "structural": {
+        "text": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The text content to display.",
+          "synthNote": "A2UI content primitive required to render labels/titles in a surface."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "caption",
+            "body"
+          ],
+          "default": "body",
+          "description": "A hint for the base text style."
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    {
+      "a2ui": "Column",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "description": "Arranges children vertically. Synthesized A2UI structural primitive (the contract has no layout component).",
+      "structural": {
+        "children": {
+          "schema": {
+            "$ref": "#/$defs/ChildList"
+          },
+          "description": "Child component IDs (or a template).",
+          "synthNote": "A2UI structural primitive required to compose multiple children."
+        }
+      },
+      "required": [
+        "children"
+      ]
+    }
+  ],
+  "casualtyComponents": [
+    {
+      "dspackId": "tooltip",
+      "attempted": "Tooltip",
+      "class": "cannot-represent",
+      "reason": "Hover/focus-revealed label; A2UI names no hover or visibility event in client_to_server, so two renderers could not agree which event reveals it (blocked upstream on A2UI)."
+    },
+    {
+      "dspackId": "accordion",
+      "attempted": "Accordion",
+      "class": "cannot-represent",
+      "reason": "Repeated item with nested named parts (trigger+content inside each accordion-item), no cross-sibling key — a per-item part-extraction shape the shipped Identity/Routing/Repetition vocabulary does not yet express (dspack-emit#34). Declared a casualty until that shape is a measured blocker."
+    },
+    {
+      "dspackId": "breadcrumb",
+      "attempted": "Breadcrumb",
+      "class": "cannot-represent",
+      "reason": "A trail of anchor links with aria-current; A2UI has openUrl but no anchor/href/nav-landmark vocabulary, so the link semantics cannot be represented (blocked upstream on A2UI)."
+    },
+    {
+      "dspackId": "pagination",
+      "attempted": "Pagination",
+      "class": "cannot-represent",
+      "reason": "Page-by-page navigation built from anchor links; same missing anchor vocabulary as breadcrumb (blocked upstream on A2UI)."
+    }
+  ],
+  "surfaceSynthesis": {
+    "textComponent": "Text",
+    "textProp": "text",
+    "wrapComponent": "Column",
+    "wrapChildrenProp": "children"
+  }
+}
