@@ -16,12 +16,11 @@
  * Local models stay on the agent (unchanged). This is the browser twin of
  * apps/agent/src/project.ts runProject — kept deliberately parallel.
  */
-// Deep imports (aliased in next.config.mjs) load ONLY the orchestrator + the
-// scripted adapter — a clean, browser-safe subgraph — instead of dspack-gen's
-// package index, which re-exports Node-only adapters (undici, @anthropic-ai/sdk)
-// and eval helpers (node:fs/node:path). Types come from app/gen-deep.d.ts.
-import { runPipeline } from "@composer/gen-run";
-import { ScriptedAdapter } from "@composer/gen-scripted";
+// The supported browser-safe boundary (dspack-gen >= 0.3.2): runPipeline + the
+// scripted adapter, WITHOUT the package index's Node-only re-exports (undici,
+// @anthropic-ai/sdk, node:fs/path eval helpers). Its only Node dependency is
+// node:crypto (audit provenance hash), which next.config.mjs shims.
+import { runPipeline, ScriptedAdapter } from "@aestheticfunction/dspack-gen/browser";
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import { loadProfile } from "@aestheticfunction/dspack-emit";
 import { createPipelineEventMapper } from "@dspack-studio/agui-bridge";

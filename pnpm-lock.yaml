@@ -24,8 +24,8 @@ importers:
         specifier: ^0.5.0
         version: 0.5.0
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.3.1
-        version: 0.3.1(zod@4.4.3)
+        specifier: ^0.3.2
+        version: 0.3.2(zod@4.4.3)
       '@aestheticfunction/dspack-spec':
         specifier: ^0.4.4
         version: 0.4.4
@@ -61,8 +61,8 @@ importers:
   apps/composer:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.3.1
-        version: 0.3.1(zod@4.4.3)
+        specifier: ^0.3.2
+        version: 0.3.2(zod@4.4.3)
       '@aestheticfunction/dspack-spec':
         specifier: ^0.4.4
         version: 0.4.4
@@ -113,8 +113,8 @@ importers:
   apps/web:
     dependencies:
       '@aestheticfunction/dspack-gen':
-        specifier: ^0.3.1
-        version: 0.3.1(zod@4.4.3)
+        specifier: ^0.3.2
+        version: 0.3.2(zod@4.4.3)
       '@astryxdesign/core':
         specifier: 0.1.4
         version: 0.1.4(@stylexjs/stylex@0.18.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -433,8 +433,8 @@ packages:
     engines: {node: '>=22.0.0'}
     hasBin: true
 
-  '@aestheticfunction/dspack-gen@0.3.1':
-    resolution: {integrity: sha512-0RGGoA85P9U5eKJuiZl0yxJujIFYgFJxptRk80NPU/zsrd57LJNBAFljB87kPEyfAyhogM4sZhGHIcWLcuTVKA==}
+  '@aestheticfunction/dspack-gen@0.3.2':
+    resolution: {integrity: sha512-o4HfFl2sztT7+Mb7S1HAR1JaWhuxtM+gW61bf9+bDktbQeMqM4rpokvCTxPzm7cwlc0AKVZbcj1R5WrzWFKb5A==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -2347,7 +2347,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@aestheticfunction/dspack-gen@0.3.1(zod@4.4.3)':
+  '@aestheticfunction/dspack-gen@0.3.2(zod@4.4.3)':
     dependencies:
       '@aestheticfunction/dspack-emit': 0.6.0
       '@anthropic-ai/sdk': 0.109.1(zod@4.4.3)
