@@ -73,12 +73,30 @@ composer keep independent deploy cadences. It is the **repo-root
 **Workers Builds** integration, which reads `./wrangler.jsonc` by default;
 the name, route, and assets there match the deployed Worker (Cloudflare's
 reconciliation request). Static Assets from `apps/composer/out`, the custom
-domain declared in `routes` (wrangler attaches it; Cloudflare manages DNS),
-and **zero runtime bindings**: no AI, KV, Durable Objects, databases, or
-secrets. The hosted composer ships the pre-emitted demo project only;
-connecting a real project, emitting, saving, and generation all run on the
-visitor's machine via the local agent (`pnpm --filter agent dev`), stated
-plainly in the UI. No user project source is ever uploaded or executed.
+domain declared in `routes` (wrangler attaches it; Cloudflare manages DNS).
+
+**Static-first, with ONE governed API namespace.** `worker/index.mjs` sets
+`main`, and `assets.run_worker_first` is scoped to `/api/*`, so every ordinary
+request is served by the asset layer exactly as before; only `/api/*` enters
+Worker code, and any non-API fall-through is delegated to `env.ASSETS.fetch`
+unchanged. The one runtime binding is the **AI binding** (`"ai": {"binding":
+"AI"}`): hosted Build proposals go to Claude Haiku through the account's
+**`ds-ai-gateway`** — the SAME gateway the af-site theme generator uses (shared
+zone ⇒ shared account) — over Unified Billing, so there is **no provider key, no
+BYOK credential, and no gateway secret**. No KV, Durable Objects, or databases.
+A `HOSTED_AI` var is the kill switch.
+
+Crucially, the Worker **never runs the deterministic pipeline** — Cloudflare
+Workers ban the runtime `new Function` that AJV (S1/S2/S3 + emit) needs, so
+S1/S2/S3, repair, emit, audit, preview, and export all run in the visitor's
+**browser**; the Worker's only job is the one nondeterministic step, forwarding
+a proposal request to Haiku. The hosted composer ships the pre-emitted demo
+project; a visitor can watch the whole governed loop (scripted or hosted-ai)
+with no install. Connecting your **own** project, saving worked examples, and
+local/BYO models still run on the visitor's machine via the local agent
+(`pnpm --filter agent dev`), stated plainly in the UI. No user project source is
+ever uploaded or executed, and the visitor's prompt is never logged
+(`collectLog: false`).
 
 The composer therefore has **two deploy paths**: the reconnected Workers
 Builds Git integration (auto-deploys the root `wrangler.jsonc` on push — the
