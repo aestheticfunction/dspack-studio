@@ -13,6 +13,7 @@ import { buildVocabulary } from "@aestheticfunction/dspack-spec/lib/validate.mjs
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
 import { useComposer } from "../state";
+import { Eyebrow } from "../ui";
 import { browserEmit, lintOneSurface } from "../validation";
 
 const field = {
@@ -220,7 +221,7 @@ export function ScenarioView() {
   if (editing === null) {
     return (
       <section>
-        <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Scenarios</h2>
+        <Eyebrow>Scenarios</Eyebrow>
         <p style={{ fontSize: 13, color: "var(--fg-body)", maxWidth: 640 }}>
           A scenario is a worked example: the surface that proves an intent is buildable, previews the catalog, and feeds
           generation as its few-shot corpus. There is no third example format.

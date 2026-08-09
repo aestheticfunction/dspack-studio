@@ -13,6 +13,7 @@
  */
 import { useState } from "react";
 import { useComposer } from "../state";
+import { agentPickFolder } from "../agent-client";
 import { Eyebrow, relativeTime } from "../ui";
 import type { View } from "../composer";
 
@@ -28,6 +29,8 @@ export function ProjectView({ onNavigate }: { onNavigate: (v: View) => void }) {
   // Recent workspaces = the projects already bound to a local repository.
   const recent = projects.filter((p) => p.source.kind === "agent").slice(0, 6);
 
+  const [browsing, setBrowsing] = useState(false);
+
   const connectPath = (p: string) => {
     const clean = p.trim();
     if (!clean) return;
@@ -35,6 +38,21 @@ export function ProjectView({ onNavigate }: { onNavigate: (v: View) => void }) {
     const existing = projects.find((pr) => pr.source.kind === "agent" && pr.source.path === clean);
     if (existing) openProject(existing.id);
     else newProject({ name: basename(clean), source: { kind: "agent", path: clean } });
+  };
+
+  // The agent opens the OS's real folder dialog on the user's machine and hands
+  // back the chosen path — the only way a web app can "browse for a folder".
+  const browse = async () => {
+    setBrowsing(true);
+    try {
+      const picked = await agentPickFolder();
+      if (picked) {
+        setPath(picked);
+        connectPath(picked);
+      }
+    } finally {
+      setBrowsing(false);
+    }
   };
 
   return (
@@ -112,6 +130,15 @@ export function ProjectView({ onNavigate }: { onNavigate: (v: View) => void }) {
             Project folder
           </label>
           <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="st-btn st-btn--lg"
+              disabled={!agentUp || busy !== null || browsing}
+              onClick={browse}
+              title="Open your system's folder chooser (through the local agent)"
+              data-testid="browse-folder"
+            >
+              {browsing ? "Choosing…" : "Browse…"}
+            </button>
             <input
               id="connect-path"
               className="af-input af-input--mono"
@@ -133,8 +160,10 @@ export function ProjectView({ onNavigate }: { onNavigate: (v: View) => void }) {
             </button>
           </div>
           <p className="af-hint">
-            The folder that holds your <code>project.json</code>, dspack contract, and mapping profile. The agent reads
-            it in place; Composer never copies it out.
+            Browse opens your system&rsquo;s folder chooser through the local agent &mdash; a browser can&rsquo;t open
+            your files directly, so the agent does it on your machine. Or paste the path to the folder holding your{" "}
+            <code>project.json</code>, dspack contract, and mapping profile. The agent reads it in place; nothing is
+            uploaded.
           </p>
         </div>
 

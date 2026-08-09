@@ -14,6 +14,8 @@
  * this process's environment, never from the browser.
  */
 import { createServer, type ServerResponse } from "node:http";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
   a2uiDeliveryEvents,
   createPipelineEventMapper,
@@ -151,6 +153,46 @@ async function questionPipelineEvents(
 
 const PORT = Number(process.env.PORT ?? 8787);
 const OLLAMA = process.env.OLLAMA_URL ?? "http://localhost:11434";
+const execFileP = promisify(execFile);
+
+/**
+ * A native OS folder picker — the honest "browse for a repository" affordance.
+ * A browser cannot enumerate local folders; the agent runs on the user's own
+ * machine, so it can open the platform's real directory dialog and hand back
+ * the absolute path the connect flow needs. macOS (osascript) and Linux
+ * (zenity, if installed) are supported; elsewhere it reports unsupported and
+ * the composer falls back to the path field. Cancel is not an error.
+ */
+async function pickFolder(): Promise<{ ok: boolean; path?: string; reason?: string }> {
+  try {
+    if (process.platform === "darwin") {
+      const { stdout } = await execFileP(
+        "osascript",
+        ["-e", 'POSIX path of (choose folder with prompt "Select your project folder")'],
+        { timeout: 120_000 },
+      );
+      const p = stdout.trim().replace(/\/$/, "");
+      return p ? { ok: true, path: p } : { ok: false, reason: "cancelled" };
+    }
+    if (process.platform === "linux") {
+      const { stdout } = await execFileP(
+        "zenity",
+        ["--file-selection", "--directory", "--title=Select your project folder"],
+        { timeout: 120_000 },
+      );
+      const p = stdout.trim();
+      return p ? { ok: true, path: p } : { ok: false, reason: "cancelled" };
+    }
+    return { ok: false, reason: "unsupported" };
+  } catch {
+    // osascript/zenity exit non-zero when the dialog is cancelled or absent;
+    // treat as cancelled (a missing zenity reads the same and is harmless).
+    return { ok: false, reason: "cancelled" };
+  }
+}
+
+/** Whether a native folder picker is even available on this platform. */
+const pickFolderSupported = process.platform === "darwin" || process.platform === "linux";
 
 /** Comma-separated allowlist; "*" (the local-dev default) allows any origin. */
 const ALLOWED_ORIGINS = (process.env.AGENT_ALLOWED_ORIGINS ?? "*").split(",").map((o) => o.trim());
@@ -184,7 +226,12 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && path === "/") {
-    json(res, 200, { ok: true, name: "dspack-studio agent", protocol: "ag-ui" }, CORS);
+    json(res, 200, { ok: true, name: "dspack-studio agent", protocol: "ag-ui", canPickFolder: pickFolderSupported }, CORS);
+    return;
+  }
+
+  if (req.method === "POST" && path === "/pick-folder") {
+    json(res, 200, await pickFolder(), CORS);
     return;
   }
 

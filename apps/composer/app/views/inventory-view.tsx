@@ -1,6 +1,7 @@
 "use client";
 
 import { useComposer } from "../state";
+import { ViewHeader } from "../ui";
 
 /**
  * The component inventory. Lifecycle is DERIVED, never stored: described
@@ -26,7 +27,12 @@ export function InventoryView({ onOpen }: { onOpen: () => void }) {
   );
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+    <>
+      <ViewHeader
+        eyebrow="Catalog"
+        lead="Your governed vocabulary: the components generation may use, each with its lifecycle and how it maps to the design system. Select one to enrich it."
+      />
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
       <thead>
         <tr style={{ textAlign: "left", fontFamily: "var(--mono)", fontSize: 11, textTransform: "uppercase", color: "var(--fg-dim)" }}>
           <th style={{ padding: "6px 8px" }}>id</th>
@@ -87,6 +93,7 @@ export function InventoryView({ onOpen }: { onOpen: () => void }) {
           );
         })}
       </tbody>
-    </table>
+      </table>
+    </>
   );
 }

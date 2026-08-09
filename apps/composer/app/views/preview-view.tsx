@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 import { A2uiCanvas, planRegistry, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
 import { useComposer } from "../state";
+import { ViewHeader } from "../ui";
 import { registryFor, canvasScopeFor, isNativeRegistry, type PreviewRegistryId } from "../registries";
 
 type RegistryId = "wireframe" | PreviewRegistryId;
@@ -75,6 +76,10 @@ export function PreviewView() {
 
   return (
     <section>
+      <ViewHeader
+        eyebrow="Preview"
+        lead="Your emitted surfaces, rendered through the design system — or the wireframe, the universal fallback. Export the catalog to take it anywhere."
+      />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>registry:</span>
         {registryChoices.map((id) => (
