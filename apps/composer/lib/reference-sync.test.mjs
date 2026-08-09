@@ -21,23 +21,40 @@ import { fileURLToPath } from "node:url";
 
 const read = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)));
 
+// Both directions of the copy relationship live here. The shadcn/ui v3 contract
+// is authored in the composer and copied INTO packages/contracts (so the
+// contracts prepare-build can bake its catalog in-package). The Astryx contract
+// and profile are authored in packages/contracts (contract byte-synced upstream;
+// profile serialized from astryx-profile.ts) and copied INTO the composer
+// reference project. Either way, the composer file and the packages/contracts
+// file must be byte-identical, and this makes any drift loud.
 const PAIRS = [
   {
     label: "shadcn-v3 contract",
-    authored: "../shadcn-v3-project/shadcn-ui.dspack.json",
+    composer: "../shadcn-v3-project/shadcn-ui.dspack.json",
     packaged: "../../../packages/contracts/shadcn-v3.dspack.json",
   },
   {
     label: "shadcn-v3 profile",
-    authored: "../shadcn-v3-project/shadcn-v3.profile.json",
+    composer: "../shadcn-v3-project/shadcn-v3.profile.json",
     packaged: "../../../packages/contracts/shadcn-v3.profile.json",
+  },
+  {
+    label: "astryx contract",
+    composer: "../astryx-project/astryx.dspack.json",
+    packaged: "../../../packages/contracts/astryx.dspack.json",
+  },
+  {
+    label: "astryx profile",
+    composer: "../astryx-project/astryx.profile.json",
+    packaged: "../../../packages/contracts/astryx.profile.json",
   },
 ];
 
-describe("packaged shadcn-v3 reference stays byte-identical to the composer's authored copy", () => {
-  for (const { label, authored, packaged } of PAIRS) {
-    it(`${label}: packages/contracts copy equals shadcn-v3-project source`, () => {
-      expect(read(packaged).equals(read(authored))).toBe(true);
+describe("packaged reference contracts/profiles stay byte-identical across the copy boundary", () => {
+  for (const { label, composer, packaged } of PAIRS) {
+    it(`${label}: composer reference copy equals packages/contracts`, () => {
+      expect(read(packaged).equals(read(composer))).toBe(true);
     });
   }
 });
