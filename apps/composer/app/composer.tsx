@@ -40,6 +40,8 @@ const WORK_NAV: Array<{ id: View; label: string }> = [
   { id: "preview", label: "Preview" },
   { id: "inventory", label: "Catalog" },
   { id: "governance", label: "Governance" },
+  { id: "scenarios", label: "Scenarios" },
+  { id: "validate", label: "Checks" },
 ];
 
 function Shell() {
@@ -95,6 +97,7 @@ function Shell() {
                   onClick={() => setView(v.id)}
                   disabled={v.id === "build" && !!buildBlocked}
                   title={v.id === "build" && buildBlocked ? `Not ready to build: ${buildBlocked}` : undefined}
+                  aria-label={v.id === "build" && buildBlocked ? `Build — not ready: ${buildBlocked}` : undefined}
                   data-testid={`nav-${v.id}`}
                 >
                   {v.label}

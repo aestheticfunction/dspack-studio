@@ -88,7 +88,7 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
             </div>
             <div className="af-field" style={{ margin: 0 }}>
               <label className="af-label" htmlFor="np-desc">
-                Description <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--fg-faint)" }}>· optional</span>
+                Description <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--fg-dim)" }}>· optional</span>
               </label>
               <textarea
                 id="np-desc"

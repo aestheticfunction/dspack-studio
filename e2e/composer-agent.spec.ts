@@ -42,7 +42,7 @@ async function migrated(page: Page, options: DemoOptions = {}) {
 test("a ledger-v1 project renders ONLY the section-level ownership experience", async ({ page }) => {
   const project = demoProject();
   await connect(page, project.root);
-  await page.getByTestId("nav-project").click(); // Build-first: ownership lives on Project
+  await page.getByTestId("nav-repository").click(); // Build-first: ownership lives on Project
 
   await expect(page.getByTestId("ledger-components")).toContainText("human-owned");
   await expect(page.getByTestId("ledger-tokens")).toContainText("tool-owned");
@@ -50,8 +50,8 @@ test("a ledger-v1 project renders ONLY the section-level ownership experience", 
   await expect(page.getByTestId("entry-ledger")).toHaveCount(0);
   await expect(page.getByTestId("rediscovery-report")).toHaveCount(0);
   expect(project.ledger().ledger).toBeUndefined();
-  // Connecting must REPLACE the demo, not bounce back to it.
-  await expect(page.locator("header")).toContainText(project.root);
+  // Connecting opens a project bound to this repository (named for its folder).
+  await expect(page.getByTestId("project-context")).toContainText(project.root.replace(/\/+$/, "").split("/").pop()!);
 });
 
 test("rediscovery migrates to v2 and surfaces every decision family without deciding any of them", async ({ page }) => {
@@ -188,7 +188,7 @@ test("a decision survives a full page reload and reconnect", async ({ page }) =>
 
   await page.reload();
   await connect(page, project.root);
-  await page.getByTestId("nav-project").click();
+  await page.getByTestId("nav-repository").click();
   await expect(page.getByTestId(`entry-${PENDING}`)).toContainText("tombstoned");
   expect(project.ledger().doNotRediscover).toEqual([PENDING]);
 });
@@ -246,7 +246,7 @@ test("decisions are operable by keyboard, and focus is never dropped to the body
 test("an acknowledged casualty reads as a decision, not unfinished work (#30)", async ({ page }) => {
   const project = demoProject();
   await connect(page, project.root);
-  await page.getByTestId("nav-project").click(); // Build-first: the checklist lives on Project
+  await page.getByTestId("nav-repository").click(); // Build-first: the checklist lives on Project
 
   // The project home: gates pass, the acknowledgement reported alongside.
   const row = page.getByTestId("progress").filter({ hasText: "Gates green" });
@@ -266,7 +266,7 @@ test("an acknowledged casualty reads as a decision, not unfinished work (#30)", 
   // The decision survives a reload.
   await page.reload();
   await connect(page, project.root);
-  await page.getByTestId("nav-project").click();
+  await page.getByTestId("nav-repository").click();
   await expect(page.getByTestId("progress").filter({ hasText: "Gates green" })).toContainText("acknowledged casualty");
 });
 
@@ -280,6 +280,7 @@ test("a real error alongside an acknowledged casualty keeps the row failed (#30)
     JSON.stringify({ dspackSurface: "0.1", system: "Acme UI", intent: "unknown-probe", root: { component: "not-a-component" } }, null, 2),
   );
   await connect(page, project.root);
+  await page.getByTestId("nav-repository").click();
 
   const row = page.getByTestId("progress").filter({ hasText: "Gates green" });
   await expect(row).toContainText("1 error finding · 1 acknowledged casualty");

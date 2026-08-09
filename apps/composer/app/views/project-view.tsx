@@ -92,7 +92,7 @@ export function ProjectView({ onNavigate }: { onNavigate: (v: View) => void }) {
                 <span className="af-card__k">Local repository</span>
                 <span className="af-card__title">{p.name}</span>
                 {p.source.kind === "agent" && (
-                  <span className="af-card__desc" style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-faint)", wordBreak: "break-all" }}>
+                  <span className="af-card__desc" style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", wordBreak: "break-all" }}>
                     {p.source.path}
                   </span>
                 )}
