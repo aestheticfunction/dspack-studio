@@ -182,12 +182,25 @@
 .af-brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   background: none;
   border: 0;
   padding: 0;
   cursor: pointer;
   color: var(--fg);
+}
+/* The canonical AF mark, sized for the nav and painted in the accent — bound to
+   var(--green) exactly as af-site binds it to --accent-fill, so it recolors
+   under every appearance theme (a ratified non-text pair on the surface). */
+.af-brand__mark {
+  height: 22px;
+  width: auto;
+  flex: none;
+  color: var(--green);
+  transition: color 0.16s var(--ease);
+}
+.af-brand:hover .af-brand__mark {
+  color: var(--green-bright);
 }
 .af-brand__name {
   font-family: var(--hl);

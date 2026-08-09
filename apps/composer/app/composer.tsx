@@ -14,7 +14,7 @@ import { GovernanceView } from "./views/governance-view";
 import { ScenarioView } from "./views/scenario-view";
 import { PreviewView } from "./views/preview-view";
 import { ValidateView } from "./views/validate-view";
-import { Marks } from "./ui";
+import { AfMark } from "./ui";
 import { getStoredTheme, applyTheme } from "./appearance";
 
 export type View =
@@ -73,12 +73,17 @@ function Shell() {
     <div>
       <header className="af-top">
         <div className="af-top__in">
-          <button className="af-brand" onClick={() => setView("projects")} data-testid="brand-home" aria-label="Composer — projects">
-            <Marks trueCount={hasProject ? 3 : 0} />
-            <span style={{ display: "grid", lineHeight: 1.1 }}>
-              <span className="af-brand__name">Composer</span>
-              <span className="af-brand__sub">Aesthetic Function</span>
-            </span>
+          {/* Quiet ecosystem identity: the canonical Aesthetic Function mark
+              beside the app name. [ AF ] COMPOSER, not "Aesthetic Function Composer". */}
+          <button
+            className="af-brand"
+            onClick={() => setView("projects")}
+            data-testid="brand-home"
+            aria-label="Aesthetic Function Composer — projects home"
+            title="Projects"
+          >
+            <AfMark decorative />
+            <span className="af-brand__name">Composer</span>
           </button>
 
           <nav className="af-nav" aria-label="Primary">
