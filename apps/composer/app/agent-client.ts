@@ -127,6 +127,24 @@ export async function agentModels(): Promise<string[]> {
 }
 
 /**
+ * Ask the local agent to open the OS's native folder picker and return the
+ * chosen absolute path. The agent runs on the user's machine, so this is the
+ * only legitimate "browse for a repository" affordance — a browser cannot
+ * enumerate local folders. Returns null on cancel or where no native picker is
+ * available (the path field remains the fallback). The dialog can sit open a
+ * while, hence the generous timeout.
+ */
+export async function agentPickFolder(): Promise<string | null> {
+  try {
+    const res = await fetch(`${agentUrl()}/pick-folder`, { method: "POST", signal: AbortSignal.timeout(180_000) });
+    const body = (await res.json()) as { ok?: boolean; path?: string };
+    return body.ok && typeof body.path === "string" ? body.path : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Hosted (agent-free) models, probed from the composer's own origin. The
  * deployed Worker answers GET /api/models with what's actually available
  * (["scripted"] plus "hosted-ai" when the AI Gateway binding is live and the

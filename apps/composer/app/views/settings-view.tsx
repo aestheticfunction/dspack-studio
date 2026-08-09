@@ -113,8 +113,10 @@ export function SettingsView() {
               </span>
             </div>
             <p className="af-hint" style={{ marginBottom: 10 }}>
-              Run models on your own machine through the local agent. Your provider keys live in the agent&rsquo;s
-              environment and never reach the browser. Same pipeline, same governance.
+              Run models on your own machine through the local agent. A browser can&rsquo;t reach a model on{" "}
+              <code>localhost</code> by itself &mdash; the agent is the bridge. Your endpoint and provider keys live in
+              the agent&rsquo;s environment (for example <code>OLLAMA_URL</code> or <code>ANTHROPIC_API_KEY</code>); the
+              browser never stores a secret. Same pipeline, same governance.
             </p>
             {agentUp && localModels.length > 0 ? (
               <p className="af-hint" data-testid="local-models">
