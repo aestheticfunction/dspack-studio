@@ -61,6 +61,22 @@ export function Eyebrow({ children }: { children: ReactNode }) {
   return <p className="af-eyebrow">{children}</p>;
 }
 
+/** The shared editorial header for a working view: an eyebrow naming the view,
+ *  and one plain line saying what it is. Keeps the inner views in the same
+ *  Aesthetic Function voice and rhythm as the hub, Build, and Settings. */
+export function ViewHeader({ eyebrow, lead }: { eyebrow: string; lead?: string }) {
+  return (
+    <header style={{ marginBottom: 18 }}>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      {lead && (
+        <p className="af-lead" style={{ marginTop: 0, fontSize: 14 }}>
+          {lead}
+        </p>
+      )}
+    </header>
+  );
+}
+
 /** Human "3 days ago" style stamp; absolute date is the title for precision. */
 export function relativeTime(ts: number, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - ts) / 1000));

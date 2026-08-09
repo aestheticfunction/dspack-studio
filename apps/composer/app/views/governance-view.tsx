@@ -14,6 +14,7 @@
 import { useMemo, useState } from "react";
 import { buildVocabulary } from "@aestheticfunction/dspack-spec/lib/validate.mjs";
 import { useComposer } from "../state";
+import { ViewHeader } from "../ui";
 import { contractSurfaces, lintOneSurface } from "../validation";
 
 const field = {
@@ -186,7 +187,12 @@ export function GovernanceView() {
     });
 
   return (
-    <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(420px, 3fr) minmax(260px, 2fr)" }}>
+    <>
+      <ViewHeader
+        eyebrow="Governance"
+        lead="The intents and typed rules that define what correct means here — what generation reaches for, and what it may never produce."
+      />
+      <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(420px, 3fr) minmax(260px, 2fr)" }}>
       <div>
         <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Intents</h2>
         <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
@@ -386,6 +392,7 @@ export function GovernanceView() {
           ))
         )}
       </aside>
-    </section>
+      </section>
+    </>
   );
 }
