@@ -138,6 +138,52 @@ test("scenario editor: a v3 worked surface lints clean and previews live", async
   await expect(page.getByTestId("scenario-preview")).toBeVisible();
 });
 
+test("hosted BUILD generates a governed surface entirely in the browser — no agent, no install", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-build").click();
+
+  // The hosted demo runs the governed pipeline IN THIS BROWSER and says so.
+  // (The pre-gateway dead-end showed build-needs-agent and no prompt at all,
+  // so this test cannot pass without the in-browser generation path.)
+  await expect(page.getByTestId("build-hosted-note")).toContainText(/entirely in this browser/i);
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await expect(page.getByTestId("build-privacy")).toContainText("nothing leaves this machine");
+
+  // Generate. Scripted replays destructive-action's worked example behind ONE
+  // deliberately-violating attempt, so the governance is visible: S2 catches the
+  // bad component, bounded repair re-proposes, the clean surface passes S1/S2/S3
+  // and emit. Every gate here is AJV compiling validators via new Function in the
+  // browser — the exact thing Cloudflare Workers ban, which is why the pipeline
+  // runs client-side, not in a Worker.
+  await page.getByTestId("build-prompt").fill("a confirm dialog to delete my account");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-outcome-1")).toContainText("passed", { timeout: 30_000 });
+
+  const pipeline = page.getByTestId("build-pipeline-1");
+  await expect(pipeline).toContainText("attempt 1");
+  await expect(pipeline).toContainText("S2 FAIL"); // the caught vocabulary violation
+  await expect(pipeline).toContainText("repair sent");
+  await expect(pipeline).toContainText("attempt 2");
+  await expect(pipeline).toContainText("emit: A-gates reported");
+
+  // The generated surface renders through the trusted (wireframe) registry.
+  await expect(page.getByTestId("build-canvas-1")).toContainText("Danger zone");
+
+  // Accepting a result as a reusable worked example writes to a project on disk
+  // — an agent capability. The demo says so honestly instead of dead-ending on a
+  // button that cannot work without the agent.
+  await expect(page.getByTestId("build-accept-note-1")).toContainText(/connect the local agent/i);
+  await expect(page.getByTestId("build-accept-1")).toHaveCount(0);
+
+  // Refine seeds the prior surface and re-runs every gate — monotonic (never a
+  // byte-identical no-op), also entirely in-browser.
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-outcome-2")).toContainText("passed", { timeout: 30_000 });
+  await expect(page.getByTestId("build-canvas-2")).toContainText("Danger zone (refined)");
+  await expect(page.getByTestId("build-canvas-1")).not.toContainText("(refined)");
+});
+
 test("client traffic carries no private hosts, local paths, or key material", async ({ page }) => {
   const bodies: string[] = [];
   page.on("response", async (r) => {

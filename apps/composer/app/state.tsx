@@ -42,6 +42,7 @@ import {
   type ValidatePayload,
 } from "./agent-client";
 import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
+import { streamHostedBuild } from "./hosted-build";
 import { DEMO_CONTRACT, DEMO_EXTRA_SURFACES, DEMO_MANIFEST, DEMO_PROFILE } from "./demo-data";
 
 export type Mode = "demo" | "agent";
@@ -516,10 +517,6 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
    */
   const runBuild = useCallback(
     async (input: { prompt: string; intent: string; modelRef: string; refine?: boolean }) => {
-      if (mode !== "agent") {
-        setNotice("Building runs generation on your machine — connect a project through the local agent first.");
-        return;
-      }
       if (buildBusy) return;
       // Only a completed, passing turn can seed a refinement (#43): a failed
       // turn still carries its last attempt's surface, and seeding that
@@ -547,33 +544,36 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         const progress = foldBuildEvents(events);
         setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, progress, gaps: vocabularyGap(progress) } : t)));
       };
+      // One generation, two homes for the SAME pipeline: the local agent runs
+      // it over your project files; demo mode runs it in THIS browser against
+      // the shipped demo contract (no install). Both stream identical AG-UI
+      // events into foldBuildEvents, so everything downstream is mode-agnostic.
+      const runInput = {
+        path: projectPath,
+        prompt: input.prompt,
+        intent: input.intent,
+        modelRef: input.modelRef,
+        ...(prior
+          ? { conversation: [
+              { role: "user" as const, content: prior.prompt },
+              { role: "assistant" as const, content: JSON.stringify(prior.progress.surface) },
+            ] }
+          : {}),
+      };
+      const runStream = mode === "agent" ? streamProjectRun : streamHostedBuild;
       await new Promise<void>((resolve) => {
-        buildStream.current = streamProjectRun(
-          {
-            path: projectPath,
-            prompt: input.prompt,
-            intent: input.intent,
-            modelRef: input.modelRef,
-            ...(prior
-              ? { conversation: [
-                  { role: "user" as const, content: prior.prompt },
-                  { role: "assistant" as const, content: JSON.stringify(prior.progress.surface) },
-                ] }
-              : {}),
+        buildStream.current = runStream(runInput, {
+          onEvent: (event) => {
+            events.push(event);
+            update();
           },
-          {
-            onEvent: (event) => {
-              events.push(event);
-              update();
-            },
-            onError: (message) => {
-              events.push({ type: "RUN_ERROR", message });
-              update();
-              resolve();
-            },
-            onComplete: () => resolve(),
+          onError: (message) => {
+            events.push({ type: "RUN_ERROR", message });
+            update();
+            resolve();
           },
-        );
+          onComplete: () => resolve(),
+        });
       });
       buildStream.current = null;
       setBuildBusy(false);
