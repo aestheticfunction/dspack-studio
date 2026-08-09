@@ -86,6 +86,17 @@ zone ⇒ shared account) — over Unified Billing, so there is **no provider key
 BYOK credential, and no gateway secret**. No KV, Durable Objects, or databases.
 A `HOSTED_AI` var is the kill switch.
 
+**Cost protection (measured 2026-08-09).** The **enforced** cap is the
+`ds-ai-gateway` zone rate limit — a concurrent burst to `/api/propose` is
+rate-limited to `503 busy` (verified), which bounds total Haiku spend zone-wide
+— plus the kill switch, the per-call `max_tokens`, and the request body-size
+cap. The Worker also declares a native per-client rate-limit binding
+(`PROPOSE_RATE_LIMIT`) for fairness, but that binding **does not currently
+enforce on this account** (`.limit()` reports success for every call; 20+ rapid
+requests all passed). It is kept as forward-compatible defense-in-depth; the
+gateway ceiling is the real gate. A per-client KV/DO counter is the follow-up if
+per-IP fairness becomes necessary.
+
 Crucially, the Worker **never runs the deterministic pipeline** — Cloudflare
 Workers ban the runtime `new Function` that AJV (S1/S2/S3 + emit) needs, so
 S1/S2/S3, repair, emit, audit, preview, and export all run in the visitor's

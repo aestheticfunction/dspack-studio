@@ -42,9 +42,12 @@
   // Cost has TWO ceilings: the gateway's own zone-wide rate limit (the hard cap,
   // shared with the theme generator) and the per-client limiter below.
   "ai": { "binding": "AI" },
-  // Per-client rate limit for /api/propose — one abuser cannot consume the
-  // shared gateway allowance. Fully wrangler-configured (no dashboard resource,
-  // no secret); keyed by the Cloudflare-verified client IP in worker/propose.mjs.
+  // Per-client rate limit for /api/propose (defense-in-depth). NOTE (measured
+  // 2026-08-09): this native binding does NOT enforce on this account yet —
+  // .limit() reports success for every call — so it is currently a no-op kept
+  // for when the account enables it. The ENFORCED cost cap is the ds-ai-gateway
+  // zone rate limit (verified) + the HOSTED_AI kill switch + per-call/body caps.
+  // See worker/propose.mjs rateLimited() and docs/deployment.md.
   "ratelimits": [
     { "name": "PROPOSE_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
   ],
