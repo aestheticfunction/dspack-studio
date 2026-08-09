@@ -39,13 +39,25 @@ import {
   agentSaveExample,
   probeAgent,
   streamProjectRun,
+  streamAgentInline,
   type EmitPayload,
   type RediscoverReport,
   type ValidatePayload,
 } from "./agent-client";
 import { browserEmit, contractSurfaces, lintOneSurface, validateContract } from "./validation";
 import { streamHostedBuild } from "./hosted-build";
+import {
+  loadStoredProviders,
+  saveStoredProviders,
+  isLocalRef,
+  localKindOf,
+  modelOf,
+  type StoredProviders,
+  type ProviderConfig,
+  type LocalKind,
+} from "./providers";
 import { planGoal } from "./planning";
+import { buildProjectExport, downloadProjectExport, parseProjectImport } from "./project-portability";
 import { REFERENCES, REFERENCE_LIST, DEFAULT_REFERENCE, type Reference } from "./demo-data";
 import {
   createProject,
@@ -57,8 +69,12 @@ import {
   renameProject as renameStoredProject,
   getLastOpened,
   setLastOpened,
+  saveVocab,
+  loadVocab,
   type StoredProject,
   type ProjectSource,
+  type ProjectVocab,
+  type PreviewRegistry,
 } from "./projects";
 
 export type Mode = "demo" | "agent";
@@ -128,6 +144,10 @@ export interface ComposerState {
   renameProject: (id: string, name: string) => void;
   duplicateProject: (id: string) => StoredProject | null;
   deleteProject: (id: string) => void;
+  /** Import a project from an exported file (validates, stores, opens). */
+  importProject: (text: string) => { ok: true; name: string } | { ok: false; error: string };
+  /** Export a project to a downloadable, portable file. */
+  exportProject: (id: string) => void;
   discover: () => Promise<void>;
   rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
@@ -145,9 +165,20 @@ export interface ComposerState {
   buildTurns: BuildTurn[];
   buildBusy: boolean;
   buildModels: string[];
+  /** Everything Build's model switch can offer (auto list + configured local). */
+  selectableModels: string[];
   /** The active provider/model, shared between Settings and Build. */
   activeModel: string;
   setActiveModel: (m: string) => void;
+  /** The run-time config for a configured local provider (null = hosted/scripted). */
+  providerConfig: ProviderConfig | null;
+  /** Remembered local-provider endpoints + models (no secrets). */
+  configuredProviders: StoredProviders;
+  /** The OpenAI-compatible credential, held in memory for the session only. */
+  openaiKey: string;
+  setOpenaiKey: (k: string) => void;
+  /** Configure a local provider (remember endpoint + model, make it active). */
+  configureLocalProvider: (kind: LocalKind, baseUrl: string, model: string) => void;
   /** Setup completeness for building; reason names the exact remaining work. */
   readiness: BuildReadiness;
   runBuild: (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => Promise<void>;
@@ -248,6 +279,50 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // Load a reference's vocabulary directly (used by openProject and quick-start).
   const loadDemo = useCallback(() => loadReference(DEFAULT_REFERENCE), [loadReference]);
 
+  /**
+   * Open an imported project: its governed vocabulary travelled in a file and
+   * lives inline (keyed by project id). Same in-browser pipeline as a reference
+   * — the design system is data — but sourced from the import rather than a
+   * bundled reference. A missing/corrupt payload lands on the hub, not a crash.
+   */
+  const loadImported = useCallback(
+    (id: string, name: string) => {
+      const vocab = loadVocab(id);
+      if (!vocab) {
+        setNotice("This imported project’s data could not be read — it may have been cleared. Re-import the file to restore it.");
+        setActiveProjectId(null);
+        setLastOpened(null);
+        return;
+      }
+      setReferenceId(id);
+      setMode("demo");
+      setProjectPath("");
+      setManifest({
+        composerProject: "0.1",
+        name,
+        adapter: "imported",
+        catalogIdBase: "https://composer.aesthetic-function.com/imported",
+        contractPath: "contract.dspack.json",
+        profilePath: "profile.json",
+        outDir: "out",
+        previewRegistry: vocab.previewRegistry,
+      } as ProjectManifest);
+      const doc = structuredClone(vocab.contract) as Record<string, any>;
+      const prof = structuredClone(vocab.profile) as Record<string, any>;
+      setContract(doc);
+      setProfile(prof);
+      setExtraSurfaces([]);
+      recomputeEmit(doc, prof, []);
+      setRediscovery(null);
+      setValidate(null);
+      setSelected(null);
+      clearBuildThread();
+      setNotice(`Opened “${name}”. This project was imported; edits stay in this browser. Export again to move it on.`);
+      void refreshLedger(doc);
+    },
+    [refreshLedger, recomputeEmit],
+  );
+
   const connect = useCallback(
     async (path: string) => {
       setBusy("connecting");
@@ -295,12 +370,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setProjects(listProjects());
       if (p.source.kind === "agent") {
         void connect(p.source.path);
+      } else if (p.source.kind === "imported") {
+        loadImported(p.id, p.name);
       } else {
         loadReference(p.source.referenceId);
         setNotice(`Opened “${p.name}”. Edits stay in this browser; connect the local agent to work on real files.`);
       }
     },
-    [connect, loadReference],
+    [connect, loadReference, loadImported],
   );
 
   const newProject = useCallback(
@@ -311,6 +388,59 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       return p;
     },
     [openProject],
+  );
+
+  /**
+   * Import a project from an exported file: validate it (fail-closed — the
+   * profile must load), store its governed vocabulary inline, and open it.
+   * Returns a typed result so the hub can state a refusal in plain words.
+   */
+  const importProject = useCallback(
+    (text: string): { ok: true; name: string } | { ok: false; error: string } => {
+      const parsed = parseProjectImport(text);
+      if (!parsed.ok) return parsed;
+      const p = createProject({ name: parsed.name, description: parsed.description, source: { kind: "imported" } });
+      if (!saveVocab(p.id, parsed.vocab)) {
+        rmStoredProject(p.id);
+        return { ok: false, error: "This project is too large to keep in the browser, or local storage is full." };
+      }
+      setProjects(listProjects());
+      openProject(p.id);
+      return { ok: true, name: parsed.name };
+    },
+    [openProject],
+  );
+
+  /**
+   * Export a project to a downloadable file — its identity plus its governed
+   * vocabulary, nothing machine-specific. The OPEN project exports exactly
+   * what's loaded (this session's edits included); a reference or imported
+   * project can export from its source without opening; an agent project must
+   * be open, because its vocabulary lives on your machine through the agent.
+   */
+  const exportProject = useCallback(
+    (id: string) => {
+      const p = getProject(id);
+      if (!p) {
+        setNotice("That project could not be found.");
+        return;
+      }
+      let vocab: ProjectVocab | null = null;
+      if (id === activeProjectId && contract && profile) {
+        vocab = { contract, profile, previewRegistry: (manifest?.previewRegistry ?? "wireframe") as PreviewRegistry };
+      } else if (p.source.kind === "reference") {
+        const ref = REFERENCES[p.source.referenceId];
+        if (ref) vocab = { contract: ref.contract, profile: ref.profile, previewRegistry: (ref.manifest?.previewRegistry ?? "wireframe") as PreviewRegistry };
+      } else if (p.source.kind === "imported") {
+        vocab = loadVocab(id);
+      }
+      if (!vocab) {
+        setNotice("Open this project first to export it — its vocabulary lives on your machine, through the agent.");
+        return;
+      }
+      downloadProjectExport(buildProjectExport({ name: p.name, description: p.description, vocab, exportedAt: new Date().toISOString() }));
+    },
+    [activeProjectId, contract, profile, manifest],
   );
 
   /** Return to the hub without loading a project. */
@@ -622,11 +752,51 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [buildTurns, setBuildTurns] = useState<BuildTurn[]>([]);
   const [buildBusy, setBuildBusy] = useState(false);
   const [buildModels, setBuildModels] = useState<string[]>(["scripted"]);
-  // The active provider/model — shared so Settings configures it and Build
-  // reflects it. Provider choice changes proposal generation, never the product.
-  const [activeModel, setActiveModel] = useState<string>("");
+  // Configured local providers (remembered endpoint + model per provider; NO
+  // secret) and the active model ref persist across reloads. The OpenAI-
+  // compatible key is held in memory for the session only — never written to
+  // storage, never leaves for anywhere but the agent.
+  const [storedProviders, setStoredProviders] = useState<StoredProviders>(() => loadStoredProviders());
+  const [openaiKey, setOpenaiKey] = useState<string>("");
+  const [activeModel, setActiveModelRaw] = useState<string>(() => loadStoredProviders().active ?? "");
   const buildStream = useRef<{ cancel(): void } | null>(null);
   const turnSeq = useRef(0);
+
+  // Selecting a model persists it, so a reload reopens the same provider.
+  const setActiveModel = useCallback((ref: string) => {
+    setActiveModelRaw(ref);
+    setStoredProviders((s) => {
+      const next = { ...s, active: ref };
+      saveStoredProviders(next);
+      return next;
+    });
+  }, []);
+
+  // Configure a local provider from Settings: remember its endpoint + model and
+  // make it active. Any credential stays in memory via setOpenaiKey.
+  const configureLocalProvider = useCallback((kind: LocalKind, baseUrl: string, model: string) => {
+    const ref = `${kind}:${model}`;
+    setStoredProviders((s) => {
+      const next: StoredProviders = { ...s, [kind]: { baseUrl, model }, active: ref };
+      saveStoredProviders(next);
+      return next;
+    });
+    setActiveModelRaw(ref);
+  }, []);
+
+  // The run-time provider config is DERIVED from the active ref + the remembered
+  // endpoint + the in-memory key — one source of truth, nothing to keep in sync.
+  const providerConfig = useMemo<ProviderConfig | null>(() => {
+    const kind = localKindOf(activeModel);
+    if (!kind) return null;
+    const remembered = kind === "ollama" ? storedProviders.ollama : storedProviders.openai;
+    return {
+      kind,
+      model: modelOf(activeModel),
+      ...(remembered?.baseUrl ? { baseUrl: remembered.baseUrl } : {}),
+      ...(kind === "openai" && openaiKey ? { apiKey: openaiKey } : {}),
+    };
+  }, [activeModel, storedProviders, openaiKey]);
 
   useEffect(() => {
     // Agent up → the agent's models (scripted + any local Ollama). Otherwise the
@@ -636,16 +806,27 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     else void hostedModels().then(setBuildModels);
   }, [agentUp]);
 
-  // Keep the active model valid and defaulted to the best available: managed
-  // hosted AI is the wow moment; agent + offline fall back to scripted.
+  // Keep the active model valid: a configured LOCAL provider (any local ref) is
+  // honored even when absent from the auto-discovered list; otherwise fall back
+  // to hosted (the wow moment) or scripted.
   useEffect(() => {
-    setActiveModel((cur) => {
-      if (cur && buildModels.includes(cur)) return cur;
+    setActiveModelRaw((cur) => {
+      if (cur && (buildModels.includes(cur) || isLocalRef(cur))) return cur;
       if (mode !== "agent" && buildModels.includes("hosted-ai")) return "hosted-ai";
       if (agentUp && buildModels.some((m) => m.startsWith("ollama:"))) return buildModels.find((m) => m.startsWith("ollama:"))!;
       return buildModels[0] ?? "scripted";
     });
   }, [buildModels, mode, agentUp]);
+
+  // What Build's model switch offers: the auto list plus any configured local
+  // provider and the current active ref (so an OpenAI/custom model is present).
+  const selectableModels = useMemo(() => {
+    const set = new Set<string>(buildModels);
+    if (storedProviders.ollama) set.add(`ollama:${storedProviders.ollama.model}`);
+    if (storedProviders.openai) set.add(`openai:${storedProviders.openai.model}`);
+    if (activeModel) set.add(activeModel);
+    return [...set];
+  }, [buildModels, storedProviders, activeModel]);
 
   const readiness = useMemo(
     () => buildReadiness({ contract, profile, findings: emit ? emit.findings : null, emitOk: emit?.ok ?? false }),
@@ -673,6 +854,12 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       if (buildBusy) return;
       if (!contract || !profile) {
         setNotice("No project loaded yet.");
+        return;
+      }
+      // A local provider runs through the agent; without it, don't silently
+      // fall back to a different provider — say so and stop.
+      if (isLocalRef(input.modelRef) && !agentUp) {
+        setNotice("This model runs on your machine through the local agent, which isn’t running. Start it (pnpm --filter agent dev), or choose Hosted or Scripted in Settings.");
         return;
       }
       // Only a completed, passing turn can seed a refinement (#43).
@@ -736,6 +923,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         prompt: prior ? input.goal : plan.restated,
         intent,
         modelRef: input.modelRef,
+        // A configured LOCAL provider (Ollama/OpenAI-compatible) rides along so
+        // the agent runs the request against your own model.
+        ...(providerConfig ? { provider: providerConfig } : {}),
         ...(prior
           ? { conversation: [
               { role: "user" as const, content: prior.prompt },
@@ -743,14 +933,20 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
             ] }
           : {}),
       };
-      // Same signature, same events, same downstream pipeline. The hosted twin
-      // gets the ACTIVE reference's documents so any design system traverses it;
-      // the agent runs over the connected project's own files.
+      // Three homes, one pipeline, identical AG-UI events:
+      //   • agent project → the agent over your files (/project/run);
+      //   • hosted/reference + LOCAL model → the agent over the browser-supplied
+      //     vocabulary (/generate) — how a hosted project runs your own model;
+      //   • hosted/reference + hosted model → the in-browser twin (/api/propose).
+      const local = isLocalRef(input.modelRef) && agentUp;
       const runStream =
         mode === "agent"
           ? streamProjectRun
-          : (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
-              streamHostedBuild(inp, handlers, { contract, profile });
+          : local
+            ? (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
+                streamAgentInline(inp, handlers, { contract, profile })
+            : (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
+                streamHostedBuild(inp, handlers, { contract, profile });
       await new Promise<void>((resolve) => {
         buildStream.current = runStream(runInput, {
           onEvent: (event) => {
@@ -768,7 +964,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       buildStream.current = null;
       setBuildBusy(false);
     },
-    [mode, projectPath, buildBusy, buildTurns, contract, profile],
+    [mode, projectPath, buildBusy, buildTurns, contract, profile, providerConfig, agentUp],
   );
 
   /**
@@ -899,6 +1095,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       renameProject,
       duplicateProject,
       deleteProject,
+      importProject,
+      exportProject,
       discover,
       rediscover,
       saveContract,
@@ -912,14 +1110,20 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       buildTurns,
       buildBusy,
       buildModels,
+      selectableModels,
       activeModel,
       setActiveModel,
+      providerConfig,
+      configuredProviders: storedProviders,
+      openaiKey,
+      setOpenaiKey,
+      configureLocalProvider,
       readiness,
       runBuild,
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, activeModel, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -35,6 +35,8 @@ import {
 } from "@aestheticfunction/dspack-emit";
 import { lintSurface } from "@aestheticfunction/dspack-gen/core";
 import { runPipeline, ScriptedAdapter, adapterFor, OllamaAdapter } from "@aestheticfunction/dspack-gen";
+import { adapterForProvider } from "./providers.js";
+import { parseProviderConfig } from "./adapters/openai-compat.js";
 import { exportProject, regenerateSections } from "@aestheticfunction/dspack-export";
 import { compileSchemaSet, documentReport, type ValidatorMap } from "@aestheticfunction/dspack-spec/lib/validate.mjs";
 import {
@@ -523,6 +525,9 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
   const intent = String(props.intent ?? intents[0]?.id ?? "");
   const modelRef = String(props.modelRef ?? "scripted");
   const conversation = parseConversation(props.conversation);
+  // A configured local provider (Ollama endpoint or OpenAI-compatible server)
+  // comes through per-run; the agent owns the endpoint + any credential.
+  const provider = parseProviderConfig(props.provider);
 
   const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
   // LAST match FOR THIS INTENT: accepted chat results join the corpus at the
@@ -538,8 +543,9 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
         `Author one in Scenarios, or run with a model — generation works from the scoped contract without few-shot context.`,
     );
   }
-  const adapter =
-    modelRef === "scripted"
+  const adapter = provider
+    ? adapterForProvider(provider)
+    : modelRef === "scripted"
       ? scriptedRunAdapter(example!, conversation)
       : modelRef.startsWith("ollama:")
         ? ollamaAdapterWithWindow(modelRef)
@@ -562,6 +568,69 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
       onEvent: (event) => {
         // The bridge's PipelineEvent is a structural mirror of dspack-gen's
         // union (retired once dspack-gen#48 re-exports the type).
+        for (const agui of map(event as unknown as BridgePipelineEvent)) res.write(encoder.encode(agui as BaseEvent));
+      },
+    });
+  } catch (error) {
+    res.write(encoder.encode(runErrorEvent(error instanceof Error ? error.message : String(error))));
+  }
+  res.end();
+}
+
+/**
+ * Governed generation over an INLINE contract + profile the browser supplies,
+ * rather than files on disk — how a hosted/reference project runs a LOCAL
+ * model through the agent. Same pipeline, same AG-UI events, same gates as
+ * /project/run; only the vocabulary's home differs (the request, not a
+ * project.json). No path, so this lives outside the /project/* prefix.
+ */
+export async function runInlineGenerate(body: Record<string, unknown>, res: ServerResponse, cors: Record<string, string>, accept: string | undefined) {
+  const props = ((body.forwardedProps as Record<string, unknown> | undefined) ?? body) as Record<string, unknown>;
+  const contractRaw = props.contract;
+  const profileRaw = props.profile;
+  if (!contractRaw || typeof contractRaw !== "object" || !profileRaw || typeof profileRaw !== "object") {
+    res.writeHead(400, { "content-type": "application/json", ...cors });
+    res.end(JSON.stringify({ error: "inline generation needs a contract and profile in forwardedProps" }));
+    return;
+  }
+  const provider = parseProviderConfig(props.provider);
+  const modelRef = String(props.modelRef ?? "");
+  if (!provider && !modelRef.startsWith("ollama:")) {
+    res.writeHead(400, { "content-type": "application/json", ...cors });
+    res.end(JSON.stringify({ error: "inline generation is for local providers; supply a provider config or an ollama: modelRef" }));
+    return;
+  }
+  const contract = contractRaw as Record<string, unknown>;
+  let profile: Profile;
+  try {
+    profile = loadProfile(profileRaw);
+  } catch (e) {
+    res.writeHead(400, { "content-type": "application/json", ...cors });
+    res.end(JSON.stringify({ error: `mapping profile is invalid: ${e instanceof Error ? e.message : String(e)}` }));
+    return;
+  }
+
+  const prompt = String(props.prompt ?? "");
+  const intents = (contract.intents as Array<{ id: string }> | undefined) ?? [];
+  const intent = String(props.intent ?? intents[0]?.id ?? "");
+  const conversation = parseConversation(props.conversation);
+  const adapter = provider ? adapterForProvider(provider) : ollamaAdapterWithWindow(modelRef);
+
+  const encoder = createSseEncoder(accept);
+  res.writeHead(200, { "content-type": encoder.contentType, "cache-control": "no-cache", connection: "keep-alive", ...cors });
+  const threadId = `inline-${String(props.name ?? "project")}`;
+  const runId = String(body.runId ?? `run-${Date.now()}`);
+  const map = createPipelineEventMapper({ threadId, runId });
+  try {
+    await runPipeline({
+      contract: contract as Parameters<typeof runPipeline>[0]["contract"],
+      intent,
+      prompt,
+      adapter,
+      maxRepairs: 2,
+      emitProfile: profile,
+      ...(conversation && conversation.length > 0 ? { conversation } : {}),
+      onEvent: (event) => {
         for (const agui of map(event as unknown as BridgePipelineEvent)) res.write(encoder.encode(agui as BaseEvent));
       },
     });

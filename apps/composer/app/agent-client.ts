@@ -5,6 +5,7 @@
  */
 import { HttpAgent, type BaseEvent } from "@dspack-studio/agui-bridge";
 import type { ComposerFinding, LedgerStatus, ProjectManifest } from "@dspack-studio/composer-core";
+import type { ProviderConfig } from "./providers";
 
 export interface EmitPayload {
   ok: boolean;
@@ -168,28 +169,26 @@ export interface BuildRunInput {
   prompt: string;
   intent: string;
   modelRef: string;
+  /** A configured LOCAL provider (Ollama/OpenAI-compatible): endpoint + model,
+   *  and a session-only credential. The agent owns the actual communication. */
+  provider?: ProviderConfig;
   /** Refinement seed: the prior turn's ask + generated surface, verbatim. */
   conversation?: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
-/**
- * Stream a project-scoped generation run (AG-UI SSE over /project/run).
- * Events arrive as plain mapper-shaped JSON for composer-core's fold; the
- * returned handle cancels the subscription.
- */
-export function streamProjectRun(
-  input: BuildRunInput,
-  handlers: { onEvent(event: Record<string, unknown>): void; onError(message: string): void; onComplete(): void },
-): { cancel(): void } {
-  const agent = new HttpAgent({ url: `${agentUrl()}/project/run` });
+type StreamHandlers = { onEvent(event: Record<string, unknown>): void; onError(message: string): void; onComplete(): void };
+
+/** Subscribe to an AG-UI SSE run and adapt events for composer-core's fold. */
+function streamAgUi(url: string, threadId: string, forwardedProps: Record<string, unknown>, handlers: StreamHandlers): { cancel(): void } {
+  const agent = new HttpAgent({ url });
   const observable = agent.run({
-    threadId: `build-${input.path}`,
+    threadId,
     runId: `build-${Date.now()}`,
     messages: [],
     tools: [],
     context: [],
     state: {},
-    forwardedProps: input,
+    forwardedProps,
   } as never);
   const subscription = (observable as { subscribe(o: object): { unsubscribe(): void } }).subscribe({
     next: (event: BaseEvent) => handlers.onEvent(event as unknown as Record<string, unknown>),
@@ -197,6 +196,53 @@ export function streamProjectRun(
     complete: () => handlers.onComplete(),
   });
   return { cancel: () => subscription.unsubscribe() };
+}
+
+/**
+ * Stream a project-scoped generation run (AG-UI SSE over /project/run) — the
+ * agent runs over the connected project's own files. A provider config rides
+ * along so a local model can drive the run.
+ */
+export function streamProjectRun(input: BuildRunInput, handlers: StreamHandlers): { cancel(): void } {
+  return streamAgUi(`${agentUrl()}/project/run`, `build-${input.path}`, input as unknown as Record<string, unknown>, handlers);
+}
+
+/**
+ * Stream an INLINE governed run (AG-UI SSE over /generate): a hosted/reference
+ * project running a LOCAL model through the agent. The vocabulary travels in
+ * the request; the pipeline and gates are identical to /project/run.
+ */
+export function streamAgentInline(
+  input: BuildRunInput,
+  handlers: StreamHandlers,
+  vocab: { contract: Record<string, unknown>; profile: Record<string, unknown> },
+): { cancel(): void } {
+  return streamAgUi(
+    `${agentUrl()}/generate`,
+    `inline-${input.modelRef}`,
+    { ...(input as unknown as Record<string, unknown>), contract: vocab.contract, profile: vocab.profile },
+    handlers,
+  );
+}
+
+/** Connection test + model discovery for a configured local provider. */
+export async function agentTestProvider(
+  kind: "ollama" | "openai",
+  baseUrl: string,
+  apiKey?: string,
+): Promise<{ ok: boolean; models: string[]; error?: string }> {
+  try {
+    const res = await fetch(`${agentUrl()}/provider/test`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind, baseUrl, ...(apiKey ? { apiKey } : {}) }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const body = (await res.json()) as { ok?: boolean; models?: string[]; error?: string };
+    return { ok: !!body.ok, models: Array.isArray(body.models) ? body.models : [], error: body.error };
+  } catch (e) {
+    return { ok: false, models: [], error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export interface AcceptedExample {

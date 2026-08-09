@@ -37,7 +37,17 @@ function providerCopy(modelRef: string): string {
   if (modelRef === "scripted") return "deterministic, zero model calls — nothing leaves this machine.";
   if (modelRef === "hosted-ai") return "managed Claude Haiku via the governed AI Gateway (no API key in your browser); every proposal is validated here before you see it.";
   if (modelRef.startsWith("ollama:")) return "your local Ollama model — nothing leaves your machine.";
+  if (modelRef.startsWith("openai:")) return "your OpenAI-compatible endpoint through the agent — any key stays on your machine, never in the browser.";
   return "keys live in the agent's environment; contract-derived context and your goal go to the provider.";
+}
+
+/** A friendly one-line provider label, e.g. "Local · qwen3:30b". */
+function providerLabel(ref: string): string {
+  if (ref === "hosted-ai") return "Hosted · Claude Haiku";
+  if (ref === "scripted") return "Scripted";
+  if (ref.startsWith("ollama:")) return `Local · ${ref.slice("ollama:".length)}`;
+  if (ref.startsWith("openai:")) return `Local · ${ref.slice("openai:".length)}`;
+  return ref;
 }
 
 /** The translated governance summary for a settled turn. */
@@ -83,9 +93,9 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
       <span style={{ color: "var(--info)" }}>{label}</span>
       {also.length > 0 && <span> (also touches {also.join(", ")})</span>}
       {turn.plan.reason && <span> — {turn.plan.reason}</span>}
-      {turn.plan.source === "scripted" && !turn.refinement && (
+      {turn.modelRef === "scripted" && !turn.refinement && (
         <span style={{ display: "block", color: "var(--warn)", marginTop: 2 }}>
-          Scripted mode replays a representative example for this context — switch to <code>hosted-ai</code> to generate
+          Scripted mode replays a representative example for this context — switch to a hosted or local model to generate
           for your exact words.
         </span>
       )}
@@ -332,7 +342,7 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 }
 
 export function BuildView() {
-  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, runBuild, activeModel, setActiveModel } =
+  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel } =
     useComposer();
   const [prompt, setPrompt] = useState("");
   // "" = auto: the governed context is INFERRED from the goal. A specific value
@@ -400,9 +410,9 @@ export function BuildView() {
             provider
           </span>
           <select value={activeModel} onChange={(e) => setActiveModel(e.target.value)} data-testid="build-model" aria-label="Provider" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2 }}>
-            {buildModels.map((m) => (
+            {selectableModels.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {providerLabel(m)}
               </option>
             ))}
           </select>
