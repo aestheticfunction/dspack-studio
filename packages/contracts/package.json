@@ -2,14 +2,16 @@
   "name": "@dspack-studio/contracts",
   "version": "0.1.0",
   "private": true,
-  "description": "The Astryx dspack contract, its A2UI mapping profile, gated catalog emission, and the Astryx vocabulary drift check.",
+  "description": "The Astryx and shadcn/ui dspack contracts, their A2UI mapping profiles, gated catalog emission (incl. the production shadcn-v3 catalog), and the vocabulary drift checks.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./astryx.dspack.json": "./astryx.dspack.json",
     "./out/*": "./out/*",
-    "./shadcn-ui.dspack.json": "./shadcn-ui.dspack.json"
+    "./shadcn-ui.dspack.json": "./shadcn-ui.dspack.json",
+    "./shadcn-v3.dspack.json": "./shadcn-v3.dspack.json",
+    "./shadcn-v3.profile.json": "./shadcn-v3.profile.json"
   },
   "scripts": {
     "build:catalogs": "tsx src/build.ts",
