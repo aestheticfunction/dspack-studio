@@ -13,7 +13,7 @@ import { buildVocabulary } from "@aestheticfunction/dspack-spec/lib/validate.mjs
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
 import { useComposer } from "../state";
-import { Eyebrow } from "../ui";
+import { ViewHeader } from "../ui";
 import { browserEmit, lintOneSurface } from "../validation";
 
 const field = {
@@ -147,7 +147,7 @@ function NodeEditor({
 }
 
 export function ScenarioView() {
-  const { contract, profile, saveContract, mode } = useComposer();
+  const { contract, profile, saveContract, mode, referenceExampleIds, manifest } = useComposer();
   const [editing, setEditing] = useState<string | null>(null);
   const [meta, setMeta] = useState({ id: "", intent: "", name: "", prompt: "", description: "" });
   const [root, setRoot] = useState<SurfaceNode | null>(null);
@@ -195,6 +195,15 @@ export function ScenarioView() {
     setRoot(structuredClone(example.surface?.root ?? { component: vocabOptions[0]?.id ?? "" }));
     setIssue(null);
   };
+  /** Copy a REFERENCE example into the project: the editor opens prefilled
+   *  with the id cleared, so saving mints a project-owned scenario — the
+   *  canonical reference row itself is never edited in place. */
+  const startCopy = (example: Record<string, any>) => {
+    setEditing("(new)");
+    setMeta({ id: "", intent: example.intent, name: example.name ? `${example.name} (copy)` : "", prompt: example.prompt ?? "", description: example.description ?? "" });
+    setRoot(structuredClone(example.surface?.root ?? { component: vocabOptions[0]?.id ?? "" }));
+    setIssue(null);
+  };
 
   const save = async () => {
     if (!draftSurface) return;
@@ -219,29 +228,66 @@ export function ScenarioView() {
   };
 
   if (editing === null) {
+    // Ownership first: the project's scenarios (accepted builds + authored
+    // here) are the primary list; the design-system reference's worked
+    // examples are a clearly labeled secondary corpus — available as few-shot
+    // and teaching context, never presented as the user's own work.
+    const yours = referenceExampleIds ? examples.filter((e) => !referenceExampleIds.has(e.id)) : examples;
+    const refs = referenceExampleIds ? examples.filter((e) => referenceExampleIds.has(e.id)) : [];
+    const row = (e: Record<string, any>, isRef: boolean) => (
+      <li key={e.id} style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }} data-testid={`scenario-${e.id}`}>
+        <span style={{ fontFamily: "var(--mono)", color: isRef ? "var(--fg-dim)" : "var(--info)" }}>{e.id}</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{e.intent}</span>
+        <span style={{ color: "var(--fg-body)", marginLeft: 8 }}>{e.name}</span>
+        {isRef ? (
+          <button
+            className="st-link"
+            style={{ marginLeft: 10, fontSize: 12 }}
+            onClick={() => startCopy(e)}
+            title="Copy this reference example into the project and edit the copy"
+            data-testid={`copy-${e.id}`}
+          >
+            copy to project
+          </button>
+        ) : (
+          <button className="st-link" style={{ marginLeft: 10, fontSize: 12 }} onClick={() => startEdit(e)} data-testid={`edit-${e.id}`}>
+            edit
+          </button>
+        )}
+      </li>
+    );
     return (
       <section>
-        <Eyebrow>Scenarios</Eyebrow>
-        <p style={{ fontSize: 13, color: "var(--fg-body)", maxWidth: 640 }}>
-          A scenario is a worked example: the surface that proves an intent is buildable, previews the catalog, and feeds
-          generation as its few-shot corpus. There is no third example format.
+        <ViewHeader
+          eyebrow="Scenarios"
+          lead="Worked examples for proving and refining what this project can build. A scenario proves an intent is buildable, previews the catalog, and seeds generation as its few-shot corpus."
+        />
+        <p className="af-label" style={{ margin: "14px 0 4px" }}>
+          {referenceExampleIds ? "Project scenarios" : "Scenarios"}
         </p>
-        <ul style={{ listStyle: "none", padding: 0, fontSize: 13 }}>
-          {examples.map((e) => (
-            <li key={e.id} style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }} data-testid={`scenario-${e.id}`}>
-              <span style={{ fontFamily: "var(--mono)", color: "var(--info)" }}>{e.id}</span>
-              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{e.intent}</span>
-              <span style={{ color: "var(--fg-body)", marginLeft: 8 }}>{e.name}</span>
-              <button className="st-link" style={{ marginLeft: 10, fontSize: 12 }} onClick={() => startEdit(e)} data-testid={`edit-${e.id}`}>
-                edit
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button className="st-btn" onClick={startNew} disabled={intents.length === 0} data-testid="new-scenario">
+        {yours.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--fg-dim)" }} data-testid="scenarios-none-yet">
+            None yet — accept a Build result (&ldquo;Add to project&rdquo;), or author one below.
+          </p>
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0, fontSize: 13, margin: 0 }}>{yours.map((e) => row(e, false))}</ul>
+        )}
+        <button className="st-btn" style={{ marginTop: 10 }} onClick={startNew} disabled={intents.length === 0} data-testid="new-scenario">
           New scenario
         </button>
         {intents.length === 0 && <p style={{ fontSize: 12, color: "var(--warn)" }}>Author an intent first (Governance) — every scenario is bound to one.</p>}
+        {refs.length > 0 && (
+          <div style={{ marginTop: 22 }} data-testid="scenarios-reference">
+            <p className="af-label" style={{ margin: "0 0 4px", color: "var(--fg-dim)" }}>
+              Reference examples · {manifest?.name ?? "design system"}
+            </p>
+            <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 4px" }}>
+              The design system&rsquo;s own worked examples — teaching material and few-shot context. Copy one into the
+              project to make it yours.
+            </p>
+            <ul style={{ listStyle: "none", padding: 0, fontSize: 13, margin: 0 }}>{refs.map((e) => row(e, true))}</ul>
+          </div>
+        )}
       </section>
     );
   }

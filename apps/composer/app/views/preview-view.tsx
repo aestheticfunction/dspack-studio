@@ -42,7 +42,7 @@ function exportBundle(emit: NonNullable<ReturnType<typeof useComposer>["emit"]>,
 }
 
 export function PreviewView() {
-  const { emit, manifest } = useComposer();
+  const { emit, manifest, referenceExampleIds } = useComposer();
   const [registryId, setRegistryId] = useState<RegistryId>("wireframe");
   const [canvasMode, setCanvasMode] = useState<"light" | "dark">("light");
   const [surfaceName, setSurfaceName] = useState<string | null>(null);
@@ -50,7 +50,13 @@ export function PreviewView() {
 
   const catalog = emit?.catalog;
   const surfaces = (emit?.surfaces ?? []).filter((s) => s.messages);
-  const active = surfaces.find((s) => s.name === surfaceName) ?? surfaces[0];
+  // Ownership first: the project's OWN surfaces (accepted builds, authored
+  // scenarios) vs the design-system reference's worked examples. They are
+  // never mixed into one anonymous list, and Preview opens on the project's
+  // LATEST surface — what the user just built — not a reference example.
+  const yours = referenceExampleIds ? surfaces.filter((s) => !referenceExampleIds.has(s.name)) : surfaces;
+  const referenceSurfaces = referenceExampleIds ? surfaces.filter((s) => referenceExampleIds.has(s.name)) : [];
+  const active = surfaces.find((s) => s.name === surfaceName) ?? yours.at(-1) ?? null;
 
   // The registry choices are wireframe (always) + the project's native design
   // system, whichever it is. A stale selection from a previous project clamps
@@ -117,41 +123,85 @@ export function PreviewView() {
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>surface:</span>
-        {surfaces.map((s) => (
-          <button key={s.name} className={`st-btn${(active?.name ?? "") === s.name ? " st-btn--active" : ""}`} onClick={() => setSurfaceName(s.name)} data-testid={`surface-${s.name}`}>
-            {s.name}
-          </button>
-        ))}
-        {failed.map((s) => (
-          <span key={s.name} title={s.error} style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--err)" }} data-testid={`surface-refused-${s.name}`}>
-            {s.name}: refused
+      <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span className="af-label" style={{ margin: 0 }}>
+            {referenceExampleIds ? "Your surfaces" : "Project surfaces"}
           </span>
-        ))}
+          {yours.length === 0 ? (
+            <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="preview-no-project-surfaces">
+              none yet — build something in Build, then “Add to project”.
+            </span>
+          ) : (
+            yours.map((s) => (
+              <button key={s.name} className={`st-btn${(active?.name ?? "") === s.name ? " st-btn--active" : ""}`} onClick={() => setSurfaceName(s.name)} data-testid={`surface-${s.name}`}>
+                {s.name}
+              </button>
+            ))
+          )}
+        </div>
+        {referenceSurfaces.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} data-testid="preview-reference-surfaces">
+            <span className="af-label" style={{ margin: 0, color: "var(--fg-dim)" }}>
+              Reference examples · {manifest?.name ?? "design system"}
+            </span>
+            {referenceSurfaces.map((s) => (
+              <button
+                key={s.name}
+                className={`st-btn st-btn--dashed${(active?.name ?? "") === s.name ? " st-btn--active" : ""}`}
+                onClick={() => setSurfaceName(s.name)}
+                data-testid={`surface-${s.name}`}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        )}
+        {failed.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            {failed.map((s) => (
+              <span key={s.name} title={s.error} style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--err)" }} data-testid={`surface-refused-${s.name}`}>
+                {s.name}: refused
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {active?.messages ? (
-        <div
-          {...canvasScopeFor(activeRegistryId, canvasMode).attrs}
-          data-project-canvas="composer"
-          style={{
-            border: "1px solid var(--line)",
-            borderRadius: 4,
-            padding: 20,
-            background: canvasScopeFor(activeRegistryId, canvasMode).background,
-          }}
-        >
-          <A2uiCanvas
-            key={`${active.name}:${activeRegistryId}`}
-            catalog={catalog}
-            registry={registry}
-            messages={active.messages}
-            onAction={(action) => setActions((prev) => [...prev, action])}
-          />
-        </div>
+        <>
+          {referenceExampleIds?.has(active.name) && (
+            <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 6px" }}>
+              Reference example from {manifest?.name ?? "the design system"} — teaching material, not part of your project&rsquo;s work.
+            </p>
+          )}
+          <div
+            {...canvasScopeFor(activeRegistryId, canvasMode).attrs}
+            data-project-canvas="composer"
+            style={{
+              border: "1px solid var(--line)",
+              borderRadius: 4,
+              padding: 20,
+              background: canvasScopeFor(activeRegistryId, canvasMode).background,
+            }}
+          >
+            <A2uiCanvas
+              key={`${active.name}:${activeRegistryId}`}
+              catalog={catalog}
+              registry={registry}
+              messages={active.messages}
+              onAction={(action) => setActions((prev) => [...prev, action])}
+            />
+          </div>
+        </>
       ) : (
-        <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No emittable surface.</p>
+        <div className="af-empty" data-testid="preview-empty">
+          <p className="af-empty__title">No project surfaces yet</p>
+          <p className="af-empty__body">
+            Build something first — describe what you want in Build, and a passing result&rsquo;s &ldquo;Add to
+            project&rdquo; lands it here.{referenceSurfaces.length > 0 && " The reference examples above are open for inspection."}
+          </p>
+        </div>
       )}
 
       {active && active.warnings.length > 0 && (
