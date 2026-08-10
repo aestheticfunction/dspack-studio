@@ -67,7 +67,17 @@ function Shell() {
 
   const buildBlocked = state.mode === "agent" && !state.readiness.ready ? state.readiness.reason : undefined;
   const isAgentProject = state.activeProject?.source.kind === "agent" || state.mode === "agent";
-  const sourceKind = isAgentProject ? "Local repository" : "Hosted";
+  // The chip answers "what am I looking at" — the project's SOURCE, in the
+  // same words the hub uses (execution mode is Settings' concern, not identity).
+  const source = state.activeProject?.source;
+  const sourceKind =
+    source?.kind === "agent"
+      ? "Local repository"
+      : source?.kind === "imported"
+        ? "Imported"
+        : source?.kind === "reference"
+          ? state.references.find((r) => r.id === source.referenceId)?.label ?? source.referenceId
+          : "";
 
   return (
     <div>
@@ -127,6 +137,18 @@ function Shell() {
               <span className="af-ctx__src">{sourceKind}</span>
             </span>
           )}
+          {state.activeProject && (
+            /* Build → Preview → Export, without a trip back to Projects. The
+               same portable file as the hub card's Export. */
+            <button
+              className="af-nav__link"
+              onClick={() => state.exportProject(state.activeProject!.id)}
+              title="Download this project as a portable file"
+              data-testid="project-export"
+            >
+              Export
+            </button>
+          )}
           <button
             className={`af-nav__link${view === "settings" ? " af-nav__link--active" : ""}`}
             onClick={() => setView("settings")}
@@ -155,8 +177,9 @@ function Shell() {
         {view === "connect" && <ProjectView onNavigate={(v) => setView(v as View)} />}
         {view === "settings" && <SettingsView />}
 
-        {/* Working views require a project; fall back to the hub otherwise. */}
-        {!hasProject && (view === "build" || view === "preview" || view === "inventory" || view === "governance") && (
+        {/* Working views require a project; EVERY working route falls back to
+            the hub otherwise — never a blank page. */}
+        {!hasProject && view !== "projects" && view !== "connect" && view !== "settings" && (
           <ProjectsView onOpen={() => setView("build")} onConnect={() => setView("connect")} />
         )}
         {hasProject && (
