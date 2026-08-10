@@ -2,7 +2,7 @@
   "$schema": "../schema/dspack.v0.4.schema.json",
   "dspack": "0.4",
   "name": "Astryx",
-  "description": "A nine-component slice of Meta's Astryx design system (open source, MIT; 160+ components; explicitly guidance-over-enforcement: design opinions live in docs, components render whatever they are passed). This contract converts a subset of that prose guidance into machine-checkable governance. Components and guidance are sourced from the repository's structured *.doc.mjs files at the pinned tag.",
+  "description": "A twelve-component slice of Meta's Astryx design system (open source, MIT; 160+ components; explicitly guidance-over-enforcement: design opinions live in docs, components render whatever they are passed). This contract converts a subset of that prose guidance into machine-checkable governance. Components and guidance are sourced from the repository's structured *.doc.mjs files at the pinned tag.",
   "version": "0.1.4",
   "metadata": {
     "source": "https://github.com/facebook/astryx/tree/v0.1.4",
