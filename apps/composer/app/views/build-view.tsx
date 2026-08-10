@@ -213,9 +213,20 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
                       {g.gate} {g.status}
                     </span>
                   ))}
+                  {attempt.representability?.pass === false && (
+                    <span
+                      data-testid={`build-representability-${turn.id}-${attempt.index}`}
+                      style={{ color: GATE_COLOR.FAIL, marginRight: 8 }}
+                      title={attempt.representability.refusal ?? ""}
+                    >
+                      representability FAIL
+                    </span>
+                  )}
                   {attempt.repair && (
                     <details style={{ marginTop: 2 }}>
-                      <summary style={{ cursor: "pointer", color: "var(--warn)" }}>repair sent</summary>
+                      <summary style={{ cursor: "pointer", color: "var(--warn)" }}>
+                        repair sent{attempt.representability?.pass === false ? " — representability" : ""}
+                      </summary>
                       <pre style={{ whiteSpace: "pre-wrap", fontSize: 11, color: "var(--fg-dim)", maxHeight: 160, overflow: "auto" }}>{attempt.repair}</pre>
                     </details>
                   )}
