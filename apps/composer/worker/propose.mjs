@@ -78,15 +78,29 @@ function extractText(raw) {
   return raw.choices?.[0]?.message?.content ?? raw.response ?? "";
 }
 
-async function callModel(env, model, request) {
-  const raw = await Promise.race([
-    env.AI.run(model, inputFor(model, request), { gateway: AI_GATEWAY_OPTIONS }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error("provider timeout")), PROVIDER_TIMEOUT_MS)),
-  ]);
+/** ONE provider call. Rejection here is a provider FAILURE (429/busy/timeout/
+    transport) and is classified by the caller — never retried in this Worker. */
+async function runModel(env, model, request) {
+  let timer;
+  try {
+    return await Promise.race([
+      env.AI.run(model, inputFor(model, request), { gateway: AI_GATEWAY_OPTIONS }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("provider timeout")), PROVIDER_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Parse a SUCCESSFUL provider result into the proposal envelope. A throw here
+    means the call worked but the OUTPUT was unusable (prose/fence/truncation). */
+function parseProposal(raw, model) {
   const text = extractText(raw);
   // Some models wrap JSON in a ```json fence even under a schema; strip it.
   const cleaned = String(text).replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
-  const parsed = JSON.parse(cleaned); // throws → caller reports provider-malformed
+  const parsed = JSON.parse(cleaned); // throws → unusable output
   return {
     json: parsed,
     raw: cleaned,
@@ -98,6 +112,26 @@ async function callModel(env, model, request) {
         }
       : null,
   };
+}
+
+/* Model call + parse, with ONE bounded retry on unusable OUTPUT only.
+
+   MEASURED (2026-08): the provider occasionally returns prose, a fence, or a
+   truncated payload; an immediate retry with the same input succeeded 4/4 in
+   the field, so a single retry converts a user-facing 502 into a success.
+   The bound is strict and deliberate: only a parse failure after a SUCCESSFUL
+   call retries — a rejected call (429 rate-limit, gateway 'busy', timeout) or
+   the kill-switch path propagates on the FIRST throw, because the shared zone
+   limit must not be hammered by this Worker. A second unusable output rides
+   the existing 502 provider-unavailable path. Exported for unit tests. */
+export async function callModel(env, model, request) {
+  const first = await runModel(env, model, request);
+  try {
+    return parseProposal(first, model);
+  } catch {
+    const second = await runModel(env, model, request);
+    return parseProposal(second, model);
+  }
 }
 
 /* Reads at most `limit` bytes and rejects if the body exceeds it — enforced even

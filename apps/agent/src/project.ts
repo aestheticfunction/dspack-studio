@@ -44,6 +44,7 @@ import {
   parseProjectManifest,
   preservesLedger,
   finding,
+  catalogGateFindings,
   classifySurfaceRefusal,
   type ComposerFinding,
   type ProjectManifest,
@@ -320,7 +321,11 @@ function emit(ctx: ProjectContext) {
     for (const gate of out.validation.gates) {
       if (!gate.pass) {
         const gateId = gate.name.startsWith("schema-compile") ? "A1" : gate.name === "catalog-shape" ? "A2" : "A3";
-        findings.push(finding(gateId as "A1", gate.name, "error", `a2ui@${version}`, (gate.errors ?? []).join("; ") || gate.name));
+        // Per-instance findings with honest Component#id targets when the
+        // emitter reports structured errorDetails (dspack-emit >= 0.7,
+        // feature-detected); otherwise one capped finding whose `evidence`
+        // keeps every raw error string. Twin: apps/composer/app/validation.ts.
+        findings.push(...catalogGateFindings(gateId as "A1", gate, `a2ui@${version}`));
       }
     }
   }

@@ -20,18 +20,8 @@
  * representability refusal reports "without structured evidence".
  */
 import { describe, expect, it } from "vitest";
-import * as findingsModule from "./findings";
+import { catalogGateFindings } from "./findings";
 import { buildFailure, foldBuildEvents } from "./build";
-
-// Indirect access on purpose (fail-first scaffolding): a direct named import
-// of a not-yet-existing export would fail this whole module at load time and
-// mask the behavioral buildFailure failures below. Flipped to a direct import
-// once the helper exists.
-const catalogGateFindings = (findingsModule as Record<string, any>).catalogGateFindings as (
-  gateId: string,
-  gate: { name?: string; errors?: string[]; errorDetails?: unknown },
-  fallbackTarget: string,
-) => Array<Record<string, any>>;
 
 describe("catalogGateFindings — per-instance findings with honest targets", () => {
   const detailErrors = [
@@ -168,7 +158,7 @@ describe("buildFailure — deduped, layered catalog-gate presentation", () => {
       ],
     });
     // (b) the folded attempt exposes it, so the Build view can label the repair
-    expect((progress.attempts.at(-1) as any)?.representability).toEqual({ pass: false, refusal });
+    expect(progress.attempts.at(-1)?.representability).toEqual({ pass: false, refusal });
     // (a) the failure names it instead of "unknown / without structured evidence"
     const f = buildFailure(progress);
     expect(f?.kind).not.toBe("unknown");

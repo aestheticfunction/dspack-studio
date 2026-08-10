@@ -26,6 +26,7 @@ export {
 } from "./ledger";
 export {
   finding,
+  catalogGateFindings,
   countBySeverity,
   classifySurfaceRefusal,
   unresolvedErrors,
@@ -35,6 +36,9 @@ export {
   type FindingGate,
   type FindingSeverity,
   type AcknowledgedCasualty,
+  type CatalogGateLike,
+  type GateErrorDetail,
+  type GateErrorDetailError,
 } from "./findings";
 export {
   COMPOSER_ADAPTERS,
