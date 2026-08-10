@@ -5,7 +5,7 @@
   "description": "The studio: canvas, timeline, X-ray, wire view. Phase 1: the contract's worked example rendered through Astryx with the theme dial.",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/take-home-assets.mjs && NODE_OPTIONS=--localstorage-file=/tmp/dspack-studio-dev-localstorage next dev",
+    "dev": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/take-home-assets.mjs && node scripts/next-dev.mjs dev",
     "build": "pnpm --filter @dspack-studio/contracts build:catalogs && pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/take-home-assets.mjs && next build",
     "test": "vitest run",
     "start": "next start",
