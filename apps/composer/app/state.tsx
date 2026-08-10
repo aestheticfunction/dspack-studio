@@ -752,6 +752,11 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [buildTurns, setBuildTurns] = useState<BuildTurn[]>([]);
   const [buildBusy, setBuildBusy] = useState(false);
   const [buildModels, setBuildModels] = useState<string[]>(["scripted"]);
+  // The auto-select correction below must NOT run against the ["scripted"]
+  // placeholder before the first real fetch: that list omits "hosted-ai", so
+  // correcting against it would silently downgrade a stored, deliberately-
+  // chosen Hosted to scripted on every reload. Flip once a real fetch lands.
+  const modelsLoaded = useRef(false);
   // Configured local providers (remembered endpoint + model per provider; NO
   // secret) and the active model ref persist across reloads. The OpenAI-
   // compatible key is held in memory for the session only — never written to
@@ -799,17 +804,33 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   }, [activeModel, storedProviders, openaiKey]);
 
   useEffect(() => {
-    // Agent up → the agent's models (scripted + any local Ollama). Otherwise the
-    // hosted origin decides: scripted alone, or scripted + hosted-ai when the
-    // deployed AI Gateway Worker is live.
-    if (agentUp) void agentModels().then(setBuildModels);
-    else void hostedModels().then(setBuildModels);
+    // Both providers can be reachable at once, so offer the UNION. The hosted
+    // ORIGIN alone decides whether "hosted-ai" is available (scripted alone, or
+    // scripted + hosted-ai when the deployed AI Gateway Worker is live) — that
+    // answer is independent of the agent, so hostedModels() is always consulted.
+    // When the agent is up, its models (scripted + any local Ollama) join the
+    // list. Net effect: Hosted stays selectable alongside Local whenever both
+    // are reachable, instead of dropping out the moment the agent connects.
+    let cancelled = false;
+    const sources = agentUp ? [hostedModels(), agentModels()] : [hostedModels()];
+    void Promise.all(sources).then((lists) => {
+      if (cancelled) return;
+      modelsLoaded.current = true;
+      setBuildModels([...new Set(lists.flat())]);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [agentUp]);
 
   // Keep the active model valid: a configured LOCAL provider (any local ref) is
-  // honored even when absent from the auto-discovered list; otherwise fall back
-  // to hosted (the wow moment) or scripted.
+  // honored even when absent from the auto-discovered list; a valid current
+  // choice (Hosted included, now that the union keeps it in the list) is left
+  // alone; otherwise fall back to hosted (the wow moment) or scripted. Skip the
+  // pre-fetch placeholder: correcting against ["scripted"] would clobber a
+  // deliberately chosen Hosted before the real list arrives.
   useEffect(() => {
+    if (!modelsLoaded.current) return;
     setActiveModelRaw((cur) => {
       if (cur && (buildModels.includes(cur) || isLocalRef(cur))) return cur;
       if (mode !== "agent" && buildModels.includes("hosted-ai")) return "hosted-ai";
@@ -933,20 +954,27 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
             ] }
           : {}),
       };
-      // Three homes, one pipeline, identical AG-UI events:
-      //   • agent project → the agent over your files (/project/run);
-      //   • hosted/reference + LOCAL model → the agent over the browser-supplied
+      // Route by PROVIDER first, so the invariant holds wherever a ref is
+      // selectable. Hosted became offerable alongside local models the moment
+      // the agent is up (the union above), and it must ALWAYS run through the
+      // in-browser AI Gateway twin (/api/propose) — never the agent, which has
+      // no "hosted-ai" adapter and would fail on it. One pipeline, four homes:
+      //   • hosted-ai              → the in-browser twin (/api/propose), any mode;
+      //   • agent project          → the agent over your files (/project/run);
+      //   • hosted/reference + LOCAL → the agent over the browser-supplied
       //     vocabulary (/generate) — how a hosted project runs your own model;
-      //   • hosted/reference + hosted model → the in-browser twin (/api/propose).
-      const local = isLocalRef(input.modelRef) && agentUp;
+      //   • hosted/reference + scripted → the in-browser twin.
+      const inBrowser = (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
+        streamHostedBuild(inp, handlers, { contract, profile });
       const runStream =
-        mode === "agent"
-          ? streamProjectRun
-          : local
-            ? (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
-                streamAgentInline(inp, handlers, { contract, profile })
-            : (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
-                streamHostedBuild(inp, handlers, { contract, profile });
+        input.modelRef === "hosted-ai"
+          ? inBrowser
+          : mode === "agent"
+            ? streamProjectRun
+            : isLocalRef(input.modelRef)
+              ? (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
+                  streamAgentInline(inp, handlers, { contract, profile })
+              : inBrowser;
       await new Promise<void>((resolve) => {
         buildStream.current = runStream(runInput, {
           onEvent: (event) => {

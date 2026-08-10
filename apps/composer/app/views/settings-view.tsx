@@ -96,7 +96,9 @@ export function SettingsView() {
               <span className="af-h2" style={{ fontSize: 15 }}>
                 Hosted AI
               </span>
-              <span className={`af-pill${hostedAvailable ? " af-pill--ok" : ""}`}>{hostedAvailable ? "Available" : "Unavailable"}</span>
+              <span className={`af-pill${hostedAvailable ? " af-pill--ok" : ""}`} data-testid="hosted-availability">
+                {hostedAvailable ? "Available" : "Unavailable"}
+              </span>
               <button
                 className={`st-btn${activeModel === "hosted-ai" ? " st-btn--active" : ""}`}
                 style={{ marginLeft: "auto" }}
