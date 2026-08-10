@@ -53,6 +53,10 @@ const MALFORMED = { totally: "not-a-surface", widgets: [1, 2, 3] };
 export const BREAK_SCRIPTS: Record<string, ScriptEntry[]> = {
   "scripted:break:no-alertdialog": [{ output: NO_ALERTDIALOG }, { output: REPAIRED }],
   "scripted:break:ok-label": [{ output: OK_LABEL }, { output: REPAIRED }],
-  "scripted:break:unsupported-component": [{ output: UNSUPPORTED }],
+  // Three identical entries: since dspack-gen 0.4.0 an emitter refusal rides
+  // the repair loop, so the scenario replays the same unprojectable surface
+  // through both repairs — demonstrating that a declared casualty stays
+  // refused (verbatim reason, terminal failed-gate) even WITH repair turns.
+  "scripted:break:unsupported-component": [{ output: UNSUPPORTED }, { output: UNSUPPORTED }, { output: UNSUPPORTED }],
   "scripted:break:malformed": [{ output: MALFORMED }, { output: MALFORMED }, { output: MALFORMED }],
 };
