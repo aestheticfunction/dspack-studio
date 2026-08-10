@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/demo-assets.mjs && NODE_OPTIONS=--localstorage-file=/tmp/dspack-composer-dev-localstorage next dev --port 3001",
     "build": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/demo-assets.mjs && next build",
-    "test": "vitest run --passWithNoTests",
+    "test": "node scripts/demo-assets.mjs && vitest run --passWithNoTests",
     "typecheck": "node scripts/demo-assets.mjs && tsc -p tsconfig.json"
   },
   "dependencies": {
