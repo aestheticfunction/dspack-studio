@@ -108,6 +108,43 @@ test("a project exports to a portable file and imports back, ready to keep build
   await expect(page.getByTestId("projects-grid")).toContainText("Imported");
 });
 
+test("project lifecycle: rename, duplicate, switch, and remove — as first-class objects", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Lifecycle");
+  await page.getByTestId("nav-projects").click();
+  const grid = page.getByTestId("projects-grid");
+
+  // Target every action by the project's exact id, read from its card.
+  const firstCard = grid.locator(".af-card").first();
+  await expect(firstCard).toContainText(/shadcn/i); // a user project shows its governed source
+  const id = (await firstCard.getAttribute("data-testid"))!.replace("project-", "");
+
+  // Rename
+  await page.getByTestId(`project-rename-${id}`).click();
+  await page.getByTestId(`project-rename-input-${id}`).fill("Lifecycle renamed");
+  await page.getByTestId(`project-rename-input-${id}`).press("Enter");
+  await expect(grid).toContainText("Lifecycle renamed");
+
+  // Duplicate
+  await page.getByTestId(`project-duplicate-${id}`).click();
+  await expect(grid).toContainText("Lifecycle renamed copy");
+
+  // Switch into the original, confirm it's active, return to the hub
+  await page.getByTestId(`project-build-${id}`).click();
+  await expect(page.getByTestId("project-context")).toContainText("Lifecycle renamed");
+  await page.getByTestId("nav-projects").click();
+
+  // Remove the duplicate (two-step confirm), original survives
+  const copyId = (await grid.locator(".af-card").filter({ hasText: "Lifecycle renamed copy" }).first().getAttribute("data-testid"))!.replace(
+    "project-",
+    "",
+  );
+  await page.getByTestId(`project-delete-${copyId}`).click();
+  await page.getByTestId(`project-delete-confirm-${copyId}`).click();
+  await expect(grid).not.toContainText("Lifecycle renamed copy");
+  await expect(grid).toContainText("Lifecycle renamed");
+});
+
 test("design-system neutrality: Astryx traverses the SAME product with its own vocabulary", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "astryx", "Scheduling");
