@@ -220,7 +220,7 @@ export function streamHostedBuild(
         adapter = scriptedRunAdapter(example.surface, input.conversation);
       } else {
         handlers.onError(
-          `Model '${modelRef}' isn't available in the hosted demo. Choose "scripted" or "hosted-ai", ` +
+          `Model '${modelRef}' isn't available in this browser project. Choose "scripted" or "hosted-ai", ` +
             "or connect the local agent for a local model.",
         );
         handlers.onComplete();

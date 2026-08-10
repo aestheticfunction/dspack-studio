@@ -320,7 +320,7 @@ export function ScenarioView() {
         </button>
         {lint.some((f) => f.severity === "error") && <span style={{ fontSize: 12, color: "var(--warn)", marginLeft: 8 }}>gates first</span>}
         {issue && <p style={{ fontSize: 12, color: "var(--err)" }}>{issue}</p>}
-        {mode === "demo" && <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Demo: scenario edits stay in memory.</p>}
+        {mode === "demo" && <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Saves to this project in your browser.</p>}
       </div>
 
       <aside>

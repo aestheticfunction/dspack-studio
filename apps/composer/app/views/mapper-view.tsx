@@ -179,8 +179,8 @@ export function MapperView() {
         {issue && <p style={{ fontSize: 12, color: "var(--err)" }}>{issue}</p>}
         {mode === "demo" && (
           <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-            Demo mode: profile edits stay in memory and the fidelity rail shows the build-time emit. Connect through the
-            local agent for live re-emission on every edit.
+            Profile edits last this session and re-emit live in this browser. Connect the local agent to save them to your
+            repository.
           </p>
         )}
       </div>

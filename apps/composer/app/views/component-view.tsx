@@ -28,7 +28,7 @@ export function ComponentView() {
   const [saved, setSaved] = useState<string | null>(null);
 
   if (!contract || !selected || !contract.components?.[selected]) {
-    return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>Pick a component in the Inventory.</p>;
+    return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>Pick a component in the Catalog.</p>;
   }
   const entry = contract.components[selected];
 
@@ -36,7 +36,7 @@ export function ComponentView() {
     const draft = structuredClone(contract);
     mutate(draft.components[selected]);
     const result = await saveContract(draft);
-    setSaved(Array.isArray(result) && result.length > 0 ? result[0].message : mode === "demo" ? "kept in memory (demo)" : "saved");
+    setSaved(Array.isArray(result) && result.length > 0 ? result[0].message : mode === "demo" ? "saved for this session (browser)" : "saved");
   };
 
   const addProp = () =>

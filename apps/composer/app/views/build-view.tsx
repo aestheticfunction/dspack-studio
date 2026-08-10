@@ -367,7 +367,7 @@ export function BuildView() {
         <p style={{ fontSize: 13, color: "var(--warn)" }} data-testid="build-not-ready">
           Not ready to build yet: {readiness.reason}
         </p>
-        <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Set up your design system in the Catalog views, then build with it.</p>
+        <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Set up your design system in Catalog and Governance, then build with it.</p>
       </section>
     );
   }
@@ -442,7 +442,7 @@ export function BuildView() {
           data-testid="build-hosted-note"
           style={{ fontSize: 12, color: "var(--fg-body)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 10px", margin: "6px 0" }}
         >
-          You&rsquo;re in the hosted demo — no install.{" "}
+          This project runs in your browser — no install.{" "}
           {buildModels.includes("hosted-ai") ? (
             <>
               <code>hosted-ai</code> generates for your goal with managed Claude Haiku; the deterministic gates and
@@ -450,11 +450,11 @@ export function BuildView() {
             </>
           ) : (
             <>
-              the governed pipeline runs <em>entirely in this browser</em> against the shipped demo project.
+              the governed pipeline — gates, rendering, checks — runs <em>entirely in this browser</em>.
             </>
           )}{" "}
           To build against <em>your own</em> component library, run the local agent (<code>pnpm --filter agent dev</code>)
-          and connect a project{agentUp ? " — detected, connect from Project" : "."}
+          and connect it{agentUp ? " — detected: Projects → Connect a repository." : "."}
         </p>
       )}
 

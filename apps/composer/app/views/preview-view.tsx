@@ -79,7 +79,7 @@ export function PreviewView() {
   const fallbackNames = useMemo(() => wireframeFallbackNames(activeRegistryId, catalog), [activeRegistryId, catalog]);
 
   if (!catalog || !registry) {
-    return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No emitted catalog yet — run Emit from the Validate view (or load the demo).</p>;
+    return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>Nothing to preview yet — open a project, then build something in Build.</p>;
   }
 
   const failed = (emit?.surfaces ?? []).filter((s) => s.error);

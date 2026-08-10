@@ -2,11 +2,13 @@
 
 /**
  * Composer state: one context holding the project documents plus the latest
- * emit/validate results. Two modes, stated plainly in the UI:
- *   - "agent": a local project directory via the agent; saves persist.
- *   - "demo":  the shipped Acme UI demo project (pre-emitted at build time);
- *              edits live in memory only.
- * Files are the source of truth; this state is a view of them.
+ * emit/validate results. Two EXECUTION modes (never identity — a browser
+ * project is the user's project, not a demo):
+ *   - "agent": a local project directory via the agent; saves write to disk.
+ *   - "demo":  the project runs entirely in this browser — the working
+ *              contract is base vocabulary + the project's persisted authored
+ *              delta; other edits are session-only, stated plainly per view.
+ * Files (or the delta store) are the source of truth; this state is a view.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -129,7 +131,6 @@ export interface ComposerState {
   selected: string | null; // contract component id
   setSelected: (id: string | null) => void;
   connect: (path: string) => Promise<void>;
-  loadDemo: () => void;
   /** The governed design system the current demo/blank project builds from. */
   referenceId: string;
   /** Start a blank project from a packaged reference (shadcn/ui or Astryx). */
@@ -306,9 +307,6 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     clearBuildThread();
     void refreshLedger(doc);
   }, [refreshLedger, recomputeEmit]);
-
-  // Load a reference's vocabulary directly (used by openProject and quick-start).
-  const loadDemo = useCallback(() => loadReference(DEFAULT_REFERENCE), [loadReference]);
 
   /**
    * Open an imported project: its governed vocabulary travelled in a file and
@@ -734,7 +732,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setNotice(
         decision === "restore"
           ? `'${id}' will be restored from source on the next rediscovery (deletion memory cleared).`
-          : `'${id}' tombstoned: rediscovery will never re-add it. Remove the tombstone from the Ownership panel to undo.`,
+          : `'${id}' tombstoned: rediscovery will never re-add it. Remove the tombstone in the Repository view to undo.`,
       );
       } finally {
         decisionLock.current = false;
@@ -780,7 +778,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
               }
             : r,
         );
-        setNotice(`Keeping '${id}' nested: rediscovery will never re-add the top-level entry (tombstoned; removable in the Ownership panel).`);
+        setNotice(`Keeping '${id}' nested: rediscovery will never re-add the top-level entry (tombstoned; removable in the Repository view).`);
         return;
       }
       if (mode !== "agent") {
@@ -1225,7 +1223,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
 
   const runEmit = useCallback(async () => {
     if (mode !== "agent") {
-      setNotice("Live re-emission runs dspack-emit on your files — the demo shows the build-time emit. Connect through the local agent to re-emit.");
+      setNotice("The catalog re-emits automatically in this browser on every change. Connect the local agent to write the emitted files into your repository.");
       return;
     }
     setBusy("emitting");
@@ -1236,7 +1234,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       return;
     }
     setEmit(result.value);
-    setNotice(result.value.ok ? "Emitted: catalog gates green." : "Emitted with failures — see Validate.");
+    setNotice(result.value.ok ? "Emitted: catalog gates green." : "Emitted with failures — see Checks.");
   }, [mode, projectPath]);
 
   /**
@@ -1273,7 +1271,6 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       selected,
       setSelected,
       connect,
-      loadDemo,
       referenceId,
       loadReference,
       referenceExampleIds,
@@ -1317,7 +1314,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
