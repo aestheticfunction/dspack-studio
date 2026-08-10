@@ -2,11 +2,13 @@
 
 /**
  * Composer state: one context holding the project documents plus the latest
- * emit/validate results. Two modes, stated plainly in the UI:
- *   - "agent": a local project directory via the agent; saves persist.
- *   - "demo":  the shipped Acme UI demo project (pre-emitted at build time);
- *              edits live in memory only.
- * Files are the source of truth; this state is a view of them.
+ * emit/validate results. Two EXECUTION modes (never identity — a browser
+ * project is the user's project, not a demo):
+ *   - "agent": a local project directory via the agent; saves write to disk.
+ *   - "demo":  the project runs entirely in this browser — the working
+ *              contract is base vocabulary + the project's persisted authored
+ *              delta; other edits are session-only, stated plainly per view.
+ * Files (or the delta store) are the source of truth; this state is a view.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -71,6 +73,12 @@ import {
   setLastOpened,
   saveVocab,
   loadVocab,
+  saveExamplesDelta,
+  loadExamplesDelta,
+  mergeExamples,
+  examplesDelta,
+  nextChatExampleId,
+  type ExampleEntry,
   type StoredProject,
   type ProjectSource,
   type ProjectVocab,
@@ -123,11 +131,15 @@ export interface ComposerState {
   selected: string | null; // contract component id
   setSelected: (id: string | null) => void;
   connect: (path: string) => Promise<void>;
-  loadDemo: () => void;
   /** The governed design system the current demo/blank project builds from. */
   referenceId: string;
   /** Start a blank project from a packaged reference (shadcn/ui or Astryx). */
   loadReference: (id: string) => void;
+  /** Example ids that come FROM the packaged reference (teaching material),
+   *  for reference-sourced projects; null when every example is the project's
+   *  own (imported bundles, agent repositories). Views group by this — the
+   *  reference corpus must never masquerade as authored project content. */
+  referenceExampleIds: Set<string> | null;
   /** Every packaged reference the project-start picker can offer. */
   references: Reference[];
   /* ---- Projects (first-class objects) ---- */
@@ -148,6 +160,13 @@ export interface ComposerState {
   importProject: (text: string) => { ok: true; name: string } | { ok: false; error: string };
   /** Export a project to a downloadable, portable file. */
   exportProject: (id: string) => void;
+  /** Open a packaged reference as a read-only EXAMPLE workspace (ephemeral —
+   *  never in "Your projects", pristine on every open, session edits only). */
+  openExample: (referenceId: string) => void;
+  /** True while an example workspace is open. */
+  isExample: boolean;
+  /** Make the open example a real project (session-accepted work carried). */
+  duplicateExample: () => StoredProject | null;
   discover: () => Promise<void>;
   rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
@@ -199,9 +218,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // The governed design system a demo/blank project builds from. Selecting a
   // different one loads that reference; it never forks the pipeline.
   const [referenceId, setReferenceId] = useState<string>(DEFAULT_REFERENCE);
+  // Which example ids are the packaged reference's teaching material (vs the
+  // project's own work). Null = every example belongs to the project.
+  const [referenceExampleIds, setReferenceExampleIds] = useState<Set<string> | null>(null);
   // Projects are the entry point. `activeProjectId === null` means no project is
   // open — the app shows the Projects hub (first run / after closing).
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  // An open EXAMPLE workspace: a read-only reference project, held ephemeral —
+  // never written to storage, never in "Your projects", pristine on every
+  // open. Play is allowed (edits are session-only, as the banner says); the
+  // way to keep anything is to duplicate it into your projects.
+  const [exampleProject, setExampleProject] = useState<StoredProject | null>(null);
   const [projects, setProjects] = useState<StoredProject[]>([]);
   const [agentUp, setAgentUp] = useState(false);
   const [projectPath, setProjectPath] = useState("");
@@ -249,12 +276,15 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   }, [extraSurfaces]);
 
   /**
-   * Start a blank project from a packaged governed design system (shadcn/ui or
-   * Astryx). "Blank" is a NEW project seeded with that reference's vocabulary —
-   * never empty. The SAME in-browser pipeline runs over whichever reference is
-   * chosen; the design system is data, not a code path.
+   * Start a project from a packaged governed design system (shadcn/ui or
+   * Astryx). The reference supplies the base vocabulary — contract, profile,
+   * and its worked examples as internal generation/teaching context — and the
+   * PROJECT owns its authored delta (accepted builds, authored scenarios),
+   * merged on top when a projectId is given. The canonical reference is never
+   * mutated; the SAME in-browser pipeline runs over whichever reference is
+   * chosen — the design system is data, not a code path.
    */
-  const loadReference = useCallback((id: string) => {
+  const loadReference = useCallback((id: string, projectId?: string) => {
     const ref: Reference = REFERENCES[id] ?? REFERENCES[DEFAULT_REFERENCE];
     setReferenceId(ref.id);
     setMode("demo");
@@ -262,6 +292,11 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setManifest(ref.manifest as ProjectManifest);
     const doc = structuredClone(ref.contract);
     const prof = structuredClone(ref.profile);
+    const base = ((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
+    setReferenceExampleIds(new Set(base.map((e) => e.id)));
+    if (projectId) {
+      doc.examples = mergeExamples(base, loadExamplesDelta(projectId));
+    }
     setContract(doc);
     setProfile(prof);
     setExtraSurfaces(ref.extraSurfaces);
@@ -270,14 +305,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setValidate(null);
     setSelected(null);
     clearBuildThread();
-    setNotice(
-      `${ref.label} project loaded. Edits stay in memory and every gate runs live in this browser; run the local agent to work on real files.`,
-    );
     void refreshLedger(doc);
   }, [refreshLedger, recomputeEmit]);
-
-  // Load a reference's vocabulary directly (used by openProject and quick-start).
-  const loadDemo = useCallback(() => loadReference(DEFAULT_REFERENCE), [loadReference]);
 
   /**
    * Open an imported project: its governed vocabulary travelled in a file and
@@ -309,6 +338,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       } as ProjectManifest);
       const doc = structuredClone(vocab.contract) as Record<string, any>;
       const prof = structuredClone(vocab.profile) as Record<string, any>;
+      // Everything an imported bundle carries is the project's own; work
+      // authored HERE since the import lives in the delta, merged on top.
+      setReferenceExampleIds(null);
+      doc.examples = mergeExamples(((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[], loadExamplesDelta(id));
       setContract(doc);
       setProfile(prof);
       setExtraSurfaces([]);
@@ -317,7 +350,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setValidate(null);
       setSelected(null);
       clearBuildThread();
-      setNotice(`Opened “${name}”. This project was imported; edits stay in this browser. Export again to move it on.`);
+      setNotice(`Opened “${name}”. This project was imported; it works in this browser. Export again to move it on.`);
       void refreshLedger(doc);
     },
     [refreshLedger, recomputeEmit],
@@ -335,6 +368,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       const v = result.value;
       setMode("agent");
       setProjectPath(path);
+      setReferenceExampleIds(null); // the contract on disk is the project's own
       setManifest(v.manifest);
       const doc = (v.contract as Record<string, any>) ?? null;
       const prof = (v.profile as Record<string, any>) ?? null;
@@ -364,6 +398,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         setNotice("That project could not be found.");
         return;
       }
+      setExampleProject(null);
       setActiveProjectId(p.id);
       setLastOpened(p.id);
       touchProject(p.id);
@@ -373,8 +408,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       } else if (p.source.kind === "imported") {
         loadImported(p.id, p.name);
       } else {
-        loadReference(p.source.referenceId);
-        setNotice(`Opened “${p.name}”. Edits stay in this browser; connect the local agent to work on real files.`);
+        loadReference(p.source.referenceId, p.id);
+        setNotice(`Opened “${p.name}”. This project works in your browser; connect the local agent to work on real files.`);
       }
     },
     [connect, loadReference, loadImported],
@@ -389,6 +424,52 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     },
     [openProject],
   );
+
+  /**
+   * Open a packaged reference as an EXAMPLE workspace: teaching material, not
+   * the user's project. Ephemeral by design — no StoredProject, no lastOpened
+   * (a reload lands wherever you actually work), pristine on every open, and
+   * clearly labeled by the shell. Explore and edit freely; nothing is kept.
+   */
+  const openExample = useCallback(
+    (refId: string) => {
+      const ref = REFERENCES[refId];
+      if (!ref) return;
+      setActiveProjectId(null);
+      setLastOpened(null);
+      setExampleProject({
+        id: `example-${ref.id}`,
+        name: `${ref.label} example`,
+        description: ref.blurb,
+        source: { kind: "reference", referenceId: ref.id },
+        createdAt: 0,
+        updatedAt: 0,
+        lastOpenedAt: 0,
+      });
+      loadReference(ref.id); // no projectId: pristine, no delta
+      setNotice(`${ref.label} example opened — a read-only reference. Explore freely; duplicate it into your projects to keep anything.`);
+    },
+    [loadReference],
+  );
+
+  /**
+   * Make the open example yours: a real project on the same reference. Work
+   * accepted during the example session (its in-memory examples delta) comes
+   * along — "duplicate to keep what you build" is a promise, not a reset.
+   */
+  const duplicateExample = useCallback(() => {
+    const refId = exampleProject?.source.kind === "reference" ? exampleProject.source.referenceId : null;
+    const ref = refId ? REFERENCES[refId] : null;
+    if (!ref || !refId) return null;
+    const base = ((ref.contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
+    const live = ((contract?.examples as ExampleEntry[] | undefined) ?? base) as ExampleEntry[];
+    const delta = examplesDelta(base, live);
+    const p = createProject({ name: `My ${ref.label} project`, description: "", source: { kind: "reference", referenceId: refId } });
+    if (delta.length > 0) saveExamplesDelta(p.id, delta);
+    setProjects(listProjects());
+    openProject(p.id); // clears the example workspace, merges the delta
+    return p;
+  }, [exampleProject, contract, openProject]);
 
   /**
    * Import a project from an exported file: validate it (fail-closed — the
@@ -427,12 +508,23 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       }
       let vocab: ProjectVocab | null = null;
       if (id === activeProjectId && contract && profile) {
+        // The live working contract is already base + authored delta.
         vocab = { contract, profile, previewRegistry: (manifest?.previewRegistry ?? "wireframe") as PreviewRegistry };
       } else if (p.source.kind === "reference") {
         const ref = REFERENCES[p.source.referenceId];
-        if (ref) vocab = { contract: ref.contract, profile: ref.profile, previewRegistry: (ref.manifest?.previewRegistry ?? "wireframe") as PreviewRegistry };
+        if (ref) {
+          // A closed project still takes its authored work with it: base
+          // reference + the persisted delta, exactly what opening would show.
+          const base = ((ref.contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
+          const merged = { ...ref.contract, examples: mergeExamples(base, loadExamplesDelta(id)) };
+          vocab = { contract: merged, profile: ref.profile, previewRegistry: (ref.manifest?.previewRegistry ?? "wireframe") as PreviewRegistry };
+        }
       } else if (p.source.kind === "imported") {
-        vocab = loadVocab(id);
+        const stored = loadVocab(id);
+        if (stored) {
+          const base = ((stored.contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
+          vocab = { ...stored, contract: { ...stored.contract, examples: mergeExamples(base, loadExamplesDelta(id)) } };
+        }
       }
       if (!vocab) {
         setNotice("Open this project first to export it — its vocabulary lives on your machine, through the agent.");
@@ -443,9 +535,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     [activeProjectId, contract, profile, manifest],
   );
 
-  /** Return to the hub without loading a project. */
+  /** Return to the hub without loading a project (ends an example session). */
   const closeProject = useCallback(() => {
     setActiveProjectId(null);
+    setExampleProject(null);
     setLastOpened(null);
     clearBuildThread();
   }, []);
@@ -542,7 +635,25 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setContract(doc);
       void refreshLedger(doc);
       recomputeEmit(doc, profile);
-      if (mode !== "agent") return { savedInMemory: true as const };
+      if (mode !== "agent") {
+        // The project's authored delta — worked examples added or edited on
+        // top of its base vocabulary — persists per project id. Recomputed
+        // fresh from live-vs-base on every save; the canonical reference (or
+        // imported snapshot) is never mutated. Everything else about a
+        // browser project's contract stays session-only, as the views say.
+        const p = activeProjectId ? getProject(activeProjectId) : null;
+        if (p && p.source.kind !== "agent") {
+          const base =
+            p.source.kind === "reference"
+              ? (((REFERENCES[p.source.referenceId]?.contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[])
+              : (((loadVocab(p.id)?.contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[]);
+          const live = ((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
+          if (!saveExamplesDelta(p.id, examplesDelta(base, live))) {
+            setNotice("Saved for this session, but this browser's storage is full — your work won't survive a reload. Export the project to keep it.");
+          }
+        }
+        return { savedInMemory: true as const };
+      }
       const result = await agentSave(projectPath, "contract", doc);
       if (!result.ok) {
         setNotice(`Save failed: ${result.error}`);
@@ -561,7 +672,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setNotice("Contract saved.");
       return [];
     },
-    [mode, projectPath, refreshLedger],
+    [mode, projectPath, refreshLedger, recomputeEmit, profile, activeProjectId],
   );
 
   const saveProfile = useCallback(
@@ -621,7 +732,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setNotice(
         decision === "restore"
           ? `'${id}' will be restored from source on the next rediscovery (deletion memory cleared).`
-          : `'${id}' tombstoned: rediscovery will never re-add it. Remove the tombstone from the Ownership panel to undo.`,
+          : `'${id}' tombstoned: rediscovery will never re-add it. Remove the tombstone in the Repository view to undo.`,
       );
       } finally {
         decisionLock.current = false;
@@ -667,7 +778,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
               }
             : r,
         );
-        setNotice(`Keeping '${id}' nested: rediscovery will never re-add the top-level entry (tombstoned; removable in the Ownership panel).`);
+        setNotice(`Keeping '${id}' nested: rediscovery will never re-add the top-level entry (tombstoned; removable in the Repository view).`);
         return;
       }
       if (mode !== "agent") {
@@ -1019,6 +1130,56 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           chain.unshift(t.prompt);
         }
         const prompt = examplePromptFor(chain);
+
+        if (mode !== "agent") {
+          // Browser projects accept in the browser: the same deterministic
+          // gate the agent applies, run here — S1–S3 over the project
+          // contract, an authored intent, a collision-free id — then the
+          // surface joins the project's authored delta (persisted per
+          // project; the canonical reference is never touched). The agent is
+          // for writing to a real repository on disk, not a prerequisite for
+          // owning browser-authored work.
+          const intents = ((contract.intents as Array<{ id: string }> | undefined) ?? []).map((i) => i.id);
+          if (!intents.includes(turn.intent)) {
+            setNotice(`Accept refused: '${turn.intent}' is not an intent this project's contract authors (${intents.join(", ") || "none"}).`);
+            return;
+          }
+          const existing = (((contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[]).map((e) => e.id);
+          const requested = exampleId?.trim() ?? "";
+          if (requested && !/^ex\.[a-z0-9][a-z0-9-]*$/.test(requested)) {
+            setNotice("Accept refused: the example id must be kebab-case with the 'ex.' prefix.");
+            return;
+          }
+          if (requested && existing.includes(requested)) {
+            setNotice(`Accept refused: '${requested}' already exists in this project; accepting never overwrites an example. Choose another id, or leave it blank.`);
+            return;
+          }
+          const id = requested || nextChatExampleId(existing);
+          const findings = lintOneSurface(id, turn.progress.surface, contract).filter((f) => f.severity === "error");
+          if (findings.length > 0) {
+            setNotice(`Accept refused: ${findings.map((f) => `${f.gate} ${f.code}: ${f.message}`).join(" · ").slice(0, 400)}`);
+            setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, acceptFindings: findings } : t)));
+            return;
+          }
+          const entry: ExampleEntry = {
+            id,
+            intent: turn.intent,
+            name: `Chat: ${chain[0].slice(0, 60)}`,
+            prompt,
+            surface: turn.progress.surface,
+          };
+          const doc = structuredClone(contract);
+          doc.examples = [...(((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[]), entry];
+          await saveContract(doc);
+          setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, accepted: id, acceptFindings: undefined } : t)));
+          setNotice(
+            activeProjectId
+              ? `Accepted as '${id}' — saved to this project in your browser; it now seeds generation for '${turn.intent}'.`
+              : `Accepted as '${id}' for this session — duplicate this example into your projects to keep it.`,
+          );
+          return;
+        }
+
         const result = await agentSaveExample(projectPath, {
           ...(exampleId ? { id: exampleId } : {}), // omitted ⇒ the agent mints a collision-free id
           intent: turn.intent,
@@ -1057,12 +1218,12 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         setBusy(null);
       }
     },
-    [contract, profile, projectPath, buildTurns, recomputeEmit],
+    [contract, profile, projectPath, buildTurns, recomputeEmit, mode, saveContract, activeProjectId],
   );
 
   const runEmit = useCallback(async () => {
     if (mode !== "agent") {
-      setNotice("Live re-emission runs dspack-emit on your files — the demo shows the build-time emit. Connect through the local agent to re-emit.");
+      setNotice("The catalog re-emits automatically in this browser on every change. Connect the local agent to write the emitted files into your repository.");
       return;
     }
     setBusy("emitting");
@@ -1073,7 +1234,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       return;
     }
     setEmit(result.value);
-    setNotice(result.value.ok ? "Emitted: catalog gates green." : "Emitted with failures — see Validate.");
+    setNotice(result.value.ok ? "Emitted: catalog gates green." : "Emitted with failures — see Checks.");
   }, [mode, projectPath]);
 
   /**
@@ -1090,9 +1251,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setValidate({ ok: findings.every((f) => f.severity !== "error"), findings });
   }, [contract]);
 
-  const activeProject: StoredProject | null = activeProjectId
-    ? projects.find((p) => p.id === activeProjectId) ?? getProject(activeProjectId)
-    : null;
+  const activeProject: StoredProject | null =
+    exampleProject ?? (activeProjectId ? projects.find((p) => p.id === activeProjectId) ?? getProject(activeProjectId) : null);
 
   const value = useMemo<ComposerState>(
     () => ({
@@ -1111,9 +1271,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       selected,
       setSelected,
       connect,
-      loadDemo,
       referenceId,
       loadReference,
+      referenceExampleIds,
       references: REFERENCE_LIST,
       projects,
       activeProject,
@@ -1125,6 +1285,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       deleteProject,
       importProject,
       exportProject,
+      openExample,
+      isExample: exampleProject !== null,
+      duplicateExample,
       discover,
       rediscover,
       saveContract,
@@ -1151,7 +1314,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

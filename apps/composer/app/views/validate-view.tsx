@@ -21,16 +21,18 @@ export function ValidateView() {
         eyebrow="Checks"
         lead="Run the governed checks over the contract and its worked surfaces: structure, approved vocabulary, and your design-system rules."
       />
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
         <button className="st-btn" disabled={busy !== null} onClick={() => void runValidate()} data-testid="run-validate">
           Validate contract + surfaces
         </button>
-        <button className="st-btn" disabled={busy !== null || mode !== "agent"} onClick={() => void runEmit()} data-testid="run-emit">
-          Emit catalog
-        </button>
-        {mode === "demo" && (
+        {mode === "agent" ? (
+          <button className="st-btn" disabled={busy !== null} onClick={() => void runEmit()} data-testid="run-emit">
+            Emit catalog
+          </button>
+        ) : (
           <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-            Demo: S1–S3 run in this browser (dspack-gen/core); emit shows the build-time result; the contract harness needs the local agent.
+            The catalog re-emits automatically in this browser on every change; S1–S3 run right here. Writing the emitted
+            files to disk (and the full contract harness) needs the local agent.
           </span>
         )}
       </div>

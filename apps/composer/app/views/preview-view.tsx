@@ -2,15 +2,16 @@
 
 /**
  * Preview: the emitted catalog rendered through a registry. Wireframe is the
- * universal honest fallback (visuals derived from the catalog itself, zero
- * user code); shadcn is the native path where names align. Coverage comes
- * from planRegistry — partial coverage is a first-class state, not an error.
+ * universal honest fallback — per COMPONENT inside a native surface (a name
+ * with no native visual draws as wireframe, never as raw placeholder text),
+ * and as the whole-registry inspection mode. Partial native coverage is a
+ * first-class state, stated plainly, not an error.
  */
 import { useMemo, useState } from "react";
-import { A2uiCanvas, planRegistry, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
+import { A2uiCanvas, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
-import { registryFor, canvasScopeFor, isNativeRegistry, type PreviewRegistryId } from "../registries";
+import { registryFor, canvasScopeFor, isNativeRegistry, wireframeFallbackNames, type PreviewRegistryId } from "../registries";
 
 type RegistryId = "wireframe" | PreviewRegistryId;
 
@@ -41,7 +42,7 @@ function exportBundle(emit: NonNullable<ReturnType<typeof useComposer>["emit"]>,
 }
 
 export function PreviewView() {
-  const { emit, manifest } = useComposer();
+  const { emit, manifest, referenceExampleIds, isExample } = useComposer();
   const [registryId, setRegistryId] = useState<RegistryId>("wireframe");
   const [canvasMode, setCanvasMode] = useState<"light" | "dark">("light");
   const [surfaceName, setSurfaceName] = useState<string | null>(null);
@@ -49,7 +50,16 @@ export function PreviewView() {
 
   const catalog = emit?.catalog;
   const surfaces = (emit?.surfaces ?? []).filter((s) => s.messages);
-  const active = surfaces.find((s) => s.name === surfaceName) ?? surfaces[0];
+  // Ownership first: the project's OWN surfaces (accepted builds, authored
+  // scenarios) vs the design-system reference's worked examples. They are
+  // never mixed into one anonymous list, and Preview opens on the project's
+  // LATEST surface — what the user just built — not a reference example.
+  // In an EXAMPLE workspace the reference gallery IS the content on show.
+  const yoursRaw = referenceExampleIds ? surfaces.filter((s) => !referenceExampleIds.has(s.name)) : surfaces;
+  const refsRaw = referenceExampleIds ? surfaces.filter((s) => referenceExampleIds.has(s.name)) : [];
+  const yours = isExample ? surfaces : yoursRaw;
+  const referenceSurfaces = isExample ? [] : refsRaw;
+  const active = surfaces.find((s) => s.name === surfaceName) ?? (isExample ? yours[0] : yours.at(-1)) ?? null;
 
   // The registry choices are wireframe (always) + the project's native design
   // system, whichever it is. A stale selection from a previous project clamps
@@ -63,13 +73,13 @@ export function PreviewView() {
     return registryFor(activeRegistryId, catalog);
   }, [catalog, activeRegistryId]);
 
-  const coverage = useMemo(() => {
-    if (!catalog || !registry) return null;
-    return planRegistry(Object.keys(catalog.components ?? {}), registry);
-  }, [catalog, registry]);
+  // Honest coverage comes from the PRE-merge native registry: the rendered
+  // registry covers every name (wireframe fills the gaps), so the caption's
+  // job is to say which components are wireframe stand-ins, not to alarm.
+  const fallbackNames = useMemo(() => wireframeFallbackNames(activeRegistryId, catalog), [activeRegistryId, catalog]);
 
   if (!catalog || !registry) {
-    return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No emitted catalog yet — run Emit from the Validate view (or load the demo).</p>;
+    return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>Nothing to preview yet — open a project, then build something in Build.</p>;
   }
 
   const failed = (emit?.surfaces ?? []).filter((s) => s.error);
@@ -92,10 +102,18 @@ export function PreviewView() {
             canvas: {canvasMode}
           </button>
         )}
-        <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-          {coverage && coverage.unimplemented.length > 0
-            ? `${coverage.unimplemented.length} of ${Object.keys(catalog.components).length} names unimplemented in this registry: ${coverage.unimplemented.join(", ")}`
-            : "full native coverage"}
+        <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="registry-coverage">
+          {!isNativeRegistry(activeRegistryId) ? (
+            "wireframe — covers every component"
+          ) : fallbackNames.length === 0 ? (
+            "full native coverage"
+          ) : (
+            <>
+              {fallbackNames.length} of {Object.keys(catalog.components ?? {}).length} components render as wireframe (no native{" "}
+              {activeRegistryId} visual yet)
+              <span title={fallbackNames.join(", ")}> — hover for the list</span>
+            </>
+          )}
         </span>
         <button
           className="st-btn st-btn--dashed"
@@ -108,41 +126,85 @@ export function PreviewView() {
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>surface:</span>
-        {surfaces.map((s) => (
-          <button key={s.name} className={`st-btn${(active?.name ?? "") === s.name ? " st-btn--active" : ""}`} onClick={() => setSurfaceName(s.name)} data-testid={`surface-${s.name}`}>
-            {s.name}
-          </button>
-        ))}
-        {failed.map((s) => (
-          <span key={s.name} title={s.error} style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--err)" }} data-testid={`surface-refused-${s.name}`}>
-            {s.name}: refused
+      <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span className="af-label" style={{ margin: 0 }}>
+            {isExample ? "Example surfaces" : referenceExampleIds ? "Your surfaces" : "Project surfaces"}
           </span>
-        ))}
+          {yours.length === 0 ? (
+            <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="preview-no-project-surfaces">
+              none yet — build something in Build, then “Add to project”.
+            </span>
+          ) : (
+            yours.map((s) => (
+              <button key={s.name} className={`st-btn${(active?.name ?? "") === s.name ? " st-btn--active" : ""}`} onClick={() => setSurfaceName(s.name)} data-testid={`surface-${s.name}`}>
+                {s.name}
+              </button>
+            ))
+          )}
+        </div>
+        {referenceSurfaces.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} data-testid="preview-reference-surfaces">
+            <span className="af-label" style={{ margin: 0, color: "var(--fg-dim)" }}>
+              Reference examples · {manifest?.name ?? "design system"}
+            </span>
+            {referenceSurfaces.map((s) => (
+              <button
+                key={s.name}
+                className={`st-btn st-btn--dashed${(active?.name ?? "") === s.name ? " st-btn--active" : ""}`}
+                onClick={() => setSurfaceName(s.name)}
+                data-testid={`surface-${s.name}`}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        )}
+        {failed.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            {failed.map((s) => (
+              <span key={s.name} title={s.error} style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--err)" }} data-testid={`surface-refused-${s.name}`}>
+                {s.name}: refused
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {active?.messages ? (
-        <div
-          {...canvasScopeFor(activeRegistryId, canvasMode).attrs}
-          data-project-canvas="composer"
-          style={{
-            border: "1px solid var(--line)",
-            borderRadius: 4,
-            padding: 20,
-            background: canvasScopeFor(activeRegistryId, canvasMode).background,
-          }}
-        >
-          <A2uiCanvas
-            key={`${active.name}:${activeRegistryId}`}
-            catalog={catalog}
-            registry={registry}
-            messages={active.messages}
-            onAction={(action) => setActions((prev) => [...prev, action])}
-          />
-        </div>
+        <>
+          {!isExample && referenceExampleIds?.has(active.name) && (
+            <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 6px" }}>
+              Reference example from {manifest?.name ?? "the design system"} — teaching material, not part of your project&rsquo;s work.
+            </p>
+          )}
+          <div
+            {...canvasScopeFor(activeRegistryId, canvasMode).attrs}
+            data-project-canvas="composer"
+            style={{
+              border: "1px solid var(--line)",
+              borderRadius: 4,
+              padding: 20,
+              background: canvasScopeFor(activeRegistryId, canvasMode).background,
+            }}
+          >
+            <A2uiCanvas
+              key={`${active.name}:${activeRegistryId}`}
+              catalog={catalog}
+              registry={registry}
+              messages={active.messages}
+              onAction={(action) => setActions((prev) => [...prev, action])}
+            />
+          </div>
+        </>
       ) : (
-        <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No emittable surface.</p>
+        <div className="af-empty" data-testid="preview-empty">
+          <p className="af-empty__title">No project surfaces yet</p>
+          <p className="af-empty__body">
+            Build something first — describe what you want in Build, and a passing result&rsquo;s &ldquo;Add to
+            project&rdquo; lands it here.{referenceSurfaces.length > 0 && " The reference examples above are open for inspection."}
+          </p>
+        </div>
       )}
 
       {active && active.warnings.length > 0 && (

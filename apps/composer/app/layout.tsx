@@ -14,9 +14,9 @@ import "./af-ui.css";
 import { fontVariables } from "./fonts";
 
 export const metadata: Metadata = {
-  title: "Catalog Composer · Aesthetic Function Studio",
+  title: "Composer · Aesthetic Function",
   description:
-    "Create and maintain a project-specific A2UI component catalog: connect a project, enrich its discovered contract, map it through a data profile, preview the emitted catalog, and validate the governed artifacts.",
+    "Describe what you want; Composer builds it from your design system's approved components only, checks it as it goes, and renders it natively. Projects are yours to keep, export, and reopen — in the browser, or against your own repository through the local agent.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -190,19 +190,24 @@ export function GovernanceView() {
     <>
       <ViewHeader
         eyebrow="Governance"
-        lead="The intents and typed rules that define what correct means here — what generation reaches for, and what it may never produce."
+        lead="The design-system rules and intent context governing this project — why Composer is allowed, or not allowed, to generate certain things. Every build is checked against exactly this."
       />
+      <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 14px" }} data-testid="governance-summary">
+        {intents.length} intent{intents.length === 1 ? "" : "s"} · {rules.length} rule{rules.length === 1 ? "" : "s"} govern this
+        design system{contract.name ? ` (${contract.name})` : ""}.
+      </p>
       <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(420px, 3fr) minmax(260px, 2fr)" }}>
       <div>
         <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Intents</h2>
         <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-          The scoping vocabulary: an intent is declared by the caller, never inferred by a model. Rules select by it.
+          What a surface can be FOR. Generation reaches for one governed context per goal; rules select by it.
         </p>
         <ul style={{ listStyle: "none", padding: 0, fontSize: 13 }}>
           {intents.map((i) => (
-            <li key={i.id} style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }}>
-              <span style={{ fontFamily: "var(--mono)", color: "var(--info)" }}>{i.id}</span>
-              <span style={{ color: "var(--fg-body)", marginLeft: 8 }}>{i.description}</span>
+            <li key={i.id} style={{ borderTop: "1px solid var(--line-soft)", padding: "8px 0" }} data-testid={`intent-${i.id}`}>
+              <span style={{ color: "var(--fg)", fontWeight: 600 }}>{(i as { name?: string }).name ?? i.id}</span>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{i.id}</span>
+              <span style={{ display: "block", color: "var(--fg-body)", marginTop: 2 }}>{i.description}</span>
             </li>
           ))}
         </ul>
@@ -366,7 +371,7 @@ export function GovernanceView() {
           </button>
           {!rationaleReady && draft.id && <span style={{ fontSize: 12, color: "var(--warn)", marginLeft: 8 }}>rationale first</span>}
           {issue && <p style={{ fontSize: 12, color: "var(--err)" }}>{issue}</p>}
-          {mode === "demo" && <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Demo: governance edits stay in memory.</p>}
+          {mode === "demo" && <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Intent and rule edits last this session — connect the local agent to save them to your repository.</p>}
         </div>
       </div>
 

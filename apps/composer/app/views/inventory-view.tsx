@@ -30,8 +30,13 @@ export function InventoryView({ onOpen }: { onOpen: () => void }) {
     <>
       <ViewHeader
         eyebrow="Catalog"
-        lead="Your governed vocabulary: the components generation may use, each with its lifecycle and how it maps to the design system. Select one to enrich it."
+        lead="The governed component vocabulary available to this project — the components Composer is allowed to use when it builds, each with how it maps to the design system. Select one to enrich it."
       />
+      <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 12px" }} data-testid="catalog-summary">
+        {components.length} component{components.length === 1 ? "" : "s"} available from {(contract.name as string) ?? "this design system"} ·{" "}
+        {plans.size} mapped to A2UI · {casualties.size} declared casualt{casualties.size === 1 ? "y" : "ies"} (components the mapping honestly
+        can&rsquo;t represent yet).
+      </p>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
       <thead>
         <tr style={{ textAlign: "left", fontFamily: "var(--mono)", fontSize: 11, textTransform: "uppercase", color: "var(--fg-dim)" }}>

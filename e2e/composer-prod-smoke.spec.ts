@@ -108,6 +108,127 @@ test("a project exports to a portable file and imports back, ready to keep build
   await expect(page.getByTestId("projects-grid")).toContainText("Imported");
 });
 
+test("a built surface becomes first-class project content: accept → Preview default → Scenarios → reload → export", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Ownership");
+  await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
+
+  // Accept in the BROWSER — no agent required to own browser-authored work.
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+
+  // Preview opens on the project's OWN surface, with the reference corpus
+  // clearly separated — never one anonymous list.
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("surface-ex.chat-1")).toBeVisible();
+  await expect(page.getByTestId("surface-ex.chat-1")).toHaveClass(/st-btn--active/); // the default
+  await expect(page.getByTestId("preview-reference-surfaces")).toContainText("Reference examples");
+  await expect(page.getByTestId("preview-no-project-surfaces")).toHaveCount(0);
+
+  // Honest wireframe fallback: a reference surface using Switch/Separator
+  // renders through wireframe stand-ins under the native registry — never
+  // raw [unimplemented:] text — and the caption says so plainly.
+  await page.getByTestId("registry-shadcn").click();
+  await page.getByTestId("surface-ex.notification-preferences").click();
+  await expect(page.getByTestId("registry-coverage")).toContainText("render as wireframe");
+  await expect(page.locator('[data-project-canvas] [data-wireframe]').first()).toBeVisible();
+  await expect(page.locator('[data-project-canvas]')).not.toContainText("[unimplemented:");
+
+  // Scenarios: project-owned content separate from the reference corpus.
+  await page.getByTestId("nav-scenarios").click();
+  await expect(page.getByTestId("scenario-ex.chat-1")).toBeVisible();
+  await expect(page.getByTestId("scenarios-reference")).toContainText("Reference examples");
+
+  // The authored surface SURVIVES a reload (the persisted delta).
+  await page.reload();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("surface-ex.chat-1")).toBeVisible();
+
+  // Export without leaving the work — and the export carries the surface.
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("project-export").click()]);
+  expect(download.suggestedFilename()).toMatch(/\.composerproject\.json$/);
+  const fs = await import("node:fs/promises");
+  const exported = await fs.readFile((await download.path())!, "utf8");
+  expect(exported).toContain("ex.chat-1");
+});
+
+test("a fresh project's Preview is honest: no project surfaces yet, references labeled as references", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Fresh");
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("preview-no-project-surfaces")).toBeVisible();
+  await expect(page.getByTestId("preview-reference-surfaces")).toContainText("Reference examples");
+  // Inspecting a reference example states what it is.
+  await page.getByTestId("surface-ex.delete-account-confirmation").click();
+  await expect(page.locator("body")).toContainText("teaching material, not part of your project");
+});
+
+test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
+  await page.goto("/");
+  // The hub separates Examples from Your projects.
+  await expect(page.getByTestId("examples-section")).toBeVisible();
+  await expect(page.getByTestId("example-shadcn")).toContainText("read-only");
+
+  // Opening an example is labeled, and never becomes "your" project.
+  await page.getByTestId("example-open-shadcn").click();
+  await expect(page.getByTestId("example-banner")).toContainText("read-only reference");
+  await expect(page.getByTestId("project-context")).toContainText("Example");
+  await page.getByTestId("nav-projects").click();
+  await expect(page.getByTestId("projects-empty")).toBeVisible(); // not in Your projects
+
+  // A reload does NOT resurrect the example (no lastOpened) — the hub, honestly.
+  await page.reload();
+  await expect(page.getByTestId("projects-empty")).toBeVisible();
+  await expect(page.getByTestId("example-banner")).toHaveCount(0);
+
+  // Duplicate makes it yours, as a normal project.
+  await page.getByTestId("example-open-shadcn").click();
+  await expect(page.getByTestId("example-banner")).toBeVisible();
+  await page.getByTestId("example-duplicate").click();
+  await expect(page.getByTestId("project-context")).toContainText("My shadcn/ui project");
+  await expect(page.getByTestId("example-banner")).toHaveCount(0);
+  await page.getByTestId("nav-projects").click();
+  await expect(page.getByTestId("projects-grid")).toContainText("My shadcn/ui project");
+});
+
+test("project lifecycle: rename, duplicate, switch, and remove — as first-class objects", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Lifecycle");
+  await page.getByTestId("nav-projects").click();
+  const grid = page.getByTestId("projects-grid");
+
+  // Target every action by the project's exact id, read from its card.
+  const firstCard = grid.locator(".af-card").first();
+  await expect(firstCard).toContainText(/shadcn/i); // a user project shows its governed source
+  const id = (await firstCard.getAttribute("data-testid"))!.replace("project-", "");
+
+  // Rename
+  await page.getByTestId(`project-rename-${id}`).click();
+  await page.getByTestId(`project-rename-input-${id}`).fill("Lifecycle renamed");
+  await page.getByTestId(`project-rename-input-${id}`).press("Enter");
+  await expect(grid).toContainText("Lifecycle renamed");
+
+  // Duplicate
+  await page.getByTestId(`project-duplicate-${id}`).click();
+  await expect(grid).toContainText("Lifecycle renamed copy");
+
+  // Switch into the original, confirm it's active, return to the hub
+  await page.getByTestId(`project-build-${id}`).click();
+  await expect(page.getByTestId("project-context")).toContainText("Lifecycle renamed");
+  await page.getByTestId("nav-projects").click();
+
+  // Remove the duplicate (two-step confirm), original survives
+  const copyId = (await grid.locator(".af-card").filter({ hasText: "Lifecycle renamed copy" }).first().getAttribute("data-testid"))!.replace(
+    "project-",
+    "",
+  );
+  await page.getByTestId(`project-delete-${copyId}`).click();
+  await page.getByTestId(`project-delete-confirm-${copyId}`).click();
+  await expect(grid).not.toContainText("Lifecycle renamed copy");
+  await expect(grid).toContainText("Lifecycle renamed");
+});
+
 test("design-system neutrality: Astryx traverses the SAME product with its own vocabulary", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "astryx", "Scheduling");

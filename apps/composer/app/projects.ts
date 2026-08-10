@@ -138,6 +138,96 @@ function removeVocab(id: string): void {
   }
 }
 
+/* ------------------------- Authored-examples delta -------------------------
+ * The "small authored delta" this module has promised all along: the worked
+ * examples a project's OWNER added (accepted builds, authored scenarios) on
+ * top of its base vocabulary. The base — a packaged reference or an imported
+ * bundle — is never mutated; the working contract is base + delta, merged on
+ * open. Stored per project id, beside (not inside) the index, so listing the
+ * hub stays cheap and the reference row never grows a contract. */
+
+/** One worked example as it lives in a contract's `examples` array. */
+export type ExampleEntry = Record<string, unknown> & { id: string };
+
+const examplesKey = (id: string): string => `composer.project.examples.${id}`;
+
+/** Persist a project's authored examples. Quota-honest: false = not saved. */
+export function saveExamplesDelta(id: string, examples: ExampleEntry[]): boolean {
+  const s = storage();
+  if (!s) return false;
+  try {
+    if (examples.length === 0) s.removeItem(examplesKey(id));
+    else s.setItem(examplesKey(id), JSON.stringify(examples));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function loadExamplesDelta(id: string): ExampleEntry[] {
+  const s = storage();
+  if (!s) return [];
+  try {
+    const raw = s.getItem(examplesKey(id));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((e): e is ExampleEntry => !!e && typeof e === "object" && typeof (e as { id?: unknown }).id === "string");
+  } catch {
+    return [];
+  }
+}
+
+function removeExamplesDelta(id: string): void {
+  try {
+    storage()?.removeItem(examplesKey(id));
+  } catch {
+    /* best-effort cleanup */
+  }
+}
+
+/**
+ * Base + delta → the working example set. Replace-by-id, else append — so a
+ * delta entry that edits a base example takes its place, and NEW authored
+ * work lands LAST, which is exactly what scripted replay (`.at(-1)` per
+ * intent) and the few-shot corpus want: the owner's latest accepted work.
+ */
+export function mergeExamples(base: ExampleEntry[], delta: ExampleEntry[]): ExampleEntry[] {
+  if (delta.length === 0) return base.slice();
+  const out = base.slice();
+  for (const entry of delta) {
+    const at = out.findIndex((e) => e.id === entry.id);
+    if (at >= 0) out[at] = entry;
+    else out.push(entry);
+  }
+  return out;
+}
+
+/**
+ * The delta implied by a live example set against its base: entries that are
+ * new, plus base-id entries whose content changed (a scenario edit). Computed
+ * fresh on every save — no incremental bookkeeping to corrupt.
+ */
+export function examplesDelta(base: ExampleEntry[], live: ExampleEntry[]): ExampleEntry[] {
+  const baseById = new Map(base.map((e) => [e.id, JSON.stringify(e)]));
+  return live.filter((e) => {
+    const was = baseById.get(e.id);
+    return was === undefined || was !== JSON.stringify(e);
+  });
+}
+
+/** The next free `ex.chat-N` over the LIVE (merged) example ids — the same
+ *  monotonic, gap-tolerant rule the agent applies to on-disk contracts
+ *  (apps/agent/src/project.ts nextExampleId; keep in sync). */
+export function nextChatExampleId(existing: string[]): string {
+  let n = 0;
+  for (const id of existing) {
+    const match = /^ex\.chat-(\d+)$/.exec(id);
+    if (match) n = Math.max(n, Number(match[1]));
+  }
+  return `ex.chat-${n + 1}`;
+}
+
 /** A stable-ish id without pulling a dep; crypto.randomUUID where available. */
 function newId(): string {
   try {
@@ -220,12 +310,17 @@ export function duplicateProject(id: string): StoredProject | null {
     const vocab = loadVocab(original.id);
     if (vocab) saveVocab(copy.id, vocab);
   }
+  // The authored delta is the project's own work — a duplicate carries it for
+  // every source kind (agent projects have none; copying no-ops).
+  const delta = loadExamplesDelta(original.id);
+  if (delta.length > 0) saveExamplesDelta(copy.id, delta);
   return copy;
 }
 
 export function removeProject(id: string): void {
   writeAll(readAll().filter((p) => p.id !== id));
   removeVocab(id);
+  removeExamplesDelta(id);
   if (getLastOpened() === id) setLastOpened(null);
 }
 

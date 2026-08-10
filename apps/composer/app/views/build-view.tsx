@@ -173,7 +173,7 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 }
 
 function TurnBlock({ turn }: { turn: BuildTurn }) {
-  const { acceptBuildTurn, buildBusy, busy, mode } = useComposer();
+  const { acceptBuildTurn, buildBusy, busy, mode, isExample } = useComposer();
   // Blank by default: identity is minted from the contract ON DISK, so a
   // reload or a second tab can never collide with saved work (#42).
   const [exampleId, setExampleId] = useState("");
@@ -304,33 +304,35 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 
       <TurnCanvas turn={turn} />
 
-      {canAcceptTurn(turn.progress) && !turn.accepted && mode === "agent" && (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
-          <input
-            value={exampleId}
-            onChange={(e) => setExampleId(e.target.value)}
-            placeholder="(agent mints a free id)"
-            aria-label={`Example id for turn ${turn.id} — leave blank to let the agent mint a collision-free id`}
-            style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", border: "1px solid var(--line)", color: "var(--fg)", padding: "5px 8px", borderRadius: 2 }}
-            data-testid={`build-example-id-${turn.id}`}
-          />
-          <button
-            className="st-btn"
-            disabled={locked}
-            aria-label={`Accept turn ${turn.id} as a worked example${exampleId ? ` with id ${exampleId}` : ""}`}
-            onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined)}
-            data-testid={`build-accept-${turn.id}`}
-          >
-            Accept as worked example
-          </button>
+      {canAcceptTurn(turn.progress) && !turn.accepted && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              value={exampleId}
+              onChange={(e) => setExampleId(e.target.value)}
+              placeholder="(a free id is minted)"
+              aria-label={`Example id for turn ${turn.id} — leave blank to mint a collision-free id`}
+              style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", border: "1px solid var(--line)", color: "var(--fg)", padding: "5px 8px", borderRadius: 2 }}
+              data-testid={`build-example-id-${turn.id}`}
+            />
+            <button
+              className="st-btn"
+              disabled={locked}
+              aria-label={`Accept turn ${turn.id} into the project${exampleId ? ` with id ${exampleId}` : ""}`}
+              onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined)}
+              data-testid={`build-accept-${turn.id}`}
+            >
+              Add to project
+            </button>
+          </div>
+          <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 6 }}>
+            {mode === "agent"
+              ? "Saves into your repository's contract on disk as a worked example."
+              : isExample
+                ? "Kept for this session only — duplicate this example into your projects to keep what you build."
+                : "Saves to this project in your browser as a worked example — it appears in Preview and Scenarios, and seeds future generation."}
+          </p>
         </div>
-      )}
-      {canAcceptTurn(turn.progress) && !turn.accepted && mode !== "agent" && (
-        <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 10 }}>
-          This surface passed every gate in your browser. Accepting it as a reusable worked example writes to a project on
-          disk — connect the local agent (<code>pnpm --filter agent dev</code>) to keep it and have it seed future
-          generation for <code>{turn.intent}</code>.
-        </p>
       )}
       {turn.accepted && (
         <p ref={accepted} tabIndex={-1} data-testid={`build-accepted-${turn.id}`} style={{ fontSize: 12, color: "var(--ok)" }}>
@@ -365,7 +367,7 @@ export function BuildView() {
         <p style={{ fontSize: 13, color: "var(--warn)" }} data-testid="build-not-ready">
           Not ready to build yet: {readiness.reason}
         </p>
-        <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Set up your design system in the Catalog views, then build with it.</p>
+        <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Set up your design system in Catalog and Governance, then build with it.</p>
       </section>
     );
   }
@@ -440,7 +442,7 @@ export function BuildView() {
           data-testid="build-hosted-note"
           style={{ fontSize: 12, color: "var(--fg-body)", border: "1px solid var(--line)", borderRadius: 2, padding: "8px 10px", margin: "6px 0" }}
         >
-          You&rsquo;re in the hosted demo — no install.{" "}
+          This project runs in your browser — no install.{" "}
           {buildModels.includes("hosted-ai") ? (
             <>
               <code>hosted-ai</code> generates for your goal with managed Claude Haiku; the deterministic gates and
@@ -448,11 +450,11 @@ export function BuildView() {
             </>
           ) : (
             <>
-              the governed pipeline runs <em>entirely in this browser</em> against the shipped demo project.
+              the governed pipeline — gates, rendering, checks — runs <em>entirely in this browser</em>.
             </>
           )}{" "}
           To build against <em>your own</em> component library, run the local agent (<code>pnpm --filter agent dev</code>)
-          and connect a project{agentUp ? " — detected, connect from Project" : "."}
+          and connect it{agentUp ? " — detected: Projects → Connect a repository." : "."}
         </p>
       )}
 
