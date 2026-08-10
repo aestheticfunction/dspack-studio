@@ -3,17 +3,17 @@
 The studio's rendering stack is layered so the design system is a plug-in,
 not a foundation. This document states the boundaries as they exist in code
 today (verified by `packages/a2ui-ingest/src/registry-abstraction.test.ts`).
-Since the FM-10 groundwork the swap is real: `packages/shadcn-renderers`
-supplies a second registry covering all 12 catalog names (the `Dialog`
-placeholder was the last, closed 2026-08-08 once measurement showed the
-registry already rendered 100% of emitted instances — see
-`packages/shadcn-renderers/src/dialog-render.test.tsx`). The registry is
-selected in the restyle view and applied to every canvas. The
-`unimplemented` fallback mechanism itself remains — a registry is still
-free to leave a catalog name unrendered — and is exercised by the parity
-suite rather than by a shipped gap. The e2e proof
-(`e2e/design-swap.spec.ts`) replays one fixture under both design systems
-and asserts the receipt hash is identical while the rendered DOM differs.
+The swap is real: three registry packages ship — `packages/astryx-renderers`
+(full coverage of the 12-name Astryx catalog), `packages/shadcn-renderers`
+(native visuals for 11 of the production shadcn/ui v3 catalog's 27 names),
+and `packages/wireframe-renderers` (the universal registry, generated to
+cover ANY catalog). A registry is still free to leave a catalog name
+unrendered, and today shadcn genuinely does — partial adoption is a shipped
+state, not a hypothetical. What a user sees in that case is a policy
+decision made at the app boundary, not in the packages (below). The e2e
+proof (`e2e/design-swap.spec.ts`) replays one fixture under both design
+systems and asserts the receipt hash is identical while the rendered DOM
+differs.
 
 ## The layers
 
@@ -37,8 +37,9 @@ Renderer         the adapter: catalog JSON + a Registry -> renderable
                  packages/a2ui-ingest (generic; names no components).
   ↓
 Design system    the visuals: a Registry maps catalog names to concrete
-                 components. Owned by packages/astryx-renderers — the ONLY
-                 place Astryx imports live (plus theme packages in apps/web).
+                 components. Owned by packages/{astryx,shadcn,wireframe}-
+                 renderers — the ONLY places a design system's imports live
+                 (plus theme packages in apps/web).
 ```
 
 ## Renderer interfaces
@@ -66,10 +67,28 @@ everything else works.
 
 ## Unsupported-component behavior
 
+Two layers, deliberately separate:
+
+**Package layer (a2ui-ingest), unchanged:**
+
 - Not in the catalog: the A2UI renderer's own unknown-component state — the
   contract/emitter should have prevented this (an emitter refusal upstream).
 - In the catalog, no visual: `makeUnimplemented` placeholder — legal
-  vocabulary, missing pixels; the run is otherwise unaffected.
+  vocabulary, missing pixels; the run is otherwise unaffected. This is the
+  package's honest "no visual at all" signal, and the parity suites reason
+  about it.
+
+**App layer (Composer), the policy:** `apps/composer/app/registries.ts`
+composes the wireframe registry UNDER the native one — native wins
+name-by-name, wireframe fills every remaining catalog name — so a partially
+covered design system renders as native visuals plus labeled wireframe
+stand-ins, and the placeholder never reaches a user. The composition is
+cached per (catalog, registry id) because `A2uiCanvas` memoizes catalog
+ingestion on registry identity. Honest reporting comes from the PRE-merge
+registry (`nativeRegistryFor`, `wireframeFallbackNames`): the merged registry
+covers everything by construction, so coverage must never be computed from
+it. Rule: native renderer where available → wireframe fallback where not →
+never raw placeholder text in the product canvas.
 
 ## Theme ownership
 
@@ -84,7 +103,8 @@ touching any other layer.
 ## What a design-system swap requires (and nothing more)
 
 1. A new registry package exporting a `Registry` (visuals for the catalog's
-   names — or a subset; the placeholder covers the rest).
+   names — or a subset; in Composer the wireframe registry covers the rest,
+   and in a bare package consumer the placeholder does).
 2. Its own theming wiring, if any.
 3. An emit profile IF the new system's contract differs (the Astryx profile
    lives in packages/contracts; the shadcn profile ships in dspack-emit).
