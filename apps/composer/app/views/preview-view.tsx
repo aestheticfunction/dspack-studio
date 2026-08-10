@@ -42,7 +42,7 @@ function exportBundle(emit: NonNullable<ReturnType<typeof useComposer>["emit"]>,
 }
 
 export function PreviewView() {
-  const { emit, manifest, referenceExampleIds } = useComposer();
+  const { emit, manifest, referenceExampleIds, isExample } = useComposer();
   const [registryId, setRegistryId] = useState<RegistryId>("wireframe");
   const [canvasMode, setCanvasMode] = useState<"light" | "dark">("light");
   const [surfaceName, setSurfaceName] = useState<string | null>(null);
@@ -54,9 +54,12 @@ export function PreviewView() {
   // scenarios) vs the design-system reference's worked examples. They are
   // never mixed into one anonymous list, and Preview opens on the project's
   // LATEST surface — what the user just built — not a reference example.
-  const yours = referenceExampleIds ? surfaces.filter((s) => !referenceExampleIds.has(s.name)) : surfaces;
-  const referenceSurfaces = referenceExampleIds ? surfaces.filter((s) => referenceExampleIds.has(s.name)) : [];
-  const active = surfaces.find((s) => s.name === surfaceName) ?? yours.at(-1) ?? null;
+  // In an EXAMPLE workspace the reference gallery IS the content on show.
+  const yoursRaw = referenceExampleIds ? surfaces.filter((s) => !referenceExampleIds.has(s.name)) : surfaces;
+  const refsRaw = referenceExampleIds ? surfaces.filter((s) => referenceExampleIds.has(s.name)) : [];
+  const yours = isExample ? surfaces : yoursRaw;
+  const referenceSurfaces = isExample ? [] : refsRaw;
+  const active = surfaces.find((s) => s.name === surfaceName) ?? (isExample ? yours[0] : yours.at(-1)) ?? null;
 
   // The registry choices are wireframe (always) + the project's native design
   // system, whichever it is. A stale selection from a previous project clamps
@@ -126,7 +129,7 @@ export function PreviewView() {
       <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <span className="af-label" style={{ margin: 0 }}>
-            {referenceExampleIds ? "Your surfaces" : "Project surfaces"}
+            {isExample ? "Example surfaces" : referenceExampleIds ? "Your surfaces" : "Project surfaces"}
           </span>
           {yours.length === 0 ? (
             <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="preview-no-project-surfaces">
@@ -170,7 +173,7 @@ export function PreviewView() {
 
       {active?.messages ? (
         <>
-          {referenceExampleIds?.has(active.name) && (
+          {!isExample && referenceExampleIds?.has(active.name) && (
             <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 6px" }}>
               Reference example from {manifest?.name ?? "the design system"} — teaching material, not part of your project&rsquo;s work.
             </p>

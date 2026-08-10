@@ -68,10 +68,12 @@ function Shell() {
   const buildBlocked = state.mode === "agent" && !state.readiness.ready ? state.readiness.reason : undefined;
   const isAgentProject = state.activeProject?.source.kind === "agent" || state.mode === "agent";
   // The chip answers "what am I looking at" — the project's SOURCE, in the
-  // same words the hub uses (execution mode is Settings' concern, not identity).
+  // same words the hub uses (execution mode is Settings' concern, not
+  // identity), and EXAMPLE when this is the reference's own workspace.
   const source = state.activeProject?.source;
-  const sourceKind =
-    source?.kind === "agent"
+  const sourceKind = state.isExample
+    ? "Example"
+    : source?.kind === "agent"
       ? "Local repository"
       : source?.kind === "imported"
         ? "Imported"
@@ -137,9 +139,10 @@ function Shell() {
               <span className="af-ctx__src">{sourceKind}</span>
             </span>
           )}
-          {state.activeProject && (
+          {state.activeProject && !state.isExample && (
             /* Build → Preview → Export, without a trip back to Projects. The
-               same portable file as the hub card's Export. */
+               same portable file as the hub card's Export. An example is not
+               the user's portable work — duplicate it first. */
             <button
               className="af-nav__link"
               onClick={() => state.exportProject(state.activeProject!.id)}
@@ -160,6 +163,34 @@ function Shell() {
       </header>
 
       <main>
+        {state.isExample && (
+          <div style={{ maxWidth: "var(--maxw,1180px)", margin: "0 auto", padding: "12px var(--gut,24px) 0" }}>
+            <p
+              data-testid="example-banner"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 13,
+                color: "var(--fg-body)",
+                border: "1px solid var(--line)",
+                borderLeft: "3px solid var(--green, #7e9652)",
+                borderRadius: 3,
+                padding: "8px 12px",
+                margin: 0,
+              }}
+            >
+              <span>
+                <strong style={{ color: "var(--fg)" }}>{state.activeProject?.name}</strong> — a read-only reference.
+                Explore and edit freely; changes are not kept.
+              </span>
+              <button className="st-btn" style={{ marginLeft: "auto" }} onClick={() => state.duplicateExample()} data-testid="example-duplicate">
+                Duplicate into your projects
+              </button>
+            </p>
+          </div>
+        )}
         {state.notice && (
           <div style={{ maxWidth: "var(--maxw,1180px)", margin: "0 auto", padding: "12px var(--gut,24px) 0" }}>
             <p

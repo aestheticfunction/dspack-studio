@@ -24,8 +24,18 @@ function sourceLabel(p: StoredProject, referenceLabel: (id: string) => string): 
 }
 
 export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConnect: () => void }) {
-  const { projects, references, newProject, openProject, duplicateProject, deleteProject, renameProject, importProject, exportProject } =
-    useComposer();
+  const {
+    projects,
+    references,
+    newProject,
+    openProject,
+    openExample,
+    duplicateProject,
+    deleteProject,
+    renameProject,
+    importProject,
+    exportProject,
+  } = useComposer();
   const referenceLabel = (id: string) => references.find((r) => r.id === id)?.label ?? id;
 
   const [name, setName] = useState("");
@@ -203,7 +213,7 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
             <p className="af-empty__title">No projects yet</p>
             <p className="af-empty__body">
               Name a project above and pick a governed design system to begin. Everything you build is checked against
-              that system&rsquo;s rules as you go.
+              that system&rsquo;s rules as you go — or open an example below to see how Composer works first.
             </p>
           </div>
         ) : (
@@ -300,6 +310,50 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
             ))}
           </div>
         )}
+      </section>
+
+      {/* Examples — teaching material, never mixed with the user's work. Each
+          is the design system's own reference project: its worked examples,
+          scenarios, and governance, opened read-only or copied to start. */}
+      <section aria-labelledby="examples-h" style={{ marginTop: "clamp(32px,5vw,56px)" }} data-testid="examples-section">
+        <h2 id="examples-h" className="af-h2" style={{ marginBottom: 6 }}>
+          Examples
+        </h2>
+        <p className="af-lead" style={{ marginTop: 0, fontSize: 14 }}>
+          Read-only reference projects that show how Composer works. Your projects are yours; these teach.
+        </p>
+        <div className="af-grid" style={{ marginTop: 14 }}>
+          {references.map((r) => (
+            <div key={r.id} className="af-card" data-testid={`example-${r.id}`} style={{ cursor: "default" }}>
+              <span className="af-card__k">Example · read-only</span>
+              <span className="af-card__title">{r.label} example</span>
+              <span className="af-card__desc">{r.blurb}</span>
+              <div className="af-btn-row" style={{ marginTop: 4 }}>
+                <button
+                  className="st-btn"
+                  onClick={() => {
+                    openExample(r.id);
+                    onOpen();
+                  }}
+                  data-testid={`example-open-${r.id}`}
+                >
+                  Open example
+                </button>
+                <button
+                  className="st-btn st-btn--dashed"
+                  title="Start your own project on this design system"
+                  onClick={() => {
+                    newProject({ name: `My ${r.label} project`, source: { kind: "reference", referenceId: r.id } });
+                    onOpen();
+                  }}
+                  data-testid={`example-copy-${r.id}`}
+                >
+                  Create copy
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );

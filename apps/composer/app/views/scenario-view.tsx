@@ -147,7 +147,7 @@ function NodeEditor({
 }
 
 export function ScenarioView() {
-  const { contract, profile, saveContract, mode, referenceExampleIds, manifest } = useComposer();
+  const { contract, profile, saveContract, mode, referenceExampleIds, manifest, isExample } = useComposer();
   const [editing, setEditing] = useState<string | null>(null);
   const [meta, setMeta] = useState({ id: "", intent: "", name: "", prompt: "", description: "" });
   const [root, setRoot] = useState<SurfaceNode | null>(null);
@@ -231,9 +231,10 @@ export function ScenarioView() {
     // Ownership first: the project's scenarios (accepted builds + authored
     // here) are the primary list; the design-system reference's worked
     // examples are a clearly labeled secondary corpus — available as few-shot
-    // and teaching context, never presented as the user's own work.
-    const yours = referenceExampleIds ? examples.filter((e) => !referenceExampleIds.has(e.id)) : examples;
-    const refs = referenceExampleIds ? examples.filter((e) => referenceExampleIds.has(e.id)) : [];
+    // and teaching context, never presented as the user's own work. In an
+    // EXAMPLE workspace, the reference corpus IS the content being shown.
+    const yours = isExample ? examples : referenceExampleIds ? examples.filter((e) => !referenceExampleIds.has(e.id)) : examples;
+    const refs = isExample ? [] : referenceExampleIds ? examples.filter((e) => referenceExampleIds.has(e.id)) : [];
     const row = (e: Record<string, any>, isRef: boolean) => (
       <li key={e.id} style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }} data-testid={`scenario-${e.id}`}>
         <span style={{ fontFamily: "var(--mono)", color: isRef ? "var(--fg-dim)" : "var(--info)" }}>{e.id}</span>
@@ -263,7 +264,7 @@ export function ScenarioView() {
           lead="Worked examples for proving and refining what this project can build. A scenario proves an intent is buildable, previews the catalog, and seeds generation as its few-shot corpus."
         />
         <p className="af-label" style={{ margin: "14px 0 4px" }}>
-          {referenceExampleIds ? "Project scenarios" : "Scenarios"}
+          {isExample ? "Example scenarios" : referenceExampleIds ? "Project scenarios" : "Scenarios"}
         </p>
         {yours.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--fg-dim)" }} data-testid="scenarios-none-yet">

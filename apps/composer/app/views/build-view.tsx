@@ -173,7 +173,7 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 }
 
 function TurnBlock({ turn }: { turn: BuildTurn }) {
-  const { acceptBuildTurn, buildBusy, busy, mode } = useComposer();
+  const { acceptBuildTurn, buildBusy, busy, mode, isExample } = useComposer();
   // Blank by default: identity is minted from the contract ON DISK, so a
   // reload or a second tab can never collide with saved work (#42).
   const [exampleId, setExampleId] = useState("");
@@ -328,7 +328,9 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
           <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 6 }}>
             {mode === "agent"
               ? "Saves into your repository's contract on disk as a worked example."
-              : "Saves to this project in your browser as a worked example — it appears in Preview and Scenarios, and seeds future generation."}
+              : isExample
+                ? "Kept for this session only — duplicate this example into your projects to keep what you build."
+                : "Saves to this project in your browser as a worked example — it appears in Preview and Scenarios, and seeds future generation."}
           </p>
         </div>
       )}

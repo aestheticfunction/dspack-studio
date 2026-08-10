@@ -159,6 +159,13 @@ export interface ComposerState {
   importProject: (text: string) => { ok: true; name: string } | { ok: false; error: string };
   /** Export a project to a downloadable, portable file. */
   exportProject: (id: string) => void;
+  /** Open a packaged reference as a read-only EXAMPLE workspace (ephemeral —
+   *  never in "Your projects", pristine on every open, session edits only). */
+  openExample: (referenceId: string) => void;
+  /** True while an example workspace is open. */
+  isExample: boolean;
+  /** Make the open example a real project (session-accepted work carried). */
+  duplicateExample: () => StoredProject | null;
   discover: () => Promise<void>;
   rediscover: () => Promise<void>;
   saveContract: (doc: Record<string, any>) => Promise<ComposerFinding[] | { savedInMemory: true }>;
@@ -216,6 +223,11 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // Projects are the entry point. `activeProjectId === null` means no project is
   // open — the app shows the Projects hub (first run / after closing).
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  // An open EXAMPLE workspace: a read-only reference project, held ephemeral —
+  // never written to storage, never in "Your projects", pristine on every
+  // open. Play is allowed (edits are session-only, as the banner says); the
+  // way to keep anything is to duplicate it into your projects.
+  const [exampleProject, setExampleProject] = useState<StoredProject | null>(null);
   const [projects, setProjects] = useState<StoredProject[]>([]);
   const [agentUp, setAgentUp] = useState(false);
   const [projectPath, setProjectPath] = useState("");
@@ -388,6 +400,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         setNotice("That project could not be found.");
         return;
       }
+      setExampleProject(null);
       setActiveProjectId(p.id);
       setLastOpened(p.id);
       touchProject(p.id);
@@ -413,6 +426,52 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     },
     [openProject],
   );
+
+  /**
+   * Open a packaged reference as an EXAMPLE workspace: teaching material, not
+   * the user's project. Ephemeral by design — no StoredProject, no lastOpened
+   * (a reload lands wherever you actually work), pristine on every open, and
+   * clearly labeled by the shell. Explore and edit freely; nothing is kept.
+   */
+  const openExample = useCallback(
+    (refId: string) => {
+      const ref = REFERENCES[refId];
+      if (!ref) return;
+      setActiveProjectId(null);
+      setLastOpened(null);
+      setExampleProject({
+        id: `example-${ref.id}`,
+        name: `${ref.label} example`,
+        description: ref.blurb,
+        source: { kind: "reference", referenceId: ref.id },
+        createdAt: 0,
+        updatedAt: 0,
+        lastOpenedAt: 0,
+      });
+      loadReference(ref.id); // no projectId: pristine, no delta
+      setNotice(`${ref.label} example opened — a read-only reference. Explore freely; duplicate it into your projects to keep anything.`);
+    },
+    [loadReference],
+  );
+
+  /**
+   * Make the open example yours: a real project on the same reference. Work
+   * accepted during the example session (its in-memory examples delta) comes
+   * along — "duplicate to keep what you build" is a promise, not a reset.
+   */
+  const duplicateExample = useCallback(() => {
+    const refId = exampleProject?.source.kind === "reference" ? exampleProject.source.referenceId : null;
+    const ref = refId ? REFERENCES[refId] : null;
+    if (!ref || !refId) return null;
+    const base = ((ref.contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
+    const live = ((contract?.examples as ExampleEntry[] | undefined) ?? base) as ExampleEntry[];
+    const delta = examplesDelta(base, live);
+    const p = createProject({ name: `My ${ref.label} project`, description: "", source: { kind: "reference", referenceId: refId } });
+    if (delta.length > 0) saveExamplesDelta(p.id, delta);
+    setProjects(listProjects());
+    openProject(p.id); // clears the example workspace, merges the delta
+    return p;
+  }, [exampleProject, contract, openProject]);
 
   /**
    * Import a project from an exported file: validate it (fail-closed — the
@@ -478,9 +537,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     [activeProjectId, contract, profile, manifest],
   );
 
-  /** Return to the hub without loading a project. */
+  /** Return to the hub without loading a project (ends an example session). */
   const closeProject = useCallback(() => {
     setActiveProjectId(null);
+    setExampleProject(null);
     setLastOpened(null);
     clearBuildThread();
   }, []);
@@ -1114,7 +1174,11 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           doc.examples = [...(((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[]), entry];
           await saveContract(doc);
           setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, accepted: id, acceptFindings: undefined } : t)));
-          setNotice(`Accepted as '${id}' — saved to this project in your browser; it now seeds generation for '${turn.intent}'.`);
+          setNotice(
+            activeProjectId
+              ? `Accepted as '${id}' — saved to this project in your browser; it now seeds generation for '${turn.intent}'.`
+              : `Accepted as '${id}' for this session — duplicate this example into your projects to keep it.`,
+          );
           return;
         }
 
@@ -1156,7 +1220,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         setBusy(null);
       }
     },
-    [contract, profile, projectPath, buildTurns, recomputeEmit, mode, saveContract],
+    [contract, profile, projectPath, buildTurns, recomputeEmit, mode, saveContract, activeProjectId],
   );
 
   const runEmit = useCallback(async () => {
@@ -1189,9 +1253,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setValidate({ ok: findings.every((f) => f.severity !== "error"), findings });
   }, [contract]);
 
-  const activeProject: StoredProject | null = activeProjectId
-    ? projects.find((p) => p.id === activeProjectId) ?? getProject(activeProjectId)
-    : null;
+  const activeProject: StoredProject | null =
+    exampleProject ?? (activeProjectId ? projects.find((p) => p.id === activeProjectId) ?? getProject(activeProjectId) : null);
 
   const value = useMemo<ComposerState>(
     () => ({
@@ -1225,6 +1288,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       deleteProject,
       importProject,
       exportProject,
+      openExample,
+      isExample: exampleProject !== null,
+      duplicateExample,
       discover,
       rediscover,
       saveContract,
@@ -1251,7 +1317,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, loadDemo, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
