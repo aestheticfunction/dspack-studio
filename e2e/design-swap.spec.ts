@@ -56,7 +56,9 @@ test("x-ray provenance works identically under shadcn", async ({ page }) => {
   await page.getByTestId("view-replay").click();
   await scrubToEnd(page);
   const tagged = page.locator("section[data-canvas] [data-a2ui-id]");
-  expect(await tagged.count()).toBeGreaterThan(0);
+  // Web-first assertion: poll until the replay finishes painting the tagged
+  // nodes. A one-shot `count()` snapshot races the render and flakes on CI.
+  await expect(tagged.first()).toBeVisible();
   await page.getByTestId("xray-toggle").click();
   await tagged.first().click();
   await expect(page.getByTestId("xray-card")).toBeVisible();
