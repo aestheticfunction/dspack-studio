@@ -27,7 +27,7 @@ import {
   ProfileLoadError,
   type Profile,
 } from "@aestheticfunction/dspack-emit";
-import { finding, classifySurfaceRefusal, type ComposerFinding } from "@dspack-studio/composer-core";
+import { finding, catalogGateFindings, classifySurfaceRefusal, type ComposerFinding } from "@dspack-studio/composer-core";
 
 let compiled: ValidatorMap | undefined;
 function validators(): ValidatorMap {
@@ -141,7 +141,11 @@ export function browserEmit(
   for (const gate of out.validation.gates) {
     if (!gate.pass) {
       const gateId = gate.name.startsWith("schema-compile") ? "A1" : gate.name === "catalog-shape" ? "A2" : "A3";
-      findings.push(finding(gateId as "A1", gate.name, "error", "a2ui@0.9.1", (gate.errors ?? []).join("; ") || gate.name));
+      // Per-instance findings with honest Component#id targets when the
+      // emitter reports structured errorDetails (dspack-emit >= 0.7,
+      // feature-detected); otherwise one capped finding whose `evidence`
+      // keeps every raw error string. Twin: apps/agent/src/project.ts emit().
+      findings.push(...catalogGateFindings(gateId as "A1", gate, "a2ui@0.9.1"));
     }
   }
   for (const c of out.mapping.coverage) {

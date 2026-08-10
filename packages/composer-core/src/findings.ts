@@ -47,6 +47,12 @@ export interface ComposerFinding {
   message: string;
   /** Present only on refusals proven to be authored casualties (see below). */
   acknowledged?: AcknowledgedCasualty;
+  /**
+   * The COMPLETE raw error strings behind a capped `message`. A finding's
+   * message stays readable (first few errors); nothing the gate reported is
+   * ever dropped — the full record lives here for the advanced expander.
+   */
+  evidence?: string[];
 }
 
 export function finding(
@@ -57,6 +63,95 @@ export function finding(
   message: string,
 ): ComposerFinding {
   return { gate, code, severity, target, message };
+}
+
+/* ------------------------------------------------------------------ */
+/* Catalog-gate findings: per-instance when the emitter says which     */
+/* instance, capped-but-complete otherwise.                            */
+/*                                                                     */
+/* dspack-emit >= 0.7 attaches structured `errorDetails` to a failing  */
+/* catalog gate — one entry per invalid component instance, carrying   */
+/* the ajv error objects for that instance. Feature-detected here so   */
+/* the same code serves 0.6 (strings only) unchanged. Shared by the    */
+/* browser (apps/composer/app/validation.ts) and the agent             */
+/* (apps/agent/src/project.ts) — the one-validator principle extends   */
+/* to how a validator's verdict is REPORTED.                           */
+/* ------------------------------------------------------------------ */
+
+/** One ajv-shaped error from a gate's structured detail (all fields optional). */
+export interface GateErrorDetailError {
+  instancePath?: string;
+  schemaPath?: string;
+  keyword?: string;
+  params?: unknown;
+  message?: string;
+}
+
+/** Per-instance structured detail a failing catalog gate MAY carry. */
+export interface GateErrorDetail {
+  instance?: unknown;
+  component?: string;
+  id?: string;
+  errors?: GateErrorDetailError[];
+}
+
+/** A failing gate as reported by dspack-emit's ValidationReport (0.6 or 0.7). */
+export interface CatalogGateLike {
+  name?: string;
+  errors?: string[];
+  /** dspack-emit >= 0.7; unknown here so 0.6 callers never depend on it. */
+  errorDetails?: unknown;
+}
+
+/** How many error strings a finding MESSAGE shows before deferring to evidence. */
+const MESSAGE_ERROR_CAP = 3;
+
+/** Mirrors dspack-emit's own error wording: `${instancePath || "(root)"} ${message}`. */
+function detailErrorString(e: GateErrorDetailError): string {
+  const path = typeof e?.instancePath === "string" && e.instancePath ? e.instancePath : "(root)";
+  return `${path} ${typeof e?.message === "string" ? e.message : ""}`.trim();
+}
+
+/** First `MESSAGE_ERROR_CAP` errors joined, honest about what was elided. */
+function cappedMessage(errors: string[], fallback: string): string {
+  if (errors.length === 0) return fallback;
+  const shown = errors.slice(0, MESSAGE_ERROR_CAP).join("; ");
+  const hidden = errors.length - MESSAGE_ERROR_CAP;
+  return hidden > 0 ? `${shown} (+${hidden} more)` : shown;
+}
+
+const withEvidence = (f: ComposerFinding, evidence: string[]): ComposerFinding =>
+  evidence.length > 0 ? { ...f, evidence } : f;
+
+/**
+ * Findings for ONE failing catalog gate.
+ *
+ * With structured `errorDetails` (feature-detected): one finding PER
+ * component instance, targeted `Component#id` so the UI can deep-link the
+ * fix location — never a joined wall of text under a catalog-version target.
+ * Without them: the single finding keeps `fallbackTarget`, its message is
+ * capped the same way, and EVERY raw string the gate reported stays on
+ * `evidence`. Errors are layered, never dropped.
+ */
+export function catalogGateFindings(
+  gateId: FindingGate,
+  gate: CatalogGateLike,
+  fallbackTarget: string,
+): ComposerFinding[] {
+  const code = gate.name ?? "";
+  const details = Array.isArray(gate.errorDetails) ? (gate.errorDetails as GateErrorDetail[]) : [];
+  if (details.length > 0) {
+    return details.map((detail) => {
+      const target =
+        typeof detail?.component === "string" && typeof detail?.id === "string"
+          ? `${detail.component}#${detail.id}`
+          : fallbackTarget;
+      const evidence = (detail?.errors ?? []).map(detailErrorString);
+      return withEvidence(finding(gateId, code, "error", target, cappedMessage(evidence, code || "gate failed")), evidence);
+    });
+  }
+  const evidence = gate.errors ?? [];
+  return [withEvidence(finding(gateId, code, "error", fallbackTarget, cappedMessage(evidence, code || "gate failed")), evidence)];
 }
 
 export function countBySeverity(findings: ComposerFinding[]): Record<FindingSeverity, number> {

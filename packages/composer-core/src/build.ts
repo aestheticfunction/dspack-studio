@@ -69,6 +69,12 @@ export interface TurnAttempt {
   gates: TurnGate[];
   /** The repair message the linter sent AFTER this attempt, verbatim. */
   repair?: string;
+  /**
+   * dspack-gen >= 0.4: the attempt was judged unrepresentable under the
+   * catalog (`{ pass: false, refusal }`). Feature-detected from the audit
+   * report during reconciliation; absent on 0.3 reports.
+   */
+  representability?: { pass?: boolean; refusal?: string };
 }
 
 export interface BuildTurnProgress {
@@ -125,6 +131,11 @@ export function foldBuildEvents(events: Array<Record<string, any>>): BuildTurnPr
               // reconciliation never LOSES detail either direction.
               gates: reportedGates.length > 0 ? reportedGates : (streamed?.gates ?? []),
               ...(streamed?.repair ? { repair: streamed.repair } : {}),
+              // dspack-gen >= 0.4 (feature-detected): carried so the Build
+              // view can label representability repairs and refusals.
+              ...(attempt.representability && typeof attempt.representability === "object"
+                ? { representability: attempt.representability as TurnAttempt["representability"] }
+                : {}),
             };
           });
         }
@@ -207,6 +218,45 @@ const GATE_LABEL: Record<string, string> = {
   S3: "S3 governance",
 };
 
+/**
+ * Catalog-gate (A-gate) reasons from the emit validations, deduped by
+ * (gate, code, message). The emitter runs BOTH A2UI versions over the same
+ * surface, so most failures arrive twice with identical wording — one field
+ * case rendered ~100 rows for ~25 distinct facts. A reason seen under both
+ * versions renders ONCE, targeted "both A2UI versions"; identical-message
+ * repetition within one version collapses the same way. Nothing is lost:
+ * the full audit report stays on the turn for inspection.
+ */
+function emitGateReasons(emitted: Record<string, any> | undefined): BuildFailureReason[] {
+  const merged = new Map<string, { reason: BuildFailureReason; versions: Set<string> }>();
+  for (const validation of (emitted?.validations ?? []) as Array<Record<string, any>>) {
+    const version = validation.a2uiVersion ? String(validation.a2uiVersion) : "";
+    for (const gate of (validation.gates ?? []) as Array<Record<string, any>>) {
+      if (gate.pass) continue;
+      for (const error of (gate.errors ?? ["gate failed"]) as string[]) {
+        const key = `${gate.gate} ${gate.name ?? ""} ${error}`;
+        const entry = merged.get(key);
+        if (entry) {
+          if (version) entry.versions.add(version);
+          continue;
+        }
+        merged.set(key, {
+          reason: { gate: String(gate.gate), code: String(gate.name ?? ""), message: error },
+          versions: new Set(version ? [version] : []),
+        });
+      }
+    }
+  }
+  return [...merged.values()].map(({ reason, versions }) => ({
+    ...reason,
+    ...(versions.size > 1
+      ? { target: "both A2UI versions" }
+      : versions.size === 1
+        ? { target: `a2ui@${[...versions][0]}` }
+        : {}),
+  }));
+}
+
 /** Reasons from one attempt's gates and findings, in gate order. */
 function attemptReasons(attempt: Record<string, any> | undefined): BuildFailureReason[] {
   if (!attempt) return [];
@@ -271,28 +321,51 @@ export function buildFailure(progress: BuildTurnProgress): BuildFailure | null {
         reasons: [{ gate: "emit", message: String(emitted.refusal) }],
       };
     }
-    const reasons: BuildFailureReason[] = [];
-    for (const validation of (emitted?.validations ?? []) as Array<Record<string, any>>) {
-      for (const gate of (validation.gates ?? []) as Array<Record<string, any>>) {
-        if (gate.pass) continue;
-        for (const error of (gate.errors ?? ["gate failed"]) as string[]) {
-          reasons.push({ gate: String(gate.gate), code: String(gate.name ?? ""), target: validation.a2uiVersion ? `a2ui@${validation.a2uiVersion}` : undefined, message: error });
-        }
+    const aReasons = emitGateReasons(emitted);
+    if (aReasons.length > 0) {
+      // S-first layering: when the last attempt's own S-gate reasons exist,
+      // they already explain the failure — the A-gate wall collapses to one
+      // honest summary and the Checks view carries the per-instance detail.
+      const sReasons = attemptReasons(last);
+      if (sReasons.length > 0) {
+        const n = aReasons.length;
+        return {
+          kind: "emit-gate",
+          headline: "The surface violates the contract and failed the catalog gates.",
+          stoppedAt: `emit · ${aReasons[0].gate}`,
+          reasons: [
+            ...sReasons,
+            { gate: "emit", message: `${n} catalog-gate ${n === 1 ? "finding" : "findings"} — see Checks for detail` },
+          ],
+        };
       }
-    }
-    if (reasons.length > 0) {
       return {
         kind: "emit-gate",
         headline: "The surface passed governance but failed the catalog gates.",
-        stoppedAt: `emit · ${reasons[0].gate}`,
-        reasons,
+        stoppedAt: `emit · ${aReasons[0].gate}`,
+        reasons: aReasons,
       };
     }
   }
 
   const reasons = attemptReasons(last);
+  // dspack-gen >= 0.4 (feature-detected): a representability refusal is the
+  // structured WHY for runs that exhausted repair without any S-gate error —
+  // previously reported as "unknown, without structured evidence".
+  const representability = last?.representability as Record<string, any> | undefined;
+  const refused = progress.outcome === "failed-lint-exhausted" && representability && typeof representability === "object" && representability.pass === false;
+  if (refused) {
+    reasons.push({
+      code: "representability",
+      message:
+        typeof representability.refusal === "string" && representability.refusal
+          ? representability.refusal
+          : "the attempt was refused as unrepresentable, without a message",
+    });
+  }
   const failedGate = ((last?.gates ?? []) as TurnGate[]).find((g) => g.status === "FAIL");
-  const stoppedAt = `attempt ${(last?.index ?? 0) + 1} · ${failedGate ? GATE_LABEL[failedGate.gate] ?? failedGate.gate : "generation"}`;
+  const stoppedAtStage = failedGate ? GATE_LABEL[failedGate.gate] ?? failedGate.gate : refused ? "representability" : "generation";
+  const stoppedAt = `attempt ${(last?.index ?? 0) + 1} · ${stoppedAtStage}`;
   const exhausted = progress.outcome === "failed-lint-exhausted" && attempts.length > 1;
   if (reasons.length === 0) {
     return {

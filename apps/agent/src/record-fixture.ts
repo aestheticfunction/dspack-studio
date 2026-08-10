@@ -14,6 +14,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createPipelineEventMapper, type PipelineEvent } from "@dspack-studio/agui-bridge";
+import { catalogGateFindings, type FindingGate } from "@dspack-studio/composer-core";
 import { createRecorder } from "@dspack-studio/replay";
 import { governedRun } from "./pipeline.js";
 
@@ -67,7 +68,14 @@ if (result.exitCode !== 0) {
   if (emitted?.refusal) console.error(`emitter refusal: ${emitted.refusal}`);
   for (const v of emitted?.validations ?? []) {
     for (const g of v.gates ?? []) {
-      if (g.pass === false) console.error(`gate ${g.gate} (${v.a2uiVersion}): ${(g.errors ?? []).join("; ")}`);
+      if (g.pass === false) {
+        // Same per-instance construction as validation.ts / project.ts: one
+        // line per invalid instance (Component#id, capped message) when the
+        // emitter reports errorDetails; the joined-but-capped line otherwise.
+        for (const f of catalogGateFindings((g.gate ?? "A3") as FindingGate, g, `a2ui@${v.a2uiVersion}`)) {
+          console.error(`gate ${g.gate} (${v.a2uiVersion}) ${f.target}: ${f.message}`);
+        }
+      }
     }
   }
   const lastAttempt = (result.report as any).attempts?.at(-1);
