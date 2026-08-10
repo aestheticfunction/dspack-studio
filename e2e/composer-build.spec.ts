@@ -376,3 +376,67 @@ test("two consecutive refinements each use the immediately prior surface, non-va
   // All three remain in the thread for comparison and audit.
   await expect(page.getByTestId("build-canvas-1")).toBeVisible();
 });
+
+test("with the agent up, a chosen Hosted survives and stays selectable alongside a local model (adoption follow-up #1)", async ({ page }) => {
+  // Regression: once the agent became reachable, buildModels was set to the
+  // AGENT's list ALONE, so "hosted-ai" — advertised only by the deployed ORIGIN
+  // via /api/models — dropped out. Settings read "Unavailable", Build's provider
+  // switch lost it, and the auto-select effect then clobbered a deliberately
+  // chosen Hosted down to scripted. The fix UNIONS the origin's answer with the
+  // agent's (regardless of agent state) and refuses to correct against the
+  // pre-fetch placeholder. The static export ships no /api/models route, so
+  // stand in for a deployed origin that offers hosted; seed a configured local
+  // provider so a local model is present without a live Ollama (the "configured
+  // local providers" path), with Hosted as the deliberately-active choice.
+  await page.route("**/api/models", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ models: ["scripted", "hosted-ai"] }),
+    }),
+  );
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "composer.providers.v1",
+      JSON.stringify({
+        ollama: { baseUrl: "http://localhost:11434", model: "llama3.1" },
+        openai: null,
+        active: "hosted-ai",
+      }),
+    );
+  });
+
+  // A hosted/reference project (mode = demo) with the local agent genuinely
+  // running beside it — the exact "hosted demo, agent detected" situation.
+  await page.goto("/");
+  await page.getByTestId("nav-projects").click();
+  await page.getByTestId("new-project-name").fill("Provider coexistence");
+  await page.getByTestId("new-source-shadcn").click();
+  await page.getByTestId("new-project-create").click();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+
+  // Settings: the agent is connected AND Hosted still reads Available, remains
+  // the active choice (never clobbered), and its control is live.
+  await page.getByTestId("nav-settings").click();
+  await expect(page.getByTestId("agent-status")).toContainText("Agent connected");
+  await expect(page.getByTestId("hosted-availability")).toHaveText("Available");
+  const useHosted = page.getByTestId("provider-use-hosted");
+  await expect(useHosted).toBeEnabled();
+  await expect(useHosted).toHaveText("In use"); // the deliberate Hosted choice survived the agent coming up
+  await expect(page.getByTestId("active-provider")).toContainText("Hosted");
+
+  // Build: both Hosted and the configured local model are offered in the one
+  // provider switch, and each actually selects.
+  await page.getByTestId("nav-build").click();
+  const values = await page
+    .locator('[data-testid="build-model"]')
+    .evaluate((sel) => Array.from((sel as HTMLSelectElement).options).map((o) => o.value));
+  expect(values).toContain("hosted-ai");
+  expect(values).toContain("ollama:llama3.1");
+  expect(values).toContain("scripted");
+
+  await page.getByTestId("build-model").selectOption("ollama:llama3.1");
+  await expect(page.getByTestId("build-model")).toHaveValue("ollama:llama3.1");
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await expect(page.getByTestId("build-model")).toHaveValue("hosted-ai");
+});
