@@ -103,8 +103,11 @@ A scenario is data plus (optionally) a deterministic responder — no UI code:
 
 - **Live tab says the agent is offline** — start it: `pnpm --filter agent dev`.
 - **`next dev` crashes with `localStorage.getItem is not a function`** —
-  Node ≥ 25 ships a stub Web Storage global; the dev script already sets
-  `--localstorage-file`. Don't remove it.
+  Node ≥ 25 ships a stub Web Storage global; the dev launcher
+  (`apps/*/scripts/next-dev.mjs`) adds `--localstorage-file` automatically
+  wherever the running Node supports it. Don't bypass the launcher or inline
+  the flag in NODE_OPTIONS: Node < 22.4 rejects it with exit 9 before Next
+  even starts (that regression is unit-guarded).
 - **Blank page / `Cannot find module './NNN.js'` in dev** — a `next build`
   ran while `next dev` was up and corrupted `.next`. Stop dev, `rm -rf
   apps/web/.next`, restart.
