@@ -11,7 +11,7 @@
     "typecheck": "node scripts/demo-assets.mjs && tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@aestheticfunction/dspack-gen": "^0.3.2",
+    "@aestheticfunction/dspack-gen": "^0.4.0",
     "@aestheticfunction/dspack-spec": "^0.4.4",
     "@astryxdesign/core": "0.1.4",
     "@astryxdesign/theme-neutral": "0.1.4",
