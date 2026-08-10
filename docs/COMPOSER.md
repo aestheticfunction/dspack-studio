@@ -1,193 +1,136 @@
-# The catalog composer (vertical slice)
+# Composer — architecture
 
-The composer turns the studio's pipeline into an authoring experience for
-**user projects**: connect a React component library, discover its components
-(dspack-export), enrich the contract (props + prose + governance, tracked by
-the x-bootstrap ownership ledger), map it through a **JSON profile**
-(dspack-emit profile-as-data), emit a project-specific A2UI catalog, preview
-it through the wireframe or native shadcn registries, validate every gate,
-and run governed generation against the project-scoped vocabulary.
+The product story and setup live in the [README](../README.md); this document
+is the internals companion: what runs where, which surfaces exist, and where
+each guarantee is enforced. Verified against the implementation on `main`.
 
-Status: Phase 1 vertical slice. The full architecture proposal and phased
-roadmap live in the planning document that produced this slice; deltas from
-that plan are recorded below.
+Composer turns a plain goal into a governed interface built from a design
+system's approved components only. The AI proposes; the deterministic pipeline
+decides.
 
-Hosted at **https://composer.aesthetic-function.com** (its own zero-binding
-Worker; see [deployment.md](./deployment.md#the-composer-second-worker-same-posture)).
-
-## Run it
+## The one pipeline, three proposal seams
 
 ```
-pnpm --filter agent dev        # the local agent (BYO machine, port 8787)
-pnpm --filter composer dev     # the composer app (port 3001)
+goal → governed context inference → PROPOSAL → S1/S2/S3 → bounded repair
+     → dspack-emit → A2UI messages (A1/A2/A3) → registry render → accept → export
 ```
 
-The hosted/offline posture mirrors the exhibit: without the agent the app
-serves the pre-emitted **demo project** (`apps/composer/demo-project` — a
-real non-canonical 5-component React library, "Acme UI") and states plainly
-which actions need the agent. Nothing is simulated.
+Only the PROPOSAL step varies:
 
-Connect the demo project through the agent to exercise the full loop:
-paste the absolute path to `apps/composer/demo-project` in Project → Connect.
-
-## What lives where (the three seams, unchanged)
-
-| Seam | Owner | Composer's use |
+| Provider | Where the model call happens | Where the gates run |
 |---|---|---|
-| Discovery | `dspack-export` `FrameworkAdapter` | agent shells the CLI; refusals verbatim |
-| Mapping | `dspack-emit` `Profile` (now loadable as JSON — `loadProfile`, `profile.v1.schema.json`, dspack-emit PR #24) | the Mapper edits `*.profile.json`; `transformFromJson` is the live judge |
-| Rendering | `a2ui-ingest` `Registry` | wireframe (universal, catalog-derived) or native `shadcnRegistry` |
+| **Hosted AI** | the composer Worker → AI Gateway → managed Claude Haiku | the browser |
+| **Local AI** (Ollama / OpenAI-compatible) | the local agent → your endpoint | the browser (browser projects) or the agent (repository projects) |
+| **Scripted** | nothing — replays the intent's latest worked example behind one deliberately wrong attempt | the browser |
 
-New studio pieces, all thin:
+`apps/composer/app/hosted-build.ts` runs `runPipeline` from
+`@aestheticfunction/dspack-gen/browser` in the page and calls the Worker only
+for the model turn. Goal inference uses the same gateway request path
+(`planning.ts` → `buildPlanRequest` → the gateway), falling back to
+`planDeterministic` when no hosted model is available — inference degrades,
+it never blocks a build.
 
-- `packages/composer-core` — project manifest (zod), x-bootstrap ledger
-  reading on WebCrypto (hash-pinned to dspack-export output), normalized
-  findings, adapter manifests (data only; registries bound by id in the app).
-- `packages/wireframe-renderers` — `wireframeRegistryFor(catalog)`: every
-  catalog name renders as an honest labeled wireframe; zero user code
-  executes. The permanent fallback for targets with no native renderer
-  (the Vue door).
-- `apps/agent` `/project/*` routes — connect / discover / emit / validate /
-  save (ledger-preserving) / run (AG-UI SSE generation under the project
-  contract + profile). dspack-export is imported/spawned **only** here
-  (import-isolation rule).
-- `apps/composer` — six views (Project, Inventory, Component, Mapper,
-  Preview, Validate) over the project files. The exhibit (apps/web) is
-  untouched.
+## Where a project's vocabulary comes from
 
-## Evidence (spike + slice verification, 2026-08-03)
+A project is identity + a **source**, and the working contract is always
+`base + the project's authored delta`:
 
-- Grammar-budget thesis: full-shadcn depth-6 generation schema 70,940 B
-  (the config that failed 72/72 hosted structured-output runs) vs the
-  project-scoped acme schema **16,679 B (23.5%)**; depth 4: 11,037 B.
-- Live constrained generation: `ollama:gemma4:e4b` (0/72 end-to-end passes
-  on the full shadcn vocabulary in the recorded evals) **passes first-attempt**
-  under the acme contract — S1/S2/S3 green, JSON profile emission, A1–A3
-  green on both A2UI versions — both via `runPipeline` directly and through
-  `POST /project/run`.
-- The real `shadcnRegistry` natively covers all six acme catalog names
-  (registry-conventional profile naming); catalog-derived zod schemas accept
-  the verbatim emitted instances and reject unknown props/enums.
-- Anthropic grammar-ceiling reproduction remains open (no API key in the
-  build environment); byte-size delta + live local pass stand as evidence.
+| Source | Base vocabulary | Persistence |
+|---|---|---|
+| `reference` | a packaged design system (`app/demo-data.ts`: shadcn/ui v3, Astryx) | delta in `localStorage` |
+| `imported` | the contract/profile that travelled in a `.composerproject.json` | vocabulary + delta in `localStorage` |
+| `agent` | the connected repository's files on disk | the repository itself |
 
-## Known temporary state
+**The canonical references are never mutated.** Accepted builds and authored
+scenarios land in a per-project delta (`composer.project.examples.<id>`),
+merged over the base on open (`mergeExamples` — replace-by-id else append, so
+the owner's latest work is what scripted replay and the few-shot corpus
+reach). Provenance is by base membership (`referenceExampleIds`), never by id
+prefix, which is what lets Preview and Scenarios separate *yours* from the
+reference corpus honestly.
 
-- **pnpm override**: `@aestheticfunction/dspack-emit` points at the local
-  `feat/profile-as-data` build (dspack-emit PR #24). Replace with `^0.4.0`
-  from npm at release; CI on this branch is red until then by construction
-  (the established paired-PR protocol).
-- The bridge's hand-mirrored `PipelineEvent` union stays until dspack-gen
-  PR #48 releases (`pipeline-types.ts` retirement is mechanical after).
-- Demo-mode in-browser emit (fidelity rail without the agent) waits on
-  dspack-emit's browser-safe `/core` (meta-schemas as imports, not
-  `node:fs`) — planned Phase 0 item ⑤, not required for the slice.
+Browser storage keys: `composer.projects.v1` (index), `composer.lastProject.v1`,
+`composer.project.vocab.<id>`, `composer.project.examples.<id>`,
+`composer.providers.v1` (endpoints + chosen model — **never a credential**),
+`composer.appearance.v1`.
 
-## Plan deltas (what implementation taught us)
+**Portability.** Export writes `<name>.composerproject.json`: name,
+description, `previewRegistry`, contract, profile — including accepted
+surfaces, and excluding ids, machine paths, and credentials by construction
+(`app/project-portability.ts`). Import validates fail-closed (version gate,
+contract has components, the profile must load through the real emitter
+loader) before a project is created.
 
-1. **Prop enrichment is required, not polish**: dspack-export extraction is
-   variant-centric (the canonical fixture's `input` has zero props; acme's
-   `label`/`steps` were not extracted). The Component view therefore authors
-   props, and contract-`required` props flow into the generation grammar.
-2. **Registry-conventional catalog naming** (Button/Card/Badge/TextField +
-   variant/size/label) is the recommended profile default — it bought native
-   shadcn preview for the whole foreign catalog with zero registry changes.
-3. **Casualty refusals cite their authored reason** end to end (dspack-emit
-   change, surfaced in the agent findings and the Preview's refused chip).
-4. The composer app's `test` uses `--passWithNoTests` (contracts precedent);
-   its logic lives in tested packages and the agent.
+## Accepting work
 
-## Phase 2: authoring depth (2026-08-03)
+Accept runs the same fail-closed gate in both homes, so a browser project
+owns its surfaces without an agent:
 
-- **Validation is whole, everywhere**: the dspack harness is importable
-  (dspack#34), so document validation, S1–S3, and the full emit loop
-  (browser-safe dspack-emit, dspack-emit#25) run IN the browser with the
-  CLI's wording — the "requires the local agent" validation caveat is
-  retired. Every contract/profile edit re-emits live in both modes.
-- **Governance forms**: intents and the four rule types as pure form
-  projections; the rationale gates saving ("write the rationale first");
-  every save re-lints all worked examples (the governance-impact rail).
-- **Scenario editor**: dsurface trees built through forms constrained to
-  the contract's vocabulary, live S1–S3 + live wireframe preview per edit,
-  save-gated on clean gates; a saved scenario IS a contract worked example.
-- **Rediscovery**: /project/rediscover merges fresh extraction at the
-  ledger's granularity (dspack-export#12 regenerateSections) — tool-owned
-  refreshes, human-owned + governance preserved, new components added,
-  refusals verbatim.
-- **Project home**: the derived "What remains" checklist (described /
-  props / mapped / intents / rules / examples / gates), each row linking to
-  the view where the work happens.
+- **browser** — `state.tsx` re-lints with `lintOneSurface` (S1–S3 over the
+  project contract), requires an authored intent, mints a collision-free
+  `ex.chat-N` against the merged set, never overwrites, then saves through
+  `saveContract` (which persists the delta).
+- **repository** — the agent's `/project/save-example` re-lints server-side
+  and writes into the contract on disk, ledger preserved.
 
-Temporary state: pnpm overrides point dspack-spec/emit/export at the three
-Phase 2 upstream branches until 0.4.2 / 0.4.1 / 0.4.0 release (the same
-paired-PR protocol Phase 1 used).
+## The local agent
 
-## Acknowledged casualties (2026-08-04, #30)
+`apps/agent` is the bridge to your machine. It holds endpoints and
+credentials; the browser never does.
 
-A component the profile author declared a **casualty with a written reason**
-is an owner decision, not unresolved work. `composer-core`'s
-`classifySurfaceRefusal` decides this from structured data only — the
-surface's referenced component ids, minus the profile's mapped plans, minus
-the contract's declared sub-components; acknowledged only when what remains
-is non-empty and *every* id in it is a declared casualty carrying a
-non-empty reason. Message text is never parsed.
+| Route | Purpose |
+|---|---|
+| `GET /` | health + `canPickFolder` |
+| `GET /models` | model refs this machine can run (`scripted` + discovered Ollama) |
+| `POST /provider/test` | connection test + model discovery for a configured provider |
+| `POST /pick-folder` | native OS folder picker (macOS `osascript`, Linux `zenity`) |
+| `POST /generate` | governed run over an **inline** contract + profile — how a browser project uses a local model |
+| `POST /project/connect\|discover\|rediscover\|emit\|validate\|save\|save-example\|run` | repository-project operations over files on disk |
+| `POST /fork`, `POST /action` | Studio interactive scenarios (not Composer) |
 
-**Scope boundary.** The classification applies to that one surface-level
-emission refusal and nothing else. Schema, mapping, coverage, lint,
-generation, and any other finding — including findings targeting the *same*
-surface — remain unclassified and keep counting as unresolved. A surface
-carrying both an acknowledged casualty and a genuine failure leaves the
-project failed and reports both categories
-(`2 error findings · 1 acknowledged casualty`). An acknowledged casualty can
-never make a failing project look green.
+Provider configuration arrives per request (`{kind, baseUrl, apiKey?, model}`)
+and is never persisted by the agent; `OLLAMA_URL` remains a default, and
+`AGENT_ALLOWED_ORIGINS` (default `*`) bounds who may call it.
 
-The finding itself is never altered: severity, code, target, and the verbatim
-refusal (including the authored reason) all survive, and Validate marks it
-`ACKNOWLEDGED` rather than hiding it.
+## The hosted Worker
 
-Known emitter limitation: `EmitSurfaceError` exposes only `message` and
-`path`, and `path` addresses the emitter's *normalized* emission tree — in
-the shipped demo it resolves to the compound child, not to the casualty — so
-it cannot identify the component responsible for a refusal. The profile's
-authored declaration is therefore the only sound provenance today; see the
-upstream follow-up for a structured cause.
+Repo-root `wrangler.jsonc` → `dspack-studio-composer`, static assets from
+`apps/composer/out` with `run_worker_first` scoped to `/api/*`. Exactly two
+routes: `GET /api/models` (capability probe — reports `hosted-ai` only when
+the AI Gateway binding and kill switch allow it) and `POST /api/propose` (the
+model turn). No key ever reaches the client bundle. See
+[deployment.md](deployment.md).
 
-## Phase 3: Build — chat-driven creation (2026-08-04)
+## Rendering
 
-The product model, in order: **Build** (chat-driven creation from approved
-components) · **Catalog** (discovery, mapping, governance, ownership,
-validation — the setup layer) · **Component Workshop** (a later, separate
-human-reviewed workflow for components that do not exist yet). Building
-never generates React component implementations; an ask the vocabulary
-cannot express is reported as a **vocabulary gap**, the Workshop hook.
+Native renderer where one exists, **universal wireframe fallback where none
+does** — composed per component in `app/registries.ts`, which merges the
+wireframe registry under the native one (native wins name-by-name) behind a
+per-catalog identity cache, because `A2uiCanvas` memoizes catalog ingestion on
+registry identity. `nativeRegistryFor` + `wireframeFallbackNames` keep the
+honest pre-merge gap reportable, so Preview can say how many components are
+standing in without the raw `[unimplemented: …]` placeholder ever reaching a
+user. Layer boundaries: [renderer-abstraction.md](renderer-abstraction.md).
 
-The slice: describe an interface → dspack-gen generates a governed dsurface
-under the project-scoped contract (`/project/run`, AG-UI SSE) → S1–S3 +
-bounded repair + emit stream visibly per turn → the surface renders through
-the trusted registry (wireframe/shadcn) → **Refine** seeds the prior
-surface + the new instruction (dspack-gen 0.2.0 `RunOptions.conversation`)
-and regenerates a COMPLETE surface through every gate, prior turns kept in
-the thread → **Accept** saves the result as a contract worked example via
-the server-side fail-closed `/project/save-example` (S1–S3 re-linted on the
-agent; unknown intents refused; ledger preserved) — and immediately joins
-that intent's few-shot corpus, so accepted results compound generation.
+## Where the guarantees live
 
-Build-first IA: Build is the first nav item, the default view for a ready
-connected project, and visibly disabled with the exact remaining-setup
-reason otherwise ("Set up your design system, then build with it"; the
-project home gains **Start building** when ready — readiness =
-contract + profile + ≥1 intent + every component mapped-or-casualty +
-gates green + ≥1 worked example, `composer-core buildReadiness`).
+| Guarantee | Enforced in |
+|---|---|
+| Generation uses approved components only | S2, `dspack-gen` (browser or agent) |
+| Design-system rules hold | S3, the contract's typed rules |
+| Emission is representable or refused | `dspack-emit` gates A1/A2/A3 + declared casualties |
+| Accepted work is gate-green | `lintOneSurface` (browser) / `/project/save-example` (agent) |
+| The reference is never mutated | base+delta merge (`app/projects.ts`) |
+| No credential in the browser | `app/providers.ts` writes endpoints and model only |
 
-Providers: `scripted` is the always-available zero-model twin — a fresh run
-plays a contract-derived S2 violation then the intent's LATEST worked
-example (the governed fail→repair→pass loop, deterministically), and a
-refinement returns the prior surface with a deterministic textual change
-ONLY when the seed is present (the non-vacuous-refinement proof). Local
-Ollama is the first real provider (evidence: `gemma4:e4b` first-attempt
-pass over the scoped demo contract, and a seeded refinement that applied
-the requested changes — the same model that scored 0/72 on the full shadcn
-vocabulary). Anthropic keeps working through the agent's environment; no
-browser keys, no hosted AI, no new bindings. What leaves the machine, per
-provider, is stated in the Build view; project source never does.
+## Verified by test
 
+`apps/composer/app/registries.test.ts` (fallback composition + identity),
+`packages/composer-core` unit tests (manifest, ledger, planning, build fold),
+`e2e/composer-prod-smoke.spec.ts` (first run, ownership round-trip, Examples,
+portability, lifecycle, hygiene), `e2e/composer-agent.spec.ts` +
+`e2e/composer-build.spec.ts` (repository projects against real files).
+
+Historical record — how this was built, phase by phase, with the measurements
+that drove each decision — is in
+[IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md).
