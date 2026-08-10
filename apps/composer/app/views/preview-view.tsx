@@ -2,15 +2,16 @@
 
 /**
  * Preview: the emitted catalog rendered through a registry. Wireframe is the
- * universal honest fallback (visuals derived from the catalog itself, zero
- * user code); shadcn is the native path where names align. Coverage comes
- * from planRegistry — partial coverage is a first-class state, not an error.
+ * universal honest fallback — per COMPONENT inside a native surface (a name
+ * with no native visual draws as wireframe, never as raw placeholder text),
+ * and as the whole-registry inspection mode. Partial native coverage is a
+ * first-class state, stated plainly, not an error.
  */
 import { useMemo, useState } from "react";
-import { A2uiCanvas, planRegistry, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
+import { A2uiCanvas, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
-import { registryFor, canvasScopeFor, isNativeRegistry, type PreviewRegistryId } from "../registries";
+import { registryFor, canvasScopeFor, isNativeRegistry, wireframeFallbackNames, type PreviewRegistryId } from "../registries";
 
 type RegistryId = "wireframe" | PreviewRegistryId;
 
@@ -63,10 +64,10 @@ export function PreviewView() {
     return registryFor(activeRegistryId, catalog);
   }, [catalog, activeRegistryId]);
 
-  const coverage = useMemo(() => {
-    if (!catalog || !registry) return null;
-    return planRegistry(Object.keys(catalog.components ?? {}), registry);
-  }, [catalog, registry]);
+  // Honest coverage comes from the PRE-merge native registry: the rendered
+  // registry covers every name (wireframe fills the gaps), so the caption's
+  // job is to say which components are wireframe stand-ins, not to alarm.
+  const fallbackNames = useMemo(() => wireframeFallbackNames(activeRegistryId, catalog), [activeRegistryId, catalog]);
 
   if (!catalog || !registry) {
     return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No emitted catalog yet — run Emit from the Validate view (or load the demo).</p>;
@@ -92,10 +93,18 @@ export function PreviewView() {
             canvas: {canvasMode}
           </button>
         )}
-        <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-          {coverage && coverage.unimplemented.length > 0
-            ? `${coverage.unimplemented.length} of ${Object.keys(catalog.components).length} names unimplemented in this registry: ${coverage.unimplemented.join(", ")}`
-            : "full native coverage"}
+        <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="registry-coverage">
+          {!isNativeRegistry(activeRegistryId) ? (
+            "wireframe — covers every component"
+          ) : fallbackNames.length === 0 ? (
+            "full native coverage"
+          ) : (
+            <>
+              {fallbackNames.length} of {Object.keys(catalog.components ?? {}).length} components render as wireframe (no native{" "}
+              {activeRegistryId} visual yet)
+              <span title={fallbackNames.join(", ")}> — hover for the list</span>
+            </>
+          )}
         </span>
         <button
           className="st-btn st-btn--dashed"
