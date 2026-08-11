@@ -17,6 +17,7 @@
  * into the local-agent workflow.
  */
 import { loadProfile } from "@aestheticfunction/dspack-emit";
+import { parseFlow, type Flow } from "./flows";
 import type { PreviewRegistry, ProjectVocab } from "./projects";
 
 export const PROJECT_EXPORT_VERSION = "0.1";
@@ -29,9 +30,19 @@ export interface ProjectExport {
   previewRegistry: PreviewRegistry;
   contract: Record<string, unknown>;
   profile: Record<string, unknown>;
+  /** The project's flows (P4) — ADDITIVE on version 0.1 (F6): current builds
+   *  pass-but-drop unknown top-level fields, so a flows-bearing file still
+   *  imports cleanly (minus flows) into stale builds. Absent when empty. */
+  flows?: Flow[];
 }
 
-export function buildProjectExport(input: { name: string; description: string; vocab: ProjectVocab; exportedAt: string }): ProjectExport {
+export function buildProjectExport(input: {
+  name: string;
+  description: string;
+  vocab: ProjectVocab;
+  exportedAt: string;
+  flows?: Flow[];
+}): ProjectExport {
   return {
     composerProjectExport: PROJECT_EXPORT_VERSION,
     exportedAt: input.exportedAt,
@@ -40,6 +51,7 @@ export function buildProjectExport(input: { name: string; description: string; v
     previewRegistry: input.vocab.previewRegistry,
     contract: input.vocab.contract,
     profile: input.vocab.profile,
+    ...(input.flows && input.flows.length > 0 ? { flows: input.flows } : {}),
   };
 }
 
@@ -62,7 +74,7 @@ export function downloadProjectExport(exp: ProjectExport): void {
 }
 
 export type ImportResult =
-  | { ok: true; name: string; description: string; vocab: ProjectVocab }
+  | { ok: true; name: string; description: string; vocab: ProjectVocab; flows: Flow[] }
   | { ok: false; error: string };
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -103,6 +115,24 @@ export function parseProjectImport(text: string): ImportResult {
   } catch (e) {
     return { ok: false, error: `The mapping profile is invalid: ${e instanceof Error ? e.message : String(e)}` };
   }
+  // Flows (P4): absent means none; PRESENT but malformed refuses the import —
+  // fail-closed like the profile gate, never a silent drop of authored work.
+  const flows: Flow[] = [];
+  if (raw.flows !== undefined) {
+    if (!Array.isArray(raw.flows)) {
+      return { ok: false, error: "The file's flows field is malformed (not a list) — re-export the project and try again." };
+    }
+    for (const entry of raw.flows) {
+      const flow = parseFlow(entry);
+      if (!flow) {
+        return {
+          ok: false,
+          error: "The file's flows are malformed (a flow needs an id, a name, and steps with id/title/surfaceId) — re-export the project and try again.",
+        };
+      }
+      flows.push(flow);
+    }
+  }
   return {
     ok: true,
     name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "Imported project",
@@ -112,5 +142,6 @@ export function parseProjectImport(text: string): ImportResult {
       profile: profile as Record<string, unknown>,
       previewRegistry: normalizeRegistry(raw.previewRegistry),
     },
+    flows,
   };
 }

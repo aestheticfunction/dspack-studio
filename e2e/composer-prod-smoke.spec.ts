@@ -304,8 +304,13 @@ test("flows: create, walk, advance, persist, and round-trip through export/impor
 
   // advanceOn (F2): clicking the surface's OWN emitted action advances the
   // step — view-state only — and the action log keeps receiving everything.
+  // The record-detail surface's first Button dispatches download_invoice; it
+  // carries its label as a CHILD Text node, which the shadcn ButtonRender
+  // does not compose into an accessible name yet (an existing renderer-parity
+  // gap, not a flows concern), so the click targets the first enabled canvas
+  // button and the advance + action log prove which action fired.
   await page.getByTestId("registry-shadcn").click();
-  await page.locator("[data-project-canvas]").getByRole("button", { name: "Download invoice" }).click();
+  await page.locator("[data-project-canvas] button:not([disabled])").first().click();
   await expect(page.getByTestId("flow-step-step.delete-the-account")).toHaveClass(/st-btn--active/);
   await expect(page.getByTestId("action-log")).toContainText("download_invoice");
 

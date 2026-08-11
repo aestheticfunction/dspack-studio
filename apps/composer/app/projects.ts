@@ -14,6 +14,7 @@
  * contract per row. Reference-backed projects may persist a small authored
  * delta (accepted example ids) so a project remembers its own work.
  */
+import { loadFlows, removeFlows, saveFlows } from "./flows";
 
 /** Where a project's governed vocabulary comes from. */
 export type ProjectSource =
@@ -314,6 +315,10 @@ export function duplicateProject(id: string): StoredProject | null {
   // every source kind (agent projects have none; copying no-ops).
   const delta = loadExamplesDelta(original.id);
   if (delta.length > 0) saveExamplesDelta(copy.id, delta);
+  // Flows are equally the project's own work (references over its surfaces):
+  // copied unconditionally when present, exactly like the examples delta.
+  const flows = loadFlows(original.id);
+  if (flows.length > 0) saveFlows(copy.id, flows);
   return copy;
 }
 
@@ -321,6 +326,7 @@ export function removeProject(id: string): void {
   writeAll(readAll().filter((p) => p.id !== id));
   removeVocab(id);
   removeExamplesDelta(id);
+  removeFlows(id);
   if (getLastOpened() === id) setLastOpened(null);
 }
 
