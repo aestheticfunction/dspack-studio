@@ -524,3 +524,48 @@ describe("safe worked-example persistence (#42) and honest scripted absence (#43
     expect(String(payload.error)).toMatch(/worked example/i);
   });
 });
+
+describe("flows in the manifest + /project/save-flow (P4 Phase B)", () => {
+  const manifestPath = () => join(root, "project.json");
+  const readManifest = () => JSON.parse(readFileSync(manifestPath(), "utf8"));
+  const flowFixture = {
+    id: "flow.flow-1",
+    name: "Status walk",
+    steps: [{ id: "step.status", title: "The status", surfaceId: "ex.status-report-basic", advanceOn: ["refresh"] }],
+  };
+
+  it("save-flow validates, writes project.json atomically, and preserves every other field verbatim", async () => {
+    const before = readManifest();
+    const { status, payload } = await call("save-flow", { path: root, flows: [flowFixture] });
+    expect(status).toBe(200);
+    expect(payload.ok).toBe(true);
+    const after = readManifest();
+    expect(after.flows).toEqual([flowFixture]);
+    const { flows: _flows, ...rest } = after;
+    expect(rest).toEqual(before); // the FIRST manifest-writing route must not disturb a single other field
+  });
+
+  it("connect carries the manifest flows to the client (repository parity)", async () => {
+    const { status, payload } = await call("connect", { path: root });
+    expect(status).toBe(200);
+    expect(payload.manifest.flows).toEqual([flowFixture]);
+  });
+
+  it("refuses malformed flows with the ProjectError idiom and touches nothing", async () => {
+    const before = readFileSync(manifestPath(), "utf8");
+    const notArray = await call("save-flow", { path: root, flows: "nope" });
+    expect(notArray.status).toBe(400);
+    expect(String(notArray.payload.error)).toContain("flows");
+    const badEntry = await call("save-flow", { path: root, flows: [{ id: "flow.bad" }] });
+    expect(badEntry.status).toBe(422);
+    expect(String(badEntry.payload.error)).toContain("flows");
+    expect(readFileSync(manifestPath(), "utf8")).toBe(before);
+  });
+
+  it("an EMPTY array removes the flows key — the browser store's empty-removes-key rule", async () => {
+    const { status, payload } = await call("save-flow", { path: root, flows: [] });
+    expect(status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect("flows" in readManifest()).toBe(false);
+  });
+});

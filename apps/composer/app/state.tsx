@@ -39,6 +39,7 @@ import {
   agentRediscover,
   agentSave,
   agentSaveExample,
+  agentSaveFlows,
   probeAgent,
   streamProjectRun,
   streamAgentInline,
@@ -59,6 +60,15 @@ import {
   type LocalKind,
 } from "./providers";
 import { planGoal } from "./planning";
+import {
+  bindStepSurface,
+  emittedActionsBySurface,
+  flowLint,
+  loadFlows as loadFlowsStore,
+  saveFlows as saveFlowsStore,
+  type Flow,
+  type StepBinding,
+} from "./flows";
 import { buildProjectExport, downloadProjectExport, parseProjectImport } from "./project-portability";
 import { REFERENCES, REFERENCE_LIST, DEFAULT_REFERENCE, type Reference } from "./demo-data";
 import {
@@ -103,6 +113,8 @@ export interface BuildTurn {
   /** Component ids the ask needed but the owner has not approved (S2 evidence). */
   gaps: string[];
   accepted?: string; // the saved example id
+  /** The flow step this accept re-bound, by title (P4 Phase B). */
+  acceptedIntoStep?: string;
   /** Structured findings from a refused Accept, rendered in place (#41). */
   acceptFindings?: ComposerFinding[];
   /** The inferred governed context + feasibility for this turn (goal-first). */
@@ -180,6 +192,15 @@ export interface ComposerState {
   acceptFreshFact: (componentId: string, fact: FreshFact) => Promise<void>;
   runEmit: () => Promise<void>;
   runValidate: () => void;
+  /* ---- Flows (P4: multi-step experiences over existing surfaces) ---- */
+  /** The open project's flows: browser projects load them from the
+   *  per-project store, repository projects from the manifest (Phase B);
+   *  example workspaces load none. */
+  flows: Flow[];
+  /** The single save funnel: sets state and persists — browser projects
+   *  through the quota-honest store, repository projects through the
+   *  agent's schema-gated save-flow route. */
+  saveFlows: (next: Flow[]) => void;
   /* ---- Build (chat-driven creation) ---- */
   buildTurns: BuildTurn[];
   buildBusy: boolean;
@@ -201,8 +222,10 @@ export interface ComposerState {
   /** Setup completeness for building; reason names the exact remaining work. */
   readiness: BuildReadiness;
   runBuild: (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => Promise<void>;
-  /** Accept a turn as a worked example; the agent mints the id (#42). */
-  acceptBuildTurn: (turnId: number, exampleId?: string) => Promise<void>;
+  /** Accept a turn as a worked example; the agent mints the id (#42). An
+   *  optional flow-step binding re-points that step at the minted id (P4) —
+   *  a STALE binding never fails the accept, it is reported in the notice. */
+  acceptBuildTurn: (turnId: number, exampleId?: string, intoFlowStep?: StepBinding) => Promise<void>;
   clearBuildThread: () => void;
 }
 
@@ -243,6 +266,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [extraSurfaces, setExtraSurfaces] = useState<Array<{ name: string; surface: unknown }>>([]);
+  // The open project's flows (P4). Loaded per project id beside the examples
+  // delta; [] for agent projects and example workspaces (Phase A).
+  const [flows, setFlows] = useState<Flow[]>([]);
   // Serializes the ledger-decision actions: two rapid clicks would otherwise
   // both compute from the same stale contract closure and the second save
   // would silently drop the first decision. A ref, not state — the guard
@@ -297,6 +323,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     if (projectId) {
       doc.examples = mergeExamples(base, loadExamplesDelta(projectId));
     }
+    // Flows are the project's own work, like the examples delta; an example
+    // workspace (no projectId) correctly gets none.
+    setFlows(projectId ? loadFlowsStore(projectId) : []);
     setContract(doc);
     setProfile(prof);
     setExtraSurfaces(ref.extraSurfaces);
@@ -342,6 +371,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       // authored HERE since the import lives in the delta, merged on top.
       setReferenceExampleIds(null);
       doc.examples = mergeExamples(((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[], loadExamplesDelta(id));
+      setFlows(loadFlowsStore(id));
       setContract(doc);
       setProfile(prof);
       setExtraSurfaces([]);
@@ -369,6 +399,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       setMode("agent");
       setProjectPath(path);
       setReferenceExampleIds(null); // the contract on disk is the project's own
+      // Repository projects carry their flows in project.json (Phase B): the
+      // strict manifest schema admits the optional key, connect delivers it.
+      setFlows(v.manifest.flows ?? []);
       setManifest(v.manifest);
       const doc = (v.contract as Record<string, any>) ?? null;
       const prof = (v.profile as Record<string, any>) ?? null;
@@ -485,6 +518,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         rmStoredProject(p.id);
         return { ok: false, error: "This project is too large to keep in the browser, or local storage is full." };
       }
+      // Flows travelled in the file (P4): persist them beside the vocabulary.
+      // The same rollback applies — rmStoredProject clears vocab AND flows —
+      // so a failed import never leaves a project missing part of its work.
+      if (parsed.flows.length > 0 && !saveFlowsStore(p.id, parsed.flows)) {
+        rmStoredProject(p.id);
+        return { ok: false, error: "This project is too large to keep in the browser, or local storage is full." };
+      }
       setProjects(listProjects());
       openProject(p.id);
       return { ok: true, name: parsed.name };
@@ -530,9 +570,15 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         setNotice("Open this project first to export it — its vocabulary lives on your machine, through the agent.");
         return;
       }
-      downloadProjectExport(buildProjectExport({ name: p.name, description: p.description, vocab, exportedAt: new Date().toISOString() }));
+      // Flows ride along (F6, additive on 0.1): the OPEN project exports its
+      // live flows exactly as it exports its live contract; a closed one
+      // exports what its store holds — the same work opening would show.
+      const projectFlows = id === activeProjectId ? flows : loadFlowsStore(id);
+      downloadProjectExport(
+        buildProjectExport({ name: p.name, description: p.description, vocab, exportedAt: new Date().toISOString(), flows: projectFlows }),
+      );
     },
-    [activeProjectId, contract, profile, manifest],
+    [activeProjectId, contract, profile, manifest, flows],
   );
 
   /** Return to the hub without loading a project (ends an example session). */
@@ -540,6 +586,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     setActiveProjectId(null);
     setExampleProject(null);
     setLastOpened(null);
+    setFlows([]);
     clearBuildThread();
   }, []);
 
@@ -561,10 +608,40 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       if (id === activeProjectId) {
         setActiveProjectId(null);
         setLastOpened(null);
+        setFlows([]);
         clearBuildThread();
       }
     },
     [activeProjectId],
+  );
+
+  /**
+   * The single flows save funnel (P4): state first (the session always keeps
+   * working), then persistence per execution mode — browser projects through
+   * the per-project store (the same quota-honest pattern as the examples
+   * delta in saveContract), repository projects through the agent's
+   * schema-gated save-flow route (Phase B), which preserves every other
+   * project.json field and echoes the re-parsed manifest back.
+   */
+  const saveFlows = useCallback(
+    (next: Flow[]) => {
+      setFlows(next);
+      if (mode === "agent") {
+        if (!projectPath) return;
+        void agentSaveFlows(projectPath, next).then((result) => {
+          if (!result.ok) setNotice(`Saving flows failed: ${result.error}`);
+          else if (result.value.manifest) setManifest(result.value.manifest);
+        });
+        return;
+      }
+      const p = activeProjectId ? getProject(activeProjectId) : null;
+      if (p && p.source.kind !== "agent") {
+        if (!saveFlowsStore(p.id, next)) {
+          setNotice("Saved for this session, but this browser's storage is full — your flows won't survive a reload. Export the project to keep them.");
+        }
+      }
+    },
+    [mode, projectPath, activeProjectId],
   );
 
   /** Entry point: reopen the last project if there is one; otherwise land on
@@ -1113,7 +1190,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
    * format — and immediately joins that intent's few-shot corpus.
    */
   const acceptBuildTurn = useCallback(
-    async (turnId: number, exampleId?: string) => {
+    async (turnId: number, exampleId?: string, intoFlowStep?: StepBinding) => {
       if (!contract || decisionLock.current) return;
       const turn = buildTurns.find((t) => t.id === turnId);
       if (!turn?.progress.surface || turn.progress.outcome !== "passed") {
@@ -1130,6 +1207,22 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           chain.unshift(t.prompt);
         }
         const prompt = examplePromptFor(chain);
+
+        /**
+         * Accept-into-step (P4 Phase B), applied INSIDE the decision lock at
+         * the point where the minted id is known, in both branches: the
+         * targeted step's surfaceId becomes the accepted example, through
+         * the ordinary saveFlows funnel. A STALE binding (flow or step gone
+         * since the build started) binds nothing and only annotates the
+         * notice — an accept never fails for it.
+         */
+        const bindStep = (savedId: string): { note: string; stepTitle?: string } => {
+          if (!intoFlowStep) return { note: "" };
+          const bound = bindStepSurface(flows, intoFlowStep, savedId);
+          if (!bound.step) return { note: " The chosen flow step no longer exists, so nothing was re-bound." };
+          saveFlows(bound.flows);
+          return { note: ` Flow step '${bound.step.title}' now shows this surface.`, stepTitle: bound.step.title };
+        };
 
         if (mode !== "agent") {
           // Browser projects accept in the browser: the same deterministic
@@ -1171,11 +1264,16 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           const doc = structuredClone(contract);
           doc.examples = [...(((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[]), entry];
           await saveContract(doc);
-          setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, accepted: id, acceptFindings: undefined } : t)));
+          const bound = bindStep(id);
+          setBuildTurns((prev) =>
+            prev.map((t) =>
+              t.id === turnId ? { ...t, accepted: id, acceptFindings: undefined, ...(bound.stepTitle ? { acceptedIntoStep: bound.stepTitle } : {}) } : t,
+            ),
+          );
           setNotice(
-            activeProjectId
+            (activeProjectId
               ? `Accepted as '${id}' — saved to this project in your browser; it now seeds generation for '${turn.intent}'.`
-              : `Accepted as '${id}' for this session — duplicate this example into your projects to keep it.`,
+              : `Accepted as '${id}' for this session — duplicate this example into your projects to keep it.`) + bound.note,
           );
           return;
         }
@@ -1211,14 +1309,19 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         setContract(doc);
         recomputeEmit(doc, profile);
         const savedId = result.value.example?.id ?? exampleId ?? "";
-        setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, accepted: savedId, acceptFindings: undefined } : t)));
-        setNotice(`Accepted as worked example '${savedId}' — it now seeds generation for '${turn.intent}'.`);
+        const bound = bindStep(savedId);
+        setBuildTurns((prev) =>
+          prev.map((t) =>
+            t.id === turnId ? { ...t, accepted: savedId, acceptFindings: undefined, ...(bound.stepTitle ? { acceptedIntoStep: bound.stepTitle } : {}) } : t,
+          ),
+        );
+        setNotice(`Accepted as worked example '${savedId}' — it now seeds generation for '${turn.intent}'.` + bound.note);
       } finally {
         decisionLock.current = false;
         setBusy(null);
       }
     },
-    [contract, profile, projectPath, buildTurns, recomputeEmit, mode, saveContract, activeProjectId],
+    [contract, profile, projectPath, buildTurns, recomputeEmit, mode, saveContract, activeProjectId, flows, saveFlows],
   );
 
   const runEmit = useCallback(async () => {
@@ -1248,8 +1351,21 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     for (const { name, surface } of contractSurfaces(contract)) {
       findings.push(...lintOneSurface(name, surface, contract));
     }
+    // Flow-lint (P4): validates the project's flows as REFERENCES over the
+    // emit corpus — dangling surfaces, duplicate ids, reserved `on` targets,
+    // advance names against emitted actions. Additive: with no flows, the
+    // findings are byte-identical to before flows existed.
+    if (flows.length > 0) {
+      const corpus = emit?.surfaces ?? contractSurfaces(contract);
+      findings.push(
+        ...flowLint(flows, {
+          exampleIds: new Set(corpus.map((s) => s.name)),
+          actionsBySurface: emittedActionsBySurface(emit?.surfaces ?? []),
+        }),
+      );
+    }
     setValidate({ ok: findings.every((f) => f.severity !== "error"), findings });
-  }, [contract]);
+  }, [contract, emit, flows]);
 
   const activeProject: StoredProject | null =
     exampleProject ?? (activeProjectId ? projects.find((p) => p.id === activeProjectId) ?? getProject(activeProjectId) : null);
@@ -1298,6 +1414,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptFreshFact,
       runEmit,
       runValidate,
+      flows,
+      saveFlows,
       buildTurns,
       buildBusy,
       buildModels,
@@ -1314,7 +1432,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       acceptBuildTurn,
       clearBuildThread,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -80,8 +80,12 @@ function FindingsTable({ rows }: { rows: ComposerFinding[] }) {
 }
 
 export function ValidateView() {
-  const { emit, validate, runEmit, runValidate, busy, mode } = useComposer();
+  const { emit, validate, runEmit, runValidate, busy, mode, flows } = useComposer();
   const findings = [...(validate?.findings ?? []), ...(emit?.findings ?? [])];
+  // Flow checks (P4): reference validation, reported beside the existing
+  // status lines only when the project HAS flows — otherwise nothing changes.
+  const flowSteps = flows.reduce((n, f) => n + f.steps.length, 0);
+  const flowErrors = (validate?.findings ?? []).filter((f) => f.gate === "flow" && f.severity === "error").length;
   // Fidelity notes describe the projection, not unfinished work: collapsed.
   const fidelity = findings.filter((f) => f.gate === "fidelity");
   // Everything else, errors first (the sort is stable, so gate order holds
@@ -118,6 +122,15 @@ export function ValidateView() {
       {validate && (
         <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: validate.ok ? "var(--ok)" : "var(--err)" }} data-testid="validate-status">
           contract + surface gates: {validate.ok ? "PASS" : "FAIL"}
+        </p>
+      )}
+      {flows.length > 0 && (
+        <p
+          style={{ fontFamily: "var(--mono)", fontSize: 12, color: !validate ? "var(--fg-dim)" : flowErrors === 0 ? "var(--ok)" : "var(--err)" }}
+          data-testid="flows-summary"
+        >
+          {flows.length} flow{flows.length === 1 ? "" : "s"} · {flowSteps} step{flowSteps === 1 ? "" : "s"} · flow checks{" "}
+          {!validate ? "not run yet" : flowErrors === 0 ? "PASS" : "FAIL"}
         </p>
       )}
 

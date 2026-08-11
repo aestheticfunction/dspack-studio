@@ -83,6 +83,48 @@ describe("project manifest", () => {
   });
 });
 
+describe("project manifest flows (P4 Phase B)", () => {
+  const valid = {
+    composerProject: "0.1",
+    name: "Acme UI",
+    adapter: "react-generic",
+    catalogIdBase: "https://acme.example/catalogs/acme-ui",
+    contractPath: "acme-ui.dspack.json",
+    profilePath: "acme.profile.json",
+  };
+  const flow = {
+    id: "flow.flow-1",
+    name: "Status walk",
+    steps: [{ id: "step.status", title: "The status", surfaceId: "ex.status-report-basic", advanceOn: ["refresh"] }],
+  };
+
+  it("accepts an OPTIONAL flows array of well-formed flows (repository parity)", () => {
+    const result = parseProjectManifest({ ...valid, flows: [flow] });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect((result.manifest as { flows?: unknown }).flows).toEqual([flow]);
+  });
+
+  it("manifests WITHOUT flows still parse — old projects unaffected", () => {
+    const result = parseProjectManifest(valid);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect((result.manifest as { flows?: unknown }).flows).toBeUndefined();
+  });
+
+  it("rejects malformed flows with a flows-pathed issue (never a silent drop)", () => {
+    for (const bad of [
+      "nope",
+      [{ id: "flow.x" }], // no name, no steps
+      [{ id: "flow.x", name: "X", steps: [{ id: "step.a", title: "A" }] }], // step without surfaceId
+      [{ id: "flow.x", name: "X", steps: [], description: 42 }],
+      [{ id: "flow.x", name: "X", steps: [{ id: "step.a", title: "A", surfaceId: "ex.a", on: [{ event: "e" }] }] }], // reserved `on` malformed
+    ]) {
+      const result = parseProjectManifest({ ...valid, flows: bad });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.issues.some((i) => i.path.startsWith("flows"))).toBe(true);
+    }
+  });
+});
+
 describe("ledger reading (pinned to real dspack-export output)", () => {
   it("matches dspack-export's sectionHash on the pristine document", async () => {
     // Every recorded hash must verify against the section content it hashes.

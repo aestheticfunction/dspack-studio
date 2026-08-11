@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { registryFor, canvasScopeFor } from "../registries";
 import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel } from "@dspack-studio/composer-core";
+import type { StepBinding } from "../flows";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
 import { Eyebrow } from "../ui";
@@ -172,7 +173,7 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
   );
 }
 
-function TurnBlock({ turn }: { turn: BuildTurn }) {
+function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: StepBinding }) {
   const { acceptBuildTurn, buildBusy, busy, mode, isExample } = useComposer();
   // Blank by default: identity is minted from the contract ON DISK, so a
   // reload or a second tab can never collide with saved work (#42).
@@ -330,7 +331,7 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
               className="st-btn"
               disabled={locked}
               aria-label={`Accept turn ${turn.id} into the project${exampleId ? ` with id ${exampleId}` : ""}`}
-              onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined)}
+              onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined, intoFlowStep)}
               data-testid={`build-accept-${turn.id}`}
             >
               Add to project
@@ -347,7 +348,9 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
       )}
       {turn.accepted && (
         <p ref={accepted} tabIndex={-1} data-testid={`build-accepted-${turn.id}`} style={{ fontSize: 12, color: "var(--ok)" }}>
-          Accepted as <code>{turn.accepted}</code> — now part of this intent's few-shot corpus.
+          Accepted as <code>{turn.accepted}</code>
+          {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows this surface</>} — now part of this
+          intent's few-shot corpus.
         </p>
       )}
     </article>
@@ -355,15 +358,32 @@ function TurnBlock({ turn }: { turn: BuildTurn }) {
 }
 
 export function BuildView() {
-  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel } =
+  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel, flows } =
     useComposer();
   const [prompt, setPrompt] = useState("");
   // "" = auto: the governed context is INFERRED from the goal. A specific value
   // is an advanced override for catalog authors — never the normal prerequisite.
   const [intentOverride, setIntentOverride] = useState<string>("");
+  // "" = accept normally. "<flowId>/<stepId>" = the NEXT accept also re-binds
+  // that flow step to the minted surface (P4 Phase B). Generation itself is
+  // untouched — this is an ACCEPT-time affordance on the intent-select pattern.
+  const [intoStepKey, setIntoStepKey] = useState<string>("");
   const intents = ((contract?.intents ?? []) as Array<{ id: string }>).map((i) => i.id);
   const streamStatus = useRef<HTMLParagraphElement>(null);
   const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
+
+  // The step target is per-accept, not a standing mode: once an accept lands,
+  // clear it so the NEXT accept never silently re-binds the same step.
+  const acceptedCount = buildTurns.filter((t) => t.accepted).length;
+  useEffect(() => {
+    setIntoStepKey("");
+  }, [acceptedCount]);
+
+  const intoFlowStep = useMemo<StepBinding | undefined>(() => {
+    const at = intoStepKey.indexOf("/");
+    if (at <= 0) return undefined;
+    return { flowId: intoStepKey.slice(0, at), stepId: intoStepKey.slice(at + 1) };
+  }, [intoStepKey]);
 
   const submit = (refine: boolean) => {
     if (!prompt.trim() || buildBusy) return;
@@ -443,6 +463,32 @@ export function BuildView() {
             ))}
           </select>
         </label>
+        {flows.some((f) => f.steps.length > 0) && (
+          <label
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            title="Optional: accepting the next build also re-points this flow step at the accepted surface. Cleared after each accept."
+          >
+            <span className="af-label" style={{ margin: 0 }}>
+              flow step
+            </span>
+            <select
+              value={intoStepKey}
+              onChange={(e) => setIntoStepKey(e.target.value)}
+              data-testid="build-flow-step"
+              aria-label="Flow step to re-bind on accept (optional)"
+              style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2 }}
+            >
+              <option value="">none — accept without binding</option>
+              {flows.flatMap((f) =>
+                f.steps.map((s) => (
+                  <option key={`${f.id}/${s.id}`} value={`${f.id}/${s.id}`}>
+                    {f.name} → {s.title}
+                  </option>
+                )),
+              )}
+            </select>
+          </label>
+        )}
         <span data-testid="build-privacy">
           <code>{activeModel}</code>: {providerCopy(activeModel)}
         </span>
@@ -481,7 +527,7 @@ export function BuildView() {
 
       <div>
         {buildTurns.map((turn) => (
-          <TurnBlock key={turn.id} turn={turn} />
+          <TurnBlock key={turn.id} turn={turn} intoFlowStep={intoFlowStep} />
         ))}
       </div>
     </section>

@@ -258,6 +258,114 @@ test("Settings states provider options honestly and the appearance control appli
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", "ember");
 });
 
+test("flows: create, walk, advance, persist, and round-trip through export/import", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Flow walkthrough");
+
+  // Two accepted surfaces to compose: a record detail whose buttons carry
+  // known emitted actions, then a destructive confirmation.
+  await scriptedBuild(page, "record-detail", "show one order in full detail");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText("ex.chat-1");
+  await page.getByTestId("build-intent").selectOption("destructive-action");
+  await page.getByTestId("build-prompt").fill("let people permanently delete their account");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText("ex.chat-2");
+
+  // Author a flow over the two surfaces, in Preview ("Your flows" — a
+  // first-class concept, distinct from Scenarios).
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("preview-flows")).toBeVisible();
+  await page.getByTestId("new-flow").click();
+  await page.getByTestId("flow-name").fill("Order walkthrough");
+  await page.getByTestId("flow-step-surface").selectOption("ex.chat-1");
+  await page.getByTestId("flow-add-step").click();
+  await page.getByTestId("flow-step-title-0").fill("Review the order");
+  await page.getByTestId("flow-step-advance-0").fill("download_invoice");
+  await page.getByTestId("flow-step-surface").selectOption("ex.chat-2");
+  await page.getByTestId("flow-add-step").click();
+  await page.getByTestId("flow-step-title-1").fill("Delete the account");
+  await page.getByTestId("flow-save").click();
+
+  // Walk it: the navigator shows ordered steps, the CURRENT step's surface
+  // renders through the identical single-surface canvas path.
+  await page.getByTestId("flow-flow.flow-1").click();
+  await expect(page.getByTestId("flow-step-step.review-the-order")).toHaveClass(/st-btn--active/);
+  await expect(page.getByTestId("flow-prev")).toBeDisabled();
+  await expect(page.locator("[data-project-canvas]")).toContainText(/order/i);
+  await page.getByTestId("flow-next").click();
+  await expect(page.getByTestId("flow-step-step.delete-the-account")).toHaveClass(/st-btn--active/);
+  await expect(page.locator("[data-project-canvas]")).toContainText(/delete/i);
+  await expect(page.getByTestId("flow-next")).toBeDisabled();
+  await page.getByTestId("flow-prev").click();
+  await expect(page.getByTestId("flow-step-step.review-the-order")).toHaveClass(/st-btn--active/);
+
+  // advanceOn (F2): clicking the surface's OWN emitted action advances the
+  // step — view-state only — and the action log keeps receiving everything.
+  // The record-detail surface's first Button dispatches download_invoice; it
+  // carries its label as a CHILD Text node, which the shadcn ButtonRender
+  // does not compose into an accessible name yet (an existing renderer-parity
+  // gap, not a flows concern), so the click targets the first enabled canvas
+  // button and the advance + action log prove which action fired.
+  await page.getByTestId("registry-shadcn").click();
+  await page.locator("[data-project-canvas] button:not([disabled])").first().click();
+  await expect(page.getByTestId("flow-step-step.delete-the-account")).toHaveClass(/st-btn--active/);
+  await expect(page.getByTestId("action-log")).toContainText("download_invoice");
+
+  // The flow persists (project data); the walk position does not (view state).
+  await page.reload();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("flow-flow.flow-1")).toBeVisible();
+
+  // Checks: the flow gate joins the findings plumbing with a one-line summary.
+  await page.getByTestId("nav-validate").click();
+  await page.getByTestId("run-validate").click();
+  await expect(page.getByTestId("flows-summary")).toContainText("1 flow · 2 steps");
+  await expect(page.getByTestId("flows-summary")).toContainText("PASS");
+
+  // Export carries the flows field (version stays 0.1)…
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("project-export").click()]);
+  const file = (await download.path())!;
+  const fs = await import("node:fs/promises");
+  const exported = JSON.parse(await fs.readFile(file, "utf8"));
+  expect(exported.composerProjectExport).toBe("0.1");
+  expect(exported.flows).toHaveLength(1);
+  expect(exported.flows[0].id).toBe("flow.flow-1");
+  expect(exported.flows[0].steps.map((s: { surfaceId: string }) => s.surfaceId)).toEqual(["ex.chat-1", "ex.chat-2"]);
+
+  // …and a fresh browser state restores the flow from the file alone.
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.getByTestId("projects-empty")).toBeVisible();
+  await page.getByTestId("import-project-input").setInputFiles(file);
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await page.getByTestId("nav-preview").click();
+  await page.getByTestId("flow-flow.flow-1").click();
+  await expect(page.getByTestId("flow-step-step.review-the-order")).toHaveClass(/st-btn--active/);
+
+  // Accept-into-step (Phase B): in the restored project, build once more and
+  // target the flow's SECOND step at accept time — the step re-binds to the
+  // freshly minted surface, the confirmation says so, and the walk shows it.
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-intent").selectOption("record-detail");
+  await page.getByTestId("build-prompt").fill("a refreshed order detail");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await page.getByTestId("build-flow-step").selectOption("flow.flow-1/step.delete-the-account");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await expect(page.getByTestId("build-accepted-1")).toContainText("Delete the account"); // the binding, in the confirmation copy
+  await page.getByTestId("nav-preview").click();
+  await page.getByTestId("flow-flow.flow-1").click();
+  await page.getByTestId("flow-next").click();
+  await expect(page.getByTestId("flow-step-step.delete-the-account")).toHaveClass(/st-btn--active/);
+  await expect(page.locator("[data-project-canvas]")).toContainText(/order/i); // step 2 now renders the re-bound surface
+});
+
 test("client traffic carries no private hosts, local paths, or key material", async ({ page }) => {
   const bodies: string[] = [];
   page.on("response", async (r) => {

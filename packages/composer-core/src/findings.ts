@@ -22,7 +22,11 @@ export type FindingGate =
   | "coverage"
   | "fidelity"
   | "registry"
-  | "ledger";
+  | "ledger"
+  /** Flow-lint (P4): flows reference surfaces; this gate validates the
+   *  REFERENCES (dangling surface/step targets, duplicate ids, advance
+   *  names) — never the surfaces, whose own gates run unchanged. */
+  | "flow";
 
 export type FindingSeverity = "error" | "warn" | "info";
 
