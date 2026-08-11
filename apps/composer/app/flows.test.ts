@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  bindStepSurface,
   emittedActionNames,
   emittedActionsBySurface,
   flowLint,
@@ -356,5 +357,43 @@ describe("flowLint — reference validation with the finding() shape, gate 'flow
     const findings = flowLint(flows, ctx());
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");
+  });
+});
+
+describe("bindStepSurface — accept-into-step (P4 Phase B)", () => {
+  const second: Flow = {
+    id: "flow.flow-2",
+    name: "Untouched neighbour",
+    steps: [{ id: "step.same-id", title: "Same step id, other flow", surfaceId: "ex.delete-account-confirmation" }],
+  };
+
+  it("re-binds EXACTLY the addressed step's surfaceId and returns the bound step", () => {
+    const result = bindStepSurface([flowFixture, second], { flowId: "flow.flow-1", stepId: "step.delete-the-account" }, "ex.chat-9");
+    expect(result.step).not.toBeNull();
+    expect(result.step!.title).toBe("Delete the account");
+    expect(result.step!.surfaceId).toBe("ex.chat-9");
+    const flow = result.flows.find((f) => f.id === "flow.flow-1")!;
+    expect(flow.steps.map((s) => s.surfaceId)).toEqual(["ex.order-detail-summary", "ex.chat-9"]);
+    // Everything else rides through untouched: sibling step fields, and the
+    // OTHER flow even though it reuses the same step-id spelling elsewhere.
+    expect(flow.steps[1].terminal).toBe(true);
+    expect(flow.steps[0]).toEqual(flowFixture.steps[0]);
+    expect(result.flows.find((f) => f.id === "flow.flow-2")).toEqual(second);
+  });
+
+  it("never mutates its input (the caller owns state transitions)", () => {
+    const input = [structuredClone(flowFixture)];
+    bindStepSurface(input, { flowId: "flow.flow-1", stepId: "step.delete-the-account" }, "ex.chat-9");
+    expect(input).toEqual([flowFixture]);
+  });
+
+  it("a STALE binding (flow or step gone) binds nothing and says so — the accept must still succeed", () => {
+    const flows = [flowFixture];
+    const staleFlow = bindStepSurface(flows, { flowId: "flow.deleted", stepId: "step.delete-the-account" }, "ex.chat-9");
+    expect(staleFlow.step).toBeNull();
+    expect(staleFlow.flows).toEqual(flows);
+    const staleStep = bindStepSurface(flows, { flowId: "flow.flow-1", stepId: "step.deleted" }, "ex.chat-9");
+    expect(staleStep.step).toBeNull();
+    expect(staleStep.flows).toEqual(flows);
   });
 });

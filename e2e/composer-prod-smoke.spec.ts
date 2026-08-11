@@ -345,6 +345,25 @@ test("flows: create, walk, advance, persist, and round-trip through export/impor
   await page.getByTestId("nav-preview").click();
   await page.getByTestId("flow-flow.flow-1").click();
   await expect(page.getByTestId("flow-step-step.review-the-order")).toHaveClass(/st-btn--active/);
+
+  // Accept-into-step (Phase B): in the restored project, build once more and
+  // target the flow's SECOND step at accept time — the step re-binds to the
+  // freshly minted surface, the confirmation says so, and the walk shows it.
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-intent").selectOption("record-detail");
+  await page.getByTestId("build-prompt").fill("a refreshed order detail");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await page.getByTestId("build-flow-step").selectOption("flow.flow-1/step.delete-the-account");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await expect(page.getByTestId("build-accepted-1")).toContainText("Delete the account"); // the binding, in the confirmation copy
+  await page.getByTestId("nav-preview").click();
+  await page.getByTestId("flow-flow.flow-1").click();
+  await page.getByTestId("flow-next").click();
+  await expect(page.getByTestId("flow-step-step.delete-the-account")).toHaveClass(/st-btn--active/);
+  await expect(page.locator("[data-project-canvas]")).toContainText(/order/i); // step 2 now renders the re-bound surface
 });
 
 test("client traffic carries no private hosts, local paths, or key material", async ({ page }) => {

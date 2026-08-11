@@ -289,3 +289,40 @@ test("a real error alongside an acknowledged casualty keeps the row failed (#30)
   await expect(page.getByTestId("acknowledged-uses-casualty")).toBeVisible();
   await expect(page.getByTestId("acknowledged-unknown-component")).toHaveCount(0);
 });
+
+test("flows live in project.json: author in Preview, the FILE carries them, reconnect restores them (P4 Phase B)", async ({ page }) => {
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const project = demoProject();
+  await connect(page, project.root);
+
+  // The Flows section is first-class for a connected repository project too.
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("preview-flows")).toBeVisible();
+  await page.getByTestId("new-flow").click();
+  await page.getByTestId("flow-name").fill("Status walk");
+  await page.getByTestId("flow-step-surface").selectOption("ex.status-report-basic");
+  await page.getByTestId("flow-add-step").click();
+  await page.getByTestId("flow-step-title-0").fill("The status");
+  const saved = page.waitForResponse((r) => r.url().includes("/project/save-flow"));
+  await page.getByTestId("flow-save").click();
+  await saved;
+
+  // The agent is the write authority: the MANIFEST file carries the flow,
+  // and every other field rides through verbatim.
+  const manifest = JSON.parse(readFileSync(join(project.root, "project.json"), "utf8"));
+  expect(manifest.flows).toHaveLength(1);
+  expect(manifest.flows[0].name).toBe("Status walk");
+  expect(manifest.flows[0].steps[0].surfaceId).toBe("ex.status-report-basic");
+  expect(manifest.name).toBe("Acme UI");
+  expect(manifest.contractPath).toBe("acme-ui.dspack.json");
+
+  // Walking works over the repository surface through the identical canvas.
+  await page.getByTestId("flow-flow.flow-1").click();
+  await expect(page.getByTestId("flow-step-step.the-status")).toHaveClass(/st-btn--active/);
+
+  // A reload reconnects the repository project; the flow returns from the file.
+  await page.reload();
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("flow-flow.flow-1")).toBeVisible();
+});
