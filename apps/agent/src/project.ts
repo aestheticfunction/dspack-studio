@@ -8,6 +8,8 @@
  *   POST /project/emit      { path }                  -> loadProfile + transformFromJson + emitSurface -> out/
  *   POST /project/validate  { path }                  -> dspack-validate CLI + dspack-gen/core lintSurface
  *   POST /project/save      { path, kind, document }  -> shape-gated, ledger-preserving atomic write
+ *   POST /project/save-flow { path, flows }           -> schema-gated atomic write of the MANIFEST's
+ *                             flows key (P4; every other project.json field preserved verbatim)
  *   POST /project/run       { path, prompt, intent, modelRef } -> AG-UI SSE generation
  *                             under the PROJECT contract + profile (scoped vocabulary)
  *
@@ -41,6 +43,7 @@ import { exportProject, regenerateSections } from "@aestheticfunction/dspack-exp
 import { compileSchemaSet, documentReport, type ValidatorMap } from "@aestheticfunction/dspack-spec/lib/validate.mjs";
 import {
   ledgerStatus,
+  parseFlows,
   parseProjectManifest,
   preservesLedger,
   finding,
@@ -742,6 +745,39 @@ async function saveExample(ctx: ProjectContext, body: Record<string, unknown>) {
   return { status: 200, payload: { ok: true, findings: [], example: entry, ledger: await ledgerStatus(document) } };
 }
 
+/**
+ * Save the project's flows into project.json (P4 Phase B) — the FIRST route
+ * that writes the manifest. Flows are the studio's own data (ordered
+ * references over worked-example surfaces), so they live in the studio's
+ * file, never in the dspack contract. Validated against the composer-core
+ * flow schema (the same shape the strict manifest gate enforces on
+ * connect); the manifest is re-read RAW from disk and only the `flows` key
+ * is merged, so every other field — including ones this build merely
+ * defaults — rides through byte-verbatim. An empty array removes the key
+ * (the browser store's empty-removes-key rule). Atomic write, like every
+ * other file this agent touches.
+ */
+function saveFlowsRoute(ctx: ProjectContext, body: Record<string, unknown>) {
+  if (!Array.isArray(body.flows)) {
+    throw new ProjectError(400, "flows must be an array of flow records ({ id, name, steps: [{ id, title, surfaceId }] })");
+  }
+  const parsed = parseFlows(body.flows);
+  if (!parsed.ok) {
+    throw new ProjectError(422, `flows invalid: ${parsed.issues.map((i) => `${i.path || "(root)"}: ${i.message}`).join("; ")}`);
+  }
+  const manifestPath = join(ctx.root, "project.json");
+  // openProject already proved this file parses; merge over the RAW JSON so
+  // no defaulted or normalized field is ever written back.
+  const raw = readJson(manifestPath) as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...raw };
+  if (parsed.flows.length === 0) delete next.flows;
+  else next.flows = parsed.flows;
+  atomicWriteJson(manifestPath, next);
+  // Reply with the re-parsed manifest so client state mirrors the gate's view.
+  const reparsed = parseProjectManifest(next);
+  return { ok: true, manifest: reparsed.ok ? reparsed.manifest : ctx.manifest };
+}
+
 // ---------------------------------------------------------------------------
 
 /**
@@ -784,6 +820,9 @@ export async function handleProjectRoute(
         json(res, result.status, result.payload, cors);
         return true;
       }
+      case "save-flow":
+        json(res, 200, saveFlowsRoute(ctx, body), cors);
+        return true;
       case "run":
         await runProject(ctx, body, res, cors, accept);
         return true;

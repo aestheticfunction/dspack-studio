@@ -14,30 +14,15 @@
  * `on: [{event, to}]` branching annotation is RESERVED — validated by
  * flow-lint when present, never executed.
  */
-import { finding, type ComposerFinding } from "@dspack-studio/composer-core";
+import { finding, type ComposerFinding, type Flow, type FlowStep } from "@dspack-studio/composer-core";
 
-/** One step: a titled reference to a worked-example surface. */
-export interface FlowStep {
-  /** step.<slug> — unique within its flow. */
-  id: string;
-  title: string;
-  /** The example id of an existing surface in the project's merged corpus. */
-  surfaceId: string;
-  /** Emitted action names that MEAN "this step completes" (Preview advances). */
-  advanceOn?: string[];
-  /** RESERVED branching annotation (F4): validated when present, unimplemented. */
-  on?: Array<{ event: string; to: string }>;
-  /** Marks completion; defaults to the last step. */
-  terminal?: boolean;
-}
-
-export interface Flow {
-  /** flow.<slug> — unique within the project. */
-  id: string;
-  name: string;
-  description?: string;
-  steps: FlowStep[];
-}
+/**
+ * The Flow/FlowStep TYPES live in composer-core (Phase B lift) so the strict
+ * repository manifest and the agent's save-flow route gate the same shape;
+ * composer-core's `flowSchema` is the zod twin of parseFlow below — the two
+ * must stay rule-identical (both suites pin them against shared fixtures).
+ */
+export type { Flow, FlowStep } from "@dspack-studio/composer-core";
 
 /* --------------------------------- store ---------------------------------
  * `composer.project.flows.<projectId>` — the examples-delta idiom verbatim
@@ -131,7 +116,9 @@ function parseStep(value: unknown): FlowStep | null {
   return step;
 }
 
-/** Strictly parse ONE flow; null = malformed (the caller decides filter vs refuse). */
+/** Strictly parse ONE flow; null = malformed (the caller decides filter vs
+ *  refuse). Hand-rolled and rule-identical to composer-core's flowSchema —
+ *  keep the two in sync. */
 export function parseFlow(value: unknown): Flow | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const r = value as Record<string, unknown>;
@@ -220,6 +207,34 @@ export function emittedActionsBySurface(surfaces: Array<{ name: string; messages
   const map = new Map<string, Set<string>>();
   for (const s of surfaces) map.set(s.name, s.messages ? emittedActionNames(s.messages) : new Set());
   return map;
+}
+
+/* ---------------------------- accept-into-step ----------------------------
+ * Phase B: Build's Accept can TARGET a flow step — the minted example id
+ * becomes the step's surfaceId, through the ordinary saveFlows funnel. Pure
+ * data transition; the accept itself never depends on it. */
+
+export interface StepBinding {
+  flowId: string;
+  stepId: string;
+}
+
+/**
+ * Re-bind ONE step's surface to a freshly accepted example id. Returns the
+ * next flows array and the bound step, or `step: null` when the binding is
+ * STALE (flow or step gone since the build started) — in which case the
+ * flows ride through untouched and the CALLER notices; an accept never
+ * fails for a stale binding.
+ */
+export function bindStepSurface(flows: Flow[], binding: StepBinding, surfaceId: string): { flows: Flow[]; step: FlowStep | null } {
+  const flow = flows.find((f) => f.id === binding.flowId);
+  const step = flow?.steps.find((s) => s.id === binding.stepId);
+  if (!flow || !step) return { flows, step: null };
+  const bound: FlowStep = { ...step, surfaceId };
+  return {
+    flows: flows.map((f) => (f.id === flow.id ? { ...f, steps: f.steps.map((s) => (s.id === step.id ? bound : s)) } : f)),
+    step: bound,
+  };
 }
 
 /* -------------------------------- flow-lint -------------------------------

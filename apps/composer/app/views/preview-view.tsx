@@ -92,7 +92,7 @@ const draftFrom = (flow: Flow): FlowDraft => ({
 });
 
 export function PreviewView() {
-  const { emit, manifest, referenceExampleIds, isExample, mode, activeProject, flows, saveFlows } = useComposer();
+  const { emit, manifest, referenceExampleIds, isExample, mode, activeProject, projectPath, flows, saveFlows } = useComposer();
   const [registryId, setRegistryId] = useState<RegistryId>("wireframe");
   const [canvasMode, setCanvasMode] = useState<"light" | "dark">("light");
   const [surfaceName, setSurfaceName] = useState<string | null>(null);
@@ -115,9 +115,10 @@ export function PreviewView() {
   const yours = isExample ? surfaces : yoursRaw;
   const referenceSurfaces = isExample ? [] : refsRaw;
 
-  // Flows are a PROJECT feature (Phase A: browser projects). Agent-mode
-  // parity is Phase B; example workspaces are ephemeral teaching material.
-  const flowsVisible = mode !== "agent" && !isExample && activeProject !== null;
+  // Flows are a PROJECT feature: browser projects persist them in the
+  // per-project store, connected repository projects in project.json through
+  // the agent (Phase B). Example workspaces are ephemeral teaching material.
+  const flowsVisible = !isExample && (activeProject !== null || (mode === "agent" && projectPath !== ""));
   const currentFlow = flowsVisible && flowPos ? flows.find((f) => f.id === flowPos.flowId) ?? null : null;
   const flowStep =
     currentFlow && flowPos && flowPos.stepIndex < currentFlow.steps.length ? currentFlow.steps[flowPos.stepIndex] : null;
@@ -140,13 +141,14 @@ export function PreviewView() {
     advanceRef.current = { flow: currentFlow, stepIndex: flowPos?.stepIndex ?? 0 };
   }, [currentFlow, flowPos]);
 
-  // Switching projects must never carry a stale walk or draft across.
+  // Switching projects must never carry a stale walk or draft across —
+  // including reconnecting to a DIFFERENT repository (projectPath changes).
   const projectId = activeProject?.id ?? null;
   useEffect(() => {
     setFlowPos(null);
     setDraft(null);
     setPickSurface("");
-  }, [projectId]);
+  }, [projectId, projectPath]);
 
   /** Every action feeds the log exactly as before; in flow mode a name the
    *  CURRENT step listed in advanceOn also advances the walk (F2 — pure view

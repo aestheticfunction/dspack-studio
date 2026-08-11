@@ -4,7 +4,7 @@
  * local agent") instead of simulating results.
  */
 import { HttpAgent, type BaseEvent } from "@dspack-studio/agui-bridge";
-import type { ComposerFinding, LedgerStatus, ProjectManifest } from "@dspack-studio/composer-core";
+import type { ComposerFinding, Flow, LedgerStatus, ProjectManifest } from "@dspack-studio/composer-core";
 import type { ProviderConfig } from "./providers";
 
 export interface EmitPayload {
@@ -115,6 +115,10 @@ export const agentEmit = (path: string) => post<EmitPayload>("/project/emit", { 
 export const agentValidate = (path: string) => post<ValidatePayload>("/project/validate", { path });
 export const agentSave = (path: string, kind: "contract" | "profile", document: unknown) =>
   post<{ ok: boolean; findings: Array<{ path?: string; target?: string; message: string }>; ledger?: LedgerStatus }>("/project/save", { path, kind, document });
+/** Write the project's flows into project.json (P4; schema-gated, every other
+ *  manifest field preserved verbatim by the agent). */
+export const agentSaveFlows = (path: string, flows: Flow[]) =>
+  post<{ ok: boolean; manifest?: ProjectManifest }>("/project/save-flow", { path, flows });
 
 /** Model refs the local agent can run right now ("scripted" + local Ollama tags). */
 export async function agentModels(): Promise<string[]> {

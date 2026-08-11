@@ -7,6 +7,7 @@
  * everything under `out` is derived and regenerated.
  */
 import { z } from "zod";
+import { flowSchema } from "./flows";
 
 export const PROJECT_VERSION = "0.1";
 
@@ -28,6 +29,12 @@ export const projectManifestSchema = z
     outDir: z.string().min(1).default("out"),
     /** Preview registry choice; the app maps ids to real registries. */
     previewRegistry: z.enum(["wireframe", "astryx", "shadcn"]).default("wireframe"),
+    /** The project's flows (P4) — ordered references over the project's own
+     *  worked-example surfaces, the studio's data (never the dspack
+     *  contract). OPTIONAL so every existing manifest parses unchanged; the
+     *  schema must admit the key because this manifest is `.strict()` and
+     *  would otherwise hard-fail connect on a flows-bearing project. */
+    flows: z.array(flowSchema).optional(),
   })
   .strict();
 
