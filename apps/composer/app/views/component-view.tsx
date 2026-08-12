@@ -8,6 +8,7 @@
  * save; in demo mode they stay in memory (stated).
  */
 import { useState } from "react";
+import { enumMembers, parseEnumValues } from "../contract-enums";
 import { useComposer } from "../state";
 
 const field = {
@@ -44,7 +45,11 @@ export function ComponentView() {
       c.props ??= {};
       c.props[newProp.name] = {
         type: newProp.type,
-        ...(newProp.type === "enum" ? { values: newProp.values.split(",").map((v) => v.trim()).filter(Boolean) } : {}),
+        // Authored values are written as VALUE DESCRIPTORS — the shape this
+        // contract (and the shipped shadcn one) already uses everywhere. Both
+        // forms are spec-valid, but a catalog holding two shapes for the same
+        // idea is a catalog whose readers have to guess.
+        ...(newProp.type === "enum" ? { values: parseEnumValues(newProp.values) } : {}),
         ...(newProp.required ? { required: true } : {}),
         ...(newProp.description ? { description: newProp.description } : {}),
       };
@@ -73,17 +78,35 @@ export function ComponentView() {
       <h3 style={{ ...label, marginTop: 18 }}>props</h3>
       <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
         <tbody>
-          {Object.entries((entry.props ?? {}) as Record<string, any>).map(([name, p]) => (
-            <tr key={name} style={{ borderTop: "1px solid var(--line-soft)" }}>
-              <td style={{ padding: "6px 8px", fontFamily: "var(--mono)" }}>{name}</td>
-              <td style={{ padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-body)" }}>
-                {p.type}
-                {p.values ? ` [${p.values.join(", ")}]` : ""}
-                {p.required ? " · required" : ""}
-              </td>
-              <td style={{ padding: "6px 8px", fontSize: 12, color: "var(--fg-dim)" }}>{p.description ?? ""}</td>
-            </tr>
-          ))}
+          {Object.entries((entry.props ?? {}) as Record<string, any>).map(([name, p]) => {
+            // Either spec-valid enum shape reads the same here; a per-value
+            // description (the rich form's whole point) rides on the title.
+            const members = enumMembers(p);
+            return (
+              <tr key={name} style={{ borderTop: "1px solid var(--line-soft)" }} data-testid={`prop-${name}`}>
+                <td style={{ padding: "6px 8px", fontFamily: "var(--mono)" }}>{name}</td>
+                <td style={{ padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 12, color: "var(--fg-body)" }}>
+                  {p.type}
+                  {members.length > 0 && (
+                    <>
+                      {" ["}
+                      {members.map((m, i) => (
+                        <span key={m.value}>
+                          {i > 0 ? ", " : ""}
+                          <span title={m.description} style={m.description ? { borderBottom: "1px dotted var(--line)", cursor: "help" } : undefined}>
+                            {m.value}
+                          </span>
+                        </span>
+                      ))}
+                      {"]"}
+                    </>
+                  )}
+                  {p.required ? " · required" : ""}
+                </td>
+                <td style={{ padding: "6px 8px", fontSize: 12, color: "var(--fg-dim)" }}>{p.description ?? ""}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 

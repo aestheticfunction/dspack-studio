@@ -8,16 +8,16 @@
  * profile proposes, the emitter judges.
  */
 import { useState } from "react";
-import { useComposer } from "../state";
-
 /**
  * A contract enum member is either a plain string (v1) or a
  * `{ value, description }` object (v3). Everything that treats an enum value
- * as text — labels, valueMap keys, React children — must go through this;
- * rendering the object directly is React error #31.
+ * as text — labels, valueMap keys, React children — goes through the ONE
+ * reader in ../contract-enums; rendering the object directly is React error
+ * #31, and reading it two different ways is how the catalog page and this one
+ * disagreed about the same prop.
  */
-const enumLabel = (v: unknown): string =>
-  typeof v === "string" ? v : v && typeof v === "object" && "value" in v ? String((v as { value: unknown }).value) : String(v);
+import { enumLabel } from "../contract-enums";
+import { useComposer } from "../state";
 
 const field = {
   fontFamily: "var(--mono)",

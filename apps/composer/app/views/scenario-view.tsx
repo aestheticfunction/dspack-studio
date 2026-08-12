@@ -16,6 +16,7 @@ import { useMemo, useState } from "react";
 import { buildVocabulary } from "@aestheticfunction/dspack-spec/lib/validate.mjs";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
+import { enumMembers } from "../contract-enums";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
 import { surfaceTitle } from "../surface-identity";
@@ -91,15 +92,17 @@ function NodeEditor({
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
           {[...descriptors.entries()].map(([name, d]) => {
             const value = node.props?.[name];
-            if (d.type === "enum" && Array.isArray(d.values)) {
-              const values = d.values.map((v: any) => (v && typeof v === "object" ? v.value : v));
+            if (d.type === "enum") {
+              const members = enumMembers(d);
               return (
                 <span key={name} style={{ fontFamily: "var(--mono)", fontSize: 11 }}>
                   {name}={" "}
                   <select style={field} value={(value as string) ?? ""} onChange={(e) => setProp(name, e.target.value)} data-testid={`node-prop-${name}`}>
                     <option value="">unset</option>
-                    {values.map((v: string) => (
-                      <option key={v}>{v}</option>
+                    {members.map((m) => (
+                      <option key={m.value} title={m.description}>
+                        {m.value}
+                      </option>
                     ))}
                   </select>
                 </span>

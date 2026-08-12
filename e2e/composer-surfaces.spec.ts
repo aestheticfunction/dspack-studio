@@ -236,6 +236,35 @@ test("Build blocked by a finding names the surface that is blocking it", async (
   await expect(page.getByTestId("scenario-ex.empty-card")).toContainText("A card with nothing in it");
 });
 
+test("the Catalog and the surface editor read the contract's enum values the same way", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Enum vocabulary");
+
+  // The shipped contract declares Button's `variant` as VALUE DESCRIPTORS
+  // ({ value, description }) — one of dspack's two spec-valid enum shapes, and
+  // the one this design system uses. The Catalog page joined the raw array, so
+  // the page a person opens to learn the vocabulary showed [object Object] ten
+  // times over.
+  await page.getByTestId("nav-inventory").click();
+  await page.getByTestId("inventory-button").click();
+  const variant = page.getByTestId("prop-variant");
+  await expect(variant).toContainText("destructive");
+  await expect(variant).toContainText("ghost");
+  await expect(variant).not.toContainText("[object Object]");
+  // The per-value description the rich form exists to carry is not thrown away.
+  await expect(variant.locator('[title*="irreversible"]')).toContainText("destructive");
+
+  // The surface editor offers the SAME values from the SAME reader — the
+  // vocabulary a person browses and the vocabulary they author with agree.
+  await page.getByTestId("nav-surfaces").click();
+  await authorSurface(page, { id: "variant-check", intent: "preference-settings", component: "button", text: "Delete workspace" });
+  const select = page.getByTestId("node-prop-variant");
+  await expect(select.locator("option", { hasText: "destructive" })).toHaveCount(1);
+  await expect(select).not.toContainText("[object Object]");
+  await select.selectOption("destructive");
+  await expect(page.getByTestId("save-scenario")).toBeEnabled();
+});
+
 test("an emitter refusal is stated in the preview panel instead of a blank canvas", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "shadcn", "Emitter refusal");
