@@ -5,6 +5,17 @@
  * is visible evidence, not hidden behind a modal. The markup and classes are
  * shadcn's alert-dialog content; the portal/overlay behavior is deliberately
  * not used, so no Radix dependency enters the bundle.
+ *
+ * TWO CATALOGS, TWO NAMES FOR THE CONFIRM — and one extra part. The
+ * Astryx/neutral catalog names the confirm action `actionLabel` (required)
+ * and stops at the panel. shadcn/ui v3 names it `confirmLabel` and also
+ * declares `triggerLabel` (REQUIRED) — shadcn's AlertDialog is Trigger +
+ * Content, and the trigger is what tells a reader what the dialog is FOR.
+ * Reading only `actionLabel` left every shadcn/ui v3 confirmation with a blank
+ * confirm button and no opener at all: "Delete project and all data" and
+ * "Delete project" both vanished from the flagship destructive surface. The
+ * trigger renders only when the catalog declares one, so the neutral catalog's
+ * panel-only rendering is unchanged.
  */
 import { useId, type FC } from "react";
 import { cva } from "class-variance-authority";
@@ -33,8 +44,28 @@ const actionVariants = cva(
 export const AlertDialogRender: FC<any> = ({ props }) => {
   const titleId = useId();
   const descriptionId = useId();
+  const panelId = useId();
+  // shadcn/ui v3 names the confirm action `confirmLabel`; the neutral catalog
+  // names it `actionLabel`. An instance carries exactly one.
+  const confirmLabel = props.confirmLabel ?? props.actionLabel;
+  const hasTrigger = props.triggerLabel != null;
+  // A Fragment, not a wrapper: a catalog without `triggerLabel` (the neutral
+  // one) must render the panel exactly as it did before this renderer learned
+  // about triggers — same element, same attributes, no new box.
   return (
+  <>
+  {hasTrigger && (
+    <button
+      type="button"
+      className="mb-3 inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+      aria-haspopup="dialog"
+      aria-controls={panelId}
+    >
+      {String(props.triggerLabel)}
+    </button>
+  )}
   <div
+    id={hasTrigger ? panelId : undefined}
     role="alertdialog"
     aria-modal="false"
     aria-labelledby={titleId}
@@ -57,9 +88,10 @@ export const AlertDialogRender: FC<any> = ({ props }) => {
         className={cn(actionVariants({ variant: (props.actionVariant as any) ?? "primary" }))}
         onClick={() => props.action?.()}
       >
-        {String(props.actionLabel ?? "")}
+        {String(confirmLabel ?? "")}
       </button>
     </div>
   </div>
+  </>
   );
 };

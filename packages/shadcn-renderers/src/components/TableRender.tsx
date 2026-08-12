@@ -1,13 +1,26 @@
 /**
  * Catalog `Table` -> shadcn/ui Table markup. Both modes of the catalog shape
- * (data-driven columns/data and nested children) render, mirroring the
+ * (data-driven columns/rows and nested children) render, mirroring the
  * Astryx renderer's chunking of flat children into rows of one cell per
  * column; rows with a status get a trailing Badge cell.
+ *
+ * TWO CATALOGS, TWO NAMES FOR THE ROWS. This registry serves both governed
+ * catalogs (see registry-parity.test.ts), and they do not agree: shadcn/ui v3
+ * declares `rows` (REQUIRED, alongside `columns`, with no `data` and no
+ * `children`), while the Astryx/neutral catalog declares `data` (with
+ * `children` as its alternative). Reading only `data` — which is what this
+ * renderer did — meant no code path could ever render a shadcn table row:
+ * every shipped shadcn table drew its headers over an empty <tbody>. Both
+ * names are honored here, each named after the catalog that declares it, so
+ * neither design system is served by accident.
  *
  * The presentation props the contract carries — `density`, `dividers`,
  * `isStriped` — are projected onto shadcn's table utilities rather than
  * dropped: a table emitted as compact-and-striped must read as compact and
- * striped here, or the emitted surface is being misrepresented.
+ * striped here, or the emitted surface is being misrepresented. (Those three
+ * are Astryx-only vocabulary; under shadcn/ui v3 they arrive undefined and the
+ * catalog defaults apply, which is the correct reading of a catalog that does
+ * not declare them.)
  */
 import type { FC, ReactNode } from "react";
 import { childIds } from "@dspack-studio/a2ui-ingest";
@@ -66,7 +79,9 @@ export const TableRender: FC<any> = ({ props, buildChild }) => {
       bodyRows.push(nested.slice(i, i + width).map((id) => buildChild(id)));
     }
   } else {
-    const rows: Row[] = Array.isArray(props.data) ? props.data : [];
+    // `rows` is the shadcn/ui v3 catalog's required name; `data` is the
+    // Astryx/neutral catalog's. A given instance carries exactly one.
+    const rows: Row[] = Array.isArray(props.rows) ? props.rows : Array.isArray(props.data) ? props.data : [];
     anyStatus = rows.some((r) => r.status);
     bodyRows = rows.map((r) => {
       const cells: ReactNode[] = (r.cells ?? []).map((c) => String(c));
