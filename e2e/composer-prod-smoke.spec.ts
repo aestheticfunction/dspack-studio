@@ -108,7 +108,7 @@ test("a project exports to a portable file and imports back, ready to keep build
   await expect(page.getByTestId("projects-grid")).toContainText("Imported");
 });
 
-test("a built surface becomes first-class project content: accept → Preview default → Scenarios → reload → export", async ({ page }) => {
+test("a built surface becomes first-class project content: accept → Preview default → Surfaces → reload → export", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "shadcn", "Ownership");
   await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
@@ -122,22 +122,24 @@ test("a built surface becomes first-class project content: accept → Preview de
   await page.getByTestId("nav-preview").click();
   await expect(page.getByTestId("surface-ex.chat-1")).toBeVisible();
   await expect(page.getByTestId("surface-ex.chat-1")).toHaveClass(/st-btn--active/); // the default
-  await expect(page.getByTestId("preview-reference-surfaces")).toContainText("Reference examples");
+  await expect(page.getByTestId("preview-reference-surfaces")).toContainText("Reference surfaces");
   await expect(page.getByTestId("preview-no-project-surfaces")).toHaveCount(0);
 
   // Honest wireframe fallback: a reference surface using Switch/Separator
   // renders through wireframe stand-ins under the native registry — never
-  // raw [unimplemented:] text — and the caption says so plainly.
+  // raw [unimplemented:] text, and never a serialized props dump — and the
+  // caption says so plainly.
   await page.getByTestId("registry-shadcn").click();
   await page.getByTestId("surface-ex.notification-preferences").click();
   await expect(page.getByTestId("registry-coverage")).toContainText("render as wireframe");
   await expect(page.locator('[data-project-canvas] [data-wireframe]').first()).toBeVisible();
   await expect(page.locator('[data-project-canvas]')).not.toContainText("[unimplemented:");
+  await expect(page.locator("[data-project-canvas]")).not.toContainText('columns=["');
 
-  // Scenarios: project-owned content separate from the reference corpus.
-  await page.getByTestId("nav-scenarios").click();
+  // Surfaces: project-owned content separate from the reference corpus.
+  await page.getByTestId("nav-surfaces").click();
   await expect(page.getByTestId("scenario-ex.chat-1")).toBeVisible();
-  await expect(page.getByTestId("scenarios-reference")).toContainText("Reference examples");
+  await expect(page.getByTestId("scenarios-reference")).toContainText("Reference surfaces");
 
   // The authored surface SURVIVES a reload (the persisted delta).
   await page.reload();
@@ -158,10 +160,53 @@ test("a fresh project's Preview is honest: no project surfaces yet, references l
   await newProject(page, "shadcn", "Fresh");
   await page.getByTestId("nav-preview").click();
   await expect(page.getByTestId("preview-no-project-surfaces")).toBeVisible();
-  await expect(page.getByTestId("preview-reference-surfaces")).toContainText("Reference examples");
-  // Inspecting a reference example states what it is.
+  await expect(page.getByTestId("preview-reference-surfaces")).toContainText("Reference surfaces");
+  // Inspecting a reference surface states what it is.
   await page.getByTestId("surface-ex.delete-account-confirmation").click();
   await expect(page.locator("body")).toContainText("teaching material, not part of your project");
+});
+
+/**
+ * B5/B7/B8/C9 — the FIRST IMPRESSION, end to end. One scripted build and one
+ * accept is the whole journey a newcomer takes; everything asserted here is
+ * what they see immediately afterwards.
+ */
+test("first run: the project previews as ITSELF, the user's work leads with a human label, and Flows is one click away", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "First impression");
+  await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+
+  await page.getByTestId("nav-preview").click();
+
+  // B5 — Preview opens on the project's OWN design system, not the wireframe.
+  await expect(page.getByTestId("registry-shadcn")).toHaveClass(/st-btn--active/);
+  await expect(page.getByTestId("registry-wireframe")).not.toHaveClass(/st-btn--active/);
+  await expect(page.locator('[data-project-canvas][data-design-system="shadcn"]')).toBeVisible();
+
+  // B8 — the user's own surface is the FIRST surface in the picker.
+  const own = page.getByTestId("surface-ex.chat-1");
+  await expect(page.locator('[data-testid^="surface-ex."]').first()).toHaveAttribute("data-testid", "surface-ex.chat-1");
+  await expect(own).toHaveClass(/st-btn--active/);
+
+  // B7 — it reads as what the person asked for; the canonical id stays beside
+  // it as metadata, never as the headline.
+  await expect(own).toContainText("let people permanently delete their account");
+  await expect(own).toContainText("ex.chat-1");
+  await expect(page.getByTestId("preview-your-surfaces")).toContainText("Your surfaces");
+
+  // B8 — the three reference surfaces the emitter refuses are DEMOTED, not
+  // hidden: one honest disclosure instead of three red rows at first contact.
+  await expect(page.getByTestId("preview-reference-refused")).toContainText("3 reference surfaces");
+  await expect(page.getByTestId("surface-refused-ex.docs-article-trail")).toBeHidden();
+  await page.getByTestId("preview-reference-refused").click();
+  await expect(page.getByTestId("surface-refused-ex.docs-article-trail")).toBeVisible();
+
+  // C9 — Flows is in the primary navigation, one click from anywhere.
+  await page.getByTestId("nav-flows").click();
+  await expect(page.getByTestId("preview-flows")).toBeVisible();
+  await expect(page.getByTestId("flows-empty")).toBeVisible();
 });
 
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
@@ -275,7 +320,7 @@ test("flows: create, walk, advance, persist, and round-trip through export/impor
   await expect(page.getByTestId("build-accepted-2")).toContainText("ex.chat-2");
 
   // Author a flow over the two surfaces, in Preview ("Your flows" — a
-  // first-class concept, distinct from Scenarios).
+  // first-class concept, distinct from a single Surface).
   await page.getByTestId("nav-preview").click();
   await expect(page.getByTestId("preview-flows")).toBeVisible();
   await page.getByTestId("new-flow").click();

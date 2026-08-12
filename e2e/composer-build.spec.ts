@@ -122,7 +122,7 @@ test("Accept persists the worked example, survives reload, and the next run rece
   // Survives a full reload + reconnect.
   await page.reload();
   await connect(page, project.root);
-  await page.getByTestId("nav-scenarios").click();
+  await page.getByTestId("nav-surfaces").click();
   await expect(page.locator("body")).toContainText(saved.id);
 
   // Few-shot round-trip, user-visible: a fresh scripted run now converges on
