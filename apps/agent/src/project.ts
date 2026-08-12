@@ -5,7 +5,8 @@
  *
  *   POST /project/connect   { path }                  -> manifest + ledger + inventory
  *   POST /project/discover  { path }                  -> dspack-export CLI (bootstrap / refusal verbatim)
- *   POST /project/emit      { path }                  -> loadProfile + transformFromJson + emitSurface -> out/
+ *   POST /project/emit      { path }                  -> composer-core projectEmit (the seam the browser
+ *                             also runs) -> catalogs, reports and surfaces written to out/
  *   POST /project/validate  { path }                  -> dspack-validate CLI + dspack-gen/core lintSurface
  *   POST /project/save      { path, kind, document }  -> shape-gated, ledger-preserving atomic write
  *   POST /project/save-flow { path, flows }           -> schema-gated atomic write of the MANIFEST's
@@ -26,15 +27,7 @@ import { createRequire } from "node:module";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import type { ServerResponse } from "node:http";
-import {
-  loadProfile,
-  transformFromJson,
-  emitSurface,
-  EmitSurfaceError,
-  ProfileLoadError,
-  type Profile,
-  type A2uiVersion,
-} from "@aestheticfunction/dspack-emit";
+import { loadProfile, ProfileLoadError, type Profile } from "@aestheticfunction/dspack-emit";
 import { lintSurface } from "@aestheticfunction/dspack-gen/core";
 import { runPipeline, ScriptedAdapter, adapterFor, OllamaAdapter } from "@aestheticfunction/dspack-gen";
 import { adapterForProvider } from "./providers.js";
@@ -47,10 +40,10 @@ import {
   parseProjectManifest,
   preservesLedger,
   finding,
-  catalogGateFindings,
-  classifySurfaceRefusal,
+  projectEmit,
   type ComposerFinding,
   type ProjectManifest,
+  type SurfaceToEmit,
 } from "@dspack-studio/composer-core";
 import {
   createPipelineEventMapper,
@@ -154,8 +147,14 @@ function atomicWriteJson(path: string, value: unknown): void {
 }
 
 /** Surfaces available for emit/preview: contract examples + surfacesDir files. */
-function projectSurfaces(ctx: ProjectContext, contract: Record<string, unknown>): Array<{ name: string; surface: unknown }> {
-  const out: Array<{ name: string; surface: unknown }> = [];
+/**
+ * The surfaces a REPOSITORY-backed project has: the contract's worked examples
+ * plus everything in its `surfacesDir`. That directory is the one documented
+ * asymmetry with the browser, which has no filesystem to read it from
+ * (apps/composer/app/validation.ts contractSurfaces stops at the examples).
+ */
+function projectSurfaces(ctx: ProjectContext, contract: Record<string, unknown>): SurfaceToEmit[] {
+  const out: SurfaceToEmit[] = [];
   for (const example of (contract.examples as Array<{ id?: string; surface?: unknown }> | undefined) ?? []) {
     if (example.surface) out.push({ name: example.id ?? "example", surface: example.surface });
   }
@@ -270,99 +269,47 @@ async function rediscover(ctx: ProjectContext, body: Record<string, unknown>) {
   return { ok: true, contract, ledger: await ledgerStatus(contract), report: result.report };
 }
 
+/**
+ * The project's emit, on disk. This route is the SHARED SEAM plus FILE
+ * WRITING: the emit loop, the per-version catalog gates, coverage, fidelity
+ * and the casualty classification all live in composer-core's `projectEmit`,
+ * which the browser's validation.ts calls too. It used to be a copy, and the
+ * copies had drifted — this side validated A2UI 0.9.1 AND 1.0, the browser
+ * only 0.9.1, so the same governed project got a different verdict depending
+ * on whether it was repository- or browser-backed. What is genuinely the
+ * agent's own job, and stays here, is that the agent owns the filesystem:
+ * surface selection includes `surfacesDir`, and the results land in out/.
+ */
 function emit(ctx: ProjectContext) {
   const contract = readJson(ctx.contractPath) as Record<string, unknown>;
   // The profile as authored (JSON): casualty declarations and their written
   // reasons are read from this, never from emitted message text.
   const profileJson = readJson(ctx.profilePath) as Record<string, unknown>;
-  let profile: Profile;
-  try {
-    profile = loadProfile(profileJson);
-  } catch (e) {
-    if (e instanceof ProfileLoadError) {
-      return {
-        ok: false as const,
-        findings: e.issues.map((i) => finding("profile", "schema", "error", i.path, i.message)),
-      };
-    }
-    throw e;
-  }
-
-  const surfaces = projectSurfaces(ctx, contract);
-  const emitted: Array<{ name: string; messages?: unknown[]; warnings: Array<{ code: string; message: string }>; error?: string }> = [];
-  const allMessages: unknown[] = [];
-  for (const { name, surface } of surfaces) {
-    try {
-      const result = emitSurface(surface as Parameters<typeof emitSurface>[0], contract as Parameters<typeof emitSurface>[1], { profile });
-      emitted.push({ name, messages: result.messages, warnings: result.warnings as Array<{ code: string; message: string }> });
-      allMessages.push(...result.messages);
-    } catch (e) {
-      if (e instanceof EmitSurfaceError) {
-        emitted.push({ name, warnings: [], error: e.message });
-        continue;
-      }
-      throw e;
-    }
+  const result = projectEmit(contract, profileJson, projectSurfaces(ctx, contract));
+  if (result.runs.length === 0) {
+    // The profile did not load; nothing was emitted and nothing is written.
+    return { ok: false as const, findings: result.findings };
   }
 
   mkdirSync(ctx.outDir, { recursive: true });
-  const versions: A2uiVersion[] = ["0.9.1", "1.0"];
-  const runs = versions.map((version) => {
-    const out = transformFromJson(contract as Parameters<typeof transformFromJson>[0], { a2uiVersion: version, surface: { messages: allMessages }, profile });
-    const seg = version === "0.9.1" ? "v0_9_1" : "v1_0";
-    atomicWriteJson(join(ctx.outDir, `catalog.${seg}.json`), out.catalog);
-    atomicWriteJson(join(ctx.outDir, `report.${seg}.json`), out.report.json);
-    return { version, out };
-  });
-  for (const { name, messages } of emitted) {
+  for (const run of result.runs) {
+    const seg = run.version === "0.9.1" ? "v0_9_1" : "v1_0";
+    atomicWriteJson(join(ctx.outDir, `catalog.${seg}.json`), run.catalog);
+    atomicWriteJson(join(ctx.outDir, `report.${seg}.json`), run.report);
+  }
+  for (const { name, messages } of result.surfaces) {
     if (messages) atomicWriteJson(join(ctx.outDir, `${name}.surface.json`), { messages });
   }
 
-  const primary = runs[0].out;
-  const findings: ComposerFinding[] = [];
-  for (const { version, out } of runs) {
-    for (const gate of out.validation.gates) {
-      if (!gate.pass) {
-        const gateId = gate.name.startsWith("schema-compile") ? "A1" : gate.name === "catalog-shape" ? "A2" : "A3";
-        // Per-instance findings with honest Component#id targets when the
-        // emitter reports structured errorDetails (dspack-emit >= 0.7,
-        // feature-detected); otherwise one capped finding whose `evidence`
-        // keeps every raw error string. Twin: apps/composer/app/validation.ts.
-        findings.push(...catalogGateFindings(gateId as "A1", gate, `a2ui@${version}`));
-      }
-    }
-  }
-  for (const c of primary.mapping.coverage) {
-    if (c.disposition === "unclassified") {
-      findings.push(finding("coverage", "unclassified", "error", c.id, "component is neither mapped, adapted, omitted, nor a declared casualty"));
-    }
-  }
-  for (const f of primary.mapping.fidelity) {
-    if (f.class === "lossy" || f.class === "cannot-represent") {
-      findings.push(finding("fidelity", f.class, "warn", f.source, f.note));
-    }
-  }
-  for (const { name, warnings, error } of emitted) {
-    if (error) {
-      // An emit refusal caused solely by components the profile author
-      // declared casualties (with a written reason) is an acknowledged
-      // decision, not unresolved work. The finding keeps its severity,
-      // code, target, and verbatim message; the classification is
-      // structured evidence attached alongside.
-      const base = finding("A3", "emit-surface", "error", name, error);
-      const surface = surfaces.find((s) => s.name === name)?.surface;
-      const acknowledged = classifySurfaceRefusal(surface, contract, profileJson);
-      findings.push(acknowledged ? { ...base, acknowledged } : base);
-    }
-    for (const w of warnings) findings.push(finding("A3", w.code, "info", name, w.message));
-  }
-
   return {
-    ok: runs.every((r) => r.out.validation.pass),
-    catalog: runs[0].out.catalog,
-    report: primary.report.json,
-    surfaces: emitted,
-    findings,
+    ok: result.ok,
+    catalog: result.catalog,
+    report: result.report,
+    // The versions this verdict actually came from, on the wire: the
+    // divergence this replaced was invisible precisely because nothing said.
+    a2uiVersions: result.runs.map((r) => r.version),
+    surfaces: result.surfaces,
+    findings: result.findings,
   };
 }
 

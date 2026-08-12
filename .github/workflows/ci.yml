@@ -27,15 +27,15 @@ jobs:
       - name: Astryx vocabulary drift check (report-only, local CLI)
         run: pnpm --filter @dspack-studio/contracts drift-check
       - name: Unit tests
-        run: |
-          pnpm --filter @dspack-studio/a2ui-ingest test
-          pnpm --filter @dspack-studio/agui-bridge test
-          pnpm --filter @dspack-studio/replay test
-          pnpm --filter @dspack-studio/scenarios test
-          pnpm --filter @dspack-studio/shadcn-renderers test
-          pnpm --filter agent test
-          pnpm --filter web test
-          pnpm --filter composer test
+        # THE INVARIANT: CI runs EVERY workspace test script, never a
+        # hand-maintained filter list. The list this replaced had silently
+        # omitted @dspack-studio/composer-core (89 tests — both planners, the
+        # ledger, findings, the flow schema), @dspack-studio/wireframe-renderers
+        # (4) and @dspack-studio/contracts (2): a package could be added, hold
+        # product logic, go red, and CI stayed green because its name was never
+        # typed here. `pnpm test` is the root script, so what a contributor runs
+        # locally and what CI enforces are the same command by construction.
+        run: pnpm test
       - name: Type checks
         run: pnpm -r typecheck
       - name: Static export (the deploy artifact)

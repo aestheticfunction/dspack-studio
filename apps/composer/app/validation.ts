@@ -5,10 +5,13 @@
  *
  *   document gate + consistency  @aestheticfunction/dspack-spec lib
  *   S1/S2/S3 surface lint        @aestheticfunction/dspack-gen/core
- *   emit + A-gates + fidelity    @aestheticfunction/dspack-emit (browser-safe)
+ *   emit + A-gates + fidelity    composer-core's projectEmit, over
+ *                                @aestheticfunction/dspack-emit (browser-safe)
  *
  * Everything here is synchronous and pure; the agent stays the file-writing
- * authority, but every EDIT gets instant, gate-identical feedback.
+ * authority, but every EDIT gets instant, gate-identical feedback. "Gate
+ * identical" is now structural rather than aspirational: the emit loop itself
+ * is the shared seam both doors call, not a copy of it (see browserEmit).
  */
 import {
   compileSchemaSet,
@@ -19,15 +22,7 @@ import dspackV04 from "@aestheticfunction/dspack-spec/schema/dspack.v0.4.schema.
 import dspackV03 from "@aestheticfunction/dspack-spec/schema/dspack.v0.3.schema.json";
 import surfaceV01 from "@aestheticfunction/dspack-spec/schema/dspack.surface.v0_1.schema.json";
 import { lintSurface } from "@aestheticfunction/dspack-gen/core";
-import {
-  transformFromJson,
-  emitSurface,
-  loadProfile,
-  EmitSurfaceError,
-  ProfileLoadError,
-  type Profile,
-} from "@aestheticfunction/dspack-emit";
-import { finding, catalogGateFindings, classifySurfaceRefusal, type ComposerFinding } from "@dspack-studio/composer-core";
+import { finding, projectEmit, type ComposerFinding, type ProjectEmitResult, type SurfaceToEmit } from "@dspack-studio/composer-core";
 
 let compiled: ValidatorMap | undefined;
 function validators(): ValidatorMap {
@@ -68,107 +63,39 @@ export function lintOneSurface(name: string, surface: unknown, contract: Record<
   return findings;
 }
 
-export interface BrowserEmitResult {
-  ok: boolean;
-  catalog?: Record<string, any>;
-  surfaces: Array<{ name: string; messages?: unknown[]; warnings: Array<{ code: string; message: string }>; error?: string }>;
-  findings: ComposerFinding[];
-}
+/** The emit result the browser hands the views — the shared seam's result. */
+export type BrowserEmitResult = ProjectEmitResult;
 
 /**
  * The full emit loop in the browser: profile load, per-surface emission,
- * catalog gates for 0.9.1, coverage + fidelity findings. The agent's
- * /project/emit remains the twin that also WRITES out/; this one powers
- * instant feedback on unsaved edits and full demo-mode function.
+ * catalog gates for EVERY canonical A2UI version, coverage + fidelity
+ * findings. It powers instant feedback on unsaved edits and full demo-mode
+ * function.
+ *
+ * It is the SHARED SEAM plus surface selection, and nothing else. The loop
+ * itself lives in composer-core (`projectEmit`) because the agent's
+ * /project/emit runs the identical loop and the two copies had already
+ * drifted: this side validated A2UI 0.9.1 only while the agent validated
+ * 0.9.1 and 1.0, so the same governed project got a different verdict
+ * depending on which door it came through. Equivalence is now structural, and
+ * asserted from both sides (validation.test.ts here, project.test.ts there).
  */
-/**
- * The A3 refusal finding, classified. An emit refusal caused solely by
- * components the profile author declared casualties (with a written reason)
- * is an acknowledged decision — the finding keeps its severity, code,
- * target, and verbatim message, and gains structured evidence of the
- * acknowledgement. See composer-core's classifySurfaceRefusal for the rule.
- */
-function refusalFinding(
-  name: string,
-  error: string,
-  surfaces: Array<{ name: string; surface: unknown }>,
-  contract: Record<string, any>,
-  profileJson: Record<string, unknown>,
-): ComposerFinding {
-  const base = finding("A3", "emit-surface", "error", name, error);
-  const surface = surfaces.find((s) => s.name === name)?.surface;
-  const acknowledged = classifySurfaceRefusal(surface, contract, profileJson as Record<string, any>);
-  return acknowledged ? { ...base, acknowledged } : base;
-}
-
 export function browserEmit(
   contract: Record<string, unknown>,
   profileJson: Record<string, unknown>,
-  surfaces: Array<{ name: string; surface: unknown }>,
+  surfaces: SurfaceToEmit[],
 ): BrowserEmitResult {
-  let profile: Profile;
-  try {
-    profile = loadProfile(profileJson);
-  } catch (e) {
-    if (e instanceof ProfileLoadError) {
-      return {
-        ok: false,
-        surfaces: [],
-        findings: e.issues.map((i) => finding("profile", "schema", "error", i.path, i.message)),
-      };
-    }
-    throw e;
-  }
-
-  const emitted: BrowserEmitResult["surfaces"] = [];
-  const allMessages: unknown[] = [];
-  for (const { name, surface } of surfaces) {
-    try {
-      const r = emitSurface(surface as never, contract as never, { profile });
-      emitted.push({ name, messages: r.messages, warnings: r.warnings as Array<{ code: string; message: string }> });
-      allMessages.push(...r.messages);
-    } catch (e) {
-      if (e instanceof EmitSurfaceError) {
-        emitted.push({ name, warnings: [], error: e.message });
-        continue;
-      }
-      throw e;
-    }
-  }
-
-  const findings: ComposerFinding[] = [];
-  const out = transformFromJson(contract as never, { a2uiVersion: "0.9.1", surface: { messages: allMessages }, profile });
-  for (const gate of out.validation.gates) {
-    if (!gate.pass) {
-      const gateId = gate.name.startsWith("schema-compile") ? "A1" : gate.name === "catalog-shape" ? "A2" : "A3";
-      // Per-instance findings with honest Component#id targets when the
-      // emitter reports structured errorDetails (dspack-emit >= 0.7,
-      // feature-detected); otherwise one capped finding whose `evidence`
-      // keeps every raw error string. Twin: apps/agent/src/project.ts emit().
-      findings.push(...catalogGateFindings(gateId as "A1", gate, "a2ui@0.9.1"));
-    }
-  }
-  for (const c of out.mapping.coverage) {
-    if (c.disposition === "unclassified") {
-      findings.push(finding("coverage", "unclassified", "error", c.id, "component is neither mapped, adapted, omitted, nor a declared casualty"));
-    }
-  }
-  for (const f of out.mapping.fidelity) {
-    if (f.class === "lossy" || f.class === "cannot-represent") {
-      findings.push(finding("fidelity", f.class, "warn", f.source, f.note));
-    }
-  }
-  for (const { name, warnings, error } of emitted) {
-    if (error) findings.push(refusalFinding(name, error, surfaces, contract, profileJson));
-    for (const w of warnings) findings.push(finding("A3", w.code, "info", name, w.message));
-  }
-
-  return { ok: out.validation.pass, catalog: out.catalog as Record<string, any>, surfaces: emitted, findings };
+  return projectEmit(contract, profileJson, surfaces);
 }
 
-/** Contract examples + any extra named surfaces, the emit/preview corpus. */
-export function contractSurfaces(contract: Record<string, unknown>): Array<{ name: string; surface: unknown }> {
-  const out: Array<{ name: string; surface: unknown }> = [];
+/**
+ * The surfaces a BROWSER-backed project has: the contract's worked examples.
+ * This is the documented asymmetry with the agent, which additionally emits
+ * the project's `surfacesDir` — a directory a browser-backed project has no
+ * access to. Everything downstream of this selection is identical.
+ */
+export function contractSurfaces(contract: Record<string, unknown>): SurfaceToEmit[] {
+  const out: SurfaceToEmit[] = [];
   for (const example of (contract.examples as Array<{ id?: string; surface?: unknown }> | undefined) ?? []) {
     if (example.surface) out.push({ name: example.id ?? "example", surface: example.surface });
   }

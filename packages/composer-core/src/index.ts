@@ -50,6 +50,14 @@ export {
   type GateErrorDetailError,
 } from "./findings";
 export {
+  A2UI_VERSIONS,
+  projectEmit,
+  type SurfaceToEmit,
+  type EmittedSurface,
+  type EmitVersionRun,
+  type ProjectEmitResult,
+} from "./emit";
+export {
   COMPOSER_ADAPTERS,
   composerAdapter,
   type ComposerAdapter,

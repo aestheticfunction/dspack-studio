@@ -3,6 +3,14 @@
  * style). The catalog's Astryx-flavored variant vocabulary projects onto
  * shadcn's nearest treatment — the same inverse-mapping duty the Astryx
  * TextRender performs for typography.
+ *
+ * TWO CATALOGS, TWO ANATOMIES FOR THE CONTENT. The Astryx/neutral catalog
+ * carries the button's words in a required `label` string. shadcn/ui v3
+ * carries them the way shadcn's own Button does — a required `child`
+ * ComponentId pointing at a Text the surface defines separately. Reading only
+ * `label` rendered every shadcn/ui v3 button with no text at all, including
+ * the "Cancel" on the flagship delete-confirmation surface. Both are honored:
+ * a literal label when the catalog gives one, the built child otherwise.
  */
 import type { FC } from "react";
 import { cva } from "class-variance-authority";
@@ -37,7 +45,7 @@ const VARIANT: Record<string, "default" | "secondary" | "ghost" | "destructive">
 };
 const SIZE: Record<string, "default" | "sm" | "lg"> = { sm: "sm", md: "default", lg: "lg" };
 
-export const ButtonRender: FC<any> = ({ props }) => (
+export const ButtonRender: FC<any> = ({ props, buildChild }) => (
   <button
     type="button"
     className={cn(buttonVariants({ variant: VARIANT[props.variant as string] ?? "default", size: SIZE[props.size as string] ?? "default" }))}
@@ -45,6 +53,10 @@ export const ButtonRender: FC<any> = ({ props }) => (
     title={props.tooltip}
     onClick={() => props.action?.()}
   >
-    {String(props.label ?? "")}
+    {props.label != null
+      ? String(props.label)
+      : typeof props.child === "string"
+        ? buildChild?.(props.child)
+        : null}
   </button>
 );

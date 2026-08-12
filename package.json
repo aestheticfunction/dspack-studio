@@ -11,7 +11,7 @@
   "packageManager": "pnpm@10.25.0",
   "scripts": {
     "build": "pnpm -r --filter './packages/**' build",
-    "test": "pnpm -r --filter './packages/**' test",
+    "test": "pnpm build:contracts && pnpm -r --no-bail test",
     "build:contracts": "pnpm --filter @dspack-studio/contracts build:catalogs",
     "dev": "pnpm --filter web dev",
     "e2e": "pnpm --filter web build && playwright test",
