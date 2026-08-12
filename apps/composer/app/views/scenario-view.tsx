@@ -1,12 +1,16 @@
 "use client";
 
 /**
- * Scenario authoring: build .dsurface trees through forms constrained to the
- * contract's vocabulary (components + sub-components; props from the
- * declared descriptors), with the gates and the preview live on every edit.
- * A saved scenario IS a contract worked example — "there is no third example
- * format" — so authoring here simultaneously builds the few-shot corpus and
- * the emit/preview corpus.
+ * Surface authoring (the "Surfaces" view): build .dsurface trees through forms
+ * constrained to the contract's vocabulary (components + sub-components; props
+ * from the declared descriptors), with the gates and the preview live on every
+ * edit. A saved surface IS a contract worked example — "there is no third
+ * example format" — so authoring here simultaneously builds the few-shot
+ * corpus and the emit/preview corpus.
+ *
+ * The file, the component, and the data-testids keep their `scenario` history;
+ * only what a person reads changed (the ratified vocabulary: Surface, Flow,
+ * Step, Example).
  */
 import { useMemo, useState } from "react";
 import { buildVocabulary } from "@aestheticfunction/dspack-spec/lib/validate.mjs";
@@ -14,6 +18,7 @@ import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
+import { surfaceTitle } from "../surface-identity";
 import { browserEmit, lintOneSurface } from "../validation";
 
 const field = {
@@ -195,8 +200,8 @@ export function ScenarioView() {
     setRoot(structuredClone(example.surface?.root ?? { component: vocabOptions[0]?.id ?? "" }));
     setIssue(null);
   };
-  /** Copy a REFERENCE example into the project: the editor opens prefilled
-   *  with the id cleared, so saving mints a project-owned scenario — the
+  /** Copy a REFERENCE surface into the project: the editor opens prefilled
+   *  with the id cleared, so saving mints a project-owned surface — the
    *  canonical reference row itself is never edited in place. */
   const startCopy = (example: Record<string, any>) => {
     setEditing("(new)");
@@ -228,24 +233,25 @@ export function ScenarioView() {
   };
 
   if (editing === null) {
-    // Ownership first: the project's scenarios (accepted builds + authored
-    // here) are the primary list; the design-system reference's worked
-    // examples are a clearly labeled secondary corpus — available as few-shot
-    // and teaching context, never presented as the user's own work. In an
-    // EXAMPLE workspace, the reference corpus IS the content being shown.
+    // Ownership first: the project's own surfaces (accepted builds + authored
+    // here) are the primary list; the design system's reference surfaces are a
+    // clearly labeled secondary corpus — available as few-shot and teaching
+    // context, never presented as the user's own work. In an EXAMPLE
+    // workspace, the reference corpus IS the content being shown.
     const yours = isExample ? examples : referenceExampleIds ? examples.filter((e) => !referenceExampleIds.has(e.id)) : examples;
     const refs = isExample ? [] : referenceExampleIds ? examples.filter((e) => referenceExampleIds.has(e.id)) : [];
+    // The title leads; the canonical id stays beside it, small, for audit.
     const row = (e: Record<string, any>, isRef: boolean) => (
       <li key={e.id} style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }} data-testid={`scenario-${e.id}`}>
-        <span style={{ fontFamily: "var(--mono)", color: isRef ? "var(--fg-dim)" : "var(--info)" }}>{e.id}</span>
+        <span style={{ color: isRef ? "var(--fg-dim)" : "var(--fg)" }}>{surfaceTitle(e, e.id, 64)}</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{e.id}</span>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{e.intent}</span>
-        <span style={{ color: "var(--fg-body)", marginLeft: 8 }}>{e.name}</span>
         {isRef ? (
           <button
             className="st-link"
             style={{ marginLeft: 10, fontSize: 12 }}
             onClick={() => startCopy(e)}
-            title="Copy this reference example into the project and edit the copy"
+            title="Copy this reference surface into the project and edit the copy"
             data-testid={`copy-${e.id}`}
           >
             copy to project
@@ -260,11 +266,11 @@ export function ScenarioView() {
     return (
       <section>
         <ViewHeader
-          eyebrow="Scenarios"
-          lead="Worked examples for proving and refining what this project can build. A scenario proves an intent is buildable, previews the catalog, and seeds generation as its few-shot corpus."
+          eyebrow="Surfaces"
+          lead="Every screen this project has built or authored. A surface proves a governed context is buildable, previews in your design system, and becomes context the next build learns from."
         />
         <p className="af-label" style={{ margin: "14px 0 4px" }}>
-          {isExample ? "Example scenarios" : referenceExampleIds ? "Project scenarios" : "Scenarios"}
+          {isExample ? "Example surfaces" : "Your surfaces"}
         </p>
         {yours.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--fg-dim)" }} data-testid="scenarios-none-yet">
@@ -274,17 +280,17 @@ export function ScenarioView() {
           <ul style={{ listStyle: "none", padding: 0, fontSize: 13, margin: 0 }}>{yours.map((e) => row(e, false))}</ul>
         )}
         <button className="st-btn" style={{ marginTop: 10 }} onClick={startNew} disabled={intents.length === 0} data-testid="new-scenario">
-          New scenario
+          New surface
         </button>
-        {intents.length === 0 && <p style={{ fontSize: 12, color: "var(--warn)" }}>Author an intent first (Governance) — every scenario is bound to one.</p>}
+        {intents.length === 0 && <p style={{ fontSize: 12, color: "var(--warn)" }}>Author an intent first (Governance) — every surface is bound to one.</p>}
         {refs.length > 0 && (
           <div style={{ marginTop: 22 }} data-testid="scenarios-reference">
             <p className="af-label" style={{ margin: "0 0 4px", color: "var(--fg-dim)" }}>
-              Reference examples · {manifest?.name ?? "design system"}
+              Reference surfaces · {manifest?.name ?? "design system"}
             </p>
             <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 4px" }}>
-              The design system&rsquo;s own worked examples — teaching material and few-shot context. Copy one into the
-              project to make it yours.
+              The design system&rsquo;s own surfaces — teaching material, and context generation learns from. Copy one into
+              the project to make it yours.
             </p>
             <ul style={{ listStyle: "none", padding: 0, fontSize: 13, margin: 0 }}>{refs.map((e) => row(e, true))}</ul>
           </div>
@@ -297,7 +303,7 @@ export function ScenarioView() {
     <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(420px, 1fr) minmax(320px, 1fr)" }}>
       <div>
         <button className="st-link" onClick={() => setEditing(null)}>
-          ← scenarios
+          ← surfaces
         </button>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, margin: "10px 0" }}>
           <input style={field} placeholder="ex.id" value={meta.id} onChange={(e) => setMeta({ ...meta, id: e.target.value })} data-testid="scenario-id" />
@@ -306,7 +312,13 @@ export function ScenarioView() {
               <option key={i.id}>{i.id}</option>
             ))}
           </select>
-          <input style={field} placeholder="name" value={meta.name} onChange={(e) => setMeta({ ...meta, name: e.target.value })} />
+          <input
+            style={field}
+            placeholder="title — what this surface is called"
+            aria-label="Surface title"
+            value={meta.name}
+            onChange={(e) => setMeta({ ...meta, name: e.target.value })}
+          />
           <input style={field} placeholder="prompt a model would receive" value={meta.prompt} onChange={(e) => setMeta({ ...meta, prompt: e.target.value })} data-testid="scenario-prompt" />
         </div>
 
@@ -316,7 +328,7 @@ export function ScenarioView() {
         )}
 
         <button className="st-btn" style={{ marginTop: 8 }} disabled={!draftSurface || meta.id.length < 3 || lint.some((f) => f.severity === "error")} onClick={() => void save()} data-testid="save-scenario">
-          Save as worked example
+          Save surface
         </button>
         {lint.some((f) => f.severity === "error") && <span style={{ fontSize: 12, color: "var(--warn)", marginLeft: 8 }}>gates first</span>}
         {issue && <p style={{ fontSize: 12, color: "var(--err)" }}>{issue}</p>}

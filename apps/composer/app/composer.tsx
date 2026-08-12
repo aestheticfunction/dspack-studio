@@ -25,22 +25,26 @@ export type View =
   | "component"
   | "mapper"
   | "governance"
-  | "scenarios"
+  | "surfaces"
+  | "flows"
   | "validate"
   | "settings"
   | "connect"
   | "repository";
 
 /** The working views, shown in the nav only when a project is open. Their order
- *  is the product's, not the pipeline's: build, look, then the vocabulary and
- *  rules behind it. Catalog is the inventory; Components/Mapper drill in from it;
- *  Scenarios and Checks hang off Governance and Build. */
+ *  is the product's, not the pipeline's: make something, look at it, compose it
+ *  into a workflow — then the vocabulary and rules behind it. Catalog is the
+ *  inventory; Components/Mapper drill in from it; Checks hangs off Governance
+ *  and Build. Flows opens Preview on flow mode: one canvas, one implementation,
+ *  one click from anywhere. */
 const WORK_NAV: Array<{ id: View; label: string }> = [
   { id: "build", label: "Build" },
   { id: "preview", label: "Preview" },
+  { id: "surfaces", label: "Surfaces" },
+  { id: "flows", label: "Flows" },
   { id: "inventory", label: "Catalog" },
   { id: "governance", label: "Governance" },
-  { id: "scenarios", label: "Scenarios" },
   { id: "validate", label: "Checks" },
 ];
 
@@ -217,11 +221,12 @@ function Shell() {
           <div className="af-page" style={{ paddingTop: "clamp(20px,3vw,32px)" }}>
             {view === "build" && <BuildView />}
             {view === "preview" && <PreviewView />}
+            {view === "flows" && <PreviewView focus="flows" />}
             {view === "inventory" && <InventoryView onOpen={() => setView("component")} />}
             {view === "component" && <ComponentView />}
             {view === "mapper" && <MapperView />}
             {view === "governance" && <GovernanceView />}
-            {view === "scenarios" && <ScenarioView />}
+            {view === "surfaces" && <ScenarioView />}
             {view === "validate" && <ValidateView />}
             {view === "repository" && <RepositoryView onNavigate={(v) => setView(v as View)} />}
           </div>

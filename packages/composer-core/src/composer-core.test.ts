@@ -509,7 +509,7 @@ describe("build readiness (the runway to Build)", () => {
     expect(buildReadiness({ ...readyArgs(), findings: [finding("A1", "x", "error", "", "boom")] }).reason).toMatch(/gates not green/);
     const noExamples = readyArgs();
     noExamples.contract.examples = [];
-    expect(buildReadiness(noExamples).reason).toMatch(/no worked example/);
+    expect(buildReadiness(noExamples).reason).toMatch(/no surfaces yet/);
   });
 
   it("acknowledged casualties do not block building", () => {

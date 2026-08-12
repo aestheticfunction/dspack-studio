@@ -361,7 +361,7 @@ export function GovernanceView() {
 
           {exampleIds.length > 0 && (
             <>
-              <span style={label}>worked examples this rule cites</span>
+              <span style={label}>surfaces this rule cites</span>
               <MultiPick options={exampleIds} value={draft.examples} onChange={(v) => setDraft({ ...draft, examples: v })} />
             </>
           )}
@@ -378,7 +378,7 @@ export function GovernanceView() {
       <aside>
         <h3 style={{ fontFamily: "var(--hl)", fontSize: 13, textTransform: "uppercase", color: "var(--fg)" }}>Governance impact</h3>
         <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>
-          Every save re-lints all worked examples (S1–S3, the same linter generation runs under).
+          Every save re-lints every surface in the project (S1–S3, the same linter generation runs under).
         </p>
         {impact === null ? (
           <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Save an intent or rule to see what it fires on.</p>

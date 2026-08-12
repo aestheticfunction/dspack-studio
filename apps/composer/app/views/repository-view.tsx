@@ -44,7 +44,7 @@ function progressRows(state: ReturnType<typeof useComposer>): Array<{ label: str
     { label: "Mapping decided", done: unmapped === 0, detail: unmapped ? `${unmapped} component(s) neither mapped nor declared casualties` : "every component mapped or a declared casualty", view: "mapper" },
     { label: "Intents authored", done: intents > 0, detail: `${intents} intent(s) — the scoping vocabulary generation runs under`, view: "governance" },
     { label: "Rules authored", done: rules > 0, detail: `${rules} rule(s), each carrying its written rationale`, view: "governance" },
-    { label: "Worked examples", done: examples > 0, detail: `${examples} scenario(s) — the few-shot and preview corpus`, view: "scenarios" },
+    { label: "Surfaces", done: examples > 0, detail: `${examples} surface(s) — what Preview shows and what the next build learns from`, view: "surfaces" },
     { label: "Gates green", done: (emit?.ok ?? false) && gates.done, detail: gates.detail, view: "validate" },
   ];
 }

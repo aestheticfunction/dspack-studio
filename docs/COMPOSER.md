@@ -42,11 +42,11 @@ A project is identity + a **source**, and the working contract is always
 | `agent` | the connected repository's files on disk | the repository itself |
 
 **The canonical references are never mutated.** Accepted builds and authored
-scenarios land in a per-project delta (`composer.project.examples.<id>`),
+surfaces land in a per-project delta (`composer.project.examples.<id>`),
 merged over the base on open (`mergeExamples` — replace-by-id else append, so
 the owner's latest work is what scripted replay and the few-shot corpus
 reach). Provenance is by base membership (`referenceExampleIds`), never by id
-prefix, which is what lets Preview and Scenarios separate *yours* from the
+prefix, which is what lets Preview and Surfaces separate *yours* from the
 reference corpus honestly.
 
 Browser storage keys: `composer.projects.v1` (index), `composer.lastProject.v1`,

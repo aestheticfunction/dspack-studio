@@ -341,7 +341,7 @@ test("an intent with no example cannot borrow another intent's (#43)", async ({ 
   project.writeContract(doc);
   // Reconnect so the view sees the new intent, then force it via the advanced
   // governance-context override (goal-first infers by default; catalog authors
-  // can pin a context). 'onboarding' has no worked example.
+  // can pin a context). 'onboarding' has no surface of its own.
   await connect(page, project.root);
   await page.getByTestId("nav-build").click();
   await page.getByTestId("build-intent").selectOption("onboarding");
@@ -351,7 +351,7 @@ test("an intent with no example cannot borrow another intent's (#43)", async ({ 
   await expect(page.getByTestId("build-status")).toContainText(/latest outcome|turn/, { timeout: 30_000 });
   // Honest refusal, and nothing from the other intent was rendered.
   await expect(page.getByTestId("build-canvas-1")).toHaveCount(0);
-  await expect(page.locator("body")).toContainText(/worked example/i);
+  await expect(page.locator("body")).toContainText(/own surface/i);
 });
 
 test("two consecutive refinements each use the immediately prior surface, non-vacuously (#43)", async ({ page }) => {

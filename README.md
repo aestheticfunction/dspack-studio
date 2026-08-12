@@ -82,7 +82,7 @@ Both can be reachable at once. When the local agent is connected, Hosted AI stay
 ## Projects
 
 - **Your projects** holds only what you created or imported. **Examples** (on the same hub) are read-only reference projects — the design systems' own worked examples, scenarios, and governance — for learning: *Open example* to explore (changes are not kept), *Create copy* to start your own.
-- A project's source is a packaged **reference** (shadcn/ui or Astryx), an **imported** file, or a **connected repository** (through the agent). The canonical references are immutable; **your project owns its accepted surfaces** — a per-project authored delta layered over the base vocabulary. What you build and accept shows up in Preview and Scenarios as *yours*, seeds future generation, and survives reload.
+- A project's source is a packaged **reference** (shadcn/ui or Astryx), an **imported** file, or a **connected repository** (through the agent). The canonical references are immutable; **your project owns its accepted surfaces** — a per-project authored delta layered over the base vocabulary. What you build and accept shows up in Preview and Surfaces as *yours*, seeds future generation, and survives reload.
 - Full lifecycle: create, rename, duplicate, remove, switch; the last-opened project reopens on return.
 - **Portability:** *Export* (on the project card, and always in the top bar while a project is open) downloads a `<name>.composerproject.json` — the project's name, description, design system, contract, and profile, including your accepted surfaces. No machine paths, ids, or credentials ever travel in it. *Import a project…* on the hub restores it, ready to keep building.
 
@@ -115,10 +115,11 @@ The Composer UX and AI pipeline are shared; adapters for further design systems 
 | View | What it is |
 |---|---|
 | **Build** | Goal-first conversational authoring: describe → inferred governed context → generate → gates → render → refine → *Add to project* |
-| **Preview** | The project's own accepted surfaces (default), with the reference examples clearly separated; catalog export |
+| **Preview** | The project's own surfaces, drawn in its own design system by default, with the reference surfaces clearly separated; catalog export |
 | **Catalog** | The governed component vocabulary available to this project — what Composer is allowed to use, and how each maps to A2UI |
 | **Governance** | The intents, rules, and constraints governing generation and validation — why certain things are allowed or refused |
-| **Scenarios** | Project worked examples (yours), plus the clearly labeled reference corpus; hand-authoring with live gates |
+| **Surfaces** | Every screen this project has built or authored (yours), plus the clearly labeled reference corpus; hand-authoring with live gates |
+| **Flows** | Your surfaces composed into a walkable workflow — Preview, opened on flow mode |
 | **Checks** | The validation dashboard: contract + surface gates, findings, evidence |
 | **Settings** | Providers (Hosted / Local / Scripted) and appearance |
 | **Repository** | Repository-backed tools: discovery, rediscovery, the ownership ledger (agent projects only) |
