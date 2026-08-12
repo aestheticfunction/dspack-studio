@@ -116,8 +116,8 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
       {turn.plan.reason && <span> — {turn.plan.reason}</span>}
       {turn.modelRef === "scripted" && !turn.refinement && (
         <span style={{ display: "block", color: "var(--warn)", marginTop: 2 }}>
-          Scripted mode replays a representative example for this context — switch to a hosted or local model to generate
-          for your exact words.
+          Scripted mode replays a surface this project already has for this context — switch to a hosted or local model
+          to generate for your exact words.
         </span>
       )}
       {onChange && (
