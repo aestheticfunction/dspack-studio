@@ -18,7 +18,7 @@ import { registryFor, canvasScopeFor } from "../registries";
 import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel, type FlowPlan } from "@dspack-studio/composer-core";
 import { mintStepId, nextFlowId, type StepBinding } from "../flows";
 import { planFlow } from "../planning";
-import type { BuildTurn } from "../state";
+import type { BuildTurn, FlowBuildState } from "../state";
 import { useComposer } from "../state";
 import { blockingFindings, surfaceEntriesById, surfaceTitle } from "../surface-identity";
 import { Eyebrow } from "../ui";
@@ -391,8 +391,24 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
 }
 
 export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "validate") => void } = {}) {
-  const { mode, agentUp, contract, emit, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel, flows, saveFlows } =
-    useComposer();
+  const {
+    mode,
+    agentUp,
+    contract,
+    emit,
+    readiness,
+    buildTurns,
+    buildBusy,
+    buildModels,
+    selectableModels,
+    runBuild,
+    activeModel,
+    setActiveModel,
+    flows,
+    saveFlows,
+    flowComposition,
+    setFlowComposition,
+  } = useComposer();
   const [prompt, setPrompt] = useState("");
   // "" = auto: the governed context is INFERRED from the goal. A specific value
   // is an advanced override for catalog authors — never the normal prerequisite.
@@ -402,14 +418,24 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
   // untouched — this is an ACCEPT-time affordance on the intent-select pattern.
   const [intoStepKey, setIntoStepKey] = useState<string>("");
   /* ---- "Build a flow" (P4 Phase C) — OPT-IN; the default single-surface
-     path renders and behaves exactly as before until the toggle. ---- */
-  const [buildMode, setBuildMode] = useState<"surface" | "flow">("surface");
-  const [flowGoal, setFlowGoal] = useState("");
-  const [flowPlan, setFlowPlan] = useState<FlowPlan | null>(null);
+     path renders and behaves exactly as before until the toggle.
+
+     The mode, the goal, the plan and the plan's per-step build state live in
+     the PROVIDER, not here: this view unmounts on every navigation, and the
+     product's own pending-step copy sends people away mid-composition ("build
+     it from Build and accept into this step"). Held locally, that round trip
+     destroyed the plan and re-planning minted a second flow. `planBusy` stays
+     local on purpose — it is a transient in-flight flag, and the plan it is
+     waiting on lands in the provider either way. ---- */
+  const { mode: buildMode, goal: flowGoal, plan: flowPlan, build: flowBuild } = flowComposition;
+  const setBuildMode = (mode: "surface" | "flow") => setFlowComposition((c) => ({ ...c, mode }));
+  const setFlowGoal = (goal: string) => setFlowComposition((c) => ({ ...c, goal }));
+  const setFlowPlan = (next: FlowPlan | null | ((prev: FlowPlan | null) => FlowPlan | null)) =>
+    setFlowComposition((c) => ({ ...c, plan: typeof next === "function" ? next(c.plan) : next }));
+  const setFlowBuild = (
+    next: FlowBuildState | null | ((prev: FlowBuildState | null) => FlowBuildState | null),
+  ) => setFlowComposition((c) => ({ ...c, build: typeof next === "function" ? next(c.build) : next }));
   const [planBusy, setPlanBusy] = useState(false);
-  // The accepted plan's created flow + its minted step ids (index-aligned
-  // with the frozen plan), and the sequential driver's position.
-  const [flowBuild, setFlowBuild] = useState<{ flowId: string; stepIds: string[]; running: boolean; at: number | null } | null>(null);
   const intents = ((contract?.intents ?? []) as Array<{ id: string }>).map((i) => i.id);
   const streamStatus = useRef<HTMLParagraphElement>(null);
   const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
