@@ -166,7 +166,7 @@ Published dependencies doing the heavy lifting: `@aestheticfunction/dspack-gen` 
 
 ```sh
 pnpm typecheck                                                # whole repo
-pnpm test                                                     # package unit tests
+pnpm test                                                     # EVERY workspace test script (the exact command CI runs)
 pnpm --filter composer test                                   # composer unit tests
 pnpm --filter agent test                                      # agent unit tests
 pnpm --filter composer build                                  # static export → apps/composer/out

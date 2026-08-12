@@ -49,7 +49,7 @@ Ollama if present, and "scripted" mode is fully deterministic.
 ## Tests
 
 ```sh
-pnpm test                 # package unit tests
+pnpm test                 # EVERY workspace test script (this is what CI runs)
 pnpm -r typecheck
 pnpm e2e                  # builds the static export, runs Playwright against it
 ```
