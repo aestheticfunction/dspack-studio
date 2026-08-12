@@ -15,14 +15,33 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { registryFor, canvasScopeFor } from "../registries";
-import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel } from "@dspack-studio/composer-core";
-import type { StepBinding } from "../flows";
+import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel, type FlowPlan } from "@dspack-studio/composer-core";
+import { mintStepId, nextFlowId, type StepBinding } from "../flows";
+import { planFlow } from "../planning";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
 import { Eyebrow } from "../ui";
 import { browserEmit } from "../validation";
 
 const GATE_COLOR: Record<string, string> = { PASS: "var(--ok)", FAIL: "var(--err)", SKIPPED: "var(--fg-dim)" };
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** Spacing between sequential flow-step builds (the P3a burst finding): the
+ *  driver NEVER fires two builds concurrently, and model providers get 8s of
+ *  air between steps. Scripted is deterministic with zero model calls — no
+ *  provider to protect — so it runs back-to-back (still strictly sequential). */
+const stepSpacingMs = (modelRef: string): number => (modelRef === "scripted" ? 0 : 8000);
+
+const field = {
+  fontFamily: "var(--mono)",
+  fontSize: 12,
+  background: "var(--bg-1)",
+  border: "1px solid var(--line)",
+  color: "var(--fg)",
+  padding: "4px 6px",
+  borderRadius: 2,
+} as const;
 
 /** Governance in plain language — S1/S2/S3 are implementation codes; a first-time
  *  user reads outcomes. The deterministic evidence is unchanged; the raw gates,
@@ -175,6 +194,11 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 
 function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: StepBinding }) {
   const { acceptBuildTurn, buildBusy, busy, mode, isExample } = useComposer();
+  // Accept targeting: the header "flow step" select (an explicit choice)
+  // wins; otherwise a "Build a flow" turn is PRE-TARGETED to the step it was
+  // built for (Phase C driver hint). Plain accepts stay plain.
+  const binding =
+    intoFlowStep ?? (turn.flowStepHint ? { flowId: turn.flowStepHint.flowId, stepId: turn.flowStepHint.stepId } : undefined);
   // Blank by default: identity is minted from the contract ON DISK, so a
   // reload or a second tab can never collide with saved work (#42).
   const [exampleId, setExampleId] = useState("");
@@ -331,7 +355,7 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
               className="st-btn"
               disabled={locked}
               aria-label={`Accept turn ${turn.id} into the project${exampleId ? ` with id ${exampleId}` : ""}`}
-              onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined, intoFlowStep)}
+              onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined, binding)}
               data-testid={`build-accept-${turn.id}`}
             >
               Add to project
@@ -343,6 +367,9 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
               : isExample
                 ? "Kept for this session only — duplicate this example into your projects to keep what you build."
                 : "Saves to this project in your browser as a worked example — it appears in Preview and Scenarios, and seeds future generation."}
+            {!intoFlowStep && turn.flowStepHint && (
+              <> Accepting also points flow step &ldquo;{turn.flowStepHint.title}&rdquo; at this surface.</>
+            )}
           </p>
         </div>
       )}
@@ -358,7 +385,7 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
 }
 
 export function BuildView() {
-  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel, flows } =
+  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel, flows, saveFlows } =
     useComposer();
   const [prompt, setPrompt] = useState("");
   // "" = auto: the governed context is INFERRED from the goal. A specific value
@@ -368,6 +395,15 @@ export function BuildView() {
   // that flow step to the minted surface (P4 Phase B). Generation itself is
   // untouched — this is an ACCEPT-time affordance on the intent-select pattern.
   const [intoStepKey, setIntoStepKey] = useState<string>("");
+  /* ---- "Build a flow" (P4 Phase C) — OPT-IN; the default single-surface
+     path renders and behaves exactly as before until the toggle. ---- */
+  const [buildMode, setBuildMode] = useState<"surface" | "flow">("surface");
+  const [flowGoal, setFlowGoal] = useState("");
+  const [flowPlan, setFlowPlan] = useState<FlowPlan | null>(null);
+  const [planBusy, setPlanBusy] = useState(false);
+  // The accepted plan's created flow + its minted step ids (index-aligned
+  // with the frozen plan), and the sequential driver's position.
+  const [flowBuild, setFlowBuild] = useState<{ flowId: string; stepIds: string[]; running: boolean; at: number | null } | null>(null);
   const intents = ((contract?.intents ?? []) as Array<{ id: string }>).map((i) => i.id);
   const streamStatus = useRef<HTMLParagraphElement>(null);
   const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
@@ -391,6 +427,81 @@ export function BuildView() {
     setPrompt("");
   };
 
+  /* ---------------- "Build a flow" planning + sequential driver ---------------- */
+
+  const planTheFlow = async () => {
+    if (!contract || !flowGoal.trim() || planBusy) return;
+    setPlanBusy(true);
+    setFlowBuild(null); // a fresh plan starts a fresh composition session
+    try {
+      setFlowPlan(await planFlow(flowGoal.trim(), activeModel, contract));
+    } finally {
+      setPlanBusy(false);
+    }
+  };
+
+  const patchPlanStep = (at: number, patch: Partial<FlowPlan["steps"][number]>) =>
+    setFlowPlan((p) => (p ? { ...p, steps: p.steps.map((s, i) => (i === at ? { ...s, ...patch } : s)) } : p));
+
+  const movePlanStep = (at: number, delta: -1 | 1) =>
+    setFlowPlan((p) => {
+      if (!p) return p;
+      const to = at + delta;
+      if (to < 0 || to >= p.steps.length) return p;
+      const steps = p.steps.slice();
+      [steps[at], steps[to]] = [steps[to], steps[at]];
+      return { ...p, steps };
+    });
+
+  const removePlanStep = (at: number) => setFlowPlan((p) => (p ? { ...p, steps: p.steps.filter((_, i) => i !== at) } : p));
+
+  const addPlanStep = () =>
+    setFlowPlan((p) => (p ? { ...p, steps: [...p.steps, { title: `Step ${p.steps.length + 1}`, goal: "", intent: intents[0] ?? "" }] } : p));
+
+  /** ONE step's ordinary build, tagged with the step it builds for. Used by
+   *  the sequential driver and by the per-step resume/re-run buttons. */
+  const driveStep = async (at: number, flowId: string, stepIds: string[], plan: FlowPlan) => {
+    const step = plan.steps[at];
+    const stepId = stepIds[at];
+    if (!step || !stepId) return "not-run" as const;
+    return runBuild({
+      goal: step.goal.trim() || step.title,
+      modelRef: activeModel,
+      intentOverride: step.intent,
+      flowStepHint: { flowId, stepId, title: step.title },
+    });
+  };
+
+  /**
+   * Create the flow IMMEDIATELY with every step PENDING (it exists, previews
+   * as an outline, exports, lints as pending), then drive the step builds
+   * SEQUENTIALLY — never two in flight, spaced for model providers (the P3a
+   * burst finding). Each result arrives as an ordinary turn with the normal
+   * Accept, pre-targeted to its step; a failure stops the drive and the
+   * remaining steps stay pending (resume per step below).
+   */
+  const acceptPlan = async () => {
+    if (!flowPlan || flowPlan.steps.length === 0 || planBusy || buildBusy || flowBuild?.running) return;
+    const plan = flowPlan; // frozen for this drive; the editor locks while running
+    const flowId = nextFlowId(flows.map((f) => f.id));
+    const taken = new Set<string>();
+    const flowSteps = plan.steps.map((s) => {
+      const stepId = mintStepId(s.title, taken);
+      taken.add(stepId);
+      return { id: stepId, title: s.title, surfaceId: "" };
+    });
+    saveFlows([...flows, { id: flowId, name: plan.name.trim() || "Untitled flow", description: flowGoal.trim().slice(0, 240), steps: flowSteps }]);
+    const stepIds = flowSteps.map((s) => s.id);
+    setFlowBuild({ flowId, stepIds, running: true, at: 0 });
+    for (let i = 0; i < plan.steps.length; i++) {
+      if (i > 0 && stepSpacingMs(activeModel) > 0) await sleep(stepSpacingMs(activeModel));
+      setFlowBuild((fb) => (fb ? { ...fb, at: i } : fb));
+      const outcome = await driveStep(i, flowId, stepIds, plan);
+      if (outcome !== "passed") break; // the failure turn tells the story; later steps stay pending
+    }
+    setFlowBuild((fb) => (fb ? { ...fb, running: false, at: null } : fb));
+  };
+
   if (!readiness.ready) {
     return (
       <section>
@@ -410,32 +521,189 @@ export function BuildView() {
         Describe what you want, in your own words. Composer works out the governed context, builds it from this
         project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
       </p>
-
-      <div style={{ display: "flex", gap: 8, margin: "20px 0 8px" }}>
-        <input
-          className="af-input af-input--mono"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit(false)}
-          placeholder="e.g. a form to invite teammates by email · a confirmation for deleting a project · a table of orders"
-          aria-label="Describe what you want to build"
-          style={{ flex: 1 }}
-          data-testid="build-prompt"
-        />
-        <button className="st-btn st-btn--primary st-btn--lg" disabled={buildBusy || !prompt.trim()} onClick={() => submit(false)} aria-label="Build a governed surface for this goal" data-testid="build-run">
-          Build
-        </button>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
         <button
-          className="st-btn st-btn--dashed st-btn--lg"
-          disabled={buildBusy || !prompt.trim() || !canRefine}
-          onClick={() => submit(true)}
-          aria-label="Refine the previous surface with this instruction"
-          title={canRefine ? "Applies this instruction to the previous surface; re-runs every gate" : "Build something first"}
-          data-testid="build-refine"
+          className={`st-btn st-btn--dashed${buildMode === "flow" ? " st-btn--active" : ""}`}
+          onClick={() => setBuildMode(buildMode === "flow" ? "surface" : "flow")}
+          aria-pressed={buildMode === "flow"}
+          title="Decompose one workflow goal into an editable plan of steps, each built through the ordinary governed pipeline."
+          data-testid="build-mode-flow"
         >
-          Refine
+          {buildMode === "flow" ? "← back to single surface" : "Build a flow…"}
         </button>
+        {buildMode === "flow" && (
+          <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+            one workflow goal → an editable plan → ordinary per-step builds. Nothing new is generated in one shot.
+          </span>
+        )}
       </div>
+
+      {buildMode === "surface" ? (
+        <div style={{ display: "flex", gap: 8, margin: "20px 0 8px" }}>
+          <input
+            className="af-input af-input--mono"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit(false)}
+            placeholder="e.g. a form to invite teammates by email · a confirmation for deleting a project · a table of orders"
+            aria-label="Describe what you want to build"
+            style={{ flex: 1 }}
+            data-testid="build-prompt"
+          />
+          <button className="st-btn st-btn--primary st-btn--lg" disabled={buildBusy || !prompt.trim()} onClick={() => submit(false)} aria-label="Build a governed surface for this goal" data-testid="build-run">
+            Build
+          </button>
+          <button
+            className="st-btn st-btn--dashed st-btn--lg"
+            disabled={buildBusy || !prompt.trim() || !canRefine}
+            onClick={() => submit(true)}
+            aria-label="Refine the previous surface with this instruction"
+            title={canRefine ? "Applies this instruction to the previous surface; re-runs every gate" : "Build something first"}
+            data-testid="build-refine"
+          >
+            Refine
+          </button>
+        </div>
+      ) : (
+        <div style={{ border: "1px dashed var(--line)", borderRadius: 4, padding: "12px 14px", margin: "20px 0 8px" }} data-testid="flow-composer">
+          <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 8px" }}>
+            Describe the whole journey. Composer proposes an editable outline; every step then builds through the ordinary
+            governed pipeline — same gates, same Accept, one step at a time.
+          </p>
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+            <textarea
+              className="af-input af-input--mono"
+              rows={3}
+              value={flowGoal}
+              onChange={(e) => setFlowGoal(e.target.value)}
+              placeholder="e.g. Browse the service catalog. Create an estimate for the chosen package. Review and confirm the order. See the created project."
+              aria-label="Describe the workflow to compose"
+              style={{ flex: 1, resize: "vertical" }}
+              data-testid="build-flow-goal"
+            />
+            <button
+              className="st-btn st-btn--primary"
+              disabled={planBusy || !flowGoal.trim()}
+              onClick={() => void planTheFlow()}
+              data-testid="flow-plan-run"
+            >
+              {planBusy ? "planning…" : "Plan the flow"}
+            </button>
+          </div>
+          {flowPlan && (
+            <div style={{ marginTop: 10 }} data-testid="flow-plan-editor">
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span className="af-label" style={{ margin: 0 }}>
+                  flow name
+                </span>
+                <input
+                  style={{ ...field, minWidth: 220 }}
+                  value={flowPlan.name}
+                  onChange={(e) => setFlowPlan((p) => (p ? { ...p, name: e.target.value } : p))}
+                  disabled={flowBuild?.running === true}
+                  aria-label="Flow name"
+                  data-testid="flow-plan-name"
+                />
+                <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="flow-plan-source">
+                  {flowPlan.source === "scripted"
+                    ? flowPlan.reason || "Deterministic outline — no model call."
+                    : "Proposed by the model — edit anything before building."}
+                </span>
+              </div>
+              {flowPlan.steps.map((step, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)" }}>{i + 1}.</span>
+                  <input
+                    style={{ ...field, minWidth: 140 }}
+                    value={step.title}
+                    onChange={(e) => patchPlanStep(i, { title: e.target.value })}
+                    disabled={flowBuild?.running === true}
+                    aria-label={`Step ${i + 1} title`}
+                    data-testid={`flow-plan-title-${i}`}
+                  />
+                  <input
+                    style={{ ...field, flex: 1, minWidth: 200 }}
+                    value={step.goal}
+                    onChange={(e) => patchPlanStep(i, { goal: e.target.value })}
+                    disabled={flowBuild?.running === true}
+                    placeholder="what this step's screen should do, in your words"
+                    aria-label={`Step ${i + 1} generation goal`}
+                    data-testid={`flow-plan-goal-${i}`}
+                  />
+                  <select
+                    style={field}
+                    value={step.intent}
+                    onChange={(e) => patchPlanStep(i, { intent: e.target.value })}
+                    disabled={flowBuild?.running === true}
+                    aria-label={`Step ${i + 1} governed context`}
+                    data-testid={`flow-plan-intent-${i}`}
+                  >
+                    {intents.map((id) => (
+                      <option key={id} value={id}>
+                        {id}
+                      </option>
+                    ))}
+                  </select>
+                  {flowBuild === null ? (
+                    <>
+                      <button className="st-link" disabled={i === 0} onClick={() => movePlanStep(i, -1)} aria-label={`Move step ${i + 1} up`} data-testid={`flow-plan-up-${i}`}>
+                        ↑
+                      </button>
+                      <button
+                        className="st-link"
+                        disabled={i === flowPlan.steps.length - 1}
+                        onClick={() => movePlanStep(i, 1)}
+                        aria-label={`Move step ${i + 1} down`}
+                        data-testid={`flow-plan-down-${i}`}
+                      >
+                        ↓
+                      </button>
+                      <button className="st-link" style={{ color: "var(--err)" }} onClick={() => removePlanStep(i)} aria-label={`Remove step ${i + 1}`} data-testid={`flow-plan-remove-${i}`}>
+                        remove
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="st-btn"
+                      disabled={flowBuild.running || buildBusy}
+                      onClick={() => void driveStep(i, flowBuild.flowId, flowBuild.stepIds, flowPlan)}
+                      title="Build (or re-build) just this step; accept the resulting turn into its step below."
+                      data-testid={`flow-build-step-${i}`}
+                    >
+                      build step
+                    </button>
+                  )}
+                </div>
+              ))}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+                {flowBuild === null && (
+                  <button className="st-btn st-btn--dashed" onClick={addPlanStep} data-testid="flow-plan-add">
+                    + add step
+                  </button>
+                )}
+                <span style={{ flex: 1 }} />
+                <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="flow-drive-status">
+                  {flowBuild === null
+                    ? `${flowPlan.steps.length} step${flowPlan.steps.length === 1 ? "" : "s"} — builds run one at a time${stepSpacingMs(activeModel) > 0 ? ", spaced 8s" : ""}.`
+                    : flowBuild.running
+                      ? `building step ${(flowBuild.at ?? 0) + 1} of ${flowBuild.stepIds.length} — sequential, never concurrent…`
+                      : "steps ran — accept each turn below (pre-targeted to its step), or re-build a step."}
+                </span>
+                {flowBuild === null && (
+                  <button
+                    className="st-btn st-btn--primary"
+                    disabled={flowPlan.steps.length === 0 || planBusy || buildBusy}
+                    onClick={() => void acceptPlan()}
+                    data-testid="flow-plan-accept"
+                  >
+                    Create flow &amp; build steps
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", margin: "2px 0 8px", fontSize: 12, color: "var(--fg-dim)" }}>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>

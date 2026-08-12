@@ -82,3 +82,11 @@ export {
   intentLabel,
   type GoalPlan,
 } from "./plan";
+export {
+  buildFlowPlanRequest,
+  flowPlanSchema,
+  flowPlanDeterministic,
+  reconcileFlowPlan,
+  type FlowPlan,
+  type FlowPlanStep,
+} from "./flow-plan";

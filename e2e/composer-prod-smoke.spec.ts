@@ -366,6 +366,68 @@ test("flows: create, walk, advance, persist, and round-trip through export/impor
   await expect(page.locator("[data-project-canvas]")).toContainText(/order/i); // step 2 now renders the re-bound surface
 });
 
+test("build a flow: plan deterministically, edit the plan, create the pending flow, build steps, walk it (P4 Phase C)", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Flow composer");
+
+  // Flow mode is opt-in: the DEFAULT Build render carries no flow-mode
+  // elements — the single-surface path is untouched until the toggle.
+  await expect(page.getByTestId("build-flow-goal")).toHaveCount(0);
+  await expect(page.getByTestId("flow-plan-run")).toHaveCount(0);
+  await expect(page.getByTestId("flow-plan-accept")).toHaveCount(0);
+
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-mode-flow").click();
+  await page
+    .getByTestId("build-flow-goal")
+    .fill("Show one order in full detail. Let people delete their account. Show a table of the remaining accounts.");
+  await page.getByTestId("flow-plan-run").click();
+
+  // Scripted planning is the labeled deterministic outline — and editable.
+  await expect(page.getByTestId("flow-plan-editor")).toBeVisible();
+  await expect(page.getByTestId("flow-plan-source")).toContainText(/deterministic/i);
+  await expect(page.getByTestId("flow-plan-title-2")).toBeVisible(); // 3 sentences → 3 steps
+  await page.getByTestId("flow-plan-remove-2").click();
+  await expect(page.getByTestId("flow-plan-title-2")).toHaveCount(0);
+  await page.getByTestId("flow-plan-title-0").fill("Review the order");
+  await page.getByTestId("flow-plan-intent-0").selectOption("record-detail");
+  await page.getByTestId("flow-plan-title-1").fill("Delete the account");
+  await page.getByTestId("flow-plan-intent-1").selectOption("destructive-action");
+
+  // Create flow & build steps: the flow exists immediately with PENDING
+  // steps, then each step runs as an ORDINARY sequential scripted build.
+  await page.getByTestId("flow-plan-accept").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+
+  // Accept turn 1 — PRE-TARGETED to its step by the driver (Phase B binding).
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await expect(page.getByTestId("build-accepted-1")).toContainText("Review the order");
+
+  // Half-built flow: step 2 is visibly PENDING in Preview — an outline state,
+  // never a crash, never a dangling error.
+  await page.getByTestId("nav-preview").click();
+  await page.getByTestId("flow-flow.flow-1").click();
+  await expect(page.getByTestId("flow-step-step.review-the-order")).toHaveClass(/st-btn--active/);
+  await expect(page.getByTestId("flow-step-step.delete-the-account")).toBeDisabled();
+  await expect(page.getByTestId("flow-step-step.delete-the-account")).toContainText(/pending/i);
+  await page.getByTestId("flow-next").click();
+  await expect(page.getByTestId("flow-step-pending")).toBeVisible();
+  await expect(page.getByTestId("flow-step-pending")).toContainText(/not built yet/i);
+
+  // Back in Build, accept turn 2 into ITS step; the flow completes.
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText("Delete the account");
+  await page.getByTestId("nav-preview").click();
+  await page.getByTestId("flow-flow.flow-1").click();
+  await expect(page.locator("[data-project-canvas]")).toContainText(/order/i);
+  await page.getByTestId("flow-next").click();
+  await expect(page.getByTestId("flow-step-step.delete-the-account")).toHaveClass(/st-btn--active/);
+  await expect(page.locator("[data-project-canvas]")).toContainText(/delete/i);
+});
+
 test("client traffic carries no private hosts, local paths, or key material", async ({ page }) => {
   const bodies: string[] = [];
   page.on("response", async (r) => {
