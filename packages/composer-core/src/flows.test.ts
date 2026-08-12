@@ -33,6 +33,15 @@ describe("flowSchema — the zod twin of the app's parseFlow", () => {
     }
   });
 
+  it("accepts an EMPTY surfaceId — a PENDING step, planned but not yet built (Phase C anchor)", () => {
+    const outline = { id: "flow.x", name: "X", steps: [{ id: "step.a", title: "A", surfaceId: "" }] };
+    const parsed = flowSchema.safeParse(outline);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data).toEqual(outline);
+    const asArray = parseFlows([outline]);
+    expect(asArray.ok).toBe(true);
+  });
+
   it("preserves the RESERVED `on` branching annotation without acting on it (F4)", () => {
     const withOn = {
       id: "flow.x",

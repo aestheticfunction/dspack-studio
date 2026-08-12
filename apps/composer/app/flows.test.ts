@@ -358,6 +358,32 @@ describe("flowLint — reference validation with the finding() shape, gate 'flow
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");
   });
+
+  it("an EMPTY surfaceId is a PENDING step (Phase C): warn 'not built yet', never a dangling error", () => {
+    const flows: Flow[] = [{ id: "flow.flow-1", name: "Outline", steps: [{ id: "step.a", title: "A", surfaceId: "" }] }];
+    const findings = flowLint(flows, ctx());
+    expect(findings).toHaveLength(1);
+    expect(findings[0].gate).toBe("flow");
+    expect(findings[0].severity).toBe("warn");
+    expect(findings[0].code).toBe("pending-step");
+    expect(findings[0].target).toBe("flow.flow-1/step.a");
+    expect(findings[0].message).toMatch(/not built yet/i);
+  });
+
+  it("a pending step never also warns about its advanceOn (one cause, one finding)", () => {
+    const flows: Flow[] = [
+      { id: "flow.flow-1", name: "Outline", steps: [{ id: "step.a", title: "A", surfaceId: "", advanceOn: ["anything"] }] },
+    ];
+    const findings = flowLint(flows, ctx());
+    expect(findings).toHaveLength(1);
+    expect(findings[0].code).toBe("pending-step");
+    expect(findings[0].severity).toBe("warn");
+  });
+
+  it("parseFlow accepts a pending step's empty surfaceId (shape anchor: '' is a state, not malformation)", () => {
+    const pending = { id: "flow.x", name: "X", steps: [{ id: "step.a", title: "A", surfaceId: "" }] };
+    expect(parseFlow(pending)).toEqual(pending);
+  });
 });
 
 describe("bindStepSurface — accept-into-step (P4 Phase B)", () => {
