@@ -537,42 +537,56 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
   if (!readiness.ready) {
     // A count is not a fix. When findings are what is blocking, name them:
     // the surface's own title, its canonical id, the gate's verbatim reason,
-    // and the way to the thing itself.
+    // and the way to the thing itself. Grouped by the thing they are about —
+    // one surface with three findings is one problem, not three — and capped,
+    // because Checks is where the exhaustive list belongs.
     const blockers = blockingFindings(emit?.findings ?? [], contract?.examples);
+    const byTarget = new Map<string, typeof blockers>();
+    for (const b of blockers) byTarget.set(b.id, [...(byTarget.get(b.id) ?? []), b]);
+    const shown = [...byTarget.entries()].slice(0, 6);
+    const hidden = byTarget.size - shown.length;
     return (
       <section>
         <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
         <p style={{ fontSize: 13, color: "var(--warn)" }} data-testid="build-not-ready">
           Not ready to build yet: {readiness.reason}
         </p>
-        {blockers.length > 0 && (
+        {shown.length > 0 && (
           <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", fontSize: 12 }} data-testid="build-blockers">
-            {blockers.map((b, i) => (
+            {shown.map(([id, group]) => (
               <li
-                key={`${b.id}-${b.code}-${i}`}
-                data-testid={b.id ? `build-blocker-${b.id}` : `build-blocker-${i}`}
+                key={id || "document"}
+                data-testid={id ? `build-blocker-${id}` : "build-blocker-document"}
                 style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }}
               >
-                <span style={{ color: "var(--fg)" }}>{b.title || "This project’s contract"}</span>
-                {b.id && <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{b.id}</span>}
-                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--warn)", marginLeft: 8 }}>
-                  {b.gate} {b.code}
-                </span>
-                {b.isSurface && onNavigate && (
+                <span style={{ color: "var(--fg)" }}>{group[0].title || "This project’s contract"}</span>
+                {id && <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{id}</span>}
+                {group[0].isSurface && onNavigate && (
                   <button
                     className="st-link"
                     style={{ marginLeft: 8, fontSize: 12 }}
                     onClick={() => onNavigate("surfaces")}
-                    title={`Open Surfaces, where “${b.title}” is listed`}
-                    data-testid={`build-blocker-open-${b.id}`}
+                    title={`Open Surfaces, where “${group[0].title}” is listed`}
+                    data-testid={`build-blocker-open-${id}`}
                   >
                     open in Surfaces
                   </button>
                 )}
-                <br />
-                <span style={{ color: "var(--fg-body)" }}>{b.message}</span>
+                {group.map((b, i) => (
+                  <p key={`${b.gate}-${b.code}-${i}`} style={{ margin: "2px 0 0" }}>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--warn)" }}>
+                      {b.gate} {b.code}
+                    </span>{" "}
+                    <span style={{ color: "var(--fg-body)" }}>{b.message}</span>
+                  </p>
+                ))}
               </li>
             ))}
+            {hidden > 0 && (
+              <li style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0", color: "var(--fg-dim)" }} data-testid="build-blockers-more">
+                and {hidden} more — Checks lists every one.
+              </li>
+            )}
           </ul>
         )}
         <p style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 10 }}>
