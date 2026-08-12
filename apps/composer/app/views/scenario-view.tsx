@@ -327,10 +327,29 @@ export function ScenarioView() {
           <NodeEditor node={root} onChange={setRoot} vocabOptions={vocabOptions} propsOf={propsOf} depth={0} />
         )}
 
-        <button className="st-btn" style={{ marginTop: 8 }} disabled={!draftSurface || meta.id.length < 3 || lint.some((f) => f.severity === "error")} onClick={() => void save()} data-testid="save-scenario">
+        <button
+          className="st-btn"
+          style={{ marginTop: 8 }}
+          disabled={!draftSurface || meta.id.length < 3 || lint.some((f) => f.severity === "error") || !!preview?.error}
+          onClick={() => void save()}
+          data-testid="save-scenario"
+        >
           Save surface
         </button>
         {lint.some((f) => f.severity === "error") && <span style={{ fontSize: 12, color: "var(--warn)", marginLeft: 8 }}>gates first</span>}
+        {/* The gates and the EMITTER are two different authorities, and a
+            surface has to satisfy both to be project work. A tree can break no
+            authored rule and still be unrenderable (a Card whose required
+            `child` is fed by children it does not have): saving that writes a
+            surface the project's own emit then refuses, from inside the
+            contract, with nothing pointing back here. The emitter's verbatim
+            reason is already on the right; it gates Save too. `should`-level
+            findings stay warnings — only refusals and errors block. */}
+        {preview?.error && (
+          <p style={{ fontSize: 12, color: "var(--err)", margin: "6px 0 0" }} data-testid="save-blocked-emit">
+            Your design system can&rsquo;t draw this yet, so it isn&rsquo;t saved: {preview.error}
+          </p>
+        )}
         {issue && <p style={{ fontSize: 12, color: "var(--err)" }}>{issue}</p>}
         {mode === "demo" && <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Saves to this project in your browser.</p>}
       </div>

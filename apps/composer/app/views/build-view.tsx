@@ -20,7 +20,7 @@ import { mintStepId, nextFlowId, type StepBinding } from "../flows";
 import { planFlow } from "../planning";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
-import { surfaceEntriesById, surfaceTitle } from "../surface-identity";
+import { blockingFindings, surfaceEntriesById, surfaceTitle } from "../surface-identity";
 import { Eyebrow } from "../ui";
 import { browserEmit } from "../validation";
 
@@ -390,8 +390,8 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
   );
 }
 
-export function BuildView() {
-  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel, flows, saveFlows } =
+export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "validate") => void } = {}) {
+  const { mode, agentUp, contract, emit, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel, flows, saveFlows } =
     useComposer();
   const [prompt, setPrompt] = useState("");
   // "" = auto: the governed context is INFERRED from the goal. A specific value
@@ -509,13 +509,55 @@ export function BuildView() {
   };
 
   if (!readiness.ready) {
+    // A count is not a fix. When findings are what is blocking, name them:
+    // the surface's own title, its canonical id, the gate's verbatim reason,
+    // and the way to the thing itself.
+    const blockers = blockingFindings(emit?.findings ?? [], contract?.examples);
     return (
       <section>
         <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
         <p style={{ fontSize: 13, color: "var(--warn)" }} data-testid="build-not-ready">
           Not ready to build yet: {readiness.reason}
         </p>
-        <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Set up your design system in Catalog and Governance, then build with it.</p>
+        {blockers.length > 0 && (
+          <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", fontSize: 12 }} data-testid="build-blockers">
+            {blockers.map((b, i) => (
+              <li
+                key={`${b.id}-${b.code}-${i}`}
+                data-testid={b.id ? `build-blocker-${b.id}` : `build-blocker-${i}`}
+                style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }}
+              >
+                <span style={{ color: "var(--fg)" }}>{b.title || "This project’s contract"}</span>
+                {b.id && <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{b.id}</span>}
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--warn)", marginLeft: 8 }}>
+                  {b.gate} {b.code}
+                </span>
+                {b.isSurface && onNavigate && (
+                  <button
+                    className="st-link"
+                    style={{ marginLeft: 8, fontSize: 12 }}
+                    onClick={() => onNavigate("surfaces")}
+                    title={`Open Surfaces, where “${b.title}” is listed`}
+                    data-testid={`build-blocker-open-${b.id}`}
+                  >
+                    open in Surfaces
+                  </button>
+                )}
+                <br />
+                <span style={{ color: "var(--fg-body)" }}>{b.message}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 10 }}>
+          {blockers.length > 0 ? (
+            <>
+              Fix or remove what&rsquo;s listed above — {onNavigate ? <button className="st-link" style={{ fontSize: 12 }} onClick={() => onNavigate("validate")} data-testid="build-blockers-checks">Checks</button> : "Checks"} runs the same gates over the whole project.
+            </>
+          ) : (
+            <>Set up your design system in Catalog and Governance, then build with it.</>
+          )}
+        </p>
       </section>
     );
   }
