@@ -1,5 +1,40 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { authorSurface, newProject } from "./support/composer-browser";
+
+const REFERENCE = fileURLToPath(new URL("../apps/composer/shadcn-v3-project/", import.meta.url));
+
+/**
+ * An exportable project carrying ONE surface the emitter refuses: the shipped
+ * shadcn vocabulary, plus a root Card with no children. Import is not
+ * emit-gated (a project file is vocabulary, not a build), so this is how a
+ * refused surface legitimately arrives in someone's browser — inherited from a
+ * teammate, or hand-edited — and it is the state Build has to explain.
+ */
+function unrenderableProject(): Record<string, unknown> {
+  const contract = JSON.parse(readFileSync(`${REFERENCE}shadcn-ui.dspack.json`, "utf8")) as Record<string, any>;
+  const profile = JSON.parse(readFileSync(`${REFERENCE}shadcn-v3.profile.json`, "utf8")) as Record<string, unknown>;
+  contract.examples = [
+    ...(contract.examples ?? []),
+    {
+      id: "ex.empty-card",
+      intent: "preference-settings",
+      name: "A card with nothing in it",
+      prompt: "a card with nothing in it",
+      surface: { dspackSurface: "0.1", system: contract.name, intent: "preference-settings", root: { component: "card", id: "root" } },
+    },
+  ];
+  return {
+    composerProjectExport: "0.1",
+    exportedAt: new Date(0).toISOString(),
+    name: "Inherited project",
+    description: "A project that arrived with a surface this design system cannot draw.",
+    previewRegistry: "shadcn",
+    contract,
+    profile,
+  };
+}
 
 /**
  * Surface authoring (the "Surfaces" view) — the second thing a new team does
@@ -125,6 +160,80 @@ test("a surface that fails a gate is refused out loud, saves nothing, and unbloc
   await expect(page.getByTestId("save-scenario")).toBeEnabled();
   await page.getByTestId("save-scenario").click();
   await expect(page.getByTestId("scenario-ex.unnamed-button")).toContainText("ex.unnamed-button");
+});
+
+test("a surface the emitter refuses cannot be saved, and saves as soon as it can render", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "shadcn", "Unrenderable surface");
+  await page.getByTestId("nav-surfaces").click();
+
+  // A root Card with no children breaks NO rule the contract authored — every
+  // S-gate passes — and the emitter still refuses it: Card's `child` prop is
+  // required and fed by children. The gate strip and the preview disagree, and
+  // Save has been following the gate strip. It must follow the refusal too:
+  // a surface the design system cannot render is not project work.
+  await authorSurface(page, { id: "empty-card", intent: "preference-settings", component: "card" });
+
+  await expect(page.getByTestId("lint-clean")).toContainText("S1 S2 S3 clean");
+  await expect(page.getByTestId("preview-refused")).toContainText("required prop 'child' has no value");
+  await expect(page.getByTestId("save-scenario")).toBeDisabled();
+  // The reason beside Save is the EMITTER's own words, not a generic apology.
+  await expect(page.getByTestId("save-blocked-emit")).toContainText("required prop 'child' has no value");
+
+  // Nothing is written: not on leaving the editor, and not across a reload.
+  await page.getByRole("button", { name: "← surfaces" }).click();
+  await expect(page.getByTestId("scenario-ex.empty-card")).toHaveCount(0);
+  await expect(page.getByTestId("scenarios-none-yet")).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await page.getByTestId("nav-surfaces").click();
+  await expect(page.getByTestId("scenario-ex.empty-card")).toHaveCount(0);
+
+  // And Build is not quietly blocked by work that was never saved.
+  await page.getByTestId("nav-build").click();
+  await expect(page.getByTestId("build-not-ready")).toHaveCount(0);
+  await page.getByTestId("nav-surfaces").click();
+
+  // Give the Card something to hold and the SAME surface saves — the emitter's
+  // refusal is live guidance, exactly like the gates.
+  await authorSurface(page, { id: "empty-card", intent: "preference-settings", component: "card" });
+  await page.getByTestId("add-child-0").click();
+  await page.getByTestId("node-component-1").selectOption("button");
+  await page.getByTestId("node-text-1").fill("Save preferences");
+  await expect(page.getByTestId("preview-refused")).toHaveCount(0);
+  await expect(page.getByTestId("save-blocked-emit")).toHaveCount(0);
+  await expect(page.getByTestId("save-scenario")).toBeEnabled();
+  await page.getByTestId("save-scenario").click();
+  await expect(page.getByTestId("scenario-ex.empty-card")).toContainText("ex.empty-card");
+});
+
+test("Build blocked by a finding names the surface that is blocking it", async ({ page }) => {
+  await page.goto("/");
+  // A project that arrives with a surface this design system cannot emit — a
+  // teammate's exported file, a hand-edited contract. Readiness refuses to
+  // build, and until now said only "gates not green — 1 error finding": true,
+  // and useless. It must name the surface, by id AND by the title a person
+  // reads, and offer the way to it.
+  await page.getByTestId("nav-projects").click();
+  await page.getByTestId("import-project-input").setInputFiles({
+    name: "inherited.composerproject.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(unrenderableProject()), "utf8"),
+  });
+  await expect(page.getByTestId("project-context")).toContainText("Inherited project");
+
+  await page.getByTestId("nav-build").click();
+  const notReady = page.getByTestId("build-not-ready");
+  await expect(notReady).toContainText("gates not green");
+
+  const blocker = page.getByTestId("build-blocker-ex.empty-card");
+  await expect(blocker).toContainText("A card with nothing in it");
+  await expect(blocker).toContainText("ex.empty-card");
+  await expect(blocker).toContainText("required prop 'child' has no value");
+
+  // And it is a way out, not a dead end: the offending surface is one click away.
+  await page.getByTestId("build-blocker-open-ex.empty-card").click();
+  await expect(page.getByTestId("scenario-ex.empty-card")).toContainText("A card with nothing in it");
 });
 
 test("an emitter refusal is stated in the preview panel instead of a blank canvas", async ({ page }) => {

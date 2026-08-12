@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { partitionSurfaces, surfaceEntriesById, surfaceIdentity, surfaceTitle } from "./surface-identity";
+import { finding } from "@dspack-studio/composer-core";
+import { blockingFindings, partitionSurfaces, surfaceEntriesById, surfaceIdentity, surfaceTitle } from "./surface-identity";
 
 /**
  * Surface identity is a PRODUCT rule, not a rename: `ex.chat-1` stays the
@@ -52,6 +53,76 @@ describe("surfaceTitle — the human label, id preserved as metadata", () => {
     expect(byId.get("ex.b")?.prompt).toBe("B");
     expect(byId.size).toBe(2);
     expect(surfaceEntriesById(undefined).size).toBe(0);
+  });
+});
+
+/**
+ * "gates not green — 1 error finding" is true and useless: it names a count,
+ * not a thing to fix. blockingFindings turns the findings that actually block
+ * a build into rows a person can act on — the surface's own title, its
+ * canonical id, and the gate's verbatim reason.
+ */
+describe("blockingFindings — what is blocking the build, by name", () => {
+  const examples = [
+    { id: "ex.empty-card", name: "A card with nothing in it" },
+    { id: "ex.orders-loading", prompt: "show that orders are loading" },
+  ];
+
+  it("resolves a finding's target to the surface's human title and keeps the id", () => {
+    const rows = blockingFindings([finding("A3", "emit-surface", "error", "ex.empty-card", "refusing to emit: …")], examples);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: "ex.empty-card",
+      title: "A card with nothing in it",
+      isSurface: true,
+      gate: "A3",
+      code: "emit-surface",
+      message: "refusing to emit: …",
+    });
+  });
+
+  it("resolves an S3 target that carries a node path after the surface id", () => {
+    const rows = blockingFindings([finding("S3", "rule.button-carries-text", "error", "ex.orders-loading $.root.children[0]", "boom")], examples);
+    expect(rows[0].id).toBe("ex.orders-loading");
+    expect(rows[0].title).toBe("show that orders are loading");
+    expect(rows[0].isSurface).toBe(true);
+  });
+
+  it("keeps non-surface blockers — they still block, they just are not surfaces", () => {
+    const rows = blockingFindings(
+      [
+        finding("coverage", "unclassified", "error", "badge", "component is neither mapped, adapted, omitted, nor a declared casualty"),
+        finding("document", "harness", "error", "", "contract is not valid against the schema"),
+      ],
+      examples,
+    );
+    expect(rows.map((r) => r.isSurface)).toEqual([false, false]);
+    expect(rows[0].id).toBe("badge");
+    expect(rows[0].title).toBe("badge");
+    expect(rows[1].id).toBe("");
+    expect(rows[1].title).toBe("");
+  });
+
+  it("reports only unresolved errors: warnings, info, and acknowledged casualties are not blockers", () => {
+    const acknowledged = {
+      ...finding("A3", "emit-surface", "error", "ex.docs-article-trail", "refusing to emit: …"),
+      acknowledged: { componentId: "breadcrumb", class: "cannot-represent", reason: "no A2UI equivalent" },
+    };
+    const rows = blockingFindings(
+      [
+        finding("S3", "rule.spinner-names-what-is-loading", "warn", "ex.orders-loading", "warned"),
+        finding("A3", "wrapped", "info", "ex.empty-card", "noted"),
+        acknowledged,
+      ],
+      examples,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it("is empty-safe: no findings, and findings against a project with no examples", () => {
+    expect(blockingFindings([], examples)).toEqual([]);
+    const rows = blockingFindings([finding("A3", "emit-surface", "error", "ex.empty-card", "refusing to emit: …")], undefined);
+    expect(rows[0]).toMatchObject({ id: "ex.empty-card", title: "ex.empty-card", isSurface: false });
   });
 });
 
