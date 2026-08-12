@@ -131,6 +131,10 @@ user. Layer boundaries: [renderer-abstraction.md](renderer-abstraction.md).
 portability, lifecycle, hygiene), `e2e/composer-agent.spec.ts` +
 `e2e/composer-build.spec.ts` (repository projects against real files).
 
-Historical record — how this was built, phase by phase, with the measurements
-that drove each decision — is in
-[IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md).
+Why the product is shaped this way — the thesis, the invariants, the deliberate
+non-goals — is in [ARCHITECTURE.md](ARCHITECTURE.md). The acceptance corpus that
+measures whether it actually builds enterprise software lives in
+[acceptance/gateway-corpus](../acceptance/gateway-corpus/README.md).
+
+[IMPLEMENTATION_LOG.md](IMPLEMENTATION_LOG.md) is a historical record of the
+exhibit era and predates Composer; it contains no Composer phases.
