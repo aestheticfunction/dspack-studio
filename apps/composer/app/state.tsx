@@ -1277,10 +1277,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
             setBuildTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, acceptFindings: findings } : t)));
             return;
           }
+          // The surface's TITLE is the goal that produced it — what a person
+          // reads in Preview, Surfaces, and flow pickers. Provenance is not
+          // lost: the minted `ex.chat-N` id carries it (B7).
           const entry: ExampleEntry = {
             id,
             intent: turn.intent,
-            name: `Chat: ${chain[0].slice(0, 60)}`,
+            name: chain[0].slice(0, 80),
             prompt,
             surface: turn.progress.surface,
           };
@@ -1295,8 +1298,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           );
           setNotice(
             (activeProjectId
-              ? `Accepted as '${id}' — saved to this project in your browser; it now seeds generation for '${turn.intent}'.`
-              : `Accepted as '${id}' for this session — duplicate this example into your projects to keep it.`) + bound.note,
+              ? `Saved “${entry.name}” (${id}) to this project — it is one of your surfaces now, and context the next '${turn.intent}' build learns from.`
+              : `Saved “${entry.name}” (${id}) for this session — duplicate this example into your projects to keep it.`) + bound.note,
           );
           return;
         }
@@ -1304,7 +1307,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         const result = await agentSaveExample(projectPath, {
           ...(exampleId ? { id: exampleId } : {}), // omitted ⇒ the agent mints a collision-free id
           intent: turn.intent,
-          name: `Chat: ${chain[0].slice(0, 60)}`,
+          name: chain[0].slice(0, 80), // the goal IS the surface's title (B7)
           prompt,
           surface: turn.progress.surface,
         });
@@ -1338,7 +1341,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
             t.id === turnId ? { ...t, accepted: savedId, acceptFindings: undefined, ...(bound.stepTitle ? { acceptedIntoStep: bound.stepTitle } : {}) } : t,
           ),
         );
-        setNotice(`Accepted as worked example '${savedId}' — it now seeds generation for '${turn.intent}'.` + bound.note);
+        setNotice(
+          `Saved “${(result.value.example as { name?: string } | undefined)?.name ?? savedId}” (${savedId}) to your repository — it is one of your surfaces now, and context the next '${turn.intent}' build learns from.` +
+            bound.note,
+        );
       } finally {
         decisionLock.current = false;
         setBusy(null);

@@ -97,3 +97,30 @@ export function canvasScopeFor(
 export function isNativeRegistry(id: string | undefined): id is PreviewRegistryId {
   return id === "shadcn" || id === "astryx";
 }
+
+/**
+ * The registry a project's Preview OPENS on: its own design system.
+ *
+ * A project that has a native registry should look like itself the moment you
+ * open it — the wireframe is the universal fallback and the explicit
+ * inspection mode, not the thing every project meets first. Falls back to
+ * wireframe only when the project has no native registry at all (a repository
+ * whose target has no renderers yet, an unrecognised value from an older
+ * export).
+ */
+export function defaultRegistryId(previewRegistry: string | undefined): PreviewRegistryId {
+  return isNativeRegistry(previewRegistry) ? previewRegistry : "wireframe";
+}
+
+/**
+ * Resolve a possibly-stale selection against the project that is open now.
+ * "wireframe" is always honoured (every catalog renders through it); the
+ * project's own native id is honoured; anything else — no choice yet, a
+ * registry belonging to a DIFFERENT project, a value from a future version —
+ * clamps to this project's default rather than rendering the wrong system.
+ */
+export function resolveRegistryId(selected: string | null | undefined, previewRegistry: string | undefined): PreviewRegistryId {
+  const fallback = defaultRegistryId(previewRegistry);
+  if (selected === "wireframe") return "wireframe";
+  return selected && selected === previewRegistry && isNativeRegistry(selected) ? selected : fallback;
+}

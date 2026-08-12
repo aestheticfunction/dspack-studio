@@ -20,6 +20,7 @@ import { mintStepId, nextFlowId, type StepBinding } from "../flows";
 import { planFlow } from "../planning";
 import type { BuildTurn } from "../state";
 import { useComposer } from "../state";
+import { surfaceEntriesById, surfaceTitle } from "../surface-identity";
 import { Eyebrow } from "../ui";
 import { browserEmit } from "../validation";
 
@@ -193,7 +194,12 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 }
 
 function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: StepBinding }) {
-  const { acceptBuildTurn, buildBusy, busy, mode, isExample } = useComposer();
+  const { acceptBuildTurn, buildBusy, busy, mode, isExample, contract } = useComposer();
+  // What the saved surface is CALLED — read back from the project's own
+  // record, so the confirmation says exactly what Preview and Surfaces say.
+  const savedTitle = turn.accepted
+    ? surfaceTitle(surfaceEntriesById(contract?.examples).get(turn.accepted), turn.accepted, 64)
+    : "";
   // Accept targeting: the header "flow step" select (an explicit choice)
   // wins; otherwise a "Build a flow" turn is PRE-TARGETED to the step it was
   // built for (Phase C driver hint). Plain accepts stay plain.
@@ -314,7 +320,7 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       {turn.acceptFindings && turn.acceptFindings.length > 0 && (
         <div data-testid={`build-accept-findings-${turn.id}`} style={{ border: "1px solid var(--err)", borderRadius: 2, padding: "8px 10px", marginTop: 8 }}>
           <p style={{ fontSize: 13, color: "var(--err)", margin: "0 0 4px" }}>
-            The agent refused to save this surface as a worked example.
+            This surface was refused — it is not saved to your project.
           </p>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 12 }}>
             {turn.acceptFindings.map((f, i) => (
@@ -346,8 +352,8 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
             <input
               value={exampleId}
               onChange={(e) => setExampleId(e.target.value)}
-              placeholder="(a free id is minted)"
-              aria-label={`Example id for turn ${turn.id} — leave blank to mint a collision-free id`}
+              placeholder="(an id is minted for you)"
+              aria-label={`Surface id for turn ${turn.id} — leave blank to mint a collision-free id`}
               style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", border: "1px solid var(--line)", color: "var(--fg)", padding: "5px 8px", borderRadius: 2 }}
               data-testid={`build-example-id-${turn.id}`}
             />
@@ -363,10 +369,10 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
           </div>
           <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 6 }}>
             {mode === "agent"
-              ? "Saves into your repository's contract on disk as a worked example."
+              ? "Saves this surface into your repository's contract on disk."
               : isExample
                 ? "Kept for this session only — duplicate this example into your projects to keep what you build."
-                : "Saves to this project in your browser as a worked example — it appears in Preview and Scenarios, and seeds future generation."}
+                : "Saves this surface to your project in your browser — it appears in Preview, Surfaces, and any flow you compose, and it becomes context the next build learns from."}
             {!intoFlowStep && turn.flowStepHint && (
               <> Accepting also points flow step &ldquo;{turn.flowStepHint.title}&rdquo; at this surface.</>
             )}
@@ -375,9 +381,9 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       )}
       {turn.accepted && (
         <p ref={accepted} tabIndex={-1} data-testid={`build-accepted-${turn.id}`} style={{ fontSize: 12, color: "var(--ok)" }}>
-          Accepted as <code>{turn.accepted}</code>
-          {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows this surface</>} — now part of this
-          intent's few-shot corpus.
+          Saved as &ldquo;{savedTitle}&rdquo; <code>{turn.accepted}</code>
+          {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows this surface</>} — it is one of
+          your project&rsquo;s surfaces, and context the next build learns from.
         </p>
       )}
     </article>

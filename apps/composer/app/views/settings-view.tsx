@@ -63,7 +63,7 @@ export function SettingsView() {
 
   const activeLabel = (() => {
     if (activeModel === "hosted-ai") return "Hosted · Claude Haiku";
-    if (activeModel === "scripted") return "Scripted · worked example";
+    if (activeModel === "scripted") return "Scripted · replays a surface";
     if (activeKind) return `Local · ${modelOf(activeModel)} (${activeKind})`;
     return activeModel || "—";
   })();
@@ -273,7 +273,7 @@ export function SettingsView() {
               </button>
             </div>
             <p className="af-hint">
-              Replays a worked example behind one deliberately-wrong first attempt — a deterministic tour of the
+              Replays a saved surface behind one deliberately-wrong first attempt — a deterministic tour of the
               governance actually working, with no model call.
             </p>
           </article>

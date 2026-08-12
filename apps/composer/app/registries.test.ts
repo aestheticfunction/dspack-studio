@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { planRegistry } from "@dspack-studio/a2ui-ingest";
-import { registryFor, nativeRegistryFor, wireframeFallbackNames } from "./registries";
+import { defaultRegistryId, registryFor, nativeRegistryFor, resolveRegistryId, wireframeFallbackNames } from "./registries";
 import shadcnEmit from "./demo/generated/emit.shadcn.json";
 import astryxEmit from "./demo/generated/emit.astryx.json";
 
@@ -50,5 +50,44 @@ describe("registryFor — wireframe fallback composition", () => {
     for (const name of Object.keys(native.custom)) {
       expect(merged.custom[name]).toBe(native.custom[name]);
     }
+  });
+});
+
+/**
+ * B5 — Preview opens on the project's OWN design system. Wireframe is the
+ * inspection mode and the fallback for a project that has no native one; it is
+ * no longer what every project meets first.
+ */
+describe("defaultRegistryId — a project previews as itself", () => {
+  it("defaults to the project's native registry when it has one", () => {
+    expect(defaultRegistryId("shadcn")).toBe("shadcn");
+    expect(defaultRegistryId("astryx")).toBe("astryx");
+  });
+
+  it("falls back to wireframe only when there is no native registry", () => {
+    expect(defaultRegistryId("wireframe")).toBe("wireframe");
+    expect(defaultRegistryId(undefined)).toBe("wireframe");
+    expect(defaultRegistryId("")).toBe("wireframe");
+    expect(defaultRegistryId("vue-someday")).toBe("wireframe");
+  });
+});
+
+describe("resolveRegistryId — a stale selection clamps safely", () => {
+  it("honours an explicit choice this project can render", () => {
+    expect(resolveRegistryId("wireframe", "shadcn")).toBe("wireframe"); // inspection mode stays available
+    expect(resolveRegistryId("shadcn", "shadcn")).toBe("shadcn");
+  });
+
+  it("clamps a selection carried over from ANOTHER project back to this one's default", () => {
+    expect(resolveRegistryId("astryx", "shadcn")).toBe("shadcn");
+    expect(resolveRegistryId("shadcn", "astryx")).toBe("astryx");
+    expect(resolveRegistryId("shadcn", undefined)).toBe("wireframe");
+  });
+
+  it("no selection, or an unknown one, is the project's default", () => {
+    expect(resolveRegistryId(null, "astryx")).toBe("astryx");
+    expect(resolveRegistryId(undefined, "shadcn")).toBe("shadcn");
+    expect(resolveRegistryId("not-a-registry", "shadcn")).toBe("shadcn");
+    expect(resolveRegistryId("not-a-registry", undefined)).toBe("wireframe");
   });
 });

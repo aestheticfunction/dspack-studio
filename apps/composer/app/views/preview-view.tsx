@@ -13,13 +13,23 @@
  * surface: same lookup, same canvas, same key pattern, same registries.
  * Advance-on-action is pure view-state (the same emitted action object the
  * log already receives); nothing is persisted, nothing reaches the artifact.
+ * `focus="flows"` is the Flows entry in the primary navigation: the same
+ * view, opened on flow mode — one implementation, not two canvases.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
 import { isPendingStep, mintStepId, missingSurfaceMessage, nextFlowId, pendingStepMessage, type Flow, type FlowStep } from "../flows";
-import { registryFor, canvasScopeFor, isNativeRegistry, wireframeFallbackNames, type PreviewRegistryId } from "../registries";
+import { partitionSurfaces, surfaceEntriesById, surfaceTitle } from "../surface-identity";
+import {
+  registryFor,
+  canvasScopeFor,
+  isNativeRegistry,
+  resolveRegistryId,
+  wireframeFallbackNames,
+  type PreviewRegistryId,
+} from "../registries";
 
 type RegistryId = "wireframe" | PreviewRegistryId;
 
@@ -91,9 +101,11 @@ const draftFrom = (flow: Flow): FlowDraft => ({
   })),
 });
 
-export function PreviewView() {
-  const { emit, manifest, referenceExampleIds, isExample, mode, activeProject, projectPath, flows, saveFlows } = useComposer();
-  const [registryId, setRegistryId] = useState<RegistryId>("wireframe");
+export function PreviewView({ focus }: { focus?: "flows" } = {}) {
+  const { contract, emit, manifest, referenceExampleIds, isExample, mode, activeProject, projectPath, flows, saveFlows } = useComposer();
+  // null = "no explicit choice yet" — the project's own design system draws
+  // it. An explicit pick survives until the project changes (B5).
+  const [registryId, setRegistryId] = useState<RegistryId | null>(null);
   const [canvasMode, setCanvasMode] = useState<"light" | "dark">("light");
   const [surfaceName, setSurfaceName] = useState<string | null>(null);
   const [actions, setActions] = useState<A2uiClientAction[]>([]);
@@ -105,15 +117,25 @@ export function PreviewView() {
 
   const catalog = emit?.catalog;
   const surfaces = (emit?.surfaces ?? []).filter((s) => s.messages);
-  // Ownership first: the project's OWN surfaces (accepted builds, authored
-  // scenarios) vs the design-system reference's worked examples. They are
-  // never mixed into one anonymous list, and Preview opens on the project's
-  // LATEST surface — what the user just built — not a reference example.
-  // In an EXAMPLE workspace the reference gallery IS the content on show.
-  const yoursRaw = referenceExampleIds ? surfaces.filter((s) => !referenceExampleIds.has(s.name)) : surfaces;
-  const refsRaw = referenceExampleIds ? surfaces.filter((s) => referenceExampleIds.has(s.name)) : [];
-  const yours = isExample ? surfaces : yoursRaw;
-  const referenceSurfaces = isExample ? [] : refsRaw;
+  // A surface a person reads by its TITLE — the goal that produced it, or the
+  // name someone authored — with `ex.chat-1` kept beside it for audit (B7).
+  const entriesById = useMemo(() => surfaceEntriesById(contract?.examples), [contract]);
+  const titleOf = (id: string) => surfaceTitle(entriesById.get(id), id);
+  // Ownership first: the project's OWN surfaces (accepted builds, surfaces
+  // authored here) vs the design system's reference surfaces. They are never
+  // mixed into one anonymous list, refusals are demoted by owner rather than
+  // hidden, and Preview opens on the project's LATEST surface — what the user
+  // just built. In an EXAMPLE workspace the reference gallery IS the content.
+  const groups = useMemo(
+    () =>
+      partitionSurfaces(
+        (emit?.surfaces ?? []).map((s) => (s.messages ? s : { ...s, error: s.error ?? "the emitter produced nothing for this surface" })),
+        { referenceIds: referenceExampleIds, isExample },
+      ),
+    [emit, referenceExampleIds, isExample],
+  );
+  const yours = groups.yours;
+  const referenceSurfaces = groups.reference;
 
   // Flows are a PROJECT feature: browser projects persist them in the
   // per-project store, connected repository projects in project.json through
@@ -141,14 +163,24 @@ export function PreviewView() {
     advanceRef.current = { flow: currentFlow, stepIndex: flowPos?.stepIndex ?? 0 };
   }, [currentFlow, flowPos]);
 
-  // Switching projects must never carry a stale walk or draft across —
-  // including reconnecting to a DIFFERENT repository (projectPath changes).
+  // Switching projects must never carry a stale walk, draft, or registry
+  // choice across — including reconnecting to a DIFFERENT repository
+  // (projectPath changes). The next project opens as itself.
   const projectId = activeProject?.id ?? null;
   useEffect(() => {
     setFlowPos(null);
     setDraft(null);
     setPickSurface("");
+    setRegistryId(null);
   }, [projectId, projectPath]);
+
+  // The Flows nav entry opens this view on flow mode: the first flow starts
+  // walking straight away, so "Flows" lands on a flow rather than on a hint.
+  const firstFlowId = flows[0]?.id;
+  useEffect(() => {
+    if (focus !== "flows" || !firstFlowId) return;
+    setFlowPos((pos) => pos ?? { flowId: firstFlowId, stepIndex: 0 });
+  }, [focus, firstFlowId]);
 
   /** Every action feeds the log exactly as before; in flow mode a name the
    *  CURRENT step listed in advanceOn also advances the walk (F2 — pure view
@@ -162,12 +194,13 @@ export function PreviewView() {
     setFlowPos((pos) => (pos && pos.flowId === flow.id ? { ...pos, stepIndex: nextIndex } : pos));
   };
 
-  // The registry choices are wireframe (always) + the project's native design
-  // system, whichever it is. A stale selection from a previous project clamps
-  // back to wireframe rather than rendering the wrong catalog.
+  // The registry choices are the project's own design system (when it has
+  // one) and wireframe, in that order — a project previews as ITSELF, and
+  // wireframe is the inspection mode you switch INTO. A stale selection from
+  // a previous project clamps to this project's default (B5).
   const nativeId = isNativeRegistry(manifest?.previewRegistry) ? manifest.previewRegistry : undefined;
-  const registryChoices: RegistryId[] = nativeId ? ["wireframe", nativeId] : ["wireframe"];
-  const activeRegistryId: RegistryId = registryChoices.includes(registryId) ? registryId : "wireframe";
+  const registryChoices: RegistryId[] = nativeId ? [nativeId, "wireframe"] : ["wireframe"];
+  const activeRegistryId: RegistryId = resolveRegistryId(registryId, manifest?.previewRegistry);
 
   const registry: Registry | null = useMemo(() => {
     if (!catalog) return null;
@@ -184,10 +217,38 @@ export function PreviewView() {
   }
 
   const failed = (emit?.surfaces ?? []).filter((s) => s.error);
-  // The merged corpus a flow step may reference: every emitted surface,
-  // refused ones included (a step over a refusal renders the refusal).
-  const corpus = (emit?.surfaces ?? []).map((s) => ({ name: s.name, refused: Boolean(s.error) }));
-  const pickedSurface = pickSurface || corpus[0]?.name || "";
+  // The corpus a flow step may reference: every emitted surface, refused ones
+  // included (a step over a refusal renders the refusal) — offered in the
+  // same ownership order as every other picker (B8).
+  const pickedSurface = pickSurface || groups.ordered[0]?.name || "";
+  /** One option row in the step picker: the title leads, the id follows. */
+  const stepOption = (s: { name: string; error?: string }) => (
+    <option key={s.name} value={s.name}>
+      {titleOf(s.name)} · {s.name}
+      {s.error ? " (can't be emitted)" : ""}
+    </option>
+  );
+
+  /** One surface in a picker: the human title leads, the canonical id stays
+   *  beside it, small — readable at a glance, auditable without a click. */
+  const surfaceButton = (name: string, isReference = false) => (
+    <button
+      key={name}
+      className={`st-btn${isReference ? " st-btn--dashed" : ""}${!currentFlow && (active?.name ?? "") === name ? " st-btn--active" : ""}`}
+      onClick={() => {
+        setFlowPos(null); // choosing a surface leaves flow mode
+        setSurfaceName(name);
+      }}
+      data-testid={`surface-${name}`}
+      title={name}
+      style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}
+    >
+      {/* The title is prose, so it opts out of the button language's mono
+          uppercase; the id keeps it, small and quiet, as metadata. */}
+      <span style={{ fontFamily: "var(--sans)", fontSize: 13, textTransform: "none", letterSpacing: 0 }}>{titleOf(name)}</span>
+      <span style={{ fontSize: 10, opacity: 0.6 }}>{name}</span>
+    </button>
+  );
 
   const openEditorFor = (flow: Flow) => setDraft(draftFrom(flow));
 
@@ -265,7 +326,7 @@ export function PreviewView() {
     <>
       {!isExample && referenceExampleIds?.has(surf.name) && (
         <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 6px" }}>
-          Reference example from {manifest?.name ?? "the design system"} — teaching material, not part of your project&rsquo;s work.
+          Reference surface from {manifest?.name ?? "the design system"} — teaching material, not part of your project&rsquo;s work.
         </p>
       )}
       <div
@@ -292,9 +353,19 @@ export function PreviewView() {
   return (
     <section>
       <ViewHeader
-        eyebrow="Preview"
-        lead="Your emitted surfaces, rendered through the design system — or the wireframe, the universal fallback. Export the catalog to take it anywhere."
+        eyebrow={focus === "flows" ? "Flows" : "Preview"}
+        lead={
+          focus === "flows"
+            ? "Your surfaces, composed into a walkable workflow. Pick a flow to walk it step by step, or compose a new one from the surfaces you have built."
+            : "Your surfaces, drawn in your own design system — or in the wireframe, the universal fallback. Export the catalog to take it anywhere."
+        }
       />
+      {/* The honest 1.0 boundary, stated once where it applies (C10b). */}
+      <p data-testid="preview-boundary" style={{ fontSize: 12, color: "var(--fg-dim)", margin: "-8px 0 12px", maxWidth: 720 }}>
+        What you walk here is a governed <em>representation</em>: real components, real rules, real emitted actions. Binding
+        those actions to live data and carrying state between steps is the next thing being built — today a flow tells the
+        story rather than running it.
+      </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>registry:</span>
         {registryChoices.map((id) => (
@@ -337,8 +408,8 @@ export function PreviewView() {
             <span className="af-label" style={{ margin: 0 }}>
               Your flows
             </span>
-            {flows.length === 0 && (
-              <span style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+            {flows.length === 0 && focus !== "flows" && (
+              <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="flows-empty">
                 none yet — compose your surfaces into a walkable, multi-step experience.
               </span>
             )}
@@ -368,58 +439,57 @@ export function PreviewView() {
             )}
           </div>
         )}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} data-testid="preview-your-surfaces">
           <span className="af-label" style={{ margin: 0 }}>
-            {isExample ? "Example surfaces" : referenceExampleIds ? "Your surfaces" : "Project surfaces"}
+            {isExample ? "Example surfaces" : "Your surfaces"}
           </span>
           {yours.length === 0 ? (
             <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="preview-no-project-surfaces">
               none yet — build something in Build, then “Add to project”.
             </span>
           ) : (
-            yours.map((s) => (
-              <button
-                key={s.name}
-                className={`st-btn${!currentFlow && (active?.name ?? "") === s.name ? " st-btn--active" : ""}`}
-                onClick={() => {
-                  setFlowPos(null); // choosing a surface leaves flow mode
-                  setSurfaceName(s.name);
-                }}
-                data-testid={`surface-${s.name}`}
-              >
-                {s.name}
-              </button>
-            ))
+            yours.map((s) => surfaceButton(s.name))
           )}
+          {/* The project's OWN refusals stay in front of the person whose work
+              they are — demoted never means hidden. */}
+          {groups.yoursRefused.map((s) => (
+            <span
+              key={s.name}
+              title={s.error}
+              style={{ fontSize: 12, color: "var(--err)" }}
+              data-testid={`surface-refused-${s.name}`}
+            >
+              {titleOf(s.name)} — can&rsquo;t be emitted
+            </span>
+          ))}
         </div>
         {referenceSurfaces.length > 0 && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} data-testid="preview-reference-surfaces">
             <span className="af-label" style={{ margin: 0, color: "var(--fg-dim)" }}>
-              Reference examples · {manifest?.name ?? "design system"}
+              Reference surfaces · {manifest?.name ?? "design system"}
             </span>
-            {referenceSurfaces.map((s) => (
-              <button
-                key={s.name}
-                className={`st-btn st-btn--dashed${!currentFlow && (active?.name ?? "") === s.name ? " st-btn--active" : ""}`}
-                onClick={() => {
-                  setFlowPos(null); // choosing a surface leaves flow mode
-                  setSurfaceName(s.name);
-                }}
-                data-testid={`surface-${s.name}`}
-              >
-                {s.name}
-              </button>
-            ))}
+            {referenceSurfaces.map((s) => surfaceButton(s.name, true))}
           </div>
         )}
-        {failed.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            {failed.map((s) => (
-              <span key={s.name} title={s.error} style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--err)" }} data-testid={`surface-refused-${s.name}`}>
-                {s.name}: refused
-              </span>
-            ))}
-          </div>
+        {/* Reference refusals are the design system's own gaps, not the
+            user's work: one honest line that opens, rather than a wall of red
+            at first contact (B8). */}
+        {groups.referenceRefused.length > 0 && (
+          <details style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+            <summary style={{ cursor: "pointer" }} data-testid="preview-reference-refused">
+              {groups.referenceRefused.length} reference surfaces can&rsquo;t be emitted — why?
+            </summary>
+            <ul style={{ listStyle: "none", padding: "4px 0 0", margin: 0 }}>
+              {groups.referenceRefused.map((s) => (
+                <li key={s.name} style={{ padding: "2px 0" }} data-testid={`surface-refused-${s.name}`}>
+                  <span style={{ color: "var(--fg-body)" }}>{titleOf(s.name)}</span>{" "}
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11 }}>{s.name}</span>
+                  <br />
+                  <span style={{ color: "var(--warn)" }}>{s.error}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
 
@@ -448,8 +518,14 @@ export function PreviewView() {
                 data-testid={`flow-step-title-${i}`}
                 aria-label={`Step ${i + 1} title`}
               />
-              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)" }} title="The surface this step renders">
-                {step.surfaceId}
+              <span style={{ fontSize: 12, color: "var(--fg-dim)" }} title={`The surface this step renders: ${step.surfaceId}`}>
+                {step.surfaceId === "" ? (
+                  "not built yet"
+                ) : (
+                  <>
+                    {titleOf(step.surfaceId)} <span style={{ fontFamily: "var(--mono)", fontSize: 10, opacity: 0.6 }}>{step.surfaceId}</span>
+                  </>
+                )}
               </span>
               <input
                 style={{ ...field, minWidth: 170 }}
@@ -484,13 +560,20 @@ export function PreviewView() {
             </div>
           ))}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+            {/* The step picker follows the same ownership order as every
+                other picker: your surfaces first, the reference corpus after,
+                each named by its title with the id beside it (B7/B8). */}
             <select style={field} value={pickedSurface} onChange={(e) => setPickSurface(e.target.value)} data-testid="flow-step-surface" aria-label="Surface for the next step">
-              {corpus.map((s) => (
-                <option key={s.name} value={s.name}>
-                  {s.name}
-                  {s.refused ? " (refused)" : ""}
-                </option>
-              ))}
+              {[...groups.yours, ...groups.yoursRefused].length > 0 && (
+                <optgroup label={isExample ? "Example surfaces" : "Your surfaces"}>
+                  {[...groups.yours, ...groups.yoursRefused].map(stepOption)}
+                </optgroup>
+              )}
+              {[...groups.reference, ...groups.referenceRefused].length > 0 && (
+                <optgroup label={`Reference surfaces · ${manifest?.name ?? "design system"}`}>
+                  {[...groups.reference, ...groups.referenceRefused].map(stepOption)}
+                </optgroup>
+              )}
             </select>
             <button className="st-btn" onClick={addDraftStep} disabled={!pickedSurface} data-testid="flow-add-step">
               + add step
@@ -503,6 +586,19 @@ export function PreviewView() {
               cancel
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Flows, opened from the primary navigation, with nothing to walk yet:
+          the invitation belongs here, not a blank canvas (C9). */}
+      {focus === "flows" && flowsVisible && flows.length === 0 && !draft && (
+        <div className="af-empty" data-testid="flows-empty">
+          <p className="af-empty__title">No flows yet</p>
+          <p className="af-empty__body">
+            A flow is an ordered set of your surfaces that tells one story — sign in, choose a plan, confirm. Build a few
+            surfaces, then compose them here; or describe the whole journey at once with &ldquo;Build a flow&hellip;&rdquo; in
+            Build.
+          </p>
         </div>
       )}
 
@@ -524,7 +620,7 @@ export function PreviewView() {
                 onClick={() => setFlowPos({ flowId: currentFlow.id, stepIndex: i })}
                 data-testid={`flow-step-${step.id}`}
                 disabled={isPendingStep(step)}
-                title={isPendingStep(step) ? "not built yet — build it from Build" : step.surfaceId}
+                title={isPendingStep(step) ? "not built yet — build it from Build" : `${titleOf(step.surfaceId)} · ${step.surfaceId}`}
                 style={i < flowPos.stepIndex ? { color: "var(--ok)" } : undefined}
               >
                 {i + 1}. {step.title}
@@ -572,10 +668,10 @@ export function PreviewView() {
         renderSurface(active)
       ) : (
         <div className="af-empty" data-testid="preview-empty">
-          <p className="af-empty__title">No project surfaces yet</p>
+          <p className="af-empty__title">No surfaces yet</p>
           <p className="af-empty__body">
             Build something first — describe what you want in Build, and a passing result&rsquo;s &ldquo;Add to
-            project&rdquo; lands it here.{referenceSurfaces.length > 0 && " The reference examples above are open for inspection."}
+            project&rdquo; lands it here.{referenceSurfaces.length > 0 && " The reference surfaces above are open for inspection."}
           </p>
         </div>
       )}

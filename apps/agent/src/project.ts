@@ -494,8 +494,8 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
   if (modelRef === "scripted" && !example) {
     throw new ProjectError(
       400,
-      `scripted mode replays this intent's own worked example, and '${intent}' has none yet. ` +
-        `Author one in Scenarios, or run with a model — generation works from the scoped contract without few-shot context.`,
+      `scripted mode replays this governed context's own surface, and '${intent}' has none yet. ` +
+        `Author one in Surfaces, or run with a model — generation works from the scoped contract without few-shot context.`,
     );
   }
   const adapter = provider

@@ -48,7 +48,7 @@ export function buildReadiness(args: {
 
   const examples = (contract.examples ?? []) as unknown[];
   if (examples.length === 0) {
-    return { ready: false, reason: "no worked example yet — save one scenario first (it seeds generation and the zero-model path)" };
+    return { ready: false, reason: "no surfaces yet — save one in Surfaces first (it seeds generation and the zero-model path)" };
   }
   return { ready: true };
 }

@@ -564,7 +564,7 @@ describe("safe worked-example persistence (#42) and honest scripted absence (#43
     const { status, payload } = await call("run", { path: root, prompt: "an onboarding screen", intent: "onboarding", modelRef: "scripted" });
     expect(status).toBe(400);
     expect(String(payload.error)).toMatch(/onboarding/);
-    expect(String(payload.error)).toMatch(/worked example/i);
+    expect(String(payload.error)).toMatch(/own surface/i);
   });
 });
 

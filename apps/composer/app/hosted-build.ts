@@ -212,7 +212,7 @@ export function streamHostedBuild(
         if (!example) {
           handlers.onError(
             `Scripted mode replays this intent's own worked example, and '${intent || "(none)"}' has none. ` +
-              "Pick an intent that already has a worked scenario, or connect the local agent to generate from the contract without few-shot context.",
+              "Pick a governed context that already has a surface, or connect the local agent to generate from the contract without few-shot context.",
           );
           handlers.onComplete();
           return;

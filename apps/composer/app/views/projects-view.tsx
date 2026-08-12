@@ -92,8 +92,16 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
           Describe it. <span className="af-accent">Keep it aligned.</span>
         </h1>
         <p className="af-lead">
-          Composer turns a plain goal into an interface built only from your design system&rsquo;s approved
-          components, checked as it goes. Start a project from a governed design system, or connect your own repository.
+          Describe a screen in your own words. Composer builds it from your design system&rsquo;s approved components,
+          checking every step in front of you — then composes those screens into a walkable workflow. Start from a design
+          system below, or connect your own repository.
+        </p>
+        {/* The honest 1.0 boundary — a stated position, in the place a
+            newcomer meets the product (C10b). */}
+        <p className="af-hint" data-testid="hub-boundary" style={{ marginTop: 10, maxWidth: 620 }}>
+          Composer composes and governs interface <em>representations</em>: real components, real rules, walkable end to
+          end. Binding them to live data, running the workflow, and carrying state between steps is where this is going
+          next.
         </p>
       </header>
 
@@ -135,7 +143,7 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
           </div>
 
           <p className="af-label" style={{ margin: "22px 0 10px" }}>
-            Governed design system
+            Design system
           </p>
           <div className="af-grid" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))" }}>
             {references.map((r) => (
@@ -313,8 +321,9 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
       </section>
 
       {/* Examples — teaching material, never mixed with the user's work. Each
-          is the design system's own reference project: its worked examples,
-          scenarios, and governance, opened read-only or copied to start. */}
+          is the design system's own reference project: its surfaces and its
+          governance, opened read-only or copied to start. "Example" means a
+          reference PROJECT and nothing else (the ratified vocabulary). */}
       <section aria-labelledby="examples-h" style={{ marginTop: "clamp(32px,5vw,56px)" }} data-testid="examples-section">
         <h2 id="examples-h" className="af-h2" style={{ marginBottom: 6 }}>
           Examples
