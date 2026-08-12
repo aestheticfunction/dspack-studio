@@ -10,7 +10,18 @@
  *              delta; other edits are session-only, stated plainly per view.
  * Files (or the delta store) are the source of truth; this state is a view.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import {
   addTombstone,
   applyFreshFact,
@@ -25,6 +36,7 @@ import {
   type BuildReadiness,
   type BuildTurnProgress,
   type ComposerFinding,
+  type FlowPlan,
   type FreshFact,
   type GoalPlan,
   type LedgerStatus,
@@ -96,6 +108,40 @@ import {
 } from "./projects";
 
 export type Mode = "demo" | "agent";
+
+/**
+ * "Build a flow" composition state, held HERE rather than in the Build view.
+ *
+ * The view unmounts on every navigation (`{view === "build" && <BuildView/>}`),
+ * and the product itself sends people away mid-composition — a pending step
+ * reads "build it from Build and accept into this step". Held in the view, the
+ * plan and its drive died on that round trip, per-step rebuild became
+ * unreachable, and re-planning minted a SECOND flow beside the one already
+ * created. This is in-progress WORKING state, not project data: it lives for
+ * the session, is never persisted, and is cleared with the build thread when
+ * the project changes.
+ */
+export interface FlowBuildState {
+  flowId: string;
+  /** Minted step ids, index-aligned with the frozen plan's steps. */
+  stepIds: string[];
+  running: boolean;
+  /** The step the sequential driver is on, or null when it is not driving. */
+  at: number | null;
+}
+
+export interface FlowComposition {
+  /** "surface" = the ordinary single-surface composer; "flow" = plan a flow. */
+  mode: "surface" | "flow";
+  /** The whole-journey goal the planner decomposes. */
+  goal: string;
+  /** The proposed (and editable) outline, or null before planning. */
+  plan: FlowPlan | null;
+  /** The accepted plan's created flow + drive position, or null before accept. */
+  build: FlowBuildState | null;
+}
+
+export const EMPTY_FLOW_COMPOSITION: FlowComposition = { mode: "surface", goal: "", plan: null, build: null };
 
 /** One chat turn in the Build thread: the ask, its run, and its result. */
 export interface BuildTurn {
@@ -240,6 +286,10 @@ export interface ComposerState {
    *  a STALE binding never fails the accept, it is reported in the notice. */
   acceptBuildTurn: (turnId: number, exampleId?: string, intoFlowStep?: StepBinding) => Promise<void>;
   clearBuildThread: () => void;
+  /** "Build a flow" composition, held above the view so navigating away and
+   *  back does not destroy an in-progress plan (see FlowComposition). */
+  flowComposition: FlowComposition;
+  setFlowComposition: Dispatch<SetStateAction<FlowComposition>>;
 }
 
 const Ctx = createContext<ComposerState | null>(null);
@@ -951,6 +1001,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
 
   /* ---------------- Build (chat-driven creation) ---------------- */
   const [buildTurns, setBuildTurns] = useState<BuildTurn[]>([]);
+  // In-progress flow composition, lifted out of BuildView so the view can
+  // unmount without taking the plan with it (see FlowComposition).
+  const [flowComposition, setFlowComposition] = useState<FlowComposition>(EMPTY_FLOW_COMPOSITION);
   const [buildBusy, setBuildBusy] = useState(false);
   const [buildModels, setBuildModels] = useState<string[]>(["scripted"]);
   // The auto-select correction below must NOT run against the ["scripted"]
@@ -1060,6 +1113,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     buildStream.current = null;
     setBuildTurns([]);
     setBuildBusy(false);
+    // A composition belongs to the project it was planned in — every caller of
+    // this is a project transition (open, close, connect, import).
+    setFlowComposition(EMPTY_FLOW_COMPOSITION);
   }, []);
 
   /**
@@ -1460,8 +1516,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       runBuild,
       acceptBuildTurn,
       clearBuildThread,
+      flowComposition,
+      setFlowComposition,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread, flowComposition],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

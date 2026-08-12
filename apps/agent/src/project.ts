@@ -667,6 +667,24 @@ async function saveExample(ctx: ProjectContext, body: Record<string, unknown>) {
   }
   if (findings.length > 0) return { status: 422, payload: { ok: false, findings } };
 
+  // The EMIT gate. The lint gate above answers "does this obey the rules the
+  // owner authored"; it does not answer "can the design system draw it". A
+  // tree can pass every S-gate and still be refused by the emitter (a Card
+  // whose required `child` is fed by children it does not have), and accepting
+  // that writes a surface the project's own /project/emit then refuses from
+  // inside the contract — the same hole the browser's Surfaces editor had.
+  // Refuse it here too, in the emitter's own words. Skipped when the project
+  // has no profile yet: there is nothing to emit against, and discovery is the
+  // step that is missing, not this one.
+  if (existsSync(ctx.profilePath)) {
+    const profileJson = readJson(ctx.profilePath) as Record<string, unknown>;
+    const emitted = projectEmit(contract, profileJson, [{ name: id, surface: raw.surface }]);
+    const refusal = emitted.surfaces.find((s) => s.name === id)?.error;
+    if (refusal) {
+      return { status: 422, payload: { ok: false, findings: [finding("A3", "emit-surface", "error", id, refusal)] } };
+    }
+  }
+
   const entry = {
     id,
     intent,

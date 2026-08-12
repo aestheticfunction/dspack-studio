@@ -164,6 +164,48 @@ test("a driven step rebuilds in place, and each accepted turn binds to the step 
   await expect(page.getByTestId("finding-flow-pending-step")).toHaveCount(0);
 });
 
+test("leaving Build and coming back keeps the in-progress plan — and never mints a second flow", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await newProject(page, "shadcn", "Flow round trip");
+  await twoStepPlan(page);
+
+  // The product's own pending-step copy sends people to Flows and back:
+  // "build it from Build and accept into this step". That round trip used to
+  // unmount the Build view and take the plan with it — mode, plan, and
+  // per-step build state all gone, per-step rebuild unreachable, and the only
+  // way forward was to re-plan, which mints a SECOND flow beside the first.
+  await page.getByTestId("nav-flows").click();
+  await expect(page.getByTestId("flow-flow.flow-1")).toContainText("Order journey");
+  await page.getByTestId("nav-build").click();
+
+  // Back exactly as it was left: still in flow mode, the same plan, the same
+  // frozen drive, and per-step rebuild still reachable.
+  await expect(page.getByTestId("flow-composer")).toBeVisible();
+  await expect(page.getByTestId("build-prompt")).toHaveCount(0);
+  await expect(page.getByTestId("flow-plan-editor")).toBeVisible();
+  await expect(page.getByTestId("flow-plan-name")).toHaveValue("Order journey");
+  await expect(page.getByTestId("flow-plan-title-0")).toHaveValue("Review the order");
+  await expect(page.getByTestId("flow-plan-title-1")).toHaveValue("Delete the account");
+  await expect(page.getByTestId("flow-build-step-1")).toBeVisible();
+  await expect(page.getByTestId("flow-plan-add")).toHaveCount(0); // still frozen, not a fresh plan
+
+  // And the round trip created nothing: one flow, the one the plan made.
+  await page.getByTestId("nav-flows").click();
+  await expect(page.getByTestId("flow-flow.flow-1")).toBeVisible();
+  await expect(page.getByTestId("flow-flow.flow-2")).toHaveCount(0);
+
+  // The surviving plan still DRIVES: rebuild step 2 after the round trip and
+  // accept it into the step it was built for.
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("flow-build-step-1").click();
+  await expect(page.getByTestId("build-gate-summary-3")).toContainText("Follows your design-system rules", { timeout: 60_000 });
+  await page.getByTestId("build-accept-3").click();
+  await expect(page.getByTestId("build-accepted-3")).toContainText("Delete the account");
+  await page.getByTestId("nav-flows").click();
+  await expect(page.getByTestId("flow-flow.flow-2")).toHaveCount(0);
+});
+
 test("the flow editor: cancelling creates nothing, and a saved flow walks to completion on its own emitted action", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "shadcn", "Flow editor");

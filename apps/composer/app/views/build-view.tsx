@@ -18,9 +18,9 @@ import { registryFor, canvasScopeFor } from "../registries";
 import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel, type FlowPlan } from "@dspack-studio/composer-core";
 import { mintStepId, nextFlowId, type StepBinding } from "../flows";
 import { planFlow } from "../planning";
-import type { BuildTurn } from "../state";
+import type { BuildTurn, FlowBuildState } from "../state";
 import { useComposer } from "../state";
-import { surfaceEntriesById, surfaceTitle } from "../surface-identity";
+import { blockingFindings, surfaceEntriesById, surfaceTitle } from "../surface-identity";
 import { Eyebrow } from "../ui";
 import { browserEmit } from "../validation";
 
@@ -116,8 +116,8 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
       {turn.plan.reason && <span> — {turn.plan.reason}</span>}
       {turn.modelRef === "scripted" && !turn.refinement && (
         <span style={{ display: "block", color: "var(--warn)", marginTop: 2 }}>
-          Scripted mode replays a representative example for this context — switch to a hosted or local model to generate
-          for your exact words.
+          Scripted mode replays a surface this project already has for this context — switch to a hosted or local model
+          to generate for your exact words.
         </span>
       )}
       {onChange && (
@@ -390,9 +390,25 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
   );
 }
 
-export function BuildView() {
-  const { mode, agentUp, contract, readiness, buildTurns, buildBusy, buildModels, selectableModels, runBuild, activeModel, setActiveModel, flows, saveFlows } =
-    useComposer();
+export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "validate") => void } = {}) {
+  const {
+    mode,
+    agentUp,
+    contract,
+    emit,
+    readiness,
+    buildTurns,
+    buildBusy,
+    buildModels,
+    selectableModels,
+    runBuild,
+    activeModel,
+    setActiveModel,
+    flows,
+    saveFlows,
+    flowComposition,
+    setFlowComposition,
+  } = useComposer();
   const [prompt, setPrompt] = useState("");
   // "" = auto: the governed context is INFERRED from the goal. A specific value
   // is an advanced override for catalog authors — never the normal prerequisite.
@@ -402,14 +418,24 @@ export function BuildView() {
   // untouched — this is an ACCEPT-time affordance on the intent-select pattern.
   const [intoStepKey, setIntoStepKey] = useState<string>("");
   /* ---- "Build a flow" (P4 Phase C) — OPT-IN; the default single-surface
-     path renders and behaves exactly as before until the toggle. ---- */
-  const [buildMode, setBuildMode] = useState<"surface" | "flow">("surface");
-  const [flowGoal, setFlowGoal] = useState("");
-  const [flowPlan, setFlowPlan] = useState<FlowPlan | null>(null);
+     path renders and behaves exactly as before until the toggle.
+
+     The mode, the goal, the plan and the plan's per-step build state live in
+     the PROVIDER, not here: this view unmounts on every navigation, and the
+     product's own pending-step copy sends people away mid-composition ("build
+     it from Build and accept into this step"). Held locally, that round trip
+     destroyed the plan and re-planning minted a second flow. `planBusy` stays
+     local on purpose — it is a transient in-flight flag, and the plan it is
+     waiting on lands in the provider either way. ---- */
+  const { mode: buildMode, goal: flowGoal, plan: flowPlan, build: flowBuild } = flowComposition;
+  const setBuildMode = (mode: "surface" | "flow") => setFlowComposition((c) => ({ ...c, mode }));
+  const setFlowGoal = (goal: string) => setFlowComposition((c) => ({ ...c, goal }));
+  const setFlowPlan = (next: FlowPlan | null | ((prev: FlowPlan | null) => FlowPlan | null)) =>
+    setFlowComposition((c) => ({ ...c, plan: typeof next === "function" ? next(c.plan) : next }));
+  const setFlowBuild = (
+    next: FlowBuildState | null | ((prev: FlowBuildState | null) => FlowBuildState | null),
+  ) => setFlowComposition((c) => ({ ...c, build: typeof next === "function" ? next(c.build) : next }));
   const [planBusy, setPlanBusy] = useState(false);
-  // The accepted plan's created flow + its minted step ids (index-aligned
-  // with the frozen plan), and the sequential driver's position.
-  const [flowBuild, setFlowBuild] = useState<{ flowId: string; stepIds: string[]; running: boolean; at: number | null } | null>(null);
   const intents = ((contract?.intents ?? []) as Array<{ id: string }>).map((i) => i.id);
   const streamStatus = useRef<HTMLParagraphElement>(null);
   const canRefine = buildTurns.some((t) => canRefineTurn(t.progress));
@@ -509,13 +535,69 @@ export function BuildView() {
   };
 
   if (!readiness.ready) {
+    // A count is not a fix. When findings are what is blocking, name them:
+    // the surface's own title, its canonical id, the gate's verbatim reason,
+    // and the way to the thing itself. Grouped by the thing they are about —
+    // one surface with three findings is one problem, not three — and capped,
+    // because Checks is where the exhaustive list belongs.
+    const blockers = blockingFindings(emit?.findings ?? [], contract?.examples);
+    const byTarget = new Map<string, typeof blockers>();
+    for (const b of blockers) byTarget.set(b.id, [...(byTarget.get(b.id) ?? []), b]);
+    const shown = [...byTarget.entries()].slice(0, 6);
+    const hidden = byTarget.size - shown.length;
     return (
       <section>
         <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
         <p style={{ fontSize: 13, color: "var(--warn)" }} data-testid="build-not-ready">
           Not ready to build yet: {readiness.reason}
         </p>
-        <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Set up your design system in Catalog and Governance, then build with it.</p>
+        {shown.length > 0 && (
+          <ul style={{ listStyle: "none", padding: 0, margin: "8px 0 0", fontSize: 12 }} data-testid="build-blockers">
+            {shown.map(([id, group]) => (
+              <li
+                key={id || "document"}
+                data-testid={id ? `build-blocker-${id}` : "build-blocker-document"}
+                style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0" }}
+              >
+                <span style={{ color: "var(--fg)" }}>{group[0].title || "This project’s contract"}</span>
+                {id && <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg-dim)", marginLeft: 8 }}>{id}</span>}
+                {group[0].isSurface && onNavigate && (
+                  <button
+                    className="st-link"
+                    style={{ marginLeft: 8, fontSize: 12 }}
+                    onClick={() => onNavigate("surfaces")}
+                    title={`Open Surfaces, where “${group[0].title}” is listed`}
+                    data-testid={`build-blocker-open-${id}`}
+                  >
+                    open in Surfaces
+                  </button>
+                )}
+                {group.map((b, i) => (
+                  <p key={`${b.gate}-${b.code}-${i}`} style={{ margin: "2px 0 0" }}>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--warn)" }}>
+                      {b.gate} {b.code}
+                    </span>{" "}
+                    <span style={{ color: "var(--fg-body)" }}>{b.message}</span>
+                  </p>
+                ))}
+              </li>
+            ))}
+            {hidden > 0 && (
+              <li style={{ borderTop: "1px solid var(--line-soft)", padding: "6px 0", color: "var(--fg-dim)" }} data-testid="build-blockers-more">
+                and {hidden} more — Checks lists every one.
+              </li>
+            )}
+          </ul>
+        )}
+        <p style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 10 }}>
+          {blockers.length > 0 ? (
+            <>
+              Fix or remove what&rsquo;s listed above — {onNavigate ? <button className="st-link" style={{ fontSize: 12 }} onClick={() => onNavigate("validate")} data-testid="build-blockers-checks">Checks</button> : "Checks"} runs the same gates over the whole project.
+            </>
+          ) : (
+            <>Set up your design system in Catalog and Governance, then build with it.</>
+          )}
+        </p>
       </section>
     );
   }

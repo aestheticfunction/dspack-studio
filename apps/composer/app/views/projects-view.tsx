@@ -220,8 +220,8 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
             <Marks />
             <p className="af-empty__title">No projects yet</p>
             <p className="af-empty__body">
-              Name a project above and pick a governed design system to begin. Everything you build is checked against
-              that system&rsquo;s rules as you go — or open an example below to see how Composer works first.
+              Name a project above and pick a design system to begin. Everything you build is checked against that
+              system&rsquo;s rules as you go — or open an example below to see how Composer works first.
             </p>
           </div>
         ) : (

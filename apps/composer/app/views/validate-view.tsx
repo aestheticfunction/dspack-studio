@@ -96,7 +96,7 @@ export function ValidateView() {
     <section>
       <ViewHeader
         eyebrow="Checks"
-        lead="Run the governed checks over the contract and its worked surfaces: structure, approved vocabulary, and your design-system rules."
+        lead="Run the governed checks over the contract and its surfaces: structure, approved vocabulary, and your design-system rules."
       />
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
         <button className="st-btn" disabled={busy !== null} onClick={() => void runValidate()} data-testid="run-validate">

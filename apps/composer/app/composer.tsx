@@ -219,7 +219,7 @@ function Shell() {
         )}
         {hasProject && (
           <div className="af-page" style={{ paddingTop: "clamp(20px,3vw,32px)" }}>
-            {view === "build" && <BuildView />}
+            {view === "build" && <BuildView onNavigate={(v) => setView(v)} />}
             {view === "preview" && <PreviewView />}
             {view === "flows" && <PreviewView focus="flows" />}
             {view === "inventory" && <InventoryView onOpen={() => setView("component")} />}

@@ -74,6 +74,59 @@ export function surfaceEntriesById(examples: unknown): Map<string, SurfaceEntry>
   return byId;
 }
 
+/**
+ * What is actually blocking a build, by name.
+ *
+ * Readiness answers with a COUNT ("gates not green — 1 error finding"), which
+ * is true and useless: a person cannot fix a count. Every unresolved error
+ * finding already carries the thing it is about in `target` — a surface id for
+ * emit refusals and S-gate findings, a component id for coverage, "" for
+ * document-level — so the row a person needs is one resolution away.
+ *
+ * Acknowledged casualties are decisions, not blockers, and never appear here
+ * (the same rule `gatesSummary` counts by); warnings and info never block.
+ */
+export interface BlockingFinding {
+  /** The surface/component id the finding is about, or "" for the document. */
+  id: string;
+  /** The surface's human title when the id names one; the id otherwise. */
+  title: string;
+  /** True when the id resolves to one of this project's own surfaces. */
+  isSurface: boolean;
+  gate: string;
+  code: string;
+  message: string;
+}
+
+/**
+ * S3 findings target `"<surface id> <node path>"`; everything else targets a
+ * bare id. Take the first token either way — a node path never contains a
+ * space, and a surface id never does.
+ */
+const targetId = (target: string): string => target.trim().split(/\s+/)[0] ?? "";
+
+export function blockingFindings(
+  findings: ReadonlyArray<{ gate: string; code: string; severity: string; target: string; message: string; acknowledged?: unknown }>,
+  examples: unknown,
+): BlockingFinding[] {
+  const byId = surfaceEntriesById(examples);
+  const rows: BlockingFinding[] = [];
+  for (const f of findings) {
+    if (f.severity !== "error" || f.acknowledged !== undefined) continue;
+    const id = targetId(f.target ?? "");
+    const entry = byId.get(id);
+    rows.push({
+      id,
+      title: entry ? surfaceTitle(entry, id, 64) : id,
+      isSurface: entry !== undefined,
+      gate: f.gate,
+      code: f.code,
+      message: f.message,
+    });
+  }
+  return rows;
+}
+
 /** Anything a picker lists: an emitted surface, or a flow-step candidate. */
 export interface OwnedSurface {
   name: string;

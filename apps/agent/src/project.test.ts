@@ -459,6 +459,28 @@ describe("accepting a build result (/project/save-example, fail-closed)", () => 
     expect(doc.examples.some((e: any) => e.id === "ex.chat-bad")).toBe(false);
   });
 
+  it("rejects a surface the EMITTER refuses, even though every S-gate passes", async () => {
+    // A root info-card with no children breaks no authored rule — S1, S2 and
+    // S3 all pass — and the emitter still refuses it: the mapped Card's
+    // `child` prop is required and fed by children. The server gate stopped at
+    // lint, so this saved cleanly and then blocked the project's own emit from
+    // inside the contract. Refuse it here, in the emitter's own words.
+    const surface = { ...structuredClone(freshExample().surface), root: { component: "info-card", id: "root" } };
+    const { status, payload } = await call("save-example", {
+      path: root,
+      example: { id: "ex.empty-card", intent: "status-report", prompt: "a card with nothing in it", surface },
+    });
+    expect(status).toBe(422);
+    expect(payload.ok).toBe(false);
+    const refusal = payload.findings.find((f: any) => f.code === "emit-surface");
+    expect(refusal.severity).toBe("error");
+    expect(refusal.target).toBe("ex.empty-card");
+    expect(refusal.message).toContain("required prop 'child' has no value");
+    // Nothing was written.
+    const doc = JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
+    expect(doc.examples.some((e: any) => e.id === "ex.empty-card")).toBe(false);
+  });
+
   it("rejects unknown intents and malformed ids", async () => {
     const surface = freshExample().surface;
     expect((await call("save-example", { path: root, example: { id: "ex.x", intent: "not-an-intent", prompt: "p", surface } })).status).toBe(422);
