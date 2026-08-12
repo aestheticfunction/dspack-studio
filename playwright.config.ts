@@ -40,9 +40,14 @@ export default defineConfig({
       name: "studio",
       // prod-smoke asserts the DEPLOYED site's properties (no local agent,
       // injected analytics); it runs via playwright.production.config.ts only.
-      // composer-prod-smoke targets the DEPLOYED composer app; it runs via
-      // playwright.composer-production.config.ts only.
-      testIgnore: ["prod-smoke.spec.ts", "composer-prod-smoke.spec.ts", "composer-agent.spec.ts", "composer-agent-a11y.spec.ts", "composer-build.spec.ts", "composer-build-a11y.spec.ts", "tour-first-run.spec.ts"],
+      //
+      // EVERY composer spec is ignored by PATTERN, not by name. This config
+      // serves apps/web on 3311; the composer app is served by the composer
+      // configs on their own ports, so a composer-*.spec.ts here could only
+      // ever fail. The name list this replaced was the same shape as the CI
+      // filter list of #81: adding a composer spec silently opted it into the
+      // wrong suite until someone remembered to extend the list.
+      testIgnore: ["prod-smoke.spec.ts", "composer-*.spec.ts", "tour-first-run.spec.ts"],
       use: {
         storageState: {
           cookies: [],

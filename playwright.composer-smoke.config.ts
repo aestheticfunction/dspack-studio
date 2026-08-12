@@ -11,6 +11,13 @@ import { defineConfig } from "@playwright/test";
  * The public-URL post-deploy smoke stays in playwright.composer-production.config.ts
  * (docs/deployment.md): same spec, different target — local artifact here, the
  * live Worker there.
+ *
+ * A SECOND project — "composer-product" — runs the agent-free product suites
+ * (surface authoring, flows, governance) on the same artifact and the same
+ * server. They are not smoke: they are the first-adoption surfaces a new team
+ * touches, driven end to end with the scripted provider (no model call, ever).
+ * They stay out of the deployed-URL config on purpose — they author and delete
+ * project data, which the post-deploy smoke must not do to a live site.
  */
 const PORT = Number(process.env.COMPOSER_SMOKE_PORT ?? 3313);
 
@@ -22,7 +29,13 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     contextOptions: { reducedMotion: "reduce" },
   },
-  projects: [{ name: "composer-smoke", testMatch: "composer-prod-smoke.spec.ts" }],
+  projects: [
+    { name: "composer-smoke", testMatch: "composer-prod-smoke.spec.ts" },
+    {
+      name: "composer-product",
+      testMatch: ["composer-surfaces.spec.ts", "composer-flows.spec.ts", "composer-governance.spec.ts"],
+    },
+  ],
   webServer: [
     {
       command: `PORT=${PORT} node e2e/serve-composer.mjs`,

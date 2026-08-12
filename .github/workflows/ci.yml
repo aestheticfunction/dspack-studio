@@ -65,9 +65,15 @@ jobs:
       # (propose → S1/S2/S3 → repair → emit → render → refine), validation,
       # preview, export, and client-bundle hygiene — the deployed acceptance
       # criteria, verified BEFORE deploy.
-      - name: Playwright (composer hosted/demo smoke — in-browser Build, repair, refine, hygiene)
+      # Two projects in this config: "composer-smoke" (the deploy acceptance
+      # criteria above) and "composer-product" — surface authoring, flows, and
+      # governance authoring, the agent-free surfaces a new team meets first.
+      - name: Playwright (composer hosted/demo — Build loop, surface authoring, flows, governance, hygiene)
         run: pnpm exec playwright test --config playwright.composer-smoke.config.ts
-      - name: Playwright (composer agent-mode decisions + accessibility)
+      # Also starts a fixture local-provider endpoint (e2e/serve-provider.mjs)
+      # so provider configuration is driven against a real socket through the
+      # real agent. It serves discovery only — nothing here calls a model.
+      - name: Playwright (composer agent-mode decisions, provider configuration, browser/agent parity, accessibility)
         run: pnpm exec playwright test --config playwright.composer-agent.config.ts
       - name: Upload Playwright report on failure
         if: failure()
