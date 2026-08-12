@@ -255,6 +255,18 @@ export function missingSurfaceMessage(step: FlowStep): string {
   return `step '${step.id}' references surface '${step.surfaceId}', which is not in this project's surfaces`;
 }
 
+/** A PENDING step (Phase C): planned but not yet built — `surfaceId: ""` is a
+ *  STATE, never a malformation and never a dangling reference. "Build a
+ *  flow" creates whole flows of these, then fills them step by step. */
+export function isPendingStep(step: FlowStep): boolean {
+  return step.surfaceId === "";
+}
+
+/** The pending wording, shared by flow-lint and Preview's outline state. */
+export function pendingStepMessage(step: FlowStep): string {
+  return `step '${step.id}' is not built yet — build it from Build and accept into this step`;
+}
+
 export function flowLint(flows: Flow[], ctx: FlowLintContext): ComposerFinding[] {
   const findings: ComposerFinding[] = [];
   const flowIdsSeen = new Set<string>();
@@ -278,7 +290,12 @@ export function flowLint(flows: Flow[], ctx: FlowLintContext): ComposerFinding[]
       }
       stepIdsSeen.add(step.id);
 
-      if (!ctx.exampleIds.has(step.surfaceId)) {
+      if (isPendingStep(step)) {
+        // Planned-but-unbuilt is a first-class state (Phase C): a WARN that
+        // names the remaining work, never a dangling error — and one cause,
+        // one finding (no advanceOn check against a surface that isn't there).
+        findings.push(finding("flow", "pending-step", "warn", target, pendingStepMessage(step)));
+      } else if (!ctx.exampleIds.has(step.surfaceId)) {
         // One cause, one finding: with no surface there is nothing to check
         // advanceOn against, so the reference error stands alone.
         findings.push(finding("flow", "dangling-surface", "error", target, missingSurfaceMessage(step)));

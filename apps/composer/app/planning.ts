@@ -16,7 +16,16 @@
  * Any inference failure falls back to the deterministic classifier so the flow
  * always proceeds.
  */
-import { buildPlanRequest, planDeterministic, reconcilePlan, type GoalPlan } from "@dspack-studio/composer-core";
+import {
+  buildFlowPlanRequest,
+  buildPlanRequest,
+  flowPlanDeterministic,
+  planDeterministic,
+  reconcileFlowPlan,
+  reconcilePlan,
+  type FlowPlan,
+  type GoalPlan,
+} from "@dspack-studio/composer-core";
 import { runGatewayRequest } from "./hosted-build";
 
 export async function planGoal(goal: string, modelRef: string, contract: Record<string, unknown>): Promise<GoalPlan> {
@@ -32,4 +41,22 @@ export async function planGoal(goal: string, modelRef: string, contract: Record<
   }
   // scripted + agent (v1): deterministic routing.
   return planDeterministic(goal, contract);
+}
+
+/**
+ * Flow decomposition (P4 Phase C): one workflow goal → an editable plan of
+ * ordered steps, through the SAME dispatch shape as planGoal — hosted infers
+ * via the gateway, everything else (and any gateway failure) gets the
+ * clearly-labeled deterministic outline. Planning never blocks the flow.
+ */
+export async function planFlow(goal: string, modelRef: string, contract: Record<string, unknown>): Promise<FlowPlan> {
+  if (modelRef === "hosted-ai") {
+    try {
+      const json = await runGatewayRequest(buildFlowPlanRequest(goal, contract));
+      return reconcileFlowPlan(json, contract, goal);
+    } catch {
+      return flowPlanDeterministic(goal, contract);
+    }
+  }
+  return flowPlanDeterministic(goal, contract);
 }

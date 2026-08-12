@@ -115,6 +115,9 @@ export interface BuildTurn {
   accepted?: string; // the saved example id
   /** The flow step this accept re-bound, by title (P4 Phase B). */
   acceptedIntoStep?: string;
+  /** "Build a flow" (Phase C): the step this turn was built FOR. Accept
+   *  pre-targets it (the Phase B binding); the header select still wins. */
+  flowStepHint?: { flowId: string; stepId: string; title: string };
   /** Structured findings from a refused Accept, rendered in place (#41). */
   acceptFindings?: ComposerFinding[];
   /** The inferred governed context + feasibility for this turn (goal-first). */
@@ -221,7 +224,17 @@ export interface ComposerState {
   configureLocalProvider: (kind: LocalKind, baseUrl: string, model: string) => void;
   /** Setup completeness for building; reason names the exact remaining work. */
   readiness: BuildReadiness;
-  runBuild: (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => Promise<void>;
+  /** One build turn. Resolves with the turn's OUTCOME (computed from the
+   *  turn's own event stream, never from state) so the Phase C flow driver
+   *  can sequence steps and stop on failure; single-surface callers ignore
+   *  it. `flowStepHint` tags the turn with the flow step it builds FOR. */
+  runBuild: (input: {
+    goal: string;
+    modelRef: string;
+    refine?: boolean;
+    intentOverride?: string;
+    flowStepHint?: { flowId: string; stepId: string; title: string };
+  }) => Promise<"passed" | "failed" | "vocab-gap" | "not-run">;
   /** Accept a turn as a worked example; the agent mints the id (#42). An
    *  optional flow-step binding re-points that step at the minted id (P4) —
    *  a STALE binding never fails the accept, it is reported in the notice. */
@@ -1059,23 +1072,29 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
    * prior surface; every gate runs again; prior turns stay for audit.
    */
   const runBuild = useCallback(
-    async (input: { goal: string; modelRef: string; refine?: boolean; intentOverride?: string }) => {
-      if (buildBusy) return;
+    async (input: {
+      goal: string;
+      modelRef: string;
+      refine?: boolean;
+      intentOverride?: string;
+      flowStepHint?: { flowId: string; stepId: string; title: string };
+    }): Promise<"passed" | "failed" | "vocab-gap" | "not-run"> => {
+      if (buildBusy) return "not-run";
       if (!contract || !profile) {
         setNotice("No project loaded yet.");
-        return;
+        return "not-run";
       }
       // A local provider runs through the agent; without it, don't silently
       // fall back to a different provider — say so and stop.
       if (isLocalRef(input.modelRef) && !agentUp) {
         setNotice("This model runs on your machine through the local agent, which isn’t running. Start it (pnpm --filter agent dev), or choose Hosted or Scripted in Settings.");
-        return;
+        return "not-run";
       }
       // Only a completed, passing turn can seed a refinement (#43).
       const prior = input.refine ? [...buildTurns].reverse().find((t) => canRefineTurn(t.progress)) : undefined;
       if (input.refine && !prior) {
         setNotice("Nothing to refine yet — refinement starts from a completed build that passed its gates.");
-        return;
+        return "not-run";
       }
       setBuildBusy(true);
       const id = ++turnSeq.current;
@@ -1086,6 +1105,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         modelRef: input.modelRef,
         refinement: !!prior,
         ...(prior ? { parentId: prior.id } : {}),
+        ...(input.flowStepHint ? { flowStepHint: input.flowStepHint } : {}),
         progress: { status: "streaming", attempts: [] },
         gaps: [],
         kind: "surface",
@@ -1114,7 +1134,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         );
         buildStream.current = null;
         setBuildBusy(false);
-        return;
+        return "vocab-gap";
       }
 
       // --- GENERATE: the SAME deterministic pipeline, now under the inferred
@@ -1179,6 +1199,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       });
       buildStream.current = null;
       setBuildBusy(false);
+      // The turn's outcome, from ITS OWN event stream (state would be stale
+      // in this closure): the Phase C driver sequences on it.
+      return foldBuildEvents(events).outcome === "passed" ? "passed" : "failed";
     },
     [mode, projectPath, buildBusy, buildTurns, contract, profile, providerConfig, agentUp],
   );

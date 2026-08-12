@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
-import { mintStepId, missingSurfaceMessage, nextFlowId, type Flow, type FlowStep } from "../flows";
+import { isPendingStep, mintStepId, missingSurfaceMessage, nextFlowId, pendingStepMessage, type Flow, type FlowStep } from "../flows";
 import { registryFor, canvasScopeFor, isNativeRegistry, wireframeFallbackNames, type PreviewRegistryId } from "../registries";
 
 type RegistryId = "wireframe" | PreviewRegistryId;
@@ -523,11 +523,12 @@ export function PreviewView() {
                 className={`st-btn${i === flowPos.stepIndex ? " st-btn--active" : ""}`}
                 onClick={() => setFlowPos({ flowId: currentFlow.id, stepIndex: i })}
                 data-testid={`flow-step-${step.id}`}
-                title={step.surfaceId}
+                disabled={isPendingStep(step)}
+                title={isPendingStep(step) ? "not built yet — build it from Build" : step.surfaceId}
                 style={i < flowPos.stepIndex ? { color: "var(--ok)" } : undefined}
               >
                 {i + 1}. {step.title}
-                {i < flowPos.stepIndex ? " ✓" : ""}
+                {isPendingStep(step) ? " · pending" : i < flowPos.stepIndex ? " ✓" : ""}
               </button>
             ))}
             <button
@@ -548,6 +549,13 @@ export function PreviewView() {
               <p className="af-empty__body">
                 &ldquo;{currentFlow.name}&rdquo; walked every step. Pick a step above to revisit it, or choose a surface to leave the flow.
               </p>
+            </div>
+          ) : flowStep && isPendingStep(flowStep) ? (
+            // A planned-but-unbuilt step is an OUTLINE state, not a defect: a
+            // flow of only pending steps previews as its outline this way.
+            <div className="af-empty" data-testid="flow-step-pending">
+              <p className="af-empty__title">This step isn&rsquo;t built yet</p>
+              <p className="af-empty__body">{pendingStepMessage(flowStep)}.</p>
             </div>
           ) : flowStep && !active ? (
             <div className="af-empty" data-testid="flow-step-unrenderable">
