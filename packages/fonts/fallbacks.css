@@ -1,0 +1,62 @@
+/*
+ * Metric-matched fallback faces for the vendored type set.
+ *
+ * `next/font` normally generates these for you: it synthesises an
+ * "<Family> Fallback" face from `local("Arial")` plus overrides, so that text
+ * painted during `font-display: swap` — and any character the face does not
+ * carry — occupies close to the space the real font will.
+ *
+ * The generated numbers are NOT stable across the google -> local move.
+ * next/font/google reads them from a metrics database keyed on the family;
+ * next/font/local recomputes them from whichever file you hand it, and our
+ * files are the `latin` subset, whose OS/2 xAvgCharWidth differs from the full
+ * font's. Letting it recompute shifted IBM Plex Mono's size-adjust from 134.59%
+ * to 131.49% and visibly narrowed every character the subset does not carry
+ * (the `→` in the pipeline views, for one).
+ *
+ * So the faces are pinned here instead, at exactly the values next/font/google
+ * emitted on main (2c97210), and the loaders pass `adjustFontFallback: false`
+ * so nothing overwrites them. That keeps the rendered page pixel-identical
+ * across this change, and it pins the fallback metrics against drift the same
+ * way catalog.json pins the font bytes.
+ *
+ * If the type set ever changes, regenerate these from a build rather than
+ * editing by hand:
+ *   grep -o '@font-face{font-family:[^}]*Fallback[^}]*}' apps/web/out/_next/static/css/*.css
+ */
+
+@font-face {
+  font-family: "Oswald Fallback";
+  src: local("Arial");
+  ascent-override: 146.51%;
+  descent-override: 35.49%;
+  line-gap-override: 0%;
+  size-adjust: 81.43%;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans Fallback";
+  src: local("Arial");
+  ascent-override: 101.32%;
+  descent-override: 27.18%;
+  line-gap-override: 0%;
+  size-adjust: 101.17%;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono Fallback";
+  src: local("Arial");
+  ascent-override: 76.16%;
+  descent-override: 20.43%;
+  line-gap-override: 0%;
+  size-adjust: 134.59%;
+}
+
+@font-face {
+  font-family: "Jost Fallback";
+  src: local("Arial");
+  ascent-override: 111.45%;
+  descent-override: 39.06%;
+  line-gap-override: 0%;
+  size-adjust: 96.01%;
+}

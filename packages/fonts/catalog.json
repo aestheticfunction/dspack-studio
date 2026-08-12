@@ -1,0 +1,99 @@
+{
+  "$comment": "Byte-pinned roster of the vendored Aesthetic Function type set. These are the exact files next/font/google previously downloaded from fonts.gstatic.com at build time for apps/web and apps/composer; they are now committed so no build touches the network. Regenerate nothing by hand: `node verify.mjs` re-hashes every file against this record, offline.",
+  "source": "Google Fonts (fonts.gstatic.com), via next/font/google in this repo at commit 2c97210",
+  "subset": "latin",
+  "license": {
+    "id": "OFL-1.1",
+    "text": "OFL.txt",
+    "evidence": "every family declares scripts.sil.org/OFL in its licenseURL name record"
+  },
+  "totalBytes": 92652,
+  "faces": [
+    {
+      "file": "oswald-600-latin.woff2",
+      "family": "Oswald",
+      "weights": [
+        "600"
+      ],
+      "style": "normal",
+      "version": "4.103",
+      "variable": false,
+      "subset": "latin",
+      "license": "OFL-1.1",
+      "bytes": 12776,
+      "sha256": "b5298a57a4f1058d9cf45db659c5b29f21f55b6f9fd0efc6faa13b1b8db523b6"
+    },
+    {
+      "file": "ibm-plex-sans-variable-latin.woff2",
+      "family": "IBM Plex Sans",
+      "weights": [
+        "400",
+        "500",
+        "600"
+      ],
+      "style": "normal",
+      "version": "3.201",
+      "variable": "wght 100..700",
+      "subset": "latin",
+      "license": "OFL-1.1",
+      "bytes": 40240,
+      "sha256": "056e4e2459f57a0033c8c9c844ff19d6e42ac8602027803d4345823bcc939818"
+    },
+    {
+      "file": "ibm-plex-mono-400-latin.woff2",
+      "family": "IBM Plex Mono",
+      "weights": [
+        "400"
+      ],
+      "style": "normal",
+      "version": "2.3",
+      "variable": false,
+      "subset": "latin",
+      "license": "OFL-1.1",
+      "bytes": 10052,
+      "sha256": "c36f509c0a8f9f85f29cb44bc8701d8a9e0b14c499e77a884f789ead7093a7ac"
+    },
+    {
+      "file": "ibm-plex-mono-500-latin.woff2",
+      "family": "IBM Plex Mono",
+      "weights": [
+        "500"
+      ],
+      "style": "normal",
+      "version": "2.3",
+      "variable": false,
+      "subset": "latin",
+      "license": "OFL-1.1",
+      "bytes": 10060,
+      "sha256": "a76f53ca6612e7b3828eec2311098675b7f9849ae4169a8bcef6302aec02a6c0"
+    },
+    {
+      "file": "ibm-plex-mono-600-latin.woff2",
+      "family": "IBM Plex Mono",
+      "weights": [
+        "600"
+      ],
+      "style": "normal",
+      "version": "2.3",
+      "variable": false,
+      "subset": "latin",
+      "license": "OFL-1.1",
+      "bytes": 10120,
+      "sha256": "ad4580d8cb4b5f627c2d18457656732f7f7b070f7837fbc380e08054157e6f6c"
+    },
+    {
+      "file": "jost-400-latin.woff2",
+      "family": "Jost",
+      "weights": [
+        "400"
+      ],
+      "style": "normal",
+      "version": "3.710",
+      "variable": false,
+      "subset": "latin",
+      "license": "OFL-1.1",
+      "bytes": 9404,
+      "sha256": "b249869fc8fb37ef0328d6f603283863ce373f52d1a4af6380f54d991f45dec1"
+    }
+  ]
+}

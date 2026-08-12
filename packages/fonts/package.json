@@ -1,0 +1,10 @@
+{
+  "name": "@dspack-studio/fonts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Aesthetic Function type set, vendored as committed .woff2 files so no build fetches type from a third-party origin. Consumed by apps/web and apps/composer through next/font/local.",
+  "license": "Apache-2.0 AND OFL-1.1",
+  "scripts": {
+    "test": "node verify.mjs"
+  }
+}
