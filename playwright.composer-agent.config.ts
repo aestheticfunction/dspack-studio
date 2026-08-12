@@ -16,6 +16,11 @@ import { defineConfig } from "@playwright/test";
  * One worker, no retries: every spec mutates real files through a
  * single-session agent, and a retry would replay a decision against
  * already-decided state — exactly the flakiness these tests exist to catch.
+ *
+ * The third webServer is a fixture LOCAL PROVIDER (e2e/serve-provider.mjs):
+ * a real endpoint speaking Ollama's and OpenAI's discovery protocols, so the
+ * agent's provider test runs against a real socket. It generates nothing — no
+ * spec in this repo makes a model call.
  */
 const BASE_URL = process.env.COMPOSER_AGENT_URL ?? "http://localhost:3312";
 
@@ -31,7 +36,14 @@ export default defineConfig({
   projects: [
     {
       name: "composer-agent",
-      testMatch: ["composer-agent.spec.ts", "composer-agent-a11y.spec.ts", "composer-build.spec.ts", "composer-build-a11y.spec.ts"],
+      testMatch: [
+        "composer-agent.spec.ts",
+        "composer-agent-a11y.spec.ts",
+        "composer-build.spec.ts",
+        "composer-build-a11y.spec.ts",
+        "composer-settings.spec.ts",
+        "composer-parity.spec.ts",
+      ],
     },
   ],
   webServer: [
@@ -43,6 +55,11 @@ export default defineConfig({
     {
       command: "pnpm --filter agent dev",
       port: 8787,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: "node e2e/serve-provider.mjs",
+      port: 3314,
       reuseExistingServer: !process.env.CI,
     },
   ],

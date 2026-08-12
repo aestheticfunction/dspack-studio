@@ -303,6 +303,41 @@ test("Settings states provider options honestly and the appearance control appli
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", "ember");
 });
 
+/**
+ * With no agent running, "Local AI" is unreachable — and that is a setup step,
+ * not a product failure. This is the agent-ABSENT half of provider
+ * configuration; the configured-and-connected half needs a real agent and a
+ * real endpoint, and lives in composer-settings.spec.ts (agent config).
+ *
+ * The agent probe is blocked outright rather than assumed absent, so the
+ * assertion means the same thing on a developer machine that happens to have
+ * the agent running as it does in CI and on the deployed site.
+ */
+test("with no agent running, Local AI is honestly unavailable rather than a dead-looking form", async ({ page }) => {
+  await page.route((url) => url.hostname === "localhost" && url.port === "8787", (route) => route.abort());
+  await page.goto("/");
+  await page.getByTestId("nav-settings").click();
+
+  await expect(page.getByTestId("agent-status")).toContainText("Agent not running");
+
+  // Onboarding names the two real steps, in order: a runner, then the bridge.
+  const onboarding = page.getByTestId("local-onboarding");
+  await expect(onboarding).toContainText("Ollama");
+  await expect(onboarding).toContainText("pnpm --filter agent dev");
+
+  // Nothing pretends to be configurable: both provider forms are inert, so a
+  // person cannot type an endpoint that could never be reached.
+  await expect(page.getByTestId("provider-ollama")).toBeVisible();
+  await expect(page.getByTestId("provider-openai")).toBeVisible();
+  for (const id of ["ollama-url", "ollama-test", "openai-url", "openai-key", "openai-test"]) {
+    await expect(page.getByTestId(id)).toBeDisabled();
+  }
+
+  // And the path that DOES work here is offered plainly.
+  await expect(page.getByTestId("provider-model-scripted")).toBeEnabled();
+  await expect(page.getByTestId("active-provider")).not.toBeEmpty();
+});
+
 test("flows: create, walk, advance, persist, and round-trip through export/import", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "shadcn", "Flow walkthrough");
