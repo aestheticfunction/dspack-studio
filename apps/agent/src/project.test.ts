@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ServerResponse } from "node:http";
+import { A2UI_VERSIONS, projectEmit } from "@dspack-studio/composer-core";
 import { handleProjectRoute } from "./project.js";
 
 const demoProject = fileURLToPath(new URL("../../composer/demo-project", import.meta.url));
@@ -89,6 +90,48 @@ describe("emit", () => {
     expect(catalog.catalogId).toContain("https://acme.example/catalogs/acme-ui");
     // ok is false because one surface refused? No: ok reflects catalog gates.
     expect(payload.ok).toBe(true);
+  });
+
+  /**
+   * A3/A4 EQUIVALENCE, agent half. The route must add FILE WRITING to the
+   * shared emit seam and nothing else — no second opinion about gates, no
+   * different A2UI version list. (The browser half is proven where the browser
+   * lives: apps/composer/app/validation.test.ts asserts browserEmit is the same
+   * seam plus surface selection. Together the two halves make the agent and the
+   * browser equal by construction rather than by coincidence.)
+   */
+  it("is the shared emit seam plus file writing: same verdict, same findings, same A2UI versions", async () => {
+    const { payload } = await call("emit", { path: root });
+
+    // The one DOCUMENTED difference between the two doors: the agent also
+    // emits the surfaces in the project's surfacesDir, which a browser-backed
+    // project does not have. Feed the seam exactly the same list.
+    const contract = JSON.parse(readFileSync(join(root, "acme-ui.dspack.json"), "utf8"));
+    const profileJson = JSON.parse(readFileSync(join(root, "acme.profile.json"), "utf8"));
+    const surfaces = [
+      ...((contract.examples ?? []) as Array<{ id?: string; surface?: unknown }>)
+        .filter((e) => e.surface)
+        .map((e) => ({ name: e.id ?? "example", surface: e.surface })),
+      {
+        name: "uses-casualty",
+        surface: JSON.parse(readFileSync(join(root, "surfaces", "uses-casualty.dsurface.json"), "utf8")),
+      },
+    ];
+    const seam = projectEmit(contract, profileJson, surfaces);
+
+    expect(payload.ok).toBe(seam.ok);
+    expect(payload.findings).toEqual(seam.findings);
+    expect(payload.catalog).toEqual(seam.catalog);
+    expect(payload.surfaces.map((s: any) => s.name)).toEqual(seam.surfaces.map((s) => s.name));
+    // Both versions, named on the wire — the divergence this milestone closed
+    // was invisible precisely because nothing said which versions ran.
+    expect(payload.a2uiVersions).toEqual([...A2UI_VERSIONS]);
+    expect(seam.runs.map((r) => r.version)).toEqual([...A2UI_VERSIONS]);
+    // ...and the file writing that is the route's actual added value.
+    for (const seg of ["v0_9_1", "v1_0"]) {
+      expect(JSON.parse(readFileSync(join(root, "out", `catalog.${seg}.json`), "utf8")).components).toBeTruthy();
+      expect(JSON.parse(readFileSync(join(root, "out", `report.${seg}.json`), "utf8"))).toBeTruthy();
+    }
   });
 });
 
