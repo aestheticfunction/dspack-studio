@@ -47,6 +47,24 @@ Three consequences worth understanding before changing anything:
 
 Corollary: **scripted mode is first-class.** The entire experience — streaming, gates, rendering, accept — works with no model at all. If the AI layer disappeared tomorrow, Composer would still be a governed authoring tool.
 
+### The direction of travel
+
+The division of labour above is not a fixed line — it is a **ratchet**, and it only turns one way:
+
+> As Composer matures, consequential decisions should become progressively more deterministic, measurable, and reproducible. The AI proposes possibilities; deterministic machinery increasingly owns validation, governance, representation, acceptance, and evidence.
+
+Read that as a test to apply to any proposed change: *does this move a consequential decision toward determinism, or away from it?* A feature that makes the product better by making a judgment less checkable is the wrong trade, however good the demo looks.
+
+What turning the ratchet has actually looked like:
+
+- **Validation** — a rendering bug fixed once is a fix; an invariant asserting that *no* required catalog prop may be silently ignored is a ratchet. The second form found defects the first form had missed for months.
+- **Governance** — rules are owner-authored data evaluated mechanically, never prose the model is asked to honour.
+- **Representation** — the emitter refuses what it cannot represent and names the reason, rather than approximating and hoping the difference goes unnoticed.
+- **Acceptance** — the gates that decide whether work may be saved run in one shared seam, so a browser project and a repository project cannot reach different verdicts about the same artifact.
+- **Evidence** — the acceptance corpus, its expected classification, and the reasoning behind the architecture live in this repository, reproducible by anyone, rather than in the memory of whoever ran them last.
+
+The same test applies to enforcement itself: a check that runs because someone remembered to list it is weaker than one that runs because it exists. Prefer the mechanism that cannot be forgotten.
+
 ## 5. The product model
 
 - **Project** — an identity plus a source of vocabulary. Three sources: a packaged **reference** design system, an **imported** project file, or a connected **repository** (through the local agent).
