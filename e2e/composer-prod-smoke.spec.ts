@@ -71,6 +71,55 @@ test("create a named project from shadcn, then goal-first BUILD renders a govern
   await expect(page.getByTestId("build-pipeline-1")).toContainText("outcome: passed");
 });
 
+test("every turn states what it cost: scripted makes no model call; a failed hosted turn still shows its tokens", async ({ page }) => {
+  // Stand in for the deployed origin: Hosted is offered, the plan call
+  // succeeds, and the generation request comes back unusable twice (the
+  // Worker's retry), so the turn ends failed-adapter. Before Phase 0.5 that
+  // turn reported nothing about the three provider calls it had paid for.
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  await page.route("**/api/propose", (route) => {
+    const request = JSON.parse(route.request().postData() ?? "{}") as { jsonSchema?: Record<string, unknown> };
+    const generation = !!request.jsonSchema && "$defs" in request.jsonSchema;
+    const body = generation
+      ? {
+          error: "provider-unavailable",
+          cause: "unusable-output",
+          message: "Hosted generation did not return a usable proposal.",
+          usage: { inputTokens: 112000, outputTokens: 60 },
+          calls: [
+            { inputTokens: 56000, outputTokens: 30, outcome: "unusable-output", durationMs: 900 },
+            { inputTokens: 56000, outputTokens: 30, outcome: "unusable-output", durationMs: 800 },
+          ],
+        }
+      : {
+          json: { intent: "destructive-action", feasible: true, restated: "Let people permanently delete their account." },
+          model: "claude-haiku-4.5",
+          usage: { inputTokens: 1900, outputTokens: 45 },
+          calls: [{ inputTokens: 1900, outputTokens: 45, outcome: "ok", durationMs: 600 }],
+        };
+    return route.fulfill({ status: generation ? 502 : 200, contentType: "application/json", body: JSON.stringify(body) });
+  });
+
+  await page.goto("/");
+  await newProject(page, "shadcn", "Receipts");
+
+  await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
+  await expect(page.getByTestId("build-receipt-1")).toContainText("no model calls (scripted)");
+  await expect(page.getByTestId("build-receipt-1")).toContainText(/total \d+\.\d s/);
+
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-intent").selectOption("");
+  await page.getByTestId("build-prompt").fill("let people permanently delete their account");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-failure-2")).toBeVisible({ timeout: 30_000 });
+  const receipt = page.getByTestId("build-receipt-2");
+  await expect(receipt).toContainText("3 model calls (plan 1, generate 2)");
+  await expect(receipt).toContainText("113,900 input + 105 output tokens, provider-reported");
+  await expect(receipt).toContainText(/planning \d+\.\d s/);
+});
+
 test("the saved project appears on the hub and reopens", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "shadcn", "Reopen me");

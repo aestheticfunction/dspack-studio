@@ -26,13 +26,16 @@ import {
   addTombstone,
   applyFreshFact,
   buildReadiness,
+  callsFromReport,
   canRefineTurn,
+  createCallRecorder,
   examplePromptFor,
   foldBuildEvents,
   ledgerStatus,
   refinementConversation,
   removeTombstone,
   restoreComponent,
+  turnTimings,
   vocabularyGap,
   type BuildReadiness,
   type BuildTurnProgress,
@@ -41,7 +44,9 @@ import {
   type FreshFact,
   type GoalPlan,
   type LedgerStatus,
+  type ModelCallRecord,
   type ProjectManifest,
+  type TurnTimings,
 } from "@dspack-studio/composer-core";
 import {
   agentConnect,
@@ -140,6 +145,10 @@ export interface FlowComposition {
   plan: FlowPlan | null;
   /** The accepted plan's created flow + drive position, or null before accept. */
   build: FlowBuildState | null;
+  /** The model calls the flow planner made for `plan` (one flow-plan
+   *  operation; none for the deterministic outline). Each step's own planning
+   *  call is recorded on the turn that built it. */
+  planCalls?: ModelCallRecord[];
 }
 
 export const EMPTY_FLOW_COMPOSITION: FlowComposition = { mode: "surface", goal: "", plan: null, build: null };
@@ -174,6 +183,13 @@ export interface BuildTurn {
   /** "surface" = a governed surface was generated; "vocab-gap" = the approved
    *  vocabulary cannot express the goal (the bridge toward catalog evolution). */
   kind?: "surface" | "vocab-gap";
+  /** Every model call THIS turn made: its own planning call (never the reused
+   *  plan's, so a refinement shows none) and its generation calls. Recorded
+   *  at the transport boundary for in-browser runs; derived from the audit
+   *  report for agent runs; undefined when an agent run ended without one. */
+  calls?: ModelCallRecord[];
+  /** Wall-clock timings from submit, set when the turn ends. */
+  timings?: TurnTimings;
 }
 
 export interface ComposerState {
@@ -1154,6 +1170,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         return "not-run";
       }
       setBuildBusy(true);
+      // Every timing is measured from submit, planning included.
+      const t0 = performance.now();
       const id = ++turnSeq.current;
       const turn: BuildTurn = {
         id,
@@ -1173,21 +1191,25 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       // --- ROUTE: infer the governed context (fresh builds only; a refinement
       // keeps the original goal's context so it never re-routes mid-thread) ---
       let plan: GoalPlan;
+      let planCalls: ModelCallRecord[] = [];
+      let planMs: number | undefined;
       if (prior?.plan) {
         plan = prior.plan;
       } else {
-        plan = await planGoal(input.goal, input.modelRef, contract);
+        ({ plan, calls: planCalls } = await planGoal(input.goal, input.modelRef, contract));
+        planMs = performance.now() - t0;
         if (input.intentOverride) plan = { ...plan, intent: input.intentOverride, source: "model" };
       }
       const intent = input.intentOverride ?? plan.intent;
-      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, plan, intent, planPending: false } : t)));
+      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, plan, intent, planPending: false, calls: planCalls } : t)));
 
       // --- GAP: the approved vocabulary cannot express this goal. No generation
       // is attempted (inventing a component would violate governance); the gap
       // is surfaced conversationally as the bridge toward catalog evolution. ---
       if (!prior && plan.feasible === false && plan.missingCapability) {
+        const timings = turnTimings([], { totalMs: performance.now() - t0, ...(planMs !== undefined ? { planMs } : {}) });
         setBuildTurns((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, kind: "vocab-gap", progress: { status: "finished", attempts: [] } } : t)),
+          prev.map((t) => (t.id === id ? { ...t, kind: "vocab-gap", progress: { status: "finished", attempts: [] }, timings } : t)),
         );
         buildStream.current = null;
         setBuildBusy(false);
@@ -1198,9 +1220,22 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       // context. Two homes (agent over your files; browser over the demo);
       // both stream identical AG-UI events into foldBuildEvents. ---
       const events: Array<Record<string, unknown>> = [];
+      // The same events, stamped on arrival, for the turn's timings.
+      const stamped: Array<{ atMs: number; event: Record<string, unknown> }> = [];
+      // In-browser runs record every call at the transport boundary (the
+      // record of truth); agent runs have no such boundary here, so their
+      // calls are read from the audit report.
+      const recorder = createCallRecorder();
+      let inBrowserRun = false;
+      const turnCalls = (progress: BuildTurnProgress): ModelCallRecord[] | undefined => {
+        if (inBrowserRun) return [...planCalls, ...recorder.calls];
+        if (!progress.report) return progress.status === "streaming" ? planCalls : undefined;
+        return [...planCalls, ...callsFromReport(progress.report, { refinement: !!prior })];
+      };
       const update = () => {
         const progress = foldBuildEvents(events);
-        setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, progress, gaps: vocabularyGap(progress) } : t)));
+        const calls = turnCalls(progress);
+        setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, progress, gaps: vocabularyGap(progress), calls } : t)));
       };
       const runInput = {
         path: projectPath,
@@ -1224,8 +1259,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       //   • hosted/reference + LOCAL → the agent over the browser-supplied
       //     vocabulary (/generate) — how a hosted project runs your own model;
       //   • hosted/reference + scripted → the in-browser twin.
-      const inBrowser = (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) =>
-        streamHostedBuild(inp, handlers, { contract, profile });
+      const inBrowser = (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) => {
+        inBrowserRun = true;
+        return streamHostedBuild(inp, handlers, { contract, profile }, { recorder });
+      };
       const runStream =
         input.modelRef === "hosted-ai"
           ? inBrowser
@@ -1239,10 +1276,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         buildStream.current = runStream(runInput, {
           onEvent: (event) => {
             events.push(event);
+            stamped.push({ atMs: performance.now() - t0, event });
             update();
           },
           onError: (message) => {
-            events.push({ type: "RUN_ERROR", message });
+            const event = { type: "RUN_ERROR", message };
+            events.push(event);
+            stamped.push({ atMs: performance.now() - t0, event });
             update();
             resolve();
           },
@@ -1250,10 +1290,16 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         });
       });
       buildStream.current = null;
+      // The turn is over: settle its calls (a failed request records on
+      // throw, after the last event) and its timings.
+      const final = foldBuildEvents(events);
+      const timings = turnTimings(stamped, { totalMs: performance.now() - t0, ...(planMs !== undefined ? { planMs } : {}) });
+      const finalCalls = turnCalls(final);
+      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, calls: finalCalls, timings } : t)));
       setBuildBusy(false);
       // The turn's outcome, from ITS OWN event stream (state would be stale
       // in this closure): the Phase C driver sequences on it.
-      return foldBuildEvents(events).outcome === "passed" ? "passed" : "failed";
+      return final.outcome === "passed" ? "passed" : "failed";
     },
     [mode, projectPath, buildBusy, buildTurns, contract, profile, providerConfig, agentUp],
   );

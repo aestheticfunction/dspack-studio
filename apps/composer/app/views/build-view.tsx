@@ -15,7 +15,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { registryFor, canvasScopeFor } from "../registries";
-import { buildFailure, canAcceptTurn, canRefineTurn, intentLabel, type FlowPlan } from "@dspack-studio/composer-core";
+import {
+  buildFailure,
+  canAcceptTurn,
+  canRefineTurn,
+  describeCalls,
+  describeTimings,
+  intentLabel,
+  type FlowPlan,
+} from "@dspack-studio/composer-core";
 import { mintStepId, nextFlowId, type StepBinding } from "../flows";
 import { planFlow } from "../planning";
 import type { BuildTurn, FlowBuildState } from "../state";
@@ -193,6 +201,21 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
   );
 }
 
+/**
+ * What the turn cost, once it has ended: its model calls (planning included,
+ * failed calls included) with the provider-reported tokens, and its timings.
+ * Never an estimate; a scripted turn says it made no model call.
+ */
+function TurnReceipt({ turn }: { turn: BuildTurn }) {
+  if (turn.planPending || turn.progress.status === "streaming") return null;
+  return (
+    <p data-testid={`build-receipt-${turn.id}`} style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--fg-dim)", margin: "4px 0" }}>
+      {describeCalls(turn.calls)}
+      {turn.timings ? ` · ${describeTimings(turn.timings)}` : ""}
+    </p>
+  );
+}
+
 function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: StepBinding }) {
   const { acceptBuildTurn, buildBusy, busy, mode, isExample, contract } = useComposer();
   // What the saved surface is CALLED — read back from the project's own
@@ -274,6 +297,8 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
           </details>
         </>
       )}
+
+      <TurnReceipt turn={turn} />
 
       {(() => {
         const failure = buildFailure(turn.progress);
@@ -466,7 +491,8 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
     setPlanBusy(true);
     setFlowBuild(null); // a fresh plan starts a fresh composition session
     try {
-      setFlowPlan(await planFlow(flowGoal.trim(), activeModel, contract));
+      const { plan, calls } = await planFlow(flowGoal.trim(), activeModel, contract);
+      setFlowComposition((c) => ({ ...c, plan, planCalls: calls }));
     } finally {
       setPlanBusy(false);
     }
@@ -697,6 +723,11 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
                     ? flowPlan.reason || "Deterministic outline — no model call."
                     : "Proposed by the model — edit anything before building."}
                 </span>
+                {flowComposition.planCalls && (
+                  <span style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--fg-dim)" }} data-testid="flow-plan-receipt">
+                    {describeCalls(flowComposition.planCalls)}
+                  </span>
+                )}
               </div>
               {flowPlan.steps.map((step, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>

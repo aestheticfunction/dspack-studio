@@ -21,7 +21,19 @@ export function refinementConversation(priorPrompt: string, priorSurface: unknow
   ];
 }
 
-/** The /api/propose request body, exactly as the gateway adapter posts it. */
-export function proposeBody(request: { system: string; messages: unknown[]; jsonSchema: unknown }): string {
-  return JSON.stringify({ system: request.system, messages: request.messages, jsonSchema: request.jsonSchema });
+/**
+ * The /api/propose request body, exactly as the gateway adapter posts it.
+ * `maxCalls` caps the Worker's provider calls for this request (1 disables
+ * its parse retry). Absent, the bytes are exactly today's.
+ */
+export function proposeBody(
+  request: { system: string; messages: unknown[]; jsonSchema: unknown },
+  options: { maxCalls?: 1 | 2 } = {},
+): string {
+  return JSON.stringify({
+    system: request.system,
+    messages: request.messages,
+    jsonSchema: request.jsonSchema,
+    ...(options.maxCalls !== undefined ? { maxCalls: options.maxCalls } : {}),
+  });
 }
