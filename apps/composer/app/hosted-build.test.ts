@@ -211,6 +211,32 @@ describe("the recorder sees every request", () => {
     expect(aggregateUsage(recorder.calls).unreported).toBe(1);
   });
 
+  it("a Worker that predates calls[] and refused before any provider call (503 unavailable) reached no model", async () => {
+    stubFetch(() => reply(503, { error: "unavailable", message: "Hosted AI generation is unavailable." }));
+    const recorder = createCallRecorder();
+    await gatewayAdapter({ recorder }).generate(REQUEST).catch(() => undefined);
+    expect(recorder.calls).toEqual([expect.objectContaining({ source: "none", outcome: "refused" })]);
+  });
+
+  it("a reply whose body fails mid-read keeps its HTTP status and kind", async () => {
+    const broken = () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.error(new Error("connection reset"));
+          },
+        }),
+        { status: 429 },
+      );
+    stubFetch(() => broken());
+    const recorder = createCallRecorder();
+    const error = (await gatewayAdapter({ recorder }).generate(REQUEST).catch((e: unknown) => e)) as GatewayError;
+    expect(error).toBeInstanceOf(GatewayError);
+    expect(error.status).toBe(429);
+    expect(error.kind).toBe("policy");
+    expect(recorder.calls).toEqual([expect.objectContaining({ source: "none", outcome: "refused" })]);
+  });
+
   it("maxCalls rides the body only when asked for", async () => {
     const { bodies } = stubFetch(() => reply(200, { json: {}, calls: [] }));
     await gatewayAdapter().generate(REQUEST);

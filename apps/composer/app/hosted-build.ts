@@ -191,9 +191,19 @@ function callRecords(
       };
     });
   }
-  // An old Worker's 429 came from its own limiter, before any provider call.
-  const source = fallback.outcome === "refused" ? "none" : "provider";
-  return [{ ...where, source, ...normalizeUsage(body?.usage), ...model, durationMs: fallback.durationMs, outcome: fallback.outcome }];
+  // An older Worker's 429 and its 503 "unavailable" (kill switch, limiter
+  // error) were both sent before any provider call.
+  const refused = fallback.outcome === "refused" || body?.error === "unavailable";
+  return [
+    {
+      ...where,
+      source: refused ? "none" : "provider",
+      ...normalizeUsage(body?.usage),
+      ...model,
+      durationMs: fallback.durationMs,
+      outcome: refused ? "refused" : fallback.outcome,
+    },
+  ];
 }
 
 const FAILURE_OUTCOME: Record<GatewayErrorKind, ModelCallRecord["outcome"]> = {
@@ -219,18 +229,26 @@ async function propose(
     return { calls, durationMs };
   };
 
+  const failed = (error: unknown) => (error instanceof Error ? error.message : String(error));
   let res: Response;
-  let text: string;
   try {
     res = await fetch("/api/propose", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: proposeBody(request, options.maxCalls !== undefined ? { maxCalls: options.maxCalls } : {}),
     });
-    text = await res.text();
   } catch (error) {
     const { calls } = settle(undefined, "provider-error");
-    throw new GatewayError(`hosted AI request failed: ${error instanceof Error ? error.message : String(error)}`, "provider", calls);
+    throw new GatewayError(`hosted AI request failed: ${failed(error)}`, "provider", calls);
+  }
+  let text: string;
+  try {
+    text = await res.text();
+  } catch (error) {
+    // The response arrived but its body did not: keep what the status says.
+    const kind = res.ok ? "provider" : errorKind(res.status, undefined);
+    const { calls } = settle(undefined, FAILURE_OUTCOME[kind]);
+    throw new GatewayError(`hosted AI response could not be read: ${failed(error)}`, kind, calls, res.status);
   }
   let body: Record<string, unknown> | undefined;
   try {

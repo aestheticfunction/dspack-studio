@@ -134,9 +134,19 @@ function sumUsage(calls) {
 
 /** A failed request, carrying every provider call it made. `failure` is
     "provider" (a call was rejected) or "unusable-output". */
+/** The shape the busy classifier reads. Never throws: a rejection value
+    String() cannot convert must not cost the request its call records. */
+function describe(error) {
+  try {
+    return String(error?.message ?? error ?? "");
+  } catch {
+    return "";
+  }
+}
+
 class CallFailure extends Error {
   constructor(error, calls, failure) {
-    super(String(error?.message ?? error));
+    super(describe(error));
     this.calls = calls;
     this.failure = failure;
   }

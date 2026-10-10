@@ -190,3 +190,16 @@ describe("hosted propose — maxCalls caps the parse retry", () => {
     expect(run).not.toHaveBeenCalled();
   });
 });
+
+describe("hosted propose — a rejection value that cannot be stringified still reports its call", () => {
+  it("one provider call that rejected with a null-prototype object is still listed", async () => {
+    const run = vi.fn().mockRejectedValue(Object.create(null));
+    const res = await worker.handlePropose(post(), { AI: { run } });
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.cause).toBe("provider");
+    expect(body.calls).toHaveLength(1);
+    expect(body.calls[0].outcome).toBe("provider-error");
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+});
