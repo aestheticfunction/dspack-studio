@@ -141,7 +141,7 @@ prompt-stated ask; the vocabulary-addition path (contract entry, profile
 mapping, drift-check name, renderers in both design systems, `x-drift`
 for any documented divergence) is established and mechanical.
 
-## P6 — Interface blocks (experimental)
+## P6: Interface blocks (experimental)
 
 Governed interface patterns with typed data, state, and host-owned actions:
 a block call the model fills, expanded deterministically into an ordinary

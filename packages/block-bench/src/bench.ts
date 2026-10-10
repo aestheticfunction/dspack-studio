@@ -34,18 +34,15 @@ import {
   type A2uiVersion,
   type Profile,
 } from "@aestheticfunction/dspack-emit";
+import { buildFlowPlanRequest, buildPlanRequest, proposeBody, refinementConversation } from "@dspack-studio/composer-core";
 import {
-  buildFlowPlanRequest,
-  buildPlanRequest,
   callJsonSchema,
   encodeCall,
   generationView,
   parseBlocksSidecar,
-  proposeBody,
-  refinementConversation,
   sha256Hex,
   type BlocksSidecar,
-} from "@dspack-studio/composer-core";
+} from "@dspack-studio/composer-core/blocks";
 import { getEncoding } from "js-tiktoken";
 // The Worker module is dependency-free; this is the exact function it uses.
 import { guidedSystem } from "../../../apps/composer/worker/propose.mjs";

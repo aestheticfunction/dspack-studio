@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { test, expect, type Page } from "@playwright/test";
 
 /**
@@ -527,6 +529,26 @@ test("client traffic carries no private hosts, local paths, or key material", as
   for (const body of bodies) {
     for (const pattern of [/\/Users\/[a-z]+/i, /sk-[A-Za-z0-9]{20}/, /AKIA[A-Z0-9]{16}/]) {
       expect(body).not.toMatch(pattern);
+    }
+  }
+});
+
+test("the default build ships no interface-block code (docs/BLOCKS.md: blocks stay out of default builds)", () => {
+  // Scans the served artifact on disk, so a lazily loaded chunk cannot hide it.
+  const chunks = fileURLToPath(new URL("../apps/composer/out/_next/static/chunks/", import.meta.url));
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(`${dir}${entry.name}/`);
+      else if (entry.name.endsWith(".js")) files.push(`${dir}${entry.name}`);
+    }
+  };
+  walk(chunks);
+  expect(files.length).toBeGreaterThan(0);
+  for (const file of files) {
+    const body = readFileSync(file, "utf8");
+    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table"]) {
+      expect(body.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   }
 });

@@ -144,7 +144,7 @@
       ],
       "streaming": "disable-actions-until-complete",
       "notes": [
-        "Per-row actions are not expressible: the data-table-with-row-actions pattern needs dropdown-menu, a declared casualty of this profile.",
+        "Per-row actions are not expressible: this profile collects dropdown-menu-item into DropdownMenu items that carry only a label, so a row menu cannot dispatch a host action. Sortable column headers from data-table-with-row-actions are not modeled either.",
         "Status keeps its text; the badge variant reflects the tone and colour is never the only signal."
       ],
       "template": {
@@ -525,7 +525,8 @@
       "streaming": "disable-actions-until-complete",
       "notes": [
         "Input autocomplete purposes are not expressible: neither reference contract declares an autocomplete prop. Recorded as a vocabulary gap for Phase 2.",
-        "The block describes fields, never values: there is no slot for entered text, defaults, or credentials."
+        "The block describes fields, never values: there is no slot for entered text, defaults, or credentials.",
+        "Deviation from form-field-layout: the submit button stays inside the form in CardContent rather than CardFooter, so it remains the form's own submit; CardFooter holds only provider actions."
       ],
       "template": {
         "component": "card",

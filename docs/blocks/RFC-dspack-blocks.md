@@ -95,7 +95,12 @@ Projection rules:
 
 ## 5. Expansion semantics
 
-Expansion is a pure function of `(block, named call, reference)`. The same inputs produce byte-identical JSON. Every failure below is an `invariant-failure` with a pathed reason.
+Expansion is a pure function of `(block, named call, reference, intent)`, where the intent is the selected one among the block's `intents`. The same inputs produce byte-identical JSON. Every failure below is an `invariant-failure` with a pathed reason.
+
+**Serialization.**
+- Golden files are `JSON.stringify(surface, null, 2)` plus a trailing LF.
+- `expansionDigest` is sha256 of `JSON.stringify(surface)` with no whitespace.
+- Object keys inside `props` and inside value objects keep template order.
 
 **Output wrapper.** `{ "dspackSurface": "0.1", "system": reference.name, "intent": <selected intent>, "root": <expanded template> }`.
 
@@ -116,7 +121,7 @@ Expansion is a pure function of `(block, named call, reference)`. The same input
 
 **Truthiness.** Absent, `null`, `false`, `""` and `[]` are falsy. Everything else is truthy.
 
-**Tests.** A test is either a path, judged by truthiness, or `{ "$eq": [a, b] }`, which compares two evaluated values by JSON equality.
+**Tests.** A test is either a path, judged by truthiness, or `{ "$eq": [a, b] }`, which compares two evaluated values by JSON equality. Either `$eq` operand may be absent: absent equals only absent and is unequal to every present value. `$eq` operands are not array elements, so the absent-element rule does not apply to them.
 
 **Values.** A value is literal JSON, an object or array of values (evaluated key by key, with absent object keys omitted), or exactly one directive:
 
@@ -124,7 +129,7 @@ Expansion is a pure function of `(block, named call, reference)`. The same input
 |---|---|
 | `{ "$prop": path, "default"?: scalar }` | The value at `path` (a prop, an enclosing loop variable, or `variable.field`); otherwise the default; otherwise absent. Absent inside `$concat` or as an array element fails. |
 | `{ "$concat": [values...] }` | String concatenation. Numbers are stringified; anything else fails. |
-| `{ "$case": path, "map": {...}, "default"?: scalar }` | `map[value]` for an enum (or `"true"`/`"false"` for a boolean); otherwise the default; otherwise it fails. Every enum value must be mapped or a default given (checked at load). |
+| `{ "$case": path, "map": {...}, "default"?: scalar }` | `map[value]` (own keys only) for an enum (or `"true"`/`"false"` for a boolean); otherwise the default; otherwise it fails. Checked at load: map results and the default are literal scalars, every enum value is mapped or a default is given, and a source that may be absent for a B1-valid call needs a default. |
 | `{ "$index": name }` | The 1-based position of the enclosing `$each` or `$map` variable `name`. |
 | `{ "$map": path, "as": name, "value": value }` | An array with `value` evaluated once per item. An absent source is absent. |
 
@@ -133,7 +138,7 @@ There are no expressions, no string templating beyond `$concat`, no conditionals
 ## 6. Trace and provenance
 
 - **The trace.** Every block-mode run produces an immutable `BlockTrace` as a turn-level artifact (Phase 1A). It holds the selected block, the encoding, each call with its B1/B2 verdicts and usage, the fallback reason and classification, the expansion digest, the schema digests, and the model's literal call text.
-- **Provenance.** An accepted block surface stores `{v, reference, baseSha256, block, version, blockSchemaSha256, encoding: "named", call, expansionDigest}` as project data, capped at 16 KB.
+- **Provenance.** An accepted block surface stores `{v, reference, baseSha256, block, version, intent, blockSchemaSha256, encoding: "named", call, expansionDigest}` as project data, capped at 16 KB. The intent is stored because expansion depends on it.
   - It is written only when the accepted surface equals the expansion.
   - On import it is validated against the matching bundled sidecar.
   - An unknown version keeps only `{block, version, status: "inert"}`, and the surface renders as an ordinary surface.
@@ -149,7 +154,7 @@ When it applies, the model receives the selected block's schema, the prior goal,
 
 ## 8. Relation to existing contract sections
 
-- `patterns` stay guidance for primitive generation. A block's `relatedPattern` names the pattern whose guidance its template already encodes. For example, `records-table` refines `data-table-with-row-actions`, and `auth-form` refines `form-field-layout`.
+- `patterns` stay guidance for primitive generation. A block's `relatedPattern` names the contract pattern the block partially realizes. Every deviation from that pattern's guidance is listed in the block's `notes`. For example, `records-table` relates to `data-table-with-row-actions` but has no row actions or sortable headers, and `auth-form` relates to `form-field-layout` but keeps its submit inside the form rather than in CardFooter.
 - `intents`, `rules` and `examples` are unchanged. Blocks add no rule type, and an expansion is judged by the same rules as any surface.
 
 ## 9. Open questions for ratification

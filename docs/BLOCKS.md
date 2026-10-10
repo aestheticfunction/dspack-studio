@@ -35,7 +35,7 @@ So the input side is the first-order lever on hosted cost. The external research
 - **Model output is untrusted.** A call is data. It is validated, never executed, and the template decides every component.
 - **No value slots.** Block signatures have no slot for entered values, defaults, credentials, secrets or runtime state. `auth-form` declares which fields to ask for, never what was typed. A test asserts this structurally.
 - **Bounded.** Every string and array in a signature declares a maximum.
-- **Allowlisted actions.** A block may only dispatch its declared action names. Names are deterministic dspack-emit slugs of literal template ids, so the model cannot coin one.
+- **Allowlisted actions.** A block may only dispatch its declared action names. Names are deterministic dspack-emit slugs of template ids built only from literals and enum-bounded props, and B2 rejects any emitted name outside the block's declared `actions`, so the model cannot coin one.
 - **Fail closed.** A template that expands to anything S1, S2 or the emitter rejects is a definition defect. The block is disabled for the session and reported, never repaired by the model and never masked by fallback.
 - **Ineligible projects get nothing.** Imported and repository projects never receive block metadata in a prompt. Composer never infers that an external contract supports a block.
 
@@ -86,7 +86,7 @@ So the input side is the first-order lever on hosted cost. The external research
 
 - **Budget.**
   - At most **3 provider generation calls** per run, counting the Worker's internal parse retry. Planning is its own call, outside the budget.
-  - In block mode, every gateway request carries `maxCalls: 1`, and the block phase hands `runPipeline` the remaining budget as `maxRepairs`.
+  - In block mode, every gateway request carries `maxCalls: 1`. The block phase hands `runPipeline` the remaining budget: `maxRepairs = 3 - k` after an expansion (attempt 0 replays the expansion and costs no call), and `3 - k - 1` on fallback (attempt 0 is itself a provider call), where k is the number of block-phase calls.
   - An exhausted budget ends as an ordinary `failed-lint-exhausted` or `failed-gate`, with its real findings visible. No error is invented.
 - **Classification.** Unknown error kinds count as provider failures. That fails safe: no further call.
 
@@ -104,7 +104,7 @@ So the input side is the first-order lever on hosted cost. The external research
 
 ### ADR-B5: provenance is project data, never contract data
 
-- **Browser reference projects.** An accepted block surface records `{block, version, call, binding, expansionDigest}` in a per-project store that follows the `flows.ts` idiom. It travels in project export as an additive optional field.
+- **Browser reference projects.** An accepted block surface records `{block, version, intent, call, binding, expansionDigest}` in a per-project store that follows the `flows.ts` idiom. It travels in project export as an additive optional field.
 - **Stored only when it is true.** It is written only when the accepted surface is byte-equal to its expansion.
 - **Never inside contract files or surfaces.** It never enters a synchronized contract file, an example entry, or a surface.
 - **Repository projects.** These are ineligible in Phase 1A. Phase 2 places provenance in an agent-written file beside the contract, keyed by example id and admitted by the agent's `saveExample`.
@@ -138,7 +138,7 @@ The external research ranked twelve block families. Admission is not by rank. A 
 | 1 | Search, browse, compare | Later | Expressible on both references (Astryx: selectable-card, metadata-list) |
 | 2 | Analytics dashboard | Vocabulary-gated | KPI cards and tables only; no chart vocabulary exists |
 | 3 | Task workflow | Later | List and table views only |
-| 4 | **Record manager** (`records-table`) | **Draft** | Native on both; per-row actions blocked by the dropdown-menu casualty |
+| 4 | **Record manager** (`records-table`) | **Draft** | Native on both; per-row actions blocked (dropdown-menu is a casualty on Astryx, and its items carry no action on shadcn/ui v3) |
 | 5 | Product detail, cart, checkout | Later | Expressible; host-authoritative pricing |
 | 6 | Booking | Later | Pre-offered slots only; no date picker |
 | 7 | **Step-by-step guide** (`guide-steps`) | **Draft** | Tables on both; checking off steps is presentation state |

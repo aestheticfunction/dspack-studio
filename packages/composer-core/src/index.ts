@@ -99,5 +99,6 @@ export {
   type FlowPlanStep,
 } from "./flow-plan";
 export { refinementConversation, proposeBody, type ConversationTurn } from "./requests";
-// Interface blocks (experimental; inert until the flagged Phase 1A path).
-export * from "./blocks";
+// Interface blocks (experimental) are a separate subpath,
+// "@dspack-studio/composer-core/blocks", so the default Composer bundle
+// carries none of their code.
