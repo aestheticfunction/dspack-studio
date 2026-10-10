@@ -49,6 +49,7 @@ import {
 } from "@dspack-studio/composer-core/blocks";
 import { parityComponents, refinementFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { checkParity } from "./parity";
+import { PacingCapReached } from "./pacing";
 import { createMeter, failureKindOf, type Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
 import { REFINEMENT_KIND, type Arm, type Condition, type Path, type PriorResult, type RunRecord } from "./types";
@@ -135,6 +136,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
 
   if (condition !== "fresh" && !input.prior) return { record: { ...empty(), skipReason: "the arm's fresh build for this prompt did not pass" } };
 
+  // A hosted provider refuses the cell here when its cap cannot cover it (PacingCapReached).
+  provider.beforeCell?.();
   const contract = reference.contract;
   const profile = reference.profile;
   const eligible: readonly BlockDefinition[] = reference.blocks;
@@ -163,7 +166,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
         const json = await provider.plan(request, { recorder: planRecorder, meter: planMeter });
         plan = reconcilePlan(json, contract, goal);
         if (arm === "block") plan = { ...plan, block: reconcileBlockChoice(json, { intent: plan.intent, eligible }) };
-      } catch {
+      } catch (error) {
+        if (error instanceof PacingCapReached) throw error;
         plan = planDeterministic(goal, contract);
         if (arm === "block") plan = { ...plan, block: { id: null, reason: "planning-provider-failure", source: "deterministic" } };
       }
@@ -220,6 +224,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     const started = now();
     const result = await runBlockPhase({ block, intent: runIntent, goal: runGoal, reference: { name: reference.name }, contract, profile, inner: blockInner, budget, deps, ...(seed ? { seed } : {}) });
     blockPhaseMs = now() - started;
+    // The block phase classifies every throw; the run's own stop signal is not a provider failure.
+    if (result.kind === "provider-failure" && result.error instanceof PacingCapReached) throw result.error;
     trace = result.trace;
     switch (result.kind) {
       case "expanded": {

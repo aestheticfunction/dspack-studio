@@ -97,6 +97,7 @@ export function createScriptedProvider(options: { faults?: boolean; now?: () => 
 
   return {
     id: SCRIPTED_ID,
+    descriptor: faults ? `${SCRIPTED_ID}:faults` : SCRIPTED_ID,
     kind: "scripted",
     plansWithModel: false,
     surfaceAdapter(opts: AdapterOptions): StructuralAdapter {

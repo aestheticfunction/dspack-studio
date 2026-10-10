@@ -48,6 +48,20 @@ describe("the summary", () => {
     expect(stats!.passRate).toBeCloseTo(9 / 11);
   });
 
+  it("tokens per success follows ADR-B3: every metered evaluated run's spend, failures included, over the metered successes; a run with an unreported call leaves the cohort entirely", () => {
+    const records = [
+      ...many(8, { arm: "block", passed: true, tokens: [100, 10] }),
+      ...many(2, { arm: "block", passed: false, tokens: [250, 50] }),
+      ...many(1, { arm: "block", passed: true, tokens: [100, 10], unreported: 1 }),
+      ...many(1, { arm: "block", passed: false, tokens: [900, 0], unreported: 2 }),
+    ];
+    const [stats] = armStats(records);
+    // cohort: 8 passing at 110 and 2 failing at 300 = 1480 tokens over 8 successes
+    expect(stats).toMatchObject({ evaluated: 12, passed: 9, meteredRuns: 10, meteredSuccesses: 8, unmeteredRuns: 2, unmeteredSuccesses: 1, tokensPerSuccess: 185, tokensPerPassingRun: 110 });
+    expect(stats!.inputTokensPerSuccess).toBeCloseTo((800 + 500) / 8);
+    expect(stats!.outputTokensPerSuccess).toBeCloseTo((80 + 100) / 8);
+  });
+
   it("stratifies the block arm by path and classification, and measures refinement retention and change", () => {
     const records = [
       record({ arm: "block", passed: true, path: "block" }),
@@ -91,6 +105,20 @@ describe("the decision rule (ADR-B3)", () => {
     const [d] = decide(armStats(records));
     expect(d!.verdict).toBe("pass");
     expect(d!.tokens.reductionVsProduction).toBeCloseTo(1 - 650 / 1080);
+  });
+
+  it("the decision reads the ADR-B3 figure: an arm that pays for many failures does not look cheaper than it is", () => {
+    const records = [
+      ...many(14, { arm: "block", passed: true, tokens: [600, 50] }),
+      ...many(6, { arm: "block", passed: false, tokens: [600, 50] }),
+      ...many(20, { arm: "capped", passed: true, tokens: [900, 60] }),
+      ...many(20, { arm: "production", passed: true, tokens: [1000, 80] }),
+    ];
+    const [d] = decide(armStats(records));
+    // 20 runs at 650 over 14 successes = 928.6 per success: only 14% below production's 1080
+    expect(d!.tokens.block).toBeCloseTo((20 * 650) / 14);
+    expect(d!.tokens.reductionVsProduction).toBeCloseTo(1 - (20 * 650) / 14 / 1080);
+    expect(d!.verdict).toBe("fail");
   });
 
   it("fails on tokens, fails on the pass-rate guardrail against either arm, and is insufficient below the minimum or without metered successes", () => {

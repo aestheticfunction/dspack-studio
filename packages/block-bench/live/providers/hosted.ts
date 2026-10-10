@@ -196,10 +196,15 @@ export function createHostedProvider(options: HostedOptions): Provider {
     };
   }
 
+  /** The most requests one cell can send under the budget: the planning call plus three. Refused retries are extra and free. */
+  const CELL_REQUESTS = 4;
   return {
     id: HOSTED_AI_ID,
+    descriptor: `${HOSTED_AI_ID}@${base}`,
     kind: "hosted",
     plansWithModel: true,
+    beforeCell: () => options.pacer?.reserve(CELL_REQUESTS),
+    telemetry: () => (options.pacer ? { pacing: { ...options.pacer.config, backoffMs: [...options.pacer.config.backoffMs], sent: options.pacer.sent, waits: [...options.pacer.waits] } } : undefined),
     surfaceAdapter: adapter,
     blockAdapter: (opts: BlockAdapterOptions) => adapter({ ...opts, maxCalls: 1 }),
     async plan(request: GenerateRequest, opts: PlanOptions) {

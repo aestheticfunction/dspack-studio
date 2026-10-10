@@ -87,6 +87,7 @@ export function createOllamaProvider(options: OllamaOptions): Provider {
 
   return {
     id,
+    descriptor: `${id}@${(options.host ?? process.env.OLLAMA_HOST ?? "http://localhost:11434").replace(/\/+$/, "")}`,
     kind: "ollama",
     plansWithModel: true,
     surfaceAdapter: adapter,

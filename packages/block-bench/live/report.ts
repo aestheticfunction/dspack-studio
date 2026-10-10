@@ -20,10 +20,24 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
     "",
   ];
+  const pacing = (result.telemetry?.pacing ?? null) as null | { maxRequests: number; spacingMs: number; backoffMs: number[]; sent: number; waits: Array<{ atMs: number; ms: number; reason: string }> };
+  if (pacing) {
+    const byReason = new Map<string, { n: number; ms: number }>();
+    for (const w of pacing.waits) {
+      const entry = byReason.get(w.reason) ?? { n: 0, ms: 0 };
+      entry.n += 1;
+      entry.ms += w.ms;
+      byReason.set(w.reason, entry);
+    }
+    out.push(
+      `Pacing: a cap of ${pacing.maxRequests} requests for this invocation, ${pacing.spacingMs} ms between requests, backoff ${pacing.backoffMs.map((ms) => `${ms / 1000}s`).join(", ") || "none"}; ${pacing.sent} requests sent; waits: ${pacing.waits.length === 0 ? "none" : [...byReason].map(([reason, e]) => `${e.n} for ${reason} (${Math.round(e.ms / 1000)}s)`).join(", ")}.`,
+      "",
+    );
+  }
   if (preflight.drafts) out.push("**Provisional.** At least one sidecar in use is a draft. ADR-B3 counts approved sidecars only; these numbers inform the drafts, they do not graduate anything.", "");
   if (context.providerId === "fake:scripted") out.push("**Dry run.** The scripted provider calls no model: every figure that needs provider-reported usage reads n/a, and parity reflects the replayed worked examples, not generation.", "");
   out.push(
-    "Tokens per success are provider-reported input plus output across every call of the run (planning included), over passing runs whose every call was metered. Pass rates exclude provider and policy failures, which are listed separately for re-running. Nothing here is estimated.",
+    "Tokens per success is the ADR-B3 figure: provider-reported input plus output across every call (planning included) of every evaluated run whose calls were all metered, failures included, divided by that cohort's successes. A run with an unreported call leaves the cohort. Pass rates exclude provider and policy failures, which are listed separately for re-running. Nothing here is estimated.",
     "",
   );
 
@@ -43,8 +57,8 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
   for (const [title, stats] of byRef) {
     out.push(`## ${title}`, "");
     out.push("### Fresh builds", "");
-    out.push(row(["Arm", "Cells", "Evaluated", "Passed", "Pass rate", "First attempt", "Repairs/success", "Tokens/success (metered n)", "Input", "Output", "Provider calls/run", "Request bytes/run", "p50 total", "p50 first gated", "p50 block phase", "Parity mean", "Re-run eligible"]));
-    out.push(row(["---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
+    out.push(row(["Arm", "Cells", "Evaluated", "Passed", "Pass rate", "First attempt", "Repairs/success", "Tokens/success (metered runs / successes)", "Input", "Output", "Per passing run", "Provider calls/run", "Request bytes/run", "p50 total", "p50 first gated", "p50 block phase", "Parity mean", "Re-run eligible"]));
+    out.push(row(["---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
     for (const s of stats.filter((x) => x.condition === "fresh")) {
       out.push(
         row([
@@ -55,9 +69,10 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
           pct(s.passRate),
           pct(s.firstAttemptPassRate),
           num(s.repairsPerSuccess, 2),
-          `${num(s.tokensPerSuccess)} (${s.meteredSuccesses})`,
+          `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`,
           num(s.inputTokensPerSuccess),
           num(s.outputTokensPerSuccess),
+          num(s.tokensPerPassingRun),
           num(s.providerCallsPerRun, 2),
           num(s.requestBytesPerRun),
           ms(s.latency.totalMs),
@@ -86,9 +101,9 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     const refinements = stats.filter((x) => x.condition !== "fresh");
     if (refinements.length > 0) {
       out.push("### Refinements (on each arm's own fresh result)", "");
-      out.push(row(["Condition", "Arm", "Cells", "Skipped", "Evaluated", "Pass rate", "Changed", "Retention", "Tokens/success (metered n)", "Re-run eligible"]));
+      out.push(row(["Condition", "Arm", "Cells", "Skipped", "Evaluated", "Pass rate", "Changed", "Retention", "Tokens/success (metered runs / successes)", "Re-run eligible"]));
       out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
-      for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, pct(s.passRate), pct(s.changedRate), pct(s.retention), `${num(s.tokensPerSuccess)} (${s.meteredSuccesses})`, s.rerunEligible]));
+      for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, pct(s.passRate), pct(s.changedRate), pct(s.retention), `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`, s.rerunEligible]));
       out.push("");
     }
     const failures = stats.filter((x) => x.rerunEligible > 0);

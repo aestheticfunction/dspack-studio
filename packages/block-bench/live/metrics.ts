@@ -3,10 +3,12 @@
  *
  * Pass rates count completed runs minus the provider and policy failures,
  * which are reported separately and re-run symmetrically; budget exhaustion,
- * fallback and invariant outcomes are arm results. Tokens per success use
- * provider-reported figures only: a passing run with any unreported call is
- * counted as unmetered and excluded, never estimated. The guardrail holds the
- * block arm within the margin of BOTH primitive arms (ADR-B4 fairness).
+ * fallback and invariant outcomes are arm results. Tokens per success is the
+ * ADR-B3 figure: provider-reported input plus output across every call of
+ * every metered evaluated run, failures included, divided by the metered
+ * successes. A run with any unreported call leaves the cohort entirely,
+ * never estimated. The guardrail holds the block arm within the margin of
+ * BOTH primitive arms (ADR-B4 fairness).
  */
 import type { Arm, Condition, FailureKind, Path, RunRecord } from "./types";
 
@@ -37,11 +39,17 @@ export interface ArmStats {
   passRate: number | null;
   firstAttemptPassRate: number | null;
   repairsPerSuccess: number | null;
+  /** The cohort: evaluated runs whose every provider call reported its usage, failures included. */
+  meteredRuns: number;
   meteredSuccesses: number;
+  unmeteredRuns: number;
   unmeteredSuccesses: number;
+  /** ADR-B3: the cohort's tokens over its successes. Null when the cohort reports no provider usage at all (scripted). */
   tokensPerSuccess: number | null;
   inputTokensPerSuccess: number | null;
   outputTokensPerSuccess: number | null;
+  /** The mean cost of a passing run alone: context for the figure above, never the rule's input. */
+  tokensPerPassingRun: number | null;
   providerCallsPerRun: number | null;
   requestBytesPerRun: number | null;
   latency: { totalMs: number | null; firstGatedAttemptMs: number | null; blockPhaseMs: number | null; emitMs: number | null; planMs: number | null };
@@ -122,7 +130,11 @@ export function armStats(records: readonly RunRecord[]): ArmStats[] {
     for (const r of rerun) rerunByKind[r.failure!.kind] = (rerunByKind[r.failure!.kind] ?? 0) + 1;
     const evaluated = completed.filter((r) => !r.failure?.rerunEligible);
     const passed = evaluated.filter((r) => r.passed);
-    const metered = passed.filter((r) => r.tokens.unreportedCalls === 0 && r.tokens.providerCalls > 0);
+    const metered = evaluated.filter((r) => r.tokens.unreportedCalls === 0);
+    const meteredSuccesses = metered.filter((r) => r.passed);
+    const reported = metered.some((r) => r.tokens.providerCalls > 0);
+    const perSuccess = (pick: (r: RunRecord) => number): number | null =>
+      !reported || meteredSuccesses.length === 0 ? null : metered.reduce((a, r) => a + pick(r), 0) / meteredSuccesses.length;
     const paths: ArmStats["paths"] = {};
     for (const r of completed) {
       const p = r.path ?? "primitive";
@@ -155,11 +167,14 @@ export function armStats(records: readonly RunRecord[]): ArmStats[] {
       passRate: ratio(passed.length, evaluated.length),
       firstAttemptPassRate: ratio(passed.filter((r) => r.attempts === 1).length, evaluated.length),
       repairsPerSuccess: passed.length === 0 ? null : passed.reduce((a, r) => a + Math.max(0, r.attempts - 1), 0) / passed.length,
-      meteredSuccesses: metered.length,
-      unmeteredSuccesses: passed.length - metered.length,
-      tokensPerSuccess: mean(metered.map((r) => r.tokens.input + r.tokens.output)),
-      inputTokensPerSuccess: mean(metered.map((r) => r.tokens.input)),
-      outputTokensPerSuccess: mean(metered.map((r) => r.tokens.output)),
+      meteredRuns: metered.length,
+      meteredSuccesses: meteredSuccesses.length,
+      unmeteredRuns: evaluated.length - metered.length,
+      unmeteredSuccesses: passed.length - meteredSuccesses.length,
+      tokensPerSuccess: perSuccess((r) => r.tokens.input + r.tokens.output),
+      inputTokensPerSuccess: perSuccess((r) => r.tokens.input),
+      outputTokensPerSuccess: perSuccess((r) => r.tokens.output),
+      tokensPerPassingRun: !reported ? null : mean(meteredSuccesses.map((r) => r.tokens.input + r.tokens.output)),
       providerCallsPerRun: mean(completed.map((r) => r.tokens.providerCalls)),
       requestBytesPerRun: mean(completed.map((r) => r.requestBytes)),
       latency: {

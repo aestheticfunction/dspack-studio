@@ -88,6 +88,22 @@ describe("dry run", () => {
     await expect(runEvaluation({ runId: "dry-1", provider: createScriptedProvider(), references, corpus, preflight: pre, allowDrafts: true, promptIds, outDir: out })).rejects.toThrow(/pass resume/);
   }, 300_000);
 
+  it("a resume keeps the original run id and preflight, and refuses a run whose provider, corpus, sidecars, deployment or selection changed", async () => {
+    const out = join(dir, "run-manifest");
+    const base = { provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"] as const };
+    const first = await runEvaluation({ ...base, runId: "original", outDir: out });
+    expect(JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"))).toMatchObject({ runId: "original", provider: "fake:scripted", corpus: { id: "blocks-1b" } });
+    const resumed = await runEvaluation({ ...base, runId: "later", outDir: out, resume: true, preflight: { ...pre, at: "2026-11-01T00:00:00.000Z" } });
+    expect(resumed.runId).toBe("original");
+    expect(resumed.preflight.at).toBe(pre.at);
+    expect(resumed.cells.reused).toBe(first.records.length);
+    expect(existsSync(join(out, "preflight.resume-1.json"))).toBe(true);
+    await expect(runEvaluation({ ...base, runId: "x", outDir: out, resume: true, corpus: { ...corpus, frozenAt: "2026-12-01" } })).rejects.toThrow(/corpus/);
+    await expect(runEvaluation({ ...base, runId: "x", outDir: out, resume: true, preflight: { ...pre, buildId: "deadbeef" } })).rejects.toThrow(/build id/);
+    await expect(runEvaluation({ ...base, runId: "x", outDir: out, resume: true, provider: createScriptedProvider({ faults: true }) })).rejects.toThrow(/provider/);
+    await expect(runEvaluation({ ...base, runId: "x", outDir: out, resume: true, conditions: ["fresh", "refine-content"] })).rejects.toThrow(/conditions/);
+  });
+
   it("with faults, provider failures are re-run on request and the log stays one record per cell", async () => {
     const out = join(dir, "run-faults");
     const provider = createScriptedProvider({ faults: true });

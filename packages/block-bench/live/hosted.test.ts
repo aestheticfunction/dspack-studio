@@ -5,10 +5,15 @@
  * the HTTP status, the Worker's cause, and every call record. The app's
  * adapter posts to a relative URL, which the stub accepts.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createCallRecorder, type ModelCallRecord } from "@dspack-studio/composer-core";
 import { GatewayError, gatewayAdapter } from "../../../apps/composer/app/hosted-build";
-import { createPacer } from "./pacing";
+import { runCell } from "./arms";
+import { promptsFor, readCorpus, type Corpus } from "./corpus";
+import { runEvaluation } from "./evaluate";
+import { PacingCapReached, createPacer } from "./pacing";
+import { preflight } from "./preflight";
+import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
 import { createHostedProvider, refusedBeforeProvider } from "./providers/hosted";
 import { HarnessError, createMeter } from "./providers/types";
@@ -127,6 +132,56 @@ describe("the hosted client agrees with the app's gateway adapter on every reply
     await expect(refusing.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request)).rejects.toMatchObject({ kind: "policy", status: 429 });
     expect(refusedBeforeProvider(502, { calls: [] })).toBe(false);
     expect(refusedBeforeProvider(429, { calls: [{}] })).toBe(false);
+  });
+});
+
+describe("the pacing cap stops the run cleanly, in every arm and at every call", () => {
+  let corpus: Corpus;
+  let astryx: LoadedReference;
+  beforeAll(async () => {
+    corpus = readCorpus();
+    astryx = await loadReference("astryx");
+  }, 60_000);
+  const planAnswer = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits", block: "records-table", blockReason: "it is a table" };
+  const okReply = (json: unknown) => reply(200, { json, raw: JSON.stringify(json), model: "m", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
+  const prompt = () => promptsFor(corpus, "astryx").find((p) => p.id === "rt-01")!;
+  const cell = (provider: ReturnType<typeof createHostedProvider>, arm: "block" | "capped" | "production") => runCell({ reference: astryx, provider, arm, condition: "fresh", prompt: prompt(), corpus });
+
+  it("a cap hit during planning, during a block call and during a surface call each reject the cell with PacingCapReached, never a completed record", async () => {
+    let posted = 0;
+    const fetchImpl = (async (_url: string, init: { body: string }) => {
+      posted += 1;
+      const body = JSON.parse(init.body);
+      return okReply(body.jsonSchema?.properties?.block ? planAnswer : { block: "records-table", version: 1 });
+    }) as typeof fetch;
+    for (const [maxRequests, arm] of [[0, "block"], [1, "block"], [1, "production"], [1, "capped"]] as const) {
+      posted = 0;
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests, spacingMs: 0, now: () => 0, sleep: async () => undefined }) });
+      await expect(cell(provider, arm), `cap ${maxRequests} in the ${arm} arm`).rejects.toBeInstanceOf(PacingCapReached);
+      expect(posted, `requests before the cap of ${maxRequests}`).toBeLessThanOrEqual(maxRequests);
+    }
+  });
+
+  it("a cell is refused before its first request when the cap cannot cover it, and runEvaluation stops with reason cap and logs nothing for it", async () => {
+    let posted = 0;
+    const fetchImpl = (async () => {
+      posted += 1;
+      return okReply(planAnswer);
+    }) as typeof fetch;
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 3, spacingMs: 0, now: () => 0, sleep: async () => undefined }) });
+    const pre = await preflight({ references: [astryx] });
+    const result = await runEvaluation({ runId: "cap", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"] });
+    expect(result.stopped).toMatchObject({ reason: "cap" });
+    expect(result.records).toEqual([]);
+    expect(posted).toBe(0);
+  });
+
+  it("reports its pacing: the configuration, the requests sent and every wait", async () => {
+    const pacer = createPacer({ maxRequests: 10, spacingMs: 1000, backoffMs: [5], now: () => 0, sleep: async () => undefined });
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => okReply({})) as typeof fetch, pacer });
+    await provider.plan(request, { recorder: createCallRecorder(), meter: createMeter() });
+    await provider.plan(request, { recorder: createCallRecorder(), meter: createMeter() });
+    expect(provider.telemetry?.()).toEqual({ pacing: { maxRequests: 10, spacingMs: 1000, backoffMs: [5], sent: 2, waits: [{ atMs: 0, ms: 1000, reason: "spacing" }] } });
   });
 });
 

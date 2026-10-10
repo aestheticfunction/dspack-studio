@@ -25,9 +25,12 @@ export class PacingCapReached extends Error {
 }
 
 export interface Pacer {
+  readonly config: { maxRequests: number; spacingMs: number; backoffMs: readonly number[] };
   /** Requests sent by this invocation. */
   sent: number;
   readonly waits: Array<{ atMs: number; ms: number; reason: string }>;
+  /** Throws PacingCapReached unless n more requests fit under the cap: a cell is refused before its first request rather than cut off inside. */
+  reserve(n: number): void;
   /** Waits out the spacing, then counts the request. Throws PacingCapReached at the cap. */
   before(): Promise<void>;
   /** Waits the n-th backoff (0-based) and returns true, or returns false when the retries are spent. */
@@ -43,8 +46,12 @@ export function createPacer(options: PacingOptions): Pacer {
   const started = now();
   let last: number | null = null;
   const pacer: Pacer = {
+    config: { maxRequests: options.maxRequests, spacingMs: options.spacingMs, backoffMs: schedule },
     sent: 0,
     waits: [],
+    reserve(n) {
+      if (pacer.sent + n > options.maxRequests) throw new PacingCapReached(options.maxRequests);
+    },
     async before() {
       if (pacer.sent >= options.maxRequests) throw new PacingCapReached(options.maxRequests);
       if (last !== null) {

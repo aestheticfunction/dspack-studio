@@ -3,9 +3,16 @@
  * in prompt-major order, so that a run stopped at any point holds balanced
  * comparisons; each record appended to runs.jsonl as it completes, so a
  * run is resumable and auditable from its log alone.
+ *
+ * A run directory carries a manifest: the provider, the corpus and sidecars
+ * by digest, the deployment, and the selection. A resume must match it,
+ * so a report never mixes cells from two deployments, two corpora or two
+ * configurations; the original run id and preflight are kept and each
+ * resume's preflight is filed beside them.
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
 import { promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
@@ -32,7 +39,7 @@ export interface EvaluationOptions {
   blocks?: readonly string[];
   /** At most this many prompts per reference. */
   limit?: number;
-  /** The run directory (runs.jsonl, summary.json, preflight.json, REPORT.md). Absent means in memory. */
+  /** The run directory (runs.jsonl, manifest.json, preflight.json, summary.json, REPORT.md). Absent means in memory. */
   outDir?: string;
   resume?: boolean;
   /** Re-run cells whose failure was a provider or policy failure (ADR-B3 re-run policy). */
@@ -48,6 +55,8 @@ export interface EvaluationResult {
   records: RunRecord[];
   summary: Summary;
   preflight: Preflight;
+  /** What the provider reports about itself (pacing, waits). */
+  telemetry?: Record<string, unknown>;
   stopped?: { reason: "cap" | "error"; message: string };
   outDir?: string;
   cells: { total: number; done: number; reused: number };
@@ -58,6 +67,56 @@ interface Cell {
   prompt: CorpusPrompt & { expectedIntent: string };
   arm: Arm;
   condition: Condition;
+}
+
+/** What a resume must match. */
+export interface RunManifest {
+  runId: string;
+  startedAt: string;
+  provider: string;
+  corpus: { id: string; version: number; frozenAt: string; sha256: string };
+  references: Array<{ id: string; status: string; baseSha256: string | null; usable: string[] }>;
+  deployment: { baseUrl: string | null; buildId: string | null; worker: string | null };
+  selection: { arms: Arm[]; conditions: Condition[]; promptIds: string[] | null; blocks: string[] | null; limit: number | null };
+  decision: DecisionOptions;
+}
+
+export async function manifestFor(options: EvaluationOptions): Promise<RunManifest> {
+  return {
+    runId: options.runId,
+    startedAt: options.preflight.at,
+    provider: options.provider.descriptor,
+    corpus: { id: options.corpus.corpus, version: options.corpus.version, frozenAt: options.corpus.frozenAt, sha256: await sha256Hex(JSON.stringify(options.corpus)) },
+    references: options.references.map((r) => ({ id: r.id, status: r.sidecar?.status ?? "invalid", baseSha256: r.sidecar?.baseSha256 ?? null, usable: r.blocks.map((b) => `${b.id}@${b.version}`) })),
+    deployment: { baseUrl: options.preflight.baseUrl ?? null, buildId: options.preflight.buildId ?? null, worker: options.preflight.worker?.shape ?? null },
+    selection: {
+      arms: [...(options.arms ?? ARMS)],
+      conditions: [...(options.conditions ?? CONDITIONS)],
+      promptIds: options.promptIds ? [...options.promptIds] : null,
+      blocks: options.blocks ? [...options.blocks] : null,
+      limit: options.limit ?? null,
+    },
+    decision: options.decision ?? DEFAULT_DECISION,
+  };
+}
+
+/** The fields a resume must match, each named so a refusal says what moved. */
+export function manifestMismatches(recorded: RunManifest, current: RunManifest): string[] {
+  const out: string[] = [];
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  if (recorded.provider !== current.provider) out.push(`provider: the run was ${recorded.provider}, this is ${current.provider}`);
+  if (!same(recorded.corpus, current.corpus)) out.push(`corpus: the run used ${recorded.corpus.id} v${recorded.corpus.version} frozen ${recorded.corpus.frozenAt} (${recorded.corpus.sha256.slice(0, 12)}), this is ${current.corpus.id} v${current.corpus.version} frozen ${current.corpus.frozenAt} (${current.corpus.sha256.slice(0, 12)})`);
+  if (!same(recorded.references, current.references)) out.push("references: the sidecars, their binding or their usable blocks differ from the run's");
+  if (recorded.deployment.baseUrl !== current.deployment.baseUrl) out.push(`deployment: the run was against ${recorded.deployment.baseUrl ?? "no deployment"}, this is ${current.deployment.baseUrl ?? "no deployment"}`);
+  if (recorded.deployment.buildId !== current.deployment.buildId) {
+    out.push(`deployment: the run was against build id ${recorded.deployment.buildId ?? "none"}, this is ${current.deployment.buildId ?? "none"}`);
+  }
+  if (recorded.deployment.worker !== current.deployment.worker) out.push(`deployment: the Worker was ${recorded.deployment.worker ?? "not probed"}, this is ${current.deployment.worker ?? "not probed"}`);
+  for (const key of ["arms", "conditions", "promptIds", "blocks", "limit"] as const) {
+    if (!same(recorded.selection[key], current.selection[key])) out.push(`selection: ${key} differ (${JSON.stringify(recorded.selection[key])} vs ${JSON.stringify(current.selection[key])})`);
+  }
+  if (!same(recorded.decision, current.decision)) out.push("decision: the rule's options differ");
+  return out;
 }
 
 export function planCells(options: Pick<EvaluationOptions, "references" | "corpus" | "arms" | "conditions" | "promptIds" | "blocks" | "limit">): Cell[] {
@@ -94,6 +153,8 @@ export function priorFromRecord(record: RunRecord, goal: string): PriorResult | 
   };
 }
 
+const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+
 export async function runEvaluation(options: EvaluationOptions): Promise<EvaluationResult> {
   const log = options.log ?? (() => undefined);
   if (options.preflight.drafts && !options.allowDrafts) {
@@ -104,19 +165,40 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
   const logFile = outDir ? join(outDir, "runs.jsonl") : undefined;
   if (outDir) mkdirSync(outDir, { recursive: true });
 
+  // The manifest: written on the first run, held to on a resume.
+  let manifest = await manifestFor(options);
+  let preflight = options.preflight;
+  if (outDir) {
+    const manifestFile = join(outDir, "manifest.json");
+    if (options.resume) {
+      if (!existsSync(manifestFile)) throw new Error(`${outDir} has no manifest.json to resume from`);
+      const recorded = JSON.parse(readFileSync(manifestFile, "utf8")) as RunManifest;
+      const mismatches = manifestMismatches(recorded, manifest);
+      if (mismatches.length > 0) throw new Error(`resume refused, the run in ${outDir} does not match this invocation:\n- ${mismatches.join("\n- ")}\nStart a new run directory instead.`);
+      manifest = recorded;
+      const original = join(outDir, "preflight.json");
+      if (existsSync(original)) preflight = JSON.parse(readFileSync(original, "utf8")) as Preflight;
+      let n = 1;
+      while (existsSync(join(outDir, `preflight.resume-${n}.json`))) n += 1;
+      writeJson(join(outDir, `preflight.resume-${n}.json`), options.preflight);
+    } else {
+      if (existsSync(manifestFile) || (logFile && existsSync(logFile))) throw new Error(`${outDir} already holds a run; pass resume to continue it`);
+      writeJson(manifestFile, manifest);
+      writeJson(join(outDir, "preflight.json"), preflight);
+    }
+  }
+
   const done = new Map<string, RunRecord>();
   if (logFile && options.resume) {
     for (const record of readRecords(logFile)) {
       if (options.rerunFailed && record.failure?.rerunEligible) continue;
       done.set(cellId(record), record);
     }
+    if (options.rerunFailed) {
+      // Rewrite the log without the cells being re-run, so the file stays one record per cell.
+      writeFileSync(logFile, [...done.values()].map((r) => `${JSON.stringify(r)}\n`).join(""));
+    }
   }
-  if (logFile && !options.resume && existsSync(logFile)) throw new Error(`${logFile} exists; pass resume to continue it`);
-  if (logFile && options.resume && options.rerunFailed) {
-    // Rewrite the log without the cells being re-run, so the file stays one record per cell.
-    writeFileSync(logFile, [...done.values()].map((r) => `${JSON.stringify(r)}\n`).join(""));
-  }
-  if (outDir) writeFileSync(join(outDir, "preflight.json"), `${JSON.stringify(options.preflight, null, 2)}\n`);
 
   const records: RunRecord[] = [];
   const priors = new Map<string, PriorResult>();
@@ -162,17 +244,19 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
   }
 
   const summary = summarize(records, options.decision ?? DEFAULT_DECISION);
+  const telemetry = options.provider.telemetry?.();
   const result: EvaluationResult = {
-    runId: options.runId,
+    runId: manifest.runId,
     records,
     summary,
-    preflight: options.preflight,
+    preflight,
+    ...(telemetry ? { telemetry } : {}),
     ...(stopped ? { stopped } : {}),
     ...(outDir ? { outDir } : {}),
     cells: { total: cells.length, done: records.length, reused },
   };
   if (outDir) {
-    writeFileSync(join(outDir, "summary.json"), `${JSON.stringify({ runId: options.runId, provider: options.provider.id, corpus: { id: options.corpus.corpus, frozenAt: options.corpus.frozenAt }, cells: result.cells, stopped: stopped ?? null, summary }, null, 2)}\n`);
+    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, telemetry: telemetry ?? null, summary });
     writeFileSync(join(outDir, "REPORT.md"), renderReport(result, { providerId: options.provider.id, corpus: options.corpus }));
   }
   return result;

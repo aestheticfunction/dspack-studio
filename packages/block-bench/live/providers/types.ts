@@ -7,6 +7,7 @@
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import type { CallRecorder, Usage } from "@dspack-studio/composer-core";
 import type { BlockDefinition, ErrorKind, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
+import { PacingCapReached } from "../pacing";
 import type { FailureKind } from "../types";
 
 /** Counts what left the harness: request bodies in bytes, and how many. */
@@ -41,7 +42,13 @@ export interface PlanOptions {
 export interface Provider {
   /** The adapter id recorded in audit reports (e.g. hosted-ai:claude-haiku-4.5, ollama:gpt-oss:latest, fake:scripted). */
   id: string;
+  /** What a resume must match: the id plus the endpoint, model or mode behind it. */
+  descriptor: string;
   kind: "hosted" | "ollama" | "scripted";
+  /** Called before a cell's first request; a hosted provider refuses the cell when its cap cannot cover it (PacingCapReached). */
+  beforeCell?(): void;
+  /** What the run report records about this provider (pacing, waits). */
+  telemetry?(): Record<string, unknown> | undefined;
   /** Whether this provider answers the planning request with a model (scripted routes deterministically). */
   plansWithModel: boolean;
   /** The surface adapter (generation, refinement, repairs). */
@@ -86,6 +93,9 @@ export function classifyHarnessError(error: unknown): ErrorKind {
 export function makeHarnessError(adapterId: string): (kind: string, message: string, cause?: unknown) => Error {
   return (kind, message, cause) => {
     if (cause instanceof AdapterOutputError) return cause;
+    // The pacing cap is the run's own stop signal, not a provider failure: it
+    // passes through untouched so runPipeline lets it escape and the loop stops.
+    if (cause instanceof PacingCapReached) return cause;
     const k: FailureKind = kind === "budget" ? "budget" : kind === "output" ? "output" : kind === "policy" ? "policy" : "provider";
     return new HarnessError(adapterId, `${kind}: ${message}`, k);
   };
