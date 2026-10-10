@@ -133,7 +133,7 @@ Each phase is a separately reviewable change that must be green before the next 
 | **0** (this change) | This document, the RFC, the pure block schema module, the call-site refactor, draft sidecars and goldens, `packages/block-bench` | All tests green; request hashes recorded as the byte-identity oracle |
 | **0.5** (this change) | Usage accounting: canonical keys, every call recorded (including failures and the planning call), timings, receipts | Request hashes unchanged at the real call sites |
 | **1A** (this change) | Private PoC behind a build-time flag: B0/B1/B2, expander, selection with explicit `null`, block phase with budget, trace, compact refinement, provenance | Flag-off requests byte-identical; default builds contain no block code |
-| **1B** | Live evaluation, run by the owner, against frozen corpora | The ADR-B3 decision rule |
+| **1B** | The live evaluation, run by the owner, against frozen corpora; the harness is its own change (`packages/block-bench/live/`) | The ADR-B3 decision rule |
 | **2** | Only if 1B passes: ratify dspack `blocks` upstream-first, move expansion into dspack-gen, agent parity, a Blocks catalog | Upstream-first sync green |
 
 ## The experimental build (Phase 1A)
@@ -155,6 +155,20 @@ pnpm exec playwright test --config playwright.composer-experimental.config.ts
 The experimental suite (`e2e/composer-blocks.spec.ts`) is agent-free and stubs the gateway, so it never calls a model. CI builds the experimental artifact after the default suites and runs it on port 3315; the default configs are unchanged.
 
 **What a person sees in an experimental build.** A Settings section, "Experimental", with one preference (off by default) and each reference's load status. With it on, an eligible build shows a Block row as the first row of the pipeline detail, a block note on the context line, and receipts that count block calls. Eligible means a packaged reference project or an Example session on its unedited design system, built in the browser; imported and repository projects, local models, an edited contract or profile, and a block an invariant failure disabled this session are never offered blocks, and the note says which.
+
+## The live evaluation (Phase 1B)
+
+The harness lives in `packages/block-bench/live/` and is run by the owner; nothing in it runs in CI except its own tests and a dry run on the scripted provider. It measures the real code paths, never a re-implementation: composer-core's block phase, budget and refinement decision; dspack-gen's `runPipeline`; the request bytes the app posts (`proposeBody`); the app's fold (`foldBuildEvents`). The hosted client is held to the app's gateway adapter by a parity test over every reply shape.
+
+**Preconditions.** The deployed Worker must be the Phase 0.5 Worker: the harness posts an empty body, which every Worker refuses, and proceeds only when the refusal carries `calls: []`. It records the deployed build id and the sidecar status with the run. The drafts are counted only with `--allow-drafts`, and the report is then marked provisional. The production configuration it compares against is fixed in `docs/blocks/BASELINE.md`.
+
+**Corpus.** `live/corpora/blocks.json`, frozen on 2026-10-10: 22 prompts per block and at least 20 null prompts per reference, each with its expected block (or null), its expected intent per reference, and a parity checklist (labels that must appear in the surface's text, components that must appear). Near-miss nulls (a kanban board, a contact form, an order summary) sit inside the block intents on purpose. A validity test holds every rule.
+
+**Arms and conditions.** `production` is today's path (the planning call, `maxRepairs` 2, the Worker's parse retry on). `capped` is the budget-matched primitive arm (the same planning call, `budgetedInner` with the budget of 3, `maxCalls` 1). `block` is the experimental path (the planning call with the block question, the block phase, then the preloaded, fallback or replayed pipeline; a null selection is today's path, as in the app). Each prompt runs fresh, then four refinements on the arm's own fresh result: a content change, adding a repeated item, removing one, and a structural change the blocks do not support. The cells run prompt-major, so a run stopped at any point holds balanced comparisons.
+
+**Pacing and re-runs.** Hosted requests are spaced and capped per invocation; a request the Worker refused before any provider call (429, 503 busy) is retried after a backoff and every wait is reported. A provider or policy failure that ends a run is not an arm result: it is reported separately and re-run with `--rerun-failed`. Budget exhaustion, fallback and invariant failures are arm results.
+
+**What the report holds.** The ADR-B3 decision per reference and provider (tokens per success over metered passing runs only, never estimated; the pass rate within the margin of both primitive arms; a minimum of 20 evaluated runs per arm), the fresh table per arm, the block arm by path and by budget remaining at fallback, selection accuracy with explicit null and omitted answers counted apart, the refinement table with change and retention rates, and the failures to re-run. Named against positional encoding is not a runnable condition yet (the block phase takes the named encoding only); its request sizes are in `results.json`.
 
 ## Usage accounting (Phase 0.5)
 
@@ -214,3 +228,5 @@ For the "later, deliberately" list:
 - `packages/composer-core/src/requests.ts` holds the request builders the app actually uses. They are the byte-identity oracle's source.
 - `apps/composer/experimental/blocks/*.blocks.json` holds the draft sidecars. They are never statically imported.
 - `packages/block-bench/` holds the bench, its goldens and its committed results. `pnpm test` fails on any drift; `pnpm --filter @dspack-studio/block-bench bench` regenerates them.
+- `packages/block-bench/live/` holds the Phase 1B harness: the frozen corpus, the providers (hosted, Ollama, scripted), the arms, the metrics and decision rule, and the runner. `pnpm --filter @dspack-studio/block-bench eval:live` runs it; `baseline` records the deployment it compares against.
+- `docs/blocks/BASELINE.md` fixes the production configuration the evaluation compares against.
