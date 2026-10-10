@@ -1,0 +1,197 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "record-detail",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "card-header",
+        "children": [
+          {
+            "component": "card-title",
+            "text": "Tomato pasta"
+          },
+          {
+            "component": "card-description",
+            "text": "A weeknight pasta for two in about 30 minutes."
+          },
+          {
+            "component": "badge",
+            "props": {
+              "variant": "secondary"
+            },
+            "text": "Servings: 2"
+          },
+          {
+            "component": "badge",
+            "props": {
+              "variant": "secondary"
+            },
+            "text": "Time: 30 min"
+          }
+        ]
+      },
+      {
+        "component": "card-content",
+        "children": [
+          {
+            "component": "table",
+            "children": [
+              {
+                "component": "table-caption",
+                "text": "What you need"
+              },
+              {
+                "component": "table-header",
+                "children": [
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-head",
+                        "text": "Item"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "table-body",
+                "children": [
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-cell",
+                        "text": "200 g spaghetti"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-cell",
+                        "text": "2 tomatoes"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-cell",
+                        "text": "1 garlic clove"
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-cell",
+                        "text": "1 tbsp olive oil"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "separator",
+            "props": {
+              "decorative": true,
+              "orientation": "horizontal"
+            }
+          },
+          {
+            "component": "table",
+            "children": [
+              {
+                "component": "table-caption",
+                "text": "Steps, in order."
+              },
+              {
+                "component": "table-header",
+                "children": [
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-head",
+                        "text": "Step"
+                      },
+                      {
+                        "component": "table-head",
+                        "text": "Instruction"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "table-body",
+                "children": [
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-cell",
+                        "text": "1"
+                      },
+                      {
+                        "component": "table-cell",
+                        "text": "Boil the spaghetti in salted water for 9 minutes."
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-cell",
+                        "text": "2"
+                      },
+                      {
+                        "component": "table-cell",
+                        "text": "Cook the tomatoes and garlic in the olive oil until soft."
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-row",
+                    "children": [
+                      {
+                        "component": "table-cell",
+                        "text": "3"
+                      },
+                      {
+                        "component": "table-cell",
+                        "text": "Toss the drained pasta with the sauce and serve."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "card-footer",
+        "children": [
+          {
+            "component": "button",
+            "id": "guide-start",
+            "props": {
+              "variant": "default"
+            },
+            "text": "Start"
+          }
+        ]
+      }
+    ]
+  }
+}

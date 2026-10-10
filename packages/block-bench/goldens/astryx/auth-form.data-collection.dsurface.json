@@ -1,0 +1,70 @@
+{
+  "dspackSurface": "0.1",
+  "system": "Astryx",
+  "intent": "data-collection",
+  "root": {
+    "component": "card",
+    "id": "auth-card",
+    "children": [
+      {
+        "component": "text",
+        "id": "auth-title",
+        "props": {
+          "type": "display-3"
+        },
+        "text": "Create your account"
+      },
+      {
+        "component": "text",
+        "id": "auth-intro",
+        "props": {
+          "type": "body"
+        },
+        "text": "It takes a minute. You can add the rest later."
+      },
+      {
+        "component": "text-input",
+        "id": "auth-name-input",
+        "props": {
+          "type": "text",
+          "label": "Full name",
+          "isRequired": true
+        }
+      },
+      {
+        "component": "text-input",
+        "id": "auth-email-input",
+        "props": {
+          "type": "email",
+          "label": "Email address",
+          "isRequired": true
+        }
+      },
+      {
+        "component": "text-input",
+        "id": "auth-password-input",
+        "props": {
+          "type": "password",
+          "label": "Password",
+          "isRequired": true
+        }
+      },
+      {
+        "component": "button",
+        "id": "auth-submit",
+        "props": {
+          "label": "Create account",
+          "variant": "primary"
+        }
+      },
+      {
+        "component": "button",
+        "id": "auth-provider-github",
+        "props": {
+          "label": "Continue with GitHub",
+          "variant": "secondary"
+        }
+      }
+    ]
+  }
+}
