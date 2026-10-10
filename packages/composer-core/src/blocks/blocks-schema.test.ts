@@ -203,3 +203,67 @@ describe("the call contract (named canonical, positional projection, B1)", () =>
     }
   });
 });
+
+describe("review fixes (Phase 0 adversarial review)", () => {
+  const base = () => json(SIDECARS["shadcn-v3"].sidecar) as unknown as BlocksSidecar;
+  const issuesOf = (doc: unknown) => {
+    const result = parseBlocksSidecar(doc);
+    return result.ok ? [] : result.issues.map((i) => `${i.path}: ${i.message}`);
+  };
+  const authTemplate = (doc: BlocksSidecar) => doc.blocks[1]!.template as unknown as { children: unknown[] };
+
+  it("$case results and defaults must be literal scalars", () => {
+    const doc = base();
+    authTemplate(doc).children.push({ component: "badge", text: { $case: "mode", map: { "sign-in": { $eval: "x" }, "sign-up": "a", reset: "b" } } });
+    authTemplate(doc).children.push({ component: "badge", text: { $case: "mode", map: { "sign-in": "a" }, default: { $prop: "title" } } });
+    const issues = issuesOf(doc).join("\n");
+    expect(issues).toMatch(/a \$case result is a literal scalar/);
+    expect(issues).toMatch(/a \$case default is a literal scalar/);
+  });
+
+  it("$case coverage ignores the prototype chain", () => {
+    const doc = base();
+    doc.blocks[1]!.props[0]!.values = ["sign-in", "sign-up", "reset", "toString"];
+    expect(issuesOf(doc).join("\n")).toMatch(/no mapping for 'toString' and no default/);
+  });
+
+  it("$case over a source that may be absent needs a default", () => {
+    const doc = base();
+    authTemplate(doc).children.push({ component: "badge", text: { $case: "recovery", map: { true: "on", false: "off" } } });
+    expect(issuesOf(doc).join("\n")).toMatch(/'recovery' may be absent; give a default/);
+  });
+
+  it("rejects prop names that shadow Object.prototype members", () => {
+    const doc = base();
+    doc.blocks[1]!.props.push({ name: "constructor", type: "string", maxLength: 5 });
+    expect(issuesOf(doc).join("\n")).toMatch(/'constructor' shadows an Object.prototype member/);
+  });
+
+  it("B1 treats an explicit null as a type error, never as absent", () => {
+    const auth = block(load("shadcn-v3"), "auth-form");
+    const call = { block: "auth-form", version: 1, mode: "sign-in", title: "x", fields: ["email", "password"], intro: null };
+    expect(validateCall(auth, call).map((i) => `${i.path} ${i.message}`)).toEqual(["$.intro expected a string"]);
+  });
+
+  it("B1 counts string length in code points, as the model-facing JSON Schema does", () => {
+    const auth = block(load("shadcn-v3"), "auth-form");
+    const title = "\u{1F680}".repeat(41); // 41 code points, 82 UTF-16 units; maxLength is 80
+    expect(validateCall(auth, { block: "auth-form", version: 1, mode: "sign-in", title, fields: ["email", "password"] })).toEqual([]);
+  });
+
+  it("uniqueItems compares a canonical form, so key order cannot hide a duplicate", () => {
+    const guide = structuredClone(block(load("shadcn-v3"), "guide-steps"));
+    guide.props.find((p) => p.name === "meta")!.uniqueItems = true;
+    const call = {
+      block: "guide-steps",
+      version: 1,
+      title: "T",
+      steps: ["s"],
+      meta: [
+        { label: "x", detail: "y" },
+        { detail: "y", label: "x" },
+      ],
+    };
+    expect(validateCall(guide, call).map((i) => i.message)).toContain("items repeat");
+  });
+});

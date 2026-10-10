@@ -107,12 +107,14 @@ B0 parity: 11 generation-schema components; component set matches; id-required s
 
 5 of 6 recorded live attempts that fail S3 against the current contract pass every structural check (A1-A3 on both A2UI versions, and the json-render J2/J3 offline check), out of 21 live attempts recorded. Recorded and recomputed verdicts disagree on 0 row(s).
 
-| Fixture | Attempt | Adapter | Recorded S1/S2/S3 | Recomputed S1/S2/S3 | A2UI | json-render |
-| --- | ---: | --- | --- | --- | --- | --- |
-| fixture-001 | 0 | ollama:gemma4:e4b | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
-| fixture-001 | 1 | ollama:gemma4:e4b | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
-| fixture-003 | 0 | ollama:gpt-oss:latest | PASS/PASS/FAIL | PASS/PASS/FAIL | refused | J2/J3 pass |
-| fixture-010 | 0 | ollama:gpt-oss:latest | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
-| fixture-013 | 0 | ollama:gpt-oss:latest | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
-| fixture-016 | 0 | ollama:gpt-oss:latest | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
+Verdicts are recomputed against the current contract; each run was recorded against the contract digest shown, so a disagreement column is kept rather than assumed away.
+
+| Fixture | Attempt | Adapter | Recorded contract | Recorded S1/S2/S3 | Recomputed S1/S2/S3 | A2UI | json-render |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| fixture-001 | 0 | ollama:gemma4:e4b | 024a31e4d5bf | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
+| fixture-001 | 1 | ollama:gemma4:e4b | 024a31e4d5bf | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
+| fixture-003 | 0 | ollama:gpt-oss:latest | 024a31e4d5bf | PASS/PASS/FAIL | PASS/PASS/FAIL | refused | J2/J3 pass |
+| fixture-010 | 0 | ollama:gpt-oss:latest | 95bb434fd87c | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
+| fixture-013 | 0 | ollama:gpt-oss:latest | ec7289f19930 | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
+| fixture-016 | 0 | ollama:gpt-oss:latest | 20692f4acc62 | PASS/PASS/FAIL | PASS/PASS/FAIL | A1-A3 pass | J2/J3 pass |
 

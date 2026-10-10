@@ -259,6 +259,7 @@ function checkProps(props: PropSpec[], at: string, issues: BlocksIssue[], topLev
     const path = `${at}.${i}`;
     if (names.has(prop.name)) issues.push({ path: `${path}.name`, message: `duplicate prop '${prop.name}'` });
     names.add(prop.name);
+    if (prop.name in Object.prototype) issues.push({ path: `${path}.name`, message: `'${prop.name}' shadows an Object.prototype member` });
     if (topLevel && RESERVED_PROP_NAMES.has(prop.name)) {
       issues.push({ path: `${path}.name`, message: `'${prop.name}' is reserved by the call envelope` });
     }
@@ -337,6 +338,22 @@ export function specAtPath(scope: Scope, path: string, allowWildcard = false): V
     spec = spec.props.find((p) => p.name === segment) ?? null;
   }
   return spec;
+}
+
+/** True when every segment of a path is guaranteed present for a B1-valid call:
+ *  the head is a loop variable or a required prop, and each field is required. */
+export function alwaysPresent(scope: Scope, path: string): boolean {
+  const [head, ...rest] = path.split(".");
+  const entry = scope.get(head ?? "");
+  if (!entry) return false;
+  if (!entry.loop && !(entry.spec as PropSpec).required) return false;
+  let spec: ValueSpec | undefined = entry.spec;
+  for (const segment of rest) {
+    const field: PropSpec | undefined = spec?.type === "object" ? spec.props?.find((p) => p.name === segment) : undefined;
+    if (!field?.required) return false;
+    spec = field;
+  }
+  return true;
 }
 
 export function rootScope(block: Pick<BlockDefinition, "props">): Scope {
@@ -471,12 +488,23 @@ function checkTemplateValue(value: unknown, at: string, scope: Scope, issues: Bl
       const source = typeof record.$case === "string" ? specAtPath(scope, record.$case) : null;
       if (!source || (source.type !== "enum" && source.type !== "boolean")) issues.push({ path: `${at}.$case`, message: `'${String(record.$case)}' does not name an enum or boolean` });
       const map = record.map;
+      const isScalar = (v: unknown) => v === null || ["string", "number", "boolean"].includes(typeof v);
       if (!map || typeof map !== "object" || Array.isArray(map)) issues.push({ path: `${at}.map`, message: "$case takes a literal map" });
       else {
         const keys = source?.type === "enum" ? source.values ?? [] : ["true", "false"];
-        for (const k of Object.keys(map)) if (!keys.includes(k)) issues.push({ path: `${at}.map.${k}`, message: `'${k}' is not a value of '${String(record.$case)}'` });
-        if (record.default === undefined) for (const k of keys) if (!(k in (map as object))) issues.push({ path: `${at}.map`, message: `no mapping for '${k}' and no default` });
+        for (const [k, v] of Object.entries(map)) {
+          if (!keys.includes(k)) issues.push({ path: `${at}.map.${k}`, message: `'${k}' is not a value of '${String(record.$case)}'` });
+          if (!isScalar(v)) issues.push({ path: `${at}.map.${k}`, message: "a $case result is a literal scalar" });
+        }
+        if (record.default === undefined) {
+          for (const k of keys) if (!Object.hasOwn(map, k)) issues.push({ path: `${at}.map`, message: `no mapping for '${k}' and no default` });
+          // A source that may be absent would make a B1-valid call fail expansion.
+          if (typeof record.$case === "string" && !alwaysPresent(scope, record.$case)) {
+            issues.push({ path: `${at}.$case`, message: `'${record.$case}' may be absent; give a default` });
+          }
+        }
       }
+      if (record.default !== undefined && !isScalar(record.default)) issues.push({ path: `${at}.default`, message: "a $case default is a literal scalar" });
       break;
     }
     case "$index":

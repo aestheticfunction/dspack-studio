@@ -60,12 +60,17 @@ export function renderMarkdown(results: BenchResults): string {
         `${l.summary.s3FailingButStructurallyValid} of ${l.summary.s3FailingRecomputed} recorded live attempts that fail S3 against the current contract pass every structural check (A1-A3 on both A2UI versions, and the json-render J2/J3 offline check), out of ${l.liveAttempts} live attempts recorded. Recorded and recomputed verdicts disagree on ${l.summary.verdictDisagreements} row(s).`,
         "",
       );
-      out.push(row(["Fixture", "Attempt", "Adapter", "Recorded S1/S2/S3", "Recomputed S1/S2/S3", "A2UI", "json-render"]));
-      out.push(row(["---", "---:", "---", "---", "---", "---", "---"]));
+      out.push(
+        `Verdicts are recomputed against the current contract; each run was recorded against the contract digest shown, so a disagreement column is kept rather than assumed away.`,
+        "",
+      );
+      out.push(row(["Fixture", "Attempt", "Adapter", "Recorded contract", "Recorded S1/S2/S3", "Recomputed S1/S2/S3", "A2UI", "json-render"]));
+      out.push(row(["---", "---:", "---", "---", "---", "---", "---", "---"]));
       for (const r of l.rows as Json[]) {
         const a2ui = r.a2ui.refusal ? "refused" : Object.values(r.a2ui.gates as Json).every((v: Json) => Object.values(v).every(Boolean)) ? "A1-A3 pass" : "gate fail";
         const jr = r.jsonRender.refusal ? "refused" : r.jsonRender.J2J3 ? "J2/J3 pass" : "check fail";
-        out.push(row([r.fixture, r.attempt, r.adapterId, `${r.recorded.S1}/${r.recorded.S2}/${r.recorded.S3}`, `${r.recomputed.S1}/${r.recomputed.S2}/${r.recomputed.S3}`, a2ui, jr]));
+        const sha = r.recordedContractSha256 ? `${String(r.recordedContractSha256).slice(0, 12)}` : "n/a";
+        out.push(row([r.fixture, r.attempt, r.adapterId, sha, `${r.recorded.S1}/${r.recorded.S2}/${r.recorded.S3}`, `${r.recomputed.S1}/${r.recomputed.S2}/${r.recomputed.S3}`, a2ui, jr]));
       }
       out.push("");
     }

@@ -27,6 +27,11 @@ export type DecodeResult = { ok: true; call: Record<string, unknown> } | { ok: f
 
 type Json = Record<string, unknown>;
 
+/** Own-property read: a prop name never resolves through the prototype chain. */
+function own(value: Json, key: string): unknown {
+  return Object.hasOwn(value, key) ? value[key] : undefined;
+}
+
 /** The prop's position in the compact wire array. */
 export function wireIndex(block: Pick<BlockDefinition, "props">, propName: string): number {
   return block.props.findIndex((p) => p.name === propName);
@@ -110,7 +115,7 @@ function encodeValue(spec: ValueSpec, value: unknown): unknown {
 }
 
 function encodeFields(props: PropSpec[], value: Json): unknown[] {
-  const out = props.map((p) => (value[p.name] === undefined ? null : encodeValue(p, value[p.name])));
+  const out = props.map((p) => (own(value, p.name) === undefined ? null : encodeValue(p, own(value, p.name))));
   // Trailing optionals are omitted; a skipped middle optional stays null.
   while (out.length > 0 && out[out.length - 1] === null && !props[out.length - 1]?.required) out.pop();
   return out;
@@ -172,8 +177,12 @@ function checkValue(spec: ValueSpec, value: unknown, at: string, issues: CallIss
   switch (spec.type) {
     case "string":
       if (typeof value !== "string") return void issues.push({ path: at, message: "expected a string" });
-      if (spec.minLength !== undefined && value.length < spec.minLength) issues.push({ path: at, message: `shorter than ${spec.minLength}` });
-      if (spec.maxLength !== undefined && value.length > spec.maxLength) issues.push({ path: at, message: `longer than ${spec.maxLength}` });
+      {
+        // Code points, as JSON Schema counts string length, not UTF-16 units.
+        const length = [...value].length;
+        if (spec.minLength !== undefined && length < spec.minLength) issues.push({ path: at, message: `shorter than ${spec.minLength}` });
+        if (spec.maxLength !== undefined && length > spec.maxLength) issues.push({ path: at, message: `longer than ${spec.maxLength}` });
+      }
       return;
     case "enum":
       if (typeof value !== "string" || !(spec.values ?? []).includes(value)) issues.push({ path: at, message: `expected one of ${(spec.values ?? []).join(", ")}` });
@@ -191,7 +200,8 @@ function checkValue(spec: ValueSpec, value: unknown, at: string, issues: CallIss
       if (spec.minItems !== undefined && value.length < spec.minItems) issues.push({ path: at, message: `fewer than ${spec.minItems} items` });
       if (spec.maxItems !== undefined && value.length > spec.maxItems) issues.push({ path: at, message: `more than ${spec.maxItems} items` });
       if (spec.uniqueItems) {
-        const keys = value.map((v) => JSON.stringify(v));
+        // Canonical form (positional projection) so key order cannot hide a duplicate.
+        const keys = value.map((v) => JSON.stringify(encodeValue(spec.items as ValueSpec, v)));
         if (new Set(keys).size !== keys.length) issues.push({ path: at, message: "items repeat" });
       }
       value.forEach((v, i) => checkValue(spec.items as ValueSpec, v, `${at}.${i}`, issues));
@@ -211,8 +221,10 @@ function checkFields(props: PropSpec[], value: Json, at: string, issues: CallIss
     if (!declared.has(key)) issues.push({ path: `${at}.${key}`, message: `'${key}' is not declared` });
   }
   for (const p of props) {
-    const v = value[p.name];
-    if (v === undefined || v === null) {
+    // Only a missing key is absent: an explicit null is a type error, exactly
+    // as the named JSON Schema the model answers against treats it.
+    const v = own(value, p.name);
+    if (v === undefined) {
       if (p.required) issues.push({ path: `${at}.${p.name}`, message: "required" });
       continue;
     }
@@ -244,8 +256,8 @@ function valuesAt(call: Json, path: string): unknown[] {
     for (const v of frontier) {
       if (segment === "*") {
         if (Array.isArray(v)) next.push(...v);
-      } else if (v && typeof v === "object" && !Array.isArray(v) && (v as Json)[segment] !== undefined) {
-        next.push((v as Json)[segment]);
+      } else if (v && typeof v === "object" && !Array.isArray(v) && own(v as Json, segment) !== undefined) {
+        next.push(own(v as Json, segment));
       }
     }
     frontier = next;

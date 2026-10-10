@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { computeResults, type BenchResults } from "./bench";
+import { renderMarkdown } from "./report";
 
 type Json = Record<string, any>;
 
@@ -40,6 +41,11 @@ describe("block-bench", () => {
     // Path-level diff first, so a failure names exactly what moved.
     expect(diffPaths(committed, fresh)).toEqual([]);
     expect(fresh).toEqual(committed);
+  });
+
+  it("RESULTS.md is exactly the rendered view of results.json", () => {
+    const rendered = readFileSync(fileURLToPath(new URL("../RESULTS.md", import.meta.url)), "utf8");
+    expect(renderMarkdown(committed)).toBe(rendered);
   });
 
   it("captures a hashed request for every governed context, fresh and refine, plus planning", () => {
