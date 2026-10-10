@@ -15,6 +15,7 @@
  * delta (accepted example ids) so a project remembers its own work.
  */
 import { loadFlows, removeFlows, saveFlows } from "./flows";
+import { loadBlockProvenance, removeBlockProvenance, saveBlockProvenance } from "./block-provenance";
 
 /** Where a project's governed vocabulary comes from. */
 export type ProjectSource =
@@ -319,6 +320,12 @@ export function duplicateProject(id: string): StoredProject | null {
   // copied unconditionally when present, exactly like the examples delta.
   const flows = loadFlows(original.id);
   if (flows.length > 0) saveFlows(copy.id, flows);
+  // Interface blocks (experimental): provenance is project data too, but
+  // only an experimental build reads it; a default build leaves it be.
+  if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+    const provenance = loadBlockProvenance(original.id);
+    if (Object.keys(provenance).length > 0) saveBlockProvenance(copy.id, provenance);
+  }
   return copy;
 }
 
@@ -327,6 +334,7 @@ export function removeProject(id: string): void {
   removeVocab(id);
   removeExamplesDelta(id);
   removeFlows(id);
+  removeBlockProvenance(id);
   if (getLastOpened() === id) setLastOpened(null);
 }
 

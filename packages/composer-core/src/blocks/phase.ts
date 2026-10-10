@@ -287,7 +287,12 @@ export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseR
     // Everything from here is deterministic machinery: a failure is a template defect.
     const expanded = expandBlock(block, json as Json, { reference, intent });
     if (!expanded.ok) return invariant([`expansion ${expanded.path}: ${expanded.message}`]);
-    const verdict = deps.lint(expanded.surface);
+    let verdict: LintVerdict;
+    try {
+      verdict = deps.lint(expanded.surface);
+    } catch (error) {
+      return invariant([`the linter threw: ${error instanceof Error ? error.message : String(error)}`]);
+    }
     const structural = verdict.gates.filter((g) => g.status === "FAIL" && (g.gate === "S1" || g.gate === "S2"));
     if (structural.length > 0) return invariant(structural.flatMap((g) => (g.errors?.length ? g.errors : ["failed"]).map((e) => `${g.gate} FAIL: ${e}`)));
     const emitted = emitCheck(expanded.surface, contract, profile);
@@ -321,12 +326,7 @@ export function reconcileBlockTrace(trace: BlockTrace, report: Json | undefined,
   const provider = recorded.filter((r) => r.source === "provider");
   const block = provider.filter((r) => r.operation === "block" || r.operation === "block-repair").length;
   const surface = provider.filter((r) => SURFACE_OPERATIONS.has(r.operation)).length;
-  const groups = new Map<string, number>();
-  for (const r of provider) {
-    const key = `${r.operation}/${r.attempt ?? "-"}`;
-    groups.set(key, (groups.get(key) ?? 0) + 1);
-  }
-  const reissues = [...groups.values()].reduce((n, size) => n + Math.max(0, size - 1), 0);
+  const reissues = provider.filter((r) => r.reissue).length;
   const total = block + surface;
   const pathLabel: ReconciledBlockTrace["pathLabel"] =
     trace.outcome === "block" ? ((trace.expansionAttemptIndex ?? 0) > 0 ? "block-repair" : "block") : trace.outcome;

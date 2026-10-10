@@ -85,3 +85,22 @@ describe("project import — flows round-trip, absent means [], malformed fails 
     expect(result.ok).toBe(false);
   });
 });
+
+describe("project export — optional blockProvenance field on version 0.1 (Phase 1A)", () => {
+  const provenance = { "ex.chat-1": { v: 1, block: "auth-form", version: 1, call: { block: "auth-form", version: 1, mode: "sign-in" } } };
+
+  it("writes blockProvenance only when given and non-empty, on the SAME export version", () => {
+    const withIt = buildProjectExport({ ...baseInput, blockProvenance: provenance } as never);
+    expect(withIt.composerProjectExport).toBe(PROJECT_EXPORT_VERSION);
+    expect(withIt.blockProvenance).toEqual(provenance);
+    expect(buildProjectExport(baseInput as never)).not.toHaveProperty("blockProvenance");
+    expect(buildProjectExport({ ...baseInput, blockProvenance: {} } as never)).not.toHaveProperty("blockProvenance");
+  });
+
+  it("a default build passes the field through and drops it: the import succeeds and carries no provenance", () => {
+    const text = JSON.stringify(buildProjectExport({ ...baseInput, blockProvenance: provenance } as never));
+    const result = parseProjectImport(text);
+    expect(result.ok).toBe(true);
+    expect(result).not.toHaveProperty("blockProvenance");
+  });
+});

@@ -312,6 +312,13 @@ describe("runBlockPhase", () => {
     expect(result.kind).toBe("expanded");
   });
 
+  it("a linter that throws (an unknown rule type, say) is an invariant failure, never an escaped exception", async () => {
+    const throwing = { ...deps, lint: () => { throw new Error("UnknownRuleTypeError: rule type 'x'"); } };
+    const result = await runBlockPhase(phaseInput(scripted([signUp.call]), createBudget(3), { deps: throwing }));
+    expect(result.kind).toBe("invariant-failure");
+    if (result.kind === "invariant-failure") expect(result.reasons.join(" ")).toMatch(/UnknownRuleTypeError/);
+  });
+
   it("the trace is frozen", async () => {
     const result = await runBlockPhase(phaseInput(scripted([signUp.call])));
     expect(Object.isFrozen(result.trace)).toBe(true);
@@ -326,7 +333,7 @@ describe("reconcileBlockTrace", () => {
       { operation: "block", attempt: 0, source: "provider", inputTokens: 100, outputTokens: 10, outcome: "ok" },
       { operation: "block-repair", attempt: 1, source: "provider", inputTokens: 120, outputTokens: 10, outcome: "ok" },
       { operation: "repair", attempt: 1, subCall: 0, source: "provider", inputTokens: 9000, outputTokens: 30, outcome: "unusable-output" },
-      { operation: "repair", attempt: 1, subCall: 1, source: "provider", inputTokens: 9000, outputTokens: 400, outcome: "ok" },
+      { operation: "repair", attempt: 1, subCall: 1, source: "provider", inputTokens: 9000, outputTokens: 400, outcome: "ok", reissue: true },
     ];
     const report = { generation: { maxRepairs: 1 }, attempts: [{ index: 0 }, { index: 1, usage: { inputTokens: 18000, outputTokens: 430 } }], outcome: "passed" };
     const merged = reconcileBlockTrace(result.trace, report, recorded);

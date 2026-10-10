@@ -34,6 +34,8 @@ export interface ModelCallRecord {
   model?: string;
   durationMs?: number;
   outcome: "ok" | "unusable-output" | "provider-error" | "refused";
+  /** The identical request, re-issued once after an unusable output (block mode). */
+  reissue?: true;
 }
 
 /** The per-run record of truth, filled at the transport boundary. */

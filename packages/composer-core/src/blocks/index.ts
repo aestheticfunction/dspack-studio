@@ -56,6 +56,18 @@ export {
   type ReconciledBlockTrace,
   type StructuralAdapter,
 } from "./phase";
+export { decideRefinement, type BlockSeed, type RefinementDecision, type SwitchReason } from "./refine";
+export {
+  buildProvenanceEntry,
+  parseProvenance,
+  provenanceStatus,
+  pruneProvenance,
+  PROVENANCE_MAX_BYTES,
+  type BlockProvenanceEntry,
+  type InertProvenance,
+  type ProvenanceRecord,
+  type ProvenanceStatus,
+} from "./provenance";
 export { recheckBlockChoice, reconcileBlockChoice, selectBlockDeterministic, withBlockChoice } from "./select";
 export { eligibleBlocks, liveBaseDigest, type EligibilityInput, type IneligibleReason } from "./eligibility";
 export { b0Issues, checkActions, emitCheck, emittedActionNames, loadBlocks, type EmitCheck, type LoadedBlocks } from "./load";

@@ -34,6 +34,11 @@ export interface ProjectExport {
    *  pass-but-drop unknown top-level fields, so a flows-bearing file still
    *  imports cleanly (minus flows) into stale builds. Absent when empty. */
   flows?: Flow[];
+  /** Interface blocks (experimental): how accepted block surfaces were made,
+   *  keyed by example id. ADDITIVE like flows: a default build passes it
+   *  through unread and drops it on import; only an experimental build
+   *  validates and keeps it (docs/BLOCKS.md, ADR-B5). Absent when empty. */
+  blockProvenance?: Record<string, unknown>;
 }
 
 export function buildProjectExport(input: {
@@ -42,6 +47,7 @@ export function buildProjectExport(input: {
   vocab: ProjectVocab;
   exportedAt: string;
   flows?: Flow[];
+  blockProvenance?: Record<string, unknown>;
 }): ProjectExport {
   return {
     composerProjectExport: PROJECT_EXPORT_VERSION,
@@ -52,6 +58,7 @@ export function buildProjectExport(input: {
     contract: input.vocab.contract,
     profile: input.vocab.profile,
     ...(input.flows && input.flows.length > 0 ? { flows: input.flows } : {}),
+    ...(input.blockProvenance && Object.keys(input.blockProvenance).length > 0 ? { blockProvenance: input.blockProvenance } : {}),
   };
 }
 
