@@ -10,7 +10,7 @@
  * never summed together; offline estimates do not appear here at all.
  */
 
-export type CallOperation = "plan" | "flow-plan" | "generate" | "refine" | "repair";
+export type CallOperation = "plan" | "flow-plan" | "block" | "block-repair" | "generate" | "refine" | "repair";
 
 export interface Usage {
   inputTokens?: number;
@@ -107,6 +107,9 @@ export function aggregateUsage(records: readonly ModelCallRecord[]): UsageTotals
 
 type Report = { generation?: { adapterId?: string }; attempts?: Array<Record<string, unknown>> } | undefined;
 
+/** The operations the audit report accounts for, one attempt each. */
+const SURFACE_OPERATIONS: ReadonlySet<CallOperation> = new Set(["generate", "refine", "repair"]);
+
 function isScripted(report: Report, attempt: Record<string, unknown>): boolean {
   const adapterId = String(report?.generation?.adapterId ?? "");
   const meta = (attempt.meta ?? {}) as Record<string, unknown>;
@@ -148,7 +151,7 @@ export function reconcileGenerationUsage(
   (report?.attempts ?? []).forEach((attempt, i) => {
     const reported = normalizeUsage(attempt.usage);
     if (!reported || isScripted(report, attempt)) return;
-    const mine = recorded.filter((r) => r.attempt === i && r.source === "provider" && r.operation !== "plan" && r.operation !== "flow-plan");
+    const mine = recorded.filter((r) => r.attempt === i && r.source === "provider" && SURFACE_OPERATIONS.has(r.operation));
     const sum = {
       inputTokens: mine.reduce((n, r) => n + (r.inputTokens ?? 0), 0),
       outputTokens: mine.reduce((n, r) => n + (r.outputTokens ?? 0), 0),
@@ -213,7 +216,7 @@ export function turnTimings(
 // Receipts: what a turn cost, in words. Provider-reported figures only; an
 // estimate never appears in a deployed receipt.
 
-const OPERATION_ORDER: readonly CallOperation[] = ["plan", "flow-plan", "generate", "refine", "repair"];
+const OPERATION_ORDER: readonly CallOperation[] = ["plan", "flow-plan", "block", "block-repair", "generate", "refine", "repair"];
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const grouped = (n: number) => n.toLocaleString("en-US");
 
