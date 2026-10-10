@@ -106,6 +106,44 @@ test("scripted: a sign-in goal on shadcn expands auth-form at attempt 0, passes,
   await expect(row).toContainText(String(entry.expansionDigest).slice(0, 12));
 });
 
+test("scripted: a refinement whose prior turn has no trace stays a refinement; it never restarts as a fresh block build", async ({ page }) => {
+  // T1 expands a block. T2 refines with the preference OFF (today's path, no
+  // trace). T3 refines again with the preference back ON: its plan inherits
+  // T1's block choice, but the run must refine T2's surface, not play a new
+  // expansion and report it as a refinement. No turn after T1 claims a block.
+  await preferenceOn(page);
+  await page.goto("/");
+  await newProject(page, "Blocks refine");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-intent").selectOption("structured-input");
+  await page.getByTestId("build-prompt").fill("a sign-in form with email and password");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-block-1")).toContainText("expanded");
+
+  await page.getByTestId("nav-settings").click();
+  await page.getByTestId("experimental-blocks").uncheck();
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-prompt").fill("make the title say Welcome");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-canvas-2")).toContainText("(refined)");
+  await expect(page.getByTestId("build-block-2")).toHaveCount(0);
+  await expect(page.getByTestId("build-block-note-2")).toHaveCount(0);
+
+  await page.getByTestId("nav-settings").click();
+  await page.getByTestId("experimental-blocks").check();
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-prompt").fill("now make the button say Join");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-gate-summary-3")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-block-3")).toHaveCount(0);
+  await expect(page.getByTestId("build-block-note-3")).toHaveCount(0);
+  await expect(page.getByTestId("build-canvas-3")).toContainText("(refined 2)");
+  await expect(page.getByTestId("build-turn-3")).toContainText("refine ·");
+  expect((await scan(page)).violations).toEqual([]);
+});
+
 test("hosted: the planner is asked which block; one block call with maxCalls 1 expands records-table, and nothing else is posted", async ({ page }) => {
   await preferenceOn(page);
   const bodies = await stubGateway(page, (_body, kind) => (kind === "plan" ? planFor("record-collection", "records-table") : kind === "block" ? ok(exampleCall("records-table")) : providerDown()));

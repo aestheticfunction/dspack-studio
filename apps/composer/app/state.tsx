@@ -1271,6 +1271,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       let planMs: number | undefined;
       if (prior?.plan) {
         plan = prior.plan;
+        // A refinement never inherits the first turn's block choice: its block
+        // run, if any, is decided from the prior TRACE (blockRunFor), and the
+        // context line must not claim a block this turn did not use.
+        if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && plan.block) {
+          const { block: _inherited, ...rest } = plan;
+          plan = rest;
+        }
       } else {
         ({ plan, calls: planCalls } = await planGoal(input.goal, input.modelRef, contract, blockCtx && blockCtx.offered.length > 0 ? { blocks: blockCtx.offered } : {}));
         planMs = performance.now() - t0;

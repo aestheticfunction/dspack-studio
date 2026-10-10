@@ -214,6 +214,11 @@ export async function blockRunFor(input: {
     const block = ctx.offered.find((b) => b.id === decision.seed.id)!;
     return { kind: "compact", block, intent: decision.seed.intent, seed: decision.seed };
   }
+  // A refinement without a prior trace is today's refinement of the prior
+  // surface, whatever block choice its plan inherited from the thread's first
+  // turn: a fresh block run here would discard that surface and report a new
+  // expansion as a refinement.
+  if (input.prior) return null;
   if (!input.choice.id) return null;
   const block = ctx.offered.find((b) => b.id === input.choice.id);
   return block ? { kind: "fresh", block, intent: input.intent } : null;

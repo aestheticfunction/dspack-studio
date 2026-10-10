@@ -105,6 +105,16 @@ describe("choosing and deciding the block run", () => {
     expect(await blockRunFor({ ctx, choice: { id: null, reason: "", source: "omitted" }, intent: "data-collection", goal: "g", preferenceOn: true, prior })).toBeNull();
   });
 
+  it("a refinement whose prior turn has no trace takes today's refinement path, even when the plan inherited a block choice", async () => {
+    // T1 ran as a block; T2 was a primitive refinement (preference off, or a
+    // local model) and so has no trace; T3 refines T2 with the preference on.
+    // T3's plan still carries T1's block choice. A fresh block run here would
+    // discard T2's surface and report a brand-new expansion as a refinement.
+    const ctx = await contextFor();
+    const prior = { prompt: "make the title say Welcome", progress: { outcome: "passed", surface: { root: {} } } };
+    expect(await blockRunFor({ ctx, choice: { id: "auth-form", reason: "r", source: "model" }, intent: "data-collection", goal: "now make the button say Join", preferenceOn: true, prior })).toBeNull();
+  });
+
   it("a fresh choice gives a fresh run; a prior trace that cannot seed gives a visible switch", async () => {
     const ctx = await contextFor();
     const fresh = await blockRunFor({ ctx, choice: { id: "auth-form", reason: "r", source: "model" }, intent: "data-collection", goal: "g", preferenceOn: true });
