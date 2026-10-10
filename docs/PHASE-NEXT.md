@@ -48,7 +48,11 @@ blocks the shipped experience.
   canonical change lands in `dspack` first; the consuming dspack-studio
   PR carries the byte-copied file (which keeps intent-plus-scenario PRs
   atomic — the studio PR merges after its paired upstream PR);
-  synchronization checks are green in both repositories.
+  synchronization checks are green in both repositories. When the changed
+  contract is a packaged reference with an interface-blocks sidecar
+  (`apps/composer/experimental/blocks/`), the same change re-binds the
+  sidecar's `baseSha256` and regenerates `packages/block-bench` results;
+  both fail CI loudly until it does (docs/BLOCKS.md).
 - All governance content (intents, rules, rationales, examples) is
   owner-authored. This document specifies required shapes only.
 - Public-facing copy follows AF brand voice: declarative, unhyped,
@@ -136,6 +140,17 @@ only when a scenario needs live querying or date selection rather than a
 prompt-stated ask; the vocabulary-addition path (contract entry, profile
 mapping, drift-check name, renderers in both design systems, `x-drift`
 for any documented divergence) is established and mechanical.
+
+## P6 — Interface blocks (experimental)
+
+Governed interface patterns with typed data, state, and host-owned actions:
+a block call the model fills, expanded deterministically into an ordinary
+surface before S1/S2/S3. Planned and measured in [BLOCKS.md](BLOCKS.md)
+(roadmap, ADRs, decision rule) with the format in
+[blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). Phase 0 (docs,
+pure schema module, draft sidecars, the offline bench) is inert; Phase 0.5
+fixes usage accounting; Phase 1A is a private, build-flagged PoC; nothing is
+proposed upstream before the Phase 1B decision rule passes.
 
 ## The first task
 
