@@ -102,6 +102,13 @@ So the input side is the first-order lever on hosted cost. The external research
 
 - **Fairness.** Both evaluation arms share one budgeted adapter, so they share the unusable-output rule. Pass rates are stratified by path (block, block repair, fallback) and by the budget remaining at fallback.
 
+**Amendments from Phase 1A (the landed behavior).**
+- The block repair runs only while the budget can still pay for a surface attempt afterwards. A first call that is invalid when fewer than two calls remain falls back at once, so the fallback is never left with a negative repair bound.
+- A re-issue inside the block phase counts toward the phase's calls like any other, and a re-issue of the block repair is allowed when the budget allows it: one rule, both arms.
+- A call the budget refuses never reaches a provider. It fails as a typed adapter error of kind `budget`, so the run ends as `failed-adapter` with the words "the model-call budget of 3 is exhausted", never as a plain exception and never as a synthetic outcome.
+- Every exit of the budgeted adapter is a typed adapter error: a plain `Error` from any adapter is wrapped before it can reach `runPipeline`.
+- The budget wording in a failure counts calls from the recorder, not attempts: a replayed provider failure is an attempt that made no call.
+
 ### ADR-B5: provenance is project data, never contract data
 
 - **Browser reference projects.** An accepted block surface records `{block, version, intent, call, binding, expansionDigest}` in a per-project store that follows the `flows.ts` idiom. It travels in project export as an additive optional field.
@@ -125,9 +132,29 @@ Each phase is a separately reviewable change that must be green before the next 
 |---|---|---|
 | **0** (this change) | This document, the RFC, the pure block schema module, the call-site refactor, draft sidecars and goldens, `packages/block-bench` | All tests green; request hashes recorded as the byte-identity oracle |
 | **0.5** (this change) | Usage accounting: canonical keys, every call recorded (including failures and the planning call), timings, receipts | Request hashes unchanged at the real call sites |
-| **1A** | Private PoC behind a build-time flag: B0/B1/B2, expander, selection with explicit `null`, block phase with budget, trace, compact refinement, provenance | Flag-off requests byte-identical; default builds contain no block code |
+| **1A** (this change) | Private PoC behind a build-time flag: B0/B1/B2, expander, selection with explicit `null`, block phase with budget, trace, compact refinement, provenance | Flag-off requests byte-identical; default builds contain no block code |
 | **1B** | Live evaluation, run by the owner, against frozen corpora | The ADR-B3 decision rule |
 | **2** | Only if 1B passes: ratify dspack `blocks` upstream-first, move expansion into dspack-gen, agent parity, a Blocks catalog | Upstream-first sync green |
+
+## The experimental build (Phase 1A)
+
+Blocks exist only in an experimental build. The default build, the one every deploy path produces, is today's artifact byte for byte, and four things keep it that way.
+
+- **The flag is inlined.** `next.config.mjs` writes `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL` into the bundle as `"0"` or `"1"`. Every gated site spells the literal `process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"`, which Next folds away in the default build. There is no shared constant: a constant imported from another module is not folded, and a source ratchet (`apps/composer/lib/experimental-guard.test.mjs`) fails on any `import()` of the block runtime without the literal, and on any static import of block code from app code.
+- **The directory is aliased away.** Unless the flag is on, `apps/composer/experimental/` (the sidecars and the runtime) resolves to nothing.
+- **The flag and the output directory must agree.** `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1` builds only into `out-experimental/` (`pnpm --filter composer build:experimental`); the flag alone fails the build, as does the directory alone. `out-experimental/` is git-ignored and is never the deploy artifact.
+- **The artifact is scanned.** `scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key or any draft block id. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
+
+**Running it.**
+
+```
+pnpm --filter composer build:experimental
+pnpm exec playwright test --config playwright.composer-experimental.config.ts
+```
+
+The experimental suite (`e2e/composer-blocks.spec.ts`) is agent-free and stubs the gateway, so it never calls a model. CI builds the experimental artifact after the default suites and runs it on port 3315; the default configs are unchanged.
+
+**What a person sees in an experimental build.** A Settings section, "Experimental", with one preference (off by default) and each reference's load status. With it on, an eligible build shows a Block row as the first row of the pipeline detail, a block note on the context line, and receipts that count block calls. Eligible means a packaged reference project or an Example session on its unedited design system, built in the browser; imported and repository projects, local models, an edited contract or profile, and a block an invariant failure disabled this session are never offered blocks, and the note says which.
 
 ## Usage accounting (Phase 0.5)
 
