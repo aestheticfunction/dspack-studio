@@ -285,14 +285,16 @@ function leakTable(contract: Json, profile: Profile) {
 
 // ---------------------------------------------------------------------------
 
-function goldenPath(ref: string, block: string, intent: string): string {
-  return `packages/block-bench/goldens/${ref}/${block}.${intent}.dsurface.json`;
+/** One hand-expanded golden per example, keyed by the example's unique id (a
+ *  block may have several examples for one intent). */
+export function goldenPath(ref: string, block: string, example: { id: string }): string {
+  return `packages/block-bench/goldens/${ref}/${block}.${example.id}.dsurface.json`;
 }
 
 function drafts(ref: (typeof REFERENCES)[number], sidecar: BlocksSidecar, contract: Json, profile: Profile, generation: Json[]) {
   return sidecar.blocks.flatMap((block) =>
     block.examples.map((example) => {
-      const golden = read(goldenPath(ref.id, block.id, example.intent));
+      const golden = read(goldenPath(ref.id, block.id, example));
       const today = generation.find((g) => g.intent === example.intent && g.mode === "fresh");
       return {
         provisional: true,
@@ -300,7 +302,7 @@ function drafts(ref: (typeof REFERENCES)[number], sidecar: BlocksSidecar, contra
         status: block.status,
         example: example.id,
         intent: example.intent,
-        golden: goldenPath(ref.id, block.id, example.intent),
+        golden: goldenPath(ref.id, block.id, example),
         namedCall: size(JSON.stringify(example.call)),
         positionalCall: size(JSON.stringify(encodeCall(block, example.call))),
         expandedSurface: size(JSON.stringify(golden)),

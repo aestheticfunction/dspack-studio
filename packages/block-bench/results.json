@@ -1001,7 +1001,7 @@
           "status": "draft",
           "example": "blk.support-queue",
           "intent": "record-collection",
-          "golden": "packages/block-bench/goldens/shadcn-v3/records-table.record-collection.dsurface.json",
+          "golden": "packages/block-bench/goldens/shadcn-v3/records-table.blk.support-queue.dsurface.json",
           "namedCall": {
             "bytes": 479,
             "tokens": 119
@@ -1067,7 +1067,7 @@
           "status": "draft",
           "example": "blk.sign-in",
           "intent": "structured-input",
-          "golden": "packages/block-bench/goldens/shadcn-v3/auth-form.structured-input.dsurface.json",
+          "golden": "packages/block-bench/goldens/shadcn-v3/auth-form.blk.sign-in.dsurface.json",
           "namedCall": {
             "bytes": 198,
             "tokens": 50
@@ -1137,7 +1137,7 @@
           "status": "draft",
           "example": "blk.tomato-pasta",
           "intent": "record-detail",
-          "golden": "packages/block-bench/goldens/shadcn-v3/guide-steps.record-detail.dsurface.json",
+          "golden": "packages/block-bench/goldens/shadcn-v3/guide-steps.blk.tomato-pasta.dsurface.json",
           "namedCall": {
             "bytes": 465,
             "tokens": 116
@@ -1781,7 +1781,7 @@
           "status": "draft",
           "example": "blk.support-triage",
           "intent": "record-collection",
-          "golden": "packages/block-bench/goldens/astryx/records-table.record-collection.dsurface.json",
+          "golden": "packages/block-bench/goldens/astryx/records-table.blk.support-triage.dsurface.json",
           "namedCall": {
             "bytes": 508,
             "tokens": 122
@@ -1846,7 +1846,7 @@
           "status": "draft",
           "example": "blk.sign-up",
           "intent": "data-collection",
-          "golden": "packages/block-bench/goldens/astryx/auth-form.data-collection.dsurface.json",
+          "golden": "packages/block-bench/goldens/astryx/auth-form.blk.sign-up.dsurface.json",
           "namedCall": {
             "bytes": 197,
             "tokens": 49
@@ -1915,7 +1915,7 @@
           "status": "draft",
           "example": "blk.weeknight-pasta",
           "intent": "structured-editing",
-          "golden": "packages/block-bench/goldens/astryx/guide-steps.structured-editing.dsurface.json",
+          "golden": "packages/block-bench/goldens/astryx/guide-steps.blk.weeknight-pasta.dsurface.json",
           "namedCall": {
             "bytes": 461,
             "tokens": 118

@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
-import { computeResults, type BenchResults } from "./bench";
+import { computeResults, goldenPath, type BenchResults } from "./bench";
 import { renderMarkdown } from "./report";
 
 type Json = Record<string, any>;
@@ -81,5 +81,18 @@ describe("block-bench", () => {
     const astryx = (fresh.references as Json[]).find((r) => r.reference === "astryx") as Json;
     expect(astryx.leak.scope).toMatch(/not hosted evidence/);
     expect(astryx.leak.summary.s3FailingRecomputed).toBe((astryx.leak.rows as Json[]).filter((r) => r.recomputed.S3 === "FAIL").length);
+  });
+});
+
+describe("goldens", () => {
+  it("one golden per example: two examples of one block with the same intent never share a file", () => {
+    const signIn = { id: "blk.sign-in", intent: "structured-input" };
+    const signUp = { id: "blk.sign-up", intent: "structured-input" };
+    expect(goldenPath("shadcn-v3", "auth-form", signIn)).not.toBe(goldenPath("shadcn-v3", "auth-form", signUp));
+  });
+
+  it("every draft example reads its own golden", () => {
+    const paths = fresh.references.flatMap((r) => (r.drafts as Json[]).map((d) => d.golden as string));
+    expect(new Set(paths).size).toBe(paths.length);
   });
 });
