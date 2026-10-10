@@ -24,6 +24,7 @@ import { runPipeline, ScriptedAdapter } from "@aestheticfunction/dspack-gen/brow
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import { loadProfile } from "@aestheticfunction/dspack-emit";
 import { createPipelineEventMapper } from "@dspack-studio/agui-bridge";
+import { proposeBody } from "@dspack-studio/composer-core";
 import type { BuildRunInput } from "./agent-client";
 
 /** The active reference's governed documents the hosted pipeline runs over.
@@ -124,7 +125,7 @@ function gatewayAdapter() {
         res = await fetch("/api/propose", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ system: request.system, messages: request.messages, jsonSchema: request.jsonSchema }),
+          body: proposeBody(request),
         });
       } catch (error) {
         throw new AdapterOutputError(HOSTED_AI_ID, `hosted AI request failed: ${error instanceof Error ? error.message : String(error)}`);

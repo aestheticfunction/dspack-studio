@@ -53,8 +53,9 @@ export function handleModels(env) {
    by the surface gates S1/S2/S3 over the artifact." So the Worker asks for a
    bare JSON object and the BROWSER's gates are the authoritative validator;
    callModel strips any ```json fence and parses. Anthropic takes `system`
-   top-level; Workers AI takes it as a leading system message. */
-function guidedSystem(system, jsonSchema) {
+   top-level; Workers AI takes it as a leading system message. Exported so the
+   block bench measures the exact text the model receives (no behavior change). */
+export function guidedSystem(system, jsonSchema) {
   return (
     `${system}\n\n` +
     "Return ONE JSON object and nothing else — no prose, no explanation, no markdown code fences. " +

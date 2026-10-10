@@ -30,6 +30,7 @@ import {
   examplePromptFor,
   foldBuildEvents,
   ledgerStatus,
+  refinementConversation,
   removeTombstone,
   restoreComponent,
   vocabularyGap,
@@ -1211,12 +1212,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         // A configured LOCAL provider (Ollama/OpenAI-compatible) rides along so
         // the agent runs the request against your own model.
         ...(providerConfig ? { provider: providerConfig } : {}),
-        ...(prior
-          ? { conversation: [
-              { role: "user" as const, content: prior.prompt },
-              { role: "assistant" as const, content: JSON.stringify(prior.progress.surface) },
-            ] }
-          : {}),
+        ...(prior ? { conversation: refinementConversation(prior.prompt, prior.progress.surface) } : {}),
       };
       // Route by PROVIDER first, so the invariant holds wherever a ref is
       // selectable. Hosted became offerable alongside local models the moment
