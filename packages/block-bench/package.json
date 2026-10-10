@@ -1,0 +1,25 @@
+{
+  "name": "@dspack-studio/block-bench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline, deterministic measurement for the interface-blocks experiment (docs/BLOCKS.md): exact hosted request goldens (the flag-off byte-identity oracle), output sizes per protocol, the structural-validity vs governance leak table, and draft block sizes. No network, no model calls. `pnpm test` fails on any drift from the committed results.json; `pnpm --filter @dspack-studio/block-bench bench` regenerates it.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "bench": "tsx src/write.ts"
+  },
+  "dependencies": {
+    "@aestheticfunction/dspack-emit": "^0.7.0",
+    "@aestheticfunction/dspack-gen": "^0.5.0",
+    "@dspack-studio/composer-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "js-tiktoken": "1.0.21",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

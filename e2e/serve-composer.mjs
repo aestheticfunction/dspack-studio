@@ -12,7 +12,21 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "apps", "composer", "out");
+// COMPOSER_OUT_DIR picks the sibling EXPERIMENTAL artifact (out-experimental,
+// built by `pnpm --filter composer build:experimental`) for the blocks suite.
+// A plain directory name only, and it must exist: a missing artifact exits
+// with the command that builds it, never serves an empty directory.
+import { existsSync } from "node:fs";
+const outDir = process.env.COMPOSER_OUT_DIR ?? "out";
+if (!/^[a-z0-9-]+$/.test(outDir)) {
+  console.error(`serve-composer: COMPOSER_OUT_DIR must be a plain directory name, not "${outDir}"`);
+  process.exit(1);
+}
+const root = join(fileURLToPath(new URL(".", import.meta.url)), "..", "apps", "composer", outDir);
+if (!existsSync(join(root, "index.html"))) {
+  console.error(`serve-composer: ${root}/index.html is missing; run pnpm --filter composer ${outDir === "out-experimental" ? "build:experimental" : "build"} first`);
+  process.exit(1);
+}
 const port = Number(process.env.PORT ?? 3312);
 
 const MIME = {

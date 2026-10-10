@@ -1,0 +1,122 @@
+{
+  "dspackSurface": "0.1",
+  "system": "Astryx",
+  "intent": "structured-editing",
+  "root": {
+    "component": "card",
+    "id": "guide-card",
+    "children": [
+      {
+        "component": "text",
+        "id": "guide-title",
+        "props": {
+          "type": "display-3"
+        },
+        "text": "Weeknight pasta"
+      },
+      {
+        "component": "text",
+        "id": "guide-summary",
+        "props": {
+          "type": "body"
+        },
+        "text": "Dinner for two in 25 minutes."
+      },
+      {
+        "component": "badge",
+        "id": "guide-fact-1",
+        "props": {
+          "label": "Servings: 2",
+          "variant": "neutral"
+        }
+      },
+      {
+        "component": "badge",
+        "id": "guide-fact-2",
+        "props": {
+          "label": "Time: 25 min",
+          "variant": "neutral"
+        }
+      },
+      {
+        "component": "table",
+        "id": "guide-items",
+        "props": {
+          "columns": [
+            "Ingredients"
+          ],
+          "data": [
+            {
+              "cells": [
+                "180 g spaghetti"
+              ]
+            },
+            {
+              "cells": [
+                "80 g pancetta"
+              ]
+            },
+            {
+              "cells": [
+                "50 g parmesan"
+              ]
+            },
+            {
+              "cells": [
+                "240 g cherry tomatoes"
+              ]
+            }
+          ],
+          "density": "compact"
+        }
+      },
+      {
+        "component": "table",
+        "id": "guide-steps",
+        "props": {
+          "columns": [
+            "Step",
+            "Instruction"
+          ],
+          "data": [
+            {
+              "cells": [
+                "1",
+                "Boil the spaghetti for 9 minutes."
+              ]
+            },
+            {
+              "cells": [
+                "2",
+                "Crisp the pancetta in a dry pan."
+              ]
+            },
+            {
+              "cells": [
+                "3",
+                "Toss the pasta with the pancetta, tomatoes and parmesan."
+              ]
+            }
+          ],
+          "density": "compact"
+        }
+      },
+      {
+        "component": "button",
+        "id": "guide-start",
+        "props": {
+          "label": "Start",
+          "variant": "primary"
+        }
+      },
+      {
+        "component": "button",
+        "id": "guide-save",
+        "props": {
+          "label": "Save guide",
+          "variant": "secondary"
+        }
+      }
+    ]
+  }
+}

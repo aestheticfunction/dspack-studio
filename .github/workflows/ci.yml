@@ -75,6 +75,10 @@ jobs:
       # real agent. It serves discovery only — nothing here calls a model.
       - name: Playwright (composer agent-mode decisions, provider configuration, browser/agent parity, accessibility)
         run: pnpm exec playwright test --config playwright.composer-agent.config.ts
+      - name: Composer experimental export (interface blocks; never the deploy artifact)
+        run: pnpm --filter composer build:experimental
+      - name: Playwright (composer experimental — interface blocks behind the build flag)
+        run: pnpm exec playwright test --config playwright.composer-experimental.config.ts
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -1,0 +1,903 @@
+{
+  "blocksSidecar": "0.1",
+  "status": "draft",
+  "reference": {
+    "name": "Astryx",
+    "dspack": "0.4",
+    "version": "0.1.4"
+  },
+  "baseSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+  "blocks": [
+    {
+      "id": "records-table",
+      "version": 1,
+      "status": "draft",
+      "name": "Record manager",
+      "summary": "Many records of one kind, scanned as a captioned table with an optional status column and collection actions.",
+      "intents": [
+        "record-collection"
+      ],
+      "keywords": [
+        "table",
+        "records",
+        "list of",
+        "queue",
+        "directory",
+        "inventory",
+        "rows",
+        "orders",
+        "tickets",
+        "members"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Heading for the collection."
+        },
+        {
+          "name": "caption",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "One sentence naming what the table lists."
+        },
+        {
+          "name": "columns",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "description": "Column headings, in order."
+        },
+        {
+          "name": "rows",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "One entry per record.",
+          "items": {
+            "type": "object",
+            "props": [
+              {
+                "name": "cells",
+                "required": true,
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "description": "Cell text, one per column."
+              },
+              {
+                "name": "tone",
+                "type": "enum",
+                "values": [
+                  "neutral",
+                  "info",
+                  "success",
+                  "warning",
+                  "critical"
+                ],
+                "description": "Status tone for this record."
+              }
+            ]
+          }
+        },
+        {
+          "name": "statusColumn",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "1-based column holding each record's status text."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "One sentence of context under the heading."
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "create",
+              "export",
+              "refresh"
+            ]
+          },
+          "description": "Collection-level actions the host provides."
+        }
+      ],
+      "constraints": [
+        {
+          "kind": "equal-length",
+          "paths": [
+            "columns",
+            "rows.*.cells"
+          ]
+        }
+      ],
+      "actions": [
+        "records_create",
+        "records_export",
+        "records_refresh"
+      ],
+      "streaming": "disable-actions-until-complete",
+      "notes": [
+        "Astryx table cells are text: statusColumn and tone carry no visual treatment here, and status stays readable as cell text.",
+        "Per-row actions are not expressible: dropdown-menu is a declared casualty of this profile."
+      ],
+      "template": {
+        "component": "card",
+        "id": "records-card",
+        "children": [
+          {
+            "component": "text",
+            "id": "records-title",
+            "props": {
+              "type": "display-3"
+            },
+            "text": {
+              "$prop": "title"
+            }
+          },
+          {
+            "$if": "description",
+            "children": [
+              {
+                "component": "text",
+                "id": "records-description",
+                "props": {
+                  "type": "body"
+                },
+                "text": {
+                  "$prop": "description"
+                }
+              }
+            ]
+          },
+          {
+            "component": "text",
+            "id": "records-caption",
+            "props": {
+              "type": "supporting"
+            },
+            "text": {
+              "$prop": "caption"
+            }
+          },
+          {
+            "component": "table",
+            "id": "records-table",
+            "props": {
+              "columns": {
+                "$prop": "columns"
+              },
+              "data": {
+                "$map": "rows",
+                "as": "row",
+                "value": {
+                  "cells": {
+                    "$prop": "row.cells"
+                  }
+                }
+              },
+              "density": "compact"
+            }
+          },
+          {
+            "$each": "actions",
+            "as": "action",
+            "children": [
+              {
+                "component": "button",
+                "id": {
+                  "$concat": [
+                    "records-",
+                    {
+                      "$prop": "action"
+                    }
+                  ]
+                },
+                "props": {
+                  "label": {
+                    "$case": "action",
+                    "map": {
+                      "create": "New record",
+                      "export": "Export",
+                      "refresh": "Refresh"
+                    }
+                  },
+                  "variant": {
+                    "$case": "action",
+                    "map": {
+                      "create": "primary",
+                      "export": "secondary",
+                      "refresh": "secondary"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "id": "blk.support-triage",
+          "intent": "record-collection",
+          "prompt": "a triage view of open support tickets with status and priority",
+          "call": {
+            "block": "records-table",
+            "version": 1,
+            "title": "Open support tickets",
+            "caption": "Newest first. Statuses update as agents respond.",
+            "columns": [
+              "Ticket",
+              "Subject",
+              "Status",
+              "Priority"
+            ],
+            "rows": [
+              {
+                "cells": [
+                  "#4812",
+                  "Cannot export session receipts",
+                  "Waiting on support",
+                  "Urgent"
+                ],
+                "tone": "critical"
+              },
+              {
+                "cells": [
+                  "#4809",
+                  "Replay stalls at event 12",
+                  "Replied",
+                  "High"
+                ],
+                "tone": "info"
+              },
+              {
+                "cells": [
+                  "#4801",
+                  "Billing address will not save",
+                  "Waiting on customer",
+                  "Normal"
+                ],
+                "tone": "warning"
+              }
+            ],
+            "statusColumn": 3,
+            "actions": [
+              "refresh"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "auth-form",
+      "version": 1,
+      "status": "draft",
+      "name": "Account access",
+      "summary": "Sign in, sign up, or password reset: labeled fields, one submit action, and optional provider and recovery actions. Never carries entered values.",
+      "intents": [
+        "data-collection"
+      ],
+      "keywords": [
+        "sign in",
+        "signin",
+        "log in",
+        "login",
+        "sign up",
+        "signup",
+        "register",
+        "password",
+        "account",
+        "authentication"
+      ],
+      "props": [
+        {
+          "name": "mode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "sign-in",
+            "sign-up",
+            "reset"
+          ],
+          "description": "Which account task the form performs."
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Heading for the form."
+        },
+        {
+          "name": "fields",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "email",
+              "password",
+              "name",
+              "username"
+            ]
+          },
+          "description": "Fields to ask for, in order. Labels and input types follow from the field."
+        },
+        {
+          "name": "intro",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "One sentence under the heading."
+        },
+        {
+          "name": "providers",
+          "type": "array",
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "google",
+              "github",
+              "microsoft",
+              "apple"
+            ]
+          },
+          "description": "Third-party providers the host allows."
+        },
+        {
+          "name": "recovery",
+          "type": "boolean",
+          "description": "Offer a forgot-password action."
+        }
+      ],
+      "constraints": [
+        {
+          "kind": "includes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "sign-in"
+          },
+          "path": "fields",
+          "values": [
+            "password"
+          ]
+        },
+        {
+          "kind": "includes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "sign-up"
+          },
+          "path": "fields",
+          "values": [
+            "password"
+          ]
+        },
+        {
+          "kind": "includes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "reset"
+          },
+          "path": "fields",
+          "values": [
+            "email"
+          ]
+        },
+        {
+          "kind": "excludes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "reset"
+          },
+          "path": "fields",
+          "values": [
+            "password"
+          ]
+        }
+      ],
+      "actions": [
+        "auth_submit",
+        "auth_forgot",
+        "auth_provider_google",
+        "auth_provider_github",
+        "auth_provider_microsoft",
+        "auth_provider_apple"
+      ],
+      "streaming": "disable-actions-until-complete",
+      "notes": [
+        "Input autocomplete purposes are not expressible: neither reference contract declares an autocomplete prop. Recorded as a vocabulary gap for Phase 2.",
+        "The block describes fields, never values: there is no slot for entered text, defaults, or credentials."
+      ],
+      "template": {
+        "component": "card",
+        "id": "auth-card",
+        "children": [
+          {
+            "component": "text",
+            "id": "auth-title",
+            "props": {
+              "type": "display-3"
+            },
+            "text": {
+              "$prop": "title"
+            }
+          },
+          {
+            "$if": "intro",
+            "children": [
+              {
+                "component": "text",
+                "id": "auth-intro",
+                "props": {
+                  "type": "body"
+                },
+                "text": {
+                  "$prop": "intro"
+                }
+              }
+            ]
+          },
+          {
+            "$each": "fields",
+            "as": "field",
+            "children": [
+              {
+                "component": "text-input",
+                "id": {
+                  "$concat": [
+                    "auth-",
+                    {
+                      "$prop": "field"
+                    },
+                    "-input"
+                  ]
+                },
+                "props": {
+                  "type": {
+                    "$case": "field",
+                    "map": {
+                      "email": "email",
+                      "password": "password",
+                      "name": "text",
+                      "username": "text"
+                    }
+                  },
+                  "label": {
+                    "$case": "field",
+                    "map": {
+                      "email": "Email address",
+                      "password": "Password",
+                      "name": "Full name",
+                      "username": "Username"
+                    }
+                  },
+                  "isRequired": true
+                }
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "id": "auth-submit",
+            "props": {
+              "label": {
+                "$case": "mode",
+                "map": {
+                  "sign-in": "Sign in",
+                  "sign-up": "Create account",
+                  "reset": "Send reset link"
+                }
+              },
+              "variant": "primary"
+            }
+          },
+          {
+            "$if": "recovery",
+            "children": [
+              {
+                "component": "button",
+                "id": "auth-forgot",
+                "props": {
+                  "label": "Forgot password?",
+                  "variant": "ghost"
+                }
+              }
+            ]
+          },
+          {
+            "$each": "providers",
+            "as": "provider",
+            "children": [
+              {
+                "component": "button",
+                "id": {
+                  "$concat": [
+                    "auth-provider-",
+                    {
+                      "$prop": "provider"
+                    }
+                  ]
+                },
+                "props": {
+                  "label": {
+                    "$case": "provider",
+                    "map": {
+                      "google": "Continue with Google",
+                      "github": "Continue with GitHub",
+                      "microsoft": "Continue with Microsoft",
+                      "apple": "Continue with Apple"
+                    }
+                  },
+                  "variant": "secondary"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "id": "blk.sign-up",
+          "intent": "data-collection",
+          "prompt": "a signup form asking for name, email and a password, with GitHub sign-up",
+          "call": {
+            "block": "auth-form",
+            "version": 1,
+            "mode": "sign-up",
+            "title": "Create your account",
+            "fields": [
+              "name",
+              "email",
+              "password"
+            ],
+            "intro": "It takes a minute. You can add the rest later.",
+            "providers": [
+              "github"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "guide-steps",
+      "version": 1,
+      "status": "draft",
+      "name": "Step-by-step guide",
+      "summary": "One guide read in order: what you need, then numbered steps, with optional facts and actions. Recipes, setup, repair, onboarding.",
+      "intents": [
+        "structured-editing"
+      ],
+      "keywords": [
+        "recipe",
+        "guide",
+        "steps",
+        "step by step",
+        "how to",
+        "instructions",
+        "tutorial",
+        "walkthrough",
+        "checklist"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "The guide's name."
+        },
+        {
+          "name": "steps",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "description": "Instructions, in order."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240,
+          "description": "One sentence on what the guide produces."
+        },
+        {
+          "name": "items",
+          "type": "array",
+          "maxItems": 40,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": "Supplies or ingredients, one per entry."
+        },
+        {
+          "name": "itemsHeading",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Heading for the items. Defaults to 'What you need'."
+        },
+        {
+          "name": "meta",
+          "type": "array",
+          "maxItems": 4,
+          "description": "Short facts such as servings or duration.",
+          "items": {
+            "type": "object",
+            "props": [
+              {
+                "name": "label",
+                "required": true,
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              {
+                "name": "detail",
+                "required": true,
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              }
+            ]
+          }
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "start",
+              "save"
+            ]
+          },
+          "description": "Guide-level actions the host provides."
+        }
+      ],
+      "actions": [
+        "guide_start",
+        "guide_save"
+      ],
+      "streaming": "static-safe",
+      "notes": [
+        "Checking off items or steps is presentation state, never part of the governed surface; items and steps render as tables."
+      ],
+      "template": {
+        "component": "card",
+        "id": "guide-card",
+        "children": [
+          {
+            "component": "text",
+            "id": "guide-title",
+            "props": {
+              "type": "display-3"
+            },
+            "text": {
+              "$prop": "title"
+            }
+          },
+          {
+            "$if": "summary",
+            "children": [
+              {
+                "component": "text",
+                "id": "guide-summary",
+                "props": {
+                  "type": "body"
+                },
+                "text": {
+                  "$prop": "summary"
+                }
+              }
+            ]
+          },
+          {
+            "$each": "meta",
+            "as": "fact",
+            "children": [
+              {
+                "component": "badge",
+                "id": {
+                  "$concat": [
+                    "guide-fact-",
+                    {
+                      "$index": "fact"
+                    }
+                  ]
+                },
+                "props": {
+                  "label": {
+                    "$concat": [
+                      {
+                        "$prop": "fact.label"
+                      },
+                      ": ",
+                      {
+                        "$prop": "fact.detail"
+                      }
+                    ]
+                  },
+                  "variant": "neutral"
+                }
+              }
+            ]
+          },
+          {
+            "$if": "items",
+            "children": [
+              {
+                "component": "table",
+                "id": "guide-items",
+                "props": {
+                  "columns": [
+                    {
+                      "$prop": "itemsHeading",
+                      "default": "What you need"
+                    }
+                  ],
+                  "data": {
+                    "$map": "items",
+                    "as": "item",
+                    "value": {
+                      "cells": [
+                        {
+                          "$prop": "item"
+                        }
+                      ]
+                    }
+                  },
+                  "density": "compact"
+                }
+              }
+            ]
+          },
+          {
+            "component": "table",
+            "id": "guide-steps",
+            "props": {
+              "columns": [
+                "Step",
+                "Instruction"
+              ],
+              "data": {
+                "$map": "steps",
+                "as": "step",
+                "value": {
+                  "cells": [
+                    {
+                      "$concat": [
+                        {
+                          "$index": "step"
+                        }
+                      ]
+                    },
+                    {
+                      "$prop": "step"
+                    }
+                  ]
+                }
+              },
+              "density": "compact"
+            }
+          },
+          {
+            "$each": "actions",
+            "as": "action",
+            "children": [
+              {
+                "component": "button",
+                "id": {
+                  "$concat": [
+                    "guide-",
+                    {
+                      "$prop": "action"
+                    }
+                  ]
+                },
+                "props": {
+                  "label": {
+                    "$case": "action",
+                    "map": {
+                      "start": "Start",
+                      "save": "Save guide"
+                    }
+                  },
+                  "variant": {
+                    "$case": "action",
+                    "map": {
+                      "start": "primary",
+                      "save": "secondary"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "id": "blk.weeknight-pasta",
+          "intent": "structured-editing",
+          "prompt": "an editable weeknight pasta recipe for two with ingredients, steps and timing",
+          "call": {
+            "block": "guide-steps",
+            "version": 1,
+            "title": "Weeknight pasta",
+            "steps": [
+              "Boil the spaghetti for 9 minutes.",
+              "Crisp the pancetta in a dry pan.",
+              "Toss the pasta with the pancetta, tomatoes and parmesan."
+            ],
+            "summary": "Dinner for two in 25 minutes.",
+            "items": [
+              "180 g spaghetti",
+              "80 g pancetta",
+              "50 g parmesan",
+              "240 g cherry tomatoes"
+            ],
+            "itemsHeading": "Ingredients",
+            "meta": [
+              {
+                "label": "Servings",
+                "detail": "2"
+              },
+              {
+                "label": "Time",
+                "detail": "25 min"
+              }
+            ],
+            "actions": [
+              "start",
+              "save"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

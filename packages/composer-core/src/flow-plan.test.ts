@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFlowPlanRequest, flowPlanDeterministic, flowPlanSchema, reconcileFlowPlan } from "./flow-plan";
+import { buildFlowPlanRequest, flowPlanDeterministic, flowPlanSchema, flowPlanSourceNote, reconcileFlowPlan } from "./flow-plan";
 
 /**
  * P4 Phase C — flow decomposition planning (fail-first).
@@ -185,5 +185,29 @@ describe("flowPlanDeterministic — the honest outline that never blocks", () =>
   it("a rambling goal is bounded to 6 outline steps", () => {
     const rambling = Array.from({ length: 12 }, (_, i) => `Do the ${i}th thing with records.`).join(" ");
     expect(flowPlanDeterministic(rambling, contract).steps.length).toBeLessThanOrEqual(6);
+  });
+});
+
+describe("flowPlanSourceNote", () => {
+  const contract = { intents: [{ id: "record-detail" }, { id: "destructive-action" }] };
+  const outline = flowPlanDeterministic("Show the order. Delete the account.", contract);
+
+  it("a deterministic outline with no model call says so", () => {
+    expect(flowPlanSourceNote(outline, [])).toMatch(/deterministic outline/i);
+    expect(flowPlanSourceNote(outline, [])).toMatch(/no model call/i);
+  });
+
+  it("a deterministic outline AFTER a model call is a fallback, never 'no model call'", () => {
+    const note = flowPlanSourceNote(outline, [{ operation: "flow-plan", source: "provider", outcome: "provider-error" }]);
+    expect(note).toMatch(/deterministic outline/i);
+    expect(note).not.toMatch(/no model call/i);
+    expect(note).toMatch(/could not be used/i);
+  });
+
+  it("a model plan says it was proposed by the model", () => {
+    const plan = { ...outline, source: "model" as const, reason: "" };
+    expect(flowPlanSourceNote(plan, [{ operation: "flow-plan", source: "provider", outcome: "ok" }])).toBe(
+      "Proposed by the model — edit anything before building.",
+    );
   });
 });

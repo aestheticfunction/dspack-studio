@@ -1,0 +1,1087 @@
+{
+  "blocksSidecar": "0.1",
+  "status": "draft",
+  "reference": {
+    "name": "shadcn/ui",
+    "dspack": "0.4",
+    "version": "3.2.0"
+  },
+  "baseSha256": "992b51b8215792bb71cad38af691bc07a01cacd7a4049e256cd20f11fea01e63",
+  "blocks": [
+    {
+      "id": "records-table",
+      "version": 1,
+      "status": "draft",
+      "name": "Record manager",
+      "summary": "Many records of one kind, scanned as a captioned table with an optional status column and collection actions.",
+      "relatedPattern": "data-table-with-row-actions",
+      "intents": [
+        "record-collection"
+      ],
+      "keywords": [
+        "table",
+        "records",
+        "list of",
+        "queue",
+        "directory",
+        "inventory",
+        "rows",
+        "orders",
+        "tickets",
+        "members"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Heading for the collection."
+        },
+        {
+          "name": "caption",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "One sentence naming what the table lists."
+        },
+        {
+          "name": "columns",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "description": "Column headings, in order."
+        },
+        {
+          "name": "rows",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "One entry per record.",
+          "items": {
+            "type": "object",
+            "props": [
+              {
+                "name": "cells",
+                "required": true,
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "description": "Cell text, one per column."
+              },
+              {
+                "name": "tone",
+                "type": "enum",
+                "values": [
+                  "neutral",
+                  "info",
+                  "success",
+                  "warning",
+                  "critical"
+                ],
+                "description": "Status tone for this record."
+              }
+            ]
+          }
+        },
+        {
+          "name": "statusColumn",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "1-based column holding each record's status text."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "One sentence of context under the heading."
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "create",
+              "export",
+              "refresh"
+            ]
+          },
+          "description": "Collection-level actions the host provides."
+        }
+      ],
+      "constraints": [
+        {
+          "kind": "equal-length",
+          "paths": [
+            "columns",
+            "rows.*.cells"
+          ]
+        }
+      ],
+      "actions": [
+        "records_create",
+        "records_export",
+        "records_refresh"
+      ],
+      "streaming": "disable-actions-until-complete",
+      "notes": [
+        "Per-row actions are not expressible: this profile collects dropdown-menu-item into DropdownMenu items that carry only a label, so a row menu cannot dispatch a host action. Sortable column headers from data-table-with-row-actions are not modeled either.",
+        "Status keeps its text; the badge variant reflects the tone and colour is never the only signal."
+      ],
+      "template": {
+        "component": "card",
+        "children": [
+          {
+            "component": "card-header",
+            "children": [
+              {
+                "component": "card-title",
+                "text": {
+                  "$prop": "title"
+                }
+              },
+              {
+                "$if": "description",
+                "children": [
+                  {
+                    "component": "card-description",
+                    "text": {
+                      "$prop": "description"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "card-content",
+            "children": [
+              {
+                "component": "table",
+                "children": [
+                  {
+                    "component": "table-caption",
+                    "text": {
+                      "$prop": "caption"
+                    }
+                  },
+                  {
+                    "component": "table-header",
+                    "children": [
+                      {
+                        "component": "table-row",
+                        "children": [
+                          {
+                            "$each": "columns",
+                            "as": "column",
+                            "children": [
+                              {
+                                "component": "table-head",
+                                "text": {
+                                  "$prop": "column"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-body",
+                    "children": [
+                      {
+                        "$each": "rows",
+                        "as": "row",
+                        "children": [
+                          {
+                            "component": "table-row",
+                            "children": [
+                              {
+                                "$each": "row.cells",
+                                "as": "cell",
+                                "children": [
+                                  {
+                                    "$if": {
+                                      "$eq": [
+                                        {
+                                          "$index": "cell"
+                                        },
+                                        {
+                                          "$prop": "statusColumn"
+                                        }
+                                      ]
+                                    },
+                                    "children": [
+                                      {
+                                        "component": "table-cell",
+                                        "children": [
+                                          {
+                                            "component": "badge",
+                                            "props": {
+                                              "variant": {
+                                                "$case": "row.tone",
+                                                "map": {
+                                                  "neutral": "outline",
+                                                  "info": "secondary",
+                                                  "success": "default",
+                                                  "warning": "secondary",
+                                                  "critical": "destructive"
+                                                },
+                                                "default": "outline"
+                                              }
+                                            },
+                                            "text": {
+                                              "$prop": "cell"
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ],
+                                    "else": [
+                                      {
+                                        "component": "table-cell",
+                                        "text": {
+                                          "$prop": "cell"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "$if": "actions",
+            "children": [
+              {
+                "component": "card-footer",
+                "children": [
+                  {
+                    "$each": "actions",
+                    "as": "action",
+                    "children": [
+                      {
+                        "component": "button",
+                        "id": {
+                          "$concat": [
+                            "records-",
+                            {
+                              "$prop": "action"
+                            }
+                          ]
+                        },
+                        "props": {
+                          "variant": {
+                            "$case": "action",
+                            "map": {
+                              "create": "default",
+                              "export": "outline",
+                              "refresh": "outline"
+                            }
+                          }
+                        },
+                        "text": {
+                          "$case": "action",
+                          "map": {
+                            "create": "New record",
+                            "export": "Export",
+                            "refresh": "Refresh"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "id": "blk.support-queue",
+          "intent": "record-collection",
+          "prompt": "a queue of open support tickets with status and priority",
+          "call": {
+            "block": "records-table",
+            "version": 1,
+            "title": "Support queue",
+            "caption": "Open support tickets, newest first.",
+            "columns": [
+              "Ticket",
+              "Subject",
+              "Status",
+              "Priority"
+            ],
+            "rows": [
+              {
+                "cells": [
+                  "#4812",
+                  "Cannot export billing statement",
+                  "Urgent",
+                  "P1"
+                ],
+                "tone": "critical"
+              },
+              {
+                "cells": [
+                  "#4809",
+                  "Two-factor codes arrive late",
+                  "Waiting on customer",
+                  "P2"
+                ],
+                "tone": "warning"
+              },
+              {
+                "cells": [
+                  "#4801",
+                  "Dark mode contrast on invoices",
+                  "Open",
+                  "P3"
+                ],
+                "tone": "neutral"
+              }
+            ],
+            "statusColumn": 3,
+            "actions": [
+              "create",
+              "export"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "auth-form",
+      "version": 1,
+      "status": "draft",
+      "name": "Account access",
+      "summary": "Sign in, sign up, or password reset: labeled fields, one submit action, and optional provider and recovery actions. Never carries entered values.",
+      "relatedPattern": "form-field-layout",
+      "intents": [
+        "structured-input"
+      ],
+      "keywords": [
+        "sign in",
+        "signin",
+        "log in",
+        "login",
+        "sign up",
+        "signup",
+        "register",
+        "password",
+        "account",
+        "authentication"
+      ],
+      "props": [
+        {
+          "name": "mode",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "sign-in",
+            "sign-up",
+            "reset"
+          ],
+          "description": "Which account task the form performs."
+        },
+        {
+          "name": "title",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Heading for the form."
+        },
+        {
+          "name": "fields",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "email",
+              "password",
+              "name",
+              "username"
+            ]
+          },
+          "description": "Fields to ask for, in order. Labels and input types follow from the field."
+        },
+        {
+          "name": "intro",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "One sentence under the heading."
+        },
+        {
+          "name": "providers",
+          "type": "array",
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "google",
+              "github",
+              "microsoft",
+              "apple"
+            ]
+          },
+          "description": "Third-party providers the host allows."
+        },
+        {
+          "name": "recovery",
+          "type": "boolean",
+          "description": "Offer a forgot-password action."
+        }
+      ],
+      "constraints": [
+        {
+          "kind": "includes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "sign-in"
+          },
+          "path": "fields",
+          "values": [
+            "password"
+          ]
+        },
+        {
+          "kind": "includes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "sign-up"
+          },
+          "path": "fields",
+          "values": [
+            "password"
+          ]
+        },
+        {
+          "kind": "includes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "reset"
+          },
+          "path": "fields",
+          "values": [
+            "email"
+          ]
+        },
+        {
+          "kind": "excludes-when",
+          "when": {
+            "prop": "mode",
+            "equals": "reset"
+          },
+          "path": "fields",
+          "values": [
+            "password"
+          ]
+        }
+      ],
+      "actions": [
+        "auth_submit",
+        "auth_forgot",
+        "auth_provider_google",
+        "auth_provider_github",
+        "auth_provider_microsoft",
+        "auth_provider_apple"
+      ],
+      "streaming": "disable-actions-until-complete",
+      "notes": [
+        "Input autocomplete purposes are not expressible: neither reference contract declares an autocomplete prop. Recorded as a vocabulary gap for Phase 2.",
+        "The block describes fields, never values: there is no slot for entered text, defaults, or credentials.",
+        "Deviation from form-field-layout: the submit button stays inside the form in CardContent rather than CardFooter, so it remains the form's own submit; CardFooter holds only provider actions."
+      ],
+      "template": {
+        "component": "card",
+        "children": [
+          {
+            "component": "card-header",
+            "children": [
+              {
+                "component": "card-title",
+                "text": {
+                  "$prop": "title"
+                }
+              },
+              {
+                "$if": "intro",
+                "children": [
+                  {
+                    "component": "card-description",
+                    "text": {
+                      "$prop": "intro"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "card-content",
+            "children": [
+              {
+                "component": "form",
+                "props": {
+                  "control": "form.control",
+                  "handleSubmit": "form.handleSubmit(onSubmit)"
+                },
+                "children": [
+                  {
+                    "$each": "fields",
+                    "as": "field",
+                    "children": [
+                      {
+                        "component": "form-field",
+                        "children": [
+                          {
+                            "component": "form-item",
+                            "children": [
+                              {
+                                "component": "form-label",
+                                "text": {
+                                  "$case": "field",
+                                  "map": {
+                                    "email": "Email address",
+                                    "password": "Password",
+                                    "name": "Full name",
+                                    "username": "Username"
+                                  }
+                                }
+                              },
+                              {
+                                "component": "form-control",
+                                "children": [
+                                  {
+                                    "component": "input",
+                                    "props": {
+                                      "type": {
+                                        "$case": "field",
+                                        "map": {
+                                          "email": "email",
+                                          "password": "password",
+                                          "name": "text",
+                                          "username": "text"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "component": "form-message"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "button",
+                    "id": "auth-submit",
+                    "text": {
+                      "$case": "mode",
+                      "map": {
+                        "sign-in": "Sign in",
+                        "sign-up": "Create account",
+                        "reset": "Send reset link"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "$if": "recovery",
+                "children": [
+                  {
+                    "component": "button",
+                    "id": "auth-forgot",
+                    "props": {
+                      "variant": "link"
+                    },
+                    "text": "Forgot password?"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "$if": "providers",
+            "children": [
+              {
+                "component": "card-footer",
+                "children": [
+                  {
+                    "component": "separator",
+                    "props": {
+                      "decorative": true,
+                      "orientation": "horizontal"
+                    }
+                  },
+                  {
+                    "$each": "providers",
+                    "as": "provider",
+                    "children": [
+                      {
+                        "component": "button",
+                        "id": {
+                          "$concat": [
+                            "auth-provider-",
+                            {
+                              "$prop": "provider"
+                            }
+                          ]
+                        },
+                        "props": {
+                          "variant": "outline"
+                        },
+                        "text": {
+                          "$case": "provider",
+                          "map": {
+                            "google": "Continue with Google",
+                            "github": "Continue with GitHub",
+                            "microsoft": "Continue with Microsoft",
+                            "apple": "Continue with Apple"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "id": "blk.sign-in",
+          "intent": "structured-input",
+          "prompt": "a sign-in form with email and password, Google sign-in, and a forgot-password link",
+          "call": {
+            "block": "auth-form",
+            "version": 1,
+            "mode": "sign-in",
+            "title": "Sign in to Acme",
+            "fields": [
+              "email",
+              "password"
+            ],
+            "intro": "Use the email address you registered with.",
+            "providers": [
+              "google"
+            ],
+            "recovery": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "guide-steps",
+      "version": 1,
+      "status": "draft",
+      "name": "Step-by-step guide",
+      "summary": "One guide read in order: what you need, then numbered steps, with optional facts and actions. Recipes, setup, repair, onboarding.",
+      "intents": [
+        "record-detail"
+      ],
+      "keywords": [
+        "recipe",
+        "guide",
+        "steps",
+        "step by step",
+        "how to",
+        "instructions",
+        "tutorial",
+        "walkthrough",
+        "checklist"
+      ],
+      "props": [
+        {
+          "name": "title",
+          "required": true,
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "The guide's name."
+        },
+        {
+          "name": "steps",
+          "required": true,
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "description": "Instructions, in order."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240,
+          "description": "One sentence on what the guide produces."
+        },
+        {
+          "name": "items",
+          "type": "array",
+          "maxItems": 40,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": "Supplies or ingredients, one per entry."
+        },
+        {
+          "name": "itemsHeading",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Heading for the items. Defaults to 'What you need'."
+        },
+        {
+          "name": "meta",
+          "type": "array",
+          "maxItems": 4,
+          "description": "Short facts such as servings or duration.",
+          "items": {
+            "type": "object",
+            "props": [
+              {
+                "name": "label",
+                "required": true,
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              {
+                "name": "detail",
+                "required": true,
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              }
+            ]
+          }
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "enum",
+            "values": [
+              "start",
+              "save"
+            ]
+          },
+          "description": "Guide-level actions the host provides."
+        }
+      ],
+      "actions": [
+        "guide_start",
+        "guide_save"
+      ],
+      "streaming": "static-safe",
+      "notes": [
+        "Checking off items or steps is presentation state, never part of the governed surface; items and steps render as captioned tables."
+      ],
+      "template": {
+        "component": "card",
+        "children": [
+          {
+            "component": "card-header",
+            "children": [
+              {
+                "component": "card-title",
+                "text": {
+                  "$prop": "title"
+                }
+              },
+              {
+                "$if": "summary",
+                "children": [
+                  {
+                    "component": "card-description",
+                    "text": {
+                      "$prop": "summary"
+                    }
+                  }
+                ]
+              },
+              {
+                "$each": "meta",
+                "as": "fact",
+                "children": [
+                  {
+                    "component": "badge",
+                    "props": {
+                      "variant": "secondary"
+                    },
+                    "text": {
+                      "$concat": [
+                        {
+                          "$prop": "fact.label"
+                        },
+                        ": ",
+                        {
+                          "$prop": "fact.detail"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "card-content",
+            "children": [
+              {
+                "$if": "items",
+                "children": [
+                  {
+                    "component": "table",
+                    "children": [
+                      {
+                        "component": "table-caption",
+                        "text": {
+                          "$prop": "itemsHeading",
+                          "default": "What you need"
+                        }
+                      },
+                      {
+                        "component": "table-header",
+                        "children": [
+                          {
+                            "component": "table-row",
+                            "children": [
+                              {
+                                "component": "table-head",
+                                "text": "Item"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "table-body",
+                        "children": [
+                          {
+                            "$each": "items",
+                            "as": "item",
+                            "children": [
+                              {
+                                "component": "table-row",
+                                "children": [
+                                  {
+                                    "component": "table-cell",
+                                    "text": {
+                                      "$prop": "item"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "separator",
+                    "props": {
+                      "decorative": true,
+                      "orientation": "horizontal"
+                    }
+                  }
+                ]
+              },
+              {
+                "component": "table",
+                "children": [
+                  {
+                    "component": "table-caption",
+                    "text": "Steps, in order."
+                  },
+                  {
+                    "component": "table-header",
+                    "children": [
+                      {
+                        "component": "table-row",
+                        "children": [
+                          {
+                            "component": "table-head",
+                            "text": "Step"
+                          },
+                          {
+                            "component": "table-head",
+                            "text": "Instruction"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "table-body",
+                    "children": [
+                      {
+                        "$each": "steps",
+                        "as": "step",
+                        "children": [
+                          {
+                            "component": "table-row",
+                            "children": [
+                              {
+                                "component": "table-cell",
+                                "text": {
+                                  "$concat": [
+                                    {
+                                      "$index": "step"
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "component": "table-cell",
+                                "text": {
+                                  "$prop": "step"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "$if": "actions",
+            "children": [
+              {
+                "component": "card-footer",
+                "children": [
+                  {
+                    "$each": "actions",
+                    "as": "action",
+                    "children": [
+                      {
+                        "component": "button",
+                        "id": {
+                          "$concat": [
+                            "guide-",
+                            {
+                              "$prop": "action"
+                            }
+                          ]
+                        },
+                        "props": {
+                          "variant": {
+                            "$case": "action",
+                            "map": {
+                              "start": "default",
+                              "save": "outline"
+                            }
+                          }
+                        },
+                        "text": {
+                          "$case": "action",
+                          "map": {
+                            "start": "Start",
+                            "save": "Save guide"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "examples": [
+        {
+          "id": "blk.tomato-pasta",
+          "intent": "record-detail",
+          "prompt": "a recipe for tomato pasta for two with ingredients and steps",
+          "call": {
+            "block": "guide-steps",
+            "version": 1,
+            "title": "Tomato pasta",
+            "steps": [
+              "Boil the spaghetti in salted water for 9 minutes.",
+              "Cook the tomatoes and garlic in the olive oil until soft.",
+              "Toss the drained pasta with the sauce and serve."
+            ],
+            "summary": "A weeknight pasta for two in about 30 minutes.",
+            "items": [
+              "200 g spaghetti",
+              "2 tomatoes",
+              "1 garlic clove",
+              "1 tbsp olive oil"
+            ],
+            "meta": [
+              {
+                "label": "Servings",
+                "detail": "2"
+              },
+              {
+                "label": "Time",
+                "detail": "30 min"
+              }
+            ],
+            "actions": [
+              "start"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

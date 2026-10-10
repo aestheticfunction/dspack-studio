@@ -1,0 +1,2219 @@
+{
+  "benchVersion": 1,
+  "tokenizer": "js-tiktoken o200k_base (offline estimate; not Claude's tokenizer)",
+  "references": [
+    {
+      "reference": "shadcn-v3",
+      "contract": {
+        "name": "shadcn/ui",
+        "version": "3.2.0"
+      },
+      "requests": {
+        "reference": "shadcn-v3",
+        "generation": [
+          {
+            "intent": "destructive-action",
+            "mode": "fresh",
+            "prompt": "a screen to delete my account",
+            "bodySha256": "15dd49aaa77a1db27d819cc8fc45451031fd28621221aeaaae582a69d5b8d383",
+            "bodyBytes": 229789,
+            "modelInput": {
+              "system": {
+                "bytes": 32016,
+                "tokens": 6718
+              },
+              "schemaText": {
+                "bytes": 194462,
+                "tokens": 47091
+              },
+              "messages": {
+                "bytes": 2699,
+                "tokens": 572
+              },
+              "totalTokens": 54409
+            }
+          },
+          {
+            "intent": "destructive-action",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.delete-project-confirmation",
+            "bodySha256": "b22bc8354a4543c45cd734d7ef7a8fd398db8ce6724d71faebc796342d8e6d86",
+            "bodyBytes": 231989,
+            "modelInput": {
+              "system": {
+                "bytes": 32016,
+                "tokens": 6718
+              },
+              "schemaText": {
+                "bytes": 194462,
+                "tokens": 47091
+              },
+              "messages": {
+                "bytes": 4620,
+                "tokens": 977
+              },
+              "totalTokens": 54814
+            }
+          },
+          {
+            "intent": "record-collection",
+            "mode": "fresh",
+            "prompt": "a queue of open support tickets with status and priority",
+            "bodySha256": "c0275a2f2ae6f11729d533f8f76ce2e63fac8e70e035a048002a994a1856a664",
+            "bodyBytes": 239209,
+            "modelInput": {
+              "system": {
+                "bytes": 42739,
+                "tokens": 8965
+              },
+              "schemaText": {
+                "bytes": 194461,
+                "tokens": 47091
+              },
+              "messages": {
+                "bytes": 1501,
+                "tokens": 343
+              },
+              "totalTokens": 56427
+            }
+          },
+          {
+            "intent": "record-collection",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.workspace-members-directory",
+            "bodySha256": "0a8f86ed54b36f76807baaab6057b1a6e2997dfb9a800ba09391362c2bc2bae8",
+            "bodyBytes": 243462,
+            "modelInput": {
+              "system": {
+                "bytes": 42739,
+                "tokens": 8965
+              },
+              "schemaText": {
+                "bytes": 194461,
+                "tokens": 47091
+              },
+              "messages": {
+                "bytes": 5137,
+                "tokens": 1139
+              },
+              "totalTokens": 57223
+            }
+          },
+          {
+            "intent": "structured-input",
+            "mode": "fresh",
+            "prompt": "a form to submit an expense report for approval",
+            "bodySha256": "4bfd3cb16bfa3579488378f3b5c0364b5a9472a7175ed7480cdae26be9d2e8bc",
+            "bodyBytes": 223077,
+            "modelInput": {
+              "system": {
+                "bytes": 25059,
+                "tokens": 5259
+              },
+              "schemaText": {
+                "bytes": 194460,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 2938,
+                "tokens": 637
+              },
+              "totalTokens": 53014
+            }
+          },
+          {
+            "intent": "structured-input",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.expense-report-form",
+            "bodySha256": "a175fde080e954ac5dd39720054a7b3ed154db432022e87795bfac0b62078af2",
+            "bodyBytes": 226400,
+            "modelInput": {
+              "system": {
+                "bytes": 25059,
+                "tokens": 5259
+              },
+              "schemaText": {
+                "bytes": 194460,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 5804,
+                "tokens": 1260
+              },
+              "totalTokens": 53637
+            }
+          },
+          {
+            "intent": "preference-settings",
+            "mode": "fresh",
+            "prompt": "a settings panel for notification preferences",
+            "bodySha256": "203d5c5193b36eca487527d38ffeaf847baa1de80f5a1fbc970ecec49269ffff",
+            "bodyBytes": 222268,
+            "modelInput": {
+              "system": {
+                "bytes": 25205,
+                "tokens": 5275
+              },
+              "schemaText": {
+                "bytes": 194463,
+                "tokens": 47091
+              },
+              "messages": {
+                "bytes": 2064,
+                "tokens": 456
+              },
+              "totalTokens": 52850
+            }
+          },
+          {
+            "intent": "preference-settings",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.notification-preferences",
+            "bodySha256": "654dc91b815a0d8d96a8e5f75eca0995cca4587f658b54bd188af4fe59cd9641",
+            "bodyBytes": 224633,
+            "modelInput": {
+              "system": {
+                "bytes": 25205,
+                "tokens": 5275
+              },
+              "schemaText": {
+                "bytes": 194463,
+                "tokens": 47091
+              },
+              "messages": {
+                "bytes": 4060,
+                "tokens": 904
+              },
+              "totalTokens": 53298
+            }
+          },
+          {
+            "intent": "record-detail",
+            "mode": "fresh",
+            "prompt": "the detail view for a single customer order",
+            "bodySha256": "6f2039e74e64740891563fef41cc1722067732cd016d427b78d04aeedc4a8665",
+            "bodyBytes": 223325,
+            "modelInput": {
+              "system": {
+                "bytes": 26069,
+                "tokens": 5470
+              },
+              "schemaText": {
+                "bytes": 194457,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 2243,
+                "tokens": 519
+              },
+              "totalTokens": 53107
+            }
+          },
+          {
+            "intent": "record-detail",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.order-detail-summary",
+            "bodySha256": "b62d686e60dda052eeadb79d3084eefb2830d1005176c2b92b95fff576cce353",
+            "bodyBytes": 225895,
+            "modelInput": {
+              "system": {
+                "bytes": 26069,
+                "tokens": 5470
+              },
+              "schemaText": {
+                "bytes": 194457,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 4422,
+                "tokens": 1026
+              },
+              "totalTokens": 53614
+            }
+          },
+          {
+            "intent": "overlay-task",
+            "mode": "fresh",
+            "prompt": "a dialog for inviting teammates to the workspace",
+            "bodySha256": "34dec38f6c756426eeb07000eb3a48b2a43bb3d871380f2719545ffc4008a64e",
+            "bodyBytes": 223186,
+            "modelInput": {
+              "system": {
+                "bytes": 26495,
+                "tokens": 5582
+              },
+              "schemaText": {
+                "bytes": 194456,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 1775,
+                "tokens": 376
+              },
+              "totalTokens": 53076
+            }
+          },
+          {
+            "intent": "overlay-task",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.invite-teammates-dialog",
+            "bodySha256": "54d87ccc332d31692f42e79e5a23199f0d0a87b96367a049ddbb3da9e248255b",
+            "bodyBytes": 225176,
+            "modelInput": {
+              "system": {
+                "bytes": 26495,
+                "tokens": 5582
+              },
+              "schemaText": {
+                "bytes": 194456,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 3476,
+                "tokens": 740
+              },
+              "totalTokens": 53440
+            }
+          },
+          {
+            "intent": "panel-navigation",
+            "mode": "fresh",
+            "prompt": "a project workspace with tabs for overview, activity, and access",
+            "bodySha256": "8ff42cec279c64a78a76e9003b6dc18259d432c427b523073f9eab47b727d851",
+            "bodyBytes": 222615,
+            "modelInput": {
+              "system": {
+                "bytes": 25116,
+                "tokens": 5295
+              },
+              "schemaText": {
+                "bytes": 194460,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 2493,
+                "tokens": 552
+              },
+              "totalTokens": 52965
+            }
+          },
+          {
+            "intent": "panel-navigation",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.project-workspace-panels",
+            "bodySha256": "19a6f9a52f3b07573bb9c81397b15c9fec4f5d8e28c202f25431c5c0de918a4d",
+            "bodyBytes": 225387,
+            "modelInput": {
+              "system": {
+                "bytes": 25116,
+                "tokens": 5295
+              },
+              "schemaText": {
+                "bytes": 194460,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 4880,
+                "tokens": 1084
+              },
+              "totalTokens": 53497
+            }
+          },
+          {
+            "intent": "wayfinding",
+            "mode": "fresh",
+            "prompt": "a documentation page header showing where the article sits, with paging to the next pages",
+            "bodySha256": "6b9db124060b7c23a030b208c83200d277863e0325bc327eb757a373eb394fb9",
+            "bodyBytes": 219807,
+            "modelInput": {
+              "system": {
+                "bytes": 25101,
+                "tokens": 5279
+              },
+              "schemaText": {
+                "bytes": 194454,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 89,
+                "tokens": 16
+              },
+              "totalTokens": 52413
+            }
+          },
+          {
+            "intent": "wayfinding",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.docs-article-trail",
+            "bodySha256": "c6af7c5730ad5f58bf9a469ad0b5120412e118fe1bf41daca1e6bb109eb66318",
+            "bodyBytes": 222010,
+            "modelInput": {
+              "system": {
+                "bytes": 25101,
+                "tokens": 5279
+              },
+              "schemaText": {
+                "bytes": 194454,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 1983,
+                "tokens": 421
+              },
+              "totalTokens": 52818
+            }
+          },
+          {
+            "intent": "supplementary-detail",
+            "mode": "fresh",
+            "prompt": "a usage panel that explains how the numbers are calculated",
+            "bodySha256": "6fee635e561b312f606598001300f1b842a2331dc95e3d71866b95e2766a0a91",
+            "bodyBytes": 222305,
+            "modelInput": {
+              "system": {
+                "bytes": 25831,
+                "tokens": 5447
+              },
+              "schemaText": {
+                "bytes": 194464,
+                "tokens": 47092
+              },
+              "messages": {
+                "bytes": 1583,
+                "tokens": 357
+              },
+              "totalTokens": 52924
+            }
+          },
+          {
+            "intent": "supplementary-detail",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.customer-context-sheet",
+            "bodySha256": "153823e4e6f5e00519b2d5c7baee033f8071465019449b4e32b8abd3202965bb",
+            "bodyBytes": 224053,
+            "modelInput": {
+              "system": {
+                "bytes": 25831,
+                "tokens": 5447
+              },
+              "schemaText": {
+                "bytes": 194464,
+                "tokens": 47092
+              },
+              "messages": {
+                "bytes": 3072,
+                "tokens": 698
+              },
+              "totalTokens": 53265
+            }
+          },
+          {
+            "intent": "status-feedback",
+            "mode": "fresh",
+            "prompt": "a panel showing the status of a running customer import",
+            "bodySha256": "c71600ae014f71073828a914cb15c5a184fce69d0c57484ef9dc15a3c6472d2e",
+            "bodyBytes": 221995,
+            "modelInput": {
+              "system": {
+                "bytes": 25607,
+                "tokens": 5384
+              },
+              "schemaText": {
+                "bytes": 194459,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 1510,
+                "tokens": 334
+              },
+              "totalTokens": 52836
+            }
+          },
+          {
+            "intent": "status-feedback",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.import-run-status",
+            "bodySha256": "7c866940be2366bdc08d928dd92ab2b4473d84f963abf9fe3e22524d485fd3d9",
+            "bodyBytes": 223672,
+            "modelInput": {
+              "system": {
+                "bytes": 25607,
+                "tokens": 5384
+              },
+              "schemaText": {
+                "bytes": 194459,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 2932,
+                "tokens": 652
+              },
+              "totalTokens": 53154
+            }
+          },
+          {
+            "intent": "loading-state",
+            "mode": "fresh",
+            "prompt": "the loading state for a table of recent orders",
+            "bodySha256": "e13f92c6aa9cb73e6b84a27a6921c1729353eb885840c88f23848aa98fc01554",
+            "bodyBytes": 223839,
+            "modelInput": {
+              "system": {
+                "bytes": 26395,
+                "tokens": 5536
+              },
+              "schemaText": {
+                "bytes": 194457,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 2407,
+                "tokens": 608
+              },
+              "totalTokens": 53262
+            }
+          },
+          {
+            "intent": "loading-state",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.orders-table-loading",
+            "bodySha256": "980fd91ae7a6379c9544047e71d5b98c4f616ea18ac40866c99249565334e3a6",
+            "bodyBytes": 226591,
+            "modelInput": {
+              "system": {
+                "bytes": 26395,
+                "tokens": 5536
+              },
+              "schemaText": {
+                "bytes": 194457,
+                "tokens": 47090
+              },
+              "messages": {
+                "bytes": 4744,
+                "tokens": 1202
+              },
+              "totalTokens": 53856
+            }
+          }
+        ],
+        "planning": [
+          {
+            "kind": "plan",
+            "goal": "a queue of open support tickets with status and priority",
+            "bodySha256": "d6ff484e18ea12180995cabbd474d4a3cd2c9c13e1a4cb5a31c274da20d13021",
+            "bodyBytes": 9208,
+            "modelInput": {
+              "system": {
+                "bytes": 7974,
+                "tokens": 1657
+              },
+              "schemaText": {
+                "bytes": 1045,
+                "tokens": 217
+              },
+              "messages": {
+                "bytes": 56,
+                "tokens": 10
+              },
+              "totalTokens": 1912
+            }
+          },
+          {
+            "kind": "plan",
+            "goal": "a sign-in form with email and password",
+            "bodySha256": "97d73a7cb8de7e6b6ad80a19df51fa12cca9c379d03f6d9d5a0f188fe76281eb",
+            "bodyBytes": 9190,
+            "modelInput": {
+              "system": {
+                "bytes": 7974,
+                "tokens": 1657
+              },
+              "schemaText": {
+                "bytes": 1045,
+                "tokens": 217
+              },
+              "messages": {
+                "bytes": 38,
+                "tokens": 8
+              },
+              "totalTokens": 1910
+            }
+          },
+          {
+            "kind": "plan",
+            "goal": "a recipe for tomato pasta for two with ingredients and steps",
+            "bodySha256": "410b9cbdf4c1817c562c7351e5b52691b9dd84a1042a8d9e72637ae0b29cd514",
+            "bodyBytes": 9212,
+            "modelInput": {
+              "system": {
+                "bytes": 7974,
+                "tokens": 1657
+              },
+              "schemaText": {
+                "bytes": 1045,
+                "tokens": 217
+              },
+              "messages": {
+                "bytes": 60,
+                "tokens": 11
+              },
+              "totalTokens": 1913
+            }
+          },
+          {
+            "kind": "flow-plan",
+            "goal": "onboard a new customer: sign up, review the plan, then confirm",
+            "bodySha256": "d29c981ba94bcbe8623876ce17949c71c3db5a6c34c4ff35135daca56a5dd89e",
+            "bodyBytes": 4168,
+            "modelInput": {
+              "system": {
+                "bytes": 3298,
+                "tokens": 671
+              },
+              "schemaText": {
+                "bytes": 715,
+                "tokens": 158
+              },
+              "messages": {
+                "bytes": 62,
+                "tokens": 15
+              },
+              "totalTokens": 872
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "example": "ex.delete-account-confirmation",
+          "intent": "destructive-action",
+          "surface": {
+            "bytes": 711,
+            "tokens": 152
+          },
+          "a2ui": {
+            "bytes": 711,
+            "tokens": 171,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "delete_account"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 1283,
+            "tokens": 280,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.delete-project-confirmation",
+          "intent": "destructive-action",
+          "surface": {
+            "bytes": 1858,
+            "tokens": 393
+          },
+          "a2ui": {
+            "bytes": 1850,
+            "tokens": 427,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "cancel",
+              "delete_project_and_all_data"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 3179,
+            "tokens": 705,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.support-ticket-queue",
+          "intent": "record-collection",
+          "surface": {
+            "bytes": 1387,
+            "tokens": 322
+          },
+          "a2ui": {
+            "bytes": 671,
+            "tokens": 177,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": []
+          },
+          "jsonRender": {
+            "bytes": 2807,
+            "tokens": 756,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.workspace-members-directory",
+          "intent": "record-collection",
+          "surface": {
+            "bytes": 3589,
+            "tokens": 785
+          },
+          "a2ui": {
+            "refusal": "component 'pagination' is a declared casualty (cannot-represent) of the 'shadcn/ui v3 — production A2UI catalog' profile and cannot be consumed into 'card': Page-by-page navigation built from anchor links; same missing anchor vocabulary as "
+          },
+          "jsonRender": {
+            "bytes": 7635,
+            "tokens": 1896,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.expense-report-form",
+          "intent": "structured-input",
+          "surface": {
+            "bytes": 2842,
+            "tokens": 618
+          },
+          "a2ui": {
+            "bytes": 2371,
+            "tokens": 562,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "save_draft",
+              "submit_for_approval"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 5332,
+            "tokens": 1362,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.notification-preferences",
+          "intent": "preference-settings",
+          "surface": {
+            "bytes": 1972,
+            "tokens": 443
+          },
+          "a2ui": {
+            "bytes": 1788,
+            "tokens": 439,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "restore_defaults"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 3311,
+            "tokens": 819,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.order-detail-summary",
+          "intent": "record-detail",
+          "surface": {
+            "bytes": 2155,
+            "tokens": 502
+          },
+          "a2ui": {
+            "bytes": 1803,
+            "tokens": 462,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "download_invoice",
+              "start_a_return"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 4363,
+            "tokens": 1133,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.invite-teammates-dialog",
+          "intent": "overlay-task",
+          "surface": {
+            "bytes": 1677,
+            "tokens": 359
+          },
+          "a2ui": {
+            "bytes": 1576,
+            "tokens": 359,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "send_invitations"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 2900,
+            "tokens": 672,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.project-workspace-panels",
+          "intent": "panel-navigation",
+          "surface": {
+            "bytes": 2363,
+            "tokens": 527
+          },
+          "a2ui": {
+            "bytes": 2733,
+            "tokens": 716,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": []
+          },
+          "jsonRender": {
+            "bytes": 4140,
+            "tokens": 1040,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.docs-article-trail",
+          "intent": "wayfinding",
+          "surface": {
+            "bytes": 1870,
+            "tokens": 400
+          },
+          "a2ui": {
+            "refusal": "component 'breadcrumb' is a declared casualty (cannot-represent) of the 'shadcn/ui v3 — production A2UI catalog' profile and cannot be consumed into 'card': A trail of anchor links with aria-current; A2UI has openUrl but no anchor/href/nav-"
+          },
+          "jsonRender": {
+            "bytes": 3971,
+            "tokens": 912,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.usage-help-affordances",
+          "intent": "supplementary-detail",
+          "surface": {
+            "bytes": 2142,
+            "tokens": 478
+          },
+          "a2ui": {
+            "refusal": "component 'tooltip' is a declared casualty (cannot-represent) of the 'shadcn/ui v3 — production A2UI catalog' profile and cannot be consumed into 'card': Hover/focus-revealed label; A2UI names no hover or visibility event in client_to_serve"
+          },
+          "jsonRender": {
+            "bytes": 3577,
+            "tokens": 814,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.customer-context-sheet",
+          "intent": "supplementary-detail",
+          "surface": {
+            "bytes": 1461,
+            "tokens": 335
+          },
+          "a2ui": {
+            "bytes": 1925,
+            "tokens": 504,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "open_full_profile"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 2618,
+            "tokens": 651,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.import-run-status",
+          "intent": "status-feedback",
+          "surface": {
+            "bytes": 1398,
+            "tokens": 313
+          },
+          "a2ui": {
+            "bytes": 1742,
+            "tokens": 425,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "pause_import",
+              "retry_rejected_rows"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 2291,
+            "tokens": 536,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.orders-table-loading",
+          "intent": "loading-state",
+          "surface": {
+            "bytes": 2313,
+            "tokens": 589
+          },
+          "a2ui": {
+            "bytes": 925,
+            "tokens": 237,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": []
+          },
+          "jsonRender": {
+            "bytes": 4353,
+            "tokens": 1205,
+            "J2J3": true
+          }
+        }
+      ],
+      "drafts": [
+        {
+          "provisional": true,
+          "block": "records-table",
+          "status": "draft",
+          "example": "blk.support-queue",
+          "intent": "record-collection",
+          "golden": "packages/block-bench/goldens/shadcn-v3/records-table.blk.support-queue.dsurface.json",
+          "namedCall": {
+            "bytes": 479,
+            "tokens": 119
+          },
+          "positionalCall": {
+            "bytes": 375,
+            "tokens": 103
+          },
+          "expandedSurface": {
+            "bytes": 1781,
+            "tokens": 410
+          },
+          "selectedBlockSchema": {
+            "named": {
+              "bytes": 1458,
+              "tokens": 352
+            },
+            "positional": {
+              "bytes": 1497,
+              "tokens": 396
+            }
+          },
+          "todaySurfaceSchemaTokens": 47091,
+          "lint": {
+            "S1": "PASS",
+            "S2": "PASS",
+            "S3": "PASS"
+          },
+          "a2ui": {
+            "bytes": 1344,
+            "tokens": 330,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "records_create",
+              "records_export"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 3515,
+            "tokens": 924,
+            "J2J3": true
+          },
+          "declaredActions": [
+            "records_create",
+            "records_export",
+            "records_refresh"
+          ]
+        },
+        {
+          "provisional": true,
+          "block": "auth-form",
+          "status": "draft",
+          "example": "blk.sign-in",
+          "intent": "structured-input",
+          "golden": "packages/block-bench/goldens/shadcn-v3/auth-form.blk.sign-in.dsurface.json",
+          "namedCall": {
+            "bytes": 198,
+            "tokens": 50
+          },
+          "positionalCall": {
+            "bytes": 139,
+            "tokens": 40
+          },
+          "expandedSurface": {
+            "bytes": 1326,
+            "tokens": 299
+          },
+          "selectedBlockSchema": {
+            "named": {
+              "bytes": 991,
+              "tokens": 239
+            },
+            "positional": {
+              "bytes": 1057,
+              "tokens": 276
+            }
+          },
+          "todaySurfaceSchemaTokens": 47090,
+          "lint": {
+            "S1": "PASS",
+            "S2": "PASS",
+            "S3": "PASS"
+          },
+          "a2ui": {
+            "bytes": 1650,
+            "tokens": 396,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "auth_forgot",
+              "auth_provider_google",
+              "auth_submit"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 2330,
+            "tokens": 580,
+            "J2J3": true
+          },
+          "declaredActions": [
+            "auth_forgot",
+            "auth_provider_apple",
+            "auth_provider_github",
+            "auth_provider_google",
+            "auth_provider_microsoft",
+            "auth_submit"
+          ]
+        },
+        {
+          "provisional": true,
+          "block": "guide-steps",
+          "status": "draft",
+          "example": "blk.tomato-pasta",
+          "intent": "record-detail",
+          "golden": "packages/block-bench/goldens/shadcn-v3/guide-steps.blk.tomato-pasta.dsurface.json",
+          "namedCall": {
+            "bytes": 465,
+            "tokens": 116
+          },
+          "positionalCall": {
+            "bytes": 381,
+            "tokens": 103
+          },
+          "expandedSurface": {
+            "bytes": 2097,
+            "tokens": 488
+          },
+          "selectedBlockSchema": {
+            "named": {
+              "bytes": 1307,
+              "tokens": 329
+            },
+            "positional": {
+              "bytes": 1390,
+              "tokens": 386
+            }
+          },
+          "todaySurfaceSchemaTokens": 47090,
+          "lint": {
+            "S1": "PASS",
+            "S2": "PASS",
+            "S3": "PASS"
+          },
+          "a2ui": {
+            "bytes": 1669,
+            "tokens": 425,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "guide_start"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 4171,
+            "tokens": 1106,
+            "J2J3": true
+          },
+          "declaredActions": [
+            "guide_save",
+            "guide_start"
+          ]
+        }
+      ],
+      "parity": {
+        "components": 116,
+        "idRequired": [
+          "radio-group-item",
+          "tabs-content",
+          "tabs-trigger"
+        ],
+        "componentsMatch": true,
+        "idRequiredMatch": true
+      }
+    },
+    {
+      "reference": "astryx",
+      "contract": {
+        "name": "Astryx",
+        "version": "0.1.4"
+      },
+      "requests": {
+        "reference": "astryx",
+        "generation": [
+          {
+            "intent": "destructive-action",
+            "mode": "fresh",
+            "prompt": "a screen to delete a project",
+            "bodySha256": "6dca85eb9b99c471826c8a80d226d7d9a6b88a3451d7c1aef1b11430254f02d9",
+            "bodyBytes": 39369,
+            "modelInput": {
+              "system": {
+                "bytes": 6225,
+                "tokens": 1381
+              },
+              "schemaText": {
+                "bytes": 32195,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 686,
+                "tokens": 154
+              },
+              "totalTokens": 9352
+            }
+          },
+          {
+            "intent": "destructive-action",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.delete-project-confirmation",
+            "bodySha256": "6a75175f712f2f761425421c9e7443af88e93253b3fa607b99e6c89cf30fd10f",
+            "bodyBytes": 40170,
+            "modelInput": {
+              "system": {
+                "bytes": 6225,
+                "tokens": 1381
+              },
+              "schemaText": {
+                "bytes": 32195,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 1338,
+                "tokens": 300
+              },
+              "totalTokens": 9498
+            }
+          },
+          {
+            "intent": "scheduling",
+            "mode": "fresh",
+            "prompt": "a screen to book a consultation time",
+            "bodySha256": "cbe9431d34c4dd0b5566a75c347d0c005abc147b47204542f418dfdc7c510676",
+            "bodyBytes": 39328,
+            "modelInput": {
+              "system": {
+                "bytes": 5701,
+                "tokens": 1272
+              },
+              "schemaText": {
+                "bytes": 32187,
+                "tokens": 7788
+              },
+              "messages": {
+                "bytes": 1082,
+                "tokens": 273
+              },
+              "totalTokens": 9361
+            }
+          },
+          {
+            "intent": "scheduling",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.book-consultation",
+            "bodySha256": "6efe9f747dc296ff15780db1a3bf2c492a3e42dce08bd8ff3a4821f200bad793",
+            "bodyBytes": 40609,
+            "modelInput": {
+              "system": {
+                "bytes": 5701,
+                "tokens": 1272
+              },
+              "schemaText": {
+                "bytes": 32187,
+                "tokens": 7788
+              },
+              "messages": {
+                "bytes": 2114,
+                "tokens": 536
+              },
+              "totalTokens": 9624
+            }
+          },
+          {
+            "intent": "structured-editing",
+            "mode": "fresh",
+            "prompt": "an editable weeknight recipe with servings and dietary constraints",
+            "bodySha256": "ba885b1d8b1d1e7cee42721e711c9fcbd9d2991a8864cc2d232da39c9f69491d",
+            "bodyBytes": 39819,
+            "modelInput": {
+              "system": {
+                "bytes": 5789,
+                "tokens": 1289
+              },
+              "schemaText": {
+                "bytes": 32195,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 1433,
+                "tokens": 336
+              },
+              "totalTokens": 9442
+            }
+          },
+          {
+            "intent": "structured-editing",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.recipe-creator",
+            "bodySha256": "c8b9a0feb3bb9a7708b934489b930e6c57a10f66ae2da9ded618f36e397ad2dd",
+            "bodyBytes": 41435,
+            "modelInput": {
+              "system": {
+                "bytes": 5789,
+                "tokens": 1289
+              },
+              "schemaText": {
+                "bytes": 32195,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 2756,
+                "tokens": 656
+              },
+              "totalTokens": 9762
+            }
+          },
+          {
+            "intent": "record-collection",
+            "mode": "fresh",
+            "prompt": "a triage view of open support tickets with status and priority",
+            "bodySha256": "d7bfe0443a38913a9dc3f7719e8a90222438dd44a6806c4f5fc34d25274608a5",
+            "bodyBytes": 40860,
+            "modelInput": {
+              "system": {
+                "bytes": 7223,
+                "tokens": 1600
+              },
+              "schemaText": {
+                "bytes": 32194,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 1095,
+                "tokens": 267
+              },
+              "totalTokens": 9684
+            }
+          },
+          {
+            "intent": "record-collection",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.support-ticket-triage",
+            "bodySha256": "6c8abc2f470ce5fbc56b6c953ad4c7100442f8eff7b5ea8fdb181f26b0063b1d",
+            "bodyBytes": 42084,
+            "modelInput": {
+              "system": {
+                "bytes": 7223,
+                "tokens": 1600
+              },
+              "schemaText": {
+                "bytes": 32194,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 2088,
+                "tokens": 514
+              },
+              "totalTokens": 9931
+            }
+          },
+          {
+            "intent": "data-collection",
+            "mode": "fresh",
+            "prompt": "a signup form asking for name and email, with a clear call to action",
+            "bodySha256": "306313afbd5255629cb334eedb1ee9bb7e84c00dc22ffa6367936c19542fcfce",
+            "bodyBytes": 39885,
+            "modelInput": {
+              "system": {
+                "bytes": 6489,
+                "tokens": 1453
+              },
+              "schemaText": {
+                "bytes": 32192,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 903,
+                "tokens": 217
+              },
+              "totalTokens": 9487
+            }
+          },
+          {
+            "intent": "data-collection",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.signup-basic",
+            "bodySha256": "e43c2740530ef9d591b6b11b80ab4ab064ceb5244dfe9fdbd923595378ef7a38",
+            "bodyBytes": 40861,
+            "modelInput": {
+              "system": {
+                "bytes": 6489,
+                "tokens": 1453
+              },
+              "schemaText": {
+                "bytes": 32192,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 1692,
+                "tokens": 408
+              },
+              "totalTokens": 9678
+            }
+          },
+          {
+            "intent": "transactional-review",
+            "mode": "fresh",
+            "prompt": "compare the available plans and choose one",
+            "bodySha256": "23782d57e852ac7c4b05fcde12ab7dad050be70eba1cb763fead0cd557c9c9fb",
+            "bodyBytes": 41752,
+            "modelInput": {
+              "system": {
+                "bytes": 7870,
+                "tokens": 1730
+              },
+              "schemaText": {
+                "bytes": 32197,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 1276,
+                "tokens": 315
+              },
+              "totalTokens": 9862
+            }
+          },
+          {
+            "intent": "transactional-review",
+            "mode": "refine",
+            "prompt": "make the title clearer",
+            "priorExample": "ex.plan-comparison",
+            "bodySha256": "a32859a92119817ccd98acc9adc68ca45b9301305c4739a89590b8c1743bd972",
+            "bodyBytes": 43251,
+            "modelInput": {
+              "system": {
+                "bytes": 7870,
+                "tokens": 1730
+              },
+              "schemaText": {
+                "bytes": 32197,
+                "tokens": 7789
+              },
+              "messages": {
+                "bytes": 2490,
+                "tokens": 620
+              },
+              "totalTokens": 10167
+            }
+          }
+        ],
+        "planning": [
+          {
+            "kind": "plan",
+            "goal": "a queue of open support tickets with status and priority",
+            "bodySha256": "47991b79de4e3c83abbb7d18bfcf1314d012a5dec1772d0d47aad8116cb7b043",
+            "bodyBytes": 4307,
+            "modelInput": {
+              "system": {
+                "bytes": 3272,
+                "tokens": 658
+              },
+              "schemaText": {
+                "bytes": 873,
+                "tokens": 187
+              },
+              "messages": {
+                "bytes": 56,
+                "tokens": 10
+              },
+              "totalTokens": 883
+            }
+          },
+          {
+            "kind": "plan",
+            "goal": "a sign-in form with email and password",
+            "bodySha256": "20141e4f38c46b6c739c7717cdbd9fa6f632c45a5f099c2b999de7e5853523f7",
+            "bodyBytes": 4289,
+            "modelInput": {
+              "system": {
+                "bytes": 3272,
+                "tokens": 658
+              },
+              "schemaText": {
+                "bytes": 873,
+                "tokens": 187
+              },
+              "messages": {
+                "bytes": 38,
+                "tokens": 8
+              },
+              "totalTokens": 881
+            }
+          },
+          {
+            "kind": "plan",
+            "goal": "a recipe for tomato pasta for two with ingredients and steps",
+            "bodySha256": "3e320e84e0be63ea7151e0430a2474c362f38d9da07fdb3182ed328a3f8eeff1",
+            "bodyBytes": 4311,
+            "modelInput": {
+              "system": {
+                "bytes": 3272,
+                "tokens": 658
+              },
+              "schemaText": {
+                "bytes": 873,
+                "tokens": 187
+              },
+              "messages": {
+                "bytes": 60,
+                "tokens": 11
+              },
+              "totalTokens": 884
+            }
+          },
+          {
+            "kind": "flow-plan",
+            "goal": "onboard a new customer: sign up, review the plan, then confirm",
+            "bodySha256": "15133ba3c518a5847809df8e2d88615c7c498705b16090fdbd7f294b1d39d4f1",
+            "bodyBytes": 2652,
+            "modelInput": {
+              "system": {
+                "bytes": 1873,
+                "tokens": 383
+              },
+              "schemaText": {
+                "bytes": 629,
+                "tokens": 143
+              },
+              "messages": {
+                "bytes": 62,
+                "tokens": 15
+              },
+              "totalTokens": 569
+            }
+          }
+        ]
+      },
+      "outputs": [
+        {
+          "example": "ex.delete-project-confirmation",
+          "intent": "destructive-action",
+          "surface": {
+            "bytes": 628,
+            "tokens": 141
+          },
+          "a2ui": {
+            "bytes": 1078,
+            "tokens": 260,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "alert_dialog",
+              "button"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 781,
+            "tokens": 184,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.book-consultation",
+          "intent": "scheduling",
+          "surface": {
+            "bytes": 1008,
+            "tokens": 258
+          },
+          "a2ui": {
+            "bytes": 1541,
+            "tokens": 407,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "cancel",
+              "confirm",
+              "slot_0900",
+              "slot_1030",
+              "slot_1400"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 1237,
+            "tokens": 318,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.recipe-creator",
+          "intent": "structured-editing",
+          "surface": {
+            "bytes": 1299,
+            "tokens": 315
+          },
+          "a2ui": {
+            "bytes": 1846,
+            "tokens": 447,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "apply_constraint",
+              "regenerate",
+              "servings_down",
+              "servings_up"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 1416,
+            "tokens": 334,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.support-ticket-triage",
+          "intent": "record-collection",
+          "surface": {
+            "bytes": 969,
+            "tokens": 242
+          },
+          "a2ui": {
+            "bytes": 1261,
+            "tokens": 309,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": []
+          },
+          "jsonRender": {
+            "bytes": 825,
+            "tokens": 204,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.signup-basic",
+          "intent": "data-collection",
+          "surface": {
+            "bytes": 765,
+            "tokens": 186
+          },
+          "a2ui": {
+            "bytes": 1099,
+            "tokens": 267,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "submit"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 872,
+            "tokens": 209,
+            "J2J3": true
+          }
+        },
+        {
+          "example": "ex.plan-comparison",
+          "intent": "transactional-review",
+          "surface": {
+            "bytes": 1190,
+            "tokens": 300
+          },
+          "a2ui": {
+            "bytes": 1522,
+            "tokens": 377,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "choose"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 1129,
+            "tokens": 280,
+            "J2J3": true
+          }
+        }
+      ],
+      "drafts": [
+        {
+          "provisional": true,
+          "block": "records-table",
+          "status": "draft",
+          "example": "blk.support-triage",
+          "intent": "record-collection",
+          "golden": "packages/block-bench/goldens/astryx/records-table.blk.support-triage.dsurface.json",
+          "namedCall": {
+            "bytes": 508,
+            "tokens": 122
+          },
+          "positionalCall": {
+            "bytes": 404,
+            "tokens": 106
+          },
+          "expandedSurface": {
+            "bytes": 824,
+            "tokens": 198
+          },
+          "selectedBlockSchema": {
+            "named": {
+              "bytes": 1458,
+              "tokens": 352
+            },
+            "positional": {
+              "bytes": 1497,
+              "tokens": 396
+            }
+          },
+          "todaySurfaceSchemaTokens": 7789,
+          "lint": {
+            "S1": "PASS",
+            "S2": "PASS",
+            "S3": "PASS"
+          },
+          "a2ui": {
+            "bytes": 1186,
+            "tokens": 281,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "records_refresh"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 636,
+            "tokens": 146,
+            "J2J3": true
+          },
+          "declaredActions": [
+            "records_create",
+            "records_export",
+            "records_refresh"
+          ]
+        },
+        {
+          "provisional": true,
+          "block": "auth-form",
+          "status": "draft",
+          "example": "blk.sign-up",
+          "intent": "data-collection",
+          "golden": "packages/block-bench/goldens/astryx/auth-form.blk.sign-up.dsurface.json",
+          "namedCall": {
+            "bytes": 197,
+            "tokens": 49
+          },
+          "positionalCall": {
+            "bytes": 149,
+            "tokens": 43
+          },
+          "expandedSurface": {
+            "bytes": 902,
+            "tokens": 221
+          },
+          "selectedBlockSchema": {
+            "named": {
+              "bytes": 991,
+              "tokens": 239
+            },
+            "positional": {
+              "bytes": 1057,
+              "tokens": 276
+            }
+          },
+          "todaySurfaceSchemaTokens": 7789,
+          "lint": {
+            "S1": "PASS",
+            "S2": "PASS",
+            "S3": "PASS"
+          },
+          "a2ui": {
+            "bytes": 1367,
+            "tokens": 330,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "auth_provider_github",
+              "auth_submit"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 1118,
+            "tokens": 266,
+            "J2J3": true
+          },
+          "declaredActions": [
+            "auth_forgot",
+            "auth_provider_apple",
+            "auth_provider_github",
+            "auth_provider_google",
+            "auth_provider_microsoft",
+            "auth_submit"
+          ]
+        },
+        {
+          "provisional": true,
+          "block": "guide-steps",
+          "status": "draft",
+          "example": "blk.weeknight-pasta",
+          "intent": "structured-editing",
+          "golden": "packages/block-bench/goldens/astryx/guide-steps.blk.weeknight-pasta.dsurface.json",
+          "namedCall": {
+            "bytes": 461,
+            "tokens": 118
+          },
+          "positionalCall": {
+            "bytes": 357,
+            "tokens": 101
+          },
+          "expandedSurface": {
+            "bytes": 1219,
+            "tokens": 316
+          },
+          "selectedBlockSchema": {
+            "named": {
+              "bytes": 1307,
+              "tokens": 329
+            },
+            "positional": {
+              "bytes": 1390,
+              "tokens": 386
+            }
+          },
+          "todaySurfaceSchemaTokens": 7789,
+          "lint": {
+            "S1": "PASS",
+            "S2": "PASS",
+            "S3": "PASS"
+          },
+          "a2ui": {
+            "bytes": 1644,
+            "tokens": 418,
+            "gates": {
+              "0.9.1": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              },
+              "1.0": {
+                "A1": true,
+                "A2": true,
+                "A3": true
+              }
+            },
+            "actions": [
+              "guide_save",
+              "guide_start"
+            ]
+          },
+          "jsonRender": {
+            "bytes": 1069,
+            "tokens": 268,
+            "J2J3": true
+          },
+          "declaredActions": [
+            "guide_save",
+            "guide_start"
+          ]
+        }
+      ],
+      "parity": {
+        "components": 11,
+        "idRequired": [],
+        "componentsMatch": true,
+        "idRequiredMatch": true
+      },
+      "leak": {
+        "scope": "local models, Astryx, recorded July 2026; not hosted evidence",
+        "liveAttempts": 21,
+        "rows": [
+          {
+            "fixture": "fixture-001",
+            "attempt": 0,
+            "adapterId": "ollama:gemma4:e4b",
+            "recordedContractSha256": "024a31e4d5bf33e1164e50fcb4625c5672dbf0098c123e06ba441cb4160da0d5",
+            "recorded": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "recomputed": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "disagree": false,
+            "a2ui": {
+              "bytes": 700,
+              "tokens": 193,
+              "gates": {
+                "0.9.1": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                },
+                "1.0": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                }
+              },
+              "actions": []
+            },
+            "jsonRender": {
+              "bytes": 522,
+              "tokens": 153,
+              "J2J3": true
+            }
+          },
+          {
+            "fixture": "fixture-001",
+            "attempt": 1,
+            "adapterId": "ollama:gemma4:e4b",
+            "recordedContractSha256": "024a31e4d5bf33e1164e50fcb4625c5672dbf0098c123e06ba441cb4160da0d5",
+            "recorded": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "recomputed": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "disagree": false,
+            "a2ui": {
+              "bytes": 940,
+              "tokens": 232,
+              "gates": {
+                "0.9.1": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                },
+                "1.0": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                }
+              },
+              "actions": [
+                "alert_dialog"
+              ]
+            },
+            "jsonRender": {
+              "bytes": 650,
+              "tokens": 161,
+              "J2J3": true
+            }
+          },
+          {
+            "fixture": "fixture-003",
+            "attempt": 0,
+            "adapterId": "ollama:gpt-oss:latest",
+            "recordedContractSha256": "024a31e4d5bf33e1164e50fcb4625c5672dbf0098c123e06ba441cb4160da0d5",
+            "recorded": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "recomputed": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "disagree": false,
+            "a2ui": {
+              "refusal": "component 'dropdown-menu' is a declared casualty (cannot-represent) of the 'Astryx — A2UI catalog (compiled from dspack)' profile: The contract's dropdown-menu carries an `items` array with no declared item shape (labels? actions? separator"
+            },
+            "jsonRender": {
+              "bytes": 1138,
+              "tokens": 332,
+              "J2J3": true
+            }
+          },
+          {
+            "fixture": "fixture-010",
+            "attempt": 0,
+            "adapterId": "ollama:gpt-oss:latest",
+            "recordedContractSha256": "95bb434fd87cb13b81fd650d66f391f1d560139303e089c2d91a6a18e124fdb4",
+            "recorded": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "recomputed": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "disagree": false,
+            "a2ui": {
+              "bytes": 418,
+              "tokens": 109,
+              "gates": {
+                "0.9.1": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                },
+                "1.0": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                }
+              },
+              "actions": []
+            },
+            "jsonRender": {
+              "bytes": 166,
+              "tokens": 43,
+              "J2J3": true
+            }
+          },
+          {
+            "fixture": "fixture-013",
+            "attempt": 0,
+            "adapterId": "ollama:gpt-oss:latest",
+            "recordedContractSha256": "ec7289f199304b127b4b615483b1980820a73fde30d3c03d82c722a1f2f2cb86",
+            "recorded": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "recomputed": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "disagree": false,
+            "a2ui": {
+              "bytes": 495,
+              "tokens": 123,
+              "gates": {
+                "0.9.1": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                },
+                "1.0": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                }
+              },
+              "actions": []
+            },
+            "jsonRender": {
+              "bytes": 268,
+              "tokens": 64,
+              "J2J3": true
+            }
+          },
+          {
+            "fixture": "fixture-016",
+            "attempt": 0,
+            "adapterId": "ollama:gpt-oss:latest",
+            "recordedContractSha256": "20692f4acc622e6ad220d3ae27d00dd5b610b2aead113cd8e03bea656cb55081",
+            "recorded": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "recomputed": {
+              "S1": "PASS",
+              "S2": "PASS",
+              "S3": "FAIL"
+            },
+            "disagree": false,
+            "a2ui": {
+              "bytes": 424,
+              "tokens": 111,
+              "gates": {
+                "0.9.1": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                },
+                "1.0": {
+                  "A1": true,
+                  "A2": true,
+                  "A3": true
+                }
+              },
+              "actions": []
+            },
+            "jsonRender": {
+              "bytes": 166,
+              "tokens": 43,
+              "J2J3": true
+            }
+          }
+        ],
+        "summary": {
+          "s3FailingRecomputed": 6,
+          "s3FailingButStructurallyValid": 5,
+          "verdictDisagreements": 0
+        }
+      }
+    }
+  ]
+}

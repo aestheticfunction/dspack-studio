@@ -1,0 +1,126 @@
+{
+  "dspackSurface": "0.1",
+  "system": "shadcn/ui",
+  "intent": "structured-input",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "card-header",
+        "children": [
+          {
+            "component": "card-title",
+            "text": "Sign in to Acme"
+          },
+          {
+            "component": "card-description",
+            "text": "Use the email address you registered with."
+          }
+        ]
+      },
+      {
+        "component": "card-content",
+        "children": [
+          {
+            "component": "form",
+            "props": {
+              "control": "form.control",
+              "handleSubmit": "form.handleSubmit(onSubmit)"
+            },
+            "children": [
+              {
+                "component": "form-field",
+                "children": [
+                  {
+                    "component": "form-item",
+                    "children": [
+                      {
+                        "component": "form-label",
+                        "text": "Email address"
+                      },
+                      {
+                        "component": "form-control",
+                        "children": [
+                          {
+                            "component": "input",
+                            "props": {
+                              "type": "email"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "component": "form-message"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "form-field",
+                "children": [
+                  {
+                    "component": "form-item",
+                    "children": [
+                      {
+                        "component": "form-label",
+                        "text": "Password"
+                      },
+                      {
+                        "component": "form-control",
+                        "children": [
+                          {
+                            "component": "input",
+                            "props": {
+                              "type": "password"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "component": "form-message"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "button",
+                "id": "auth-submit",
+                "text": "Sign in"
+              }
+            ]
+          },
+          {
+            "component": "button",
+            "id": "auth-forgot",
+            "props": {
+              "variant": "link"
+            },
+            "text": "Forgot password?"
+          }
+        ]
+      },
+      {
+        "component": "card-footer",
+        "children": [
+          {
+            "component": "separator",
+            "props": {
+              "decorative": true,
+              "orientation": "horizontal"
+            }
+          },
+          {
+            "component": "button",
+            "id": "auth-provider-google",
+            "props": {
+              "variant": "outline"
+            },
+            "text": "Continue with Google"
+          }
+        ]
+      }
+    ]
+  }
+}

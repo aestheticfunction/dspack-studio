@@ -48,6 +48,8 @@ jobs:
           cache: pnpm
       - name: Frozen-lockfile install
         run: pnpm install --frozen-lockfile
+      - name: The deploy artifact is never an experimental build (docs/BLOCKS.md)
+        run: test -z "${NEXT_PUBLIC_COMPOSER_EXPERIMENTAL:-}" || { echo "NEXT_PUBLIC_COMPOSER_EXPERIMENTAL is set; refusing to deploy"; exit 1; }
       - name: Gates — composer typecheck + build the deploy artifact
         run: pnpm build:deploy:composer
       - name: Record the rollback anchor (currently active version)

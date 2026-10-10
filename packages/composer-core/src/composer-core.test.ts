@@ -742,3 +742,107 @@ describe("worked-example prompt provenance (#42)", () => {
     expect(examplePromptFor(["original", "last"])).toContain("original");
   });
 });
+
+describe("interface blocks: the dspack.block event and the invariant failure (Phase 1A)", () => {
+  const trace = (outcome: string, extra: Record<string, any> = {}) => ({
+    selected: { id: "auth-form", version: 1, intent: "structured-input" },
+    encoding: "named",
+    attempts: [{ index: 0, outcome: "ok", b1: [], b2: [] }],
+    providerCalls: 1,
+    outcome,
+    rawIsExpansion: true,
+    ...extra,
+  });
+
+  it("stores the trace on the turn; a passed run keeps the pipeline's outcome", () => {
+    const turn = foldBuildEvents([
+      { type: "RUN_STARTED" },
+      { type: "CUSTOM", name: "dspack.block", value: trace("block", { expansionDigest: "abc" }) },
+      { type: "STEP_STARTED", stepName: "attempt-0" },
+      { type: "CUSTOM", name: "dspack.audit", value: { outcome: "passed", exitCode: 0, report: { attempts: [{ index: 0, surface: { root: { component: "card" } } }] } } },
+      { type: "RUN_FINISHED" },
+    ]);
+    expect(turn.block?.outcome).toBe("block");
+    expect(turn.outcome).toBe("passed");
+    expect(buildFailure(turn)).toBeNull();
+  });
+
+  it("an invariant failure is a Composer-side outcome: no audit report, a finished turn, an honest failure", () => {
+    const turn = foldBuildEvents([
+      { type: "RUN_STARTED" },
+      { type: "CUSTOM", name: "dspack.block", value: trace("invariant-failure", { invariant: ["S2 FAIL: unknown component 'not-a-component'"] }) },
+      { type: "RUN_FINISHED" },
+    ]);
+    expect(turn.status).toBe("finished");
+    expect(turn.outcome).toBe("invariant-failure");
+    const failure = buildFailure(turn);
+    expect(failure?.kind).toBe("invariant");
+    expect(failure?.headline).toMatch(/block template produced an invalid surface.*disabled for this session/i);
+    expect(failure?.stoppedAt).toBe("block phase · expansion");
+    expect(failure?.reasons).toEqual([{ code: "invariant", message: "S2 FAIL: unknown component 'not-a-component'" }]);
+    expect(canAcceptTurn(turn)).toBe(false);
+  });
+
+  it("after a block phase, a one-attempt exhausted run reads as repair-exhausted, and the wording counts the block calls", () => {
+    const turn = foldBuildEvents([
+      { type: "RUN_STARTED" },
+      { type: "CUSTOM", name: "dspack.block", value: trace("block", { providerCalls: 2, attempts: [{ index: 0, outcome: "invalid", b1: [{ path: "mode", message: "bad" }], b2: [] }, { index: 1, outcome: "ok", b1: [], b2: [] }] }) },
+      { type: "STEP_STARTED", stepName: "attempt-0" },
+      {
+        type: "CUSTOM",
+        name: "dspack.audit",
+        value: {
+          outcome: "failed-lint-exhausted",
+          exitCode: 2,
+          report: {
+            generation: { maxRepairs: 1 },
+            attempts: [
+              { index: 0, surface: { root: {} }, gates: [{ gate: "S3", name: "governance", status: "FAIL" }], findings: [{ ruleId: "r1", level: "error", message: "needs a caption", location: { path: "$.root" } }] },
+              { index: 1, surface: { root: {} }, gates: [{ gate: "S3", name: "governance", status: "FAIL" }], findings: [{ ruleId: "r1", level: "error", message: "needs a caption", location: { path: "$.root" } }] },
+            ],
+          },
+        },
+      },
+      { type: "RUN_FINISHED" },
+    ]);
+    const calls = [
+      { operation: "block", source: "provider" },
+      { operation: "block-repair", source: "provider" },
+      { operation: "repair", source: "provider" },
+    ];
+    const failure = buildFailure(turn, { calls });
+    expect(failure?.kind).toBe("repair-exhausted");
+    expect(failure?.headline).toMatch(/3 model calls used: 2 block, 1 surface/);
+    expect(failure?.reasons.map((r) => r.code)).toContain("r1");
+  });
+
+  it("a failed-adapter run after a block phase still says how many block calls preceded it", () => {
+    const turn = foldBuildEvents([
+      { type: "RUN_STARTED" },
+      { type: "CUSTOM", name: "dspack.block", value: trace("fallback", { providerCalls: 2, fallback: { reason: "mode: bad", classification: "invalid-call" } }) },
+      { type: "STEP_STARTED", stepName: "attempt-0" },
+      { type: "CUSTOM", name: "dspack.audit", value: { outcome: "failed-adapter", exitCode: 1, report: { generation: { adapterId: "hosted-ai:x", maxRepairs: 0 }, attempts: [{ index: 0, adapterError: "[hosted-ai:x] busy" }] } } },
+      { type: "RUN_FINISHED" },
+    ]);
+    const failure = buildFailure(turn, { calls: [{ operation: "block", source: "provider" }, { operation: "block-repair", source: "provider" }, { operation: "generate", source: "provider" }] });
+    expect(failure?.kind).toBe("adapter");
+    expect(failure?.reasons.map((r) => r.message).join(" ")).toMatch(/2 block calls/);
+    expect(failure?.reasons.map((r) => r.message).join(" ")).toMatch(/3 model calls used: 2 block, 1 surface/);
+  });
+
+  it("a provider failure DURING the block call names the block call, and the replayed attempt is not counted as a call", () => {
+    const turn = foldBuildEvents([
+      { type: "RUN_STARTED" },
+      { type: "CUSTOM", name: "dspack.block", value: trace("provider-failure", { providerCalls: 2, attempts: [{ index: 0, outcome: "invalid", b1: [], b2: [] }, { index: 1, outcome: "provider-error", b1: [], b2: [] }], providerError: { classification: "policy", message: "rate limited" } }) },
+      { type: "STEP_STARTED", stepName: "attempt-0" },
+      { type: "CUSTOM", name: "dspack.audit", value: { outcome: "failed-adapter", exitCode: 1, report: { generation: { adapterId: "hosted-ai:x", maxRepairs: 0 }, attempts: [{ index: 0, adapterError: "[hosted-ai:x] rate limited" }] } } },
+      { type: "RUN_FINISHED" },
+    ]);
+    const failure = buildFailure(turn, { calls: [{ operation: "block", source: "provider" }, { operation: "block-repair", source: "provider" }] });
+    expect(failure?.kind).toBe("adapter");
+    expect(failure?.headline).toMatch(/during the block call/);
+    expect(failure?.stoppedAt).toBe("block · call 2");
+    expect(failure?.reasons.map((r) => r.code)).toContain("policy");
+    expect(failure?.reasons.map((r) => r.message).join(" ")).toMatch(/2 model calls used: 2 block, 0 surface/);
+  });
+});

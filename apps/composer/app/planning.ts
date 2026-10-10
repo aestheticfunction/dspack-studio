@@ -14,33 +14,52 @@
  *               same either way.
  *
  * Any inference failure falls back to the deterministic classifier so the flow
- * always proceeds.
+ * always proceeds. Each planner also returns the model calls it made (none for
+ * deterministic routing; a failed call is still a call), so the turn that
+ * planned can account for them.
  */
 import {
   buildFlowPlanRequest,
   buildPlanRequest,
+  createCallRecorder,
   flowPlanDeterministic,
   planDeterministic,
   reconcileFlowPlan,
   reconcilePlan,
   type FlowPlan,
   type GoalPlan,
+  type ModelCallRecord,
 } from "@dspack-studio/composer-core";
 import { runGatewayRequest } from "./hosted-build";
+// Type-only: erased at compile time, so no block code enters the default bundle.
+import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
 
-export async function planGoal(goal: string, modelRef: string, contract: Record<string, unknown>): Promise<GoalPlan> {
+export async function planGoal(
+  goal: string,
+  modelRef: string,
+  contract: Record<string, unknown>,
+  options: { blocks?: readonly BlockDefinition[] } = {},
+): Promise<{ plan: GoalPlan; calls: ModelCallRecord[] }> {
+  // Interface blocks (experimental): a hosted build that was offered blocks
+  // asks the planner which one, if any. Default builds fold this away, and a
+  // build offered none posts exactly today's bytes.
+  if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && modelRef === "hosted-ai" && options.blocks && options.blocks.length > 0) {
+    const runtime = await import("../experimental/blocks-runtime");
+    return runtime.planGoalWithBlocks(goal, contract, options.blocks);
+  }
   if (modelRef === "hosted-ai") {
+    const recorder = createCallRecorder();
     try {
-      const json = await runGatewayRequest(buildPlanRequest(goal, contract));
-      return reconcilePlan(json, contract, goal);
+      const { json } = await runGatewayRequest(buildPlanRequest(goal, contract), { operation: "plan", recorder });
+      return { plan: reconcilePlan(json, contract, goal), calls: [...recorder.calls] };
     } catch {
       // The gateway/model was unavailable; deterministic routing keeps the
       // build moving rather than failing the whole turn on the routing step.
-      return planDeterministic(goal, contract);
+      return { plan: planDeterministic(goal, contract), calls: [...recorder.calls] };
     }
   }
   // scripted + agent (v1): deterministic routing.
-  return planDeterministic(goal, contract);
+  return { plan: planDeterministic(goal, contract), calls: [] };
 }
 
 /**
@@ -49,14 +68,19 @@ export async function planGoal(goal: string, modelRef: string, contract: Record<
  * via the gateway, everything else (and any gateway failure) gets the
  * clearly-labeled deterministic outline. Planning never blocks the flow.
  */
-export async function planFlow(goal: string, modelRef: string, contract: Record<string, unknown>): Promise<FlowPlan> {
+export async function planFlow(
+  goal: string,
+  modelRef: string,
+  contract: Record<string, unknown>,
+): Promise<{ plan: FlowPlan; calls: ModelCallRecord[] }> {
   if (modelRef === "hosted-ai") {
+    const recorder = createCallRecorder();
     try {
-      const json = await runGatewayRequest(buildFlowPlanRequest(goal, contract));
-      return reconcileFlowPlan(json, contract, goal);
+      const { json } = await runGatewayRequest(buildFlowPlanRequest(goal, contract), { operation: "flow-plan", recorder });
+      return { plan: reconcileFlowPlan(json, contract, goal), calls: [...recorder.calls] };
     } catch {
-      return flowPlanDeterministic(goal, contract);
+      return { plan: flowPlanDeterministic(goal, contract), calls: [...recorder.calls] };
     }
   }
-  return flowPlanDeterministic(goal, contract);
+  return { plan: flowPlanDeterministic(goal, contract), calls: [] };
 }

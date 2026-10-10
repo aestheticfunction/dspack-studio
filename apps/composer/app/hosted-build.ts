@@ -24,6 +24,16 @@ import { runPipeline, ScriptedAdapter } from "@aestheticfunction/dspack-gen/brow
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import { loadProfile } from "@aestheticfunction/dspack-emit";
 import { createPipelineEventMapper } from "@dspack-studio/agui-bridge";
+import {
+  normalizeUsage,
+  proposeBody,
+  type CallOperation,
+  type CallRecorder,
+  type ModelCallRecord,
+  type Usage,
+} from "@dspack-studio/composer-core";
+// Type-only: erased at compile time, so no block code enters the default bundle.
+import type { GenerateContext } from "@dspack-studio/composer-core/blocks";
 import type { BuildRunInput } from "./agent-client";
 
 /** The active reference's governed documents the hosted pipeline runs over.
@@ -62,7 +72,7 @@ function firstTextNode(node: unknown): { text: string } | null {
  * MONOTONICALLY so a refinement is never a byte-identical no-op (#43). Keep in
  * sync with the agent (candidate for extraction into composer-core).
  */
-function scriptedRunAdapter(surface: unknown, conversation: BuildRunInput["conversation"]): ScriptedAdapter {
+export function scriptedRunAdapter(surface: unknown, conversation: BuildRunInput["conversation"]): ScriptedAdapter {
   if (conversation && conversation.length > 0) {
     const priorRaw = [...conversation].reverse().find((m) => m.role === "assistant")?.content;
     if (priorRaw) {
@@ -95,7 +105,7 @@ function scriptedRunAdapter(surface: unknown, conversation: BuildRunInput["conve
 // loadProfile is pure over the doc; cache per profile object identity so each
 // reference's profile parses once (the reference objects are stable).
 const profileCache = new WeakMap<object, ReturnType<typeof loadProfile>>();
-function loadedProfile(profile: Record<string, unknown>): ReturnType<typeof loadProfile> {
+export function loadedProfile(profile: Record<string, unknown>): ReturnType<typeof loadProfile> {
   let parsed = profileCache.get(profile);
   if (!parsed) {
     parsed = loadProfile(profile as never);
@@ -110,41 +120,215 @@ function loadedProfile(profile: Record<string, unknown>): ReturnType<typeof load
  * jsonSchema}; this adapter is a thin transport that forwards them and returns
  * the raw proposal. It runs NO validation — S1/S2/S3, repair, and emit happen
  * around it, here in the browser, exactly as for the scripted and local
- * adapters. An endpoint failure throws AdapterOutputError so the pipeline
- * records an honest `failed-adapter` outcome in the thread rather than crashing.
+ * adapters. An endpoint failure throws a GatewayError (an AdapterOutputError)
+ * so the pipeline records an honest `failed-adapter` outcome in the thread
+ * rather than crashing.
  */
-const HOSTED_AI_ID = "hosted-ai:claude-haiku-4.5";
+export const HOSTED_AI_ID = "hosted-ai:claude-haiku-4.5";
 
-function gatewayAdapter() {
+type ProposeRequest = { system: string; messages: unknown[]; jsonSchema: unknown };
+
+/**
+ * What kind of failure ended a gateway request:
+ *   provider: the call failed or its result could not be read (timeout,
+ *             transport, 5xx, a non-JSON 200, a fetch that threw);
+ *   output:   the model answered, but not with a usable proposal;
+ *   policy:   the endpoint refused the request (rate limit, size, shape);
+ *   budget:   no request was made: the run's model-call budget was spent
+ *             (interface blocks, experimental).
+ */
+export type GatewayErrorKind = "provider" | "output" | "policy" | "budget";
+
+export class GatewayError extends AdapterOutputError {
+  constructor(
+    message: string,
+    readonly kind: GatewayErrorKind,
+    /** Every model call this request made, as recorded. */
+    readonly calls: readonly ModelCallRecord[],
+    /** The HTTP status, when a response arrived. */
+    readonly status?: number,
+    /** The Worker's own `cause` for a 502, when it reported one. */
+    readonly failure?: string,
+    /** Provider-reported usage summed over this request's calls. */
+    readonly usage?: Usage,
+  ) {
+    super(HOSTED_AI_ID, message);
+    this.name = "GatewayError";
+  }
+}
+
+const WORKER_OUTCOMES = new Set<ModelCallRecord["outcome"]>(["ok", "unusable-output", "provider-error"]);
+
+function errorKind(status: number, body: Record<string, unknown> | undefined): GatewayErrorKind {
+  if (status === 502 && body?.cause === "unusable-output") return "output";
+  if (status >= 400 && status < 500) return "policy";
+  return "provider";
+}
+
+/**
+ * One record per provider call the Worker reports. A Worker that reports an
+ * empty list made no provider call (it refused first). A reply with no list
+ * at all (a Worker deployed before Phase 0.5, a non-JSON reply, a fetch that
+ * threw) is ONE record for the whole request, unmetered unless the reply
+ * carried usage: never zero, never guessed.
+ */
+function callRecords(
+  body: Record<string, unknown> | undefined,
+  at: { operation: CallOperation; attempt?: number; reissue?: true },
+  fallback: { outcome: ModelCallRecord["outcome"]; durationMs: number },
+): ModelCallRecord[] {
+  const where = {
+    operation: at.operation,
+    ...(at.attempt !== undefined ? { attempt: at.attempt } : {}),
+    ...(at.reissue ? { reissue: true as const } : {}),
+  };
+  const model = typeof body?.model === "string" ? { model: body.model } : {};
+  if (Array.isArray(body?.calls)) {
+    if (body.calls.length === 0) return [{ ...where, source: "none", outcome: "refused", durationMs: fallback.durationMs }];
+    return body.calls.map((raw, subCall): ModelCallRecord => {
+      const call = (raw ?? {}) as Record<string, unknown>;
+      const outcome = WORKER_OUTCOMES.has(call.outcome as never) ? (call.outcome as ModelCallRecord["outcome"]) : "provider-error";
+      return {
+        ...where,
+        subCall,
+        source: "provider",
+        ...normalizeUsage(call),
+        ...model,
+        ...(typeof call.durationMs === "number" ? { durationMs: call.durationMs } : {}),
+        outcome,
+      };
+    });
+  }
+  // An older Worker's 429 and its 503 "unavailable" (kill switch, limiter
+  // error) were both sent before any provider call.
+  const refused = fallback.outcome === "refused" || body?.error === "unavailable";
+  return [
+    {
+      ...where,
+      source: refused ? "none" : "provider",
+      ...normalizeUsage(body?.usage),
+      ...model,
+      durationMs: fallback.durationMs,
+      outcome: refused ? "refused" : fallback.outcome,
+    },
+  ];
+}
+
+const FAILURE_OUTCOME: Record<GatewayErrorKind, ModelCallRecord["outcome"]> = {
+  provider: "provider-error",
+  output: "unusable-output",
+  policy: "refused",
+  budget: "refused",
+};
+
+/**
+ * POST one request to /api/propose and record every model call it caused,
+ * BEFORE returning or throwing, so a failed request is never free.
+ */
+async function propose(
+  request: ProposeRequest,
+  options: { operation: CallOperation; attempt?: number; reissue?: true; recorder?: CallRecorder; maxCalls?: 1 | 2 },
+): Promise<{ json: unknown; raw?: string; model?: string; usage?: Usage; calls: ModelCallRecord[]; durationMs: number }> {
+  const at = {
+    operation: options.operation,
+    ...(options.attempt !== undefined ? { attempt: options.attempt } : {}),
+    ...(options.reissue ? { reissue: true as const } : {}),
+  };
+  const started = performance.now();
+  const settle = (body: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
+    const durationMs = performance.now() - started;
+    const calls = callRecords(body, at, { outcome, durationMs });
+    for (const call of calls) options.recorder?.record(call);
+    return { calls, durationMs };
+  };
+
+  const failed = (error: unknown) => (error instanceof Error ? error.message : String(error));
+  let res: Response;
+  try {
+    res = await fetch("/api/propose", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: proposeBody(request, options.maxCalls !== undefined ? { maxCalls: options.maxCalls } : {}),
+    });
+  } catch (error) {
+    const { calls } = settle(undefined, "provider-error");
+    throw new GatewayError(`hosted AI request failed: ${failed(error)}`, "provider", calls);
+  }
+  let text: string;
+  try {
+    text = await res.text();
+  } catch (error) {
+    // The response arrived but its body did not: keep what the status says.
+    const kind = res.ok ? "provider" : errorKind(res.status, undefined);
+    const { calls } = settle(undefined, FAILURE_OUTCOME[kind]);
+    throw new GatewayError(`hosted AI response could not be read: ${failed(error)}`, kind, calls, res.status);
+  }
+  let body: Record<string, unknown> | undefined;
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) body = parsed as Record<string, unknown>;
+  } catch {
+    /* not JSON: classified below */
+  }
+
+  if (!res.ok) {
+    const kind = errorKind(res.status, body);
+    const { calls } = settle(body, FAILURE_OUTCOME[kind]);
+    const message = typeof body?.message === "string" && body.message ? body.message : `hosted AI endpoint returned ${res.status}`;
+    const usage = normalizeUsage(body?.usage);
+    throw new GatewayError(message, kind, calls, res.status, typeof body?.cause === "string" ? body.cause : undefined, usage);
+  }
+  if (!body) {
+    const { calls } = settle(undefined, "provider-error");
+    throw new GatewayError("hosted AI endpoint returned an unreadable response", "provider", calls, res.status);
+  }
+  const { calls, durationMs } = settle(body, "ok");
+  const usage = normalizeUsage(body.usage);
+  return {
+    json: body.json,
+    ...(typeof body.raw === "string" ? { raw: body.raw } : {}),
+    ...(typeof body.model === "string" ? { model: body.model } : {}),
+    ...(usage ? { usage } : {}),
+    calls,
+    durationMs,
+  };
+}
+
+/**
+ * The hosted generation adapter. Each generate() is one pipeline attempt
+ * (runPipeline calls it once per attempt and stops at the first
+ * AdapterOutputError), so the n-th call serves attempt n: attempt 0 is the
+ * generation (or refinement), later attempts are repairs. `maxCalls` caps the
+ * Worker's provider calls per request; omitted, the request bytes are today's.
+ *
+ * Block mode (experimental) passes a context the pipeline never does: the
+ * operation (block, block-repair), the attempt it serves (after a preloaded
+ * attempt 0 the count here would be wrong), and a re-issue of the identical
+ * request, which keeps its attempt and is flagged on the record.
+ */
+export function gatewayAdapter(options: { recorder?: CallRecorder; refinement?: boolean; maxCalls?: 1 | 2 } = {}) {
+  let attempts = 0;
+  let blockAttempts = 0;
+  let last = 0;
   return {
     id: HOSTED_AI_ID,
-    async generate(request: { system: string; messages: unknown[]; jsonSchema: unknown }) {
-      let res: Response;
-      try {
-        res = await fetch("/api/propose", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ system: request.system, messages: request.messages, jsonSchema: request.jsonSchema }),
-        });
-      } catch (error) {
-        throw new AdapterOutputError(HOSTED_AI_ID, `hosted AI request failed: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      if (!res.ok) {
-        let message = `hosted AI endpoint returned ${res.status}`;
-        try {
-          const body = (await res.json()) as { message?: string };
-          if (body?.message) message = body.message;
-        } catch {
-          /* non-JSON error body: keep the status message */
-        }
-        throw new AdapterOutputError(HOSTED_AI_ID, message);
-      }
-      const body = (await res.json()) as { json: unknown; raw?: string; model?: string; usage?: unknown };
+    async generate(request: ProposeRequest, context?: GenerateContext) {
+      const blockOp = context?.operation;
+      const attempt = context?.attempt ?? (context?.reissue ? last : blockOp ? blockAttempts++ : attempts++);
+      last = attempt;
+      const operation: CallOperation = blockOp ?? (attempt > 0 ? "repair" : options.refinement ? "refine" : "generate");
+      const result = await propose(request, {
+        operation,
+        attempt,
+        ...(context?.reissue ? { reissue: true as const } : {}),
+        ...(options.recorder ? { recorder: options.recorder } : {}),
+        ...(options.maxCalls !== undefined ? { maxCalls: options.maxCalls } : {}),
+      });
       return {
-        json: body.json,
-        raw: body.raw ?? JSON.stringify(body.json),
-        model: body.model ?? "hosted-ai",
-        ...(body.usage ? { usage: body.usage } : {}),
+        json: result.json,
+        raw: result.raw ?? JSON.stringify(result.json),
+        model: result.model ?? "hosted-ai",
+        ...(result.usage ? { usage: result.usage } : {}),
       };
     },
   };
@@ -152,18 +336,52 @@ function gatewayAdapter() {
 
 /**
  * Run one lightweight {system, messages, jsonSchema} request through the hosted
- * AI Gateway and return the parsed JSON. Used for the goal-planning step (a
- * SMALL schema), which shares the provider path with a full proposal but is not
- * a surface generation. Throws on an endpoint/model failure so the caller can
- * fall back deterministically.
+ * AI Gateway: the goal-planning and flow-planning steps (a SMALL schema), which
+ * share the provider path with a full proposal but are not a surface
+ * generation. Returns the parsed JSON with this request's usage, calls and
+ * duration. Throws a GatewayError (carrying its calls) on an endpoint/model
+ * failure so the caller can fall back deterministically.
  */
-export async function runGatewayRequest(request: {
-  system: string;
-  messages: unknown[];
-  jsonSchema: unknown;
-}): Promise<unknown> {
-  const result = await gatewayAdapter().generate(request as never);
-  return (result as { json: unknown }).json;
+export async function runGatewayRequest(
+  request: ProposeRequest,
+  options: { operation: "plan" | "flow-plan"; recorder?: CallRecorder },
+): Promise<{ json: unknown; usage?: Usage; calls: ModelCallRecord[]; durationMs: number }> {
+  const { json, usage, calls, durationMs } = await propose(request, options);
+  return { json, ...(usage ? { usage } : {}), calls, durationMs };
+}
+
+/**
+ * The scripted twin under the same accounting: every attempt is recorded as
+ * reaching no model, so a scripted receipt never shows provider-shaped zeros.
+ * Exported for the experimental block runtime, which wraps its own scripted
+ * block script the same way.
+ */
+export function recordedScripted(
+  adapter: { id: string; generate(request: Parameters<ScriptedAdapter["generate"]>[0], context?: GenerateContext): Promise<Awaited<ReturnType<ScriptedAdapter["generate"]>>> },
+  recorder: CallRecorder | undefined,
+  refinement: boolean,
+) {
+  let attempts = 0;
+  let last = 0;
+  return {
+    id: adapter.id,
+    async generate(request: Parameters<ScriptedAdapter["generate"]>[0], context?: GenerateContext) {
+      const attempt = context?.attempt ?? (context?.reissue ? last : attempts++);
+      last = attempt;
+      const operation: CallOperation = context?.operation ?? (attempt > 0 ? "repair" : refinement ? "refine" : "generate");
+      const started = performance.now();
+      const record = (outcome: ModelCallRecord["outcome"]) =>
+        recorder?.record({ operation, attempt, source: "none", durationMs: performance.now() - started, outcome });
+      try {
+        const result = await adapter.generate(request, context);
+        record("ok");
+        return result;
+      } catch (error) {
+        record("provider-error");
+        throw error;
+      }
+    },
+  };
 }
 
 export interface HostedRunHandlers {
@@ -178,10 +396,21 @@ export interface HostedRunHandlers {
  * pipeline can't be interrupted mid-attempt, but cancel() stops further events
  * from reaching the (possibly unmounted) caller.
  */
+/**
+ * Interface blocks (experimental): the block run a build was given, decided
+ * by the caller (apps/composer/experimental/blocks-runtime.ts). Opaque here:
+ * the default bundle carries no block code, and this branch is reached only
+ * under the literal flag check, which a default build folds away.
+ */
+export interface HostedBlockRun {
+  readonly kind: string;
+}
+
 export function streamHostedBuild(
   input: BuildRunInput,
   handlers: HostedRunHandlers,
   reference: HostedReference,
+  options: { recorder?: CallRecorder; block?: HostedBlockRun } = {},
 ): { cancel(): void } {
   let cancelled = false;
   const emit = (event: Record<string, unknown>) => {
@@ -194,6 +423,25 @@ export function streamHostedBuild(
       const intents = (contract.intents as Array<{ id: string }> | undefined) ?? [];
       const intent = input.intent || intents[0]?.id || "";
       const modelRef = input.modelRef || "scripted";
+      const refinement = !!input.conversation && input.conversation.length > 0;
+
+      if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && options.block && (modelRef === "hosted-ai" || modelRef === "scripted")) {
+        // Block mode: the same pipeline, with its attempt 0 decided by the
+        // block phase. Everything lives in the experimental runtime chunk.
+        const runtime = await import("../experimental/blocks-runtime");
+        await runtime.runHostedBlockBuild({
+          run: options.block,
+          input,
+          intent,
+          modelRef,
+          refinement,
+          reference: { contract, profile: loadedProfile(reference.profile) },
+          recorder: options.recorder,
+          emit,
+        });
+        handlers.onComplete();
+        return;
+      }
 
       // The ONLY thing that varies by mode is the adapter answering the
       // proposal. Everything after — S1/S2/S3, repair, emit, audit — is the
@@ -201,7 +449,7 @@ export function streamHostedBuild(
       let adapter;
       if (modelRef === "hosted-ai") {
         // Managed Claude Haiku through the governed AI Gateway Worker.
-        adapter = gatewayAdapter();
+        adapter = gatewayAdapter({ ...(options.recorder ? { recorder: options.recorder } : {}), refinement });
       } else if (modelRef === "scripted") {
         const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
         // LAST match for THIS intent (accepted results join the corpus at the
@@ -217,7 +465,7 @@ export function streamHostedBuild(
           handlers.onComplete();
           return;
         }
-        adapter = scriptedRunAdapter(example.surface, input.conversation);
+        adapter = recordedScripted(scriptedRunAdapter(example.surface, input.conversation), options.recorder, refinement);
       } else {
         handlers.onError(
           `Model '${modelRef}' isn't available in this browser project. Choose "scripted" or "hosted-ai", ` +

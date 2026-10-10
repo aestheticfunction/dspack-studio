@@ -34,6 +34,10 @@ const HEADERS = {
   "referrer-policy": "no-referrer",
 };
 const json = (status, body) => new Response(JSON.stringify(body) + "\n", { status, headers: HEADERS });
+/* A /api/propose reply sent BEFORE any provider call. `calls: []` says so
+   explicitly, so the browser can tell "no model was reached" from an older
+   Worker that reported nothing. */
+const refuse = (status, body) => json(status, { ...body, calls: [] });
 
 /** hosted-ai is offered only when the account binding is present AND not killed. */
 export function hostedModelsFor(env) {
@@ -53,8 +57,9 @@ export function handleModels(env) {
    by the surface gates S1/S2/S3 over the artifact." So the Worker asks for a
    bare JSON object and the BROWSER's gates are the authoritative validator;
    callModel strips any ```json fence and parses. Anthropic takes `system`
-   top-level; Workers AI takes it as a leading system message. */
-function guidedSystem(system, jsonSchema) {
+   top-level; Workers AI takes it as a leading system message. Exported so the
+   block bench measures the exact text the model receives (no behavior change). */
+export function guidedSystem(system, jsonSchema) {
   return (
     `${system}\n\n` +
     "Return ONE JSON object and nothing else — no prose, no explanation, no markdown code fences. " +
@@ -101,17 +106,50 @@ function parseProposal(raw, model) {
   // Some models wrap JSON in a ```json fence even under a schema; strip it.
   const cleaned = String(text).replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
   const parsed = JSON.parse(cleaned); // throws → unusable output
+  return { json: parsed, raw: cleaned, model: raw?.model ?? model };
+}
+
+/* Provider-reported token counts for ONE call, in the canonical shape
+   dspack-gen's audit report reads ({inputTokens, outputTokens}). null means
+   the provider did not report it; it is never guessed. */
+const tokenCount = (value) => (typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null);
+function usageOf(raw) {
+  const u = raw?.usage ?? {};
   return {
-    json: parsed,
-    raw: cleaned,
-    model: raw?.model ?? model,
-    usage: raw?.usage
-      ? {
-          in: raw.usage.input_tokens ?? raw.usage.prompt_tokens ?? null,
-          out: raw.usage.output_tokens ?? raw.usage.completion_tokens ?? null,
-        }
-      : null,
+    inputTokens: tokenCount(u.input_tokens ?? u.prompt_tokens),
+    outputTokens: tokenCount(u.output_tokens ?? u.completion_tokens),
   };
+}
+
+/** The request's total: each key summed over the calls that reported it;
+    null when no call reported anything. */
+function sumUsage(calls) {
+  const sum = (key) => {
+    const reported = calls.map((c) => c[key]).filter((n) => n !== null);
+    return reported.length > 0 ? reported.reduce((a, b) => a + b, 0) : null;
+  };
+  const usage = { inputTokens: sum("inputTokens"), outputTokens: sum("outputTokens") };
+  return usage.inputTokens === null && usage.outputTokens === null ? null : usage;
+}
+
+/** A failed request, carrying every provider call it made. `failure` is
+    "provider" (a call was rejected) or "unusable-output". */
+/** The shape the busy classifier reads. Never throws: a rejection value
+    String() cannot convert must not cost the request its call records. */
+function describe(error) {
+  try {
+    return String(error?.message ?? error ?? "");
+  } catch {
+    return "";
+  }
+}
+
+class CallFailure extends Error {
+  constructor(error, calls, failure) {
+    super(describe(error));
+    this.calls = calls;
+    this.failure = failure;
+  }
 }
 
 /* Model call + parse, with ONE bounded retry on unusable OUTPUT only.
@@ -123,15 +161,35 @@ function parseProposal(raw, model) {
    call retries — a rejected call (429 rate-limit, gateway 'busy', timeout) or
    the kill-switch path propagates on the FIRST throw, because the shared zone
    limit must not be hammered by this Worker. A second unusable output rides
-   the existing 502 provider-unavailable path. Exported for unit tests. */
-export async function callModel(env, model, request) {
-  const first = await runModel(env, model, request);
-  try {
-    return parseProposal(first, model);
-  } catch {
-    const second = await runModel(env, model, request);
-    return parseProposal(second, model);
+   the existing 502 provider-unavailable path.
+
+   Every call is recorded ({inputTokens, outputTokens, outcome, durationMs})
+   whether it succeeded, was rejected, or returned unusable output, so the
+   browser accounts for all of them. `maxCalls` (1 or 2) caps the calls this
+   request may make; 1 disables the retry. Exported for unit tests. */
+export async function callModel(env, model, request, maxCalls = 2) {
+  const calls = [];
+  let unusable;
+  for (let i = 0; i < maxCalls; i++) {
+    const started = Date.now();
+    let raw;
+    try {
+      raw = await runModel(env, model, request);
+    } catch (error) {
+      calls.push({ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: Date.now() - started });
+      throw new CallFailure(error, calls, "provider");
+    }
+    const durationMs = Date.now() - started;
+    try {
+      const proposal = parseProposal(raw, model);
+      calls.push({ ...usageOf(raw), outcome: "ok", durationMs });
+      return { ...proposal, usage: sumUsage(calls), calls };
+    } catch (error) {
+      calls.push({ ...usageOf(raw), outcome: "unusable-output", durationMs });
+      unusable = error;
+    }
   }
+  throw new CallFailure(unusable, calls, "unusable-output");
 }
 
 /* Reads at most `limit` bytes and rejects if the body exceeds it — enforced even
@@ -180,16 +238,16 @@ async function rateLimited(env, request) {
   try {
     ({ success: allowed } = await env.PROPOSE_RATE_LIMIT.limit({ key }));
   } catch {
-    return json(503, { error: "unavailable", message: "Generation is briefly unavailable. Try again in a moment, or use scripted mode." });
+    return refuse(503, { error: "unavailable", message: "Generation is briefly unavailable. Try again in a moment, or use scripted mode." });
   }
   if (allowed) return null;
-  return json(429, { error: "rate-limited", message: "You've generated several times in the last minute. Try again shortly, or use scripted mode." });
+  return refuse(429, { error: "rate-limited", message: "You've generated several times in the last minute. Try again shortly, or use scripted mode." });
 }
 
 export async function handlePropose(request, env) {
-  if (request.method !== "POST") return json(405, { error: "method-not-allowed", message: "This endpoint accepts POST only." });
+  if (request.method !== "POST") return refuse(405, { error: "method-not-allowed", message: "This endpoint accepts POST only." });
   if ((env?.HOSTED_AI ?? "on") !== "on" || !env?.AI) {
-    return json(503, {
+    return refuse(503, {
       error: "unavailable",
       message: "Hosted AI generation is unavailable. Use scripted mode to watch the governed pipeline, or connect the local agent for local models.",
     });
@@ -202,7 +260,7 @@ export async function handlePropose(request, env) {
 
   const contentType = request.headers.get("content-type") ?? "";
   if (!/^application\/json\s*(;|$)/i.test(contentType)) {
-    return json(415, { error: "unsupported-media-type", message: "Send application/json." });
+    return refuse(415, { error: "unsupported-media-type", message: "Send application/json." });
   }
 
   // Size ceiling enforced by a bounded read (Content-Length may be absent).
@@ -210,37 +268,51 @@ export async function handlePropose(request, env) {
   try {
     raw = await readBounded(request, MAX_BODY_BYTES);
   } catch {
-    return json(413, { error: "payload-too-large", message: "The generation request is larger than this endpoint accepts." });
+    return refuse(413, { error: "payload-too-large", message: "The generation request is larger than this endpoint accepts." });
   }
   let body;
   try {
     body = JSON.parse(raw);
   } catch {
-    return json(400, { error: "malformed-json", message: "The request body is not valid JSON." });
+    return refuse(400, { error: "malformed-json", message: "The request body is not valid JSON." });
   }
-  const { system, messages, jsonSchema } = body ?? {};
+  const { system, messages, jsonSchema, maxCalls = 2 } = body ?? {};
   if (typeof system !== "string" || !Array.isArray(messages) || typeof jsonSchema !== "object" || jsonSchema === null) {
-    return json(400, { error: "invalid-request", message: "Expected { system, messages, jsonSchema }." });
+    return refuse(400, { error: "invalid-request", message: "Expected { system, messages, jsonSchema }." });
+  }
+  // Optional cap on this request's provider calls; absent means today's
+  // behavior (one parse retry). Anything but 1 or 2 is refused, never clamped.
+  if (maxCalls !== 1 && maxCalls !== 2) {
+    return refuse(400, { error: "invalid-request", message: "maxCalls must be 1 or 2." });
   }
 
   try {
-    return json(200, await callModel(env, PRIMARY, { system, messages, jsonSchema }));
+    return json(200, await callModel(env, PRIMARY, { system, messages, jsonSchema }, maxCalls));
   } catch (error) {
+    // Every provider call this request made is reported, on every reply, so
+    // a failed request is never free in the browser's accounting.
+    const calls = Array.isArray(error?.calls) ? error.calls : [];
+    const accounted = { usage: sumUsage(calls), calls };
     // Classified by SHAPE only — never inspected for content, never echoed: a
     // provider error can quote the request that caused it, and the prompt must
     // not reach a log or a response. The zone-wide gateway rate limit fires
     // because SOMEONE ELSE is generating, which is a different, actionable fact.
     const shape = String(error?.message ?? "");
-    const busy = /\b429\b|too many requests|rate.?limit|capacity/i.test(shape);
+    const busy = error?.failure !== "unusable-output" && /\b429\b|too many requests|rate.?limit|capacity/i.test(shape);
     if (busy) {
       return json(503, {
         error: "busy",
         message: "The shared generation gateway is busy right now. Try again in a moment, or use scripted mode.",
+        ...accounted,
       });
     }
     return json(502, {
       error: "provider-unavailable",
+      // "unusable-output": the model answered but not with a usable proposal;
+      // "provider": the call itself failed (timeout, transport, provider error).
+      cause: error?.failure === "unusable-output" ? "unusable-output" : "provider",
       message: "Hosted generation did not return a usable proposal. Use scripted mode, or connect the local agent.",
+      ...accounted,
     });
   }
 }

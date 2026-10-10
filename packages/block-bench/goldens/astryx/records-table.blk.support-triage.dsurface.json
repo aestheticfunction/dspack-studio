@@ -1,0 +1,74 @@
+{
+  "dspackSurface": "0.1",
+  "system": "Astryx",
+  "intent": "record-collection",
+  "root": {
+    "component": "card",
+    "id": "records-card",
+    "children": [
+      {
+        "component": "text",
+        "id": "records-title",
+        "props": {
+          "type": "display-3"
+        },
+        "text": "Open support tickets"
+      },
+      {
+        "component": "text",
+        "id": "records-caption",
+        "props": {
+          "type": "supporting"
+        },
+        "text": "Newest first. Statuses update as agents respond."
+      },
+      {
+        "component": "table",
+        "id": "records-table",
+        "props": {
+          "columns": [
+            "Ticket",
+            "Subject",
+            "Status",
+            "Priority"
+          ],
+          "data": [
+            {
+              "cells": [
+                "#4812",
+                "Cannot export session receipts",
+                "Waiting on support",
+                "Urgent"
+              ]
+            },
+            {
+              "cells": [
+                "#4809",
+                "Replay stalls at event 12",
+                "Replied",
+                "High"
+              ]
+            },
+            {
+              "cells": [
+                "#4801",
+                "Billing address will not save",
+                "Waiting on customer",
+                "Normal"
+              ]
+            }
+          ],
+          "density": "compact"
+        }
+      },
+      {
+        "component": "button",
+        "id": "records-refresh",
+        "props": {
+          "label": "Refresh",
+          "variant": "secondary"
+        }
+      }
+    ]
+  }
+}

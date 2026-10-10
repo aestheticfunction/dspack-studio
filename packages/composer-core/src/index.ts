@@ -88,13 +88,35 @@ export {
   planDeterministic,
   reconcilePlan,
   intentLabel,
+  type BlockChoice,
   type GoalPlan,
 } from "./plan";
 export {
   buildFlowPlanRequest,
   flowPlanSchema,
   flowPlanDeterministic,
+  flowPlanSourceNote,
   reconcileFlowPlan,
   type FlowPlan,
   type FlowPlanStep,
 } from "./flow-plan";
+export { refinementConversation, proposeBody, type ConversationTurn } from "./requests";
+export {
+  aggregateUsage,
+  callsFromReport,
+  createCallRecorder,
+  describeCalls,
+  describeTimings,
+  normalizeUsage,
+  reconcileGenerationUsage,
+  turnTimings,
+  type CallOperation,
+  type CallRecorder,
+  type ModelCallRecord,
+  type TurnTimings,
+  type Usage,
+  type UsageTotals,
+} from "./usage";
+// Interface blocks (experimental) are a separate subpath,
+// "@dspack-studio/composer-core/blocks", so the default Composer bundle
+// carries none of their code.

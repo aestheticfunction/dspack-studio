@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { test, expect, type Page } from "@playwright/test";
 
 /**
@@ -67,6 +69,85 @@ test("create a named project from shadcn, then goal-first BUILD renders a govern
   // The surface renders natively (shadcn) and the rigorous evidence stays one expander away.
   await expect(page.getByTestId("build-canvas-1")).toContainText(/delete/i);
   await expect(page.getByTestId("build-pipeline-1")).toContainText("outcome: passed");
+});
+
+test("every turn states what it cost: scripted makes no model call; a failed hosted turn still shows its tokens", async ({ page }) => {
+  // Stand in for the deployed origin: Hosted is offered, the plan call
+  // succeeds, and the generation request comes back unusable twice (the
+  // Worker's retry), so the turn ends failed-adapter. Before Phase 0.5 that
+  // turn reported nothing about the three provider calls it had paid for.
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  await page.route("**/api/propose", (route) => {
+    const request = JSON.parse(route.request().postData() ?? "{}") as { jsonSchema?: Record<string, unknown> };
+    const generation = !!request.jsonSchema && "$defs" in request.jsonSchema;
+    const body = generation
+      ? {
+          error: "provider-unavailable",
+          cause: "unusable-output",
+          message: "Hosted generation did not return a usable proposal.",
+          usage: { inputTokens: 112000, outputTokens: 60 },
+          calls: [
+            { inputTokens: 56000, outputTokens: 30, outcome: "unusable-output", durationMs: 900 },
+            { inputTokens: 56000, outputTokens: 30, outcome: "unusable-output", durationMs: 800 },
+          ],
+        }
+      : {
+          json: { intent: "destructive-action", feasible: true, restated: "Let people permanently delete their account." },
+          model: "claude-haiku-4.5",
+          usage: { inputTokens: 1900, outputTokens: 45 },
+          calls: [{ inputTokens: 1900, outputTokens: 45, outcome: "ok", durationMs: 600 }],
+        };
+    return route.fulfill({ status: generation ? 502 : 200, contentType: "application/json", body: JSON.stringify(body) });
+  });
+
+  await page.goto("/");
+  await newProject(page, "shadcn", "Receipts");
+
+  await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
+  await expect(page.getByTestId("build-receipt-1")).toContainText("no model calls (scripted)");
+  await expect(page.getByTestId("build-receipt-1")).toContainText(/total \d+\.\d s/);
+
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-intent").selectOption("");
+  await page.getByTestId("build-prompt").fill("let people permanently delete their account");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-failure-2")).toBeVisible({ timeout: 30_000 });
+  const receipt = page.getByTestId("build-receipt-2");
+  await expect(receipt).toContainText("3 model calls (plan 1, generate 2)");
+  await expect(receipt).toContainText("113,900 input + 105 output tokens, provider-reported");
+  await expect(receipt).toContainText(/planning \d+\.\d s/);
+});
+
+test("a hosted flow plan that falls back to the deterministic outline says so, and never claims no model call", async ({ page }) => {
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  await page.route("**/api/propose", (route) =>
+    route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "provider-unavailable",
+        cause: "provider",
+        message: "Hosted generation did not return a usable proposal.",
+        usage: null,
+        calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 45000 }],
+      }),
+    }),
+  );
+  await page.goto("/");
+  await newProject(page, "shadcn", "Flow fallback");
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-mode-flow").click();
+  await page.getByTestId("build-flow-goal").fill("Show one order in full detail. Let people delete their account.");
+  await page.getByTestId("flow-plan-run").click();
+
+  await expect(page.getByTestId("flow-plan-editor")).toBeVisible();
+  await expect(page.getByTestId("flow-plan-source")).toContainText(/deterministic outline/i);
+  await expect(page.getByTestId("flow-plan-source")).not.toContainText(/no model call/i);
+  await expect(page.getByTestId("flow-plan-receipt")).toHaveText("1 model call (flow-plan 1) · usage not reported");
 });
 
 test("the saved project appears on the hub and reopens", async ({ page }) => {
@@ -527,6 +608,65 @@ test("client traffic carries no private hosts, local paths, or key material", as
   for (const body of bodies) {
     for (const pattern of [/\/Users\/[a-z]+/i, /sk-[A-Za-z0-9]{20}/, /AKIA[A-Z0-9]{16}/]) {
       expect(body).not.toMatch(pattern);
+    }
+  }
+});
+
+test("a seeded experimental preference changes nothing in the default build: no block row, no Settings section, today's plan request", async ({ page }) => {
+  // The flag is folded away at build time, so the preference key is never
+  // read. Stubbed routes keep this agent-free and deterministic wherever it
+  // runs, the deployed site included.
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  const planBodies: Array<Record<string, any>> = [];
+  await page.route("**/api/propose", (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}") as Record<string, any>;
+    if (!("$defs" in (body.jsonSchema ?? {}))) planBodies.push(body);
+    return route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }),
+    });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("composer.experimental.v1", JSON.stringify({ blocks: true }));
+  });
+  await page.goto("/");
+  await newProject(page, "shadcn", "Seeded");
+  await page.getByTestId("nav-settings").click();
+  await expect(page.locator("#experimental-h")).toHaveCount(0);
+  await expect(page.getByTestId("experimental-blocks")).toHaveCount(0);
+
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill("a sign-in form with email and password");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-failure-1")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("build-block-1")).toHaveCount(0);
+  await expect(page.getByTestId("build-block-note-1")).toHaveCount(0);
+  expect(planBodies).toHaveLength(1);
+  expect(planBodies[0]!.jsonSchema.properties).not.toHaveProperty("block");
+  expect(planBodies[0]!.jsonSchema.required).not.toContain("block");
+  expect(planBodies[0]).not.toHaveProperty("maxCalls");
+});
+
+test("the default build ships no interface-block code (docs/BLOCKS.md: blocks stay out of default builds)", () => {
+  // Scans the served artifact on disk, so a lazily loaded chunk cannot hide it.
+  const chunks = fileURLToPath(new URL("../apps/composer/out/_next/static/chunks/", import.meta.url));
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(`${dir}${entry.name}/`);
+      else if (entry.name.endsWith(".js")) files.push(`${dir}${entry.name}`);
+    }
+  };
+  walk(chunks);
+  expect(files.length).toBeGreaterThan(0);
+  for (const file of files) {
+    const body = readFileSync(file, "utf8");
+    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime"]) {
+      expect(body.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   }
 });

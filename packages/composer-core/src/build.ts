@@ -89,6 +89,13 @@ export interface BuildTurnProgress {
   /** The final generated surface (last attempt), when the run produced one. */
   surface?: Record<string, any>;
   error?: string;
+  /**
+   * Interface blocks (experimental): the block phase's trace, delivered as a
+   * CUSTOM dspack.block event before the pipeline starts. Default builds
+   * never emit it. Its outcome "invariant-failure" is a Composer-side
+   * outcome: the run never reached runPipeline, so there is no audit report.
+   */
+  block?: Record<string, any>;
 }
 
 /** Fold mapper-shaped AG-UI events (plain JSON) into a turn view. */
@@ -141,6 +148,9 @@ export function foldBuildEvents(events: Array<Record<string, any>>): BuildTurnPr
         }
         const surface = value.report?.attempts?.at?.(-1)?.surface;
         if (surface && typeof surface === "object") progress.surface = surface as Record<string, any>;
+      } else if (name === "dspack.block") {
+        progress.block = value;
+        if (value.outcome === "invariant-failure") progress.outcome = "invariant-failure";
       } else if (name === "dspack.error") {
         progress.status = "error";
         progress.error = String(value.message ?? "run failed");
@@ -189,7 +199,7 @@ export function vocabularyGap(progress: BuildTurnProgress): string[] {
 /* The full report stays on the turn for inspection either way.        */
 /* ------------------------------------------------------------------ */
 
-export type BuildFailureKind = "lint" | "repair-exhausted" | "emit-refusal" | "emit-gate" | "adapter" | "unknown";
+export type BuildFailureKind = "lint" | "repair-exhausted" | "emit-refusal" | "emit-gate" | "adapter" | "invariant" | "unknown";
 
 export interface BuildFailureReason {
   /** S1 | S2 | S3 | A1 | A2 | A3 when the reason belongs to a gate. */
@@ -286,7 +296,7 @@ function attemptReasons(attempt: Record<string, any> | undefined): BuildFailureR
  * not finished). Never invents a cause: an outcome with no structured
  * evidence returns kind "unknown" and says so plainly.
  */
-export function buildFailure(progress: BuildTurnProgress): BuildFailure | null {
+export function buildFailure(progress: BuildTurnProgress, options: { calls?: ReadonlyArray<{ operation: string; source: string }> } = {}): BuildFailure | null {
   if (progress.status === "error") {
     return {
       kind: "adapter",
@@ -297,18 +307,51 @@ export function buildFailure(progress: BuildTurnProgress): BuildFailure | null {
   }
   if (!progress.outcome || progress.outcome === "passed") return null;
 
+  // A block template defect never reaches the pipeline: the expansion failed
+  // a deterministic check, so the block is disabled and nothing was generated.
+  if (progress.outcome === "invariant-failure") {
+    return {
+      kind: "invariant",
+      headline: "The block template produced an invalid surface; the block is disabled for this session.",
+      stoppedAt: "block phase · expansion",
+      reasons: ((progress.block?.invariant ?? []) as string[]).map((message) => ({ code: "invariant", message })),
+    };
+  }
+
   const report = (progress.report ?? {}) as Record<string, any>;
   const attempts = (report.attempts ?? []) as Array<Record<string, any>>;
   const last = attempts.at(-1);
   const emitted = report.emitted as Record<string, any> | undefined;
+  // After a block phase, the budget the pipeline had left is part of the why.
+  // Calls are counted from the recorder when the turn has one (a replayed
+  // provider failure is an attempt that made no call); else from the trace
+  // and the report's attempts.
+  const provider = (options.calls ?? []).filter((c) => c.source === "provider");
+  const blockCalls = options.calls ? provider.filter((c) => c.operation === "block" || c.operation === "block-repair").length : Number(progress.block?.providerCalls ?? 0);
+  const surfaceCalls = options.calls
+    ? provider.filter((c) => c.operation === "generate" || c.operation === "refine" || c.operation === "repair").length
+    : attempts.filter((a) => a.usage !== undefined || a.adapterError !== undefined).length - (progress.block?.outcome === "block" ? 0 : 0);
+  const budgetNote = progress.block
+    ? `${blockCalls + surfaceCalls} model calls used: ${blockCalls} block, ${surfaceCalls} surface`
+    : "";
 
   if (progress.outcome === "failed-adapter") {
     const message = String(last?.adapterError ?? "the model adapter failed without a message");
+    const duringBlock = progress.block?.outcome === "provider-failure";
+    const spent = /budget/.test(message) && !!progress.block;
     return {
       kind: "adapter",
-      headline: "The model provider could not produce a result — nothing was generated.",
-      stoppedAt: `attempt ${(last?.index ?? 0) + 1} · provider`,
-      reasons: [{ code: report.generation?.adapterId, message }],
+      headline: spent
+        ? "The model-call budget was spent before a surface could pass."
+        : duringBlock
+          ? "The model provider failed during the block call — nothing was generated."
+          : "The model provider could not produce a result — nothing was generated.",
+      stoppedAt: duringBlock ? `block · call ${(progress.block?.attempts as unknown[] | undefined)?.length ?? 1}` : `attempt ${(last?.index ?? 0) + 1} · provider`,
+      reasons: [
+        { code: report.generation?.adapterId, message },
+        ...(duringBlock && progress.block?.providerError ? [{ code: String(progress.block.providerError.classification), message: String(progress.block.providerError.message) }] : []),
+        ...(progress.block ? [{ code: "block", message: `${blockCalls} block call${blockCalls === 1 ? "" : "s"} preceded this run (${progress.block.outcome}); ${budgetNote}` }] : []),
+      ],
     };
   }
 
@@ -366,7 +409,7 @@ export function buildFailure(progress: BuildTurnProgress): BuildFailure | null {
   const failedGate = ((last?.gates ?? []) as TurnGate[]).find((g) => g.status === "FAIL");
   const stoppedAtStage = failedGate ? GATE_LABEL[failedGate.gate] ?? failedGate.gate : refused ? "representability" : "generation";
   const stoppedAt = `attempt ${(last?.index ?? 0) + 1} · ${stoppedAtStage}`;
-  const exhausted = progress.outcome === "failed-lint-exhausted" && attempts.length > 1;
+  const exhausted = progress.outcome === "failed-lint-exhausted" && (attempts.length > 1 || !!progress.block);
   if (reasons.length === 0) {
     return {
       kind: "unknown",
@@ -378,7 +421,7 @@ export function buildFailure(progress: BuildTurnProgress): BuildFailure | null {
   return {
     kind: exhausted ? "repair-exhausted" : "lint",
     headline: exhausted
-      ? `Bounded repair was exhausted after ${attempts.length} attempts — the last attempt still violates the contract.`
+      ? `Bounded repair was exhausted after ${attempts.length} attempt${attempts.length === 1 ? "" : "s"} — the last attempt still violates the contract.${budgetNote ? ` ${budgetNote}.` : ""}`
       : "The generated surface does not satisfy the contract.",
     stoppedAt,
     reasons,
