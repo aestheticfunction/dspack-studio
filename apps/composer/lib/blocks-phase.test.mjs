@@ -28,7 +28,7 @@ const example = block.examples[0];
 const deps = {
   classify: (error) => (error instanceof GatewayError ? error.kind : "unknown"),
   lint: (surface) => lintSurface(surface, contract),
-  makeError: (kind, message) => new GatewayError(`${kind}: ${message}`, "provider", []),
+  makeError: (kind, message, cause) => (cause instanceof AdapterOutputError ? cause : new GatewayError(`${kind}: ${message}`, "provider", [])),
 };
 
 /** An adapter playing a script of JSON outputs or errors, with the block-mode context recorded. */

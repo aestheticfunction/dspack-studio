@@ -31,12 +31,22 @@ import {
   type ModelCallRecord,
 } from "@dspack-studio/composer-core";
 import { runGatewayRequest } from "./hosted-build";
+// Type-only: erased at compile time, so no block code enters the default bundle.
+import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
 
 export async function planGoal(
   goal: string,
   modelRef: string,
   contract: Record<string, unknown>,
+  options: { blocks?: readonly BlockDefinition[] } = {},
 ): Promise<{ plan: GoalPlan; calls: ModelCallRecord[] }> {
+  // Interface blocks (experimental): a hosted build that was offered blocks
+  // asks the planner which one, if any. Default builds fold this away, and a
+  // build offered none posts exactly today's bytes.
+  if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && modelRef === "hosted-ai" && options.blocks && options.blocks.length > 0) {
+    const runtime = await import("../experimental/blocks-runtime");
+    return runtime.planGoalWithBlocks(goal, contract, options.blocks);
+  }
   if (modelRef === "hosted-ai") {
     const recorder = createCallRecorder();
     try {

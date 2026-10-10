@@ -17,7 +17,7 @@
  * further calls, never handed to a model.
  */
 import type { Profile } from "@aestheticfunction/dspack-emit";
-import { reconcileGenerationUsage, type ModelCallRecord } from "../usage";
+import { normalizeUsage, reconcileGenerationUsage, type ModelCallRecord } from "../usage";
 import { callJsonSchema, checkConstraints, validateCall, type CallIssue } from "./call";
 import { sha256Hex } from "./digest";
 import { expandBlock, expansionDigest, type ExpandedSurface } from "./expand";
@@ -31,6 +31,8 @@ export type ErrorKind = "provider" | "output" | "policy" | "unknown";
 /** What a block-mode caller tells its adapter about a call, beyond the request. */
 export interface GenerateContext {
   operation?: "block" | "block-repair";
+  /** The pipeline attempt this call serves, when the caller knows it (after a preloaded attempt 0). */
+  attempt?: number;
   /** The identical request, re-issued once after an unusable output. */
   reissue?: true;
 }
@@ -65,8 +67,12 @@ export interface BlockPhaseDeps {
   classify(error: unknown): ErrorKind;
   /** S1/S2/S3 over a surface (dspack-gen lintSurface, bound to the contract). */
   lint(surface: unknown): LintVerdict;
-  /** An error the pipeline records as failed-adapter (an AdapterOutputError). */
-  makeError(kind: string, message: string): Error;
+  /**
+   * An error the pipeline records as failed-adapter (an AdapterOutputError).
+   * Given a cause that already is one, it returns the cause unchanged; any
+   * other thrown value is wrapped, so a plain Error never reaches runPipeline.
+   */
+  makeError(kind: string, message: string, cause?: unknown): Error;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,11 +97,14 @@ export function createBudget(limit = 3): Budget {
   return budget;
 }
 
+const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
 /**
  * The one unusable-output rule, for every call in a block-mode run: if the
- * budget allows, the identical request is re-issued once and counted; else
- * the error is thrown as it is. A call past the budget never reaches a
- * provider: it fails as a typed adapter error.
+ * budget allows, the identical request is re-issued once and counted, and the
+ * two calls' usage is summed into the result; else the error is thrown.
+ * Every exit is a typed adapter error: a call past the budget never reaches
+ * a provider, and a plain Error from the inner adapter is wrapped.
  */
 export function budgetedInner(inner: StructuralAdapter, budget: Budget, deps: Pick<BlockPhaseDeps, "classify" | "makeError">): StructuralAdapter {
   return {
@@ -103,12 +112,25 @@ export function budgetedInner(inner: StructuralAdapter, budget: Budget, deps: Pi
     async generate(request, context) {
       if (budget.remaining() <= 0) throw deps.makeError("budget", `the model-call budget of ${budget.limit} is exhausted`);
       budget.spend();
+      let first: unknown;
       try {
         return await inner.generate(request, context);
       } catch (error) {
-        if (deps.classify(error) !== "output" || budget.remaining() <= 0) throw error;
-        budget.spend();
-        return await inner.generate(request, { ...(context ?? {}), reissue: true });
+        const kind = deps.classify(error);
+        if (kind !== "output" || budget.remaining() <= 0) throw deps.makeError(kind === "unknown" ? "provider" : kind, describe(error), error);
+        first = error;
+      }
+      budget.spend();
+      try {
+        const result = await inner.generate(request, { ...(context ?? {}), reissue: true });
+        const before = normalizeUsage((first as { usage?: unknown })?.usage);
+        const after = result.usage ?? {};
+        const sum = (a?: number, b?: number) => (a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0));
+        const usage = { inputTokens: sum(before?.inputTokens, after.inputTokens), outputTokens: sum(before?.outputTokens, after.outputTokens) };
+        return { ...result, ...(usage.inputTokens !== undefined || usage.outputTokens !== undefined ? { usage } : {}) };
+      } catch (error) {
+        const kind = deps.classify(error);
+        throw deps.makeError(kind === "unknown" ? "provider" : kind, describe(error), error);
       }
     },
   };
@@ -120,10 +142,12 @@ export function preloadedAdapter(expansion: ExpandedSurface, inner: StructuralAd
   return {
     id: inner.id,
     async generate(request, context) {
-      if (attempts++ === 0) {
+      const attempt = attempts++;
+      if (attempt === 0) {
         return { json: expansion, raw: JSON.stringify(expansion), model: "block-expansion", ...(mirror !== undefined ? { meta: { blockTrace: mirror } } : {}) };
       }
-      return inner.generate(request, context);
+      // The inner adapter's own count would start at 0 here; tell it the truth.
+      return inner.generate(request, { ...(context ?? {}), attempt });
     },
   };
 }
@@ -208,7 +232,8 @@ export interface BlockPhaseInput {
   goal: string;
   reference: { name: string };
   contract: Json;
-  profile?: Profile;
+  /** The loaded reference profile: the emitter would otherwise assume shadcn. */
+  profile: Profile;
   /** A budgeted adapter (budgetedInner). */
   inner: StructuralAdapter;
   budget: Budget;
@@ -275,11 +300,14 @@ export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseR
     if (b1.length > 0 || b2.length > 0) {
       record("invalid", b1, b2);
       const issues = b1.length > 0 ? b1 : b2;
-      if (index === 0) {
+      // One feedback repair, and only while the budget can still pay for a
+      // surface attempt afterwards: a repair that leaves nothing for the
+      // fallback would be a call with no way to use its answer.
+      if (index === 0 && budget.remaining() >= 2) {
         messages = [...messages, { role: "assistant", content: result.raw }, { role: "user", content: blockRepairMessage(issues) }];
         continue;
       }
-      const reason = issues.map((i) => `${i.path}: ${i.message}`).join("; ");
+      const reason = issues.map((i) => `${i.path}: ${i.message}`).join("; ") + (index === 0 ? "; no budget for a block repair" : "");
       return { kind: "fallback", reason, classification: "invalid-call", trace: finish({ outcome: "fallback", fallback: { reason, classification: "invalid-call" } }) };
     }
     record("ok", [], []);

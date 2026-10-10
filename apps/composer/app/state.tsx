@@ -78,6 +78,8 @@ import {
   type LocalKind,
 } from "./providers";
 import { planGoal } from "./planning";
+import { loadExperimental, saveExperimental, type ExperimentalPreferences } from "./experimental";
+import { loadBlockProvenance, saveBlockProvenance } from "./block-provenance";
 import {
   bindStepSurface,
   emittedActionsBySurface,
@@ -190,6 +192,8 @@ export interface BuildTurn {
   calls?: ModelCallRecord[];
   /** Wall-clock timings from submit, set when the turn ends. */
   timings?: TurnTimings;
+  /** Interface blocks (experimental): why this build was, or was not, offered blocks. */
+  blockNote?: string;
 }
 
 export interface ComposerState {
@@ -307,6 +311,9 @@ export interface ComposerState {
    *  back does not destroy an in-progress plan (see FlowComposition). */
   flowComposition: FlowComposition;
   setFlowComposition: Dispatch<SetStateAction<FlowComposition>>;
+  /** Interface blocks (experimental): the opt-in preference. Always off in default builds. */
+  experimental: ExperimentalPreferences;
+  setExperimental: (next: ExperimentalPreferences) => void;
 }
 
 const Ctx = createContext<ComposerState | null>(null);
@@ -550,6 +557,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       if (!ref) return;
       setActiveProjectId(null);
       setLastOpened(null);
+      sessionProvenance.current = {};
       setExampleProject({
         id: `example-${ref.id}`,
         name: `${ref.label} example`,
@@ -579,6 +587,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     const delta = examplesDelta(base, live);
     const p = createProject({ name: `My ${ref.label} project`, description: "", source: { kind: "reference", referenceId: refId } });
     if (delta.length > 0) saveExamplesDelta(p.id, delta);
+    // Interface blocks (experimental): the session's provenance comes along too.
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && Object.keys(sessionProvenance.current).length > 0) {
+      saveBlockProvenance(p.id, sessionProvenance.current);
+    }
     setProjects(listProjects());
     openProject(p.id); // clears the example workspace, merges the delta
     return p;
@@ -604,6 +616,22 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       if (parsed.flows.length > 0 && !saveFlowsStore(p.id, parsed.flows)) {
         rmStoredProject(p.id);
         return { ok: false, error: "This project is too large to keep in the browser, or local storage is full." };
+      }
+      // Interface blocks (experimental): provenance travels in the file and is
+      // kept only as far as the bundled sidecars can vouch for it. A default
+      // build never reads it. An imported project is never eligible for
+      // blocks, so what it keeps is inert until it is opened as one.
+      if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+        try {
+          const raw = (JSON.parse(text) as { blockProvenance?: unknown }).blockProvenance;
+          if (raw && typeof raw === "object") {
+            void import("../experimental/blocks-runtime")
+              .then((runtime) => runtime.importProvenance(runtime.projectProvenanceStore(p.id), raw))
+              .catch(() => undefined);
+          }
+        } catch {
+          /* the file already parsed once; nothing more to carry */
+        }
       }
       setProjects(listProjects());
       openProject(p.id);
@@ -654,17 +682,22 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       // live flows exactly as it exports its live contract; a closed one
       // exports what its store holds — the same work opening would show.
       const projectFlows = id === activeProjectId ? flows : loadFlowsStore(id);
+      // Interface blocks (experimental): provenance is project data and rides
+      // along, additive like flows. Default builds export none.
+      const blockProvenance =
+        process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" ? (exampleProject && id === exampleProject.id ? sessionProvenance.current : loadBlockProvenance(id)) : {};
       downloadProjectExport(
-        buildProjectExport({ name: p.name, description: p.description, vocab, exportedAt: new Date().toISOString(), flows: projectFlows }),
+        buildProjectExport({ name: p.name, description: p.description, vocab, exportedAt: new Date().toISOString(), flows: projectFlows, blockProvenance }),
       );
     },
-    [activeProjectId, contract, profile, manifest, flows],
+    [activeProjectId, contract, profile, manifest, flows, exampleProject],
   );
 
   /** Return to the hub without loading a project (ends an example session). */
   const closeProject = useCallback(() => {
     setActiveProjectId(null);
     setExampleProject(null);
+    sessionProvenance.current = {};
     setLastOpened(null);
     setFlows([]);
     clearBuildThread();
@@ -807,6 +840,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           const live = ((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
           if (!saveExamplesDelta(p.id, examplesDelta(base, live))) {
             setNotice("Saved for this session, but this browser's storage is full — your work won't survive a reload. Export the project to keep it.");
+          }
+          // Interface blocks (experimental): provenance for an example that
+          // vanished, or whose surface was edited, is dropped with the save.
+          if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+            void import("../experimental/blocks-runtime")
+              .then((runtime) => runtime.gcProvenance(runtime.projectProvenanceStore(p.id), live))
+              .catch(() => undefined);
           }
         }
         return { savedInMemory: true as const };
@@ -1022,6 +1062,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // unmount without taking the plan with it (see FlowComposition).
   const [flowComposition, setFlowComposition] = useState<FlowComposition>(EMPTY_FLOW_COMPOSITION);
   const [buildBusy, setBuildBusy] = useState(false);
+  // Interface blocks (experimental; docs/BLOCKS.md). The preference reads as
+  // off in default builds. A block an invariant failure disabled stays off
+  // for the page session. An Example session's provenance lives in memory
+  // and travels with "duplicate to keep".
+  const [experimental, setExperimentalState] = useState<ExperimentalPreferences>(() => loadExperimental());
+  const setExperimental = useCallback((next: ExperimentalPreferences) => {
+    setExperimentalState(next);
+    saveExperimental(next);
+  }, []);
+  const disabledBlocks = useRef(new Set<string>());
+  const sessionProvenance = useRef<Record<string, unknown>>({});
   // The auto-select correction below must NOT run against the ["scripted"]
   // placeholder before the first real fetch: that list omits "hosted-ai", so
   // correcting against it would silently downgrade a stored, deliberately-
@@ -1190,6 +1241,29 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       };
       setBuildTurns((prev) => [...prev, turn]);
 
+      // --- BLOCKS (experimental; docs/BLOCKS.md): only an experimental build
+      // with the preference on offers blocks, and only to a packaged reference
+      // project or Example session on its unedited base, built in the
+      // browser. Any failure here means no blocks, said on the turn. Default
+      // builds fold this whole branch away. ---
+      type BlockRuntime = typeof import("../experimental/blocks-runtime");
+      let runtime: BlockRuntime | null = null;
+      let blockCtx: Awaited<ReturnType<BlockRuntime["blockContext"]>> | null = null;
+      let blockNote: string | undefined;
+      if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && experimental.blocks) {
+        try {
+          runtime = await import("../experimental/blocks-runtime");
+          const source = (exampleProject ?? (activeProjectId ? getProject(activeProjectId) : null))?.source ?? null;
+          const inBrowser = input.modelRef === "hosted-ai" || (mode !== "agent" && !isLocalRef(input.modelRef));
+          blockCtx = await runtime.blockContext({ mode, source, inBrowser, contract, profile, disabled: disabledBlocks.current });
+          if (blockCtx.reason) blockNote = `No interface blocks for this build: ${blockCtx.reason}.`;
+        } catch (error) {
+          runtime = null;
+          blockCtx = null;
+          blockNote = `Interface blocks were not offered: ${error instanceof Error ? error.message : String(error)}.`;
+        }
+      }
+
       // --- ROUTE: infer the governed context (fresh builds only; a refinement
       // keeps the original goal's context so it never re-routes mid-thread) ---
       let plan: GoalPlan;
@@ -1198,12 +1272,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       if (prior?.plan) {
         plan = prior.plan;
       } else {
-        ({ plan, calls: planCalls } = await planGoal(input.goal, input.modelRef, contract));
+        ({ plan, calls: planCalls } = await planGoal(input.goal, input.modelRef, contract, blockCtx && blockCtx.offered.length > 0 ? { blocks: blockCtx.offered } : {}));
         planMs = performance.now() - t0;
         if (input.intentOverride) plan = { ...plan, intent: input.intentOverride, source: "model" };
+        // The block choice is made on the FINAL context: scripted selects
+        // deterministically; a hosted answer is re-checked after an override.
+        if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && runtime && blockCtx) {
+          plan = { ...plan, block: runtime.chooseBlock({ ctx: blockCtx, plan, intent: input.intentOverride ?? plan.intent, modelRef: input.modelRef, goal: input.goal }) };
+        }
       }
       const intent = input.intentOverride ?? plan.intent;
-      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, plan, intent, planPending: false, calls: planCalls } : t)));
+      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, plan, intent, planPending: false, calls: planCalls, ...(blockNote ? { blockNote } : {}) } : t)));
 
       // --- GAP: the approved vocabulary cannot express this goal. No generation
       // is attempted (inventing a component would violate governance); the gap
@@ -1216,6 +1295,27 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         buildStream.current = null;
         setBuildBusy(false);
         return "vocab-gap";
+      }
+
+      // --- BLOCK RUN (experimental): a fresh build with a selected block, a
+      // compact refinement, a visible switch, or null, which is today's path
+      // with no trace. ---
+      let blockRun: Awaited<ReturnType<BlockRuntime["blockRunFor"]>> = null;
+      if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && runtime && blockCtx) {
+        try {
+          blockRun = await runtime.blockRunFor({
+            ctx: blockCtx,
+            choice: plan.block ?? { id: null, reason: "the planner did not answer the block question", source: "omitted" },
+            intent,
+            goal: input.goal,
+            preferenceOn: experimental.blocks,
+            ...(prior ? { prior: { prompt: prior.prompt, progress: prior.progress } } : {}),
+          });
+        } catch (error) {
+          blockRun = null;
+          const note = `Interface blocks were not used: ${error instanceof Error ? error.message : String(error)}.`;
+          setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, blockNote: note } : t)));
+        }
       }
 
       // --- GENERATE: the SAME deterministic pipeline, now under the inferred
@@ -1263,7 +1363,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       //   • hosted/reference + scripted → the in-browser twin.
       const inBrowser = (inp: typeof runInput, handlers: Parameters<typeof streamHostedBuild>[1]) => {
         inBrowserRun = true;
-        return streamHostedBuild(inp, handlers, { contract, profile }, { recorder });
+        return streamHostedBuild(inp, handlers, { contract, profile }, { recorder, ...(blockRun ? { block: blockRun } : {}) });
       };
       const runStream =
         input.modelRef === "hosted-ai"
@@ -1298,12 +1398,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       const timings = turnTimings(stamped, { totalMs: performance.now() - t0, ...(planMs !== undefined ? { planMs } : {}) });
       const finalCalls = turnCalls(final);
       setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, calls: finalCalls, timings } : t)));
+      // A block whose template failed a deterministic check is disabled for
+      // the rest of the page session: the defect is in the data, not the goal.
+      if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && final.block?.outcome === "invariant-failure") {
+        disabledBlocks.current.add(String((final.block as { selected?: { id?: string } }).selected?.id ?? ""));
+      }
       setBuildBusy(false);
       // The turn's outcome, from ITS OWN event stream (state would be stale
       // in this closure): the Phase C driver sequences on it.
       return final.outcome === "passed" ? "passed" : "failed";
     },
-    [mode, projectPath, buildBusy, buildTurns, contract, profile, providerConfig, agentUp],
+    [mode, projectPath, buildBusy, buildTurns, contract, profile, providerConfig, agentUp, experimental, exampleProject, activeProjectId],
   );
 
   /**
@@ -1390,6 +1495,29 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           const doc = structuredClone(contract);
           doc.examples = [...(((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[]), entry];
           await saveContract(doc);
+          // Interface blocks (experimental): provenance for an accepted block
+          // surface, written only when the surface IS the expansion; the
+          // accept never waits on it.
+          if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && turn.progress.block) {
+            const examples = (doc.examples as ExampleEntry[]) ?? [];
+            const projectId = activeProjectId;
+            void import("../experimental/blocks-runtime")
+              .then(async (runtime) => {
+                if (!profile) return;
+                const source = (exampleProject ?? (projectId ? getProject(projectId) : null))?.source ?? null;
+                const ctx = await runtime.blockContext({ mode, source, inBrowser: true, contract, profile, disabled: disabledBlocks.current });
+                if (!ctx.base) return;
+                await runtime.recordProvenance({
+                  store: projectId ? runtime.projectProvenanceStore(projectId) : runtime.memoryProvenanceStore(sessionProvenance),
+                  exampleId: id,
+                  trace: turn.progress.block,
+                  accepted: turn.progress.surface,
+                  sidecar: ctx.base.sidecar,
+                  examples,
+                });
+              })
+              .catch(() => undefined);
+          }
           const bound = bindStep(id);
           setBuildTurns((prev) =>
             prev.map((t) =>
@@ -1562,8 +1690,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       clearBuildThread,
       flowComposition,
       setFlowComposition,
+      experimental,
+      setExperimental,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread, flowComposition],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread, flowComposition, experimental, setExperimental],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -76,6 +76,7 @@ function runHosted(input: Json, reference: { contract: Json; profile: Json }, op
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("the real call sites send the Phase 0 request bytes", () => {
@@ -161,6 +162,71 @@ describe("GatewayError: every failure is typed, never a plain Error", () => {
     expect(error.message).toContain("The shared generation gateway is busy right now.");
     expect(error.usage).toEqual({ inputTokens: 700, outputTokens: 30 });
     expect(error.calls.map((c) => c.outcome)).toEqual(["unusable-output", "provider-error"]);
+  });
+});
+
+describe("the flag alone changes nothing: with the flag on and no eligible blocks, the real call sites still send the Phase 0 bytes", () => {
+  for (const ref of REFERENCES) {
+    const goldens = goldensFor(ref.id);
+
+    it(`${ref.id}: planGoal with no blocks offered posts the planning goldens`, async () => {
+      vi.stubEnv("NEXT_PUBLIC_COMPOSER_EXPERIMENTAL", "1");
+      const { bodies } = stubFetch(() => providerDown());
+      for (const golden of goldens.planning.filter((g: Json) => g.kind === "plan")) await planGoal(golden.goal, "hosted-ai", ref.contract, { blocks: [] });
+      expect(bodies.map(sha256)).toEqual(goldens.planning.filter((g: Json) => g.kind === "plan").map((g: Json) => g.bodySha256));
+      for (const body of bodies) expect(JSON.parse(body)).not.toHaveProperty("maxCalls");
+    });
+
+    it(`${ref.id}: streamHostedBuild with no block run posts the fresh generation goldens`, async () => {
+      vi.stubEnv("NEXT_PUBLIC_COMPOSER_EXPERIMENTAL", "1");
+      const { bodies } = stubFetch(() => providerDown());
+      const fresh = goldens.generation.filter((g: Json) => g.mode === "fresh");
+      for (const golden of fresh) await runHosted({ prompt: golden.prompt, intent: golden.intent }, ref);
+      expect(bodies.map(sha256)).toEqual(fresh.map((g: Json) => g.bodySha256));
+      for (const body of bodies) expect(JSON.parse(body)).not.toHaveProperty("maxCalls");
+    }, 60_000);
+  }
+});
+
+describe("block mode labels its calls through the context (experimental)", () => {
+  const ok = (n: number) => reply(200, { json: { n }, calls: [{ inputTokens: 10, outputTokens: 1, outcome: "ok", durationMs: 1 }] });
+
+  it("block operations count their own attempts; a surface call after a preloaded attempt 0 is told its attempt; a re-issue keeps it and is flagged", async () => {
+    let n = 0;
+    stubFetch(() => ok(n++));
+    const recorder = createCallRecorder();
+    const adapter = gatewayAdapter({ recorder, maxCalls: 1 });
+    await adapter.generate(REQUEST, { operation: "block" });
+    await adapter.generate(REQUEST, { operation: "block-repair" });
+    const surface = gatewayAdapter({ recorder, maxCalls: 1 });
+    await surface.generate(REQUEST, { attempt: 1 });
+    await surface.generate(REQUEST, { attempt: 1, reissue: true });
+    await surface.generate(REQUEST, { attempt: 2 });
+    expect(recorder.calls.map((c) => [c.operation, c.attempt, c.reissue ?? false])).toEqual([
+      ["block", 0, false],
+      ["block-repair", 1, false],
+      ["repair", 1, false],
+      ["repair", 1, true],
+      ["repair", 2, false],
+    ]);
+  });
+
+  it("a re-issue with no explicit attempt keeps the last attempt (the fallback arm, no preload)", async () => {
+    stubFetch(() => ok(0));
+    const recorder = createCallRecorder();
+    const adapter = gatewayAdapter({ recorder, maxCalls: 1 });
+    await adapter.generate(REQUEST);
+    await adapter.generate(REQUEST, { reissue: true });
+    await adapter.generate(REQUEST);
+    expect(recorder.calls.map((c) => [c.operation, c.attempt, c.reissue ?? false])).toEqual([
+      ["generate", 0, false],
+      ["generate", 0, true],
+      ["repair", 1, false],
+    ]);
+  });
+
+  it("the flag-off oracle really runs flag-off", () => {
+    expect(process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL).not.toBe("1");
   });
 });
 

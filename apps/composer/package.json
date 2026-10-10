@@ -6,7 +6,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "dev": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/demo-assets.mjs && node scripts/next-dev.mjs dev --port 3001",
-    "build": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/demo-assets.mjs && next build",
+    "build": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/demo-assets.mjs && next build && node scripts/check-default-artifact.mjs",
+    "build:experimental": "pnpm --filter @dspack-studio/shadcn-renderers build:css && node scripts/demo-assets.mjs && NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1 COMPOSER_OUT_DIR=out-experimental next build",
     "test": "node scripts/demo-assets.mjs && vitest run --passWithNoTests",
     "typecheck": "node scripts/demo-assets.mjs && tsc -p tsconfig.json"
   },

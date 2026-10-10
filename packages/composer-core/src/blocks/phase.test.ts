@@ -51,7 +51,7 @@ class TestAdapterError extends Error {
 }
 const deps = {
   classify: (error: unknown): ErrorKind => (error instanceof TestAdapterError ? (error.kind as ErrorKind) : "unknown"),
-  makeError: (kind: string, message: string) => new TestAdapterError(kind, message),
+  makeError: (kind: string, message: string, cause?: unknown) => (cause instanceof TestAdapterError ? cause : new TestAdapterError(kind, message)),
   /** A stub linter: S1 fails on a root with no component; S2 on a component the contract lacks; S3 never. */
   lint: (surface: unknown) => {
     const root = (surface as Json)?.root as Json | undefined;
@@ -134,6 +134,21 @@ describe("createBudget and budgetedInner", () => {
     expect(spent.used).toBe(1);
   });
 
+  it("a plain Error from the inner adapter never escapes: it is wrapped as the typed error, classified provider", async () => {
+    const inner = budgetedInner(scripted([new Error("TypeError: x is not a function")]), createBudget(3), deps);
+    const error = await inner.generate({ system: "", messages: [], jsonSchema: {} }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(TestAdapterError);
+    expect((error as TestAdapterError).kind).toBe("provider");
+    expect((error as TestAdapterError).message).toContain("x is not a function");
+  });
+
+  it("a successful re-issue reports the usage of BOTH calls, so the report and the recorder agree", async () => {
+    const unusable = Object.assign(new TestAdapterError("output", "prose"), { usage: { inputTokens: 1000, outputTokens: 30 } });
+    const inner = budgetedInner(scripted([unusable, { ok: true }]), createBudget(3), deps);
+    const out = await inner.generate({ system: "", messages: [], jsonSchema: {} });
+    expect(out.usage).toEqual({ inputTokens: 1100, outputTokens: 40 });
+  });
+
   it.each(["provider", "policy", "unknown"])("a %s failure is never re-issued", async (kind) => {
     const calls: Array<{ request: Json; context?: GenerateContext }> = [];
     const inner = budgetedInner(scripted([new TestAdapterError(kind, "down"), { never: true }], calls), createBudget(3), deps);
@@ -156,6 +171,7 @@ describe("preloadedAdapter", () => {
     const second = await adapter.generate({ system: "", messages: [{ role: "user", content: "fix" }], jsonSchema: {} });
     expect(second.json).toEqual({ repaired: true });
     expect(calls).toHaveLength(1);
+    expect(calls[0]!.context).toEqual({ attempt: 1 }); // the inner adapter is told which attempt it serves
   });
 });
 
@@ -209,6 +225,18 @@ describe("runBlockPhase", () => {
     expect(result.trace.attempts[0]!.b2.length).toBeGreaterThan(0);
   });
 
+  it("an invalid first call with no budget left for a repair AND a surface attempt falls back at once", async () => {
+    const bad = { ...signUp.call, mode: "sign-ip" };
+    const budget = createBudget(2);
+    const calls: Array<{ request: Json; context?: GenerateContext }> = [];
+    const result = await runBlockPhase(phaseInput(scripted([bad, signUp.call], calls), budget));
+    expect(result.kind).toBe("fallback");
+    if (result.kind !== "fallback") return;
+    expect(result.reason).toMatch(/no budget for a block repair/);
+    expect(calls).toHaveLength(1);
+    expect(budget.remaining()).toBe(1); // the fallback can still make one surface attempt
+  });
+
   it("two invalid calls fall back, classified invalid-call, with both calls counted", async () => {
     const bad = { ...signUp.call, mode: "sign-ip" };
     const budget = createBudget(3);
@@ -236,10 +264,12 @@ describe("runBlockPhase", () => {
     expect(budget.used).toBe(1);
   });
 
-  it("an unclassifiable error (a plain Error) is treated as a provider failure, never rethrown", async () => {
+  it("an unclassifiable error (a plain Error) is wrapped by the budgeted adapter and treated as a provider failure, never rethrown", async () => {
     const result = await runBlockPhase(phaseInput(scripted([new Error("boom")])));
     expect(result.kind).toBe("provider-failure");
-    if (result.kind === "provider-failure") expect(result.classification).toBe("unknown");
+    if (result.kind !== "provider-failure") return;
+    expect(result.classification).toBe("provider");
+    expect(result.error).toBeInstanceOf(TestAdapterError);
   });
 
   it("a provider failure on the block REPAIR keeps the first attempt's record and classification", async () => {

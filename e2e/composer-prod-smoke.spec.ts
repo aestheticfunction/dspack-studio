@@ -612,6 +612,45 @@ test("client traffic carries no private hosts, local paths, or key material", as
   }
 });
 
+test("a seeded experimental preference changes nothing in the default build: no block row, no Settings section, today's plan request", async ({ page }) => {
+  // The flag is folded away at build time, so the preference key is never
+  // read. Stubbed routes keep this agent-free and deterministic wherever it
+  // runs, the deployed site included.
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  const planBodies: Array<Record<string, any>> = [];
+  await page.route("**/api/propose", (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}") as Record<string, any>;
+    if (!("$defs" in (body.jsonSchema ?? {}))) planBodies.push(body);
+    return route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }),
+    });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem("composer.experimental.v1", JSON.stringify({ blocks: true }));
+  });
+  await page.goto("/");
+  await newProject(page, "shadcn", "Seeded");
+  await page.getByTestId("nav-settings").click();
+  await expect(page.locator("#experimental-h")).toHaveCount(0);
+  await expect(page.getByTestId("experimental-blocks")).toHaveCount(0);
+
+  await page.getByTestId("nav-build").click();
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill("a sign-in form with email and password");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-failure-1")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("build-block-1")).toHaveCount(0);
+  await expect(page.getByTestId("build-block-note-1")).toHaveCount(0);
+  expect(planBodies).toHaveLength(1);
+  expect(planBodies[0]!.jsonSchema.properties).not.toHaveProperty("block");
+  expect(planBodies[0]!.jsonSchema.required).not.toContain("block");
+  expect(planBodies[0]).not.toHaveProperty("maxCalls");
+});
+
 test("the default build ships no interface-block code (docs/BLOCKS.md: blocks stay out of default builds)", () => {
   // Scans the served artifact on disk, so a lazily loaded chunk cannot hide it.
   const chunks = fileURLToPath(new URL("../apps/composer/out/_next/static/chunks/", import.meta.url));
@@ -626,7 +665,7 @@ test("the default build ships no interface-block code (docs/BLOCKS.md: blocks st
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
     const body = readFileSync(file, "utf8");
-    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table"]) {
+    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime"]) {
       expect(body.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   }

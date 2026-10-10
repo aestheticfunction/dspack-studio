@@ -17,6 +17,7 @@ import { Eyebrow } from "../ui";
 import { agentTestProvider } from "../agent-client";
 import { OLLAMA_DEFAULT_URL, OPENAI_DEFAULT_URL, modelOf, localKindOf, type LocalKind } from "../providers";
 import { THEMES, getStoredTheme, applyTheme, type ThemeId } from "../appearance";
+import type { ExperimentalPreferences } from "../experimental";
 
 type TestState = { status: "idle" | "testing" | "ok" | "error"; models: string[]; error?: string };
 const IDLE: TestState = { status: "idle", models: [] };
@@ -33,6 +34,8 @@ export function SettingsView() {
     configureLocalProvider,
     agentUp,
     mode,
+    experimental,
+    setExperimental,
   } = useComposer();
   const [theme, setTheme] = useState<ThemeId>("default");
   useEffect(() => setTheme(getStoredTheme()), []);
@@ -303,7 +306,69 @@ export function SettingsView() {
           ))}
         </div>
       </section>
+
+      {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && <ExperimentalSection experimental={experimental} setExperimental={setExperimental} />}
     </div>
+  );
+}
+
+/**
+ * Interface blocks (experimental; docs/BLOCKS.md). Rendered only in an
+ * experimental build: the literal flag check above folds this away in the
+ * default build, and the block status is read through the guarded import.
+ */
+function ExperimentalSection({ experimental, setExperimental }: { experimental: ExperimentalPreferences; setExperimental: (next: ExperimentalPreferences) => void }) {
+  type Status = Array<{ referenceId: string; label: string; binding: string; usable: Array<{ id: string; name: string; status: string }>; disabled: Array<{ block: string; issues: string[] }>; issues: string[] }>;
+  const [status, setStatus] = useState<Status | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      void import("../../experimental/blocks-runtime")
+        .then(async (runtime) => {
+          const next = await runtime.experimentalStatus();
+          if (!cancelled) setStatus(next);
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return (
+    <section aria-labelledby="experimental-h" style={{ marginTop: "clamp(32px,5vw,52px)" }}>
+      <h2 id="experimental-h" className="af-h2" style={{ marginBottom: 6 }}>
+        Experimental
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--fg-body)", maxWidth: 640 }}>
+        This is an experimental build. Interface blocks are governed interface patterns with typed data, state, and host-owned actions: the
+        model fills a small call, and deterministic machinery expands it into an ordinary surface before every gate. They are offered only to
+        packaged reference projects and example sessions on their unedited design system, built in the browser. Composer never executes an
+        action, and nothing here changes the default build.
+      </p>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, margin: "10px 0" }}>
+        <input type="checkbox" checked={experimental.blocks} onChange={(e) => setExperimental({ blocks: e.target.checked })} data-testid="experimental-blocks" />
+        Use interface blocks when a goal matches one
+      </label>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: 12, fontFamily: "var(--mono)" }} data-testid="experimental-blocks-status">
+        {status === null && <li style={{ color: "var(--fg-dim)" }}>Reading the draft blocks…</li>}
+        {(status ?? []).map((ref) => (
+          <li key={ref.referenceId} style={{ padding: "4px 0", borderTop: "1px solid var(--line-soft)" }} data-testid={`experimental-blocks-${ref.referenceId}`}>
+            {ref.label}: binding {ref.binding}
+            {ref.usable.length > 0 && <span> · {ref.usable.map((b) => `${b.id} (${b.status})`).join(", ")}</span>}
+            {ref.disabled.map((d) => (
+              <span key={d.block} style={{ display: "block", color: "var(--warn)" }}>
+                {d.block} disabled: {d.issues.join("; ")}
+              </span>
+            ))}
+            {ref.issues.map((issue) => (
+              <span key={issue} style={{ display: "block", color: "var(--err)" }}>
+                {issue}
+              </span>
+            ))}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

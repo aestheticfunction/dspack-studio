@@ -32,6 +32,8 @@ import {
   type ModelCallRecord,
   type Usage,
 } from "@dspack-studio/composer-core";
+// Type-only: erased at compile time, so no block code enters the default bundle.
+import type { GenerateContext } from "@dspack-studio/composer-core/blocks";
 import type { BuildRunInput } from "./agent-client";
 
 /** The active reference's governed documents the hosted pipeline runs over.
@@ -70,7 +72,7 @@ function firstTextNode(node: unknown): { text: string } | null {
  * MONOTONICALLY so a refinement is never a byte-identical no-op (#43). Keep in
  * sync with the agent (candidate for extraction into composer-core).
  */
-function scriptedRunAdapter(surface: unknown, conversation: BuildRunInput["conversation"]): ScriptedAdapter {
+export function scriptedRunAdapter(surface: unknown, conversation: BuildRunInput["conversation"]): ScriptedAdapter {
   if (conversation && conversation.length > 0) {
     const priorRaw = [...conversation].reverse().find((m) => m.role === "assistant")?.content;
     if (priorRaw) {
@@ -103,7 +105,7 @@ function scriptedRunAdapter(surface: unknown, conversation: BuildRunInput["conve
 // loadProfile is pure over the doc; cache per profile object identity so each
 // reference's profile parses once (the reference objects are stable).
 const profileCache = new WeakMap<object, ReturnType<typeof loadProfile>>();
-function loadedProfile(profile: Record<string, unknown>): ReturnType<typeof loadProfile> {
+export function loadedProfile(profile: Record<string, unknown>): ReturnType<typeof loadProfile> {
   let parsed = profileCache.get(profile);
   if (!parsed) {
     parsed = loadProfile(profile as never);
@@ -122,7 +124,7 @@ function loadedProfile(profile: Record<string, unknown>): ReturnType<typeof load
  * so the pipeline records an honest `failed-adapter` outcome in the thread
  * rather than crashing.
  */
-const HOSTED_AI_ID = "hosted-ai:claude-haiku-4.5";
+export const HOSTED_AI_ID = "hosted-ai:claude-haiku-4.5";
 
 type ProposeRequest = { system: string; messages: unknown[]; jsonSchema: unknown };
 
@@ -131,9 +133,11 @@ type ProposeRequest = { system: string; messages: unknown[]; jsonSchema: unknown
  *   provider: the call failed or its result could not be read (timeout,
  *             transport, 5xx, a non-JSON 200, a fetch that threw);
  *   output:   the model answered, but not with a usable proposal;
- *   policy:   the endpoint refused the request (rate limit, size, shape).
+ *   policy:   the endpoint refused the request (rate limit, size, shape);
+ *   budget:   no request was made: the run's model-call budget was spent
+ *             (interface blocks, experimental).
  */
-export type GatewayErrorKind = "provider" | "output" | "policy";
+export type GatewayErrorKind = "provider" | "output" | "policy" | "budget";
 
 export class GatewayError extends AdapterOutputError {
   constructor(
@@ -170,10 +174,14 @@ function errorKind(status: number, body: Record<string, unknown> | undefined): G
  */
 function callRecords(
   body: Record<string, unknown> | undefined,
-  at: { operation: CallOperation; attempt?: number },
+  at: { operation: CallOperation; attempt?: number; reissue?: true },
   fallback: { outcome: ModelCallRecord["outcome"]; durationMs: number },
 ): ModelCallRecord[] {
-  const where = { operation: at.operation, ...(at.attempt !== undefined ? { attempt: at.attempt } : {}) };
+  const where = {
+    operation: at.operation,
+    ...(at.attempt !== undefined ? { attempt: at.attempt } : {}),
+    ...(at.reissue ? { reissue: true as const } : {}),
+  };
   const model = typeof body?.model === "string" ? { model: body.model } : {};
   if (Array.isArray(body?.calls)) {
     if (body.calls.length === 0) return [{ ...where, source: "none", outcome: "refused", durationMs: fallback.durationMs }];
@@ -210,6 +218,7 @@ const FAILURE_OUTCOME: Record<GatewayErrorKind, ModelCallRecord["outcome"]> = {
   provider: "provider-error",
   output: "unusable-output",
   policy: "refused",
+  budget: "refused",
 };
 
 /**
@@ -218,9 +227,13 @@ const FAILURE_OUTCOME: Record<GatewayErrorKind, ModelCallRecord["outcome"]> = {
  */
 async function propose(
   request: ProposeRequest,
-  options: { operation: CallOperation; attempt?: number; recorder?: CallRecorder; maxCalls?: 1 | 2 },
+  options: { operation: CallOperation; attempt?: number; reissue?: true; recorder?: CallRecorder; maxCalls?: 1 | 2 },
 ): Promise<{ json: unknown; raw?: string; model?: string; usage?: Usage; calls: ModelCallRecord[]; durationMs: number }> {
-  const at = { operation: options.operation, ...(options.attempt !== undefined ? { attempt: options.attempt } : {}) };
+  const at = {
+    operation: options.operation,
+    ...(options.attempt !== undefined ? { attempt: options.attempt } : {}),
+    ...(options.reissue ? { reissue: true as const } : {}),
+  };
   const started = performance.now();
   const settle = (body: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
     const durationMs = performance.now() - started;
@@ -287,17 +300,27 @@ async function propose(
  * AdapterOutputError), so the n-th call serves attempt n: attempt 0 is the
  * generation (or refinement), later attempts are repairs. `maxCalls` caps the
  * Worker's provider calls per request; omitted, the request bytes are today's.
+ *
+ * Block mode (experimental) passes a context the pipeline never does: the
+ * operation (block, block-repair), the attempt it serves (after a preloaded
+ * attempt 0 the count here would be wrong), and a re-issue of the identical
+ * request, which keeps its attempt and is flagged on the record.
  */
 export function gatewayAdapter(options: { recorder?: CallRecorder; refinement?: boolean; maxCalls?: 1 | 2 } = {}) {
   let attempts = 0;
+  let blockAttempts = 0;
+  let last = 0;
   return {
     id: HOSTED_AI_ID,
-    async generate(request: ProposeRequest) {
-      const attempt = attempts++;
-      const operation: CallOperation = attempt > 0 ? "repair" : options.refinement ? "refine" : "generate";
+    async generate(request: ProposeRequest, context?: GenerateContext) {
+      const blockOp = context?.operation;
+      const attempt = context?.attempt ?? (context?.reissue ? last : blockOp ? blockAttempts++ : attempts++);
+      last = attempt;
+      const operation: CallOperation = blockOp ?? (attempt > 0 ? "repair" : options.refinement ? "refine" : "generate");
       const result = await propose(request, {
         operation,
         attempt,
+        ...(context?.reissue ? { reissue: true as const } : {}),
         ...(options.recorder ? { recorder: options.recorder } : {}),
         ...(options.maxCalls !== undefined ? { maxCalls: options.maxCalls } : {}),
       });
@@ -330,19 +353,27 @@ export async function runGatewayRequest(
 /**
  * The scripted twin under the same accounting: every attempt is recorded as
  * reaching no model, so a scripted receipt never shows provider-shaped zeros.
+ * Exported for the experimental block runtime, which wraps its own scripted
+ * block script the same way.
  */
-function recordedScripted(adapter: ScriptedAdapter, recorder: CallRecorder | undefined, refinement: boolean) {
+export function recordedScripted(
+  adapter: { id: string; generate(request: Parameters<ScriptedAdapter["generate"]>[0], context?: GenerateContext): Promise<Awaited<ReturnType<ScriptedAdapter["generate"]>>> },
+  recorder: CallRecorder | undefined,
+  refinement: boolean,
+) {
   let attempts = 0;
+  let last = 0;
   return {
     id: adapter.id,
-    async generate(request: Parameters<ScriptedAdapter["generate"]>[0]) {
-      const attempt = attempts++;
-      const operation: CallOperation = attempt > 0 ? "repair" : refinement ? "refine" : "generate";
+    async generate(request: Parameters<ScriptedAdapter["generate"]>[0], context?: GenerateContext) {
+      const attempt = context?.attempt ?? (context?.reissue ? last : attempts++);
+      last = attempt;
+      const operation: CallOperation = context?.operation ?? (attempt > 0 ? "repair" : refinement ? "refine" : "generate");
       const started = performance.now();
       const record = (outcome: ModelCallRecord["outcome"]) =>
         recorder?.record({ operation, attempt, source: "none", durationMs: performance.now() - started, outcome });
       try {
-        const result = await adapter.generate(request);
+        const result = await adapter.generate(request, context);
         record("ok");
         return result;
       } catch (error) {
@@ -365,11 +396,21 @@ export interface HostedRunHandlers {
  * pipeline can't be interrupted mid-attempt, but cancel() stops further events
  * from reaching the (possibly unmounted) caller.
  */
+/**
+ * Interface blocks (experimental): the block run a build was given, decided
+ * by the caller (apps/composer/experimental/blocks-runtime.ts). Opaque here:
+ * the default bundle carries no block code, and this branch is reached only
+ * under the literal flag check, which a default build folds away.
+ */
+export interface HostedBlockRun {
+  readonly kind: string;
+}
+
 export function streamHostedBuild(
   input: BuildRunInput,
   handlers: HostedRunHandlers,
   reference: HostedReference,
-  options: { recorder?: CallRecorder } = {},
+  options: { recorder?: CallRecorder; block?: HostedBlockRun } = {},
 ): { cancel(): void } {
   let cancelled = false;
   const emit = (event: Record<string, unknown>) => {
@@ -383,6 +424,24 @@ export function streamHostedBuild(
       const intent = input.intent || intents[0]?.id || "";
       const modelRef = input.modelRef || "scripted";
       const refinement = !!input.conversation && input.conversation.length > 0;
+
+      if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && options.block && (modelRef === "hosted-ai" || modelRef === "scripted")) {
+        // Block mode: the same pipeline, with its attempt 0 decided by the
+        // block phase. Everything lives in the experimental runtime chunk.
+        const runtime = await import("../experimental/blocks-runtime");
+        await runtime.runHostedBlockBuild({
+          run: options.block,
+          input,
+          intent,
+          modelRef,
+          refinement,
+          reference: { contract, profile: loadedProfile(reference.profile) },
+          recorder: options.recorder,
+          emit,
+        });
+        handlers.onComplete();
+        return;
+      }
 
       // The ONLY thing that varies by mode is the adapter answering the
       // proposal. Everything after — S1/S2/S3, repair, emit, audit — is the

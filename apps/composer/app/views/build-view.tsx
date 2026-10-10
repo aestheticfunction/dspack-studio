@@ -123,6 +123,16 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
       <span style={{ color: "var(--info)" }}>{label}</span>
       {also.length > 0 && <span> (also touches {also.join(", ")})</span>}
       {turn.plan.reason && <span> — {turn.plan.reason}</span>}
+      {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && (turn.plan.block || turn.blockNote) && (
+        <span data-testid={`build-block-note-${turn.id}`} style={{ display: "block", color: "var(--fg-dim)", marginTop: 2 }}>
+          {turn.plan.block?.id
+            ? `Interface block: ${turn.plan.block.id} (${turn.plan.block.reason}).`
+            : turn.plan.block
+              ? `No interface block: ${turn.plan.block.reason}${turn.plan.block.rejected ? ` (${turn.plan.block.rejected} was withdrawn)` : ""}.`
+              : ""}
+          {turn.blockNote ? ` ${turn.blockNote}` : ""}
+        </span>
+      )}
       {turn.modelRef === "scripted" && !turn.refinement && (
         <span style={{ display: "block", color: "var(--warn)", marginTop: 2 }}>
           Scripted mode replays a surface this project already has for this context — switch to a hosted or local model
@@ -203,6 +213,36 @@ function TurnCanvas({ turn }: { turn: BuildTurn }) {
 }
 
 /**
+ * Interface blocks (experimental): the block phase as the first row of the
+ * pipeline detail, read from the trace the turn carries (plain JSON; no block
+ * code is imported here). Default builds never render it: the literal flag
+ * check folds the row away, and no turn carries a trace.
+ */
+function BlockRow({ turn }: { turn: BuildTurn }) {
+  const trace = turn.progress.block as Record<string, any> | undefined;
+  if (!trace) return null;
+  const selected = (trace.selected ?? {}) as Record<string, any>;
+  const attempts = (trace.attempts ?? []) as Array<Record<string, any>>;
+  const calls = attempts
+    .map((a, i) => `call ${i + 1} ${a.outcome}${a.b1?.length ? ` · B1 ${a.b1.length}` : ""}${a.b2?.length ? ` · B2 ${a.b2.length}` : ""}`)
+    .join("; ");
+  const outcome =
+    trace.outcome === "block"
+      ? `expanded · S1 S2 checked · digest ${String(trace.expansionDigest ?? "").slice(0, 12)}`
+      : trace.outcome === "fallback"
+        ? `fallback (${trace.fallback?.classification}): ${trace.fallback?.reason}`
+        : trace.outcome === "provider-failure"
+          ? `provider failure (${trace.providerError?.classification}): ${trace.providerError?.message}`
+          : `invariant failure: ${((trace.invariant ?? []) as string[]).join("; ")}`;
+  const n = Number(trace.providerCalls ?? 0);
+  return (
+    <li data-testid={`build-block-${turn.id}`} style={{ padding: "3px 0", color: trace.outcome === "block" ? "var(--info)" : "var(--warn)" }}>
+      block {selected.id} v{selected.version} · {n} model call{n === 1 ? "" : "s"} · {calls || "no calls"} · {outcome}
+    </li>
+  );
+}
+
+/**
  * What the turn cost, once it has ended: its model calls (planning included,
  * failed calls included) with the provider-reported tokens, and its timings.
  * Never an estimate; a scripted turn says it made no model call.
@@ -260,6 +300,7 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
           <details style={{ marginBottom: 4 }}>
             <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--fg-dim)" }}>validation detail (gates, repairs, emit)</summary>
             <ol data-testid={`build-pipeline-${turn.id}`} style={{ listStyle: "none", padding: "4px 0 0", fontSize: 12, fontFamily: "var(--mono)" }}>
+              {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && turn.progress.block && <BlockRow turn={turn} />}
               {turn.progress.attempts.map((attempt) => (
                 <li key={attempt.index} style={{ padding: "3px 0" }}>
                   attempt {attempt.index + 1}:{" "}
@@ -302,7 +343,7 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       <TurnReceipt turn={turn} />
 
       {(() => {
-        const failure = buildFailure(turn.progress);
+        const failure = buildFailure(turn.progress, { calls: turn.calls });
         if (!failure) return null;
         return (
           <div data-testid={`build-failure-${turn.id}`} style={{ border: "1px solid var(--err)", borderRadius: 2, padding: "8px 10px", marginTop: 8 }}>

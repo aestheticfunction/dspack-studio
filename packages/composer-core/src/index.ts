@@ -88,6 +88,7 @@ export {
   planDeterministic,
   reconcilePlan,
   intentLabel,
+  type BlockChoice,
   type GoalPlan,
 } from "./plan";
 export {

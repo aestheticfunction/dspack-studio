@@ -805,7 +805,12 @@ describe("interface blocks: the dspack.block event and the invariant failure (Ph
       },
       { type: "RUN_FINISHED" },
     ]);
-    const failure = buildFailure(turn);
+    const calls = [
+      { operation: "block", source: "provider" },
+      { operation: "block-repair", source: "provider" },
+      { operation: "repair", source: "provider" },
+    ];
+    const failure = buildFailure(turn, { calls });
     expect(failure?.kind).toBe("repair-exhausted");
     expect(failure?.headline).toMatch(/3 model calls used: 2 block, 1 surface/);
     expect(failure?.reasons.map((r) => r.code)).toContain("r1");
@@ -819,8 +824,25 @@ describe("interface blocks: the dspack.block event and the invariant failure (Ph
       { type: "CUSTOM", name: "dspack.audit", value: { outcome: "failed-adapter", exitCode: 1, report: { generation: { adapterId: "hosted-ai:x", maxRepairs: 0 }, attempts: [{ index: 0, adapterError: "[hosted-ai:x] busy" }] } } },
       { type: "RUN_FINISHED" },
     ]);
-    const failure = buildFailure(turn);
+    const failure = buildFailure(turn, { calls: [{ operation: "block", source: "provider" }, { operation: "block-repair", source: "provider" }, { operation: "generate", source: "provider" }] });
     expect(failure?.kind).toBe("adapter");
     expect(failure?.reasons.map((r) => r.message).join(" ")).toMatch(/2 block calls/);
+    expect(failure?.reasons.map((r) => r.message).join(" ")).toMatch(/3 model calls used: 2 block, 1 surface/);
+  });
+
+  it("a provider failure DURING the block call names the block call, and the replayed attempt is not counted as a call", () => {
+    const turn = foldBuildEvents([
+      { type: "RUN_STARTED" },
+      { type: "CUSTOM", name: "dspack.block", value: trace("provider-failure", { providerCalls: 2, attempts: [{ index: 0, outcome: "invalid", b1: [], b2: [] }, { index: 1, outcome: "provider-error", b1: [], b2: [] }], providerError: { classification: "policy", message: "rate limited" } }) },
+      { type: "STEP_STARTED", stepName: "attempt-0" },
+      { type: "CUSTOM", name: "dspack.audit", value: { outcome: "failed-adapter", exitCode: 1, report: { generation: { adapterId: "hosted-ai:x", maxRepairs: 0 }, attempts: [{ index: 0, adapterError: "[hosted-ai:x] rate limited" }] } } },
+      { type: "RUN_FINISHED" },
+    ]);
+    const failure = buildFailure(turn, { calls: [{ operation: "block", source: "provider" }, { operation: "block-repair", source: "provider" }] });
+    expect(failure?.kind).toBe("adapter");
+    expect(failure?.headline).toMatch(/during the block call/);
+    expect(failure?.stoppedAt).toBe("block · call 2");
+    expect(failure?.reasons.map((r) => r.code)).toContain("policy");
+    expect(failure?.reasons.map((r) => r.message).join(" ")).toMatch(/2 model calls used: 2 block, 0 surface/);
   });
 });

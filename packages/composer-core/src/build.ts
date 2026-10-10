@@ -296,7 +296,7 @@ function attemptReasons(attempt: Record<string, any> | undefined): BuildFailureR
  * not finished). Never invents a cause: an outcome with no structured
  * evidence returns kind "unknown" and says so plainly.
  */
-export function buildFailure(progress: BuildTurnProgress): BuildFailure | null {
+export function buildFailure(progress: BuildTurnProgress, options: { calls?: ReadonlyArray<{ operation: string; source: string }> } = {}): BuildFailure | null {
   if (progress.status === "error") {
     return {
       kind: "adapter",
@@ -323,20 +323,33 @@ export function buildFailure(progress: BuildTurnProgress): BuildFailure | null {
   const last = attempts.at(-1);
   const emitted = report.emitted as Record<string, any> | undefined;
   // After a block phase, the budget the pipeline had left is part of the why.
-  const blockCalls = Number(progress.block?.providerCalls ?? 0);
-  const surfaceCalls = attempts.length - (progress.block?.outcome === "block" ? 1 : 0);
+  // Calls are counted from the recorder when the turn has one (a replayed
+  // provider failure is an attempt that made no call); else from the trace
+  // and the report's attempts.
+  const provider = (options.calls ?? []).filter((c) => c.source === "provider");
+  const blockCalls = options.calls ? provider.filter((c) => c.operation === "block" || c.operation === "block-repair").length : Number(progress.block?.providerCalls ?? 0);
+  const surfaceCalls = options.calls
+    ? provider.filter((c) => c.operation === "generate" || c.operation === "refine" || c.operation === "repair").length
+    : attempts.filter((a) => a.usage !== undefined || a.adapterError !== undefined).length - (progress.block?.outcome === "block" ? 0 : 0);
   const budgetNote = progress.block
     ? `${blockCalls + surfaceCalls} model calls used: ${blockCalls} block, ${surfaceCalls} surface`
     : "";
 
   if (progress.outcome === "failed-adapter") {
     const message = String(last?.adapterError ?? "the model adapter failed without a message");
+    const duringBlock = progress.block?.outcome === "provider-failure";
+    const spent = /budget/.test(message) && !!progress.block;
     return {
       kind: "adapter",
-      headline: "The model provider could not produce a result — nothing was generated.",
-      stoppedAt: `attempt ${(last?.index ?? 0) + 1} · provider`,
+      headline: spent
+        ? "The model-call budget was spent before a surface could pass."
+        : duringBlock
+          ? "The model provider failed during the block call — nothing was generated."
+          : "The model provider could not produce a result — nothing was generated.",
+      stoppedAt: duringBlock ? `block · call ${(progress.block?.attempts as unknown[] | undefined)?.length ?? 1}` : `attempt ${(last?.index ?? 0) + 1} · provider`,
       reasons: [
         { code: report.generation?.adapterId, message },
+        ...(duringBlock && progress.block?.providerError ? [{ code: String(progress.block.providerError.classification), message: String(progress.block.providerError.message) }] : []),
         ...(progress.block ? [{ code: "block", message: `${blockCalls} block call${blockCalls === 1 ? "" : "s"} preceded this run (${progress.block.outcome}); ${budgetNote}` }] : []),
       ],
     };
