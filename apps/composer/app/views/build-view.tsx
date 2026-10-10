@@ -21,6 +21,7 @@ import {
   canRefineTurn,
   describeCalls,
   describeTimings,
+  flowPlanSourceNote,
   intentLabel,
   type FlowPlan,
 } from "@dspack-studio/composer-core";
@@ -719,9 +720,7 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
                   data-testid="flow-plan-name"
                 />
                 <span style={{ fontSize: 12, color: "var(--fg-dim)" }} data-testid="flow-plan-source">
-                  {flowPlan.source === "scripted"
-                    ? flowPlan.reason || "Deterministic outline — no model call."
-                    : "Proposed by the model — edit anything before building."}
+                  {flowPlanSourceNote(flowPlan, flowComposition.planCalls)}
                 </span>
                 {flowComposition.planCalls && (
                   <span style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--fg-dim)" }} data-testid="flow-plan-receipt">

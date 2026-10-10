@@ -94,6 +94,7 @@ export {
   buildFlowPlanRequest,
   flowPlanSchema,
   flowPlanDeterministic,
+  flowPlanSourceNote,
   reconcileFlowPlan,
   type FlowPlan,
   type FlowPlanStep,

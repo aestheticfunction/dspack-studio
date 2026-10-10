@@ -120,6 +120,36 @@ test("every turn states what it cost: scripted makes no model call; a failed hos
   await expect(receipt).toContainText(/planning \d+\.\d s/);
 });
 
+test("a hosted flow plan that falls back to the deterministic outline says so, and never claims no model call", async ({ page }) => {
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  await page.route("**/api/propose", (route) =>
+    route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "provider-unavailable",
+        cause: "provider",
+        message: "Hosted generation did not return a usable proposal.",
+        usage: null,
+        calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 45000 }],
+      }),
+    }),
+  );
+  await page.goto("/");
+  await newProject(page, "shadcn", "Flow fallback");
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-mode-flow").click();
+  await page.getByTestId("build-flow-goal").fill("Show one order in full detail. Let people delete their account.");
+  await page.getByTestId("flow-plan-run").click();
+
+  await expect(page.getByTestId("flow-plan-editor")).toBeVisible();
+  await expect(page.getByTestId("flow-plan-source")).toContainText(/deterministic outline/i);
+  await expect(page.getByTestId("flow-plan-source")).not.toContainText(/no model call/i);
+  await expect(page.getByTestId("flow-plan-receipt")).toHaveText("1 model call (flow-plan 1) · usage not reported");
+});
+
 test("the saved project appears on the hub and reopens", async ({ page }) => {
   await page.goto("/");
   await newProject(page, "shadcn", "Reopen me");

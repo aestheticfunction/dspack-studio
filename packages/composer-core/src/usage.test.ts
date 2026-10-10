@@ -55,7 +55,24 @@ describe("aggregateUsage", () => {
   });
 
   it("an empty run is all zeros", () => {
-    expect(aggregateUsage([])).toEqual({ provider: { inputTokens: 0, outputTokens: 0, calls: 0 }, unreported: 0, none: 0 });
+    expect(aggregateUsage([])).toEqual({
+      provider: { inputTokens: 0, outputTokens: 0, calls: 0 },
+      unreported: 0,
+      unreportedInput: 0,
+      unreportedOutput: 0,
+      none: 0,
+    });
+  });
+
+  it("counts a call missing ONE figure against that figure, not as a zero", () => {
+    const totals = aggregateUsage([
+      { operation: "generate", attempt: 0, subCall: 0, source: "provider", inputTokens: 900, outputTokens: 40, outcome: "unusable-output" },
+      { operation: "generate", attempt: 0, subCall: 1, source: "provider", inputTokens: 900, outcome: "ok" },
+      { operation: "repair", attempt: 1, source: "provider", outcome: "provider-error" },
+    ]);
+    expect(totals.unreported).toBe(1);
+    expect(totals.unreportedInput).toBe(1);
+    expect(totals.unreportedOutput).toBe(2);
   });
 });
 
@@ -100,6 +117,11 @@ describe("callsFromReport (paths with no transport recorder)", () => {
     expect(calls[0]).toMatchObject({ operation: "refine", attempt: 0, source: "provider", inputTokens: 3000, outputTokens: 400, model: "gemma4:e4b", outcome: "ok" });
     expect(calls[1]).toMatchObject({ operation: "repair", attempt: 1, source: "provider", outcome: "provider-error" });
     expect(calls[1]?.inputTokens).toBeUndefined();
+  });
+
+  it("a scripted attempt that threw is recorded as failed, not ok", () => {
+    const report = { generation: { adapterId: "fake:scripted" }, attempts: [{ index: 0, adapterError: "[fake:scripted] scripted failure" }] };
+    expect(callsFromReport(report)[0]).toMatchObject({ source: "none", outcome: "provider-error" });
   });
 
   it("no report, no calls", () => {
@@ -203,6 +225,18 @@ describe("receipts", () => {
         { operation: "repair", attempt: 3, source: "none", outcome: "refused" },
       ]),
     ).toBe("2 model calls (repair 2) · 900 input + 10 output tokens, provider-reported · 1 call reported no usage · 1 request refused before reaching a model");
+  });
+
+  it("a figure some calls did not report is named, never shown as a provider-reported zero", () => {
+    expect(describeCalls([{ operation: "generate", attempt: 0, source: "provider", inputTokens: 900, outcome: "ok" }])).toBe(
+      "1 model call (generate 1) · 900 input tokens, provider-reported · output not reported for 1 call",
+    );
+    expect(
+      describeCalls([
+        { operation: "generate", attempt: 0, subCall: 0, source: "provider", inputTokens: 900, outputTokens: 40, outcome: "unusable-output" },
+        { operation: "generate", attempt: 0, subCall: 1, source: "provider", inputTokens: 900, outcome: "ok" },
+      ]),
+    ).toBe("2 model calls (generate 2) · 1,800 input + 40 output tokens, provider-reported · output not reported for 1 call");
   });
 
   it("scripted turns make no model calls; a refinement makes no planning call", () => {

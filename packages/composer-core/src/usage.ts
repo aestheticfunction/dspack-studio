@@ -70,15 +70,26 @@ export function normalizeUsage(raw: unknown): Usage | undefined {
 }
 
 export interface UsageTotals {
+  /** Sums of what WAS reported; a missing figure adds nothing here. */
   provider: { inputTokens: number; outputTokens: number; calls: number };
   /** Calls that reached a provider but reported no token counts. */
   unreported: number;
+  /** Provider calls missing the input figure (fully unreported ones included). */
+  unreportedInput: number;
+  /** Provider calls missing the output figure (fully unreported ones included). */
+  unreportedOutput: number;
   /** Requests that never reached a model (scripted, or refused before a provider call). */
   none: number;
 }
 
 export function aggregateUsage(records: readonly ModelCallRecord[]): UsageTotals {
-  const totals: UsageTotals = { provider: { inputTokens: 0, outputTokens: 0, calls: 0 }, unreported: 0, none: 0 };
+  const totals: UsageTotals = {
+    provider: { inputTokens: 0, outputTokens: 0, calls: 0 },
+    unreported: 0,
+    unreportedInput: 0,
+    unreportedOutput: 0,
+    none: 0,
+  };
   for (const r of records) {
     if (r.source === "none") {
       totals.none++;
@@ -86,6 +97,8 @@ export function aggregateUsage(records: readonly ModelCallRecord[]): UsageTotals
     }
     totals.provider.calls++;
     if (r.inputTokens === undefined && r.outputTokens === undefined) totals.unreported++;
+    if (r.inputTokens === undefined) totals.unreportedInput++;
+    if (r.outputTokens === undefined) totals.unreportedOutput++;
     totals.provider.inputTokens += r.inputTokens ?? 0;
     totals.provider.outputTokens += r.outputTokens ?? 0;
   }
@@ -109,7 +122,7 @@ function isScripted(report: Report, attempt: Record<string, unknown>): boolean {
 export function callsFromReport(report: Report, options: { refinement?: boolean } = {}): ModelCallRecord[] {
   return (report?.attempts ?? []).map((attempt, i) => {
     const operation: CallOperation = i === 0 ? (options.refinement ? "refine" : "generate") : "repair";
-    if (isScripted(report, attempt)) return { operation, attempt: i, source: "none", outcome: "ok" };
+    if (isScripted(report, attempt)) return { operation, attempt: i, source: "none", outcome: attempt.adapterError ? "provider-error" : "ok" };
     const usage = normalizeUsage(attempt.usage);
     return {
       operation,
@@ -222,8 +235,17 @@ export function describeCalls(calls: readonly ModelCallRecord[] | undefined): st
     if (totals.unreported === provider.length) {
       parts.push("usage not reported");
     } else {
-      parts.push(`${grouped(totals.provider.inputTokens)} input + ${grouped(totals.provider.outputTokens)} output tokens, provider-reported`);
+      // Only figures some call reported are shown; a missing one is named.
+      const figures = [
+        totals.unreportedInput < provider.length ? `${grouped(totals.provider.inputTokens)} input` : null,
+        totals.unreportedOutput < provider.length ? `${grouped(totals.provider.outputTokens)} output` : null,
+      ].filter(Boolean);
+      parts.push(`${figures.join(" + ")} tokens, provider-reported`);
       if (totals.unreported > 0) parts.push(`${plural(totals.unreported, "call")} reported no usage`);
+      const inputGaps = totals.unreportedInput - totals.unreported;
+      const outputGaps = totals.unreportedOutput - totals.unreported;
+      if (inputGaps > 0) parts.push(`input not reported for ${plural(inputGaps, "call")}`);
+      if (outputGaps > 0) parts.push(`output not reported for ${plural(outputGaps, "call")}`);
     }
   }
   if (refused > 0) parts.push(`${plural(refused, "request")} refused before reaching a model`);

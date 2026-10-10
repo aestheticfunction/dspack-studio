@@ -14,6 +14,7 @@
  * clearly labeled, pre-filling one step per list item or sentence cluster.
  */
 import { planDeterministic } from "./plan";
+import type { ModelCallRecord } from "./usage";
 
 export interface FlowPlanStep {
   /** Short human title — becomes the flow step's title. */
@@ -186,6 +187,19 @@ export function flowPlanDeterministic(goal: string, contract: Record<string, unk
     reason: "Deterministic outline — one step per list item or sentence, no model call. Edit the steps before building.",
     source: "scripted",
   };
+}
+
+/**
+ * The plan's source line, consistent with its receipt. A deterministic
+ * outline that follows a model call (the call failed, or its outline had
+ * fewer than 2 usable steps) is a fallback, and never says "no model call".
+ */
+export function flowPlanSourceNote(plan: FlowPlan, calls: readonly ModelCallRecord[] = []): string {
+  if (plan.source !== "scripted") return "Proposed by the model — edit anything before building.";
+  if (calls.some((c) => c.source === "provider")) {
+    return "The model's outline could not be used, so this is the deterministic outline — one step per list item or sentence. Edit the steps before building.";
+  }
+  return plan.reason || "Deterministic outline — no model call.";
 }
 
 /**
