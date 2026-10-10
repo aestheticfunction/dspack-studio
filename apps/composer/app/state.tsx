@@ -1022,12 +1022,15 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // unmount without taking the plan with it (see FlowComposition).
   const [flowComposition, setFlowComposition] = useState<FlowComposition>(EMPTY_FLOW_COMPOSITION);
   const [buildBusy, setBuildBusy] = useState(false);
-  const [buildModels, setBuildModels] = useState<string[]>(["scripted"]);
   // The auto-select correction below must NOT run against the ["scripted"]
   // placeholder before the first real fetch: that list omits "hosted-ai", so
   // correcting against it would silently downgrade a stored, deliberately-
-  // chosen Hosted to scripted on every reload. Flip once a real fetch lands.
-  const modelsLoaded = useRef(false);
+  // chosen Hosted to scripted on every reload. `loaded` lives in the SAME
+  // state as the list it describes: as a ref it flipped the moment a fetch
+  // landed, so an effect from a render computed just before (the agent coming
+  // up) read loaded=true beside the stale placeholder and downgraded Hosted.
+  const [models, setModels] = useState<{ list: string[]; loaded: boolean }>({ list: ["scripted"], loaded: false });
+  const buildModels = models.list;
   // Configured local providers (remembered endpoint + model per provider; NO
   // secret) and the active model ref persist across reloads. The OpenAI-
   // compatible key is held in memory for the session only — never written to
@@ -1086,8 +1089,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     const sources = agentUp ? [hostedModels(), agentModels()] : [hostedModels()];
     void Promise.all(sources).then((lists) => {
       if (cancelled) return;
-      modelsLoaded.current = true;
-      setBuildModels([...new Set(lists.flat())]);
+      setModels({ list: [...new Set(lists.flat())], loaded: true });
     });
     return () => {
       cancelled = true;
@@ -1101,14 +1103,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // pre-fetch placeholder: correcting against ["scripted"] would clobber a
   // deliberately chosen Hosted before the real list arrives.
   useEffect(() => {
-    if (!modelsLoaded.current) return;
+    if (!models.loaded) return;
     setActiveModelRaw((cur) => {
       if (cur && (buildModels.includes(cur) || isLocalRef(cur))) return cur;
       if (mode !== "agent" && buildModels.includes("hosted-ai")) return "hosted-ai";
       if (agentUp && buildModels.some((m) => m.startsWith("ollama:"))) return buildModels.find((m) => m.startsWith("ollama:"))!;
       return buildModels[0] ?? "scripted";
     });
-  }, [buildModels, mode, agentUp]);
+  }, [models, buildModels, mode, agentUp]);
 
   // What Build's model switch offers: the auto list plus any configured local
   // provider and the current active ref (so an OpenAI/custom model is present).
