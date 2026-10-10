@@ -32,6 +32,22 @@ export interface GoalPlan {
   reason: string;
   /** How the plan was produced — for honesty in the UI and receipts. */
   source: "model" | "scripted";
+  /**
+   * Interface blocks (experimental, Phase 1A): the block this goal maps to,
+   * or null with the reason. Present only on builds that were offered blocks;
+   * a flag-off or ineligible build never carries it.
+   */
+  block?: BlockChoice;
+}
+
+/** A block selection with its provenance. `rejected` names a choice that was
+ *  withdrawn (not eligible, or not serving the plan's intent). */
+export interface BlockChoice {
+  id: string | null;
+  reason: string;
+  /** model: the planner answered; deterministic: the scripted selector; omitted: the planner did not answer. */
+  source: "model" | "deterministic" | "omitted";
+  rejected?: string;
 }
 
 interface IntentLike {
@@ -123,12 +139,12 @@ const STOP_WORDS = new Set(
     " ",
   ),
 );
-const tokenize = (s: string): string[] =>
+export const tokenize = (s: string): string[] =>
   s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP_WORDS.has(w));
 
 /** Two words "match" when they share a >=4-char prefix — cheap stemming so
  *  delete~deleting, account~accounts, revoke~revoking all count. */
-function wordsMatch(a: string, b: string): boolean {
+export function wordsMatch(a: string, b: string): boolean {
   if (a === b) return true;
   const min = Math.min(a.length, b.length);
   let i = 0;
