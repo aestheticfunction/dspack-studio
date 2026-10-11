@@ -7,7 +7,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createCallRecorder, type ModelCallRecord } from "@dspack-studio/composer-core";
@@ -323,8 +323,8 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       // A request sent whose reply was never read (the invocation was killed) is raised to the most any request can cost,
       // on the record, before anything else is appended; so is one whose settlement was cut off mid-line, which is set
       // aside. A request line cut off itself was never sent, and is set aside at no cost.
-      const request = (usd: number) => JSON.stringify({ at: "2026-10-03T00:00:01.000Z", invocation: "2026-10-03T00:00:00.000Z", usd });
-      const settle = (adjust: number) => JSON.stringify({ at: "2026-10-03T00:00:02.000Z", invocation: "2026-10-03T00:00:00.000Z", adjust, reason: "settled at the reported usage" });
+      const request = (usd: number) => JSON.stringify({ at: "2026-10-03T00:00:01.000Z", invocation: "2026-10-03T00:00:00.000Z", request: "2026-10-03T00:00:00.000Z#1", usd });
+      const settle = (adjust: number) => JSON.stringify({ at: "2026-10-03T00:00:02.000Z", invocation: "2026-10-03T00:00:00.000Z", request: "2026-10-03T00:00:00.000Z#1", adjust, final: 0.5 + adjust, reason: "settled at the reported usage" });
       writeFileSync(join(dir, "pacing.jsonl"), "");
       const read = () => readFileSync(join(dir, "requests.jsonl"), "utf8").split("\n");
       posted = 0;
@@ -377,7 +377,7 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       expect(existsSync(join(dir, "run.lock"))).toBe(false);
       // A lock whose process is gone (a killed invocation) is taken over.
       const gone = spawnSync(process.execPath, ["-e", ""]).pid!;
-      writeFileSync(join(dir, "run.lock"), `${JSON.stringify({ pid: gone, at: "2026-10-01T00:00:00.000Z" })}\n`);
+      writeFileSync(join(dir, "run.lock"), `${JSON.stringify({ pid: gone, host: hostname(), at: "2026-10-01T00:00:00.000Z" })}\n`);
       await expect(invocation(true)).resolves.toMatchObject({ cells: { reused: ARM_COUNT } });
       expect(existsSync(join(dir, "run.lock"))).toBe(false);
     } finally {

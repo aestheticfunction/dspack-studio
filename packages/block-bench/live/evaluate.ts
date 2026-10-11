@@ -15,23 +15,26 @@
  * is appended to pacing.jsonl, and a cut-off last line is set aside in
  * runs.torn.jsonl. A hosted run also carries a cumulative cap and a dollar
  * ceiling: the manifest records the requests the whole run may send and the
- * dollars it may commit, requests.jsonl records every request with its
- * worst case before it is sent and how that reservation ended after its
- * reply (released, settled at the reported usage, or raised), and each
+ * dollars it may commit, requests.jsonl records every request, by id, with
+ * its worst case, on the disk before it is sent, and how that reservation
+ * ended after its reply (released, settled at the reported usage, or
+ * raised), in whole nanodollars, and each
  * invocation's pacer is bound to those totals, so no number of resumes
  * sends more, or spends more, than the run allows. One
  * invocation runs a directory at a time (run.lock), so two cannot spend the
  * same cap or interleave the logs.
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { appendFileSync, closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";
+import { hostname } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
-import { REQUEST_USD_BOUND } from "./cost";
+import { REQUEST_USD_BOUND, toNanos } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
-import { PacingCapReached, type RunLedger } from "./pacing";
+import { LockLost, PacingCapReached, RecordUnwritable, type RunLedger } from "./pacing";
 import type { Preflight } from "./preflight";
 import type { Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
@@ -93,8 +96,8 @@ export interface EvaluationResult {
   preflight: Preflight;
   /** What the provider reports about itself (pacing, waits), this invocation. */
   telemetry?: Record<string, unknown>;
-  /** Every invocation's telemetry, this one included, oldest first. */
-  invocations: Array<{ at: string; telemetry: Record<string, unknown> }>;
+  /** Every invocation's telemetry, this one included, oldest first, with the id its lines carry in requests.jsonl. */
+  invocations: Array<{ at: string; id?: string; telemetry: Record<string, unknown> }>;
   /** Records a re-run replaced: spent, and counted in no arm. */
   superseded: Spend;
   /** The arms this run selected (the manifest's), whether or not each has reached a cell yet. */
@@ -296,72 +299,174 @@ export function priorFromRecord(record: RunRecord, goal: string): PriorResult | 
 
 const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 
-/** Replaced whole, never truncated in place: a crash leaves the old file or the new one. */
-function replaceJson(file: string, value: unknown) {
-  writeJson(`${file}.tmp`, value);
-  renameSync(`${file}.tmp`, file);
+/** The errors a platform or filesystem gives when it cannot sync a directory at all, as opposed to failing to. */
+const CANNOT_SYNC_DIRECTORIES = new Set(["EISDIR", "EINVAL", "ENOTSUP", "EPERM"]);
+
+/** Flushes a directory's entries to the disk (a file created or renamed in it). A real failure to do so is thrown. */
+function syncDirectory(dir: string): void {
+  let fd: number | undefined;
+  try {
+    fd = openSync(dir, "r");
+    fsyncSync(fd);
+  } catch (error) {
+    if (!CANNOT_SYNC_DIRECTORIES.has((error as NodeJS.ErrnoException).code ?? "")) throw error;
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
 }
 
 /**
- * The requests a run recorded before sending them, one line each with its priced worst case; the adjustment recorded
- * after each reply (a release, a settlement at the reported usage, or a raise), which is not a request; and the
- * invocations that recorded them. A request with no price (recorded before the dollar ledger, or unreadable) counts
- * at the most any request can cost.
+ * Writes text through a descriptor opened with `flags` (append, replace, or create exclusively) and syncs it to the
+ * disk before returning. The sync is explicit, never left to an option a later change could drop.
+ */
+function writeDurably(file: string, text: string, flags: "a" | "w" | "wx"): void {
+  const fd = openSync(file, flags);
+  try {
+    const bytes = Buffer.from(text, "utf8");
+    for (let at = 0; at < bytes.length; ) at += writeSync(fd, bytes, at, bytes.length - at);
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+/** Replaced whole, never truncated in place, and on the disk before it is moved into place: a crash leaves the old file or the new one. */
+function replaceJson(file: string, value: unknown) {
+  writeDurably(`${file}.tmp`, `${JSON.stringify(value, null, 2)}\n`, "w");
+  renameSync(`${file}.tmp`, file);
+  syncDirectory(dirname(file));
+}
+
+/**
+ * Appends one line to the run's ledger and syncs it to the disk before returning, so a request is on the record
+ * before it is sent and a crash of the machine cannot take it back. A line that cannot be written stops the run.
+ */
+function appendRecord(file: string, value: unknown): void {
+  try {
+    writeDurably(file, line(value), "a");
+  } catch (error) {
+    throw new RecordUnwritable(file, error);
+  }
+}
+
+/**
+ * Puts the ledger's own directory entry on the disk before an invocation sends anything: created here if it is new,
+ * and synced whatever an earlier invocation managed, so a crash cannot lose the file itself.
+ */
+function settleLedgerEntry(file: string): void {
+  try {
+    writeDurably(file, "", "a");
+    syncDirectory(dirname(file));
+  } catch (error) {
+    throw new RecordUnwritable(file, error);
+  }
+}
+
+/**
+ * The requests a run recorded before sending them, one line each with its id and its priced worst case; the settlement
+ * recorded after each reply (a release, a settlement at the reported usage, or a raise), which names its request and
+ * carries its final amount, and is not a request; and how many requests each invocation recorded. The ledger counts in
+ * whole nanodollars (toNanos), so its sums are exact.
+ *
+ * Each request counts at its settlement, the largest if it has several, in whatever order they were written. One that
+ * has none it could have (its reply was never read, or its settlement could not be written), wherever it sits, is raised
+ * to the most any request can cost, on the record. A settlement whose request has no line is a request that was sent,
+ * counted at least at that most. A request with no id or no price (unreadable, or recorded before either existed)
+ * counts at that most, and no settlement lowers it.
  *
  * The ledger is settled before anything is appended. A cut-off last line is set aside: a request line cut off was
- * never sent, and an adjustment cut off leaves its request unsettled. A request whose reply was never read (the
- * invocation was killed after sending it) is raised to the most any request can cost, on the record.
+ * never sent, and a settlement cut off leaves its request unsettled.
  */
-function readLedger(file: string, settle: { at: string; invocation: string }): { count: number; usd: number; invocations: Set<string> } {
-  const invocations = new Set<string>();
-  if (!existsSync(file)) return { count: 0, usd: 0, invocations };
+function readLedger(file: string, settle: { at: string; invocation: string }): { count: number; nanos: number; invocations: Map<string, number> } {
+  const invocations = new Map<string, number>();
+  if (!existsSync(file)) return { count: 0, nanos: 0, invocations };
   const text = readFileSync(file, "utf8");
   const lines = text.split("\n");
   const torn = lines.pop()!.trim() !== "";
-  let usd = 0;
-  let count = 0;
-  let pending: number | undefined;
-  for (const entry of lines) {
-    let parsed: { invocation?: unknown; usd?: unknown; adjust?: unknown } = {};
+  const bound = toNanos(REQUEST_USD_BOUND);
+  type Entry = { invocation?: unknown; request?: unknown; usd?: unknown; adjust?: unknown; final?: unknown };
+  const entries = lines.map((entry): Entry => {
     try {
-      parsed = JSON.parse(entry) as typeof parsed;
+      const parsed: unknown = JSON.parse(entry);
+      return parsed && typeof parsed === "object" ? (parsed as Entry) : {};
     } catch {
-      /* still counted: a request was recorded */
+      return {}; /* still counted: a request was recorded */
     }
-    if (typeof parsed.invocation === "string") invocations.add(parsed.invocation);
-    if (typeof parsed.adjust === "number" && Number.isFinite(parsed.adjust)) {
-      usd += parsed.adjust;
-      pending = undefined;
+  });
+  const nanosOf = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? toNanos(value) : undefined);
+  const isSettlement = (entry: Entry) => nanosOf(entry.adjust) !== undefined;
+  let count = 0;
+  let nanos = 0;
+  const counted = (invocation: unknown) => {
+    count += 1;
+    if (typeof invocation === "string") invocations.set(invocation, (invocations.get(invocation) ?? 0) + 1);
+  };
+  // Each request by its id, at its price; one without either at the most any request can cost.
+  const priced = new Map<string, number>();
+  for (const entry of entries) {
+    if (isSettlement(entry)) continue;
+    counted(entry.invocation);
+    const price = nanosOf(entry.usd);
+    if (typeof entry.request === "string" && !priced.has(entry.request) && price !== undefined && price >= 0) priced.set(entry.request, price);
+    else nanos += bound;
+  }
+  // Each settlement as its request's final amount, never below nothing; the largest counts.
+  const finals = new Map<string, number>();
+  const strays = new Map<string, { invocation: unknown; final: number }>();
+  for (const entry of entries) {
+    if (!isSettlement(entry) || typeof entry.request !== "string") continue;
+    const price = priced.get(entry.request);
+    // A settlement's final amount, and never less than its request's price plus its adjustment.
+    const stated = nanosOf(entry.final);
+    const adjusted = price !== undefined ? price + nanosOf(entry.adjust)! : undefined;
+    const final = stated === undefined ? adjusted : adjusted === undefined ? stated : Math.max(stated, adjusted);
+    if (price === undefined) {
+      const stray = strays.get(entry.request) ?? { invocation: entry.invocation, final: bound };
+      if (final !== undefined && final > stray.final) stray.final = final;
+      strays.set(entry.request, stray);
+    } else if (final !== undefined && final >= 0) finals.set(entry.request, Math.max(finals.get(entry.request) ?? 0, final));
+  }
+  const raises: string[] = [];
+  for (const [request, price] of priced) {
+    const final = finals.get(request);
+    if (final !== undefined) {
+      nanos += final;
       continue;
     }
-    count += 1;
-    const priced = typeof parsed.usd === "number" && Number.isFinite(parsed.usd) && parsed.usd >= 0 ? parsed.usd : undefined;
-    usd += priced ?? REQUEST_USD_BOUND;
-    pending = priced;
+    const raised = Math.max(bound, price);
+    raises.push(line({ ...settle, request, adjust: (raised - price) / 1e9, final: raised / 1e9, reason: "a request whose reply was never read" }));
+    nanos += raised;
   }
-  const raise = pending === undefined ? 0 : REQUEST_USD_BOUND - pending;
-  if (torn || raise > 0) {
-    writeFileSync(`${file}.tmp`, text.slice(0, text.lastIndexOf("\n") + 1) + (raise > 0 ? line({ ...settle, adjust: raise, reason: "a request whose reply was never read" }) : ""));
+  for (const stray of strays.values()) {
+    counted(stray.invocation);
+    nanos += stray.final;
+  }
+  if (torn || raises.length > 0) {
+    writeDurably(`${file}.tmp`, text.slice(0, text.lastIndexOf("\n") + 1) + raises.join(""), "w");
     renameSync(`${file}.tmp`, file);
-    usd += raise;
+    syncDirectory(dirname(file));
   }
-  return { count, usd, invocations };
+  return { count, nanos, invocations };
 }
 
 /**
- * What the run has sent and committed so far, every invocation included: the ledger (settled first), plus what each
- * invocation from before the ledger reported (one that recorded nothing in it), each at the most a request can cost.
+ * What the run has sent and committed so far, every invocation included: the ledger (settled first), plus whatever
+ * each earlier invocation reported sending beyond the lines it left there (all of it, for one from before the ledger),
+ * each at the most a request can cost. A report of fewer than none counts as none. Invocations are told apart by the
+ * id each writes on its lines and its report, unique even when callers reuse a preflight.
  */
-function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["invocations"], settle: { at: string; invocation: string }): { sent: number; usd: number } {
-  const recorded = requestsFile ? readLedger(requestsFile, settle) : { count: 0, usd: 0, invocations: new Set<string>() };
-  const unrecorded = earlier
-    .filter((i) => !recorded.invocations.has(i.at))
-    .reduce((sum, i) => {
-      const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
-      return sum + (typeof sent === "number" && Number.isFinite(sent) ? sent : 0);
-    }, 0);
-  return { sent: recorded.count + unrecorded, usd: recorded.usd + unrecorded * REQUEST_USD_BOUND };
+function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["invocations"], settle: { at: string; invocation: string }): { sent: number; nanos: number } {
+  const recorded = requestsFile ? readLedger(requestsFile, settle) : { count: 0, nanos: 0, invocations: new Map<string, number>() };
+  const unrecorded = earlier.reduce((sum, i) => {
+    const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
+    const reported = typeof sent === "number" && Number.isFinite(sent) && sent > 0 ? Math.floor(sent) : 0;
+    return sum + Math.max(0, reported - (recorded.invocations.get(i.id ?? i.at) ?? 0));
+  }, 0);
+  return { sent: recorded.count + unrecorded, nanos: recorded.nanos + unrecorded * toNanos(REQUEST_USD_BOUND) };
 }
+
+/** The errors a filesystem gives when it cannot make hard links at all. */
+const NO_HARD_LINKS = new Set(["EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS"]);
 
 /** Whether a process is running: signal 0 tests for it without sending anything. */
 function alive(pid: number): boolean {
@@ -373,48 +478,179 @@ function alive(pid: number): boolean {
   }
 }
 
+/** A run directory's lock, held by one invocation. */
+export interface RunLock {
+  readonly file: string;
+  /** Whether the lock still names this invocation; one that cannot be read is not held. */
+  held(): boolean;
+  /** Removes the lock, only while it is still this invocation's own. */
+  release(): void;
+}
+
 /**
  * One invocation at a time per run directory: two would each spend the same cumulative cap and interleave the logs.
- * A lock whose process is gone (a killed invocation) is taken over. Returns the release.
+ * The lock names its holder (its pid, its host and a nonce of its own) and is written whole before it is linked into
+ * place, so it is never seen empty; where hard links are unsupported it is created exclusively instead. A lock whose
+ * holder is gone from this host (a killed invocation) is taken over, one invocation at a time: the takeover holds a
+ * file of its own (run.lock.takeover) while it reads the lock, moves it aside under its own name, checks that what
+ * moved is the lock it judged, and takes the lock's place. Nothing else replaces a lock that stands, so a lock that is
+ * held is never moved. A holder on another host, a lock that names no host and pid (one still being written), and a
+ * takeover a killed invocation left are never judged gone: each needs deleting by hand. The run also checks `held`
+ * before each request it sends, so an invocation whose lock is lost any other way (deleted by hand) stops there.
  */
-function lockRun(outDir: string): () => void {
+export function lockRun(outDir: string): RunLock {
   const file = join(outDir, "run.lock");
-  const take = () => writeFileSync(file, `${JSON.stringify({ pid: process.pid, at: new Date().toISOString() })}\n`, { flag: "wx" });
-  try {
-    take();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    let holder: { pid?: unknown; at?: unknown } = {};
+  const takeover = `${file}.takeover`;
+  const nonce = randomUUID();
+  const host = hostname();
+  const own = `${JSON.stringify({ pid: process.pid, host, nonce, at: new Date().toISOString() })}\n`;
+  // Only a lock that is gone reads as nothing; any other failure to read one refuses, and never takes it over.
+  const read = (path: string) => {
     try {
-      holder = JSON.parse(readFileSync(file, "utf8")) as typeof holder;
+      return readFileSync(path, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
+      throw error;
+    }
+  };
+  const holderOf = (text: string): { pid?: unknown; host?: unknown; at?: unknown } => {
+    try {
+      const holder: unknown = JSON.parse(text);
+      return holder && typeof holder === "object" ? (holder as { pid?: unknown; host?: unknown; at?: unknown }) : {};
     } catch {
-      /* unreadable: its writer died mid-write */
+      return {}; /* unreadable: still being written, or its writer died mid-write */
     }
-    if (typeof holder.pid === "number" && alive(holder.pid)) {
-      throw new Error(`another invocation (pid ${holder.pid}, started ${String(holder.at)}) is running the run in ${outDir}; wait for it to finish or stop it. If no invocation is running, delete ${file}.`);
+  };
+  const busy = (text: string) => {
+    const holder = holderOf(text);
+    return new Error(`another invocation (pid ${String(holder.pid)}${typeof holder.host === "string" ? ` on ${holder.host}` : ""}, started ${String(holder.at)}) is running the run in ${outDir}; wait for it to finish or stop it. If no invocation is running, delete ${file}.`);
+  };
+  /** Puts this invocation's record at `target` only where none stands: written whole, then linked into place. */
+  const place = (target: string): boolean => {
+    const whole = `${target}.${nonce}`;
+    writeDurably(whole, own, "w");
+    try {
+      linkSync(whole, target);
+      return true;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code ?? "";
+      if (code === "EEXIST") return false;
+      if (!NO_HARD_LINKS.has(code)) throw error;
+    } finally {
+      rmSync(whole, { force: true });
     }
-    rmSync(file, { force: true });
-    take();
+    // A filesystem without hard links: the record is created exclusively instead, so another invocation can see a lock
+    // empty for an instant, and an empty lock names no holder, which is never judged gone.
+    try {
+      writeDurably(target, own, "wx");
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+      throw error;
+    }
+  };
+  if (!place(file)) {
+    if (!place(takeover)) throw new Error(`another invocation is taking over the lock of the run in ${outDir}; try again in a moment. If no invocation is running, delete ${takeover}.`);
+    try {
+      const seen = read(file);
+      if (seen === "") {
+        // Gone since (its holder finished), or still being written: taken only if its place is free.
+        if (!place(file)) throw busy(read(file));
+      } else {
+        const holder = holderOf(seen);
+        // Only a holder this host can check is ever judged gone: one that names no host and pid (empty, cut off, or
+        // otherwise unreadable as a holder) may still be being written.
+        if (typeof holder.host !== "string" || typeof holder.pid !== "number" || holder.host !== host || alive(holder.pid)) throw busy(seen);
+        const aside = `${file}.stale.${nonce}`;
+        try {
+          renameSync(file, aside);
+        } catch {
+          throw busy(read(file)); /* gone: deleted by hand */
+        }
+        const moved = read(aside);
+        if (moved !== seen) {
+          // Not the lock judged stale, so something outside this protocol replaced it: it goes back where its place is
+          // still free, linked, or renamed where links are unsupported, and is never deleted. This one refuses.
+          try {
+            linkSync(aside, file);
+            rmSync(aside, { force: true });
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+              try {
+                renameSync(aside, file);
+              } catch {
+                /* left aside under this invocation's name */
+              }
+            }
+          }
+          throw busy(moved);
+        }
+        rmSync(aside, { force: true });
+        if (!place(file)) throw busy(read(file));
+      }
+    } finally {
+      rmSync(takeover, { force: true });
+    }
   }
-  return () => rmSync(file, { force: true });
+  const held = () => {
+    try {
+      return read(file) === own;
+    } catch {
+      return false;
+    }
+  };
+  return {
+    file,
+    held,
+    release() {
+      // An unreadable lock is left for the next invocation to judge.
+      if (held()) rmSync(file, { force: true });
+    },
+  };
+}
+
+/**
+ * Creates the run directory, every missing parent included, and puts each one's entry in its parent on the disk before
+ * anything is sent: a crash of the machine must not lose the directory that records what was sent. An existing run
+ * directory's entry is synced too, whatever the invocation that created it managed.
+ */
+function makeRunDirectory(dir: string): void {
+  const first = mkdirSync(dir, { recursive: true });
+  for (let created = resolve(dir); ; created = dirname(created)) {
+    syncDirectory(dirname(created));
+    if (first === undefined || created === resolve(first) || dirname(created) === created) break;
+  }
+}
+
+/** The largest ceiling the ledger counts exactly: whole nanodollars are exact up to the largest safe integer. */
+const MAX_CEILING_USD = Math.floor(Number.MAX_SAFE_INTEGER / 1e9);
+
+/** Refuses a dollar ceiling the ledger cannot count exactly. */
+function exactCeiling(usd: number, where: string): void {
+  if (!(Number.isFinite(usd) && usd > 0 && usd <= MAX_CEILING_USD)) {
+    throw new Error(`${where} $${usd} cannot be counted exactly in whole nanodollars: a dollar ceiling must be more than $0 and at most $${MAX_CEILING_USD}`);
+  }
 }
 
 export async function runEvaluation(options: EvaluationOptions): Promise<EvaluationResult> {
   if (options.preflight.drafts && !options.allowDrafts) {
     throw new Error("the sidecars in use are drafts; Phase 1B counts approved sidecars only. Pass allowDrafts for a provisional run.");
   }
+  if (options.maxTotalUsd !== undefined) exactCeiling(options.maxTotalUsd, "--max-total-usd");
   if (!options.outDir) return evaluate(options);
-  mkdirSync(options.outDir, { recursive: true });
-  const unlock = lockRun(options.outDir);
+  makeRunDirectory(options.outDir);
+  const lock = lockRun(options.outDir);
   try {
-    return await evaluate(options);
+    return await evaluate(options, lock);
   } finally {
-    unlock();
+    lock.release();
   }
 }
 
-async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
+async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<EvaluationResult> {
   const log = options.log ?? (() => undefined);
+  // This invocation's own id in the run's records: its preflight time, which a caller may reuse, made unique.
+  const invocationId = `${options.preflight.at}~${randomUUID()}`;
   const cells = planCells(options);
   const outDir = options.outDir;
   const logFile = outDir ? join(outDir, "runs.jsonl") : undefined;
@@ -439,12 +675,12 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       const was = recorded.limits;
       // A limit holds what the run has already done: it can be raised, or lowered as far as that, never past it.
       if (options.maxTotalRequests !== undefined || options.maxTotalUsd !== undefined) {
-        const done = runTotals(join(outDir, "requests.jsonl"), readLog<EvaluationResult["invocations"][number]>(join(outDir, "pacing.jsonl")).records, { at: new Date().toISOString(), invocation: options.preflight.at });
+        const done = runTotals(join(outDir, "requests.jsonl"), readLog<EvaluationResult["invocations"][number]>(join(outDir, "pacing.jsonl")).records, { at: new Date().toISOString(), invocation: invocationId });
         if (options.maxTotalRequests !== undefined && options.maxTotalRequests < done.sent) {
           throw new Error(`--max-total-requests ${options.maxTotalRequests} is below the ${done.sent} requests the run in ${outDir} has already sent; a cap can be lowered only as far as that`);
         }
-        if (options.maxTotalUsd !== undefined && options.maxTotalUsd < done.usd) {
-          throw new Error(`--max-total-usd ${options.maxTotalUsd} is below the $${done.usd.toFixed(4)} the run in ${outDir} has already committed; a ceiling can be lowered only as far as that`);
+        if (options.maxTotalUsd !== undefined && toNanos(options.maxTotalUsd) < done.nanos) {
+          throw new Error(`--max-total-usd ${options.maxTotalUsd} is below the $${(done.nanos / 1e9).toFixed(4)} the run in ${outDir} has already committed; a ceiling can be lowered only as far as that`);
         }
       }
       const changes = [...(was?.changes ?? [])];
@@ -479,7 +715,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       if (hosted && options.maxTotalUsd === undefined) {
         throw new Error("a hosted run needs a dollar ceiling: the dollars the whole run may commit, across every invocation and resume (--max-total-usd)");
       }
-      writeJson(manifestFile, manifest);
+      replaceJson(manifestFile, manifest);
       writeJson(join(outDir, "preflight.json"), preflight);
     }
   }
@@ -511,28 +747,65 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   }
 
   // The run's cumulative cap and dollar ceiling, bound to this invocation's pacer. Its count is every request the run
-  // has recorded, plus what each invocation from before the ledger reported (one that recorded nothing in it), each
-  // at the most a request can cost; each request is recorded with its priced worst case before it is sent.
+  // has recorded, plus whatever each earlier invocation reported sending beyond its lines there, each at the most a
+  // request can cost; each request is recorded with its id and priced worst case, on the disk, before it is sent, and
+  // settled by its id after its reply. The dollars are kept in whole nanodollars, so they sum exactly.
   const pacer = options.provider.pacer;
   const cap = manifest.limits?.maxTotalRequests;
   const capUsd = manifest.limits?.maxTotalUsd;
+  if (capUsd !== undefined) exactCeiling(capUsd, "the run's recorded dollar ceiling");
   const requestsFile = outDir ? join(outDir, "requests.jsonl") : undefined;
   let ledger: RunLedger | undefined;
   if (pacer && cap !== undefined) {
-    const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: options.preflight.at });
+    const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: invocationId });
+    if (requestsFile) settleLedgerEntry(requestsFile);
+    let committed = done.nanos;
+    let sequence = 0;
+    // The request the next settlement is for: requests are sent one at a time, and each is settled before the next.
+    let open: { request: string; nanos: number } | undefined;
+    const stamp = () => ({ at: new Date().toISOString(), invocation: invocationId });
+    // Once a line fails, this invocation writes no more of them: a line cut off partway stays the ledger's last, which
+    // the next resume sets aside, and is never followed by another it would run into.
+    let unwritable: RecordUnwritable | undefined;
+    const append = (value: unknown) => {
+      if (!requestsFile) return;
+      if (unwritable) throw unwritable;
+      try {
+        appendRecord(requestsFile, value);
+      } catch (error) {
+        unwritable = error instanceof RecordUnwritable ? error : new RecordUnwritable(requestsFile, error);
+        throw unwritable;
+      }
+    };
     ledger = {
       cap,
       sent: done.sent,
       ...(capUsd !== undefined ? { capUsd } : {}),
-      usd: done.usd,
+      get usd() {
+        return committed / 1e9;
+      },
+      get nanos() {
+        return committed;
+      },
       record(usd = 0) {
-        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at, usd }));
+        const request = `${invocationId}#${sequence + 1}`;
+        append({ ...stamp(), request, usd });
+        // Sent only while the lock is still this invocation's, checked after its line is on the disk: an invocation
+        // that takes the lock over reads the ledger after it does, so it counts every request this one could send.
+        if (lock && !lock.held()) throw new LockLost(lock.file);
+        sequence += 1;
         this.sent += 1;
-        this.usd = (this.usd ?? 0) + usd;
+        committed += toNanos(usd);
+        open = { request, nanos: toNanos(usd) };
       },
       adjust(usd, reason) {
-        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at, adjust: usd, reason }));
-        this.usd = (this.usd ?? 0) + usd;
+        const delta = toNanos(usd);
+        const of = open;
+        open = undefined;
+        // A raise counts even when its line cannot be written: the run's total never falls below what it spent.
+        if (delta > 0) committed += delta;
+        append({ ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason });
+        if (delta <= 0) committed += delta;
       },
     };
     pacer.ledger = ledger;
@@ -584,7 +857,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   const summary = summarize(records, options.decision ?? DEFAULT_DECISION);
   const telemetry = options.provider.telemetry?.();
   // Every invocation's pacing is kept: a resume must not erase the waits an earlier invocation sat through.
-  const invocation = telemetry ? { at: options.preflight.at, telemetry } : undefined;
+  const invocation = telemetry ? { at: options.preflight.at, id: invocationId, telemetry } : undefined;
   if (pacingFile && invocation) appendFileSync(pacingFile, line(invocation));
   const invocations = [...earlierInvocations, ...(invocation ? [invocation] : [])];
   // Each superseded record once: a crash between moving records aside and rewriting the log can repeat a move.
