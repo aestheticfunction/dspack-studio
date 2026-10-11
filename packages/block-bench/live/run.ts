@@ -20,6 +20,12 @@
  *                             20); required to start a hosted run and recorded in its manifest. Every request is
  *                             counted in the run's requests.jsonl before it is sent, so a resume never resets it;
  *                             on --resume, a new value changes the recorded cap and the manifest records the change
+ *   --max-total-usd <dollars> hosted: the dollars the whole run may commit across every invocation and resume
+ *                             (live/cost.ts: what verified replies reported, plus the worst case of every other
+ *                             request), at least one cell's worst case; required to start a hosted run and recorded
+ *                             in its manifest. A request is sent only while its absolute worst case still fits; on
+ *                             --resume, a new value changes the recorded ceiling and the manifest records the
+ *                             change; neither limit may go below what the run has already sent or committed
  *   --spacing-ms <n>          hosted: minimum gap between requests (default 3000)
  *   --out <dir>               run directory (default live/runs/<time>-<provider>); not with --resume
  *   --resume <dir>            continue a run directory; with it, --rerun-failed re-runs provider and policy failures
@@ -29,14 +35,15 @@
  * provider call: an unknown arm, condition, provider, reference, prompt,
  * block or option, an empty list, a count that is not a whole number, an
  * option the chosen provider would ignore, a hosted cap too small to admit
- * a cell, a hosted run without a cumulative cap, and a selection that plans
- * no cells are each refused by name.
+ * a cell, a hosted run without a cumulative cap or a dollar ceiling, and a
+ * selection that plans no cells are each refused by name.
  */
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { frozenMismatches, readCorpus, type Corpus } from "./corpus";
 import { planCells, runEvaluation } from "./evaluate";
 import { DEFAULT_BACKOFF_MS, createPacer } from "./pacing";
 import { preflight } from "./preflight";
+import { CELL_USD_BOUND } from "./cost";
 import { CELL_REQUESTS, cellRequestBound, createHostedProvider } from "./providers/hosted";
 import { createOllamaProvider, ollamaHost } from "./providers/ollama";
 import { createScriptedProvider } from "./providers/scripted";
@@ -57,6 +64,8 @@ export interface CliOptions {
   maxRequests: number;
   /** Hosted: the requests the whole run may send; absent on a resume means the manifest's. */
   maxTotalRequests?: number;
+  /** Hosted: the dollars the whole run may commit; absent on a resume means the manifest's. */
+  maxTotalUsd?: number;
   spacingMs: number;
   out?: string;
   resume?: string;
@@ -65,7 +74,7 @@ export interface CliOptions {
   force: boolean;
 }
 
-const VALUE_FLAGS = ["--provider", "--base-url", "--ollama-host", "--reference", "--arms", "--conditions", "--prompts", "--blocks", "--limit", "--max-requests", "--max-total-requests", "--spacing-ms", "--out", "--resume"] as const;
+const VALUE_FLAGS = ["--provider", "--base-url", "--ollama-host", "--reference", "--arms", "--conditions", "--prompts", "--blocks", "--limit", "--max-requests", "--max-total-requests", "--max-total-usd", "--spacing-ms", "--out", "--resume"] as const;
 const SWITCHES = ["--allow-drafts", "--rerun-failed", "--force"] as const;
 
 export function parseOptions(argv: readonly string[]): CliOptions {
@@ -101,6 +110,14 @@ export function parseOptions(argv: readonly string[]): CliOptions {
     return n;
   };
 
+  const dollars = (flag: string): number | undefined => {
+    const raw = values.get(flag);
+    if (raw === undefined) return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) throw new Error(`${flag} must be a positive number of dollars, not '${raw}'`);
+    return n;
+  };
+
   const providerArg = values.get("--provider") ?? "scripted";
   let provider: CliOptions["provider"];
   if (providerArg === "hosted" || providerArg === "scripted" || providerArg === "scripted:faults") provider = providerArg;
@@ -118,11 +135,12 @@ export function parseOptions(argv: readonly string[]): CliOptions {
   const limit = count("--limit", 1);
   const maxRequests = count("--max-requests", 1, 300)!;
   const maxTotalRequests = count("--max-total-requests", 1);
+  const maxTotalUsd = dollars("--max-total-usd");
   const spacingMs = count("--spacing-ms", 0, 3000)!;
 
   // An option the chosen provider would ignore is refused, never dropped.
   const hosted = provider === "hosted";
-  for (const flag of ["--max-requests", "--max-total-requests", "--spacing-ms", "--base-url"]) if (values.has(flag) && !hosted) throw new Error(`${flag} applies to the hosted provider only`);
+  for (const flag of ["--max-requests", "--max-total-requests", "--max-total-usd", "--spacing-ms", "--base-url"]) if (values.has(flag) && !hosted) throw new Error(`${flag} applies to the hosted provider only`);
   if (switches.has("--force") && !hosted) throw new Error("--force applies to the hosted provider only");
   if (values.has("--ollama-host") && typeof provider !== "object") throw new Error("--ollama-host applies to an ollama provider only");
   // The pacer admits a cell only when the cap covers its worst case, so a smaller cap could never run one.
@@ -136,6 +154,13 @@ export function parseOptions(argv: readonly string[]): CliOptions {
   // A per-invocation cap resets with every resume; only the run's cumulative cap bounds what the whole run sends.
   if (hosted && maxTotalRequests === undefined && !values.has("--resume")) {
     throw new Error("a hosted run needs --max-total-requests <n>: the requests the whole run may send across every invocation and resume (recorded in its manifest)");
+  }
+  // A request count is not a dollar ceiling: the run also states the dollars it may reserve, at least one cell's worst case.
+  if (hosted && maxTotalUsd !== undefined && maxTotalUsd < CELL_USD_BOUND) {
+    throw new Error(`--max-total-usd must be at least ${(Math.ceil(CELL_USD_BOUND * 100) / 100).toFixed(2)} for the hosted provider: a cell is admitted only when the ceiling covers its worst case, ${CELL_REQUESTS} requests each at the most a request can cost`);
+  }
+  if (hosted && maxTotalUsd === undefined && !values.has("--resume")) {
+    throw new Error("a hosted run needs --max-total-usd <dollars>: the dollars the whole run may commit across every invocation and resume (recorded in its manifest)");
   }
   if (switches.has("--rerun-failed") && !values.has("--resume")) throw new Error("--rerun-failed needs --resume <dir>: it re-runs the failures of an existing run");
   if (values.has("--out") && values.has("--resume")) throw new Error("--out does not apply to --resume, which continues the run in its own directory");
@@ -152,6 +177,7 @@ export function parseOptions(argv: readonly string[]): CliOptions {
     ...(limit !== undefined ? { limit } : {}),
     maxRequests,
     ...(maxTotalRequests !== undefined ? { maxTotalRequests } : {}),
+    ...(maxTotalUsd !== undefined ? { maxTotalUsd } : {}),
     spacingMs,
     ...(values.has("--out") ? { out: values.get("--out")! } : {}),
     ...(values.has("--resume") ? { resume: values.get("--resume")! } : {}),
@@ -243,6 +269,7 @@ export async function main(argv: readonly string[], io: { corpus?: Corpus } = {}
       resume: !!o.resume,
       rerunFailed: o.rerunFailed,
       ...(o.maxTotalRequests !== undefined ? { maxTotalRequests: o.maxTotalRequests } : {}),
+      ...(o.maxTotalUsd !== undefined ? { maxTotalUsd: o.maxTotalUsd } : {}),
       log: (line) => console.log(line),
     });
   } catch (error) {

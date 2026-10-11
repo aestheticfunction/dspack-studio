@@ -13,10 +13,13 @@
  * spent leaves the directory: records a re-run supersedes move to
  * runs.superseded.jsonl and stay in the totals, every invocation's pacing
  * is appended to pacing.jsonl, and a cut-off last line is set aside in
- * runs.torn.jsonl. A hosted run also carries a cumulative cap: the manifest
- * records the requests the whole run may send, requests.jsonl counts every
- * request before it is sent, and each invocation's pacer is bound to that
- * count, so no number of resumes sends more than the run allows. One
+ * runs.torn.jsonl. A hosted run also carries a cumulative cap and a dollar
+ * ceiling: the manifest records the requests the whole run may send and the
+ * dollars it may commit, requests.jsonl records every request with its
+ * worst case before it is sent and how that reservation ended after its
+ * reply (released, settled at the reported usage, or raised), and each
+ * invocation's pacer is bound to those totals, so no number of resumes
+ * sends more, or spends more, than the run allows. One
  * invocation runs a directory at a time (run.lock), so two cannot spend the
  * same cap or interleave the logs.
  */
@@ -25,6 +28,7 @@ import { dirname, join } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
+import { REQUEST_USD_BOUND } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
 import { PacingCapReached, type RunLedger } from "./pacing";
@@ -61,6 +65,12 @@ export interface EvaluationOptions {
    * and the manifest records the change.
    */
   maxTotalRequests?: number;
+  /**
+   * Hosted: the dollars the whole run may commit (live/cost.ts): what verified replies reported, plus the worst case of
+   * every other request, across every invocation and resume. Required beside maxTotalRequests to start a run directory with a paced provider, and
+   * recorded in its manifest; on a resume, a value changes the recorded ceiling and the manifest records the change.
+   */
+  maxTotalUsd?: number;
   decision?: DecisionOptions;
   log?: (line: string) => void;
   now?: () => number;
@@ -89,8 +99,8 @@ export interface EvaluationResult {
   superseded: Spend;
   /** The arms this run selected (the manifest's), whether or not each has reached a cell yet. */
   arms: Arm[];
-  /** Hosted: the run's cumulative cap and the requests sent against it, every invocation included. */
-  requests?: { cap: number; sent: number };
+  /** Hosted: the run's cumulative cap and dollar ceiling, and the requests sent and dollars committed against them, every invocation included. */
+  requests?: { cap: number; sent: number; capUsd?: number; usd: number };
   stopped?: { reason: "cap" | "error"; message: string };
   outDir?: string;
   cells: { total: number; done: number; reused: number };
@@ -117,8 +127,11 @@ export interface RunManifest {
   deployment: { baseUrl: string | null; buildId: string | null; worker: string | null };
   selection: { arms: Arm[]; conditions: Condition[]; promptIds: string[] | null; blocks: string[] | null; limit: number | null };
   decision: DecisionOptions;
-  /** Hosted: the requests the whole run may send, and every change a resume made to that cap. Not identity: a resume may change it, on the record. */
-  limits?: { maxTotalRequests: number; changes?: Array<{ at: string; from?: number; to: number }> };
+  /**
+   * Hosted: the requests the whole run may send and the dollars it may commit, and every change a resume made to
+   * either (a dollar change carries unit "usd"). Not identity: a resume may change them, on the record.
+   */
+  limits?: { maxTotalRequests: number; maxTotalUsd?: number; changes?: Array<{ at: string; unit?: "usd"; from?: number; to: number }> };
 }
 
 export async function manifestFor(options: EvaluationOptions): Promise<RunManifest> {
@@ -150,7 +163,7 @@ export async function manifestFor(options: EvaluationOptions): Promise<RunManife
       limit: options.limit ?? null,
     },
     decision: options.decision ?? DEFAULT_DECISION,
-    ...(options.maxTotalRequests !== undefined ? { limits: { maxTotalRequests: options.maxTotalRequests } } : {}),
+    ...(options.maxTotalRequests !== undefined ? { limits: { maxTotalRequests: options.maxTotalRequests, ...(options.maxTotalUsd !== undefined ? { maxTotalUsd: options.maxTotalUsd } : {}) } } : {}),
   };
 }
 
@@ -290,23 +303,64 @@ function replaceJson(file: string, value: unknown) {
 }
 
 /**
- * The requests a run recorded before sending them, one line each (a cut-off last line was never sent), and the
- * invocations that recorded them.
+ * The requests a run recorded before sending them, one line each with its priced worst case; the adjustment recorded
+ * after each reply (a release, a settlement at the reported usage, or a raise), which is not a request; and the
+ * invocations that recorded them. A request with no price (recorded before the dollar ledger, or unreadable) counts
+ * at the most any request can cost.
+ *
+ * The ledger is settled before anything is appended. A cut-off last line is set aside: a request line cut off was
+ * never sent, and an adjustment cut off leaves its request unsettled. A request whose reply was never read (the
+ * invocation was killed after sending it) is raised to the most any request can cost, on the record.
  */
-function readLedger(file: string): { count: number; invocations: Set<string> } {
+function readLedger(file: string, settle: { at: string; invocation: string }): { count: number; usd: number; invocations: Set<string> } {
   const invocations = new Set<string>();
-  if (!existsSync(file)) return { count: 0, invocations };
-  const lines = readFileSync(file, "utf8").split("\n");
-  lines.pop();
+  if (!existsSync(file)) return { count: 0, usd: 0, invocations };
+  const text = readFileSync(file, "utf8");
+  const lines = text.split("\n");
+  const torn = lines.pop()!.trim() !== "";
+  let usd = 0;
+  let count = 0;
+  let pending: number | undefined;
   for (const entry of lines) {
+    let parsed: { invocation?: unknown; usd?: unknown; adjust?: unknown } = {};
     try {
-      const invocation = (JSON.parse(entry) as { invocation?: unknown }).invocation;
-      if (typeof invocation === "string") invocations.add(invocation);
+      parsed = JSON.parse(entry) as typeof parsed;
     } catch {
       /* still counted: a request was recorded */
     }
+    if (typeof parsed.invocation === "string") invocations.add(parsed.invocation);
+    if (typeof parsed.adjust === "number" && Number.isFinite(parsed.adjust)) {
+      usd += parsed.adjust;
+      pending = undefined;
+      continue;
+    }
+    count += 1;
+    const priced = typeof parsed.usd === "number" && Number.isFinite(parsed.usd) && parsed.usd >= 0 ? parsed.usd : undefined;
+    usd += priced ?? REQUEST_USD_BOUND;
+    pending = priced;
   }
-  return { count: lines.length, invocations };
+  const raise = pending === undefined ? 0 : REQUEST_USD_BOUND - pending;
+  if (torn || raise > 0) {
+    writeFileSync(`${file}.tmp`, text.slice(0, text.lastIndexOf("\n") + 1) + (raise > 0 ? line({ ...settle, adjust: raise, reason: "a request whose reply was never read" }) : ""));
+    renameSync(`${file}.tmp`, file);
+    usd += raise;
+  }
+  return { count, usd, invocations };
+}
+
+/**
+ * What the run has sent and committed so far, every invocation included: the ledger (settled first), plus what each
+ * invocation from before the ledger reported (one that recorded nothing in it), each at the most a request can cost.
+ */
+function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["invocations"], settle: { at: string; invocation: string }): { sent: number; usd: number } {
+  const recorded = requestsFile ? readLedger(requestsFile, settle) : { count: 0, usd: 0, invocations: new Set<string>() };
+  const unrecorded = earlier
+    .filter((i) => !recorded.invocations.has(i.at))
+    .reduce((sum, i) => {
+      const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
+      return sum + (typeof sent === "number" && Number.isFinite(sent) ? sent : 0);
+    }, 0);
+  return { sent: recorded.count + unrecorded, usd: recorded.usd + unrecorded * REQUEST_USD_BOUND };
 }
 
 /** Whether a process is running: signal 0 tests for it without sending anything. */
@@ -380,17 +434,38 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       const mismatches = manifestMismatches(recorded, manifest);
       if (mismatches.length > 0) throw new Error(`resume refused, the run in ${outDir} does not match this invocation:\n- ${mismatches.join("\n- ")}\nStart a new run directory instead.`);
       manifest = recorded;
-      // The cumulative cap stays what the run recorded unless this invocation names a new one, which is recorded.
-      const from = recorded.limits?.maxTotalRequests;
-      if (options.maxTotalRequests !== undefined && options.maxTotalRequests !== from) {
-        manifest = {
-          ...recorded,
-          limits: { maxTotalRequests: options.maxTotalRequests, changes: [...(recorded.limits?.changes ?? []), { at: options.preflight.at, ...(from !== undefined ? { from } : {}), to: options.maxTotalRequests }] },
-        };
+      // The cumulative cap and the dollar ceiling stay what the run recorded unless this invocation names a new one,
+      // which is recorded.
+      const was = recorded.limits;
+      // A limit holds what the run has already done: it can be raised, or lowered as far as that, never past it.
+      if (options.maxTotalRequests !== undefined || options.maxTotalUsd !== undefined) {
+        const done = runTotals(join(outDir, "requests.jsonl"), readLog<EvaluationResult["invocations"][number]>(join(outDir, "pacing.jsonl")).records, { at: new Date().toISOString(), invocation: options.preflight.at });
+        if (options.maxTotalRequests !== undefined && options.maxTotalRequests < done.sent) {
+          throw new Error(`--max-total-requests ${options.maxTotalRequests} is below the ${done.sent} requests the run in ${outDir} has already sent; a cap can be lowered only as far as that`);
+        }
+        if (options.maxTotalUsd !== undefined && options.maxTotalUsd < done.usd) {
+          throw new Error(`--max-total-usd ${options.maxTotalUsd} is below the $${done.usd.toFixed(4)} the run in ${outDir} has already committed; a ceiling can be lowered only as far as that`);
+        }
+      }
+      const changes = [...(was?.changes ?? [])];
+      const said: string[] = [];
+      if (options.maxTotalRequests !== undefined && options.maxTotalRequests !== was?.maxTotalRequests) {
+        changes.push({ at: options.preflight.at, ...(was?.maxTotalRequests !== undefined ? { from: was.maxTotalRequests } : {}), to: options.maxTotalRequests });
+        said.push(`the run's cumulative cap is now ${options.maxTotalRequests} requests${was?.maxTotalRequests !== undefined ? ` (it was ${was.maxTotalRequests})` : ""}`);
+      }
+      if (options.maxTotalUsd !== undefined && options.maxTotalUsd !== was?.maxTotalUsd) {
+        changes.push({ at: options.preflight.at, unit: "usd", ...(was?.maxTotalUsd !== undefined ? { from: was.maxTotalUsd } : {}), to: options.maxTotalUsd });
+        said.push(`the run's dollar ceiling is now $${options.maxTotalUsd.toFixed(2)}${was?.maxTotalUsd !== undefined ? ` (it was $${was.maxTotalUsd.toFixed(2)})` : ""}`);
+      }
+      const maxTotalRequests = options.maxTotalRequests ?? was?.maxTotalRequests;
+      const maxTotalUsd = options.maxTotalUsd ?? was?.maxTotalUsd;
+      if (said.length > 0 && maxTotalRequests !== undefined) {
+        manifest = { ...recorded, limits: { maxTotalRequests, ...(maxTotalUsd !== undefined ? { maxTotalUsd } : {}), changes } };
         replaceJson(manifestFile, manifest);
-        log(`the run's cumulative cap is now ${options.maxTotalRequests} requests${from !== undefined ? ` (it was ${from})` : ""}`);
+        for (const message of said) log(message);
       }
       if (hosted && manifest.limits === undefined) throw new Error(`the run in ${outDir} records no cumulative cap; pass --max-total-requests to set the requests the whole run may send`);
+      if (hosted && manifest.limits?.maxTotalUsd === undefined) throw new Error(`the run in ${outDir} records no dollar ceiling; pass --max-total-usd to set the dollars the whole run may commit`);
       const original = join(outDir, "preflight.json");
       if (existsSync(original)) preflight = JSON.parse(readFileSync(original, "utf8")) as Preflight;
       let n = 1;
@@ -400,6 +475,9 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       if (existsSync(manifestFile) || (logFile && existsSync(logFile))) throw new Error(`${outDir} already holds a run; pass resume to continue it`);
       if (hosted && options.maxTotalRequests === undefined) {
         throw new Error("a hosted run needs a cumulative cap: the requests the whole run may send across every invocation and resume (--max-total-requests)");
+      }
+      if (hosted && options.maxTotalUsd === undefined) {
+        throw new Error("a hosted run needs a dollar ceiling: the dollars the whole run may commit, across every invocation and resume (--max-total-usd)");
       }
       writeJson(manifestFile, manifest);
       writeJson(join(outDir, "preflight.json"), preflight);
@@ -432,27 +510,29 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
     for (const record of kept) done.set(cellId(record), record);
   }
 
-  // The run's cumulative cap, bound to this invocation's pacer. Its count is every request the run has recorded,
-  // plus what each invocation from before the ledger reported (one that recorded nothing in it), and each request is
-  // recorded before it is sent.
+  // The run's cumulative cap and dollar ceiling, bound to this invocation's pacer. Its count is every request the run
+  // has recorded, plus what each invocation from before the ledger reported (one that recorded nothing in it), each
+  // at the most a request can cost; each request is recorded with its priced worst case before it is sent.
   const pacer = options.provider.pacer;
   const cap = manifest.limits?.maxTotalRequests;
+  const capUsd = manifest.limits?.maxTotalUsd;
   const requestsFile = outDir ? join(outDir, "requests.jsonl") : undefined;
   let ledger: RunLedger | undefined;
   if (pacer && cap !== undefined) {
-    const recorded = requestsFile ? readLedger(requestsFile) : { count: 0, invocations: new Set<string>() };
-    const unrecorded = earlierInvocations
-      .filter((i) => !recorded.invocations.has(i.at))
-      .reduce((sum, i) => {
-        const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
-        return sum + (typeof sent === "number" && Number.isFinite(sent) ? sent : 0);
-      }, 0);
+    const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: options.preflight.at });
     ledger = {
       cap,
-      sent: recorded.count + unrecorded,
-      record() {
-        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at }));
+      sent: done.sent,
+      ...(capUsd !== undefined ? { capUsd } : {}),
+      usd: done.usd,
+      record(usd = 0) {
+        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at, usd }));
         this.sent += 1;
+        this.usd = (this.usd ?? 0) + usd;
+      },
+      adjust(usd, reason) {
+        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at, adjust: usd, reason }));
+        this.usd = (this.usd ?? 0) + usd;
       },
     };
     pacer.ledger = ledger;
@@ -518,7 +598,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
     invocations,
     superseded: spent,
     arms: [...manifest.selection.arms],
-    ...(ledger ? { requests: { cap: ledger.cap, sent: ledger.sent } } : {}),
+    ...(ledger ? { requests: { cap: ledger.cap, sent: ledger.sent, ...(ledger.capUsd !== undefined ? { capUsd: ledger.capUsd } : {}), usd: ledger.usd ?? 0 } } : {}),
     ...(stopped ? { stopped } : {}),
     ...(outDir ? { outDir } : {}),
     cells: { total: cells.length, done: records.length, reused },

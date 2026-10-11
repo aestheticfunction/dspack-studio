@@ -51,6 +51,45 @@ describe("pacing for the shared gateway", () => {
     expect(recorded).toHaveLength(30);
   });
 
+  it("holds the run's dollar ceiling: a request is admitted only when its absolute worst case fits, reserves its priced worst case before it is sent, a refusal that reached no model is released, an unverifiable reply is raised to its absolute worst case, and a resume starts from the run's total", async () => {
+    const lines: Array<[string, number]> = [];
+    const ledger = (usd: number) => ({
+      cap: 1000,
+      sent: 0,
+      capUsd: 1,
+      usd,
+      record(reserved: number) {
+        lines.push(["request", reserved]);
+        this.sent += 1;
+        this.usd += reserved;
+      },
+      adjust(delta: number, reason: string) {
+        lines.push([reason, delta]);
+        this.usd += delta;
+      },
+    });
+    const invocation = () => createPacer({ maxRequests: 300, spacingMs: 0, now: () => 0, sleep: async () => undefined });
+    const first = invocation();
+    first.ledger = ledger(0);
+    first.reserve(1, 0.5);
+    await first.before(0.25, 0.5);
+    await first.before(0.25, 0.5);
+    // A cell whose worst case no longer fits is refused before its first request.
+    expect(() => first.reserve(1, 0.75)).toThrow(PacingCapReached);
+    // A request is refused when its absolute worst case does not fit, however little it is priced at.
+    await expect(first.before(0.125, 0.625)).rejects.toMatchObject({ cap: 1, scope: "usd" });
+    first.adjust(-0.25, "refused before any provider call");
+    first.adjust(0.25, "usage not verified");
+    await first.before(0.25, 0.5);
+    expect(lines).toEqual([["request", 0.25], ["request", 0.25], ["refused before any provider call", -0.25], ["usage not verified", 0.25], ["request", 0.25]]);
+    // A resume is a new pacer: it starts from what the run has reserved, not from zero.
+    const resumed = invocation();
+    resumed.ledger = ledger(0.75);
+    await expect(resumed.before(0.125, 0.375)).rejects.toMatchObject({ scope: "usd" });
+    await resumed.before(0.125, 0.25);
+    expect(resumed.ledger.usd).toBe(0.875);
+  });
+
   it("backs off on a refusal along the schedule, reports every wait, and gives up when the schedule is spent", async () => {
     const slept: number[] = [];
     const pacer = createPacer({ maxRequests: 10, spacingMs: 0, backoffMs: [10, 20], now: () => 0, sleep: async (ms) => void slept.push(ms) });

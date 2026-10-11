@@ -21,12 +21,16 @@ import { PacingCapReached, createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
+import { guidedSystem } from "../../../apps/composer/worker/propose.mjs";
+import { CELL_USD_BOUND, MAX_OUTPUT_TOKENS, absoluteUsd, worstCaseUsd } from "./cost";
 import { cellRequestBound, createHostedProvider, retryableRefusal } from "./providers/hosted";
 import { HarnessError, createMeter } from "./providers/types";
 import { ARMS } from "./types";
 import { callJsonSchema, encodeCall } from "@dspack-studio/composer-core/blocks";
 
 const ARM_COUNT = ARMS.length;
+/** A dollar ceiling no test run approaches, for the tests about something else. */
+const USD = 1000;
 
 const request = { system: "s", messages: [{ role: "user" as const, content: "u" }], jsonSchema: { type: "object" } };
 const reply = (status: number, body: unknown, raw = false) => new Response(raw ? String(body) : JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -211,6 +215,7 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
           outDir: dir,
           resume: existsSync(join(dir, "manifest.json")),
           ...(maxTotalRequests !== undefined ? { maxTotalRequests } : {}),
+          maxTotalUsd: USD,
         });
       const first = await invocation(25);
       expect(first.stopped).toMatchObject({ reason: "cap" });
@@ -227,11 +232,15 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       expect(posted).toBeGreaterThan(sent);
       expect(posted).toBeLessThanOrEqual(45);
       const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
-      expect(manifest.limits).toMatchObject({ maxTotalRequests: 45, changes: [{ from: 25, to: 45 }] });
-      // Every request was recorded before it was sent, and the summary and the report state the run's total.
-      expect(readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n")).toHaveLength(posted);
-      expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).requests).toEqual({ cap: 45, sent: posted });
-      expect(readFileSync(join(dir, "REPORT.md"), "utf8")).toContain(`- The run: a cumulative cap of 45 requests across every invocation (manifest.json); ${posted} sent (requests.jsonl).`);
+      expect(manifest.limits).toMatchObject({ maxTotalRequests: 45, maxTotalUsd: USD, changes: [{ from: 25, to: 45 }] });
+      // Every request was recorded before it was sent, and the summary and the report state the run's total. The
+      // provider was down without reporting usage, so every request is held at its absolute worst case.
+      const lines = readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { adjust?: number });
+      expect(lines.filter((l) => l.adjust === undefined)).toHaveLength(posted);
+      const summary = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).requests;
+      expect(summary).toMatchObject({ cap: 45, sent: posted, capUsd: USD });
+      expect(summary.usd).toBeCloseTo(posted * absoluteUsd(2), 9);
+      expect(readFileSync(join(dir, "REPORT.md"), "utf8")).toContain(`- The run: a cumulative cap of 45 requests and a dollar ceiling of $${USD.toFixed(2)} across every invocation (manifest.json); ${posted} sent, $${summary.usd.toFixed(2)} committed, what verified replies reported plus the worst case of every other request (requests.jsonl).`);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -248,6 +257,8 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 300, spacingMs: 0, now: () => 0, sleep: async () => undefined }) });
       const pre = await preflight({ references: [astryx] });
       await expect(runEvaluation({ runId: "uncapped", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir })).rejects.toThrow(/cumulative cap/);
+      // A request cap alone is not a dollar ceiling: the run needs both.
+      await expect(runEvaluation({ runId: "uncapped", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir, maxTotalRequests: 100 })).rejects.toThrow(/dollar ceiling.*--max-total-usd/);
       expect(posted).toBe(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -267,7 +278,7 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       }) as typeof fetch;
       const pre = await preflight({ references: [astryx] });
       const run = (provider: ReturnType<typeof createHostedProvider>, resume: boolean) =>
-        runEvaluation({ runId: "unpaced", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir, resume, maxTotalRequests: 100 });
+        runEvaluation({ runId: "unpaced", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir, resume, maxTotalRequests: 100, maxTotalUsd: USD });
       const unpaced = createHostedProvider({ baseUrl: "https://example.test", fetchImpl });
       await expect(run(unpaced, false)).rejects.toThrow(/pacer/);
       expect(posted).toBe(0);
@@ -290,19 +301,51 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
         return down();
       }) as typeof fetch;
       const pre = await preflight({ references: [astryx] });
-      const invocation = (extra: { maxTotalRequests?: number; resume?: boolean }) =>
+      const invocation = (extra: { maxTotalRequests?: number; maxTotalUsd?: number; resume?: boolean }) =>
         runEvaluation({ runId: "ledger", provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: pacer(20) }), references: [astryx], corpus, preflight: pre, allowDrafts: true, conditions: ["fresh"], outDir: dir, ...extra });
-      await invocation({ maxTotalRequests: 50 });
+      await invocation({ maxTotalRequests: 50, maxTotalUsd: USD });
       // The history to add up: an invocation from before the ledger reported 20 requests in pacing.jsonl, and a later
       // one was killed after recording 15 requests in the ledger, reporting nothing.
       writeFileSync(join(dir, "pacing.jsonl"), `${JSON.stringify({ at: "2026-10-01T00:00:00.000Z", telemetry: { pacing: { maxRequests: 300, spacingMs: 3000, backoffMs: [], sent: 20, waits: [] } } })}\n`);
       writeFileSync(join(dir, "requests.jsonl"), `${JSON.stringify({ at: "2026-10-02T00:00:01.000Z", invocation: "2026-10-02T00:00:00.000Z" })}\n`.repeat(15));
       posted = 0;
-      // 35 sent: a cell's worst case of 20 no longer fits under 50, so nothing more is sent.
+      // 35 sent: a cell's worst case of 20 no longer fits under 50, so nothing more is sent. A request recorded
+      // without a price (from before the dollar ledger) counts at the most any request can cost.
       const resumed = await invocation({ resume: true });
       expect(resumed.stopped).toMatchObject({ reason: "cap" });
       expect(posted).toBe(0);
-      expect(resumed.requests).toEqual({ cap: 50, sent: 35 });
+      expect(resumed.requests).toMatchObject({ cap: 50, sent: 35, capUsd: USD });
+      expect(resumed.requests!.usd).toBeCloseTo(35 * absoluteUsd(2), 9);
+      // Nor can a cap be lowered past what the run has already sent.
+      await expect(invocation({ resume: true, maxTotalRequests: 30 })).rejects.toThrow(/--max-total-requests 30 is below the 35 requests the run .* has already sent/);
+      expect(JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")).limits.maxTotalRequests).toBe(50);
+      expect(posted).toBe(0);
+      // A request sent whose reply was never read (the invocation was killed) is raised to the most any request can cost,
+      // on the record, before anything else is appended; so is one whose settlement was cut off mid-line, which is set
+      // aside. A request line cut off itself was never sent, and is set aside at no cost.
+      const request = (usd: number) => JSON.stringify({ at: "2026-10-03T00:00:01.000Z", invocation: "2026-10-03T00:00:00.000Z", usd });
+      const settle = (adjust: number) => JSON.stringify({ at: "2026-10-03T00:00:02.000Z", invocation: "2026-10-03T00:00:00.000Z", adjust, reason: "settled at the reported usage" });
+      writeFileSync(join(dir, "pacing.jsonl"), "");
+      const read = () => readFileSync(join(dir, "requests.jsonl"), "utf8").split("\n");
+      posted = 0;
+      for (const [name, ledger, usd, lines] of [
+        ["a reply never read", `${request(0.5)}\n`, absoluteUsd(2), 3],
+        ["a settlement cut off", `${request(0.5)}\n{"at":"2026-10-03T00:00:02.000Z","adj`, absoluteUsd(2), 3],
+        ["a request line cut off", `${request(0.5)}\n${settle(-0.25)}\n{"at":"2026-10-03T00:00:03.000Z","in`, 0.25, 3],
+      ] as const) {
+        writeFileSync(join(dir, "requests.jsonl"), ledger);
+        // A cap of one request admits no cell, so these resumes only read the ledger.
+        const resumed = await invocation({ resume: true, maxTotalRequests: 1 });
+        expect(posted, name).toBe(0);
+        expect(resumed.requests, name).toMatchObject({ cap: 1, sent: 1 });
+        expect(resumed.requests!.usd, name).toBeCloseTo(usd, 9);
+        expect(read(), name).toHaveLength(lines);
+        expect(read()[lines - 1], name).toBe("");
+        // Every later resume reads the same totals from the settled ledger.
+        const again = await invocation({ resume: true });
+        expect(again.requests, name).toEqual(resumed.requests);
+      }
+      expect(JSON.parse(read()[1]!)).toMatchObject({ adjust: -0.25 });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -321,7 +364,7 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       }) as typeof fetch;
       const pre = await preflight({ references: [astryx] });
       const invocation = (resume: boolean) =>
-        runEvaluation({ runId: "lock", provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: pacer(300) }), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir, resume, maxTotalRequests: 100 });
+        runEvaluation({ runId: "lock", provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: pacer(300) }), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir, resume, maxTotalRequests: 100, maxTotalUsd: USD });
       const first = invocation(false);
       while (posted === 0) await new Promise((resolve) => setTimeout(resolve, 5));
       const second = invocation(true);
@@ -361,14 +404,14 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
   const plan = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits", block: "records-table", blockReason: "it is a table" };
   const ok = (json: unknown) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: 100, output_tokens: 10 } });
   /** The REAL Worker module; `model` answers each provider call by kind and may throw like the gateway does. */
-  const workerFetch = (model: (kind: "plan" | "block" | "surface", n: number) => unknown) => {
+  const workerFetch = (model: (kind: "plan" | "block" | "surface", n: number, input?: { system: string; messages: Array<{ content: string }> }) => unknown) => {
     let n = 0;
     const env = {
       HOSTED_AI: "on",
       AI: {
-        run: async (_m: string, input: { system: string }) => {
+        run: async (_m: string, input: { system: string; messages: Array<{ content: string }> }) => {
           const kind = input.system.includes("routing step") ? "plan" : input.system.includes("Interface block") || input.system.includes("named call") ? "block" : "surface";
-          return model(kind, n++);
+          return model(kind, n++, input);
         },
       },
     };
@@ -401,6 +444,137 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     expect(strip(recorder.calls).map((c) => [c.source, c.outcome])).toEqual([["none", "refused"], ["provider", "ok"]]);
     expect(meter.requests).toBe(1);
     expect(meter.bytes).toBe(new TextEncoder().encode(JSON.stringify(request)).length);
+  });
+
+  it("holds the run's dollar ceiling across resumes: each request reserves its own priced worst case before it is sent, a cell is admitted only when its worst case fits, and a resume holds to the recorded ceiling until a new one is named", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-dollars-"));
+    try {
+      type Body = { system: string; messages: Array<{ role: "user" | "assistant"; content: string }>; jsonSchema: Record<string, unknown>; maxCalls?: 1 | 2 };
+      const bodies: Body[] = [];
+      // Every call reports the most its request was priced for: one token per byte read, and the output cap.
+      const read = (input: { system: string; messages: Array<{ content: string }> }) => new TextEncoder().encode(input.system).length + input.messages.reduce((a, m) => a + new TextEncoder().encode(m.content).length, 0);
+      const answer = (json: unknown, input: { system: string; messages: Array<{ content: string }> }) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: read(input), output_tokens: MAX_OUTPUT_TOKENS } });
+      const w = workerFetch((kind, _n, input) => answer(kind === "plan" ? plan : kind === "block" ? { block: "records-table", version: 1 } : exampleFor(astryx, "record-collection"), input!));
+      const fetchImpl = (async (url: string, init: RequestInit) => {
+        bodies.push(JSON.parse(String(init.body)) as Body);
+        return w.fetchImpl(url, init);
+      }) as typeof fetch;
+      const pre = await preflight({ references: [astryx] });
+      const invocation = (maxTotalUsd?: number) =>
+        runEvaluation({
+          runId: "dollars",
+          provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 300, spacingMs: 0, now: () => 0, sleep: async () => undefined }) }),
+          references: [astryx],
+          corpus,
+          preflight: pre,
+          allowDrafts: true,
+          promptIds: ["rt-01"],
+          conditions: ["fresh"],
+          outDir: dir,
+          resume: existsSync(join(dir, "manifest.json")),
+          maxTotalRequests: 1000,
+          ...(maxTotalUsd !== undefined ? { maxTotalUsd } : {}),
+        });
+      const lines = () => readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { usd?: number; adjust?: number; reason?: string });
+      // What each request cost as reported: one call, every byte a token, the output cap.
+      const spent = (b: Body) => ((new TextEncoder().encode(guidedSystem(b.system, b.jsonSchema)).length + b.messages.reduce((a, m) => a + new TextEncoder().encode(m.content).length, 0)) * 1e-6 + MAX_OUTPUT_TOKENS * 5e-6) * 1.05;
+      // Each request's line carries its own priced worst case, written before it was sent, and its settlement at what it
+      // reported, written after its reply was verified.
+      const ledgerMatches = () => {
+        const expected = bodies.flatMap((b) => [{ usd: worstCaseUsd(b, b.maxCalls ?? 2) }, { adjust: spent(b) - worstCaseUsd(b, b.maxCalls ?? 2), reason: "settled at the reported usage" }]);
+        const got = lines();
+        expect(got).toHaveLength(expected.length);
+        got.forEach((l, i) => {
+          const e = expected[i]!;
+          if ("usd" in e) expect(l.usd).toBe(e.usd);
+          else {
+            expect(l.reason).toBe(e.reason);
+            expect(l.adjust).toBeCloseTo(e.adjust!, 12);
+          }
+        });
+      };
+      // Room for one cell's worst case and five cents: the first cell runs and spends more than five cents, so the
+      // second no longer fits.
+      const ceiling = CELL_USD_BOUND + 0.05;
+      const first = await invocation(ceiling);
+      expect(first.stopped).toMatchObject({ reason: "cap" });
+      expect(first.stopped?.message).toMatch(/dollar ceiling.*--max-total-usd/);
+      expect(first.records).toHaveLength(1);
+      ledgerMatches();
+      expect(first.requests?.usd).toBeCloseTo(bodies.reduce((a, b) => a + spent(b), 0), 9);
+      const sent = bodies.length;
+      // A resume that names no ceiling holds to the recorded one: nothing more is sent.
+      const second = await invocation();
+      expect(second.stopped?.message).toMatch(/--max-total-usd/);
+      expect(bodies).toHaveLength(sent);
+      // Raising it is explicit and recorded, and the run continues without what it spent passing the new ceiling.
+      const raised = 2 * CELL_USD_BOUND + 0.05;
+      const third = await invocation(raised);
+      expect(bodies.length).toBeGreaterThan(sent);
+      const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+      expect(manifest.limits).toMatchObject({ maxTotalRequests: 1000, maxTotalUsd: raised, changes: [{ unit: "usd", from: ceiling, to: raised }] });
+      ledgerMatches();
+      const committed = lines().reduce((a, l) => a + (l.usd ?? 0) + (l.adjust ?? 0), 0);
+      expect(committed).toBeLessThanOrEqual(raised);
+      expect(third.requests?.usd).toBeCloseTo(committed, 9);
+      // A ceiling cannot be lowered past what the run has already committed: the resume is refused before it sends
+      // anything, and the manifest keeps its ceiling.
+      const recorded = readFileSync(join(dir, "manifest.json"), "utf8");
+      const sentBefore = bodies.length;
+      await expect(invocation(committed / 2)).rejects.toThrow(/--max-total-usd .* is below the \$[0-9.]+ the run .* has already committed/);
+      expect(readFileSync(join(dir, "manifest.json"), "utf8")).toBe(recorded);
+      expect(bodies).toHaveLength(sentBefore);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("settles a verified reply at what it reported, releases a refusal that reached no model, and raises a reply it cannot verify to the most the request could have cost", async () => {
+    const lines: Array<[string, number]> = [];
+    const paced = () => {
+      const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
+      pacer.ledger = {
+        cap: 100,
+        sent: 0,
+        capUsd: USD,
+        usd: 0,
+        record(usd = 0) {
+          lines.push(["request", usd]);
+          this.sent += 1;
+          this.usd = (this.usd ?? 0) + usd;
+        },
+        adjust(usd: number, reason: string) {
+          lines.push([reason, usd]);
+          this.usd = (this.usd ?? 0) + usd;
+        },
+      };
+      return pacer;
+    };
+    const priced = worstCaseUsd(request, 2);
+    const raise = absoluteUsd(2) - priced;
+    const settle = (10 * 1e-6 + 2 * 5e-6) * 1.05 - priced;
+    const served = (outputTokens: number) => reply(200, { json: { a: 1 }, raw: "{}", model: "m", usage: { inputTokens: 10, outputTokens }, calls: [{ inputTokens: 10, outputTokens, outcome: "ok", durationMs: 1 }] });
+    let refused = false;
+    const cases: Array<[string, () => Response | Promise<Response>, Array<[string, number]>]> = [
+      ["a verified reply", () => served(2), [["request", priced], ["settled at the reported usage", settle]]],
+      ["a refusal before any call, then served", () => ((refused = !refused) ? reply(429, { error: "rate-limited", message: "slow down", calls: [] }) : served(2)), [["request", priced], ["refused before any provider call", -priced], ["request", priced], ["settled at the reported usage", settle]]],
+      ["a provider failure without usage", () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      ["output past the max_tokens the price assumed", () => served(9000), [["request", priced], ["usage not verified", raise]]],
+      ["a reply that never arrived", () => Promise.reject(new TypeError("network down")), [["request", priced], ["usage not verified", raise]]],
+      // A success must have reached a model: one that reports no call proves nothing.
+      ["a success that reports no call", () => reply(200, { json: { a: 1 }, raw: "{}", model: "m", calls: [] }), [["request", priced], ["usage not verified", raise]]],
+      // More calls than the request allows proves nothing, however small each one is.
+      ["more calls than the request allows", () => reply(200, { json: { a: 1 }, raw: "{}", model: "m", calls: Array.from({ length: 3 }, () => ({ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", raise]]],
+      // A reply that reports more than the absolute worst case is charged what it reported: never less than was spent.
+      ["a reply reporting past the model's limits", () => reply(200, { json: { a: 1 }, raw: "{}", model: "m", calls: Array.from({ length: 3 }, () => ({ inputTokens: 204_800, outputTokens: 65_536, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", 3 * absoluteUsd(1) - priced]]],
+    ];
+    for (const [name, answer, expected] of cases) {
+      lines.length = 0;
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => answer()) as typeof fetch, pacer: paced() });
+      await provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request).catch(() => undefined);
+      expect(lines.map(([reason]) => reason), name).toEqual(expected.map(([reason]) => reason));
+      lines.forEach(([, usd], i) => expect(usd, `${name}: line ${i}`).toBeCloseTo(expected[i]![1], 12));
+    }
   });
 
   it("a planning outage ends the cell before any generation, as a provider failure to re-run, never as an arm result or a selection", async () => {
