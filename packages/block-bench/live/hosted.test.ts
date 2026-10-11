@@ -5,6 +5,10 @@
  * the HTTP status, the Worker's cause, and every call record. The app's
  * adapter posts to a relative URL, which the stub accepts.
  */
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createCallRecorder, type ModelCallRecord } from "@dspack-studio/composer-core";
 import { GatewayError, gatewayAdapter } from "../../../apps/composer/app/hosted-build";
@@ -19,7 +23,10 @@ import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
 import { cellRequestBound, createHostedProvider, retryableRefusal } from "./providers/hosted";
 import { HarnessError, createMeter } from "./providers/types";
+import { ARMS } from "./types";
 import { callJsonSchema, encodeCall } from "@dspack-studio/composer-core/blocks";
+
+const ARM_COUNT = ARMS.length;
 
 const request = { system: "s", messages: [{ role: "user" as const, content: "u" }], jsonSchema: { type: "object" } };
 const reply = (status: number, body: unknown, raw = false) => new Response(raw ? String(body) : JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -179,6 +186,160 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
     expect(result.stopped).toMatchObject({ reason: "cap" });
     expect(result.records).toEqual([]);
     expect(posted).toBe(0);
+  });
+
+  it("the run's cumulative cap holds across resumes: each invocation has a new pacer, and together they never send more than the run's cap", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-cumulative-"));
+    try {
+      let posted = 0;
+      // The provider is down: every fresh cell is one planning request that fails, so the count is easy to read.
+      const fetchImpl = (async () => {
+        posted += 1;
+        return reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] });
+      }) as typeof fetch;
+      const pre = await preflight({ references: [astryx] });
+      // Each invocation is what one CLI process builds: a new provider and a new pacer with its own cap of 300.
+      const invocation = (maxTotalRequests?: number) =>
+        runEvaluation({
+          runId: "cumulative",
+          provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 300, spacingMs: 0, now: () => 0, sleep: async () => undefined }) }),
+          references: [astryx],
+          corpus,
+          preflight: pre,
+          allowDrafts: true,
+          conditions: ["fresh"],
+          outDir: dir,
+          resume: existsSync(join(dir, "manifest.json")),
+          ...(maxTotalRequests !== undefined ? { maxTotalRequests } : {}),
+        });
+      const first = await invocation(25);
+      expect(first.stopped).toMatchObject({ reason: "cap" });
+      expect(posted).toBeGreaterThan(0);
+      expect(posted).toBeLessThanOrEqual(25);
+      const sent = posted;
+      // A resume that names no new cap holds to the recorded one, which is spent: nothing more is sent.
+      const second = await invocation();
+      expect(second.stopped).toMatchObject({ reason: "cap" });
+      expect(second.stopped?.message).toMatch(/--max-total-requests/);
+      expect(posted).toBe(sent);
+      // Raising it is explicit and recorded; the run then continues up to the new cap, never past it.
+      await invocation(45);
+      expect(posted).toBeGreaterThan(sent);
+      expect(posted).toBeLessThanOrEqual(45);
+      const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+      expect(manifest.limits).toMatchObject({ maxTotalRequests: 45, changes: [{ from: 25, to: 45 }] });
+      // Every request was recorded before it was sent, and the summary and the report state the run's total.
+      expect(readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n")).toHaveLength(posted);
+      expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).requests).toEqual({ cap: 45, sent: posted });
+      expect(readFileSync(join(dir, "REPORT.md"), "utf8")).toContain(`- The run: a cumulative cap of 45 requests across every invocation (manifest.json); ${posted} sent (requests.jsonl).`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("a persisted hosted run refuses to start without a cumulative cap", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-uncapped-"));
+    try {
+      let posted = 0;
+      const fetchImpl = (async () => {
+        posted += 1;
+        return okReply(planAnswer);
+      }) as typeof fetch;
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 300, spacingMs: 0, now: () => 0, sleep: async () => undefined }) });
+      const pre = await preflight({ references: [astryx] });
+      await expect(runEvaluation({ runId: "uncapped", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir })).rejects.toThrow(/cumulative cap/);
+      expect(posted).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  const down = () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] });
+  const pacer = (maxRequests: number) => createPacer({ maxRequests, spacingMs: 0, now: () => 0, sleep: async () => undefined });
+
+  it("a hosted run in a run directory needs a pacer as well as the cap, to start and to resume: the provider's kind decides, not whether a pacer was passed", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-unpaced-"));
+    try {
+      let posted = 0;
+      const fetchImpl = (async () => {
+        posted += 1;
+        return down();
+      }) as typeof fetch;
+      const pre = await preflight({ references: [astryx] });
+      const run = (provider: ReturnType<typeof createHostedProvider>, resume: boolean) =>
+        runEvaluation({ runId: "unpaced", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir, resume, maxTotalRequests: 100 });
+      const unpaced = createHostedProvider({ baseUrl: "https://example.test", fetchImpl });
+      await expect(run(unpaced, false)).rejects.toThrow(/pacer/);
+      expect(posted).toBe(0);
+      // A run a paced invocation started cannot be resumed without a pacer either.
+      await run(createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: pacer(20) }), false);
+      posted = 0;
+      await expect(run(unpaced, true)).rejects.toThrow(/pacer/);
+      expect(posted).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("counts every request the run has sent: the ledger, plus what invocations from before the ledger reported, never one in place of the other", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-ledger-"));
+    try {
+      let posted = 0;
+      const fetchImpl = (async () => {
+        posted += 1;
+        return down();
+      }) as typeof fetch;
+      const pre = await preflight({ references: [astryx] });
+      const invocation = (extra: { maxTotalRequests?: number; resume?: boolean }) =>
+        runEvaluation({ runId: "ledger", provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: pacer(20) }), references: [astryx], corpus, preflight: pre, allowDrafts: true, conditions: ["fresh"], outDir: dir, ...extra });
+      await invocation({ maxTotalRequests: 50 });
+      // The history to add up: an invocation from before the ledger reported 20 requests in pacing.jsonl, and a later
+      // one was killed after recording 15 requests in the ledger, reporting nothing.
+      writeFileSync(join(dir, "pacing.jsonl"), `${JSON.stringify({ at: "2026-10-01T00:00:00.000Z", telemetry: { pacing: { maxRequests: 300, spacingMs: 3000, backoffMs: [], sent: 20, waits: [] } } })}\n`);
+      writeFileSync(join(dir, "requests.jsonl"), `${JSON.stringify({ at: "2026-10-02T00:00:01.000Z", invocation: "2026-10-02T00:00:00.000Z" })}\n`.repeat(15));
+      posted = 0;
+      // 35 sent: a cell's worst case of 20 no longer fits under 50, so nothing more is sent.
+      const resumed = await invocation({ resume: true });
+      expect(resumed.stopped).toMatchObject({ reason: "cap" });
+      expect(posted).toBe(0);
+      expect(resumed.requests).toEqual({ cap: 50, sent: 35 });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("runs one invocation at a time in a run directory: a concurrent resume refuses before sending anything, and a lock a killed invocation left is taken over", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-lock-"));
+    try {
+      let posted = 0;
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      const fetchImpl = (async () => {
+        posted += 1;
+        await gate;
+        return down();
+      }) as typeof fetch;
+      const pre = await preflight({ references: [astryx] });
+      const invocation = (resume: boolean) =>
+        runEvaluation({ runId: "lock", provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: pacer(300) }), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir, resume, maxTotalRequests: 100 });
+      const first = invocation(false);
+      while (posted === 0) await new Promise((resolve) => setTimeout(resolve, 5));
+      const second = invocation(true);
+      setTimeout(release, 100);
+      await expect(second).rejects.toThrow(/another invocation/);
+      const done = await first;
+      expect(done.records).toHaveLength(ARM_COUNT);
+      // The first sent one planning request per cell; the refused resume sent none.
+      expect(posted).toBe(ARM_COUNT);
+      expect(existsSync(join(dir, "run.lock"))).toBe(false);
+      // A lock whose process is gone (a killed invocation) is taken over.
+      const gone = spawnSync(process.execPath, ["-e", ""]).pid!;
+      writeFileSync(join(dir, "run.lock"), `${JSON.stringify({ pid: gone, at: "2026-10-01T00:00:00.000Z" })}\n`);
+      await expect(invocation(true)).resolves.toMatchObject({ cells: { reused: ARM_COUNT } });
+      expect(existsSync(join(dir, "run.lock"))).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("reports its pacing: the configuration, the requests sent and every wait", async () => {

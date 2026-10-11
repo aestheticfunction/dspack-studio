@@ -13,16 +13,21 @@
  * spent leaves the directory: records a re-run supersedes move to
  * runs.superseded.jsonl and stay in the totals, every invocation's pacing
  * is appended to pacing.jsonl, and a cut-off last line is set aside in
- * runs.torn.jsonl.
+ * runs.torn.jsonl. A hosted run also carries a cumulative cap: the manifest
+ * records the requests the whole run may send, requests.jsonl counts every
+ * request before it is sent, and each invocation's pacer is bound to that
+ * count, so no number of resumes sends more than the run allows. One
+ * invocation runs a directory at a time (run.lock), so two cannot spend the
+ * same cap or interleave the logs.
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { codeIdentity, type CodeIdentity } from "./identity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
-import { PacingCapReached } from "./pacing";
+import { PacingCapReached, type RunLedger } from "./pacing";
 import type { Preflight } from "./preflight";
 import type { Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
@@ -50,6 +55,12 @@ export interface EvaluationOptions {
   resume?: boolean;
   /** Re-run cells whose failure was a provider or policy failure (ADR-B3 re-run policy). */
   rerunFailed?: boolean;
+  /**
+   * Hosted: the requests the whole run may send, across every invocation and resume. Required to start a run
+   * directory with a paced provider, and recorded in its manifest; on a resume, a value changes the recorded cap
+   * and the manifest records the change.
+   */
+  maxTotalRequests?: number;
   decision?: DecisionOptions;
   log?: (line: string) => void;
   now?: () => number;
@@ -78,6 +89,8 @@ export interface EvaluationResult {
   superseded: Spend;
   /** The arms this run selected (the manifest's), whether or not each has reached a cell yet. */
   arms: Arm[];
+  /** Hosted: the run's cumulative cap and the requests sent against it, every invocation included. */
+  requests?: { cap: number; sent: number };
   stopped?: { reason: "cap" | "error"; message: string };
   outDir?: string;
   cells: { total: number; done: number; reused: number };
@@ -104,6 +117,8 @@ export interface RunManifest {
   deployment: { baseUrl: string | null; buildId: string | null; worker: string | null };
   selection: { arms: Arm[]; conditions: Condition[]; promptIds: string[] | null; blocks: string[] | null; limit: number | null };
   decision: DecisionOptions;
+  /** Hosted: the requests the whole run may send, and every change a resume made to that cap. Not identity: a resume may change it, on the record. */
+  limits?: { maxTotalRequests: number; changes?: Array<{ at: string; from?: number; to: number }> };
 }
 
 export async function manifestFor(options: EvaluationOptions): Promise<RunManifest> {
@@ -135,6 +150,7 @@ export async function manifestFor(options: EvaluationOptions): Promise<RunManife
       limit: options.limit ?? null,
     },
     decision: options.decision ?? DEFAULT_DECISION,
+    ...(options.maxTotalRequests !== undefined ? { limits: { maxTotalRequests: options.maxTotalRequests } } : {}),
   };
 }
 
@@ -267,15 +283,91 @@ export function priorFromRecord(record: RunRecord, goal: string): PriorResult | 
 
 const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 
+/** Replaced whole, never truncated in place: a crash leaves the old file or the new one. */
+function replaceJson(file: string, value: unknown) {
+  writeJson(`${file}.tmp`, value);
+  renameSync(`${file}.tmp`, file);
+}
+
+/**
+ * The requests a run recorded before sending them, one line each (a cut-off last line was never sent), and the
+ * invocations that recorded them.
+ */
+function readLedger(file: string): { count: number; invocations: Set<string> } {
+  const invocations = new Set<string>();
+  if (!existsSync(file)) return { count: 0, invocations };
+  const lines = readFileSync(file, "utf8").split("\n");
+  lines.pop();
+  for (const entry of lines) {
+    try {
+      const invocation = (JSON.parse(entry) as { invocation?: unknown }).invocation;
+      if (typeof invocation === "string") invocations.add(invocation);
+    } catch {
+      /* still counted: a request was recorded */
+    }
+  }
+  return { count: lines.length, invocations };
+}
+
+/** Whether a process is running: signal 0 tests for it without sending anything. */
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/**
+ * One invocation at a time per run directory: two would each spend the same cumulative cap and interleave the logs.
+ * A lock whose process is gone (a killed invocation) is taken over. Returns the release.
+ */
+function lockRun(outDir: string): () => void {
+  const file = join(outDir, "run.lock");
+  const take = () => writeFileSync(file, `${JSON.stringify({ pid: process.pid, at: new Date().toISOString() })}\n`, { flag: "wx" });
+  try {
+    take();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    let holder: { pid?: unknown; at?: unknown } = {};
+    try {
+      holder = JSON.parse(readFileSync(file, "utf8")) as typeof holder;
+    } catch {
+      /* unreadable: its writer died mid-write */
+    }
+    if (typeof holder.pid === "number" && alive(holder.pid)) {
+      throw new Error(`another invocation (pid ${holder.pid}, started ${String(holder.at)}) is running the run in ${outDir}; wait for it to finish or stop it. If no invocation is running, delete ${file}.`);
+    }
+    rmSync(file, { force: true });
+    take();
+  }
+  return () => rmSync(file, { force: true });
+}
+
 export async function runEvaluation(options: EvaluationOptions): Promise<EvaluationResult> {
-  const log = options.log ?? (() => undefined);
   if (options.preflight.drafts && !options.allowDrafts) {
     throw new Error("the sidecars in use are drafts; Phase 1B counts approved sidecars only. Pass allowDrafts for a provisional run.");
   }
+  if (!options.outDir) return evaluate(options);
+  mkdirSync(options.outDir, { recursive: true });
+  const unlock = lockRun(options.outDir);
+  try {
+    return await evaluate(options);
+  } finally {
+    unlock();
+  }
+}
+
+async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
+  const log = options.log ?? (() => undefined);
   const cells = planCells(options);
   const outDir = options.outDir;
   const logFile = outDir ? join(outDir, "runs.jsonl") : undefined;
-  if (outDir) mkdirSync(outDir, { recursive: true });
+  // A hosted run in a directory must pass every request through a pacer bound to the run's cumulative cap. The
+  // provider's kind decides, not whether a pacer happens to be present.
+  const hosted = options.provider.kind === "hosted";
+  if (outDir && hosted && !options.provider.pacer) throw new Error("a hosted run in a run directory needs a pacer: every request it sends must count against the run's cumulative cap");
 
   // The manifest: written on the first run, held to on a resume.
   let manifest = await manifestFor(options);
@@ -288,6 +380,17 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
       const mismatches = manifestMismatches(recorded, manifest);
       if (mismatches.length > 0) throw new Error(`resume refused, the run in ${outDir} does not match this invocation:\n- ${mismatches.join("\n- ")}\nStart a new run directory instead.`);
       manifest = recorded;
+      // The cumulative cap stays what the run recorded unless this invocation names a new one, which is recorded.
+      const from = recorded.limits?.maxTotalRequests;
+      if (options.maxTotalRequests !== undefined && options.maxTotalRequests !== from) {
+        manifest = {
+          ...recorded,
+          limits: { maxTotalRequests: options.maxTotalRequests, changes: [...(recorded.limits?.changes ?? []), { at: options.preflight.at, ...(from !== undefined ? { from } : {}), to: options.maxTotalRequests }] },
+        };
+        replaceJson(manifestFile, manifest);
+        log(`the run's cumulative cap is now ${options.maxTotalRequests} requests${from !== undefined ? ` (it was ${from})` : ""}`);
+      }
+      if (hosted && manifest.limits === undefined) throw new Error(`the run in ${outDir} records no cumulative cap; pass --max-total-requests to set the requests the whole run may send`);
       const original = join(outDir, "preflight.json");
       if (existsSync(original)) preflight = JSON.parse(readFileSync(original, "utf8")) as Preflight;
       let n = 1;
@@ -295,6 +398,9 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
       writeJson(join(outDir, `preflight.resume-${n}.json`), options.preflight);
     } else {
       if (existsSync(manifestFile) || (logFile && existsSync(logFile))) throw new Error(`${outDir} already holds a run; pass resume to continue it`);
+      if (hosted && options.maxTotalRequests === undefined) {
+        throw new Error("a hosted run needs a cumulative cap: the requests the whole run may send across every invocation and resume (--max-total-requests)");
+      }
       writeJson(manifestFile, manifest);
       writeJson(join(outDir, "preflight.json"), preflight);
     }
@@ -324,6 +430,32 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
       }
     }
     for (const record of kept) done.set(cellId(record), record);
+  }
+
+  // The run's cumulative cap, bound to this invocation's pacer. Its count is every request the run has recorded,
+  // plus what each invocation from before the ledger reported (one that recorded nothing in it), and each request is
+  // recorded before it is sent.
+  const pacer = options.provider.pacer;
+  const cap = manifest.limits?.maxTotalRequests;
+  const requestsFile = outDir ? join(outDir, "requests.jsonl") : undefined;
+  let ledger: RunLedger | undefined;
+  if (pacer && cap !== undefined) {
+    const recorded = requestsFile ? readLedger(requestsFile) : { count: 0, invocations: new Set<string>() };
+    const unrecorded = earlierInvocations
+      .filter((i) => !recorded.invocations.has(i.at))
+      .reduce((sum, i) => {
+        const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
+        return sum + (typeof sent === "number" && Number.isFinite(sent) ? sent : 0);
+      }, 0);
+    ledger = {
+      cap,
+      sent: recorded.count + unrecorded,
+      record() {
+        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at }));
+        this.sent += 1;
+      },
+    };
+    pacer.ledger = ledger;
   }
 
   const records: RunRecord[] = [];
@@ -386,12 +518,13 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
     invocations,
     superseded: spent,
     arms: [...manifest.selection.arms],
+    ...(ledger ? { requests: { cap: ledger.cap, sent: ledger.sent } } : {}),
     ...(stopped ? { stopped } : {}),
     ...(outDir ? { outDir } : {}),
     cells: { total: cells.length, done: records.length, reused },
   };
   if (outDir) {
-    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, telemetry: telemetry ?? null, invocations, superseded: spent, summary });
+    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, telemetry: telemetry ?? null, invocations, ...(result.requests ? { requests: result.requests } : {}), superseded: spent, summary });
     writeFileSync(join(outDir, "REPORT.md"), renderReport(result, { providerId: options.provider.id, corpus: options.corpus }));
   }
   return result;
