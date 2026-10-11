@@ -108,8 +108,11 @@ export const PRE_CALL_REFUSALS: Readonly<Record<string, number>> = Object.freeze
   "invalid-request": 400,
 });
 
+/** A refusal in the Worker's own shape: no usage and no model, which a refusal that reached no model cannot report. */
+const unspent = (body: Record<string, unknown> | undefined): boolean => body?.usage == null && body?.model == null;
+
 const refusedBeforeAnyCall = (status: number, body: Record<string, unknown> | undefined): boolean =>
-  Array.isArray(body?.calls) && body.calls.length === 0 && typeof body?.error === "string" && Object.hasOwn(PRE_CALL_REFUSALS, body.error) && PRE_CALL_REFUSALS[body.error] === status;
+  Array.isArray(body?.calls) && body.calls.length === 0 && typeof body?.error === "string" && Object.hasOwn(PRE_CALL_REFUSALS, body.error) && PRE_CALL_REFUSALS[body.error] === status && unspent(body);
 
 /**
  * Whether a refused reply reached no model, so a retry after a backoff costs nothing: the zone limiter's 429 or the
@@ -120,7 +123,7 @@ const refusedBeforeAnyCall = (status: number, body: Record<string, unknown> | un
 export const retryableRefusal = (status: number, body: Record<string, unknown> | undefined): boolean => {
   if (status !== 429 && status !== 503) return false;
   if (refusedBeforeAnyCall(status, body)) return true;
-  if (status !== 503 || body?.error !== "busy" || !Array.isArray(body.calls) || body.calls.length !== 1) return false;
+  if (status !== 503 || body?.error !== "busy" || !Array.isArray(body.calls) || body.calls.length !== 1 || !unspent(body)) return false;
   const call = (body.calls[0] ?? {}) as Record<string, unknown>;
   return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
 };
@@ -195,9 +198,9 @@ export function createHostedProvider(options: HostedOptions): Provider {
         itemized = Array.isArray(reply?.calls);
         verified = itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         // What a reply another model served cost may exceed any bound at Haiku 4.5's prices: raised on the way out, it
-        // stops the run, which sends nothing more.
-        const foreign = ownModels(records).find((call) => typeof call.model === "string" && !PRICED_FAMILY.test(call.model));
-        if (options.pacer && !released && foreign) throw new UnpricedModel(foreign.model!);
+        // stops the run, which sends nothing more. Any model the reply names counts, whichever call it is given to.
+        const foreign = [...records.map((call) => call.model), reply?.model].find((model): model is string => typeof model === "string" && !PRICED_FAMILY.test(model));
+        if (options.pacer && !released && foreign !== undefined) throw new UnpricedModel(foreign);
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.
         if (options.pacer && !released && charged > calls) throw new UnboundedReply(`${charged} provider calls, more than the ${calls} its request allows`);

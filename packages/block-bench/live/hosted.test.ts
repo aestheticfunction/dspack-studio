@@ -154,6 +154,13 @@ describe("the hosted client agrees with the app's gateway adapter on every reply
     const rejected = { inputTokens: null, outputTokens: null, outcome: "provider-error" };
     expect(retryableRefusal(503, { error: "busy", calls: [rejected] })).toBe(true);
     expect(retryableRefusal(503, { error: "busy", calls: [rejected, rejected] })).toBe(false);
+    // A refusal is free only in the Worker's own shape: one that also reports usage or names a model is not its.
+    expect(retryableRefusal(429, { error: "rate-limited", calls: [] })).toBe(true);
+    expect(retryableRefusal(429, { error: "rate-limited", calls: [], usage: { inputTokens: 10, outputTokens: 2 } })).toBe(false);
+    expect(retryableRefusal(429, { error: "rate-limited", calls: [], model: "claude-haiku-4-5-20251001" })).toBe(false);
+    expect(retryableRefusal(503, { error: "busy", calls: [rejected], usage: null })).toBe(true);
+    expect(retryableRefusal(503, { error: "busy", calls: [rejected], usage: { inputTokens: 10, outputTokens: 2 } })).toBe(false);
+    expect(retryableRefusal(503, { error: "busy", calls: [rejected], model: "claude-haiku-4-5-20251001" })).toBe(false);
   });
 });
 
@@ -683,6 +690,14 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
   it("stops the run at a reply served by a model it does not price, after raising the request to its absolute bound", async () => {
     // The ceiling holds at Claude Haiku 4.5's prices: what another model's reply cost may exceed any bound at them.
     const served = (model: string) => () => reply(200, { json: { a: 1 }, raw: "{}", model, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
+    // However the reply's calls ended: an answer that names another model stops the run even when its calls do not
+    // carry that model as their own.
+    for (const body of [{ json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] }, { json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [] }]) {
+      const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
+      pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record() { this.sent += 1; }, adjust() {} };
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(200, body)) as typeof fetch, pacer });
+      await expect(provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request), JSON.stringify(body.calls)).rejects.toBeInstanceOf(UnpricedModel);
+    }
     for (const model of ["claude-opus-4-1-20250805", "evil/claude-haiku-4-5/other"]) {
       const lines: Array<[string, number]> = [];
       const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
