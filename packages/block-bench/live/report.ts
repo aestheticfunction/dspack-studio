@@ -39,11 +39,12 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."}${preflight.model ? ` Local model ${preflight.model.name}, digest ${preflight.model.digest ?? "unknown"}.` : ""} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
     "",
   ];
-  // Every integrity stop stays on the record, however the run ended: the cell each stopped ran again from its start.
+  // Every integrity stop stays on the record, however the run ended: a resume runs the cell each stopped again from its
+  // start.
   const halts = result.invocations.filter((i) => i.stopped?.reason === "integrity");
   if (halts.length > 0) {
     out.push(
-      `Integrity stops: ${halts.length}. Each stopped the run at a call it could not trust (live/integrity.ts); the cell in flight logged no record, and the next resume ran it again from its start, drawing its result again.`,
+      `Integrity stops: ${halts.length}. Each stopped the run at a call it could not trust (live/integrity.ts); the cell in flight logged no record, and a resume runs the cell again from its start, drawing its result again.`,
       "",
       ...halts.map((i) => `- ${i.at}: ${i.stopped!.message}`),
       "",

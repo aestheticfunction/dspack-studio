@@ -37,7 +37,7 @@ import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { REQUEST_USD_BOUND, toNanos } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
-import { RunHalted } from "./integrity";
+import { MODEL_FAMILY, RunHalted } from "./integrity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
 import { LockLost, PacingCapReached, RecordUnwritable, type RunLedger } from "./pacing";
 import type { Preflight } from "./preflight";
@@ -638,6 +638,45 @@ function makeRunDirectory(dir: string): void {
 /** The largest ceiling the ledger counts exactly: whole nanodollars are exact up to the largest safe integer. */
 const MAX_CEILING_USD = Math.floor(Number.MAX_SAFE_INTEGER / 1e9);
 
+/**
+ * Holds a resume to the model the run measured (live/integrity.ts). A served model on the record must be a Claude Haiku
+ * 4.5 id with the time it was recorded, and it must be the model the ledger shows the run measured: each settlement made
+ * once a model was recorded carries it. A manifest that names another model, or none, after the run measured one, could
+ * not hold later calls to it, so the resume is refused and nothing is sent. A run that has recorded no model yet, fresh
+ * or stopped before any reply could record one, carries none in its ledger, and records its first as usual.
+ */
+function holdServedModel(recorded: RunManifest, manifestFile: string, ledgerFile: string): void {
+  const refuse = (problem: string) =>
+    new Error(`resume refused: ${manifestFile} ${problem}, so the run could not hold later calls to the model it measures. Restore it, or start a new run directory.`);
+  const served = (recorded as { servedModel?: unknown }).servedModel;
+  if (served !== undefined) {
+    const record = served as { id?: unknown; at?: unknown } | null;
+    if (!record || typeof record !== "object" || typeof record.id !== "string" || !MODEL_FAMILY.test(record.id) || typeof record.at !== "string") {
+      throw refuse(`records a servedModel that is not a Claude Haiku 4.5 id with the time it was recorded (${String(JSON.stringify(served)).slice(0, 200)})`);
+    }
+  }
+  const id = (served as { id?: string } | undefined)?.id;
+  for (const model of ledgerServedModels(ledgerFile)) {
+    if (model !== id) throw refuse(`${id === undefined ? "records no servedModel" : `records servedModel ${id}`}, but its ledger (requests.jsonl) shows the run measured ${model}`);
+  }
+}
+
+/** Every model the ledger's settlements say the run had recorded; a line cut off partway, or unreadable, says none. */
+function ledgerServedModels(file: string): Set<string> {
+  const models = new Set<string>();
+  if (!existsSync(file)) return models;
+  for (const text of readFileSync(file, "utf8").split("\n")) {
+    try {
+      const entry: unknown = JSON.parse(text);
+      const model = entry && typeof entry === "object" ? (entry as { servedModel?: unknown }).servedModel : undefined;
+      if (typeof model === "string") models.add(model);
+    } catch {
+      /* not a whole line: it names no model */
+    }
+  }
+  return models;
+}
+
 /** Refuses a dollar ceiling the ledger cannot count exactly. */
 function exactCeiling(usd: number, where: string): void {
   if (!(Number.isFinite(usd) && usd > 0 && usd <= MAX_CEILING_USD)) {
@@ -682,6 +721,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
       const recorded = JSON.parse(readFileSync(manifestFile, "utf8")) as RunManifest;
       const mismatches = manifestMismatches(recorded, manifest);
       if (mismatches.length > 0) throw new Error(`resume refused, the run in ${outDir} does not match this invocation:\n- ${mismatches.join("\n- ")}\nStart a new run directory instead.`);
+      holdServedModel(recorded, manifestFile, join(outDir, "requests.jsonl"));
       manifest = recorded;
       // The cumulative cap and the dollar ceiling stay what the run recorded unless this invocation names a new one,
       // which is recorded.
@@ -817,7 +857,9 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
         open = undefined;
         // A raise counts even when its line cannot be written: the run's total never falls below what it spent.
         if (delta > 0) committed += delta;
-        append({ ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason });
+        // It carries the model the run had recorded by then, so the ledger shows what the run measured: a resume holds
+        // the manifest to it (holdServedModel).
+        append({ ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason, ...(manifest.servedModel ? { servedModel: manifest.servedModel.id } : {}) });
         if (delta <= 0) committed += delta;
       },
     };

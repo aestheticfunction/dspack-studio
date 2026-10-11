@@ -4,7 +4,7 @@
  * metered call reported, which the manifest records once and every resume holds to. Anything else stops the run
  * cleanly, apart from arm results, and the run stays resumable. Refusals that reached no model are exempt.
  */
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -78,7 +78,7 @@ async function invocation(dir: string, fetchImpl: typeof fetch) {
 
 const manifestOf = (dir: string) => JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
 const logged = (dir: string) => (existsSync(join(dir, "runs.jsonl")) ? readFileSync(join(dir, "runs.jsonl"), "utf8").trim().split("\n").filter(Boolean) : []);
-const ledger = (dir: string) => readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { usd?: number; adjust?: number });
+const ledger = (dir: string) => readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { usd?: number; adjust?: number; servedModel?: string });
 
 describe("the model a hosted run measures", () => {
   it("is recorded once, from the run's first metered call, and every later call that reports it continues", async () => {
@@ -153,8 +153,99 @@ describe("the model a hosted run measures", () => {
       await invocation(dir, worker((cell) => (cell < 2 ? HAIKU : "claude-haiku-4-5-20260301")).fetchImpl);
       expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).stopped).toMatchObject({ reason: "integrity" });
       expect(readFileSync(join(dir, "REPORT.md"), "utf8")).toMatch(/Stopped: integrity: model-changed/);
+      // Written before any resume, the report says what a resume does, never that one ran.
+      expect(readFileSync(join(dir, "REPORT.md"), "utf8")).toContain("a resume runs the cell again from its start");
+      expect(readFileSync(join(dir, "REPORT.md"), "utf8")).not.toMatch(/resume ran/);
       // The completed cell is an arm result; the stop is not one.
       expect(logged(dir).map((l) => JSON.parse(l).failure)).toEqual([undefined]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+});
+
+describe("a resume holds to the model the run measured, whatever its manifest now says", () => {
+  const OTHER = "claude-haiku-4-5-20260301";
+  /** A run whose first cell was measured on Haiku 4.5, stopped when the next cell was served by another snapshot. */
+  const measured = async (dir: string) => {
+    const first = await invocation(dir, worker((cell) => (cell < 2 ? HAIKU : OTHER)).fetchImpl);
+    expect(first.stopped?.message).toMatch(/^model-changed: /);
+    expect(logged(dir)).toHaveLength(1);
+    return readFileSync(join(dir, "manifest.json"), "utf8");
+  };
+  /** Rewrites the run's manifest by hand, its served model replaced, or removed when `servedModel` is undefined. */
+  const tamper = (dir: string, servedModel: unknown) => {
+    const manifest = manifestOf(dir);
+    if (servedModel === undefined) delete manifest.servedModel;
+    else manifest.servedModel = servedModel;
+    writeFileSync(join(dir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  };
+
+  it("refuses a resume whose manifest records a malformed served model, before anything is sent", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
+    try {
+      const original = await measured(dir);
+      const at = manifestOf(dir).servedModel.at;
+      for (const servedModel of [{}, HAIKU, null, { id: null, at }, { id: 42, at }, { id: HAIKU }, { id: "claude-opus-4-1-20250805", at }]) {
+        tamper(dir, servedModel);
+        const w = worker(() => OTHER);
+        await expect(invocation(dir, w.fetchImpl), JSON.stringify(servedModel)).rejects.toThrow(/^resume refused: .*servedModel/s);
+        expect(w.posted(), JSON.stringify(servedModel)).toBe(0);
+        expect(logged(dir)).toHaveLength(1);
+        writeFileSync(join(dir, "manifest.json"), original);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("refuses a resume whose manifest no longer names the model its ledger shows it measured, or names another", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
+    try {
+      const original = await measured(dir);
+      // Each settlement made once the model was recorded carries it, so the ledger shows what the run measured.
+      const settled = ledger(dir).filter((l) => l.adjust !== undefined);
+      expect(settled.length).toBeGreaterThan(0);
+      expect(new Set(settled.map((l) => l.servedModel))).toEqual(new Set([HAIKU]));
+      for (const servedModel of [undefined, { id: OTHER, at: manifestOf(dir).servedModel.at }]) {
+        tamper(dir, servedModel);
+        const w = worker(() => OTHER);
+        await expect(invocation(dir, w.fetchImpl), JSON.stringify(servedModel)).rejects.toThrow(new RegExp(`^resume refused: .*${HAIKU}`, "s"));
+        expect(w.posted()).toBe(0);
+        expect(logged(dir)).toHaveLength(1);
+        writeFileSync(join(dir, "manifest.json"), original);
+      }
+      // With its manifest as it was, the run resumes, held to the model it measured.
+      const resumed = await invocation(dir, worker(() => HAIKU).fetchImpl);
+      expect(resumed.stopped).toBeUndefined();
+      expect(logged(dir)).toHaveLength(4);
+      expect(manifestOf(dir).servedModel).toMatchObject({ id: HAIKU });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("lets a fresh run, or one stopped before any model could be recorded, establish its first served model", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
+    try {
+      // The plan's first call is an unusable output, which names no model of its own: the run stops at its first reply,
+      // before any model is recorded, though a provider call was made and paid for.
+      let calls = 0;
+      const env = {
+        HOSTED_AI: "on",
+        AI: { run: async () => ({ content: [{ type: "text", text: calls++ === 0 ? "not json" : JSON.stringify(plan) }], usage: { input_tokens: 100, output_tokens: 10 }, model: HAIKU }) },
+      };
+      const first = await invocation(dir, (async (url: string, init: RequestInit) => handlePropose(new Request(url, init), env)) as typeof fetch);
+      expect(first.stopped).toMatchObject({ reason: "integrity" });
+      expect(first.stopped?.message).toMatch(/^model-missing: /);
+      expect(manifestOf(dir).servedModel).toBeUndefined();
+      expect(ledger(dir).filter((l) => l.adjust !== undefined)).toHaveLength(1);
+      expect(ledger(dir).some((l) => l.servedModel !== undefined)).toBe(false);
+      // Its resume, like a fresh run, records the first model a reply that holds reports, and runs to the end.
+      const resumed = await invocation(dir, worker(() => OTHER).fetchImpl);
+      expect(resumed.stopped).toBeUndefined();
+      expect(manifestOf(dir).servedModel).toMatchObject({ id: OTHER });
+      expect(logged(dir)).toHaveLength(4);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

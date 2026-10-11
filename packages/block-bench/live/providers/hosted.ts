@@ -323,6 +323,9 @@ export function createHostedProvider(options: HostedOptions): Provider {
           durationMs,
         };
       } finally {
+        // Settled on the way out, whatever stopped the reply. A settlement that cannot be written stops the run as that
+        // write failure (RecordUnwritable, reported as `error`), even when the reply also failed an integrity check or a
+        // dollar stop: the record comes first, and the next resume raises the request to the most a request can cost.
         if (options.pacer && !released) {
           if (verified) options.pacer.adjust(reported - priced, "settled at the reported usage");
           else options.pacer.adjust(Math.max(itemized ? absolute : REQUEST_USD_BOUND, bounded) - priced, "usage not verified");

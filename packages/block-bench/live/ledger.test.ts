@@ -66,7 +66,7 @@ import { exampleFor } from "./arms";
 import { readCorpus, type Corpus } from "./corpus";
 import { CELL_USD_BOUND, MAX_OUTPUT_TOKENS, REQUEST_USD_BOUND, absoluteUsd, toNanos } from "./cost";
 import { lockRun, runEvaluation } from "./evaluate";
-import { PacingCapReached, createPacer } from "./pacing";
+import { PacingCapReached, createPacer, type Pacer } from "./pacing";
 import { preflight } from "./preflight";
 import { createHostedProvider } from "./providers/hosted";
 import { loadReference, type LoadedReference } from "./references";
@@ -111,11 +111,11 @@ const cellScript = () => [PLAN, BAD, BAD, JSON.stringify(exampleFor(astryx, "rec
 
 let tick = 0;
 /** One invocation of a production run over rt-01, as one CLI process makes it: its own pacer and invocation id. */
-async function invocation(dir: string, o: { fetchImpl?: typeof fetch; maxRequests?: number; maxTotalUsd?: number; resume?: boolean }) {
+async function invocation(dir: string, o: { fetchImpl?: typeof fetch; maxRequests?: number; maxTotalUsd?: number; resume?: boolean; pacer?: Pacer }) {
   const fetchImpl = o.fetchImpl ?? worker(cellScript()).fetchImpl;
   return runEvaluation({
     runId: "ledger",
-    provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: o.maxRequests ?? 1000, spacingMs: 0, now: () => 0, sleep: async () => undefined }) }),
+    provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: o.pacer ?? createPacer({ maxRequests: o.maxRequests ?? 1000, spacingMs: 0, now: () => 0, sleep: async () => undefined }) }),
     references: [astryx],
     corpus,
     preflight: await preflight({ references: [astryx], clock: () => new Date(Date.UTC(2026, 9, 11, 0, 0, 0, ++tick)).toISOString() }),
@@ -131,7 +131,7 @@ async function invocation(dir: string, o: { fetchImpl?: typeof fetch; maxRequest
 }
 /** What the next resume reads from the run directory, sending nothing. */
 const totals = async (dir: string) => (await invocation(dir, { maxRequests: 0 })).requests!;
-const ledger = (dir: string) => readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { request?: string; usd?: number; adjust?: number; final?: number; reason?: string });
+const ledger = (dir: string) => readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { request?: string; usd?: number; adjust?: number; final?: number; reason?: string; servedModel?: string });
 const withRun = async (prefix: string, body: (dir: string) => Promise<void>) => {
   const dir = mkdtempSync(join(tmpdir(), `block-bench-${prefix}-`));
   try {
@@ -622,25 +622,117 @@ describe("one invocation at a time", () => {
 });
 
 describe("the model the run measures is on the record before the run goes on", () => {
-  it("stops the run when the model its first call reported cannot be written to the manifest", async () => {
-    await withRun("served-unwritable", async (dir) => {
+  const HAIKU = "claude-haiku-4-5-20251001";
+  const ENOSPC = () => Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
+  const paced = () => createPacer({ maxRequests: 1000, spacingMs: 0, now: () => 0, sleep: async () => undefined });
+
+  it("writes the served model to the disk first, and remembers it only once that write has succeeded", async () => {
+    await withRun("served-order", async (dir) => {
       const manifest = join(dir, "manifest.json");
-      const w = worker(cellScript());
+      const pacer = paced();
+      // Each step of the write that records the model, and whether the run had already taken the model as its own.
+      const steps: string[] = [];
+      const taken = () => (pacer.served?.id === undefined ? "not yet taken" : "taken");
+      let writing = false;
       hooks.wrote = (path, data) => {
-        if (path === `${manifest}.tmp` && data.includes("servedModel")) throw Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
+        if (path === `${manifest}.tmp` && data.includes("servedModel")) {
+          writing = true;
+          steps.push(`write: ${taken()}`);
+        }
       };
-      const result = await invocation(dir, { fetchImpl: w.fetchImpl });
-      hooks.wrote = undefined;
-      // Without it, a resume could not hold later calls to the model this one measured: nothing more is sent.
-      expect(w.posted()).toBe(1);
-      expect(result.records).toHaveLength(0);
-      expect(result.stopped).toMatchObject({ reason: "error" });
-      expect(result.stopped!.message).toMatch(/could not write .*manifest\.json \(ENOSPC\)/);
-      expect(JSON.parse(readFileSync(manifest, "utf8")).servedModel).toBeUndefined();
-      // Its request is settled on the record like any other.
-      expect(ledger(dir).filter((l) => l.adjust !== undefined)).toHaveLength(1);
+      hooks.fsync = (path) => {
+        if (writing && path === `${manifest}.tmp`) steps.push(`sync: ${taken()}`);
+        if (writing && path === dir) {
+          steps.push(`sync directory: ${taken()}`);
+          writing = false;
+        }
+      };
+      hooks.move = (path) => {
+        if (writing && path === `${manifest}.tmp`) steps.push(`rename: ${taken()}`);
+      };
+      const result = await invocation(dir, { pacer });
+      expect(result.stopped).toBeUndefined();
+      expect(steps).toEqual(["write: not yet taken", "sync: not yet taken", "rename: not yet taken", "sync directory: not yet taken"]);
+      expect(pacer.served?.id).toBe(HAIKU);
+      expect(JSON.parse(readFileSync(manifest, "utf8")).servedModel).toMatchObject({ id: HAIKU });
     });
   });
+
+  it("stops the run when the model cannot be written, leaving it neither on the disk nor in memory, and a resume records it afresh", async () => {
+    // The write fails at each of its steps before the manifest is replaced: the new file, its sync, or the rename.
+    for (const step of ["write", "sync", "rename"] as const) {
+      await withRun(`served-unwritable-${step}`, async (dir) => {
+        const manifest = join(dir, "manifest.json");
+        const before = () => JSON.parse(readFileSync(manifest, "utf8"));
+        const w = worker(cellScript());
+        const pacer = paced();
+        let writing = false;
+        hooks.wrote = (path, data) => {
+          if (path !== `${manifest}.tmp` || !data.includes("servedModel")) return;
+          writing = true;
+          if (step === "write") throw ENOSPC();
+        };
+        hooks.fsync = (path) => {
+          if (writing && step === "sync" && path === `${manifest}.tmp`) throw ENOSPC();
+        };
+        hooks.move = (path) => {
+          if (writing && step === "rename" && path === `${manifest}.tmp`) throw ENOSPC();
+        };
+        const result = await invocation(dir, { fetchImpl: w.fetchImpl, pacer });
+        hooks.wrote = undefined;
+        hooks.fsync = undefined;
+        hooks.move = undefined;
+        // Without it, a resume could not hold later calls to the model this one measured: nothing more is sent.
+        expect(w.posted(), step).toBe(1);
+        expect(result.records, step).toHaveLength(0);
+        expect(result.stopped, step).toMatchObject({ reason: "error" });
+        expect(result.stopped!.message, step).toMatch(/could not write .*manifest\.json \(ENOSPC\)/);
+        // Neither on the disk nor in memory: the manifest is as it was, the run never took the model as its own, and
+        // its request is settled on the record like any other, claiming no model.
+        expect(before().servedModel, step).toBeUndefined();
+        expect(pacer.served?.id, step).toBeUndefined();
+        expect(result.servedModel, step).toBeUndefined();
+        expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).servedModel, step).toBeNull();
+        const settled = ledger(dir).filter((l) => l.adjust !== undefined);
+        expect(settled, step).toHaveLength(1);
+        expect(settled[0]!.servedModel, step).toBeUndefined();
+        // Stopped before any model could be recorded, the run records its first served model on the next resume.
+        const resumed = await invocation(dir, {});
+        expect(resumed.stopped, step).toBeUndefined();
+        expect(resumed.records, step).toHaveLength(1);
+        expect(before().servedModel, step).toMatchObject({ id: HAIKU });
+      });
+    }
+  });
+});
+
+describe("a stop whose own settlement cannot be written", () => {
+  it("is reported as the write failure, never as the integrity stop, and the next resume raises its request to the most a request can cost", async () => {
+    await withRun("integrity-unwritten", async (dir) => {
+      // The plan's first call is an unusable output, which names no model of its own: the reply fails the run's
+      // integrity check, and then its settlement line cannot be written. The record comes first, so the run stops on it.
+      const w = worker(["not json", ...cellScript()]);
+      let failed = false;
+      hooks.wrote = (file, data) => {
+        if (!failed && file.endsWith("requests.jsonl") && data.includes('"adjust"')) {
+          failed = true;
+          throw Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
+        }
+      };
+      const first = await invocation(dir, { fetchImpl: w.fetchImpl });
+      hooks.wrote = undefined;
+      expect(failed).toBe(true);
+      expect(w.posted()).toBe(1);
+      expect(first.records).toHaveLength(0);
+      expect(first.stopped).toMatchObject({ reason: "error" });
+      expect(first.stopped!.message).toMatch(/could not write .*requests\.jsonl \(ENOSPC\)/);
+      expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).stopped).toMatchObject({ reason: "error" });
+      expect(readFileSync(join(dir, "REPORT.md"), "utf8")).not.toMatch(/Integrity stops/);
+      // Its request has no settlement on the record, so the next resume raises it to the most any request can cost.
+      expect(ledger(dir).map((l) => l.reason ?? "request")).toEqual(["request"]);
+      expect((await totals(dir)).usd).toBeCloseTo(REQUEST_USD_BOUND, 9);
+    });
+  }, 60_000);
 });
 
 describe("a crash of the machine loses no request that was sent", () => {
