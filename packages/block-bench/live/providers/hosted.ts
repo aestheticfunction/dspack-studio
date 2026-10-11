@@ -142,10 +142,10 @@ export function createHostedProvider(options: HostedOptions): Provider {
       if (options.pacer) await options.pacer.before(priced, absolute);
       const started = now();
       // How the reservation ends: a refusal that reached no model releases it, a reply proving that it stayed inside
-      // the price (no more calls than priced, each within its bounds) settles it at what the calls reported, and
-      // anything else (usage missing, a figure past its bound, an extra call, no reply at all) raises it to the
-      // absolute worst case, or to what it reported if that is more, on the way out. The run's total never falls
-      // below what it spent.
+      // the price (at least one provider call and no more than priced, each within its bounds) settles it at what the
+      // calls reported, and anything else (usage missing, a figure past its bound, an extra call, no call reported, no
+      // reply at all) raises it to the absolute worst case, or to what it reported if that is more, on the way out.
+      // The run's total never falls below what it spent.
       let released = false;
       let reported = 0;
       let verified = false;
@@ -154,7 +154,8 @@ export function createHostedProvider(options: HostedOptions): Provider {
         const records = callRecords(reply, where, { outcome, durationMs });
         for (const call of records) at.recorder.record(call);
         reported = reportedUsd(records);
-        verified = records.filter((call) => call.source !== "none").length <= calls && records.every((call) => withinReservation(request, call));
+        const charged = records.filter((call) => call.source !== "none").length;
+        verified = charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
         return { calls: records, durationMs };
       };
       try {
