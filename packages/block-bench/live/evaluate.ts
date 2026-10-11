@@ -492,7 +492,8 @@ export interface RunLock {
  * The lock names its holder (its pid, its host and a nonce of its own) and is written whole before it is linked into
  * place, so it is never seen empty. A lock whose process is gone from this host (a killed invocation) is taken over:
  * moved aside under this invocation's own name, and taken only if what moved is the lock judged stale, else put back.
- * A holder on another host is never judged gone. Three invocations racing one stale lock can still leave one running
+ * A holder on another host, or a lock that names no host and pid (one still being written), is never judged gone.
+ * Three invocations racing one stale lock can still leave one running
  * without it (a second moves its fresh lock aside as stale, and a third takes the empty place before it is put back),
  * so the run checks `held` before each request it sends.
  */
@@ -515,7 +516,7 @@ export function lockRun(outDir: string): RunLock {
       const holder: unknown = JSON.parse(text);
       return holder && typeof holder === "object" ? (holder as { pid?: unknown; host?: unknown; at?: unknown }) : {};
     } catch {
-      return {}; /* unreadable: its writer died mid-write */
+      return {}; /* unreadable: still being written, or its writer died mid-write */
     }
   };
   const busy = (text: string) => {
@@ -536,7 +537,7 @@ export function lockRun(outDir: string): RunLock {
       rmSync(whole, { force: true });
     }
     // A filesystem without hard links: the lock is created exclusively instead, so another invocation can see it empty
-    // for an instant; a takeover that moves it then finds it changed, and refuses.
+    // for an instant, and an empty lock names no holder, which is never judged gone.
     try {
       writeDurably(file, own, "wx");
       return true;
@@ -548,7 +549,9 @@ export function lockRun(outDir: string): RunLock {
   if (!take()) {
     const seen = read(file);
     const holder = holderOf(seen);
-    if ((typeof holder.host === "string" && holder.host !== host) || (typeof holder.pid === "number" && alive(holder.pid))) throw busy(seen);
+    // Only a holder this host can check is ever judged gone: one that names no host and pid (empty, cut off, or
+    // otherwise unreadable as a holder) may still be being written.
+    if (typeof holder.host !== "string" || typeof holder.pid !== "number" || holder.host !== host || alive(holder.pid)) throw busy(seen);
     const aside = `${file}.stale.${nonce}`;
     try {
       renameSync(file, aside);

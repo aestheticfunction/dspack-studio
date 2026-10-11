@@ -343,7 +343,7 @@ describe("one invocation at a time", () => {
   it("puts back a lock another invocation took between its read and its takeover, and refuses", async () => {
     await withRun("lock-race", async (dir) => {
       const file = join(dir, "run.lock");
-      writeFileSync(file, holder({ pid: deadPid() }));
+      writeFileSync(file, holder({ pid: deadPid(), host: hostname() }));
       // A second invocation replaces the stale lock with its own, just before this one moves it.
       const live = holder({ pid: process.pid, host: hostname(), nonce: "the-other-invocation" });
       let raced = false;
@@ -389,7 +389,7 @@ describe("one invocation at a time", () => {
   it("puts back by name a lock it moved aside when it cannot link it back, and never deletes it", async () => {
     await withRun("lock-putback", async (dir) => {
       const file = join(dir, "run.lock");
-      writeFileSync(file, holder({ pid: deadPid() }));
+      writeFileSync(file, holder({ pid: deadPid(), host: hostname() }));
       const live = holder({ pid: process.pid, host: hostname(), nonce: "the-other-invocation" });
       let raced = false;
       hooks.move = (path) => {
@@ -453,6 +453,41 @@ describe("one invocation at a time", () => {
       const after = await totals(dir);
       expect(after.sent).toBe(2);
       expect(ledger(dir).find((l) => l.request === recorded[1]!.request && l.reason === "a request whose reply was never read")).toMatchObject({ final: Math.max(REQUEST_USD_BOUND, recorded[1]!.usd!) });
+    });
+  });
+
+  it("never takes over a lock that names no holder on this host, such as one still being written", async () => {
+    await withRun("lock-empty", async (dir) => {
+      const file = join(dir, "run.lock");
+      // Without hard links the lock is created exclusively, and is empty until its holder writes it.
+      hooks.link = () => {
+        throw Object.assign(new Error("EPERM: operation not permitted, link"), { code: "EPERM" });
+      };
+      let contender: unknown;
+      let raced = false;
+      hooks.wrote = (path) => {
+        if (raced || path !== file) return;
+        raced = true;
+        // A second invocation arrives between the first creating its lock and writing it.
+        try {
+          contender = lockRun(dir);
+        } catch (error) {
+          contender = error;
+        }
+      };
+      const first = lockRun(dir);
+      hooks.wrote = undefined;
+      expect(contender).toBeInstanceOf(Error);
+      expect((contender as Error).message).toMatch(/another invocation/);
+      expect(first.held()).toBe(true);
+      first.release();
+      hooks.link = undefined;
+      // Nor one left malformed, or naming no host or pid: only a holder this host can check is ever judged gone.
+      for (const text of ["", "{", "null", holder({ pid: deadPid() }), holder({ host: hostname() })]) {
+        writeFileSync(file, text);
+        expect(() => lockRun(dir), JSON.stringify(text)).toThrow(/another invocation/);
+        expect(readFileSync(file, "utf8"), JSON.stringify(text)).toBe(text);
+      }
     });
   });
 

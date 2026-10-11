@@ -7,7 +7,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createCallRecorder, type ModelCallRecord } from "@dspack-studio/composer-core";
@@ -377,7 +377,7 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       expect(existsSync(join(dir, "run.lock"))).toBe(false);
       // A lock whose process is gone (a killed invocation) is taken over.
       const gone = spawnSync(process.execPath, ["-e", ""]).pid!;
-      writeFileSync(join(dir, "run.lock"), `${JSON.stringify({ pid: gone, at: "2026-10-01T00:00:00.000Z" })}\n`);
+      writeFileSync(join(dir, "run.lock"), `${JSON.stringify({ pid: gone, host: hostname(), at: "2026-10-01T00:00:00.000Z" })}\n`);
       await expect(invocation(true)).resolves.toMatchObject({ cells: { reused: ARM_COUNT } });
       expect(existsSync(join(dir, "run.lock"))).toBe(false);
     } finally {
