@@ -791,6 +791,7 @@ describe("a model none of the run's records shows measured", () => {
           expect(atFirstSend!.manifest.setAside, edit).toEqual(entry);
           expect(manifest.setAside, edit).toEqual(entry);
           expect(resumed.setAside, edit).toEqual(entry);
+          expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).setAside, edit).toEqual(entry);
           expect(report, edit).toContain("Served models set aside");
           expect(report, edit).toContain(`\`${setAside.id}\`, recorded ${setAside.at}`);
           expect(lines.some((l) => l.startsWith(`set aside servedModel ${setAside.id}`)), edit).toBe(true);
@@ -810,6 +811,18 @@ describe("a model none of the run's records shows measured", () => {
       expect(report).toContain("Served models set aside");
       expect(report).not.toContain("Served model: ");
       expect(report).not.toMatch(/recorded the model it was served/);
+    });
+  }, 60_000);
+
+  it("counts no claim on the ledger's last line when no newline ends it, as the ledger itself sets that line aside", async () => {
+    await withRun("unclaimed-torn-claim", async (dir) => {
+      const recorded = await unclaimed(dir);
+      // A settlement claiming the model, cut off before its newline: readLedger sets it aside, and so does the resume.
+      appendFileSync(join(dir, "requests.jsonl"), JSON.stringify({ adjust: 0, reason: "settled at the reported usage", servedModel: HAIKU }));
+      const resumed = await invocation(dir, { fetchImpl: servedBy(OTHER).fetchImpl });
+      expect(resumed.stopped).toBeUndefined();
+      expect(resumed.servedModel).toMatchObject({ id: OTHER });
+      expect(resumed.setAside).toEqual([{ servedModel: recorded.servedModel, at: expect.any(String), invocation: expect.any(String) }]);
     });
   }, 60_000);
 
@@ -838,6 +851,8 @@ describe("a model none of the run's records shows measured", () => {
         [{ ...valid, servedModel: { id: HAIKU, at, restored: "by hand" } }],
         [{ ...valid, at: "not a date" }],
         [{ ...valid, invocation: "" }],
+        [{ ...valid, invocation: 42 }],
+        [{ ...valid, servedModel: { id: [HAIKU], at } }],
         [{ ...valid, note: "by hand" }],
         [valid, null],
       ]) {

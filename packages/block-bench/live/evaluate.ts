@@ -693,31 +693,33 @@ function holdServedModel(recorded: RunManifest, outDir: string, hosted: boolean)
 
 /**
  * Every model the run's records show it measured: each claim on the ledger, and, for a hosted run, each model a logged
- * cell's provider calls name. Each file is read as the run reads it: the ledger sets aside its last line when no newline
- * ends it (readLedger), and a run log keeps such a line when it is a whole record (readLog). A line that is unreadable
- * names none.
+ * cell's provider calls name. Each file is read as the run reads it. The ledger sets aside its last line when no newline
+ * ends it, and a line it cannot read claims nothing (readLedger). A run log is read by readLog itself: a whole last
+ * record keeps its place though its newline was lost, a cut-off one is set aside, and any other unreadable line stops
+ * the resume here, before the manifest is written, as it would later.
  */
 function measuredModels(outDir: string, hosted: boolean): Set<string> {
   const models = new Set<string>();
-  const entries = (name: string, unterminated: "set aside" | "kept") => {
-    const file = join(outDir, name);
-    if (!existsSync(file)) return [];
-    const lines = readFileSync(file, "utf8").split("\n");
-    if (unterminated === "set aside") lines.pop();
-    return lines.flatMap((text) => {
+  const ledgerFile = join(outDir, "requests.jsonl");
+  if (existsSync(ledgerFile)) {
+    const lines = readFileSync(ledgerFile, "utf8").split("\n");
+    lines.pop();
+    for (const text of lines) {
       try {
         const entry: unknown = JSON.parse(text);
-        return entry && typeof entry === "object" ? [entry as Record<string, unknown>] : [];
+        const model = entry && typeof entry === "object" ? (entry as { servedModel?: unknown }).servedModel : undefined;
+        if (typeof model === "string") models.add(model);
       } catch {
-        return []; /* not a whole line: it names no model */
+        /* not a whole line: it claims no model */
       }
-    });
-  };
-  for (const entry of entries("requests.jsonl", "set aside")) if (typeof entry.servedModel === "string") models.add(entry.servedModel);
+    }
+  }
   if (!hosted) return models;
   const named = (calls: unknown) => (Array.isArray(calls) ? calls : []).map((call) => (call && typeof call === "object" ? (call as { source?: unknown; model?: unknown }) : {}));
-  for (const record of [...entries("runs.jsonl", "kept"), ...entries("runs.superseded.jsonl", "kept")]) {
-    for (const call of [...named(record.calls), ...named((record.plan as { calls?: unknown } | undefined)?.calls)]) {
+  for (const record of [...readLog<unknown>(join(outDir, "runs.jsonl")).records, ...readLog<unknown>(join(outDir, "runs.superseded.jsonl")).records]) {
+    if (!record || typeof record !== "object") continue;
+    const { calls, plan } = record as { calls?: unknown; plan?: { calls?: unknown } };
+    for (const call of [...named(calls), ...named(plan && typeof plan === "object" ? plan.calls : undefined)]) {
       if (call.source === "provider" && typeof call.model === "string") models.add(call.model);
     }
   }
@@ -1018,7 +1020,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
     cells: { total: cells.length, done: records.length, reused },
   };
   if (outDir) {
-    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, servedModel: manifest.servedModel ?? null, telemetry: telemetry ?? null, invocations, ...(result.requests ? { requests: result.requests } : {}), superseded: spent, summary });
+    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, servedModel: manifest.servedModel ?? null, ...(result.setAside ? { setAside: result.setAside } : {}), telemetry: telemetry ?? null, invocations, ...(result.requests ? { requests: result.requests } : {}), superseded: spent, summary });
     writeFileSync(join(outDir, "REPORT.md"), renderReport(result, { providerId: options.provider.id, corpus: options.corpus }));
   }
   return result;

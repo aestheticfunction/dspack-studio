@@ -189,7 +189,7 @@ describe("a resume holds to the model the run measured, whatever its manifest no
       const at = manifestOf(dir).servedModel.at;
       // Its id and the time it was recorded, and nothing else: an id of another family, a time that is not the one the
       // run wrote, or a field it never writes, is a record the run did not make.
-      for (const servedModel of [{}, HAIKU, null, { id: null, at }, { id: 42, at }, { id: HAIKU }, { id: "claude-opus-4-1-20250805", at }, { id: HAIKU, at: "" }, { id: HAIKU, at: "not a date" }, { id: HAIKU, at: at.slice(0, 10) }, { id: HAIKU, at, restored: "by hand" }, [HAIKU, at]]) {
+      for (const servedModel of [{}, HAIKU, null, { id: null, at }, { id: 42, at }, { id: HAIKU }, { id: "claude-opus-4-1-20250805", at }, { id: HAIKU, at: "" }, { id: HAIKU, at: "not a date" }, { id: HAIKU, at: at.slice(0, 10) }, { id: HAIKU, at, restored: "by hand" }, [HAIKU, at], { id: [HAIKU], at }]) {
         tamper(dir, servedModel);
         const w = worker(() => OTHER);
         await expect(invocation(dir, w.fetchImpl), JSON.stringify(servedModel)).rejects.toThrow(/^resume refused: .*servedModel/s);
@@ -270,19 +270,40 @@ describe("a resume holds to the model the run measured, whatever its manifest no
     );
   }, 60_000);
 
-  it("reads a cell a re-run replaced as measured too", async () => {
+  it("reads a cell a re-run replaced as measured too, its newline lost or not", async () => {
     // Right after --rerun-failed moves a record aside, only runs.superseded.jsonl names the model it was measured on.
+    for (const newline of [true, false]) {
+      await withMeasured(
+        (dir) => {
+          loseLedger(dir);
+          const line = readFileSync(join(dir, "runs.jsonl"), "utf8");
+          writeFileSync(join(dir, "runs.superseded.jsonl"), newline ? line : line.trimEnd());
+          writeFileSync(join(dir, "runs.jsonl"), "");
+        },
+        async (dir) => {
+          tamper(dir, undefined);
+          const w = worker(() => OTHER);
+          await expect(invocation(dir, w.fetchImpl), String(newline)).rejects.toThrow(new RegExp(`^resume refused: .*${HAIKU}`, "s"));
+          expect(w.posted(), String(newline)).toBe(0);
+        },
+      );
+    }
+  }, 60_000);
+
+  it("refuses an unreadable run log before it writes anything to the manifest", async () => {
+    // The ledger gone and the logged cell's line damaged: the resume stops on the log as it would later, with the
+    // manifest as it was, so a repaired log resumes held to the model it names.
     await withMeasured(
       (dir) => {
         loseLedger(dir);
-        writeFileSync(join(dir, "runs.superseded.jsonl"), readFileSync(join(dir, "runs.jsonl"), "utf8"));
-        writeFileSync(join(dir, "runs.jsonl"), "");
+        writeFileSync(join(dir, "runs.jsonl"), readFileSync(join(dir, "runs.jsonl"), "utf8").replace("{", "X"));
       },
       async (dir) => {
-        tamper(dir, undefined);
+        const before = readFileSync(join(dir, "manifest.json"), "utf8");
         const w = worker(() => OTHER);
-        await expect(invocation(dir, w.fetchImpl)).rejects.toThrow(new RegExp(`^resume refused: .*${HAIKU}`, "s"));
+        await expect(invocation(dir, w.fetchImpl)).rejects.toThrow(/runs\.jsonl:1: not a JSON line/);
         expect(w.posted()).toBe(0);
+        expect(readFileSync(join(dir, "manifest.json"), "utf8")).toBe(before);
       },
     );
   }, 60_000);
