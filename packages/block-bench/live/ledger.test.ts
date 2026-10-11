@@ -634,6 +634,22 @@ describe("a crash of the machine loses no request that was sent", () => {
     });
   }, 60_000);
 
+  it("puts a new run directory's own entry, and every directory it created, on the disk before anything is sent", async () => {
+    await withRun("run-dir-entry", async (dir) => {
+      const run = join(dir, "a", "b", "run");
+      const synced: string[] = [];
+      let sentAfter: string[] | undefined;
+      hooks.fsync = (path) => synced.push(path);
+      hooks.send = () => {
+        sentAfter ??= [...synced];
+      };
+      await invocation(run, {});
+      // Each directory the run created is named in its parent, and each parent is synced: dir holds a, a holds b,
+      // and b holds the run directory itself.
+      for (const parent of [dir, join(dir, "a"), join(dir, "a", "b")]) expect(sentAfter, parent).toContain(parent);
+    });
+  }, 60_000);
+
   it("syncs an existing ledger's directory entry before a resume sends anything, whatever an earlier invocation managed", async () => {
     await withRun("dir-entry-resume", async (dir) => {
       await invocation(dir, { maxRequests: 0 });

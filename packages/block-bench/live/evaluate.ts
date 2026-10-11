@@ -27,7 +27,7 @@
 import { randomUUID } from "node:crypto";
 import { appendFileSync, closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";
 import { hostname } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
@@ -609,6 +609,19 @@ export function lockRun(outDir: string): RunLock {
   };
 }
 
+/**
+ * Creates the run directory, every missing parent included, and puts each one's entry in its parent on the disk before
+ * anything is sent: a crash of the machine must not lose the directory that records what was sent. An existing run
+ * directory's entry is synced too, whatever the invocation that created it managed.
+ */
+function makeRunDirectory(dir: string): void {
+  const first = mkdirSync(dir, { recursive: true });
+  for (let created = resolve(dir); ; created = dirname(created)) {
+    syncDirectory(dirname(created));
+    if (first === undefined || created === resolve(first) || dirname(created) === created) break;
+  }
+}
+
 /** The largest ceiling the ledger counts exactly: whole nanodollars are exact up to the largest safe integer. */
 const MAX_CEILING_USD = Math.floor(Number.MAX_SAFE_INTEGER / 1e9);
 
@@ -625,7 +638,7 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
   }
   if (options.maxTotalUsd !== undefined) exactCeiling(options.maxTotalUsd, "--max-total-usd");
   if (!options.outDir) return evaluate(options);
-  mkdirSync(options.outDir, { recursive: true });
+  makeRunDirectory(options.outDir);
   const lock = lockRun(options.outDir);
   try {
     return await evaluate(options, lock);
