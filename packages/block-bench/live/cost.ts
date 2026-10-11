@@ -90,16 +90,19 @@ const count = (n: unknown): number | undefined => (typeof n === "number" && Numb
 const shown = (n: unknown): number => (typeof n === "number" && Number.isFinite(n) && n > 0 ? Math.ceil(n) : 0);
 
 /**
- * The most a reply's calls can have cost, on what they show: a call that reported both counts at what it reported,
- * one that did not at the most one call can cost (or at what it did show, rounded up to whole tokens, if that is
- * more), and a call that reached no model at nothing. A reply that cannot be verified is charged at least this.
+ * The most a reply's calls can have cost, on what they show: a call that reported both counts, as a call that reached
+ * the model can (at least one input token, and one output token for an answer), at what it reported; any other at the
+ * most one call can cost, or at what it did show, rounded up to whole tokens, if that is more; and a call that reached
+ * no model at nothing. A reply that cannot be verified is charged at least this.
  */
 export function boundedUsd(calls: readonly ModelCallRecord[]): number {
   return calls.reduce((a, c) => {
     if (c.source === "none") return a;
     const input = count(c.inputTokens);
     const output = count(c.outputTokens);
-    if (input !== undefined && output !== undefined) return a + usd(1, input, output);
+    // A call that reached the model read at least one token, and an answer wrote at least one: counts saying otherwise
+    // prove nothing.
+    if (input !== undefined && output !== undefined && input >= 1 && (c.outcome !== "ok" || output >= 1)) return a + usd(1, input, output);
     return a + Math.max(absoluteUsd(1), usd(1, shown(c.inputTokens), shown(c.outputTokens)));
   }, 0);
 }

@@ -106,6 +106,13 @@ describe("a request's worst case", () => {
     for (const [inputTokens, outputTokens] of [[null, 100], [1000, null], [-5, 100], [1000, -1], [Number.NaN, 100], [1000, Number.POSITIVE_INFINITY], [1000.5, 100], [1000, 0.5]]) {
       expect(boundedUsd([call({ inputTokens, outputTokens })]), `${inputTokens}/${outputTokens}`).toBe(absoluteUsd(1));
     }
+    // A call that reached the model read at least one token, and an answer wrote at least one: a count saying otherwise
+    // proves nothing, and the call counts at the most one call can cost.
+    expect(boundedUsd([call({ inputTokens: 0, outputTokens: 100 })])).toBe(absoluteUsd(1));
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 0 })])).toBe(absoluteUsd(1));
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 0, outcome: "unusable-output" })])).toBeCloseTo(10 * 1e-6 * 1.05, 12);
+    const unread = Array.from({ length: 4 }, () => call({ inputTokens: 0, outputTokens: MODEL_LIMITS.maxOutputTokens }));
+    expect(boundedUsd(unread)).toBe(4 * absoluteUsd(1));
     // A count that is not a whole number is no count, but what it shows still counts, rounded up to whole tokens: one
     // past the limits charges at least that, and is past the limits.
     const fractional = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens + 0.5 });
