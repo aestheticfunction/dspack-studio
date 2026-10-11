@@ -25,7 +25,7 @@
  * same cap or interleave the logs.
  */
 import { randomUUID } from "node:crypto";
-import { appendFileSync, closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";
 import { hostname } from "node:os";
 import { dirname, join } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
@@ -315,20 +315,35 @@ function syncDirectory(dir: string): void {
   }
 }
 
+/**
+ * Writes text through a descriptor opened with `flags` (append, replace, or create exclusively) and syncs it to the
+ * disk before returning. The sync is explicit, never left to an option a later change could drop.
+ */
+function writeDurably(file: string, text: string, flags: "a" | "w" | "wx"): void {
+  const fd = openSync(file, flags);
+  try {
+    const bytes = Buffer.from(text, "utf8");
+    for (let at = 0; at < bytes.length; ) at += writeSync(fd, bytes, at, bytes.length - at);
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+}
+
 /** Replaced whole, never truncated in place, and on the disk before it is moved into place: a crash leaves the old file or the new one. */
 function replaceJson(file: string, value: unknown) {
-  writeFileSync(`${file}.tmp`, `${JSON.stringify(value, null, 2)}\n`, { flush: true });
+  writeDurably(`${file}.tmp`, `${JSON.stringify(value, null, 2)}\n`, "w");
   renameSync(`${file}.tmp`, file);
   syncDirectory(dirname(file));
 }
 
 /**
- * Appends one line to the run's ledger and flushes it to the disk before returning, so a request is on the record
+ * Appends one line to the run's ledger and syncs it to the disk before returning, so a request is on the record
  * before it is sent and a crash of the machine cannot take it back. A line that cannot be written stops the run.
  */
 function appendRecord(file: string, value: unknown): void {
   try {
-    appendFileSync(file, line(value), { flush: true });
+    writeDurably(file, line(value), "a");
   } catch (error) {
     throw new RecordUnwritable(file, error);
   }
@@ -340,7 +355,7 @@ function appendRecord(file: string, value: unknown): void {
  */
 function settleLedgerEntry(file: string): void {
   try {
-    appendFileSync(file, "", { flush: true });
+    writeDurably(file, "", "a");
     syncDirectory(dirname(file));
   } catch (error) {
     throw new RecordUnwritable(file, error);
@@ -401,7 +416,10 @@ function readLedger(file: string, settle: { at: string; invocation: string }): {
   for (const entry of entries) {
     if (!isSettlement(entry) || typeof entry.request !== "string") continue;
     const price = priced.get(entry.request);
-    const final = nanosOf(entry.final) ?? (price !== undefined ? price + nanosOf(entry.adjust)! : undefined);
+    // A settlement's final amount, and never less than its request's price plus its adjustment.
+    const stated = nanosOf(entry.final);
+    const adjusted = price !== undefined ? price + nanosOf(entry.adjust)! : undefined;
+    const final = stated === undefined ? adjusted : adjusted === undefined ? stated : Math.max(stated, adjusted);
     if (price === undefined) {
       const stray = strays.get(entry.request) ?? { invocation: entry.invocation, final: bound };
       if (final !== undefined && final > stray.final) stray.final = final;
@@ -424,7 +442,7 @@ function readLedger(file: string, settle: { at: string; invocation: string }): {
     nanos += stray.final;
   }
   if (torn || raises.length > 0) {
-    writeFileSync(`${file}.tmp`, text.slice(0, text.lastIndexOf("\n") + 1) + raises.join(""), { flush: true });
+    writeDurably(`${file}.tmp`, text.slice(0, text.lastIndexOf("\n") + 1) + raises.join(""), "w");
     renameSync(`${file}.tmp`, file);
     syncDirectory(dirname(file));
   }
@@ -446,6 +464,9 @@ function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["
   }, 0);
   return { sent: recorded.count + unrecorded, nanos: recorded.nanos + unrecorded * toNanos(REQUEST_USD_BOUND) };
 }
+
+/** The errors a filesystem gives when it cannot make hard links at all. */
+const NO_HARD_LINKS = new Set(["EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS"]);
 
 /** Whether a process is running: signal 0 tests for it without sending anything. */
 function alive(pid: number): boolean {
@@ -493,15 +514,25 @@ export function lockRun(outDir: string): () => void {
   };
   const take = (): boolean => {
     const whole = `${file}.${nonce}`;
-    writeFileSync(whole, own, { flush: true });
+    writeDurably(whole, own, "w");
     try {
       linkSync(whole, file);
       return true;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
-      throw error;
+      const code = (error as NodeJS.ErrnoException).code ?? "";
+      if (code === "EEXIST") return false;
+      if (!NO_HARD_LINKS.has(code)) throw error;
     } finally {
       rmSync(whole, { force: true });
+    }
+    // A filesystem without hard links: the lock is created exclusively instead, so another invocation can see it empty
+    // for an instant; a takeover that moves it then finds it changed, and refuses.
+    try {
+      writeDurably(file, own, "wx");
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+      throw error;
     }
   };
   if (!take()) {
@@ -516,13 +547,21 @@ export function lockRun(outDir: string): () => void {
     }
     const moved = read(aside);
     if (moved !== seen) {
-      // Another invocation took it between the read and the move: its lock goes back, and this one refuses.
+      // Another invocation took it between the read and the move: its lock goes back, and this one refuses. It is
+      // linked back, or renamed back if it cannot be linked; it is deleted only when a third lock already stands.
       try {
         linkSync(aside, file);
-      } catch {
-        /* a third took it meanwhile: refuse either way */
+        rmSync(aside, { force: true });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "EEXIST") rmSync(aside, { force: true });
+        else {
+          try {
+            renameSync(aside, file);
+          } catch {
+            /* left aside under this invocation's name, never deleted */
+          }
+        }
       }
-      rmSync(aside, { force: true });
       throw busy(moved);
     }
     rmSync(aside, { force: true });

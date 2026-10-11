@@ -12,18 +12,16 @@ import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 const hooks = vi.hoisted(() => ({
-  append: undefined as undefined | ((file: string, data: string, options: unknown) => void),
   write: undefined as undefined | ((file: string, data: string, options: unknown) => void),
+  wrote: undefined as undefined | ((path: string, data: string) => void),
   move: undefined as undefined | ((path: string) => void),
   read: undefined as undefined | ((path: string) => void),
   fsync: undefined as undefined | ((path: string) => void),
+  link: undefined as undefined | ((from: string, to: string) => void),
+  send: undefined as undefined | (() => void),
 }));
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
-  const appendFileSync = ((file: string, data: string, options?: unknown) => {
-    hooks.append?.(String(file), String(data), options);
-    return actual.appendFileSync(file, data, options as never);
-  }) as typeof actual.appendFileSync;
   const writeFileSync = ((file: string, data: string, options?: unknown) => {
     hooks.write?.(String(file), String(data), options);
     return actual.writeFileSync(file, data, options as never);
@@ -51,7 +49,15 @@ vi.mock("node:fs", async (importOriginal) => {
     hooks.fsync?.(opened.get(fd) ?? "");
     return actual.fsyncSync(fd);
   }) as typeof actual.fsyncSync;
-  const fs = { ...actual, appendFileSync, writeFileSync, renameSync, rmSync, readFileSync, openSync, fsyncSync };
+  const writeSync = ((fd: number, data: unknown, ...rest: unknown[]) => {
+    hooks.wrote?.(opened.get(fd) ?? "", Buffer.isBuffer(data) ? data.toString("utf8") : String(data));
+    return (actual.writeSync as (...args: unknown[]) => number)(fd, data, ...rest);
+  }) as typeof actual.writeSync;
+  const linkSync = ((from: string, to: string) => {
+    hooks.link?.(String(from), String(to));
+    return actual.linkSync(from, to);
+  }) as typeof actual.linkSync;
+  const fs = { ...actual, writeFileSync, renameSync, rmSync, readFileSync, openSync, fsyncSync, writeSync, linkSync };
   return { ...fs, default: fs };
 });
 
@@ -72,11 +78,13 @@ beforeAll(async () => {
   astryx = await loadReference("astryx");
 }, 60_000);
 afterEach(() => {
-  hooks.append = undefined;
   hooks.write = undefined;
+  hooks.wrote = undefined;
   hooks.move = undefined;
   hooks.read = undefined;
   hooks.fsync = undefined;
+  hooks.link = undefined;
+  hooks.send = undefined;
 });
 
 const PLAN = JSON.stringify({ intent: "record-collection", feasible: true, restated: "A table.", reason: "fits" });
@@ -92,7 +100,7 @@ function worker(script: string[]) {
   const env = { HOSTED_AI: "on", AI: { run: async () => ({ content: [{ type: "text", text: script[Math.min(n++, script.length - 1)] }] }) } };
   const fetchImpl = (async (url: string, init: RequestInit) => {
     posted += 1;
-    hooks.append?.("<fetch>", "", undefined);
+    hooks.send?.();
     return handlePropose(new Request(url, init), env);
   }) as typeof fetch;
   return { fetchImpl, posted: () => posted };
@@ -136,14 +144,14 @@ describe("a ledger line that cannot be written", () => {
     await withRun("unwritten-raise", async (dir) => {
       const w = worker(cellScript());
       let failed = false;
-      hooks.append = (file, data) => {
+      hooks.wrote = (file, data) => {
         if (!failed && file.endsWith("requests.jsonl") && data.includes('"usage not verified"')) {
           failed = true;
           throw Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
         }
       };
       const first = await invocation(dir, { fetchImpl: w.fetchImpl });
-      hooks.append = undefined;
+      hooks.wrote = undefined;
       // The plan's reply was unverified and its raise could not be written: the run stops there, never a provider failure.
       expect(first.stopped).toMatchObject({ reason: "error" });
       expect(first.stopped!.message).toMatch(/could not write .*requests\.jsonl/);
@@ -159,7 +167,7 @@ describe("a ledger line that cannot be written", () => {
   it("sends nothing when the request's own line cannot be written, and stops", async () => {
     await withRun("unwritten-request", async (dir) => {
       const w = worker(cellScript());
-      hooks.append = (file, data) => {
+      hooks.wrote = (file, data) => {
         if (file.endsWith("requests.jsonl") && data.includes('"request"') && !data.includes('"adjust"')) throw Object.assign(new Error("EIO: i/o error, write"), { code: "EIO" });
       };
       const first = await invocation(dir, { fetchImpl: w.fetchImpl });
@@ -168,8 +176,9 @@ describe("a ledger line that cannot be written", () => {
       expect(w.posted()).toBe(0);
       expect(first.records).toHaveLength(0);
       // And a ledger it cannot even settle in place at the start refuses the invocation before anything is sent.
-      hooks.append = (file, data) => {
-        if (file.endsWith("requests.jsonl") && data === "") throw Object.assign(new Error("EIO: i/o error, write"), { code: "EIO" });
+      hooks.wrote = undefined;
+      hooks.fsync = (file) => {
+        if (file.endsWith("requests.jsonl")) throw Object.assign(new Error("EIO: i/o error, fsync"), { code: "EIO" });
       };
       await expect(invocation(dir, { fetchImpl: w.fetchImpl })).rejects.toThrow(/could not write .*requests\.jsonl/);
       expect(w.posted()).toBe(0);
@@ -191,6 +200,7 @@ describe("the ledger settles each request by its own id", () => {
       ["a settlement whose request has no line is a request sent, at the most it could cost", [request("r1", 0.5), settlement("r1", -0.25, 0.25), JSON.stringify({ request: "ghost", adjust: -100 })], 2, 0.25 + B],
       ["a request never settled, followed by others, is raised", [request("r1", 0.5), request("r2", 0.5), settlement("r2", -0.4, 0.1)], 2, B + 0.1],
       ["a settlement written before its request still settles it", [settlement("r1", -0.3, 0.2), request("r1", 0.5)], 1, 0.2],
+      ["a final amount below its request's price plus its adjustment counts at the larger", [request("r1", 0.5), settlement("r1", 0.618208, 0.118208)], 1, 1.118208],
     ] as const) {
       await withRun("settle", async (dir) => {
         await invocation(dir, { maxRequests: 0 });
@@ -368,8 +378,44 @@ describe("one invocation at a time", () => {
       hooks.write = (file) => {
         if (file === join(dir, "run.lock")) direct.push(file);
       };
+      hooks.wrote = (file) => {
+        if (file === join(dir, "run.lock")) direct.push(file);
+      };
       lockRun(dir)();
       expect(direct).toEqual([]);
+    });
+  });
+
+  it("puts back by name a lock it moved aside when it cannot link it back, and never deletes it", async () => {
+    await withRun("lock-putback", async (dir) => {
+      const file = join(dir, "run.lock");
+      writeFileSync(file, holder({ pid: deadPid() }));
+      const live = holder({ pid: process.pid, host: hostname(), nonce: "the-other-invocation" });
+      let raced = false;
+      hooks.move = (path) => {
+        if (!raced && path === file) {
+          raced = true;
+          writeFileSync(file, live);
+        }
+      };
+      hooks.link = (from) => {
+        if (from.includes(".stale.")) throw Object.assign(new Error("EIO: i/o error, link"), { code: "EIO" });
+      };
+      expect(() => lockRun(dir)).toThrow(/another invocation/);
+      expect(readFileSync(file, "utf8")).toBe(live);
+    });
+  });
+
+  it("works on a filesystem without hard links, creating its lock exclusively instead", async () => {
+    await withRun("lock-nolinks", async (dir) => {
+      hooks.link = () => {
+        throw Object.assign(new Error("EPERM: operation not permitted, link"), { code: "EPERM" });
+      };
+      const release = lockRun(dir);
+      expect(JSON.parse(readFileSync(join(dir, "run.lock"), "utf8"))).toMatchObject({ pid: process.pid });
+      expect(() => lockRun(dir)).toThrow(/another invocation/);
+      release();
+      expect(existsSync(join(dir, "run.lock"))).toBe(false);
     });
   });
 });
@@ -377,20 +423,15 @@ describe("one invocation at a time", () => {
 describe("a crash of the machine loses no request that was sent", () => {
   it("puts a new ledger's directory entry on the disk before the first request is sent", async () => {
     await withRun("dir-entry", async (dir) => {
-      const order: string[] = [];
-      let created = false;
-      hooks.append = (file) => {
-        if (file === "<fetch>") order.push("send");
-        else if (file.endsWith("requests.jsonl") && !created) {
-          created = true;
-          order.push("created");
-        }
-      };
-      hooks.fsync = (path) => {
-        if (path === dir && created) order.push("synced");
-      };
+      const events: string[] = [];
+      hooks.fsync = (path) => events.push(path === dir ? "fsync:dir" : `fsync:${path.split("/").at(-1)}`);
+      hooks.send = () => events.push("send");
       await invocation(dir, {});
-      expect(order.slice(0, 3)).toEqual(["created", "synced", "send"]);
+      const file = events.indexOf("fsync:requests.jsonl");
+      const entry = events.indexOf("fsync:dir", file);
+      expect(file).toBeGreaterThanOrEqual(0);
+      expect(entry).toBeGreaterThan(file);
+      expect(events.indexOf("send")).toBeGreaterThan(entry);
     });
   }, 60_000);
 
@@ -403,9 +444,7 @@ describe("a crash of the machine loses no request that was sent", () => {
       hooks.fsync = (path) => {
         if (path === dir) order.push("synced");
       };
-      hooks.append = (file) => {
-        if (file === "<fetch>") order.push("send");
-      };
+      hooks.send = () => order.push("send");
       await invocation(dir, {});
       expect(order.indexOf("synced")).toBeGreaterThanOrEqual(0);
       expect(order.indexOf("synced")).toBeLessThan(order.indexOf("send"));
@@ -426,30 +465,32 @@ describe("a crash of the machine loses no request that was sent", () => {
     });
   }, 60_000);
 
-  it("flushes each request's line to the disk before the request is sent, and every replaced manifest before it is moved into place", async () => {
+  it("syncs each request's line to the disk before the request is sent, and every replaced manifest before it is moved into place", async () => {
     await withRun("flush", async (dir) => {
-      const appends: Array<{ file: string; flushed: boolean }> = [];
-      let unflushedAtSend = 0;
-      hooks.append = (file, _data, options) => {
-        if (file === "<fetch>") {
-          const last = appends.filter((a) => a.file.endsWith("requests.jsonl")).at(-1);
-          if (!last?.flushed) unflushedAtSend += 1;
-          return;
-        }
-        appends.push({ file, flushed: (options as { flush?: boolean } | undefined)?.flush === true });
-      };
-      const writes: Array<{ file: string; flushed: boolean }> = [];
-      hooks.write = (file, _data, options) => writes.push({ file, flushed: (options as { flush?: boolean } | undefined)?.flush === true });
+      // What was written and synced, in order, file by file; and each send.
+      const events: string[] = [];
+      hooks.wrote = (path) => events.push(`write:${path.split("/").at(-1)}`);
+      hooks.fsync = (path) => events.push(`fsync:${path.split("/").at(-1)}`);
+      hooks.move = (path) => events.push(`move:${path.split("/").at(-1)}`);
+      hooks.send = () => events.push("send");
       await invocation(dir, {});
-      expect(appends.filter((a) => a.file.endsWith("requests.jsonl")).length).toBeGreaterThan(0);
-      expect(appends.filter((a) => a.file.endsWith("requests.jsonl") && !a.flushed)).toEqual([]);
-      expect(unflushedAtSend).toBe(0);
-      // A resume that changes the ceiling replaces the manifest.
-      writes.length = 0;
+      const sends = events.flatMap((e, i) => (e === "send" ? [i] : []));
+      expect(sends.length).toBeGreaterThan(0);
+      for (const send of sends) {
+        const written = events.lastIndexOf("write:requests.jsonl", send);
+        expect(written, `send at ${send}`).toBeGreaterThanOrEqual(0);
+        const synced = events.indexOf("fsync:requests.jsonl", written);
+        expect(synced, `send at ${send}`).toBeGreaterThan(written);
+        expect(synced, `send at ${send}`).toBeLessThan(send);
+      }
+      // A resume that changes the ceiling replaces the manifest: written, synced, then moved into place.
+      events.length = 0;
       await invocation(dir, { maxRequests: 0, maxTotalUsd: 2000 });
-      const manifests = writes.filter((w) => w.file.includes("manifest.json"));
-      expect(manifests.length).toBeGreaterThan(0);
-      expect(manifests.filter((w) => !w.flushed)).toEqual([]);
+      const written = events.indexOf("write:manifest.json.tmp");
+      expect(written).toBeGreaterThanOrEqual(0);
+      const synced = events.indexOf("fsync:manifest.json.tmp", written);
+      expect(synced).toBeGreaterThan(written);
+      expect(events.indexOf("move:manifest.json.tmp", synced)).toBeGreaterThan(synced);
     });
   }, 60_000);
 });
