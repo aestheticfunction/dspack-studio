@@ -291,13 +291,14 @@ export function goldenPath(ref: string, block: string, example: { id: string }):
   return `packages/block-bench/goldens/${ref}/${block}.${example.id}.dsurface.json`;
 }
 
-function drafts(ref: (typeof REFERENCES)[number], sidecar: BlocksSidecar, contract: Json, profile: Profile, generation: Json[]) {
+export function drafts(ref: (typeof REFERENCES)[number], sidecar: BlocksSidecar, contract: Json, profile: Profile, generation: Json[]) {
   return sidecar.blocks.flatMap((block) =>
     block.examples.map((example) => {
       const golden = read(goldenPath(ref.id, block.id, example));
       const today = generation.find((g) => g.intent === example.intent && g.mode === "fresh");
       return {
-        provisional: block.status !== "approved",
+        // As the live gate (live/preflight.ts): approved only when the sidecar and the block both are.
+        provisional: sidecar.status !== "approved" || block.status !== "approved",
         block: block.id,
         status: block.status,
         example: example.id,

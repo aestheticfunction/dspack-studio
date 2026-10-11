@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
-import { computeResults, goldenPath, type BenchResults } from "./bench";
+import { REFERENCES, computeResults, drafts, goldenPath, loadReference, type BenchResults } from "./bench";
 import { renderMarkdown } from "./report";
 
 type Json = Record<string, any>;
@@ -81,6 +81,23 @@ describe("block-bench", () => {
     const astryx = (fresh.references as Json[]).find((r) => r.reference === "astryx") as Json;
     expect(astryx.leak.scope).toMatch(/not hosted evidence/);
     expect(astryx.leak.summary.s3FailingRecomputed).toBe((astryx.leak.rows as Json[]).filter((r) => r.recomputed.S3 === "FAIL").length);
+  });
+});
+
+describe("approval status", () => {
+  it("a block is approved only when it and its sidecar both are, as the live gate holds (live/preflight.ts), and the RESULTS.md heading follows", () => {
+    const ref = REFERENCES.find((r) => r.id === "astryx")!;
+    const { contract, profile, sidecar } = loadReference(ref);
+    const flags = (s: typeof sidecar) => drafts(ref, s, contract, profile, []).map((d) => d.provisional);
+    expect(flags(sidecar).every((p) => p === false)).toBe(true);
+    // A draft sidecar over approved blocks is a draft: every row of it is provisional.
+    expect(flags({ ...sidecar, status: "draft" }).every((p) => p === true)).toBe(true);
+    const oneDraft = { ...sidecar, blocks: sidecar.blocks.map((b, i) => (i === 0 ? { ...b, status: "draft" as const } : b)) };
+    expect(flags(oneDraft)).toEqual(sidecar.blocks.flatMap((b, i) => b.examples.map(() => i === 0)));
+    const heading = (rows: Json[]) => renderMarkdown({ ...committed, references: [{ ...committed.references[0], drafts: rows }] } as BenchResults);
+    const rows = committed.references[0]!.drafts as Json[];
+    expect(heading(rows)).toContain("### Blocks (owner-approved)");
+    expect(heading(rows.map((d) => ({ ...d, provisional: true })))).toContain("### Draft blocks (provisional: drafts, not owner-approved)");
   });
 });
 
