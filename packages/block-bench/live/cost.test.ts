@@ -154,5 +154,11 @@ describe("a request's worst case", () => {
     expect(pastModelLimits(call({ inputTokens: 10, outputTokens: Number.NEGATIVE_INFINITY }))).toBe(false);
     expect(totalPastModelLimits({ outputTokens: Number.POSITIVE_INFINITY }, 1)).toBe(true);
     expect(totalPastModelLimits({ inputTokens: 2 * MODEL_LIMITS.contextTokens }, 2)).toBe(false);
+    // Figures past what the ledger can count are held to a finite charge, past every ceiling a run can name: summed, two
+    // of 1e308 would otherwise be Infinity, which JSON writes as null.
+    const huge = call({ inputTokens: 1e308, outputTokens: 2 });
+    expect(Number.isFinite(boundedUsd([huge, huge]))).toBe(true);
+    expect(boundedUsd([huge, huge])).toBeGreaterThan(9_007_199);
+    expect(Number.isFinite(boundedUsd([], { inputTokens: 1e308, outputTokens: 1e308 }))).toBe(true);
   });
 });

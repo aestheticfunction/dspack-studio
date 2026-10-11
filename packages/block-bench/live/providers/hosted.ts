@@ -117,20 +117,23 @@ export const USAGE_SPELLINGS = {
 /**
  * What a usage object says under every spelling the app reads. normalizeUsage takes each figure from the first spelling
  * it can read, so another spelling saying otherwise would go unseen: a figure is stated `once` only when every spelling
- * given is a whole count and they agree, and `most` holds the largest number any spelling shows (Infinity included, for
- * JSON's 1e400, which is past every limit).
+ * given is a whole count and they agree, `most` holds the largest finite number any spelling shows, and `infinite` says
+ * whether any spelling is past every count (JSON's 1e400 reads as Infinity), which is past every limit. Infinity is kept
+ * apart from `most`, so that it never hides a finite spelling of the same figure.
  */
-function spelled(raw: unknown): { once: boolean; most: { inputTokens?: number; outputTokens?: number } } {
+function spelled(raw: unknown): { once: boolean; most: { inputTokens?: number; outputTokens?: number }; infinite: boolean } {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const most: { inputTokens?: number; outputTokens?: number } = {};
   let once = true;
+  let infinite = false;
   for (const figure of ["inputTokens", "outputTokens"] as const) {
     const given = USAGE_SPELLINGS[figure].map((key) => r[key]).filter((value) => value != null);
     if (given.some((value) => !Number.isSafeInteger(value) || (value as number) < 0) || new Set(given).size > 1) once = false;
-    const numbers = given.filter((value): value is number => typeof value === "number" && !Number.isNaN(value));
+    if (given.includes(Number.POSITIVE_INFINITY)) infinite = true;
+    const numbers = given.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
     if (numbers.length > 0) most[figure] = Math.max(...numbers);
   }
-  return { once, most };
+  return { once, most, infinite };
 }
 
 /** Every spelling of usage the app reads, and the model: a call turned away reports none. */
@@ -233,7 +236,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
         });
         // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves
         // nothing, and counts wherever it shows more of a figure than the calls do.
-        const { once: totalOnce, most: total } = spelled(reply?.usage);
+        const { once: totalOnce, most: total, infinite: totalInfinite } = spelled(reply?.usage);
         const summed = (key: "inputTokens" | "outputTokens") => records.reduce((a, call) => a + (call.source === "none" ? 0 : (call[key] ?? 0)), 0);
         const agrees = (total.inputTokens === undefined || total.inputTokens === summed("inputTokens")) && (total.outputTokens === undefined || total.outputTokens === summed("outputTokens"));
         itemized = Array.isArray(reply?.calls);
@@ -251,7 +254,8 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.
         if (options.pacer && !released && charged > calls) throw new UnboundedReply(`${charged} provider calls, more than the ${calls} its request allows`);
-        if (options.pacer && !released && (largest.some(pastModelLimits) || totalPastModelLimits(total, charged))) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
+        const pastEveryCount = totalInfinite || stated.some((s, i) => s.infinite && records[i]!.source !== "none");
+        if (options.pacer && !released && (pastEveryCount || largest.some(pastModelLimits) || totalPastModelLimits(total, charged))) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
         return { calls: records, durationMs };
       };
       try {

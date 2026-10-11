@@ -98,7 +98,9 @@ const shown = (n: unknown): number => (typeof n === "number" && Number.isFinite(
  * wherever it shows more of a figure. A reply listing fewer calls that reached the model than `floor` (the calls its
  * request was priced for) is held to that many: each one it does not list counts as one it could not see. Each figure
  * stands on its own, so what a reply shows of one is never traded against the other. A call that reached no model counts
- * nothing. A reply that cannot be verified is charged at least this.
+ * nothing. A reply that cannot be verified is charged at least this. A figure counts at most Number.MAX_SAFE_INTEGER
+ * tokens, so the charge stays a finite number on the record (JSON writes Infinity as null): that much is already past
+ * every ceiling a run can name, so the run can never be admitted against again.
  */
 export function boundedUsd(calls: ReadonlyArray<ModelCallRecord & { stated?: boolean }>, total?: { inputTokens?: number; outputTokens?: number }, floor = 0): number {
   let input = 0;
@@ -122,7 +124,8 @@ export function boundedUsd(calls: ReadonlyArray<ModelCallRecord & { stated?: boo
   const unlisted = Math.max(0, floor - reached);
   input += unlisted * MODEL_LIMITS.contextTokens;
   output += unlisted * MODEL_LIMITS.maxOutputTokens;
-  return usd(1, Math.max(input, shown(total?.inputTokens)), Math.max(output, shown(total?.outputTokens)));
+  const most = (figure: number) => Math.min(Number.MAX_SAFE_INTEGER, figure);
+  return usd(1, most(Math.max(input, shown(total?.inputTokens))), most(Math.max(output, shown(total?.outputTokens))));
 }
 
 /** Whether a reported figure is past a limit: more whole tokens than it, or a number past every count (JSON's 1e400). */

@@ -643,7 +643,18 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     // Every key composer-core's normalizeUsage reads, in its order, however its source spells the read: a new one fails
     // here until the harness knows it.
     const read: string[] = [];
-    normalizeUsage(new Proxy({}, { get: (_target, key) => (read.push(String(key)), undefined) }));
+    normalizeUsage(
+      new Proxy(
+        {},
+        {
+          get: (_target, key) => (read.push(String(key)), undefined),
+          // A read by reflection would see keys the list does not name: it fails here too.
+          has: (_target, key) => (read.push(`in ${String(key)}`), false),
+          ownKeys: () => (read.push("ownKeys"), []),
+          getOwnPropertyDescriptor: (_target, key) => (read.push(`descriptor ${String(key)}`), undefined),
+        },
+      ),
+    );
     expect(read).toEqual([...USAGE_SPELLINGS.inputTokens, ...USAGE_SPELLINGS.outputTokens]);
   });
 
@@ -778,6 +789,9 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       // A figure past every count (JSON's 1e400 reads as Infinity) is past the model's limits too.
       ["a call reporting a figure past every count", '{"json":{"a":1},"raw":"{}","model":"claude-haiku-4-5-20251001","calls":[{"inputTokens":1e400,"outputTokens":2,"outcome":"ok","durationMs":1}]}', absoluteUsd(2)],
       ["a total reporting a figure past every count", '{"json":{"a":1},"raw":"{}","model":"claude-haiku-4-5-20251001","usage":{"inputTokens":10,"outputTokens":1e400},"calls":[{"inputTokens":10,"outputTokens":2,"outcome":"ok","durationMs":1}]}', absoluteUsd(2)],
+      // Such a spelling never hides another of the same figure: the 1,000,000 input tokens the app records still count.
+      ["a call stating a figure past every count beside a finite one", '{"json":{"a":1},"raw":"{}","model":"claude-haiku-4-5-20251001","calls":[{"inputTokens":1000000,"input_tokens":1e400,"outputTokens":2,"outcome":"ok","durationMs":1}]}', ((1_000_000 + MODEL_LIMITS.contextTokens) * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
+      ["a total stating a figure past every count beside finite ones", '{"json":{"a":1},"raw":"{}","model":"claude-haiku-4-5-20251001","usage":{"inputTokens":10,"input_tokens":1e400,"prompt_tokens":3000000,"outputTokens":2},"calls":[{"inputTokens":10,"outputTokens":2,"outcome":"ok","durationMs":1}]}', (3_000_000 * 1e-6 + (2 + MODEL_LIMITS.maxOutputTokens) * 5e-6) * 1.05],
       // A reply is held to the calls its request was priced for, figure by figure: a total showing input past the limits
       // beside one unseen call still counts the output of the second call it does not list.
       ["a total past the limits beside an unseen call", { error: "provider-unavailable", cause: "provider", message: "down", usage: { inputTokens: 3 * MODEL_LIMITS.contextTokens }, calls: [unseen] }, (3 * MODEL_LIMITS.contextTokens * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
@@ -795,6 +809,20 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       expect(lines[0]![1] + lines[1]![1], name).toBeCloseTo(charged, 12);
       expect(failure, name).toBeInstanceOf(UnboundedReply);
       expect(failure, name).toBeInstanceOf(RunStop);
+    }
+    // Figures past what the ledger can count stay a finite number on the record, past every ceiling a run can name: two
+    // calls each reporting 1e308 input tokens sum past the largest number, which JSON would write as null.
+    {
+      const lines: Array<[string, number]> = [];
+      const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
+      pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record(usd = 0) { lines.push(["request", usd]); this.sent += 1; }, adjust(usd: number, reason: string) { lines.push([reason, usd]); } };
+      const huge = { inputTokens: 1e308, outputTokens: 2, outcome: "ok", durationMs: 1 };
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU_ID, calls: [huge, huge] })) as typeof fetch, pacer });
+      const failure = await provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request).then(() => undefined, (error: unknown) => error);
+      expect(failure).toBeInstanceOf(UnboundedReply);
+      expect(lines.map(([reason]) => reason)).toEqual(["request", "usage not verified"]);
+      expect(JSON.parse(JSON.stringify(lines[1]![1]))).toBe(lines[1]![1]);
+      expect(lines[0]![1] + lines[1]![1]).toBeGreaterThan(9_007_199);
     }
     // Within the limits, an unseen call still counts at its worst case, and the run goes on.
     const lines: Array<[string, number]> = [];
