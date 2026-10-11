@@ -16,9 +16,9 @@
  * priced, each naming Claude Haiku 4.5) is settled at what its calls reported (reportedUsd), the provider's own count
  * of what is billed. One that does not (usage missing, a figure past its bound, an extra call, no call reported,
  * another model or none named, no reply at all) is charged instead at absoluteUsd, which rests on the model's documented
- * limits alone, or at what it reported if that is more; and no request is sent unless its absolute worst case still
- * fits under the run's ceiling. So the ceiling holds even when an assumption fails, and a run's total is what it
- * spent plus what it cannot yet verify. Only a reply reporting more than those limits allow (a Worker that broke its
+ * limits alone, or at what it reported if that is more; and no request is sent unless the most any request can cost
+ * (absoluteUsd(2)) still fits under the run's ceiling. So the ceiling holds even when an assumption fails, and a run's
+ * total is what it spent plus what it cannot yet verify. Only a reply reporting more than those limits allow (a Worker that broke its
  * own call cap, or a provider past its documented limits) could push the total past the ceiling: the ledger records
  * what was reported, and refuses the next request. What no reply can show is outside this bound: a call the gateway
  * retried or billed without the Worker seeing it, or a model other than Claude Haiku 4.5 served under its name.
@@ -78,8 +78,9 @@ export function reportedUsd(calls: readonly ModelCallRecord[]): number {
 
 /**
  * Whether a call stayed inside what its request was priced at: a call that reached no model, or one naming Claude
- * Haiku 4.5 (PRICED_FAMILY) that reports both figures within the bounds, at least one input token among them. A call
- * that reached a provider without reporting its usage, or the model these prices are for, proves nothing.
+ * Haiku 4.5 (PRICED_FAMILY) that reports both figures within the bounds, at least one input token among them, and at
+ * least one output token if it answered. A call that reached a provider without reporting its usage, or the model
+ * these prices are for, proves nothing.
  */
 export function withinReservation(request: Priced, call: ModelCallRecord): boolean {
   if (call.source === "none") return true;
@@ -89,6 +90,7 @@ export function withinReservation(request: Priced, call: ModelCallRecord): boole
     typeof call.inputTokens === "number" &&
     typeof call.outputTokens === "number" &&
     call.inputTokens >= 1 &&
+    (call.outcome !== "ok" || call.outputTokens >= 1) &&
     call.inputTokens <= inputTokenBound(request) &&
     call.outputTokens <= MAX_OUTPUT_TOKENS
   );

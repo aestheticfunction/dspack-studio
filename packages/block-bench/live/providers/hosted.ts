@@ -164,9 +164,10 @@ export function createHostedProvider(options: HostedOptions): Provider {
   ): Promise<ProposeResult> {
     const where = { operation: at.operation, ...(at.attempt !== undefined ? { attempt: at.attempt } : {}), ...(at.reissue ? { reissue: true as const } : {}) };
     const body = proposeBody(request, at.maxCalls !== undefined ? { maxCalls: at.maxCalls } : {});
-    // Priced before it is sent (live/cost.ts): reserved at its worst case, and admitted only while the most it could
-    // cost, from the model's documented limits alone, still fits under the run's dollar ceiling. The Worker makes at
-    // most two calls when maxCalls is absent.
+    // Priced before it is sent (live/cost.ts): reserved at its worst case, and admitted only while the most any
+    // request can cost, from the model's documented limits alone, still fits under the run's dollar ceiling. That is
+    // the two-call bound even for a one-call request, since a reply that does not itemize its calls is raised to it.
+    // The Worker makes at most two calls when maxCalls is absent.
     const calls = at.maxCalls ?? 2;
     const priced = worstCaseUsd(request, calls);
     const absolute = absoluteUsd(calls);
@@ -177,7 +178,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
     const failed = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
     for (let refusal = 0; ; refusal++) {
-      if (options.pacer) await options.pacer.before(priced, absolute);
+      if (options.pacer) await options.pacer.before(priced, REQUEST_USD_BOUND);
       const started = now();
       // How the reservation ends: a refusal that reached no model releases it, a reply proving that it stayed inside
       // the price (its calls itemized, at least one provider call and no more than priced, each within its bounds and

@@ -581,7 +581,8 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["an unusable output, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "x", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       // A call that reached the model read at least one token.
       ["a call reporting no input", () => served(0, 0), [["request", priced], ["usage not verified", raise]]],
-      // More calls than the request allows proves nothing, however small each one is.
+      // More calls than the request allows proves nothing, however small each one is (and its earlier calls name no
+      // model of their own).
       ["more calls than the request allows", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: Array.from({ length: 3 }, () => ({ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", raise]]],
       // A reply that reports more than the absolute worst case is charged what it reported: never less than was spent.
       ["a reply reporting past the model's limits", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: Array.from({ length: 3 }, () => ({ inputTokens: 204_800, outputTokens: 65_536, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", 3 * absoluteUsd(1) - priced]]],
@@ -600,6 +601,16 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     await legacy.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false, maxCalls: 1 }).generate(request);
     expect(lines.map(([reason]) => reason)).toEqual(["request", "usage not verified"]);
     expect(lines[1]![1]).toBeCloseTo(absoluteUsd(2) - worstCaseUsd(request, 1), 12);
+    // So every request is admitted only with room for the most any request can cost, one-call requests included: the
+    // raise can never carry the run past its ceiling, whatever the cell's reservation.
+    lines.length = 0;
+    let posted = 0;
+    const tight = paced();
+    (tight.ledger as { capUsd?: number }).capUsd = absoluteUsd(1);
+    const narrow = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => (posted++, reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 } }))) as typeof fetch, pacer: tight });
+    await expect(narrow.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false, maxCalls: 1 }).generate(request)).rejects.toBeInstanceOf(PacingCapReached);
+    expect(posted).toBe(0);
+    expect(lines).toEqual([]);
   });
 
   it("releases every refusal the Worker makes before any provider call, and nothing else that reports no call", async () => {
