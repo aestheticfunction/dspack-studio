@@ -19,7 +19,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeF
 import { dirname, join } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
-import { promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
+import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { codeIdentity, type CodeIdentity } from "./identity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
 import { PacingCapReached } from "./pacing";
@@ -110,7 +110,7 @@ export async function manifestFor(options: EvaluationOptions): Promise<RunManife
     runId: options.runId,
     startedAt: options.preflight.at,
     provider: options.provider.descriptor,
-    corpus: { id: options.corpus.corpus, version: options.corpus.version, frozenAt: options.corpus.frozenAt, sha256: await digest(options.corpus) },
+    corpus: { id: options.corpus.corpus, version: options.corpus.version, frozenAt: options.corpus.frozenAt, sha256: await corpusDigest(options.corpus) },
     references: await Promise.all(
       options.references.map(async (r) => ({
         id: r.id,

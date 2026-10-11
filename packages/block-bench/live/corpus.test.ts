@@ -1,6 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { corpusIssues, promptsFor, readCorpus, refinementFor } from "./corpus";
+import { corpusIssues, frozenMismatches, promptsFor, readCorpus, readFrozenPin, refinementFor, type Corpus } from "./corpus";
 import { REFERENCE_IDS, loadReference } from "./references";
+
+describe("the corpus is the frozen one (ADR-B3: frozen before any run)", () => {
+  it("matches its committed pin: name, version, freeze date and content digest", async () => {
+    const pin = readFrozenPin();
+    expect(pin).toMatchObject({ corpus: "blocks-1b", version: 1, frozenAt: "2026-10-10" });
+    expect(pin.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(await frozenMismatches(readCorpus())).toEqual([]);
+  });
+
+  it("catches any edit, however small: a goal, a label, a parity check, a deleted prompt, a refinement, a freeze date", async () => {
+    const corpus = readCorpus();
+    const edits: Array<(c: Corpus) => void> = [
+      (c) => void (c.prompts.find((p) => p.id === "rt-05")!.goal += " today"),
+      (c) => void (c.prompts.find((p) => p.id === "rt-21")!.block = null),
+      (c) => void (c.prompts.find((p) => p.id === "af-05")!.parity.labels = []),
+      (c) => void c.prompts.splice(c.prompts.findIndex((p) => p.id === "nb-02"), 1),
+      (c) => void (c.refinements["records-table"]!.content.instruction = "Rename it."),
+    ];
+    for (const edit of edits) {
+      const copy = structuredClone(corpus);
+      edit(copy);
+      expect(await frozenMismatches(copy)).toEqual([expect.stringMatching(/^content: /)]);
+    }
+    expect(await frozenMismatches({ ...corpus, frozenAt: "2026-12-01" })).toContainEqual(expect.stringMatching(/^frozenAt: /));
+  });
+});
 
 describe("the frozen 1B corpus", () => {
   it("is valid for every packaged reference: at least 20 prompts per loaded block and 20 null prompts, every intent real, every block serving its expected intent, every parity component in the vocabulary", async () => {

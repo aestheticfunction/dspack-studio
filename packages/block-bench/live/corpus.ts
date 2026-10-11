@@ -5,10 +5,15 @@
  * expected intent must be one the block serves there, and every parity
  * component must be in the contract's vocabulary. A corpus error is a test
  * failure, never a silent skip at run time.
+ *
+ * Frozen means pinned: corpora/frozen.json holds the corpus's name, version,
+ * freeze date and content digest. A test holds the corpus to it and the CLI
+ * refuses to run on anything else, so an edit cannot slip into a run; a
+ * deliberate edit re-freezes it, changing the date and the digest together.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
+import { sha256Hex, type BlockDefinition } from "@dspack-studio/composer-core/blocks";
 import type { RefinementKind } from "./types";
 
 type Json = Record<string, any>;
@@ -38,9 +43,34 @@ export interface Corpus {
 }
 
 export const CORPUS_PATH = fileURLToPath(new URL("./corpora/blocks.json", import.meta.url));
+export const FROZEN_PATH = fileURLToPath(new URL("./corpora/frozen.json", import.meta.url));
 
 export function readCorpus(path = CORPUS_PATH): Corpus {
   return JSON.parse(readFileSync(path, "utf8")) as Corpus;
+}
+
+/** The committed pin of the frozen corpus. */
+export interface FrozenPin {
+  corpus: string;
+  version: number;
+  frozenAt: string;
+  sha256: string;
+}
+
+export const readFrozenPin = (path = FROZEN_PATH): FrozenPin => JSON.parse(readFileSync(path, "utf8")) as FrozenPin;
+
+/** The corpus's content digest: the one the pin holds and every run manifest records. */
+export const corpusDigest = (corpus: Corpus): Promise<string> => sha256Hex(JSON.stringify(corpus));
+
+/** How the corpus differs from its pin; empty when it is the frozen corpus. */
+export async function frozenMismatches(corpus: Corpus, pin: FrozenPin = readFrozenPin()): Promise<string[]> {
+  const out: string[] = [];
+  for (const key of ["corpus", "version", "frozenAt"] as const) {
+    if (corpus[key] !== pin[key]) out.push(`${key}: the corpus says ${JSON.stringify(corpus[key])}, the pin ${JSON.stringify(pin[key])}`);
+  }
+  const digest = await corpusDigest(corpus);
+  if (digest !== pin.sha256) out.push(`content: sha256 ${digest}, the pin holds ${pin.sha256}`);
+  return out;
 }
 
 /** The prompts that apply to a reference, with that reference's expected intent. */

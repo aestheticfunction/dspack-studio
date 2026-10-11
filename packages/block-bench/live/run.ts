@@ -28,7 +28,7 @@
  * a cell, and a selection that plans no cells are each refused by name.
  */
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { readCorpus, type Corpus } from "./corpus";
+import { frozenMismatches, readCorpus, type Corpus } from "./corpus";
 import { planCells, runEvaluation } from "./evaluate";
 import { DEFAULT_BACKOFF_MS, createPacer } from "./pacing";
 import { preflight } from "./preflight";
@@ -156,14 +156,20 @@ export function validateSelection(o: CliOptions, corpus: Corpus): void {
   for (const block of o.blocks ?? []) if (block !== "null" && !known.includes(block)) throw new Error(`unknown block '${block}'; use ${known.join(", ")} or null`);
 }
 
-export async function main(argv: readonly string[]): Promise<number> {
+export async function main(argv: readonly string[], io: { corpus?: Corpus } = {}): Promise<number> {
   let o: CliOptions;
-  const corpus = readCorpus();
+  const corpus = io.corpus ?? readCorpus();
   try {
     o = parseOptions(argv);
     validateSelection(o, corpus);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
+    return 2;
+  }
+  // ADR-B3: the corpus is frozen before any run. An edit re-freezes it deliberately (corpora/frozen.json).
+  const unfrozen = await frozenMismatches(corpus);
+  if (unfrozen.length > 0) {
+    console.error(`the corpus is not the frozen corpus pinned in live/corpora/frozen.json:\n- ${unfrozen.join("\n- ")}\nRe-freeze a deliberate edit (a new frozenAt and digest in the pin, in the same commit) before running.`);
     return 2;
   }
   const references = await Promise.all(o.references.map((id) => loadReference(id)));

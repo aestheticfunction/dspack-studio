@@ -75,6 +75,19 @@ describe("the CLI refuses what would run nothing, or run something other than wh
   }, 60_000);
 });
 
+describe("a run measures the frozen corpus only", () => {
+  it("refuses a corpus that differs from its committed pin, before any network call", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("no network"))));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const corpus = readCorpus();
+    const edited = { ...corpus, prompts: corpus.prompts.map((p) => (p.id === "rt-05" ? { ...p, goal: `${p.goal} today` } : p)) };
+    expect(await main(["--provider", "scripted", "--allow-drafts", "--limit", "1"], { corpus: edited })).toBe(2);
+    expect(errors.mock.calls.flat().join("\n")).toMatch(/not the frozen corpus/);
+    expect(fetch).not.toHaveBeenCalled();
+  }, 60_000);
+});
+
 describe("an Ollama run pins the weights it measures", () => {
   it("refuses to start when Ollama reports no digest for the model, after asking only for the model list", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ models: [{ name: "qwen3:8b", digest: "sha256:bbb" }] }))));

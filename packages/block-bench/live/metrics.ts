@@ -27,7 +27,8 @@ export interface DecisionOptions {
   /** Evaluated runs each arm needs before the rule can be applied. */
   minimum: number;
 }
-export const DEFAULT_DECISION: DecisionOptions = { reduction: 0.3, margin: 0.05, minimum: 20 };
+/** ADR-B3's rule, fixed before any run: frozen here and pinned by a test, and recorded in every run manifest. */
+export const DEFAULT_DECISION: Readonly<DecisionOptions> = Object.freeze({ reduction: 0.3, margin: 0.05, minimum: 20 });
 
 export interface ArmStats {
   reference: string;

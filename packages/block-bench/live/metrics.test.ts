@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armStats, decide, median, selectionStats, summarize } from "./metrics";
+import { armStats, decide, DEFAULT_DECISION, median, selectionStats, summarize } from "./metrics";
 import type { Arm, Condition, RunRecord } from "./types";
 
 type Partial = { arm: Arm; passed: boolean; tokens?: [number, number]; unreported?: number; attempts?: number; failure?: RunRecord["failure"]; selection?: RunRecord["selection"]; expectedBlock?: string | null; condition?: Condition; path?: RunRecord["path"]; refinement?: RunRecord["refinement"]; changed?: boolean; status?: RunRecord["status"] };
@@ -201,5 +201,15 @@ describe("the decision rule (ADR-B3)", () => {
     const summary = summarize(records);
     expect(summary.decisions[0]!.verdict).toBe("pass");
     expect(summary.arms.find((a) => a.arm === "block")!.rerunEligible).toBe(5);
+  });
+});
+
+describe("the ADR-B3 thresholds are pinned", () => {
+  it("are 30% fewer tokens per success, a 5-point margin and 20 runs per arm, and cannot be changed at run time", () => {
+    expect(DEFAULT_DECISION).toEqual({ reduction: 0.3, margin: 0.05, minimum: 20 });
+    expect(Object.isFrozen(DEFAULT_DECISION)).toBe(true);
+    expect(() => {
+      (DEFAULT_DECISION as { reduction: number }).reduction = 0.1;
+    }).toThrow(TypeError);
   });
 });
