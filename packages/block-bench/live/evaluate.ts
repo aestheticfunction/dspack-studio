@@ -751,6 +751,19 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
     // The request the next settlement is for: requests are sent one at a time, and each is settled before the next.
     let open: { request: string; nanos: number } | undefined;
     const stamp = () => ({ at: new Date().toISOString(), invocation: invocationId });
+    // Once a line fails, this invocation writes no more of them: a line cut off partway stays the ledger's last, which
+    // the next resume sets aside, and is never followed by another it would run into.
+    let unwritable: RecordUnwritable | undefined;
+    const append = (value: unknown) => {
+      if (!requestsFile) return;
+      if (unwritable) throw unwritable;
+      try {
+        appendRecord(requestsFile, value);
+      } catch (error) {
+        unwritable = error instanceof RecordUnwritable ? error : new RecordUnwritable(requestsFile, error);
+        throw unwritable;
+      }
+    };
     ledger = {
       cap,
       sent: done.sent,
@@ -760,7 +773,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
       },
       record(usd = 0) {
         const request = `${invocationId}#${sequence + 1}`;
-        if (requestsFile) appendRecord(requestsFile, { ...stamp(), request, usd });
+        append({ ...stamp(), request, usd });
         // Sent only while the lock is still this invocation's, checked after its line is on the disk: an invocation
         // that takes the lock over reads the ledger after it does, so it counts every request this one could send.
         if (lock && !lock.held()) throw new LockLost(lock.file);
@@ -775,7 +788,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
         open = undefined;
         // A raise counts even when its line cannot be written: the run's total never falls below what it spent.
         if (delta > 0) committed += delta;
-        if (requestsFile) appendRecord(requestsFile, { ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason });
+        append({ ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason });
         if (delta <= 0) committed += delta;
       },
     };

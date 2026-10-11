@@ -6,7 +6,7 @@
  * the real Worker module with a stubbed model, and nothing leaves the process.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -94,10 +94,10 @@ const BAD = JSON.stringify({ dspackSurface: "0.1", root: { component: "no-such-c
  * The real Worker, its model answering each call in turn from `script` and reporting no usage, so every request is
  * unverified and raised to its absolute worst case: a production cell is its plan and three generation requests.
  */
-function worker(script: string[]) {
+function worker(script: string[], extra: Record<string, unknown> = {}) {
   let n = 0;
   let posted = 0;
-  const env = { HOSTED_AI: "on", AI: { run: async () => ({ content: [{ type: "text", text: script[Math.min(n++, script.length - 1)] }] }) } };
+  const env = { HOSTED_AI: "on", AI: { run: async () => ({ content: [{ type: "text", text: script[Math.min(n++, script.length - 1)] }] }) }, ...extra };
   const fetchImpl = (async (url: string, init: RequestInit) => {
     posted += 1;
     hooks.send?.();
@@ -184,6 +184,36 @@ describe("a ledger line that cannot be written", () => {
       expect(w.posted()).toBe(0);
     });
   }, 60_000);
+});
+
+describe("a ledger line cut off partway", () => {
+  it("is never followed by another: the invocation writes nothing more, and the next resume sets it aside", async () => {
+    await withRun("torn", async (dir) => {
+      const requests = join(dir, "requests.jsonl");
+      // The zone limiter refuses the first request, and the disk fills partway through the line releasing it.
+      let limited = 0;
+      const w = worker(cellScript(), { PROPOSE_RATE_LIMIT: { limit: async () => ({ success: limited++ > 0 }) } });
+      hooks.wrote = (path, data) => {
+        if (path === requests && data.includes("refused before any provider call")) {
+          appendFileSync(path, data.slice(0, 12));
+          throw Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
+        }
+      };
+      const result = await invocation(dir, { fetchImpl: w.fetchImpl });
+      hooks.wrote = undefined;
+      expect(w.posted()).toBe(1);
+      expect(result.stopped).toMatchObject({ reason: "error" });
+      expect(result.stopped!.message).toMatch(/ENOSPC/);
+      // The cut-off line is still the ledger's last.
+      expect(readFileSync(requests, "utf8").endsWith("\n")).toBe(false);
+      // The next resume sets it aside, every line it keeps is whole, and the refused request, its release lost, counts
+      // at the most a request can cost.
+      const after = await totals(dir);
+      for (const line of readFileSync(requests, "utf8").trim().split("\n")) expect(() => JSON.parse(line), line).not.toThrow();
+      expect(after.sent).toBe(1);
+      expect(toNanos(after.usd)).toBe(toNanos(REQUEST_USD_BOUND));
+    });
+  });
 });
 
 describe("the ledger settles each request by its own id", () => {
