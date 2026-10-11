@@ -297,6 +297,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const progress: Json = { status: "finished", ...(trace ? { block: trace } : {}), ...(outcome ? { outcome } : {}), ...(report ? { report } : {}), ...(surface ? { surface } : {}) };
   const calls = [...recorder.calls];
   const usage = aggregateUsage(calls);
+  // A provider call missing EITHER figure is unreported: summing the missing one as zero would flatter the arm.
+  const unreportedCalls = calls.filter((c) => c.source === "provider" && (c.inputTokens === undefined || c.outputTokens === undefined)).length;
   const failureError = providerFailure ?? seen.last;
   const failure: RunRecord["failure"] | undefined =
     outcome === "failed-adapter"
@@ -308,9 +310,10 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const checklist = { labels: [...prompt.parity.labels, ...(template?.expectText ? [template.expectText] : [])], components: parityComponents(prompt, reference.id) };
   const parity = passed && surface ? checkParity(surface, checklist) : undefined;
   const surfaceDigest = passed && surface ? await expansionDigest(surface as never) : undefined;
+  // Selection is scored on the planner's ANSWER: a block it named that reconciliation withdrew is still its answer.
   const selection =
     arm === "block" && condition === "fresh" && choice
-      ? { chosen: choice.id, source: choice.source, ...(choice.rejected ? { rejected: choice.rejected } : {}), correct: choice.id === prompt.block }
+      ? { chosen: choice.id, source: choice.source, ...(choice.rejected ? { rejected: choice.rejected } : {}), correct: (choice.rejected ?? choice.id) === prompt.block }
       : undefined;
 
   const record: RunRecord = {
@@ -331,7 +334,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
       input: usage.provider.inputTokens,
       output: usage.provider.outputTokens,
       providerCalls: usage.provider.calls,
-      unreportedCalls: usage.unreported,
+      unreportedCalls,
       modelFreeCalls: usage.none,
     },
     requestBytes: meter.bytes,

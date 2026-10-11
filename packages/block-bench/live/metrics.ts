@@ -6,9 +6,16 @@
  * fallback and invariant outcomes are arm results. Tokens per success is the
  * ADR-B3 figure: provider-reported input plus output across every call of
  * every metered evaluated run, failures included, divided by the metered
- * successes. A run with any unreported call leaves the cohort entirely,
- * never estimated. The guardrail holds the block arm within the margin of
- * BOTH primitive arms (ADR-B4 fairness).
+ * successes. A run with a call missing either figure leaves the cohort
+ * entirely, never estimated. The guardrail holds the block arm within the
+ * margin of BOTH primitive arms (ADR-B4 fairness).
+ *
+ * The decision pools every evaluated result of every condition, fresh
+ * builds and refinements alike: ADR-B3 counts "every call (planning,
+ * generation, repairs, fallback, refinement)". Its minimum applies to the
+ * evaluated runs AND to the metered cohort the token figure rests on, and
+ * its boundaries are inclusive: an exact 30% cut passes, and a gap of
+ * exactly the margin is within it.
  */
 import type { Arm, Condition, FailureKind, Path, RunRecord } from "./types";
 
@@ -26,7 +33,8 @@ export interface ArmStats {
   reference: string;
   provider: string;
   arm: Arm;
-  condition: Condition;
+  /** "all" for the pooled stats the decision reads. */
+  condition: Condition | "all";
   n: number;
   skipped: number;
   completed: number;
@@ -94,11 +102,16 @@ export interface Decision {
   tokens: { block: number | null; capped: number | null; production: number | null; reductionVsProduction: number | null; reductionVsCapped: number | null };
   passRates: { block: number | null; capped: number | null; production: number | null };
   evaluated: { block: number; capped: number; production: number };
+  /** Runs in each arm's token cohort. */
+  metered: { block: number; capped: number; production: number };
   options: DecisionOptions;
 }
 
 export interface Summary {
+  /** Per condition. */
   arms: ArmStats[];
+  /** Per arm, every condition pooled: what the decision reads. */
+  pooled: ArmStats[];
   selection: SelectionStats[];
   decisions: Decision[];
   totals: { records: number; completed: number; providerCalls: number; inputTokens: number; outputTokens: number; requestBytes: number };
@@ -112,9 +125,11 @@ export function median(values: number[]): number | null {
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
-const groupKey = (r: RunRecord) => `${r.reference}|${r.provider}|${r.arm}|${r.condition}`;
+/** Boundaries are inclusive and judged exactly: floating point must not turn an exact 30% cut or a 5-point gap into a failure. */
+const EPSILON = 1e-9;
 
-export function armStats(records: readonly RunRecord[]): ArmStats[] {
+export function armStats(records: readonly RunRecord[], options: { pooled?: boolean } = {}): ArmStats[] {
+  const groupKey = (r: RunRecord) => `${r.reference}|${r.provider}|${r.arm}|${options.pooled ? "all" : r.condition}`;
   const groups = new Map<string, RunRecord[]>();
   for (const r of records) {
     const list = groups.get(groupKey(r)) ?? [];
@@ -150,13 +165,13 @@ export function armStats(records: readonly RunRecord[]): ArmStats[] {
       const classification = (r.trace as { fallback?: { classification?: string } } | undefined)?.fallback?.classification;
       if (classification) fallbackByClassification[classification] = (fallbackByClassification[classification] ?? 0) + 1;
     }
-    const refinements = first.condition !== "fresh" ? completed : [];
+    const refinements = completed.filter((r) => r.condition !== "fresh");
     const withBlockPrior = refinements.filter((r) => r.refinement && r.refinement.mode !== "primitive");
     out.push({
       reference: first.reference,
       provider: first.provider,
       arm: first.arm,
-      condition: first.condition,
+      condition: options.pooled ? "all" : first.condition,
       n: list.length,
       skipped: list.length - completed.length,
       completed: completed.length,
@@ -209,15 +224,17 @@ export function selectionStats(records: readonly RunRecord[]): SelectionStats[] 
     const s = { n: list.length, correct: 0, hit: 0, missedToNull: 0, wrongBlock: 0, nullCorrect: 0, falseBlock: 0, explicitNull: 0, omitted: 0, rejected: 0, intentCorrect: 0 };
     for (const r of list) {
       const sel = r.selection!;
-      if (sel.correct) s.correct += 1;
+      // The planner's answer: a block reconciliation withdrew is still the block it named.
+      const answer = sel.rejected ?? sel.chosen;
+      if (answer === r.expected.block) s.correct += 1;
       if (r.expected.block) {
-        if (sel.chosen === r.expected.block) s.hit += 1;
-        else if (sel.chosen === null) s.missedToNull += 1;
+        if (answer === r.expected.block) s.hit += 1;
+        else if (answer === null) s.missedToNull += 1;
         else s.wrongBlock += 1;
-      } else if (sel.chosen === null) s.nullCorrect += 1;
+      } else if (answer === null) s.nullCorrect += 1;
       else s.falseBlock += 1;
       if (sel.source === "omitted") s.omitted += 1;
-      else if (sel.chosen === null) s.explicitNull += 1;
+      else if (answer === null) s.explicitNull += 1;
       if (sel.rejected) s.rejected += 1;
       if (r.plan?.intent === r.expected.intent) s.intentCorrect += 1;
     }
@@ -227,16 +244,19 @@ export function selectionStats(records: readonly RunRecord[]): SelectionStats[] 
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
 }
 
-export function decide(stats: readonly ArmStats[], options: DecisionOptions = DEFAULT_DECISION): Decision[] {
-  const keys = new Set(stats.filter((s) => s.condition === "fresh").map((s) => `${s.reference}|${s.provider}`));
+/** The ADR-B3 decision per reference and provider, over every evaluated result of every condition. */
+export function decide(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION): Decision[] {
+  const stats = armStats(records, { pooled: true });
+  const keys = new Set(stats.map((s) => `${s.reference}|${s.provider}`));
   const out: Decision[] = [];
   for (const key of keys) {
     const [reference, provider] = key.split("|") as [string, string];
-    const arm = (a: Arm) => stats.find((s) => s.reference === reference && s.provider === provider && s.condition === "fresh" && s.arm === a);
+    const arm = (a: Arm) => stats.find((s) => s.reference === reference && s.provider === provider && s.arm === a);
     const block = arm("block");
     const capped = arm("capped");
     const production = arm("production");
     const evaluated = { block: block?.evaluated ?? 0, capped: capped?.evaluated ?? 0, production: production?.evaluated ?? 0 };
+    const metered = { block: block?.meteredRuns ?? 0, capped: capped?.meteredRuns ?? 0, production: production?.meteredRuns ?? 0 };
     const tokens = {
       block: block?.tokensPerSuccess ?? null,
       capped: capped?.tokensPerSuccess ?? null,
@@ -250,12 +270,16 @@ export function decide(stats: readonly ArmStats[], options: DecisionOptions = DE
     const reasons: string[] = [];
     let verdict: Decision["verdict"] = "pass";
     for (const [name, n] of Object.entries(evaluated)) if (n < options.minimum) reasons.push(`${name}: ${n} evaluated runs, fewer than the ${options.minimum} the rule needs`);
+    // The token figure rests on the metered cohort, so the minimum applies there too.
+    for (const [name, n] of Object.entries(metered) as Array<[keyof typeof evaluated, number]>) {
+      if (n < options.minimum && n < evaluated[name]) reasons.push(`${name}: ${n} metered ${n === 1 ? "run" : "runs"} in the token cohort, fewer than the ${options.minimum} the rule needs`);
+    }
     if (reasons.length > 0) verdict = "insufficient";
     else {
       if (tokens.reductionVsProduction === null) {
         verdict = "insufficient";
         reasons.push("tokens per success is not measurable: a metered passing run is missing in the block arm or the production arm (scripted or unreported usage)");
-      } else if (tokens.reductionVsProduction < options.reduction) {
+      } else if (tokens.reductionVsProduction < options.reduction - EPSILON) {
         verdict = "fail";
         reasons.push(`tokens per success fell ${(100 * tokens.reductionVsProduction).toFixed(1)}% against production; the rule needs ${100 * options.reduction}%`);
       } else reasons.push(`tokens per success fell ${(100 * tokens.reductionVsProduction).toFixed(1)}% against production (needs ${100 * options.reduction}%)`);
@@ -263,13 +287,13 @@ export function decide(stats: readonly ArmStats[], options: DecisionOptions = DE
         if (passRates.block === null || rate === null) {
           verdict = "insufficient";
           reasons.push(`pass rate unavailable for the ${name} comparison`);
-        } else if (passRates.block < rate - options.margin) {
+        } else if (passRates.block < rate - options.margin - EPSILON) {
           verdict = verdict === "insufficient" ? verdict : "fail";
           reasons.push(`pass rate ${(100 * passRates.block).toFixed(1)}% is more than ${100 * options.margin} points below ${name} (${(100 * rate).toFixed(1)}%)`);
         } else reasons.push(`pass rate ${(100 * passRates.block).toFixed(1)}% is within ${100 * options.margin} points of ${name} (${(100 * rate).toFixed(1)}%)`);
       }
     }
-    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, options });
+    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, options });
   }
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
 }
@@ -279,8 +303,9 @@ export function summarize(records: readonly RunRecord[], options: DecisionOption
   const completed = records.filter((r) => r.status === "completed");
   return {
     arms,
+    pooled: armStats(records, { pooled: true }),
     selection: selectionStats(records),
-    decisions: decide(arms, options),
+    decisions: decide(records, options),
     totals: {
       records: records.length,
       completed: completed.length,

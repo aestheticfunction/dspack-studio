@@ -37,7 +37,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
   if (preflight.drafts) out.push("**Provisional.** At least one sidecar in use is a draft. ADR-B3 counts approved sidecars only; these numbers inform the drafts, they do not graduate anything.", "");
   if (context.providerId === "fake:scripted") out.push("**Dry run.** The scripted provider calls no model: every figure that needs provider-reported usage reads n/a, and parity reflects the replayed worked examples, not generation.", "");
   out.push(
-    "Tokens per success is the ADR-B3 figure: provider-reported input plus output across every call (planning included) of every evaluated run whose calls were all metered, failures included, divided by that cohort's successes. A run with an unreported call leaves the cohort. Pass rates exclude provider and policy failures, which are listed separately for re-running. Nothing here is estimated.",
+    "Tokens per success is the ADR-B3 figure: provider-reported input plus output across every call (planning included) of every evaluated run whose calls were all metered, failures included, divided by that cohort's successes. A run with a call missing either figure leaves the cohort. Pass rates exclude provider and policy failures, which are listed separately for re-running. Nothing here is estimated.",
     "",
   );
 
@@ -45,9 +45,13 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
   if (summary.decisions.length === 0) out.push("No fresh cells with all three arms yet.", "");
   for (const d of summary.decisions) {
     out.push(`### ${d.reference} on ${d.provider}: **${d.verdict}**`, "");
-    out.push(row(["Arm", "Evaluated", "Pass rate", "Tokens per success"]), row(["---", "---:", "---:", "---:"]));
-    for (const arm of ["block", "capped", "production"] as const) out.push(row([arm, d.evaluated[arm], pct(d.passRates[arm]), num(d.tokens[arm])]));
-    out.push("", `Token reduction vs production: ${pct(d.tokens.reductionVsProduction)}; vs capped: ${pct(d.tokens.reductionVsCapped)}. Rule: at least ${100 * d.options.reduction}% fewer tokens per success and a pass rate within ${100 * d.options.margin} points of both primitive arms, with at least ${d.options.minimum} evaluated runs per arm.`, "");
+    out.push(row(["Arm", "Evaluated", "Metered", "Pass rate", "Tokens per success"]), row(["---", "---:", "---:", "---:", "---:"]));
+    for (const arm of ["block", "capped", "production"] as const) out.push(row([arm, d.evaluated[arm], d.metered[arm], pct(d.passRates[arm]), num(d.tokens[arm])]));
+    out.push(
+      "",
+      `The decision pools every evaluated result of every condition, fresh builds and refinements alike, because ADR-B3 counts every call, refinements included. Token reduction vs production: ${pct(d.tokens.reductionVsProduction)}; vs capped: ${pct(d.tokens.reductionVsCapped)}. Rule: at least ${100 * d.options.reduction}% fewer tokens per success and a pass rate within ${100 * d.options.margin} points of both primitive arms, both boundaries inclusive, with at least ${d.options.minimum} evaluated and ${d.options.minimum} metered runs per arm.`,
+      "",
+    );
     for (const reason of d.reasons) out.push(`- ${reason}`);
     out.push("");
   }

@@ -8,7 +8,8 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createCallRecorder, type ModelCallRecord } from "@dspack-studio/composer-core";
 import { GatewayError, gatewayAdapter } from "../../../apps/composer/app/hosted-build";
-import { runCell } from "./arms";
+import { handlePropose } from "../../../apps/composer/worker/propose.mjs";
+import { exampleFor, runCell } from "./arms";
 import { promptsFor, readCorpus, type Corpus } from "./corpus";
 import { runEvaluation } from "./evaluate";
 import { PacingCapReached, createPacer } from "./pacing";
@@ -182,6 +183,33 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
     await provider.plan(request, { recorder: createCallRecorder(), meter: createMeter() });
     await provider.plan(request, { recorder: createCallRecorder(), meter: createMeter() });
     expect(provider.telemetry?.()).toEqual({ pacing: { maxRequests: 10, spacingMs: 1000, backoffMs: [5], sent: 2, waits: [{ atMs: 0, ms: 1000, reason: "spacing" }] } });
+  });
+});
+
+describe("usage a provider leaves out is recorded as missing, never as zero", () => {
+  it("a call that reports input but not output makes the run unmetered, so it never enters the token cohort", async () => {
+    const corpus = readCorpus();
+    const astryx = await loadReference("astryx");
+    const prompt = promptsFor(corpus, "astryx").find((p) => p.id === "rt-01")!;
+    const surface = exampleFor(astryx, "record-collection");
+    const plan = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits" };
+    // The REAL Worker, with a model binding that reports only the input figure for the generation call.
+    const env = {
+      HOSTED_AI: "on",
+      AI: {
+        run: async (_model: string, input: { system: string }) =>
+          input.system.includes("routing step")
+            ? { content: [{ type: "text", text: JSON.stringify(plan) }], usage: { input_tokens: 900, output_tokens: 40 } }
+            : { content: [{ type: "text", text: JSON.stringify(surface) }], usage: { input_tokens: 15_000 } },
+      },
+    };
+    const fetchImpl = (async (url: string, init: RequestInit) => handlePropose(new Request(url, init), env)) as typeof fetch;
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl });
+    const { record } = await runCell({ reference: astryx, provider, arm: "production", condition: "fresh", prompt, corpus });
+    expect(record.passed).toBe(true);
+    expect(record.calls.find((c) => c.operation === "generate")).toMatchObject({ inputTokens: 15_000 });
+    expect(record.calls.find((c) => c.operation === "generate")!.outputTokens).toBeUndefined();
+    expect(record.tokens.unreportedCalls).toBe(1);
   });
 });
 

@@ -81,6 +81,10 @@ export interface RunRecord extends RunKey {
   /** The frozen block trace (block arm). */
   trace?: Record<string, unknown>;
   calls: ModelCallRecord[];
+  /**
+   * Provider-reported figures. `unreportedCalls` counts provider calls missing EITHER figure: a run with one
+   * leaves the ADR-B3 token cohort, so a missing figure is never summed as zero.
+   */
   tokens: { input: number; output: number; providerCalls: number; unreportedCalls: number; modelFreeCalls: number };
   /** Request bodies sent, in bytes (every call, the planning call included). */
   requestBytes: number;

@@ -77,7 +77,7 @@ describe("the summary", () => {
     expect(refine).toMatchObject({ n: 3, skipped: 1, completed: 2, retention: 0.5, changedRate: 0.5 });
   });
 
-  it("selection accuracy counts explicit null, omitted and rejected answers separately", () => {
+  it("selection accuracy reads the planner's answer: explicit null, omitted and withdrawn answers are counted apart, and a withdrawn block on a null prompt is not correct", () => {
     const records = [
       record({ arm: "block", passed: true, expectedBlock: "records-table", selection: { chosen: "records-table", source: "model", correct: true } }),
       record({ arm: "block", passed: true, expectedBlock: "records-table", selection: { chosen: null, source: "model", correct: false } }),
@@ -88,7 +88,8 @@ describe("the summary", () => {
       record({ arm: "capped", passed: true }),
     ];
     const [s] = selectionStats(records);
-    expect(s).toMatchObject({ n: 6, correct: 3, hit: 1, missedToNull: 1, wrongBlock: 1, nullCorrect: 2, falseBlock: 1, explicitNull: 2, omitted: 1, rejected: 1, accuracy: 0.5, intentAccuracy: 1 });
+    expect(s).toMatchObject({ n: 6, correct: 2, hit: 1, missedToNull: 1, wrongBlock: 1, nullCorrect: 1, falseBlock: 2, explicitNull: 1, omitted: 1, rejected: 1, intentAccuracy: 1 });
+    expect(s!.accuracy).toBeCloseTo(2 / 6);
   });
 
   it("median", () => {
@@ -98,11 +99,58 @@ describe("the summary", () => {
   });
 });
 
+describe("the decision covers every result and judges its boundaries exactly (ADR-B3)", () => {
+  it("pools every evaluated result of every condition: an arm whose refinements fail expensively cannot pass on its fresh builds", () => {
+    const records = [
+      ...many(20, { arm: "block", passed: true, tokens: [600, 50] }),
+      ...many(20, { arm: "block", passed: false, tokens: [50_000, 5_000], condition: "refine-content" }),
+      ...many(20, { arm: "capped", passed: true, tokens: [900, 60] }),
+      ...many(20, { arm: "production", passed: true, tokens: [1000, 80] }),
+    ];
+    const [d] = summarize(records).decisions;
+    expect(d!.evaluated.block).toBe(40);
+    expect(d!.tokens.block).toBeCloseTo((20 * 650 + 20 * 55_000) / 20);
+    expect(d!.verdict).toBe("fail");
+  });
+
+  it("needs the minimum in the metered cohort too: a token figure resting on one metered run is insufficient", () => {
+    const records = [
+      ...many(1, { arm: "block", passed: true, tokens: [600, 50] }),
+      ...many(19, { arm: "block", passed: true, tokens: [600, 50], unreported: 1 }),
+      ...many(20, { arm: "capped", passed: true, tokens: [900, 60] }),
+      ...many(20, { arm: "production", passed: true, tokens: [1000, 80] }),
+    ];
+    const [d] = summarize(records).decisions;
+    expect(d!.verdict).toBe("insufficient");
+    expect(d!.reasons.join(" ")).toMatch(/block: 1 metered run/);
+  });
+
+  it("an exact 30% cut passes, and a pass-rate gap of exactly 5 points is within the margin", () => {
+    const exact30 = [
+      ...[...Array(8).fill(72), ...Array(12).fill(71)].map((t: number) => record({ arm: "block", passed: true, tokens: [t, 0] })),
+      ...many(20, { arm: "capped", passed: true, tokens: [102, 0] }),
+      ...many(20, { arm: "production", passed: true, tokens: [102, 0] }),
+    ];
+    expect(summarize(exact30).decisions[0]!.verdict).toBe("pass");
+    const gap5 = [
+      ...many(3, { arm: "block", passed: true, tokens: [10, 0] }),
+      ...many(17, { arm: "block", passed: false, tokens: [10, 0] }),
+      ...many(4, { arm: "capped", passed: true, tokens: [100, 0] }),
+      ...many(16, { arm: "capped", passed: false, tokens: [100, 0] }),
+      ...many(4, { arm: "production", passed: true, tokens: [100, 0] }),
+      ...many(16, { arm: "production", passed: false, tokens: [100, 0] }),
+    ];
+    const g = summarize(gap5).decisions[0]!;
+    expect(g.reasons.filter((r) => /within 5 points/.test(r))).toHaveLength(2);
+    expect(g.verdict).toBe("pass");
+  });
+});
+
 describe("the decision rule (ADR-B3)", () => {
   const arms = (block: Partial, capped: Partial, production: Partial, n = 20) => [...many(n, block), ...many(n, capped), ...many(n, production)];
   it("passes when tokens per success fall by 30% against production and the pass rate is within 5 points of both arms", () => {
     const records = arms({ arm: "block", passed: true, tokens: [600, 50] }, { arm: "capped", passed: true, tokens: [900, 60] }, { arm: "production", passed: true, tokens: [1000, 80] });
-    const [d] = decide(armStats(records));
+    const [d] = decide(records);
     expect(d!.verdict).toBe("pass");
     expect(d!.tokens.reductionVsProduction).toBeCloseTo(1 - 650 / 1080);
   });
@@ -114,7 +162,7 @@ describe("the decision rule (ADR-B3)", () => {
       ...many(20, { arm: "capped", passed: true, tokens: [900, 60] }),
       ...many(20, { arm: "production", passed: true, tokens: [1000, 80] }),
     ];
-    const [d] = decide(armStats(records));
+    const [d] = decide(records);
     // 20 runs at 650 over 14 successes = 928.6 per success: only 14% below production's 1080
     expect(d!.tokens.block).toBeCloseTo((20 * 650) / 14);
     expect(d!.tokens.reductionVsProduction).toBeCloseTo(1 - (20 * 650) / 14 / 1080);
@@ -123,7 +171,7 @@ describe("the decision rule (ADR-B3)", () => {
 
   it("fails on tokens, fails on the pass-rate guardrail against either arm, and is insufficient below the minimum or without metered successes", () => {
     const tokens = arms({ arm: "block", passed: true, tokens: [800, 50] }, { arm: "capped", passed: true, tokens: [900, 60] }, { arm: "production", passed: true, tokens: [1000, 80] });
-    expect(decide(armStats(tokens))[0]!.verdict).toBe("fail");
+    expect(decide(tokens)[0]!.verdict).toBe("fail");
     const guard = [
       ...many(17, { arm: "block", passed: true, tokens: [500, 50] }),
       ...many(3, { arm: "block", passed: false }),
@@ -131,14 +179,14 @@ describe("the decision rule (ADR-B3)", () => {
       ...many(17, { arm: "production", passed: true, tokens: [1000, 80] }),
       ...many(3, { arm: "production", passed: false }),
     ];
-    const g = decide(armStats(guard))[0]!;
+    const g = decide(guard)[0]!;
     expect(g.verdict).toBe("fail");
     expect(g.reasons.some((r) => /below capped/.test(r))).toBe(true);
     expect(g.reasons.some((r) => /within 5 points of production/.test(r))).toBe(true);
     const few = arms({ arm: "block", passed: true, tokens: [1, 1] }, { arm: "capped", passed: true, tokens: [1, 1] }, { arm: "production", passed: true, tokens: [1, 1] }, 5);
-    expect(decide(armStats(few))[0]!.verdict).toBe("insufficient");
+    expect(decide(few)[0]!.verdict).toBe("insufficient");
     const scripted = arms({ arm: "block", passed: true }, { arm: "capped", passed: true }, { arm: "production", passed: true });
-    const s = decide(armStats(scripted))[0]!;
+    const s = decide(scripted)[0]!;
     expect(s.verdict).toBe("insufficient");
     expect(s.reasons[0]).toMatch(/not measurable/);
   });
