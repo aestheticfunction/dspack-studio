@@ -161,7 +161,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // reached the provider must report its usage and the model the run measures, or the run stops (RunHalted)
         // with this request settled on the way out like any other.
         const served = options.pacer?.served;
-        if (served && !released) holdCalls(records, served, PRICED_MODEL, outcome === "ok");
+        if (served && !released) holdCalls(records, served, PRICED_MODEL, { itemized: Array.isArray(reply?.calls) });
         return { calls: records, durationMs };
       };
       try {

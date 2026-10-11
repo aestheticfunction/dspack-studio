@@ -4,7 +4,8 @@
  * must stay the model the run's first metered call reported, which the manifest records once and every resume holds
  * to. A call that breaks any of these stops the run cleanly (RunHalted), apart from arm results: the cell in flight
  * logs no record, what it spent stays in the ledger, and a resume continues once the cause is understood. A refusal
- * that reached no model is released before these checks and never trips them.
+ * that showed it reached no model is released before these checks and never trips them; any other reply is held to
+ * them, so a reply that cannot show whether a model ran (no itemized calls, or none reported) stops the run too.
  *
  * The Worker names the model only on a successful reply (`raw.model`, or the configured id when the provider omits
  * it), so a reply the Worker sends as an error (an unusable output, a provider failure) stops the run too.
@@ -16,8 +17,8 @@ export const MODEL_FAMILY = /(^|[^a-z0-9])claude-haiku-4[-.]5($|[^0-9a-z.])/i;
 
 export type HaltCondition = "usage-missing" | "model-missing" | "model-family" | "model-changed";
 
-/** A token count the run can meter: a whole number, never negative. */
-const whole = (n: unknown): n is number => typeof n === "number" && Number.isSafeInteger(n) && n >= 0;
+/** A token count the run can meter: a whole number, never negative; a call that reached the model read at least one input token. */
+const whole = (n: unknown, least = 0): n is number => typeof n === "number" && Number.isSafeInteger(n) && n >= least;
 
 /** The run's stop signal for a call it cannot trust: never an arm result, and the run stays resumable. */
 export class RunHalted extends Error {
@@ -40,21 +41,23 @@ export interface ServedModel {
 
 /**
  * Holds one reply's calls to the run's integrity conditions, in order, and throws RunHalted at the first that breaks
- * one. A reply that carries a model's answer (`answered`) must report a call that reached the provider. The run's model
- * is recorded only from a reply whose every call holds.
+ * one. The runner holds every reply but a refusal that showed it reached no model, so the reply must report a call that
+ * reached the provider, and itemize its calls (`itemized`, the Worker's calls[]) so that its usage covers every call it
+ * made. The run's model is recorded only from a reply that holds.
  */
-export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, answered = false): void {
+export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, reply: { itemized: boolean }): void {
   const reached = calls.filter((call) => call.source !== "none");
-  if (answered && reached.length === 0) throw new RunHalted("usage-missing", "a reply carried a model's answer but reported no call that reached the provider, so the run cannot meter it");
+  if (reached.length === 0) throw new RunHalted("usage-missing", "a reply that is not a refusal made before any provider call reported no call that reached the provider, so the run cannot show whether a model ran, or meter it");
   for (const call of reached) {
     const where = `a ${call.operation} call (${call.outcome})`;
-    if (!whole(call.inputTokens) || !whole(call.outputTokens)) {
-      throw new RunHalted("usage-missing", `${where} reached the provider without reporting its ${whole(call.inputTokens) ? "output" : "input"} tokens as a whole count, so the run cannot meter it`);
+    if (!whole(call.inputTokens, 1) || !whole(call.outputTokens)) {
+      throw new RunHalted("usage-missing", `${where} reached the provider without reporting its ${whole(call.inputTokens, 1) ? "output" : "input"} tokens as a whole count, so the run cannot meter it`);
     }
     if (!call.model) throw new RunHalted("model-missing", `${where} reached the provider without naming the model that served it`);
     if (!MODEL_FAMILY.test(call.model)) throw new RunHalted("model-family", `${where} was served by ${call.model}, not Claude Haiku 4.5 (${configured})`);
     const measured = served.id ?? reached[0]!.model;
     if (call.model !== measured) throw new RunHalted("model-changed", `${where} was served by ${call.model}, but the run measures ${measured}${served.id === undefined ? "" : " (manifest.json)"}`);
   }
-  if (served.id === undefined && reached.length > 0) served.record(reached[0]!.model!);
+  if (!reply.itemized) throw new RunHalted("usage-missing", "a reply did not itemize its calls (calls[]), so the run cannot show that its usage covers every call it made");
+  if (served.id === undefined) served.record(reached[0]!.model!);
 }

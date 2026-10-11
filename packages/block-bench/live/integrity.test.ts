@@ -182,6 +182,9 @@ describe("a call that reached the provider stops the run unless it can be truste
       ["no usage at all", () => served([call({ inputTokens: null, outputTokens: null })]), "usage-missing"],
       ["a negative count", () => served([call({ outputTokens: -1 })]), "usage-missing"],
       ["a count that is not a whole number", () => served([call({ inputTokens: 10.5 })]), "usage-missing"],
+      ["no input tokens, which no call that reached the model can report", () => served([call({ inputTokens: 0, outputTokens: 0 })]), "usage-missing"],
+      ["an answer that does not itemize its calls, as a Worker before Phase 0.5 answers", () => served(undefined as never, { model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 } }), "usage-missing"],
+      ["a refusal that is not the Worker's, which cannot show no model ran", () => new Response("<html>forbidden</html>", { status: 403 }), "usage-missing"],
       ["a provider failure that reports nothing", () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }), "usage-missing"],
       ["an answer that reports no provider call", () => served([]), "usage-missing"],
       ["an answer that reports no calls at all", () => served(undefined as never, { model: HAIKU, usage: null }), "usage-missing"],
@@ -223,12 +226,15 @@ describe("a call that reached the provider stops the run unless it can be truste
       () => served([call({})]),
       () => reply(503, { error: "busy", message: "busy", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }),
       () => served([call({})]),
+      // The Worker's own refusal before any provider call is never retried: a policy failure, never a stop.
+      () => reply(400, { error: "invalid-request", message: "Expected { system, messages, jsonSchema }.", calls: [] }),
     ];
     const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => (refused++, answers[refused - 1]!())) as typeof fetch, pacer });
     const adapter = provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false });
     await expect(adapter.generate(request)).resolves.toMatchObject({ model: HAIKU });
     await expect(adapter.generate(request)).resolves.toMatchObject({ model: HAIKU });
-    expect(refused).toBe(4);
+    await expect(adapter.generate(request)).rejects.toMatchObject({ name: "HarnessError", kind: "policy" });
+    expect(refused).toBe(5);
     expect(record.recorded).toEqual([HAIKU]);
   });
 });
