@@ -108,9 +108,39 @@ describe("pnpm --filter @dspack-studio/block-bench baseline", () => {
     const file = join(invoked, "docs/blocks/baseline.json");
     expect(existsSync(join(PACKAGE_DIR, "docs/blocks/baseline.json"))).toBe(false);
     const record = JSON.parse(readFileSync(file, "utf8"));
-    expect(record).toMatchObject({ baseUrl: origin, buildId: BUILD, worker: { shape: "phase-0.5", status: 400, error: "invalid-request", calls: [] }, models: ["scripted", "hosted-ai"], drafts: false });
+    expect(record).toMatchObject({ baseUrl: origin, buildId: BUILD, worker: { shape: "per-call-model", status: 400, error: "invalid-request", calls: [], capabilities: ["per-call-model"] }, models: ["scripted", "hosted-ai"], drafts: false });
     expect(Number.isNaN(Date.parse(record.at))).toBe(false);
     expect(run.stdout).toContain(`baseline: wrote ${file}`);
+  }, 60_000);
+
+  it("writes nothing against a Worker that does not name each call's model, and says why, at no model cost", async () => {
+    const old = deployment(EXPORT);
+    const server = createServer(async (req, res) => {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(chunk as Buffer);
+      const hasBody = req.method !== "GET" && req.method !== "HEAD";
+      let response = await old.handle(new Request(`${oldOrigin}${req.url}`, { method: req.method, headers: req.headers as Record<string, string>, ...(hasBody ? { body: Buffer.concat(chunks) } : {}) }));
+      // The c154548 Worker: the same refusal, without the capability.
+      if (req.url === "/api/propose") {
+        const { capabilities: _c, ...body } = (await response.json()) as Record<string, unknown>;
+        response = new Response(JSON.stringify(body), { status: response.status, headers: response.headers });
+      }
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      res.end(Buffer.from(await response.arrayBuffer()));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const oldOrigin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    try {
+      const file = join(invoked, "docs/blocks/old-worker.json");
+      const run = await baseline(["--base-url", oldOrigin, "--out", file]);
+      expect(run.code).toBe(1);
+      expect(run.stderr).toMatch(/not written: the Worker at http:\/\/127\.0\.0\.1:\d+ is phase-0\.5/);
+      expect(run.stderr).toMatch(/per-call-model/);
+      expect(existsSync(file)).toBe(false);
+      expect(old.modelCalls()).toBe(0);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   }, 60_000);
 
   it("writes nothing when the deployment cannot be read whole, and says why", async () => {

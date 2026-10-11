@@ -32,6 +32,7 @@ import astryxContract from "../astryx-project/astryx.dspack.json";
 import astryxProfile from "../astryx-project/astryx.profile.json";
 import { GatewayError, gatewayAdapter, runGatewayRequest, streamHostedBuild } from "./hosted-build";
 import { planFlow, planGoal } from "./planning";
+import { handlePropose } from "../worker/propose.mjs";
 
 type Json = Record<string, any>;
 
@@ -406,4 +407,87 @@ describe("a hosted build's recorder against its audit report", () => {
       ["repair", "none"],
     ]);
   }, 30_000);
+});
+
+/* ---------------------------------------------------------------------------
+ * Option B is additive for the app. The Worker now names the model on every
+ * calls[] entry and advertises its capability on every refusal made before a
+ * provider call; the app reads neither, so each reply means to it exactly what
+ * the same reply without them meant. Each reply comes from the REAL Worker,
+ * its provider stubbed. Fail-first: the replies must carry the additions, which
+ * the Worker before Option B never sent.
+ * ------------------------------------------------------------------------- */
+
+describe("Option B replies are additive: the app reads them as it read them before", () => {
+  const HAIKU = "claude-haiku-4-5-20251001";
+  const SURFACE = JSON.stringify({ root: { component: "Text", id: "t1" } });
+  const servedBy = (text: string, model = HAIKU, input = 100, output = 10) => ({ content: [{ type: "text", text }], usage: { input_tokens: input, output_tokens: output }, model });
+  type Answer = ReturnType<typeof servedBy> | Error;
+
+  /** The real Worker's reply to REQUEST, its provider answering each call in turn. */
+  async function workerReply(answers: Answer[], env: Json = {}, maxCalls?: 1 | 2) {
+    let n = 0;
+    const run = async () => {
+      const answer = answers[Math.min(n++, answers.length - 1)]!;
+      if (answer instanceof Error) throw answer;
+      return answer;
+    };
+    const body = JSON.stringify({ ...REQUEST, ...(maxCalls ? { maxCalls } : {}) });
+    const res = await handlePropose(new Request("https://composer.test/api/propose", { method: "POST", headers: { "content-type": "application/json" }, body }), { HOSTED_AI: "on", AI: { run }, ...env });
+    return { status: res.status, body: (await res.json()) as Json };
+  }
+
+  /** What the app makes of one reply: its result, or its error's kind, status, cause and usage, and every record. */
+  async function viaApp(status: number, body: Json, maxCalls?: 1 | 2) {
+    stubFetch(() => reply(status, body));
+    const recorder = createCallRecorder();
+    try {
+      const out = await gatewayAdapter({ recorder, ...(maxCalls ? { maxCalls } : {}) }).generate(REQUEST);
+      return { ok: true, out, records: recorder.calls.map(({ durationMs: _d, ...r }) => r) };
+    } catch (error) {
+      const e = error as GatewayError;
+      return { ok: false, name: e.name, kind: e.kind, status: e.status, failure: e.failure, usage: e.usage, message: e.message, records: recorder.calls.map(({ durationMs: _d, ...r }) => r) };
+    }
+  }
+
+  /** The same reply without Option B's additions: no model on any call, no capability. */
+  const withoutAdditions = (body: Json): Json => {
+    const { capabilities: _c, ...rest } = body;
+    return Array.isArray(rest.calls) ? { ...rest, calls: rest.calls.map(({ model: _m, ...call }: Json) => call) } : rest;
+  };
+  const additions = (body: Json) => [...(Array.isArray(body.calls) ? body.calls.filter((c: Json) => typeof c.model === "string").map(() => "model") : []), ...(body.capabilities ? ["capabilities"] : [])];
+
+  const SCENARIOS: Array<{ name: string; answers: Answer[]; env?: Json; maxCalls?: 1 | 2; added: string[] }> = [
+    { name: "a success", answers: [servedBy(SURFACE)], added: ["model"] },
+    { name: "a success after the Worker's parse retry", answers: [servedBy("Sure! Here it is:"), servedBy(SURFACE)], added: ["model", "model"] },
+    { name: "an unusable output under maxCalls 1", answers: [servedBy("Sure! Here it is:")], maxCalls: 1, added: ["model"] },
+    { name: "two unusable outputs", answers: [servedBy("no"), servedBy("still no")], added: ["model", "model"] },
+    { name: "a provider failure after a call", answers: [servedBy("no"), new Error("provider timeout")], added: ["model"] },
+    { name: "a refusal before any provider call (the kill switch)", answers: [servedBy(SURFACE)], env: { HOSTED_AI: "off" }, added: ["capabilities"] },
+    { name: "a refusal before any provider call (the rate limiter)", answers: [servedBy(SURFACE)], env: { PROPOSE_RATE_LIMIT: { limit: async () => ({ success: false }) } }, added: ["capabilities"] },
+  ];
+
+  for (const scenario of SCENARIOS) {
+    it(scenario.name, async () => {
+      const { status, body } = await workerReply(scenario.answers, scenario.env, scenario.maxCalls);
+      expect(additions(body)).toEqual(scenario.added);
+      expect(await viaApp(status, body, scenario.maxCalls)).toEqual(await viaApp(status, withoutAdditions(body), scenario.maxCalls));
+    });
+  }
+
+  it("the busy gateway's reply is unchanged: its rejected call names no model, and it is no refusal made before a call", async () => {
+    const { status, body } = await workerReply([new Error("InferenceUpstreamError: 429 Too Many Requests")]);
+    expect(status).toBe(503);
+    expect(additions(body)).toEqual([]);
+    expect(await viaApp(status, body)).toMatchObject({ ok: false, kind: "provider", status: 503 });
+  });
+
+  it("an answer the Worker cannot serialize: the app now records the billed call, with its usage, and its error stays a provider failure", async () => {
+    const deep = "[".repeat(20_000) + "]".repeat(20_000);
+    const { status, body } = await workerReply([servedBy(deep, HAIKU, 900, 8000)]);
+    expect(status).toBe(502);
+    const app = await viaApp(status, body);
+    expect(app).toMatchObject({ ok: false, name: "GatewayError", kind: "provider", status: 502, failure: "provider", usage: { inputTokens: 900, outputTokens: 8000 } });
+    expect(app.records).toEqual([{ operation: "generate", attempt: 0, subCall: 0, source: "provider", inputTokens: 900, outputTokens: 8000, outcome: "ok" }]);
+  });
 });

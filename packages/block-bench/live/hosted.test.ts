@@ -48,6 +48,9 @@ const SCENARIOS: Scenario[] = [
   { name: "503 busy (the Worker's real shape: the rejected call is reported)", answer: () => reply(503, { error: "busy", message: "busy", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 3 }] }) },
   { name: "503 unavailable from a pre-0.5 Worker (no calls list)", answer: () => reply(503, { error: "unavailable", message: "off" }) },
   { name: "fetch throws", answer: () => Promise.reject(new TypeError("network down")) },
+  // The Worker since Option B: each call names the model that served it.
+  { name: "200 ok after the parse retry, each call naming its model", answer: () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 20, outputTokens: 4 }, calls: [{ inputTokens: 10, outputTokens: 2, model: HAIKU_ID, outcome: "unusable-output", durationMs: 5 }, { inputTokens: 10, outputTokens: 2, model: HAIKU_ID, outcome: "ok", durationMs: 5 }] }) },
+  { name: "502 unusable output, each call naming its model", answer: () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "no usable output", usage: { inputTokens: 15, outputTokens: 0 }, calls: [{ inputTokens: 15, outputTokens: 0, model: HAIKU_ID, outcome: "unusable-output", durationMs: 1 }] }) },
 ];
 
 afterEach(() => vi.unstubAllGlobals());
@@ -77,13 +80,26 @@ async function viaHarness(answer: Scenario["answer"]) {
   }
 }
 
+/** An outcome with its records' models left out: the one field where the two deliberately differ (Option B). */
+const withoutModels = <T extends { records: ReturnType<typeof strip> }>(outcome: T) => ({ ...outcome, records: outcome.records.map(({ model: _model, ...rest }) => rest) });
+
 describe("the hosted client agrees with the app's gateway adapter on every reply shape", () => {
   for (const scenario of SCENARIOS) {
     it(scenario.name, async () => {
       const app = await viaApp(scenario.answer);
       const harness = await viaHarness(scenario.answer);
       const { meter, ...comparable } = harness;
-      expect(comparable).toEqual(app);
+      expect(withoutModels(comparable)).toEqual(withoutModels(app));
+      // Model attribution (Option B): the app gives the reply's top-level model to every call, as it always has; the
+      // harness gives each call only the model its own calls[] entry names, so the top-level model is never a call's.
+      const body = (await Promise.resolve()
+        .then(scenario.answer)
+        .then((res) => res.json())
+        .catch(() => undefined)) as { model?: unknown; calls?: Array<{ model?: unknown }> } | undefined;
+      const top = typeof body?.model === "string" ? body.model : undefined;
+      const own = Array.isArray(body?.calls) && body.calls.length > 0 ? body.calls.map((c) => (typeof c.model === "string" && c.model ? c.model : undefined)) : app.records.map(() => undefined);
+      expect(app.records.map((r) => r.model)).toEqual(app.records.map((r) => (r.source === "none" ? undefined : top)));
+      expect(harness.records.map((r) => r.model)).toEqual(harness.records.map((r, i) => (r.source === "none" ? undefined : own[i])));
       expect(meter.requests).toBe(1);
       expect(meter.bytes).toBeGreaterThan(0);
     });
@@ -424,7 +440,7 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     astryx = await loadReference("astryx");
   }, 60_000);
   const plan = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits", block: "records-table", blockReason: "it is a table" };
-  const ok = (json: unknown) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: 100, output_tokens: 10 } });
+  const ok = (json: unknown) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: 100, output_tokens: 10 }, model: HAIKU_ID });
   /** The REAL Worker module; `model` answers each provider call by kind and may throw like the gateway does. */
   const workerFetch = (model: (kind: "plan" | "block" | "surface", n: number, input?: { system: string; messages: Array<{ content: string }> }) => unknown) => {
     let n = 0;
@@ -475,7 +491,7 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       const bodies: Body[] = [];
       // Every call reports the most its request was priced for: one token per byte read, and the output cap.
       const read = (input: { system: string; messages: Array<{ content: string }> }) => new TextEncoder().encode(input.system).length + input.messages.reduce((a, m) => a + new TextEncoder().encode(m.content).length, 0);
-      const answer = (json: unknown, input: { system: string; messages: Array<{ content: string }> }) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: read(input), output_tokens: MAX_OUTPUT_TOKENS } });
+      const answer = (json: unknown, input: { system: string; messages: Array<{ content: string }> }) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: read(input), output_tokens: MAX_OUTPUT_TOKENS }, model: HAIKU_ID });
       const w = workerFetch((kind, _n, input) => answer(kind === "plan" ? plan : kind === "block" ? { block: "records-table", version: 1 } : exampleFor(astryx, "record-collection"), input!));
       const fetchImpl = (async (url: string, init: RequestInit) => {
         bodies.push(JSON.parse(String(init.body)) as Body);
@@ -576,7 +592,7 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     const raise = absoluteUsd(2) - priced;
     const settle = (10 * 1e-6 + 2 * 5e-6) * 1.05 - priced;
     const HAIKU = HAIKU_ID;
-    const served = (outputTokens: number, inputTokens = 10) => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens, outputTokens }, calls: [{ inputTokens, outputTokens, outcome: "ok", durationMs: 1 }] });
+    const served = (outputTokens: number, inputTokens = 10) => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens, outputTokens }, calls: [{ inputTokens, outputTokens, model: HAIKU, outcome: "ok", durationMs: 1 }] });
     let refused = false;
     let busy = false;
     const cases: Array<[string, () => Response | Promise<Response>, Array<[string, number]>]> = [
@@ -598,8 +614,12 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       // The prices are Claude Haiku 4.5's: a call naming another model, or none of its own, is not priced by them.
       ["a reply served by another model", () => reply(200, { json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       ["a model id that merely contains Haiku 4.5's", () => reply(200, { json: { a: 1 }, raw: "{}", model: "evil/claude-haiku-4-5/other", calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
-      ["a parse retry, whose first call names no model of its own", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }, { inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
-      ["an unusable output, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "x", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      // The Worker before Option B named one model per reply: a call that names none of its own is not priced.
+      ["a parse retry in the Worker's shape before Option B, the reply's model on neither call", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }, { inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      ["an unusable output in the Worker's shape before Option B, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "x", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      // Since Option B each call names its own model, so a parse retry and an unusable output are priced like any call.
+      ["a parse retry whose calls each name the model", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 20, outputTokens: 4 }, calls: [{ inputTokens: 10, outputTokens: 2, model: HAIKU, outcome: "unusable-output", durationMs: 1 }, { inputTokens: 10, outputTokens: 2, model: HAIKU, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["settled at the reported usage", 2 * (10 * 1e-6 + 2 * 5e-6) * 1.05 - priced]]],
+      ["an unusable output that names its model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "x", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, model: HAIKU, outcome: "unusable-output", durationMs: 1 }] }), [["request", priced], ["settled at the reported usage", settle]]],
       // A call that reached the model read at least one token.
       ["a call reporting no input", () => served(0, 0), [["request", priced], ["usage not verified", raise]]],
       // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves nothing.
@@ -610,7 +630,7 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["a call that states its input twice, otherwise", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, input_tokens: 1000, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       ["a call whose first spelling of a figure is no count", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: -1000, input_tokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       ["a total that states its output twice, otherwise", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2, completion_tokens: 100 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
-      ["a call that states its input twice, the same", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, input_tokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["settled at the reported usage", settle]]],
+      ["a call that states its input twice, the same", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, input_tokens: 10, outputTokens: 2, model: HAIKU, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["settled at the reported usage", settle]]],
       // More calls than the request allows proves nothing, however small each one is (and its earlier calls name no
       // model of their own).
       ["more calls than the request allows", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: Array.from({ length: 3 }, () => ({ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", raise]]],
@@ -695,9 +715,11 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     }
   });
 
-  it("raises a billed call the Worker reports as no call when its own reply fails, never releases it", async () => {
+  it("settles the billed call of an answer the Worker cannot serialize at what it reported: the Worker reports the call", async () => {
     // V8 parses JSON without recursing but serializes it recursively, so an answer nested past the stack's depth
-    // passes the Worker's parse and fails its reply, which the Worker then answers as a 502 with calls: [].
+    // passes the Worker's parse and fails its reply. The Worker before Option B answered that as a 502 with calls: [],
+    // which the run raised to its bound (a 502 that reports no call, in the table above, still is); since Option B the
+    // reply reports the call, its usage and its model.
     const depthThatFails = () => {
       for (let depth = 1_000; ; depth *= 2) {
         try {
@@ -712,7 +734,7 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     const env = { HOSTED_AI: "on", AI: { run: async () => (billed++, { content: [{ type: "text", text: "[".repeat(depth) + "]".repeat(depth) }], usage: { input_tokens: 100, output_tokens: 10 }, model: HAIKU_ID }) } };
     const direct = await handlePropose(new Request("https://example.test/api/propose", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(request) }), env);
     expect(direct.status).toBe(502);
-    expect((await direct.json()).calls).toEqual([]);
+    expect((await direct.json()).calls).toEqual([{ inputTokens: 100, outputTokens: 10, model: HAIKU_ID, outcome: "ok", durationMs: expect.any(Number) }]);
     const lines: Array<[string, number]> = [];
     const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
     pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record(usd = 0) { lines.push(["request", usd]); this.sent += 1; }, adjust(usd: number, reason: string) { lines.push([reason, usd]); } };
@@ -720,13 +742,13 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async (url: string, init: RequestInit) => handlePropose(new Request(url, init), env)) as typeof fetch, pacer });
     await expect(provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request)).rejects.toBeInstanceOf(HarnessError);
     expect(billed).toBe(1);
-    expect(lines.map(([reason]) => reason)).toEqual(["request", "usage not verified"]);
-    expect(lines[1]![1]).toBeCloseTo(absoluteUsd(2) - worstCaseUsd(request, 2), 12);
+    expect(lines.map(([reason]) => reason)).toEqual(["request", "settled at the reported usage"]);
+    expect(lines[1]![1]).toBeCloseTo((100 * 1e-6 + 10 * 5e-6) * 1.05 - worstCaseUsd(request, 2), 12);
   }, 60_000);
 
   it("stops the run at a reply served by a model it does not price, after raising the request to its absolute bound", async () => {
     // The ceiling holds at Claude Haiku 4.5's prices: what another model's reply cost may exceed any bound at them.
-    const served = (model: string) => () => reply(200, { json: { a: 1 }, raw: "{}", model, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
+    const served = (model: string) => () => reply(200, { json: { a: 1 }, raw: "{}", model, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, model, outcome: "ok", durationMs: 1 }] });
     // However the reply's calls ended: an answer that names another model stops the run even when its calls do not
     // carry that model as their own.
     for (const body of [

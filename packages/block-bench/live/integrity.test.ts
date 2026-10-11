@@ -1,8 +1,9 @@
 /**
  * Benchmark integrity for a hosted run (live/integrity.ts): a call that reached the provider must report its complete
- * usage and the model that served it, that model must be Claude Haiku 4.5, and it must stay the model the run's first
- * metered call reported, which the manifest records once and every resume holds to. Anything else stops the run
- * cleanly, apart from arm results, and the run stays resumable. Refusals that reached no model are exempt.
+ * usage and, on its own calls[] entry, the model that served it (Option B: a reply's top-level model is never a call's),
+ * that model must be Claude Haiku 4.5, and it must stay the model the run's first metered call reported, which the
+ * manifest records once and every resume holds to. Anything else stops the run cleanly, apart from arm results, and the
+ * run stays resumable. Refusals that reached no model are exempt.
  */
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -99,10 +100,10 @@ describe("the model a hosted run measures", () => {
     }
   }, 60_000);
 
-  it("records the configured id the Worker echoes when the provider names no model, and the report says it confirms no snapshot", async () => {
+  it("records the configured id when the provider names it, and the report says it confirms no snapshot", async () => {
     const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
     try {
-      const result = await invocation(dir, worker(() => undefined).fetchImpl);
+      const result = await invocation(dir, worker(() => PRICED_MODEL).fetchImpl);
       expect(result.stopped).toBeUndefined();
       expect(manifestOf(dir).servedModel).toMatchObject({ id: PRICED_MODEL });
       const report = readFileSync(join(dir, "REPORT.md"), "utf8");
@@ -357,12 +358,12 @@ describe("a resume holds to the model the run measured, whatever its manifest no
   it("lets a fresh run, or one stopped before any model could be recorded, establish its first served model", async () => {
     const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
     try {
-      // The plan's first call is an unusable output, which names no model of its own: the run stops at its first reply,
-      // before any model is recorded, though a provider call was made and paid for.
+      // The plan's first call is served by a provider that names no model: the run stops at its first reply, before any
+      // model is recorded, though a provider call was made and paid for.
       let calls = 0;
       const env = {
         HOSTED_AI: "on",
-        AI: { run: async () => ({ content: [{ type: "text", text: calls++ === 0 ? "not json" : JSON.stringify(plan) }], usage: { input_tokens: 100, output_tokens: 10 }, model: HAIKU }) },
+        AI: { run: async () => ({ content: [{ type: "text", text: JSON.stringify(plan) }], usage: { input_tokens: 100, output_tokens: 10 }, ...(calls++ === 0 ? {} : { model: HAIKU }) }) },
       };
       const first = await invocation(dir, (async (url: string, init: RequestInit) => handlePropose(new Request(url, init), env)) as typeof fetch);
       expect(first.stopped).toMatchObject({ reason: "integrity" });
@@ -397,7 +398,8 @@ describe("a call that reached the provider stops the run unless it can be truste
     };
     return { pacer, served };
   };
-  const call = (fields: Record<string, unknown>) => ({ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1, ...fields });
+  /** A calls[] entry as the Worker writes it since Option B: usage and the model that served the call. */
+  const call = (fields: Record<string, unknown>) => ({ inputTokens: 10, outputTokens: 2, model: HAIKU, outcome: "ok", durationMs: 1, ...fields });
   const served = (calls: unknown[], extra: Record<string, unknown> = { model: HAIKU }) => reply(200, { json: { a: 1 }, raw: "{}", ...extra, calls });
   const generate = (answer: () => Response | Promise<Response>, pacer: ReturnType<typeof createPacer>) =>
     createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => answer()) as typeof fetch, pacer }).surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request);
@@ -421,12 +423,14 @@ describe("a call that reached the provider stops the run unless it can be truste
       // sum of its calls.
       ["a figure stated under two spellings that disagree", () => served([call({ input_tokens: 1000 })]), "usage-missing"],
       ["a total that is not its calls' sum", () => served([call({})], { model: HAIKU, usage: { inputTokens: 1000, outputTokens: 2 } }), "usage-missing"],
-      ["no model named", () => served([call({})], {}), "model-missing"],
-      // The Worker names one model per reply, the one its final, successful call reported: the first call of its parse
-      // retry names none of its own, and is not given the reply's.
-      ["a parse retry, whose first call the reply's model does not name", () => served([call({ outcome: "unusable-output" }), call({})]), "model-missing"],
-      ["an unusable output, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "no usable output", usage: { inputTokens: 10, outputTokens: 2 }, calls: [call({ outcome: "unusable-output" })] }), "model-missing"],
-      ["another model family", () => served([call({})], { model: "claude-sonnet-4-5-20250929" }), "model-family"],
+      ["no model named", () => served([call({ model: undefined })], {}), "model-missing"],
+      // Each call is held to the model its own entry names, never to the reply's: the shape of the Worker before
+      // Option B, which named one model per reply, fails closed on every call that names none of its own.
+      ["a success whose call names no model of its own, beside the reply's", () => served([call({ model: undefined })]), "model-missing"],
+      ["a parse retry in the Worker's shape before Option B, the reply's model on neither call", () => served([call({ outcome: "unusable-output", model: undefined }), call({ model: undefined })]), "model-missing"],
+      ["an unusable output in the Worker's shape before Option B, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "no usable output", usage: { inputTokens: 10, outputTokens: 2 }, calls: [call({ outcome: "unusable-output", model: undefined })] }), "model-missing"],
+      ["another model family on the call", () => served([call({ model: "claude-sonnet-4-5-20250929" })], { model: "claude-sonnet-4-5-20250929" }), "model-family"],
+      ["another model family at the reply's top", () => served([call({})], { model: "claude-sonnet-4-5-20250929" }), "model-family"],
       ["a later Haiku generation", () => served([call({})], { model: "claude-haiku-5-5" }), "model-family"],
     ] as const) {
       const { pacer, served: record } = bound();
