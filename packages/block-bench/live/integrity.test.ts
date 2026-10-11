@@ -186,7 +186,9 @@ describe("a resume holds to the model the run measured, whatever its manifest no
     try {
       const original = await measured(dir);
       const at = manifestOf(dir).servedModel.at;
-      for (const servedModel of [{}, HAIKU, null, { id: null, at }, { id: 42, at }, { id: HAIKU }, { id: "claude-opus-4-1-20250805", at }]) {
+      // Its id and the time it was recorded, and nothing else: an id of another family, a time that is not the one the
+      // run wrote, or a field it never writes, is a record the run did not make.
+      for (const servedModel of [{}, HAIKU, null, { id: null, at }, { id: 42, at }, { id: HAIKU }, { id: "claude-opus-4-1-20250805", at }, { id: HAIKU, at: "" }, { id: HAIKU, at: "not a date" }, { id: HAIKU, at: at.slice(0, 10) }, { id: HAIKU, at, restored: "by hand" }, [HAIKU, at]]) {
         tamper(dir, servedModel);
         const w = worker(() => OTHER);
         await expect(invocation(dir, w.fetchImpl), JSON.stringify(servedModel)).rejects.toThrow(/^resume refused: .*servedModel/s);
@@ -199,21 +201,28 @@ describe("a resume holds to the model the run measured, whatever its manifest no
     }
   }, 60_000);
 
-  it("refuses a resume whose manifest no longer names the model its ledger shows it measured, or names another", async () => {
+  it("refuses a resume whose manifest no longer names the model its records show it measured, or names another, even with its ledger gone", async () => {
     const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
     try {
       const original = await measured(dir);
-      // Each settlement made once the model was recorded carries it, so the ledger shows what the run measured.
+      // Each settlement made once the model was recorded carries it, so the ledger shows what the run measured; so do
+      // the provider calls of the cell it logged.
       const settled = ledger(dir).filter((l) => l.adjust !== undefined);
       expect(settled.length).toBeGreaterThan(0);
       expect(new Set(settled.map((l) => l.servedModel))).toEqual(new Set([HAIKU]));
-      for (const servedModel of [undefined, { id: OTHER, at: manifestOf(dir).servedModel.at }]) {
-        tamper(dir, servedModel);
-        const w = worker(() => OTHER);
-        await expect(invocation(dir, w.fetchImpl), JSON.stringify(servedModel)).rejects.toThrow(new RegExp(`^resume refused: .*${HAIKU}`, "s"));
-        expect(w.posted()).toBe(0);
-        expect(logged(dir)).toHaveLength(1);
-        writeFileSync(join(dir, "manifest.json"), original);
+      const requests = readFileSync(join(dir, "requests.jsonl"), "utf8");
+      for (const ledgerGone of [false, true]) {
+        for (const servedModel of [undefined, { id: OTHER, at: manifestOf(dir).servedModel.at }]) {
+          const what = `${JSON.stringify(servedModel)}${ledgerGone ? ", ledger deleted" : ""}`;
+          tamper(dir, servedModel);
+          if (ledgerGone) rmSync(join(dir, "requests.jsonl"));
+          const w = worker(() => OTHER);
+          await expect(invocation(dir, w.fetchImpl), what).rejects.toThrow(new RegExp(`^resume refused: .*${HAIKU}`, "s"));
+          expect(w.posted(), what).toBe(0);
+          expect(logged(dir)).toHaveLength(1);
+          writeFileSync(join(dir, "manifest.json"), original);
+          writeFileSync(join(dir, "requests.jsonl"), requests);
+        }
       }
       // With its manifest as it was, the run resumes, held to the model it measured.
       const resumed = await invocation(dir, worker(() => HAIKU).fetchImpl);

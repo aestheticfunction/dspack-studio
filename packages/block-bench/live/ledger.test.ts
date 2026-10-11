@@ -111,7 +111,7 @@ const cellScript = () => [PLAN, BAD, BAD, JSON.stringify(exampleFor(astryx, "rec
 
 let tick = 0;
 /** One invocation of a production run over rt-01, as one CLI process makes it: its own pacer and invocation id. */
-async function invocation(dir: string, o: { fetchImpl?: typeof fetch; maxRequests?: number; maxTotalUsd?: number; resume?: boolean; pacer?: Pacer }) {
+async function invocation(dir: string, o: { fetchImpl?: typeof fetch; maxRequests?: number; maxTotalUsd?: number; resume?: boolean; pacer?: Pacer; log?: (line: string) => void }) {
   const fetchImpl = o.fetchImpl ?? worker(cellScript()).fetchImpl;
   return runEvaluation({
     runId: "ledger",
@@ -127,6 +127,7 @@ async function invocation(dir: string, o: { fetchImpl?: typeof fetch; maxRequest
     resume: o.resume ?? existsSync(join(dir, "manifest.json")),
     ...(o.resume || existsSync(join(dir, "manifest.json")) ? {} : { maxTotalRequests: 100_000 }),
     ...(o.maxTotalUsd !== undefined ? { maxTotalUsd: o.maxTotalUsd } : !existsSync(join(dir, "manifest.json")) ? { maxTotalUsd: 1000 } : {}),
+    ...(o.log ? { log: o.log } : {}),
   });
 }
 /** What the next resume reads from the run directory, sending nothing. */
@@ -658,9 +659,9 @@ describe("the model the run measures is on the record before the run goes on", (
     });
   });
 
-  it("stops the run when the model cannot be written, leaving it neither on the disk nor in memory, and a resume records it afresh", async () => {
-    // The write fails at each of its steps before the manifest is replaced: the new file, its sync, or the rename.
-    for (const step of ["write", "sync", "rename"] as const) {
+  it("stops the run when the model cannot be written, leaving it uncommitted, and a resume records it afresh", async () => {
+    // The write fails at each of its steps: the new file, its sync, the rename, or the sync of the directory after it.
+    for (const step of ["write", "sync", "rename", "sync directory"] as const) {
       await withRun(`served-unwritable-${step}`, async (dir) => {
         const manifest = join(dir, "manifest.json");
         const before = () => JSON.parse(readFileSync(manifest, "utf8"));
@@ -674,10 +675,12 @@ describe("the model the run measures is on the record before the run goes on", (
         };
         hooks.fsync = (path) => {
           if (writing && step === "sync" && path === `${manifest}.tmp`) throw ENOSPC();
+          if (writing && step === "sync directory" && path === dir) throw Object.assign(new Error("EIO: i/o error, fsync"), { code: "EIO" });
         };
         hooks.move = (path) => {
           if (writing && step === "rename" && path === `${manifest}.tmp`) throw ENOSPC();
         };
+        const lines: string[] = [];
         const result = await invocation(dir, { fetchImpl: w.fetchImpl, pacer });
         hooks.wrote = undefined;
         hooks.fsync = undefined;
@@ -686,24 +689,117 @@ describe("the model the run measures is on the record before the run goes on", (
         expect(w.posted(), step).toBe(1);
         expect(result.records, step).toHaveLength(0);
         expect(result.stopped, step).toMatchObject({ reason: "error" });
-        expect(result.stopped!.message, step).toMatch(/could not write .*manifest\.json \(ENOSPC\)/);
-        // Neither on the disk nor in memory: the manifest is as it was, the run never took the model as its own, and
-        // its request is settled on the record like any other, claiming no model.
-        expect(before().servedModel, step).toBeUndefined();
+        expect(result.stopped!.message, step).toMatch(/could not write .*manifest\.json \((ENOSPC|EIO)\)/);
+        // Uncommitted: the run never took the model as its own, and its request is settled on the record like any
+        // other, claiming no model. Before the rename the manifest is as it was; after it, the manifest names the model,
+        // but none of the run's records shows it measured.
+        if (step === "sync directory") expect(before().servedModel, step).toMatchObject({ id: HAIKU });
+        else expect(before().servedModel, step).toBeUndefined();
         expect(pacer.served?.id, step).toBeUndefined();
         expect(result.servedModel, step).toBeUndefined();
         expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).servedModel, step).toBeNull();
         const settled = ledger(dir).filter((l) => l.adjust !== undefined);
         expect(settled, step).toHaveLength(1);
         expect(settled[0]!.servedModel, step).toBeUndefined();
-        // Stopped before any model could be recorded, the run records its first served model on the next resume.
-        const resumed = await invocation(dir, {});
+        // Stopped before any model could be committed, the run records its first served model on the next resume,
+        // which sets aside, on its record, a model the manifest names all the same.
+        const resumed = await invocation(dir, { log: (l) => lines.push(l) });
         expect(resumed.stopped, step).toBeUndefined();
         expect(resumed.records, step).toHaveLength(1);
         expect(before().servedModel, step).toMatchObject({ id: HAIKU });
+        expect(ledger(dir).filter((l) => l.servedModel !== undefined).length, step).toBeGreaterThan(0);
+        if (step === "sync directory") {
+          expect(resumed.invocations.at(-1)?.setAside, step).toMatchObject({ servedModel: { id: HAIKU } });
+          expect(lines.some((l) => l.startsWith(`set aside servedModel ${HAIKU}`)), step).toBe(true);
+        } else expect(resumed.invocations.at(-1)?.setAside, step).toBeUndefined();
       });
     }
   });
+});
+
+describe("a model none of the run's records shows measured", () => {
+  const HAIKU = "claude-haiku-4-5-20251001";
+  const OTHER = "claude-haiku-4-5-20260301";
+  const servedBy = (model: string) => {
+    let n = 0;
+    let posted = 0;
+    const script = cellScript();
+    const env = { HOSTED_AI: "on", AI: { run: async () => ({ content: [{ type: "text", text: script[Math.min(n++, script.length - 1)] }], usage: { input_tokens: 10, output_tokens: MAX_OUTPUT_TOKENS + 1 }, model }) } };
+    return { fetchImpl: (async (url: string, init: RequestInit) => (posted++, handlePropose(new Request(url, init), env))) as typeof fetch, posted: () => posted };
+  };
+  /**
+   * The plan's reply holds, so the run writes its model to the manifest; then that reply's settlement, the first line
+   * that would claim the model, cannot be written, and the run stops there, having measured nothing.
+   */
+  const unclaimed = async (dir: string) => {
+    let failed = false;
+    hooks.wrote = (file, data) => {
+      if (!failed && file.endsWith("requests.jsonl") && data.includes('"adjust"')) {
+        failed = true;
+        throw Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
+      }
+    };
+    const first = await invocation(dir, {});
+    hooks.wrote = undefined;
+    expect(first.stopped).toMatchObject({ reason: "error" });
+    expect(first.records).toHaveLength(0);
+    expect(JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")).servedModel).toMatchObject({ id: HAIKU });
+    expect(ledger(dir).some((l) => l.servedModel !== undefined)).toBe(false);
+    return JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+  };
+  const write = (dir: string, manifest: unknown) => writeFileSync(join(dir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  it("was never measured: whatever the manifest then says, the resume sets it aside on the record, records the model it is served afresh, and the run measures on that one alone", async () => {
+    for (const edit of ["left as it was", "removed by hand", "replaced by hand"] as const) {
+      await withRun("unclaimed-model", async (dir) => {
+        const recorded = await unclaimed(dir);
+        if (edit === "removed by hand") delete recorded.servedModel;
+        if (edit === "replaced by hand") recorded.servedModel = { ...recorded.servedModel, id: OTHER };
+        write(dir, recorded);
+        // Nothing was measured on the model: with or without a hand edit, the resume records the model it is served,
+        // and every claim on the ledger names that one model. A model the manifest named is set aside, said so in the
+        // invocation's log and record, and in the report.
+        const lines: string[] = [];
+        const resumed = await invocation(dir, { fetchImpl: servedBy(OTHER).fetchImpl, log: (l) => lines.push(l) });
+        expect(resumed.stopped, edit).toBeUndefined();
+        expect(resumed.records, edit).toHaveLength(1);
+        expect(JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")).servedModel, edit).toMatchObject({ id: OTHER });
+        expect(new Set(ledger(dir).map((l) => l.servedModel).filter((m) => m !== undefined)), edit).toEqual(new Set([OTHER]));
+        const setAside = edit === "removed by hand" ? undefined : edit === "left as it was" ? HAIKU : OTHER;
+        const pacing = readFileSync(join(dir, "pacing.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { setAside?: { servedModel: { id: string } } });
+        const report = readFileSync(join(dir, "REPORT.md"), "utf8");
+        if (setAside === undefined) {
+          expect(pacing.some((p) => p.setAside), edit).toBe(false);
+          expect(report, edit).not.toContain("Served models set aside");
+          expect(lines.some((l) => l.startsWith("set aside servedModel")), edit).toBe(false);
+        } else {
+          expect(pacing.at(-1)?.setAside, edit).toMatchObject({ servedModel: { id: setAside } });
+          expect(report, edit).toContain(`Served models set aside`);
+          expect(report, edit).toContain(`\`${setAside}\``);
+          expect(lines.some((l) => l.startsWith(`set aside servedModel ${setAside}`)), edit).toBe(true);
+        }
+      });
+    }
+  }, 60_000);
+
+  it("is refused all the same when the manifest's servedModel is malformed, before anything is sent", async () => {
+    await withRun("unclaimed-malformed", async (dir) => {
+      const recorded = await unclaimed(dir);
+      const at = recorded.servedModel.at as string;
+      // A well-formed record of another family is refused by its id alone: nothing on the ledger claims a model.
+      for (const servedModel of [{ id: "claude-opus-4-1-20250805", at }, { id: "claude-haiku-4-5-sonnet", at }, { id: HAIKU, at: "" }, { id: HAIKU, at: "not a date" }, { id: HAIKU, at: "2026-10-11" }, { id: HAIKU, at, restored: "by hand" }, [HAIKU, at]]) {
+        write(dir, { ...recorded, servedModel });
+        const served = servedBy(HAIKU);
+        await expect(invocation(dir, { fetchImpl: served.fetchImpl }), JSON.stringify(servedModel)).rejects.toThrow(/^resume refused: .*servedModel/s);
+        expect(served.posted(), JSON.stringify(servedModel)).toBe(0);
+      }
+      // Restored as it was, the record the run wrote resumes.
+      write(dir, recorded);
+      const resumed = await invocation(dir, { fetchImpl: servedBy(HAIKU).fetchImpl });
+      expect(resumed.stopped).toBeUndefined();
+      expect(resumed.records).toHaveLength(1);
+    });
+  }, 60_000);
 });
 
 describe("a stop whose own settlement cannot be written", () => {

@@ -2,10 +2,11 @@
  * Benchmark integrity for a hosted run (ADR-B3: one model and one deployment per comparison). A call that reached the
  * provider must report both usage figures and the model that served it; that model must be Claude Haiku 4.5; and it
  * must stay the model the run's first metered call reported, which the manifest records once and every resume holds
- * to. A call that breaks any of these stops the run cleanly (RunHalted), apart from arm results: the cell in flight
- * logs no record, what it spent stays in the ledger, and a resume continues once the cause is understood. A refusal
- * that showed it reached no model is released before these checks and never trips them; any other reply is held to
- * them, so a reply that cannot show whether a model ran (no itemized calls, or none reported) stops the run too.
+ * to once the run's records show it measured (evaluate.ts holdServedModel). A call that breaks any of these stops the
+ * run cleanly (RunHalted), apart from arm results: the cell in flight logs no record, what it spent stays in the
+ * ledger, and a resume continues once the cause is understood. A refusal that showed it reached no model is released
+ * before these checks and never trips them; any other reply is held to them, so a reply that cannot show whether a
+ * model ran (no itemized calls, or none reported) stops the run too.
  *
  * The Worker names one model per reply, and only on a successful one: the model its final, successful call reported
  * (`raw.model`, or the configured id when the provider omits it). So a reply the Worker sends as an error (an unusable

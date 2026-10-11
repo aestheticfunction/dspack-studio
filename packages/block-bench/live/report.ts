@@ -36,6 +36,16 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
           "",
         ]
       : []),
+    // A served model set aside stays on the record: the manifest named it, but none of the run's records showed it
+    // measured.
+    ...(result.invocations.some((i) => i.setAside)
+      ? [
+          "Served models set aside: the manifest named each, but none of the run's records (requests.jsonl, runs.jsonl) showed it measured, so the invocation recorded the model it was served instead.",
+          "",
+          ...result.invocations.filter((i) => i.setAside).map((i) => `- ${i.at}: \`${i.setAside!.servedModel.id}\`, recorded ${i.setAside!.servedModel.at}`),
+          "",
+        ]
+      : []),
     `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."}${preflight.model ? ` Local model ${preflight.model.name}, digest ${preflight.model.digest ?? "unknown"}.` : ""} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
     "",
   ];
