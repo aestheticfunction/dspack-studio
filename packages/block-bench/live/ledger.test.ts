@@ -325,10 +325,10 @@ describe("one invocation at a time", () => {
 
   it("removes only its own lock when it ends", async () => {
     await withRun("lock-own", async (dir) => {
-      const release = lockRun(dir);
+      const lock = lockRun(dir);
       const other = holder({ pid: process.pid, host: hostname(), nonce: "another" });
       writeFileSync(join(dir, "run.lock"), other);
-      release();
+      lock.release();
       expect(readFileSync(join(dir, "run.lock"), "utf8")).toBe(other);
     });
   });
@@ -381,7 +381,7 @@ describe("one invocation at a time", () => {
       hooks.wrote = (file) => {
         if (file === join(dir, "run.lock")) direct.push(file);
       };
-      lockRun(dir)();
+      lockRun(dir).release();
       expect(direct).toEqual([]);
     });
   });
@@ -406,15 +406,65 @@ describe("one invocation at a time", () => {
     });
   });
 
+  it("knows when its lock is no longer its own: taken over by another invocation, gone, or unreadable", async () => {
+    await withRun("lock-held", async (dir) => {
+      const file = join(dir, "run.lock");
+      const lock = lockRun(dir);
+      const mine = readFileSync(file, "utf8");
+      expect(lock.held()).toBe(true);
+      // Three invocations racing a stale lock can leave one running without it: a second moved this one's lock aside
+      // as stale, and a third took the empty place before it could be put back.
+      writeFileSync(file, holder({ pid: process.pid, host: hostname(), nonce: "a-third-invocation" }));
+      expect(lock.held()).toBe(false);
+      rmSync(file);
+      expect(lock.held()).toBe(false);
+      writeFileSync(file, mine);
+      hooks.read = (path) => {
+        if (path === file) throw Object.assign(new Error("EIO: i/o error, read"), { code: "EIO" });
+      };
+      expect(lock.held()).toBe(false);
+      hooks.read = undefined;
+      expect(lock.held()).toBe(true);
+      lock.release();
+      expect(existsSync(file)).toBe(false);
+    });
+  });
+
+  it("sends nothing once its lock is another invocation's, and the request it had put on the record counts at its worst case", async () => {
+    await withRun("lock-lost", async (dir) => {
+      const file = join(dir, "run.lock");
+      const other = holder({ pid: process.pid, host: hostname(), nonce: "took-it-over" });
+      const w = worker(cellScript());
+      // Taken over while the first request is in flight.
+      hooks.send = () => {
+        if (w.posted() === 1) writeFileSync(file, other);
+      };
+      const result = await invocation(dir, { fetchImpl: w.fetchImpl });
+      hooks.send = undefined;
+      expect(w.posted()).toBe(1);
+      expect(result.stopped).toMatchObject({ reason: "error" });
+      expect(result.stopped!.message).toMatch(/no longer names this invocation/);
+      expect(readFileSync(file, "utf8")).toBe(other);
+      // The second request's line was on the disk before the lock was checked, so an invocation that took the lock
+      // and then read the ledger counted it; it was never sent, and the next resume counts it at its worst case.
+      const recorded = ledger(dir).filter((l) => l.usd !== undefined);
+      expect(recorded).toHaveLength(2);
+      rmSync(file);
+      const after = await totals(dir);
+      expect(after.sent).toBe(2);
+      expect(ledger(dir).find((l) => l.request === recorded[1]!.request && l.reason === "a request whose reply was never read")).toMatchObject({ final: Math.max(REQUEST_USD_BOUND, recorded[1]!.usd!) });
+    });
+  });
+
   it("works on a filesystem without hard links, creating its lock exclusively instead", async () => {
     await withRun("lock-nolinks", async (dir) => {
       hooks.link = () => {
         throw Object.assign(new Error("EPERM: operation not permitted, link"), { code: "EPERM" });
       };
-      const release = lockRun(dir);
+      const lock = lockRun(dir);
       expect(JSON.parse(readFileSync(join(dir, "run.lock"), "utf8"))).toMatchObject({ pid: process.pid });
       expect(() => lockRun(dir)).toThrow(/another invocation/);
-      release();
+      lock.release();
       expect(existsSync(join(dir, "run.lock"))).toBe(false);
     });
   });

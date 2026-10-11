@@ -57,6 +57,18 @@ export class RecordUnwritable extends RunStop {
 }
 
 /**
+ * The run's lock (run.lock) no longer names this invocation: another invocation took it over, so this one sends nothing
+ * more. The request whose line it had just put on the record was never sent, and the next resume counts it at its worst
+ * case.
+ */
+export class LockLost extends RunStop {
+  constructor(readonly file: string) {
+    super(`the run's lock ${file} no longer names this invocation, so nothing more is sent; another invocation may be running the run: let it finish, then resume`);
+    this.name = "LockLost";
+  }
+}
+
+/**
  * A run's requests across every invocation: its cap (the manifest's) and its count (the run directory's
  * requests.jsonl). A resume is a new process with a new pacer, so only the ledger carries the count across.
  */

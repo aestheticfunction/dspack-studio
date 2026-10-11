@@ -34,7 +34,7 @@ import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corp
 import { REQUEST_USD_BOUND, toNanos } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
-import { PacingCapReached, RecordUnwritable, type RunLedger } from "./pacing";
+import { LockLost, PacingCapReached, RecordUnwritable, type RunLedger } from "./pacing";
 import type { Preflight } from "./preflight";
 import type { Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
@@ -478,15 +478,25 @@ function alive(pid: number): boolean {
   }
 }
 
+/** A run directory's lock, held by one invocation. */
+export interface RunLock {
+  readonly file: string;
+  /** Whether the lock still names this invocation; one that cannot be read is not held. */
+  held(): boolean;
+  /** Removes the lock, only while it is still this invocation's own. */
+  release(): void;
+}
+
 /**
  * One invocation at a time per run directory: two would each spend the same cumulative cap and interleave the logs.
  * The lock names its holder (its pid, its host and a nonce of its own) and is written whole before it is linked into
  * place, so it is never seen empty. A lock whose process is gone from this host (a killed invocation) is taken over:
  * moved aside under this invocation's own name, and taken only if what moved is the lock judged stale, else put back.
- * A holder on another host is never judged gone. Returns the release, which removes the lock only while it is still
- * this invocation's own.
+ * A holder on another host is never judged gone. Three invocations racing one stale lock can still leave one running
+ * without it (a second moves its fresh lock aside as stale, and a third takes the empty place before it is put back),
+ * so the run checks `held` before each request it sends.
  */
-export function lockRun(outDir: string): () => void {
+export function lockRun(outDir: string): RunLock {
   const file = join(outDir, "run.lock");
   const nonce = randomUUID();
   const host = hostname();
@@ -567,14 +577,20 @@ export function lockRun(outDir: string): () => void {
     rmSync(aside, { force: true });
     if (!take()) throw busy(read(file));
   }
-  return () => {
-    let current: string;
+  const held = () => {
     try {
-      current = read(file);
+      return read(file) === own;
     } catch {
-      return; /* unreadable: left for the next invocation to judge */
+      return false;
     }
-    if (current === own) rmSync(file, { force: true });
+  };
+  return {
+    file,
+    held,
+    release() {
+      // An unreadable lock is left for the next invocation to judge.
+      if (held()) rmSync(file, { force: true });
+    },
   };
 }
 
@@ -584,15 +600,15 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
   }
   if (!options.outDir) return evaluate(options);
   mkdirSync(options.outDir, { recursive: true });
-  const unlock = lockRun(options.outDir);
+  const lock = lockRun(options.outDir);
   try {
-    return await evaluate(options);
+    return await evaluate(options, lock);
   } finally {
-    unlock();
+    lock.release();
   }
 }
 
-async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
+async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<EvaluationResult> {
   const log = options.log ?? (() => undefined);
   // This invocation's own id in the run's records: its preflight time, which a caller may reuse, made unique.
   const invocationId = `${options.preflight.at}~${randomUUID()}`;
@@ -718,6 +734,9 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       record(usd = 0) {
         const request = `${invocationId}#${sequence + 1}`;
         if (requestsFile) appendRecord(requestsFile, { ...stamp(), request, usd });
+        // Sent only while the lock is still this invocation's, checked after its line is on the disk: an invocation
+        // that takes the lock over reads the ledger after it does, so it counts every request this one could send.
+        if (lock && !lock.held()) throw new LockLost(lock.file);
         sequence += 1;
         this.sent += 1;
         committed += toNanos(usd);
