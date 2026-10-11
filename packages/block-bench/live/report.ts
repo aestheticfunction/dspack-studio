@@ -38,11 +38,11 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       : []),
     // A served model set aside stays on the record: the manifest named it, but none of the run's records showed it
     // measured.
-    ...(result.invocations.some((i) => i.setAside)
+    ...(result.setAside?.length
       ? [
-          "Served models set aside: the manifest named each, but none of the run's records (requests.jsonl, runs.jsonl) showed it measured, so the invocation recorded the model it was served instead.",
+          "Served models set aside (manifest.json): the manifest named each, but none of the run's records (requests.jsonl, runs.jsonl) showed it measured, so the resume recorded the model it was served instead.",
           "",
-          ...result.invocations.filter((i) => i.setAside).map((i) => `- ${i.at}: \`${i.setAside!.servedModel.id}\`, recorded ${i.setAside!.servedModel.at}`),
+          ...result.setAside.map((s) => `- ${s.at}: \`${s.servedModel.id}\`, recorded ${s.servedModel.at}, set aside by invocation ${s.invocation}`),
           "",
         ]
       : []),

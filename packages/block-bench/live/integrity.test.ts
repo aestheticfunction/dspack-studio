@@ -211,17 +211,22 @@ describe("a resume holds to the model the run measured, whatever its manifest no
       expect(settled.length).toBeGreaterThan(0);
       expect(new Set(settled.map((l) => l.servedModel))).toEqual(new Set([HAIKU]));
       const requests = readFileSync(join(dir, "requests.jsonl"), "utf8");
-      for (const ledgerGone of [false, true]) {
+      const runs = readFileSync(join(dir, "runs.jsonl"), "utf8");
+      // With the ledger deleted, the logged cell still names the model, even when its line lost only its newline: the
+      // run reads that line as a whole record (readLog), so it counts as measured here too.
+      for (const ledgerGone of [false, "deleted", "deleted, the log's newline lost"] as const) {
         for (const servedModel of [undefined, { id: OTHER, at: manifestOf(dir).servedModel.at }]) {
-          const what = `${JSON.stringify(servedModel)}${ledgerGone ? ", ledger deleted" : ""}`;
+          const what = `${JSON.stringify(servedModel)}${ledgerGone ? `, ledger ${ledgerGone}` : ""}`;
           tamper(dir, servedModel);
           if (ledgerGone) rmSync(join(dir, "requests.jsonl"));
+          if (ledgerGone === "deleted, the log's newline lost") writeFileSync(join(dir, "runs.jsonl"), runs.trimEnd());
           const w = worker(() => OTHER);
           await expect(invocation(dir, w.fetchImpl), what).rejects.toThrow(new RegExp(`^resume refused: .*${HAIKU}`, "s"));
           expect(w.posted(), what).toBe(0);
           expect(logged(dir)).toHaveLength(1);
           writeFileSync(join(dir, "manifest.json"), original);
           writeFileSync(join(dir, "requests.jsonl"), requests);
+          writeFileSync(join(dir, "runs.jsonl"), runs);
         }
       }
       // With its manifest as it was, the run resumes, held to the model it measured.

@@ -709,9 +709,10 @@ describe("the model the run measures is on the record before the run goes on", (
         expect(before().servedModel, step).toMatchObject({ id: HAIKU });
         expect(ledger(dir).filter((l) => l.servedModel !== undefined).length, step).toBeGreaterThan(0);
         if (step === "sync directory") {
-          expect(resumed.invocations.at(-1)?.setAside, step).toMatchObject({ servedModel: { id: HAIKU } });
+          expect(before().setAside, step).toEqual([expect.objectContaining({ servedModel: expect.objectContaining({ id: HAIKU }) })]);
+          expect(resumed.setAside, step).toEqual(before().setAside);
           expect(lines.some((l) => l.startsWith(`set aside servedModel ${HAIKU}`)), step).toBe(true);
-        } else expect(resumed.invocations.at(-1)?.setAside, step).toBeUndefined();
+        } else expect(before().setAside, step).toBeUndefined();
       });
     }
   });
@@ -756,27 +757,43 @@ describe("a model none of the run's records shows measured", () => {
         if (edit === "removed by hand") delete recorded.servedModel;
         if (edit === "replaced by hand") recorded.servedModel = { ...recorded.servedModel, id: OTHER };
         write(dir, recorded);
+        const setAside = edit === "removed by hand" ? undefined : { id: edit === "left as it was" ? HAIKU : OTHER, at: recorded.servedModel.at };
         // Nothing was measured on the model: with or without a hand edit, the resume records the model it is served,
-        // and every claim on the ledger names that one model. A model the manifest named is set aside, said so in the
-        // invocation's log and record, and in the report.
+        // and every claim on the ledger names that one model. A model the manifest named is set aside on the record:
+        // in the manifest, on the disk before the first request is sent (so no crash can take it off the record
+        // unsaid), and kept by the resume's later writes of the manifest (a new ceiling, the model it records).
+        const served = servedBy(OTHER);
+        let atFirstSend: { manifest: { servedModel?: unknown; setAside?: unknown }; pacing: number } | undefined;
+        const fetchImpl = (async (url: string, init: RequestInit) => {
+          atFirstSend ??= { manifest: JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")), pacing: readFileSync(join(dir, "pacing.jsonl"), "utf8").trim().split("\n").length };
+          return served.fetchImpl(url, init);
+        }) as typeof fetch;
         const lines: string[] = [];
-        const resumed = await invocation(dir, { fetchImpl: servedBy(OTHER).fetchImpl, log: (l) => lines.push(l) });
+        const resumed = await invocation(dir, { fetchImpl, log: (l) => lines.push(l) });
         expect(resumed.stopped, edit).toBeUndefined();
         expect(resumed.records, edit).toHaveLength(1);
-        expect(JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")).servedModel, edit).toMatchObject({ id: OTHER });
+        // A later resume that names a new ceiling writes the manifest again, and sends nothing.
+        await invocation(dir, { maxRequests: 0, maxTotalUsd: 2000 });
+        const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+        expect(manifest.servedModel, edit).toMatchObject({ id: OTHER });
+        expect(manifest.limits.maxTotalUsd, edit).toBe(2000);
         expect(new Set(ledger(dir).map((l) => l.servedModel).filter((m) => m !== undefined)), edit).toEqual(new Set([OTHER]));
-        const setAside = edit === "removed by hand" ? undefined : edit === "left as it was" ? HAIKU : OTHER;
-        const pacing = readFileSync(join(dir, "pacing.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { setAside?: { servedModel: { id: string } } });
         const report = readFileSync(join(dir, "REPORT.md"), "utf8");
+        expect(atFirstSend!.manifest.servedModel, edit).toBeUndefined();
+        expect(atFirstSend!.pacing, edit).toBe(1);
         if (setAside === undefined) {
-          expect(pacing.some((p) => p.setAside), edit).toBe(false);
+          expect(atFirstSend!.manifest.setAside, edit).toBeUndefined();
+          expect(manifest.setAside, edit).toBeUndefined();
           expect(report, edit).not.toContain("Served models set aside");
           expect(lines.some((l) => l.startsWith("set aside servedModel")), edit).toBe(false);
         } else {
-          expect(pacing.at(-1)?.setAside, edit).toMatchObject({ servedModel: { id: setAside } });
-          expect(report, edit).toContain(`Served models set aside`);
-          expect(report, edit).toContain(`\`${setAside}\``);
-          expect(lines.some((l) => l.startsWith(`set aside servedModel ${setAside}`)), edit).toBe(true);
+          const entry = [{ servedModel: setAside, at: expect.any(String), invocation: expect.any(String) }];
+          expect(atFirstSend!.manifest.setAside, edit).toEqual(entry);
+          expect(manifest.setAside, edit).toEqual(entry);
+          expect(resumed.setAside, edit).toEqual(entry);
+          expect(report, edit).toContain("Served models set aside");
+          expect(report, edit).toContain(`\`${setAside.id}\`, recorded ${setAside.at}`);
+          expect(lines.some((l) => l.startsWith(`set aside servedModel ${setAside.id}`)), edit).toBe(true);
         }
       });
     }
@@ -792,6 +809,13 @@ describe("a model none of the run's records shows measured", () => {
         const served = servedBy(HAIKU);
         await expect(invocation(dir, { fetchImpl: served.fetchImpl }), JSON.stringify(servedModel)).rejects.toThrow(/^resume refused: .*servedModel/s);
         expect(served.posted(), JSON.stringify(servedModel)).toBe(0);
+      }
+      // So is a list of set-aside models the run did not write.
+      for (const setAside of [5, {}, [{}], [{ servedModel: HAIKU, at, invocation: "x" }]]) {
+        write(dir, { ...recorded, setAside });
+        const served = servedBy(HAIKU);
+        await expect(invocation(dir, { fetchImpl: served.fetchImpl }), JSON.stringify(setAside)).rejects.toThrow(/^resume refused: .*setAside/s);
+        expect(served.posted(), JSON.stringify(setAside)).toBe(0);
       }
       // Restored as it was, the record the run wrote resumes.
       write(dir, recorded);
