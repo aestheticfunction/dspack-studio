@@ -29,7 +29,7 @@
  *   --spacing-ms <n>          hosted: minimum gap between requests (default 3000)
  *   --out <dir>               run directory (default live/runs/<time>-<provider>); not with --resume
  *   --resume <dir>            continue a run directory; with it, --rerun-failed re-runs provider and policy failures
- *   --force                   hosted: proceed although the Worker probe is not phase-0.5
+ *   --force                   hosted: proceed although the Worker probe is not per-call-model
  *
  * A hosted run stops cleanly, and can resume, at a cap (exit 0) or at a call
  * it cannot trust (exit 3; live/integrity.ts): a call that reached the
@@ -264,8 +264,8 @@ export async function main(argv: readonly string[], io: { corpus?: Corpus } = {}
     console.error(`Ollama reports no digest for ${pre.model.name} (${pre.model.detail ?? "unknown"}); a run must pin the weights it measures. Pull the model, or check --ollama-host.`);
     return 1;
   }
-  if (provider.kind === "hosted" && pre.worker?.shape !== "phase-0.5" && !o.force) {
-    console.error(`the Worker at ${o.baseUrl} is ${pre.worker?.shape}; Phase 1B needs the Phase 0.5 Worker. Pass --force to proceed anyway.`);
+  if (provider.kind === "hosted" && pre.worker?.shape !== "per-call-model" && !o.force) {
+    console.error(`the Worker at ${o.baseUrl} is ${pre.worker?.shape}; Phase 1B needs the Worker that names the model of every call (per-call-model). Pass --force to proceed anyway; each call is still held to its own model, so the run stops at the first that names none.`);
     return 1;
   }
   if (pre.drafts && !o.allowDrafts) {

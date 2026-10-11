@@ -6,7 +6,7 @@ The Phase 1B evaluation (docs/BLOCKS.md, ADR-B3) compares block mode against tod
 
 - **Source.** `main` at `6c0a71b`, the squash merge of aestheticfunction/dspack-studio#88 (Phases 0, 0.5 and 1A). The default build of that commit is today's artifact byte for byte and carries no block code (`apps/composer/scripts/check-default-artifact.mjs` is clean on it); blocks exist only in the experimental build.
 - **The production arm.** Flag off. One hosted planning call (`buildPlanRequest`, outside the budget), then `runPipeline` with the gateway adapter and `maxRepairs: 2`, every request without a `maxCalls` key, so the Worker keeps its one parse retry (up to two provider calls per request). This is the arm the evaluation's `production` label means.
-- **The Worker.** `apps/composer/worker/propose.mjs` at that commit: canonical `usage`, `calls[]` on every reply, `cause` on the 502, the optional `maxCalls`. The harness refuses to run against a Worker that does not report `calls: []` on a refusal (the zero-cost probe in `packages/block-bench/live/preflight.ts`).
+- **The Worker.** `apps/composer/worker/propose.mjs` at that commit: canonical `usage`, `calls[]` on every reply, `cause` on the 502, the optional `maxCalls`. The harness refuses to run against a Worker that does not report `calls: []` on a refusal (the zero-cost probe in `packages/block-bench/live/preflight.ts`). Since Option B the Worker also names, on every `calls[]` entry, the model that served the call, and advertises `per-call-model` among the `capabilities` of that refusal; the harness requires it. What the production arm sends, and how many provider calls it may make, is unchanged.
 - **The byte-identity oracle.** The request hashes in `packages/block-bench/results.json` (`requests.generation[*].bodySha256`, `requests.planning[*].bodySha256`) are what the deployed app posts. `pnpm test` fails on any drift.
 
 ## The deployment record
@@ -24,7 +24,7 @@ It records, with no provider call, the deployed build id, the Worker's reply sha
 3. `GET /_next/static/<build id>/_buildManifest.js`. Composer is an app-router static export, so its HTML names no build manifest. The id comes from the page's flight payload and counts only when the deployment serves that build's manifest.
 4. `GET /api/models`.
 
-A test runs the command as its own process against the real Worker module with a model binding that counts calls, and holds it to exactly these requests and no model call. `--out` is resolved against the directory the command is typed in. The record is written only when it is whole: a Phase 0.5 Worker, a confirmed build id and the model list. Anything less exits 1, writes nothing and says what was missing.
+A test runs the command as its own process against the real Worker module with a model binding that counts calls, and holds it to exactly these requests and no model call. `--out` is resolved against the directory the command is typed in. The record is written only when it is whole: a Worker that names each call's model (`per-call-model`), a confirmed build id and the model list. Anything less exits 1, writes nothing and says what was missing.
 
 The build id is random per build. It names a deployment but does not say which commit it was built from: that link is in the Workers Builds deployment log. The harness repeats the same probe at the start of every run and writes it to `preflight.json`, and the report prints the build id it ran against. A run whose build id differs from the committed baseline's ran against a later deployment.
 

@@ -48,7 +48,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   console.log(text);
   // Recorded only as observed: an incomplete record is never written as the baseline.
   const missing = [
-    ...(result.worker?.shape === "phase-0.5" ? [] : [`the Worker at ${baseUrl} is ${result.worker?.shape ?? "not probed"}${result.worker?.detail ? ` (${result.worker.detail})` : ""}, and Phase 1B needs the Phase 0.5 Worker (calls[] on every reply)`]),
+    ...(result.worker?.shape === "per-call-model" ? [] : [`the Worker at ${baseUrl} is ${result.worker?.shape ?? "not probed"}${result.worker?.detail ? ` (${result.worker.detail})` : ""}, and Phase 1B needs the Worker that names the model of every call (per-call-model)`]),
     ...(result.buildId ? [] : [`no build id could be read and confirmed at ${baseUrl}`]),
     ...(result.models ? [] : [`the hosted model list could not be read at ${baseUrl}`]),
   ];
