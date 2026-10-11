@@ -8,7 +8,7 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
+import { CELL_REQUESTS, CELL_USD_BOUND, REQUEST_USD_BOUND, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
 import type { Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
@@ -73,6 +73,18 @@ export function callRecords(
   ];
 }
 
+/**
+ * Each call with the model the Worker named for it. The Worker names one model per reply, the one its final, successful
+ * call reported (propose.mjs parseProposal), and callRecords gives it to every call as the app records it; the first
+ * call of a parse retry, and every call of an error reply, names none of its own.
+ */
+export const ownModels = (records: readonly ModelCallRecord[]): ModelCallRecord[] =>
+  records.map((call, index) => {
+    if (call.outcome === "ok" && index === records.length - 1) return call;
+    const { model: _replyModel, ...own } = call;
+    return own;
+  });
+
 const FAILURE_OUTCOME: Record<FailureKind, ModelCallRecord["outcome"]> = {
   provider: "provider-error",
   output: "unusable-output",
@@ -82,22 +94,48 @@ const FAILURE_OUTCOME: Record<FailureKind, ModelCallRecord["outcome"]> = {
 };
 
 /**
- * Whether a refused reply reached no model, so a retry after a backoff costs nothing: the zone limiter's 429
- * (`calls: []`), or the gateway's busy 503, which reports the one call the gateway rejected, with no usage
- * (propose.mjs callModel). A reply that reports any usage, or any other outcome, spent something and is never retried.
+ * The Worker's refusals made before any provider call (propose.mjs refuse), each code with its status: the only replies
+ * whose `calls: []` shows that no model ran. The Worker also answers `calls: []` when its own reply fails after a billed
+ * call (a 502), so any other reply that reports no call proves nothing. Pinned to the Worker's source by a test.
  */
-export const retryableRefusal = (status: number, body: Record<string, unknown> | undefined): boolean =>
-  (status === 429 || status === 503) &&
-  Array.isArray(body?.calls) &&
-  body.calls.every((raw) => {
-    const call = (raw ?? {}) as Record<string, unknown>;
-    return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
-  });
+export const PRE_CALL_REFUSALS: Readonly<Record<string, number>> = Object.freeze({
+  "method-not-allowed": 405,
+  unavailable: 503,
+  "rate-limited": 429,
+  "unsupported-media-type": 415,
+  "payload-too-large": 413,
+  "malformed-json": 400,
+  "invalid-request": 400,
+});
+
+const refusedBeforeAnyCall = (status: number, body: Record<string, unknown> | undefined): boolean =>
+  Array.isArray(body?.calls) && body.calls.length === 0 && typeof body?.error === "string" && Object.hasOwn(PRE_CALL_REFUSALS, body.error) && PRE_CALL_REFUSALS[body.error] === status;
+
+/**
+ * Whether a refused reply reached no model, so a retry after a backoff costs nothing: the zone limiter's 429 or the
+ * unavailable Worker's 503, each a refusal made before any provider call, or the gateway's busy 503, which reports the
+ * one call the gateway rejected, with no usage (propose.mjs callModel). A reply that reports any usage, or any other
+ * outcome, spent something and is never retried.
+ */
+export const retryableRefusal = (status: number, body: Record<string, unknown> | undefined): boolean => {
+  if (status !== 429 && status !== 503) return false;
+  if (refusedBeforeAnyCall(status, body)) return true;
+  return (
+    status === 503 &&
+    body?.error === "busy" &&
+    Array.isArray(body.calls) &&
+    body.calls.length > 0 &&
+    body.calls.every((raw) => {
+      const call = (raw ?? {}) as Record<string, unknown>;
+      return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
+    })
+  );
+};
 
 export { CELL_REQUESTS };
 
-/** Whether a refusal reached no model: the Worker refused before any provider call (`calls: []`), or the gateway turned the call away unspent. */
-const modelFree = (status: number, body: Record<string, unknown> | undefined): boolean => Array.isArray(body?.calls) && (body.calls.length === 0 || retryableRefusal(status, body));
+/** Whether a refusal reached no model: the Worker refused before any provider call, or the gateway turned the call away unspent. */
+const modelFree = (status: number, body: Record<string, unknown> | undefined): boolean => refusedBeforeAnyCall(status, body) || retryableRefusal(status, body);
 
 /**
  * A cell's worst case under the request caps: every request refused and retried through the whole backoff schedule.
@@ -142,20 +180,24 @@ export function createHostedProvider(options: HostedOptions): Provider {
       if (options.pacer) await options.pacer.before(priced, absolute);
       const started = now();
       // How the reservation ends: a refusal that reached no model releases it, a reply proving that it stayed inside
-      // the price (at least one provider call and no more than priced, each within its bounds) settles it at what the
-      // calls reported, and anything else (usage missing, a figure past its bound, an extra call, no call reported, no
-      // reply at all) raises it to the absolute worst case, or to what it reported if that is more, on the way out.
-      // The run's total never falls below what it spent.
+      // the price (its calls itemized, at least one provider call and no more than priced, each within its bounds and
+      // naming the priced model itself) settles it at what the calls reported, and anything else (usage missing, a
+      // figure past its bound, an extra call, no call reported, another model or none named, no reply at all) raises it
+      // to the absolute worst case, or to what it reported if that is more, on the way out. A reply that does not
+      // itemize its calls, or no reply, may come from a Worker that ignores maxCalls, so it is raised to the most any
+      // request can cost. The run's total never falls below what it spent.
       let released = false;
       let reported = 0;
       let verified = false;
+      let itemized = false;
       const settle = (reply: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
         const durationMs = now() - started;
         const records = callRecords(reply, where, { outcome, durationMs });
         for (const call of records) at.recorder.record(call);
         reported = reportedUsd(records);
         const charged = records.filter((call) => call.source !== "none").length;
-        verified = charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
+        itemized = Array.isArray(reply?.calls);
+        verified = itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         return { calls: records, durationMs };
       };
       try {
@@ -219,7 +261,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
       } finally {
         if (options.pacer && !released) {
           if (verified) options.pacer.adjust(reported - priced, "settled at the reported usage");
-          else options.pacer.adjust(Math.max(absolute, reported) - priced, "usage not verified");
+          else options.pacer.adjust(Math.max(itemized ? absolute : REQUEST_USD_BOUND, reported) - priced, "usage not verified");
         }
       }
     }

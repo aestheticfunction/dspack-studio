@@ -11,14 +11,17 @@
  *
  * A request's priced worst case (worstCaseUsd) also assumes at most one token per UTF-8 byte of the text the model
  * reads, plus CALL_OVERHEAD_TOKENS of framing per call, and that the gateway honours max_tokens. Every reply is
- * checked against both (withinReservation), and against the number of calls priced. A reply that proves it stayed
- * inside them (at least one provider call, no more than priced) is settled at what its calls reported (reportedUsd),
- * the provider's own count of what is billed. One that does not (usage missing, a figure past its bound, an extra
- * call, no call reported, no reply at all) is charged instead at absoluteUsd, which rests on the model's documented
+ * checked against both (withinReservation), against the number of calls priced, and against the model these prices
+ * are for. A reply that proves it stayed inside them (its calls itemized, at least one provider call and no more than
+ * priced, each naming Claude Haiku 4.5) is settled at what its calls reported (reportedUsd), the provider's own count
+ * of what is billed. One that does not (usage missing, a figure past its bound, an extra call, no call reported,
+ * another model or none named, no reply at all) is charged instead at absoluteUsd, which rests on the model's documented
  * limits alone, or at what it reported if that is more; and no request is sent unless its absolute worst case still
  * fits under the run's ceiling. So the ceiling holds even when an assumption fails, and a run's total is what it
- * spent plus what it cannot yet verify. Only a Worker that broke its own call cap could push the total past the
- * ceiling: the ledger would record what was reported, and refuse the next request.
+ * spent plus what it cannot yet verify. Only a reply reporting more than those limits allow (a Worker that broke its
+ * own call cap, or a provider past its documented limits) could push the total past the ceiling: the ledger records
+ * what was reported, and refuses the next request. What no reply can show is outside this bound: a call the gateway
+ * retried or billed without the Worker seeing it, or a model other than Claude Haiku 4.5 served under its name.
  */
 import type { ModelCallRecord } from "@dspack-studio/composer-core";
 import type { GenerateRequest } from "@dspack-studio/composer-core/blocks";
@@ -26,6 +29,12 @@ import { guidedSystem } from "../../../apps/composer/worker/propose.mjs";
 
 /** The model the Worker requests (propose.mjs PRIMARY), and the one these prices are for. */
 export const PRICED_MODEL = "anthropic/claude-haiku-4.5";
+/**
+ * Claude Haiku 4.5 by the whole ids this deployment can return: the configured id (PRICED_MODEL, which the Worker also
+ * returns when the provider names no model), Anthropic's alias (`claude-haiku-4-5`) and its dated snapshots
+ * (`claude-haiku-4-5-20251001`). A call naming anything else is not priced by these prices.
+ */
+export const PRICED_FAMILY = /^(?:anthropic\/claude-haiku-4\.5|claude-haiku-4-5(?:-\d{8})?)$/;
 /** Claude Haiku 4.5's prices per token, and Cloudflare's 5% on the credits they are paid from. */
 export const PRICE: Readonly<{ inputPerToken: number; outputPerToken: number; creditFee: number }> = Object.freeze({ inputPerToken: 1e-6, outputPerToken: 5e-6, creditFee: 1.05 });
 /** The max_tokens the Worker sets on every provider call (propose.mjs MAX_OUTPUT_TOKENS). */
@@ -68,10 +77,19 @@ export function reportedUsd(calls: readonly ModelCallRecord[]): number {
 }
 
 /**
- * Whether a call stayed inside what its request was priced at: a call that reached no model, or one that reports
- * both figures within the bounds. A call that reached a provider without reporting its usage proves nothing.
+ * Whether a call stayed inside what its request was priced at: a call that reached no model, or one naming Claude
+ * Haiku 4.5 (PRICED_FAMILY) that reports both figures within the bounds, at least one input token among them. A call
+ * that reached a provider without reporting its usage, or the model these prices are for, proves nothing.
  */
 export function withinReservation(request: Priced, call: ModelCallRecord): boolean {
   if (call.source === "none") return true;
-  return typeof call.inputTokens === "number" && typeof call.outputTokens === "number" && call.inputTokens <= inputTokenBound(request) && call.outputTokens <= MAX_OUTPUT_TOKENS;
+  return (
+    typeof call.model === "string" &&
+    PRICED_FAMILY.test(call.model) &&
+    typeof call.inputTokens === "number" &&
+    typeof call.outputTokens === "number" &&
+    call.inputTokens >= 1 &&
+    call.inputTokens <= inputTokenBound(request) &&
+    call.outputTokens <= MAX_OUTPUT_TOKENS
+  );
 }
