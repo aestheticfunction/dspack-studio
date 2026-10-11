@@ -114,6 +114,7 @@ So the input side is the first-order lever on hosted cost. The external research
 - **Browser reference projects.** An accepted block surface records `{block, version, intent, call, binding, expansionDigest}` in a per-project store that follows the `flows.ts` idiom. It travels in project export as an additive optional field.
 - **Stored only when it is true.** It is written only when the accepted surface is byte-equal to its expansion.
 - **Never inside contract files or surfaces.** It never enters a synchronized contract file, an example entry, or a surface.
+- **Validated calls only, never model text.** Durable state holds the validated named call and safe diagnostics only. The block trace is a turn-level, in-memory record that keeps the model's literal text for the live receipt. Nothing persists it as it is: provenance stores the expansion's validated call, and the Phase 1B run log stores `durableTrace(trace)`. That form keeps a sha256 and a byte count in place of each literal answer, the call of validated attempts only, issue paths and classifications, and no sentinel reason. Error messages are kept without dspack-gen's output head.
 - **Repository projects.** These are ineligible in Phase 1A. Phase 2 places provenance in an agent-written file beside the contract, keyed by example id and admitted by the agent's `saveExample`.
 
 ### ADR-O1: OpenUI is an independent, experimental emit track

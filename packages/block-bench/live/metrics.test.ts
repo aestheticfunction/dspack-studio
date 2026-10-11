@@ -213,3 +213,17 @@ describe("the ADR-B3 thresholds are pinned", () => {
     }).toThrow(TypeError);
   });
 });
+
+describe("the ADR-B3 decision reads production, capped and the named block arm only", () => {
+  it("a positional-only run has no decision, and positional records never add, remove or change one", () => {
+    const positional = [...many(25, { arm: "block-positional", passed: true, tokens: [50, 5] }), ...many(5, { arm: "block-positional", passed: false, tokens: [50, 5] })];
+    expect(decide(positional)).toEqual([]);
+    expect(summarize(positional).decisions).toEqual([]);
+    const named = [...many(20, { arm: "block", passed: true, tokens: [60, 6] }), ...many(20, { arm: "capped", passed: true, tokens: [100, 10] }), ...many(20, { arm: "production", passed: true, tokens: [100, 10] })];
+    expect(decide([...named, ...positional])).toEqual(decide(named));
+    // Positional records on another reference or provider open no decision of their own.
+    const elsewhere = positional.map((r) => ({ ...r, reference: "shadcn-v3" }));
+    expect(decide([...named, ...elsewhere]).map((d) => d.reference)).toEqual(["astryx"]);
+  });
+});
+

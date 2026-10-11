@@ -38,6 +38,7 @@ import {
   budgetedInner,
   createBudget,
   decideRefinement,
+  durableTrace,
   expansionDigest,
   preloadedAdapter,
   reconcileBlockChoice,
@@ -47,6 +48,7 @@ import {
   type BlockDefinition,
   type BlockPhaseDeps,
   type BlockTrace,
+  type DurableBlockTrace,
   type StructuralAdapter,
 } from "@dspack-studio/composer-core/blocks";
 import { parityComponents, refinementFor, type Corpus, type CorpusPrompt } from "./corpus";
@@ -241,7 +243,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const cappedAdapter = (budget: ReturnType<typeof createBudget>) =>
     observed(budgetedInner(provider.surfaceAdapter({ recorder, meter, refinement: refining, maxCalls: 1, ...scripted }), budget, deps), seen);
 
-  let trace: BlockTrace | undefined;
+  // What the record and the next refinement keep: the durable trace, never the model's literal text.
+  let trace: DurableBlockTrace | undefined;
   const pipeline = async (adapter: StructuralAdapter, maxRepairs: number) => {
     result = await runPipeline({
       contract: contract as never,
@@ -270,7 +273,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     blockPhaseMs = now() - started;
     // The block phase classifies every throw; the run's own stop signal is not a provider failure.
     if (result.kind === "provider-failure" && result.error instanceof PacingCapReached) throw result.error;
-    trace = result.trace;
+    trace = await durableTrace(result.trace);
     switch (result.kind) {
       case "expanded": {
         const mirror = { block: block.id, version: block.version, expansionDigest: result.trace.expansionDigest, rawIsExpansion: true };
@@ -311,7 +314,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
       path = "switch";
       refinement = { mode: "switch", retained: false, reason: decision.reason };
       const selected = ((prior.progress.block as Json | undefined)?.selected ?? {}) as Json;
-      trace = switchTrace({ id: String(selected.id ?? ""), version: Number(selected.version ?? 0), intent: String(selected.intent ?? intent) }, decision.reason);
+      trace = await durableTrace(switchTrace({ id: String(selected.id ?? ""), version: Number(selected.version ?? 0), intent: String(selected.intent ?? intent) }, decision.reason));
       await pipeline(cappedAdapter(createBudget(BUDGET)), BUDGET - 1);
     } else {
       const block = eligible.find((b) => b.id === decision.seed.id)!;

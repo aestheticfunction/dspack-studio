@@ -19,6 +19,7 @@ import { createScriptedProvider } from "./providers/scripted";
 import { HarnessError, requestBytes, type Provider } from "./providers/types";
 import { loadReference, type LoadedReference } from "./references";
 import { decide } from "./metrics";
+import { PacingCapReached } from "./pacing";
 import { renderReport } from "./report";
 import { ARMS, type Arm, type Condition } from "./types";
 
@@ -282,6 +283,56 @@ describe("named against positional in the report (ADR-B2)", () => {
     const named = renderReport(without, { providerId: "fake:scripted", corpus });
     expect(named).not.toContain("### Named vs positional encoding (ADR-B2)");
     expect(named).toContain("Named vs positional encoding: the block-positional arm was not in this run's selection.");
+  }, 120_000);
+
+  it("tells an arm left out of the selection from one the run stopped before reaching", async () => {
+    let admitted = 0;
+    // A cap that admits the named block arm's five cells of the first prompt, then stops the run.
+    const stopping: Provider = { ...createScriptedProvider(), beforeCell: () => {
+      if (++admitted > 5) throw new PacingCapReached(5);
+    } };
+    const stopped = await runEvaluation({ runId: "stopped", provider: stopping, references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"] });
+    expect(stopped.stopped?.reason).toBe("cap");
+    expect(stopped.records.map((r) => r.arm)).toEqual(new Array(5).fill("block"));
+    const report = renderReport(stopped, { providerId: "fake:scripted", corpus });
+    expect(report).not.toContain("was not in this run's selection");
+    expect(report).not.toContain("### Named vs positional encoding (ADR-B2)");
+    expect(report).toContain("Named vs positional encoding: the block-positional arm is selected, but the run stopped before any of its cells ran; resume the run to reach it.");
+  }, 120_000);
+});
+
+describe("the run log keeps no raw model output", () => {
+  it("leaves out invalid answers, repair text, literal positional answers and the sentinel's words, and keeps validated calls, hashes and issue paths", async () => {
+    const astryx = references[0]!;
+    // A block prompt that draws an invalid first block call, and that the deterministic planner routes to its block.
+    const prompt = promptsFor(corpus, "astryx").find((p) => p.block !== null && faultFor(p.goal, true) === "invalid-block-call" && planDeterministic(p.goal, astryx.contract).intent === p.expectedIntent)!;
+    const faulty = join(dir, "run-durable-faults");
+    await runEvaluation({ runId: "durable-faults", provider: createScriptedProvider({ faults: true }), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: [prompt.id], arms: ["block", "block-positional"], conditions: ["fresh"], outDir: faulty });
+    const sentinel = join(dir, "run-durable-sentinel");
+    await runEvaluation({ runId: "durable-sentinel", provider: createScriptedProvider(), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], arms: ["block", "block-positional"], conditions: ["fresh", "refine-structural"], outDir: sentinel });
+    const log = readFileSync(join(faulty, "runs.jsonl"), "utf8") + readFileSync(join(sentinel, "runs.jsonl"), "utf8");
+    const records = [...readRecords(join(faulty, "runs.jsonl")), ...readRecords(join(sentinel, "runs.jsonl"))];
+    const attempts = records.flatMap((r) => ((r.trace as { attempts?: Array<Record<string, unknown>> } | undefined)?.attempts ?? []));
+    // The paths really ran: an invalid answer, its repair, compact answers and the sentinel.
+    expect(attempts.filter((a) => a.outcome === "invalid")).toHaveLength(2);
+    expect(attempts.filter((a) => a.outcome === "unsupported")).toHaveLength(2);
+    expect(records.filter((r) => (r.trace as { encoding?: string } | undefined)?.encoding === "positional").length).toBeGreaterThan(0);
+    // None of their literal text reaches the log.
+    expect(log).not.toMatch(/"rawText"|"rawBlockText"/);
+    expect(log).not.toContain(JSON.stringify({ block: prompt.block, version: 1 }));
+    expect(log).not.toContain(JSON.stringify({ b: prompt.block, v: 1, p: [] }));
+    expect(log).not.toContain('"p":[');
+    expect(log).not.toContain("changes the block's structure");
+    // What stays: the validated named call, hashes, byte counts, issue paths and classifications.
+    for (const a of attempts) {
+      expect(a.rawSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(a.rawBytes).toBeGreaterThan(0);
+      if (a.outcome === "ok") expect(a.call).toMatchObject({ block: expect.any(String), version: 1 });
+      else expect(a).not.toHaveProperty("call");
+    }
+    expect(attempts.filter((a) => a.outcome === "invalid").every((a) => (a.b1 as unknown[]).length > 0)).toBe(true);
+    const fellBack = records.filter((r) => r.condition === "refine-structural");
+    expect(fellBack.map((r) => r.refinement?.reason)).toEqual(new Array(2).fill("the model answered that this block cannot express the change"));
   }, 120_000);
 });
 

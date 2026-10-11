@@ -137,11 +137,18 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       out.push("");
     }
   }
-  const positional = summary.arms.some((x) => x.arm === "block-positional");
+  // Three states: not selected, selected but not reached (the run stopped first), reached (the table above).
+  const positional = !result.arms.includes("block-positional")
+    ? "the block-positional arm was not in this run's selection."
+    : summary.arms.some((x) => x.arm === "block-positional")
+      ? null
+      : result.stopped
+        ? "the block-positional arm is selected, but the run stopped before any of its cells ran; resume the run to reach it."
+        : "the block-positional arm is selected, but no cell of it was planned.";
   out.push(
     "## Not measured in this run",
     "",
-    ...(positional ? [] : ["- Named vs positional encoding: the block-positional arm was not in this run's selection."]),
+    ...(positional ? [`- Named vs positional encoding: ${positional}`] : []),
     "- Time to first valid preview equals completion today (ADR-B3) and is the p50 total above.",
     "",
   );
