@@ -15,6 +15,8 @@ const hooks = vi.hoisted(() => ({
   append: undefined as undefined | ((file: string, data: string, options: unknown) => void),
   write: undefined as undefined | ((file: string, data: string, options: unknown) => void),
   move: undefined as undefined | ((path: string) => void),
+  read: undefined as undefined | ((path: string) => void),
+  fsync: undefined as undefined | ((path: string) => void),
 }));
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
@@ -34,7 +36,22 @@ vi.mock("node:fs", async (importOriginal) => {
     hooks.move?.(String(path));
     return actual.rmSync(path, options as never);
   }) as typeof actual.rmSync;
-  const fs = { ...actual, appendFileSync, writeFileSync, renameSync, rmSync };
+  const readFileSync = ((path: string, options?: unknown) => {
+    hooks.read?.(String(path));
+    return actual.readFileSync(path, options as never);
+  }) as typeof actual.readFileSync;
+  // Which path each descriptor was opened on, so a test can fail the sync of one directory.
+  const opened = new Map<number, string>();
+  const openSync = ((path: string, flags?: unknown, mode?: unknown) => {
+    const fd = actual.openSync(path, flags as never, mode as never);
+    opened.set(fd, String(path));
+    return fd;
+  }) as typeof actual.openSync;
+  const fsyncSync = ((fd: number) => {
+    hooks.fsync?.(opened.get(fd) ?? "");
+    return actual.fsyncSync(fd);
+  }) as typeof actual.fsyncSync;
+  const fs = { ...actual, appendFileSync, writeFileSync, renameSync, rmSync, readFileSync, openSync, fsyncSync };
   return { ...fs, default: fs };
 });
 
@@ -58,6 +75,8 @@ afterEach(() => {
   hooks.append = undefined;
   hooks.write = undefined;
   hooks.move = undefined;
+  hooks.read = undefined;
+  hooks.fsync = undefined;
 });
 
 const PLAN = JSON.stringify({ intent: "record-collection", feasible: true, restated: "A table.", reason: "fits" });
@@ -196,6 +215,38 @@ describe("the ledger settles each request by its own id", () => {
   }, 60_000);
 });
 
+describe("each invocation is told apart", () => {
+  it("even when a caller reuses one preflight for two invocations, so lines lost from one are still counted from its report", async () => {
+    await withRun("shared-preflight", async (dir) => {
+      const shared = await preflight({ references: [astryx], clock: () => "2026-10-11T00:00:00.000Z" });
+      const run = async (pre: typeof shared, maxRequests: number) =>
+        runEvaluation({
+          runId: "shared",
+          provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl: worker(cellScript()).fetchImpl, pacer: createPacer({ maxRequests, spacingMs: 0, now: () => 0, sleep: async () => undefined }) }),
+          references: [astryx],
+          corpus,
+          preflight: pre,
+          allowDrafts: true,
+          limit: 2,
+          arms: ["production"],
+          conditions: ["fresh"],
+          outDir: dir,
+          resume: existsSync(join(dir, "manifest.json")),
+          ...(existsSync(join(dir, "manifest.json")) ? {} : { maxTotalRequests: 100_000, maxTotalUsd: 1000 }),
+        });
+      // Two invocations with the same preflight, each one cell of four requests (a cell needs room for 20).
+      await run(shared, 20);
+      await run(shared, 20);
+      const lines = readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n");
+      expect(lines).toHaveLength(16);
+      // The second invocation's eight lines are lost; both reported four requests sent.
+      writeFileSync(join(dir, "requests.jsonl"), `${lines.slice(0, 8).join("\n")}\n`);
+      const read = (await run(await preflight({ references: [astryx], clock: () => "2026-10-11T01:00:00.000Z" }), 0)).requests!;
+      expect(read.sent).toBe(8);
+    });
+  }, 60_000);
+});
+
 describe("admission is exact", () => {
   /** The four priced worst cases of the production cell: the same bytes every time. */
   const probePrices = async () => {
@@ -291,6 +342,20 @@ describe("one invocation at a time", () => {
     });
   });
 
+  it("refuses, never takes over, a lock it cannot read for any reason but its being gone", async () => {
+    await withRun("lock-unreadable", async (dir) => {
+      const file = join(dir, "run.lock");
+      const live = holder({ pid: process.pid, host: hostname(), nonce: "unreadable-for-now" });
+      writeFileSync(file, live);
+      hooks.read = (path) => {
+        if (path === file) throw Object.assign(new Error("EIO: i/o error, read"), { code: "EIO" });
+      };
+      expect(() => lockRun(dir)).toThrow(/EIO/);
+      hooks.read = undefined;
+      expect(readFileSync(file, "utf8")).toBe(live);
+    });
+  });
+
   it("is never seen empty: the lock is written whole, then linked into place", async () => {
     await withRun("lock-whole", async (dir) => {
       const direct: string[] = [];
@@ -304,6 +369,39 @@ describe("one invocation at a time", () => {
 });
 
 describe("a crash of the machine loses no request that was sent", () => {
+  it("puts a new ledger's directory entry on the disk before the first request is sent", async () => {
+    await withRun("dir-entry", async (dir) => {
+      const order: string[] = [];
+      let created = false;
+      hooks.append = (file) => {
+        if (file === "<fetch>") order.push("send");
+        else if (file.endsWith("requests.jsonl") && !created) {
+          created = true;
+          order.push("created");
+        }
+      };
+      hooks.fsync = (path) => {
+        if (path === dir && created) order.push("synced");
+      };
+      await invocation(dir, {});
+      expect(order.slice(0, 3)).toEqual(["created", "synced", "send"]);
+    });
+  }, 60_000);
+
+  it("stops when a directory it must sync cannot be synced, and passes over a filesystem that cannot sync directories at all", async () => {
+    await withRun("dir-sync", async (dir) => {
+      await invocation(dir, { maxRequests: 0 });
+      const failing = (code: string) => (path: string) => {
+        if (path === dir) throw Object.assign(new Error(`${code}: fsync`), { code });
+      };
+      // A resume that changes the ceiling replaces the manifest, and syncs its directory.
+      hooks.fsync = failing("EIO");
+      await expect(invocation(dir, { maxRequests: 0, maxTotalUsd: 2000 })).rejects.toThrow(/EIO/);
+      hooks.fsync = failing("EINVAL");
+      await expect(invocation(dir, { maxRequests: 0, maxTotalUsd: 3000 })).resolves.toBeDefined();
+    });
+  }, 60_000);
+
   it("flushes each request's line to the disk before the request is sent, and every replaced manifest before it is moved into place", async () => {
     await withRun("flush", async (dir) => {
       const appends: Array<{ file: string; flushed: boolean }> = [];

@@ -96,8 +96,8 @@ export interface EvaluationResult {
   preflight: Preflight;
   /** What the provider reports about itself (pacing, waits), this invocation. */
   telemetry?: Record<string, unknown>;
-  /** Every invocation's telemetry, this one included, oldest first. */
-  invocations: Array<{ at: string; telemetry: Record<string, unknown> }>;
+  /** Every invocation's telemetry, this one included, oldest first, with the id its lines carry in requests.jsonl. */
+  invocations: Array<{ at: string; id?: string; telemetry: Record<string, unknown> }>;
   /** Records a re-run replaced: spent, and counted in no arm. */
   superseded: Spend;
   /** The arms this run selected (the manifest's), whether or not each has reached a cell yet. */
@@ -299,14 +299,17 @@ export function priorFromRecord(record: RunRecord, goal: string): PriorResult | 
 
 const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 
-/** Flushes a directory's entries to the disk (a file renamed into it), where the platform can. */
+/** The errors a platform or filesystem gives when it cannot sync a directory at all, as opposed to failing to. */
+const CANNOT_SYNC_DIRECTORIES = new Set(["EISDIR", "EINVAL", "ENOTSUP", "EPERM"]);
+
+/** Flushes a directory's entries to the disk (a file created or renamed in it). A real failure to do so is thrown. */
 function syncDirectory(dir: string): void {
   let fd: number | undefined;
   try {
     fd = openSync(dir, "r");
     fsyncSync(fd);
-  } catch {
-    /* not every platform can sync a directory */
+  } catch (error) {
+    if (!CANNOT_SYNC_DIRECTORIES.has((error as NodeJS.ErrnoException).code ?? "")) throw error;
   } finally {
     if (fd !== undefined) closeSync(fd);
   }
@@ -325,7 +328,10 @@ function replaceJson(file: string, value: unknown) {
  */
 function appendRecord(file: string, value: unknown): void {
   try {
+    const created = !existsSync(file);
     appendFileSync(file, line(value), { flush: true });
+    // A new ledger's directory entry goes to the disk too, so a crash cannot lose the file itself.
+    if (created) syncDirectory(dirname(file));
   } catch (error) {
     throw new RecordUnwritable(file, error);
   }
@@ -418,14 +424,15 @@ function readLedger(file: string, settle: { at: string; invocation: string }): {
 /**
  * What the run has sent and committed so far, every invocation included: the ledger (settled first), plus whatever
  * each earlier invocation reported sending beyond the lines it left there (all of it, for one from before the ledger),
- * each at the most a request can cost. A report of fewer than none counts as none.
+ * each at the most a request can cost. A report of fewer than none counts as none. Invocations are told apart by the
+ * id each writes on its lines and its report, unique even when callers reuse a preflight.
  */
 function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["invocations"], settle: { at: string; invocation: string }): { sent: number; nanos: number } {
   const recorded = requestsFile ? readLedger(requestsFile, settle) : { count: 0, nanos: 0, invocations: new Map<string, number>() };
   const unrecorded = earlier.reduce((sum, i) => {
     const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
     const reported = typeof sent === "number" && Number.isFinite(sent) && sent > 0 ? Math.floor(sent) : 0;
-    return sum + Math.max(0, reported - (recorded.invocations.get(i.at) ?? 0));
+    return sum + Math.max(0, reported - (recorded.invocations.get(i.id ?? i.at) ?? 0));
   }, 0);
   return { sent: recorded.count + unrecorded, nanos: recorded.nanos + unrecorded * toNanos(REQUEST_USD_BOUND) };
 }
@@ -453,11 +460,13 @@ export function lockRun(outDir: string): () => void {
   const nonce = randomUUID();
   const host = hostname();
   const own = `${JSON.stringify({ pid: process.pid, host, nonce, at: new Date().toISOString() })}\n`;
+  // Only a lock that is gone reads as nothing; any other failure to read one refuses, and never takes it over.
   const read = (path: string) => {
     try {
       return readFileSync(path, "utf8");
-    } catch {
-      return "";
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
+      throw error;
     }
   };
   const holderOf = (text: string): { pid?: unknown; host?: unknown; at?: unknown } => {
@@ -510,7 +519,13 @@ export function lockRun(outDir: string): () => void {
     if (!take()) throw busy(read(file));
   }
   return () => {
-    if (read(file) === own) rmSync(file, { force: true });
+    let current: string;
+    try {
+      current = read(file);
+    } catch {
+      return; /* unreadable: left for the next invocation to judge */
+    }
+    if (current === own) rmSync(file, { force: true });
   };
 }
 
@@ -530,6 +545,8 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
 
 async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   const log = options.log ?? (() => undefined);
+  // This invocation's own id in the run's records: its preflight time, which a caller may reuse, made unique.
+  const invocationId = `${options.preflight.at}~${randomUUID()}`;
   const cells = planCells(options);
   const outDir = options.outDir;
   const logFile = outDir ? join(outDir, "runs.jsonl") : undefined;
@@ -554,7 +571,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       const was = recorded.limits;
       // A limit holds what the run has already done: it can be raised, or lowered as far as that, never past it.
       if (options.maxTotalRequests !== undefined || options.maxTotalUsd !== undefined) {
-        const done = runTotals(join(outDir, "requests.jsonl"), readLog<EvaluationResult["invocations"][number]>(join(outDir, "pacing.jsonl")).records, { at: new Date().toISOString(), invocation: options.preflight.at });
+        const done = runTotals(join(outDir, "requests.jsonl"), readLog<EvaluationResult["invocations"][number]>(join(outDir, "pacing.jsonl")).records, { at: new Date().toISOString(), invocation: invocationId });
         if (options.maxTotalRequests !== undefined && options.maxTotalRequests < done.sent) {
           throw new Error(`--max-total-requests ${options.maxTotalRequests} is below the ${done.sent} requests the run in ${outDir} has already sent; a cap can be lowered only as far as that`);
         }
@@ -635,12 +652,12 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   const requestsFile = outDir ? join(outDir, "requests.jsonl") : undefined;
   let ledger: RunLedger | undefined;
   if (pacer && cap !== undefined) {
-    const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: options.preflight.at });
+    const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: invocationId });
     let committed = done.nanos;
     let sequence = 0;
     // The request the next settlement is for: requests are sent one at a time, and each is settled before the next.
     let open: { request: string; nanos: number } | undefined;
-    const stamp = () => ({ at: new Date().toISOString(), invocation: options.preflight.at });
+    const stamp = () => ({ at: new Date().toISOString(), invocation: invocationId });
     ledger = {
       cap,
       sent: done.sent,
@@ -649,7 +666,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
         return committed / 1e9;
       },
       record(usd = 0) {
-        const request = `${options.preflight.at}#${sequence + 1}`;
+        const request = `${invocationId}#${sequence + 1}`;
         if (requestsFile) appendRecord(requestsFile, { ...stamp(), request, usd });
         sequence += 1;
         this.sent += 1;
@@ -715,7 +732,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   const summary = summarize(records, options.decision ?? DEFAULT_DECISION);
   const telemetry = options.provider.telemetry?.();
   // Every invocation's pacing is kept: a resume must not erase the waits an earlier invocation sat through.
-  const invocation = telemetry ? { at: options.preflight.at, telemetry } : undefined;
+  const invocation = telemetry ? { at: options.preflight.at, id: invocationId, telemetry } : undefined;
   if (pacingFile && invocation) appendFileSync(pacingFile, line(invocation));
   const invocations = [...earlierInvocations, ...(invocation ? [invocation] : [])];
   // Each superseded record once: a crash between moving records aside and rewriting the log can repeat a move.
