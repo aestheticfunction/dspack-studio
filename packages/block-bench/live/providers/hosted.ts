@@ -8,7 +8,7 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, pastModelLimits, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
+import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, pastModelLimits, reportedUsd, totalPastModelLimits, totalUsd, withinReservation, worstCaseUsd } from "../cost";
 import { UnboundedReply, UnpricedModel, type Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
@@ -197,10 +197,15 @@ export function createHostedProvider(options: HostedOptions): Provider {
         const records = callRecords(reply, where, { outcome, durationMs });
         for (const call of records) at.recorder.record(call);
         reported = reportedUsd(records);
-        bounded = boundedUsd(records);
+        // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves
+        // nothing, and what it shows counts on top of what the calls show.
+        const total = normalizeUsage(reply?.usage);
+        const summed = (key: "inputTokens" | "outputTokens") => records.reduce((a, call) => a + (call.source === "none" ? 0 : (call[key] ?? 0)), 0);
+        const agrees = total === undefined || ((total.inputTokens === undefined || total.inputTokens === summed("inputTokens")) && (total.outputTokens === undefined || total.outputTokens === summed("outputTokens")));
+        bounded = Math.max(boundedUsd(records), totalUsd(total));
         const charged = records.filter((call) => call.source !== "none").length;
         itemized = Array.isArray(reply?.calls);
-        verified = itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
+        verified = agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         // What a reply another model served cost may exceed any bound at Haiku 4.5's prices: raised on the way out, it
         // stops the run, which sends nothing more. Any model the reply names counts, at its top or on any call it lists.
         const listed = Array.isArray(reply?.calls) ? reply.calls.map((raw) => ((raw ?? {}) as Record<string, unknown>).model) : [];
@@ -209,7 +214,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.
         if (options.pacer && !released && charged > calls) throw new UnboundedReply(`${charged} provider calls, more than the ${calls} its request allows`);
-        if (options.pacer && !released && records.some(pastModelLimits)) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
+        if (options.pacer && !released && (records.some(pastModelLimits) || totalPastModelLimits(total, charged))) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
         return { calls: records, durationMs };
       };
       try {

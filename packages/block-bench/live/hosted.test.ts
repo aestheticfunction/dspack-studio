@@ -598,6 +598,8 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["an unusable output, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "x", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       // A call that reached the model read at least one token.
       ["a call reporting no input", () => served(0, 0), [["request", priced], ["usage not verified", raise]]],
+      // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves nothing.
+      ["a total that contradicts its calls", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 1000, outputTokens: 100 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       // More calls than the request allows proves nothing, however small each one is (and its earlier calls name no
       // model of their own).
       ["more calls than the request allows", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: Array.from({ length: 3 }, () => ({ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", raise]]],
@@ -745,6 +747,8 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["a call past the output limit, and one unseen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [past, unseen] }, pastCost + absoluteUsd(1)],
       ["a call past the context window", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, calls: [{ inputTokens: MODEL_LIMITS.contextTokens + 1, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, Math.max(absoluteUsd(2), ((MODEL_LIMITS.contextTokens + 1) * 1e-6 + 2 * 5e-6) * 1.05)],
       ["more calls than the request allows, none seen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [unseen, unseen, unseen] }, 3 * absoluteUsd(1)],
+      // A total past what its calls could reach, each at the model's limits, counts on top of what the calls show.
+      ["a total past what its one call could reach", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 4 * MODEL_LIMITS.maxOutputTokens }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, (10 * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
     ];
     for (const [name, body, charged] of cases) {
       const lines: Array<[string, number]> = [];

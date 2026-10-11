@@ -108,6 +108,14 @@ export function boundedUsd(calls: readonly ModelCallRecord[]): number {
   }, 0);
 }
 
+/** What a reply's total shows, at the prices: its counts, rounded up to whole tokens. */
+export const totalUsd = (total: { inputTokens?: number; outputTokens?: number } | undefined): number =>
+  total ? usd(1, shown(total.inputTokens), shown(total.outputTokens)) : 0;
+
+/** Whether a reply's total reports past what its calls could reach, each at Claude Haiku 4.5's documented limits. */
+export const totalPastModelLimits = (total: { inputTokens?: number; outputTokens?: number } | undefined, calls: number): boolean =>
+  total !== undefined && (shown(total.inputTokens) > Math.max(1, calls) * MODEL_LIMITS.contextTokens || shown(total.outputTokens) > Math.max(1, calls) * MODEL_LIMITS.maxOutputTokens);
+
 /** Whether a call reported usage past Claude Haiku 4.5's documented limits, which no price here bounds. */
 export const pastModelLimits = (c: ModelCallRecord): boolean =>
   c.source !== "none" && (shown(c.inputTokens) > MODEL_LIMITS.contextTokens || shown(c.outputTokens) > MODEL_LIMITS.maxOutputTokens);
