@@ -98,9 +98,9 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     const sel = summary.selection.find((x) => `${x.reference} on ${x.provider}` === title);
     if (sel) {
       out.push("### Selection accuracy (block arm, fresh)", "");
-      out.push(row(["Prompts", "Accuracy", "Hit", "Missed to null", "Wrong block", "Null correct", "False block", "Explicit null", "Omitted", "Rejected", "Intent accuracy"]));
-      out.push(row(["---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
-      out.push(row([sel.n, pct(sel.accuracy), sel.hit, sel.missedToNull, sel.wrongBlock, sel.nullCorrect, sel.falseBlock, sel.explicitNull, sel.omitted, sel.rejected, pct(sel.intentAccuracy)]), "");
+      out.push(row(["Prompts", "Accuracy", "Hit", "Missed to null", "Wrong block", "Null correct", "False block", "Explicit null", "Omitted", "Rejected", "Planning failed", "Intent accuracy"]));
+      out.push(row(["---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
+      out.push(row([sel.n, pct(sel.accuracy), sel.hit, sel.missedToNull, sel.wrongBlock, sel.nullCorrect, sel.falseBlock, sel.explicitNull, sel.omitted, sel.rejected, sel.planningFailed, pct(sel.intentAccuracy)]), "");
     }
     const refinements = stats.filter((x) => x.condition !== "fresh");
     if (refinements.length > 0) {
@@ -113,8 +113,8 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     const failures = stats.filter((x) => x.rerunEligible > 0);
     if (failures.length > 0) {
       out.push("### Provider and policy failures (re-run symmetrically; not arm results)", "");
-      out.push(row(["Condition", "Arm", "Provider", "Policy"]), row(["---", "---", "---:", "---:"]));
-      for (const s of failures) out.push(row([s.condition, s.arm, s.rerunByKind.provider ?? 0, s.rerunByKind.policy ?? 0]));
+      out.push(row(["Condition", "Arm", "Provider", "Policy", "At planning"]), row(["---", "---", "---:", "---:", "---:"]));
+      for (const s of failures) out.push(row([s.condition, s.arm, s.rerunByKind.provider ?? 0, s.rerunByKind.policy ?? 0, s.paths["planning-failure"]?.n ?? 0]));
       out.push("");
     }
   }

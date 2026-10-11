@@ -11,12 +11,13 @@ import { GatewayError, gatewayAdapter } from "../../../apps/composer/app/hosted-
 import { handlePropose } from "../../../apps/composer/worker/propose.mjs";
 import { exampleFor, runCell } from "./arms";
 import { promptsFor, readCorpus, type Corpus } from "./corpus";
+import { selectionStats } from "./metrics";
 import { runEvaluation } from "./evaluate";
 import { PacingCapReached, createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
-import { createHostedProvider, refusedBeforeProvider } from "./providers/hosted";
+import { cellRequestBound, createHostedProvider, retryableRefusal } from "./providers/hosted";
 import { HarnessError, createMeter } from "./providers/types";
 
 const request = { system: "s", messages: [{ role: "user" as const, content: "u" }], jsonSchema: { type: "object" } };
@@ -31,7 +32,7 @@ const SCENARIOS: Scenario[] = [
   { name: "429 rate-limited (refused, no calls)", answer: () => reply(429, { error: "rate-limited", message: "slow down", calls: [] }) },
   { name: "502 unusable output", answer: () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "no usable output", usage: { inputTokens: 30, outputTokens: 0 }, calls: [{ inputTokens: 15, outputTokens: 0, outcome: "unusable-output", durationMs: 1 }, { inputTokens: 15, outputTokens: 0, outcome: "unusable-output", durationMs: 1 }] }) },
   { name: "502 provider", answer: () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }) },
-  { name: "503 busy before any call", answer: () => reply(503, { error: "busy", message: "busy", calls: [] }) },
+  { name: "503 busy (the Worker's real shape: the rejected call is reported)", answer: () => reply(503, { error: "busy", message: "busy", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 3 }] }) },
   { name: "503 unavailable from a pre-0.5 Worker (no calls list)", answer: () => reply(503, { error: "unavailable", message: "off" }) },
   { name: "fetch throws", answer: () => Promise.reject(new TypeError("network down")) },
 ];
@@ -117,22 +118,24 @@ describe("the hosted client agrees with the app's gateway adapter on every reply
 
   it("retries a refusal that reached no model after a backoff, and reports the wait; a refusal after the schedule is a policy failure", async () => {
     let n = 0;
-    const answers = [() => reply(503, { error: "busy", message: "busy", calls: [] }), () => reply(200, { json: { ok: true }, calls: [{ inputTokens: 1, outputTokens: 1, outcome: "ok", durationMs: 1 }] })];
+    const answers = [() => reply(503, { error: "busy", message: "busy", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }), () => reply(200, { json: { ok: true }, calls: [{ inputTokens: 1, outputTokens: 1, outcome: "ok", durationMs: 1 }] })];
     const pacer = createPacer({ maxRequests: 10, spacingMs: 0, backoffMs: [5], now: () => 0, sleep: async () => undefined });
     const provider = createHostedProvider({ baseUrl: "https://example.test", pacer, fetchImpl: (async () => answers[Math.min(n++, 1)]!()) as typeof fetch });
     const recorder = createCallRecorder();
     const meter = createMeter();
     const result = await provider.surfaceAdapter({ recorder, meter, refinement: false }).generate(request);
     expect(result.json).toEqual({ ok: true });
-    expect(meter.requests).toBe(2);
+    expect(meter.requests).toBe(1);
+    expect(pacer.sent).toBe(2);
     expect(pacer.waits).toEqual([{ atMs: 0, ms: 5, reason: "503 busy" }]);
-    expect(recorder.calls).toHaveLength(1);
+    expect(strip(recorder.calls).map((c) => [c.source, c.outcome])).toEqual([["none", "refused"], ["provider", "ok"]]);
 
     const spent = createPacer({ maxRequests: 10, spacingMs: 0, backoffMs: [], now: () => 0, sleep: async () => undefined });
     const refusing = createHostedProvider({ baseUrl: "https://example.test", pacer: spent, fetchImpl: (async () => reply(429, { error: "rate-limited", message: "slow", calls: [] })) as typeof fetch });
     await expect(refusing.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request)).rejects.toMatchObject({ kind: "policy", status: 429 });
-    expect(refusedBeforeProvider(502, { calls: [] })).toBe(false);
-    expect(refusedBeforeProvider(429, { calls: [{}] })).toBe(false);
+    expect(retryableRefusal(502, { calls: [] })).toBe(false);
+    expect(retryableRefusal(429, { calls: [{}] })).toBe(false);
+    expect(retryableRefusal(503, { calls: [{ inputTokens: 10, outputTokens: null, outcome: "provider-error" }] })).toBe(false);
   });
 });
 
@@ -183,6 +186,110 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
     await provider.plan(request, { recorder: createCallRecorder(), meter: createMeter() });
     await provider.plan(request, { recorder: createCallRecorder(), meter: createMeter() });
     expect(provider.telemetry?.()).toEqual({ pacing: { maxRequests: 10, spacingMs: 1000, backoffMs: [5], sent: 2, waits: [{ atMs: 0, ms: 1000, reason: "spacing" }] } });
+  });
+});
+
+describe("the gateway's busy reply and a planning outage, through the real Worker", () => {
+  let corpus: Corpus;
+  let astryx: LoadedReference;
+  beforeAll(async () => {
+    corpus = readCorpus();
+    astryx = await loadReference("astryx");
+  }, 60_000);
+  const plan = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits", block: "records-table", blockReason: "it is a table" };
+  const ok = (json: unknown) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: 100, output_tokens: 10 } });
+  /** The REAL Worker module; `model` answers each provider call by kind and may throw like the gateway does. */
+  const workerFetch = (model: (kind: "plan" | "block" | "surface", n: number) => unknown) => {
+    let n = 0;
+    const env = {
+      HOSTED_AI: "on",
+      AI: {
+        run: async (_m: string, input: { system: string }) => {
+          const kind = input.system.includes("routing step") ? "plan" : input.system.includes("Interface block") || input.system.includes("named call") ? "block" : "surface";
+          return model(kind, n++);
+        },
+      },
+    };
+    let posted = 0;
+    const fetchImpl = (async (url: string, init: RequestInit) => {
+      posted += 1;
+      return handlePropose(new Request(url, init), env);
+    }) as typeof fetch;
+    return { fetchImpl, posted: () => posted };
+  };
+  const prompt = () => promptsFor(corpus, "astryx").find((p) => p.id === "rt-01")!;
+
+  it("a busy gateway (the Worker's real 503, which reports the rejected call) is backed off and retried, the wait is reported, and the request is metered once", async () => {
+    let first = true;
+    const w = workerFetch(() => {
+      if (first) {
+        first = false;
+        throw new Error("AiError: 429 Too Many Requests");
+      }
+      return ok({ answer: 1 });
+    });
+    const pacer = createPacer({ maxRequests: 10, spacingMs: 0, backoffMs: [5], now: () => 0, sleep: async () => undefined });
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: w.fetchImpl, pacer });
+    const recorder = createCallRecorder();
+    const meter = createMeter();
+    const result = await provider.surfaceAdapter({ recorder, meter, refinement: false }).generate(request);
+    expect(result.json).toEqual({ answer: 1 });
+    expect(w.posted()).toBe(2);
+    expect(pacer.waits.map((x) => x.reason)).toEqual(["503 busy"]);
+    expect(strip(recorder.calls).map((c) => [c.source, c.outcome])).toEqual([["none", "refused"], ["provider", "ok"]]);
+    expect(meter.requests).toBe(1);
+    expect(meter.bytes).toBe(new TextEncoder().encode(JSON.stringify(request)).length);
+  });
+
+  it("a planning outage ends the cell before any generation, as a provider failure to re-run, never as an arm result or a selection", async () => {
+    const w = workerFetch((kind) => {
+      if (kind === "plan") throw new Error("provider timeout");
+      return ok(exampleFor(astryx, "record-collection"));
+    });
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: w.fetchImpl });
+    const { record } = await runCell({ reference: astryx, provider, arm: "block", condition: "fresh", prompt: prompt(), corpus });
+    expect(w.posted()).toBe(1);
+    expect(record).toMatchObject({ status: "completed", outcome: "planning-failure", passed: false, attempts: 0, path: "planning-failure", failure: { kind: "provider", rerunEligible: true } });
+    expect(record.plan?.failure).toMatchObject({ kind: "provider" });
+    expect(record.selection).toBeUndefined();
+    expect(record.calls.map((c) => c.operation)).toEqual(["plan"]);
+  });
+
+  it("an unusable planning output falls back as the app does, and its selection is counted as a planning failure, not an explicit null", async () => {
+    const w = workerFetch((kind) => (kind === "plan" ? { content: [{ type: "text", text: "Sure! Here is the plan." }], usage: { input_tokens: 100, output_tokens: 10 } } : ok(exampleFor(astryx, "record-collection"))));
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: w.fetchImpl });
+    const { record } = await runCell({ reference: astryx, provider, arm: "block", condition: "fresh", prompt: prompt(), corpus });
+    expect(record.passed).toBe(true);
+    expect(record.failure).toBeUndefined();
+    expect(record.plan?.failure).toMatchObject({ kind: "output" });
+    expect(record.selection).toMatchObject({ chosen: null, planningFailed: true, correct: false });
+    const [s] = selectionStats([record]);
+    expect(s).toMatchObject({ n: 1, planningFailed: 1, explicitNull: 0, missedToNull: 0, correct: 0 });
+  });
+
+  it("a cell is admitted only when the cap covers its worst case, refused retries included, so the cap never cuts a cell off after it has spent", async () => {
+    // Worst case of a production cell: the plan and three generation attempts, each refused once before it is served.
+    let refuseNext = true;
+    let surfaceCalls = 0;
+    const w = workerFetch((kind) => {
+      if (refuseNext) {
+        refuseNext = false;
+        throw new Error("429 rate limit");
+      }
+      refuseNext = true;
+      if (kind === "plan") return ok({ intent: "record-collection", feasible: true, restated: "A table.", reason: "fits" });
+      surfaceCalls += 1;
+      return ok(surfaceCalls < 3 ? { dspackSurface: "0.1", root: { component: "no-such-component" } } : exampleFor(astryx, "record-collection"));
+    });
+    const bound = cellRequestBound(1);
+    expect(bound).toBe(8);
+    const tight = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: w.fetchImpl, pacer: createPacer({ maxRequests: bound - 1, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined }) });
+    await expect(runCell({ reference: astryx, provider: tight, arm: "production", condition: "fresh", prompt: prompt(), corpus })).rejects.toBeInstanceOf(PacingCapReached);
+    expect(w.posted()).toBe(0);
+    const enough = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: w.fetchImpl, pacer: createPacer({ maxRequests: bound, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined }) });
+    const { record } = await runCell({ reference: astryx, provider: enough, arm: "production", condition: "fresh", prompt: prompt(), corpus });
+    expect(w.posted()).toBe(8);
+    expect(record).toMatchObject({ passed: true, attempts: 3 });
   });
 });
 

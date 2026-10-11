@@ -31,8 +31,8 @@ export const REFINEMENT_KIND: Record<(typeof REFINEMENTS)[number], RefinementKin
   "refine-structural": "structural",
 };
 
-/** Which code path a run took; stratification keys for ADR-B4 fairness. */
-export type Path = "block" | "block-repair" | "fallback" | "primitive" | "switch" | "provider-failure" | "invariant";
+/** Which code path a run took; stratification keys for ADR-B4 fairness. `planning-failure`: the planning call failed and the cell ended before generation. */
+export type Path = "block" | "block-repair" | "fallback" | "primitive" | "switch" | "provider-failure" | "invariant" | "planning-failure";
 
 export type FailureKind = "provider" | "output" | "policy" | "budget" | "unknown";
 
@@ -65,13 +65,17 @@ export interface RunRecord extends RunKey {
   /** ISO time the cell finished. */
   at: string;
   expected: { intent: string; block: string | null };
-  /** Planning: what the arm routed to, and what it cost. A refinement reuses the fresh plan and reports no plan call. */
-  plan?: { intent: string; source: string; block?: BlockChoice; calls: ModelCallRecord[]; bytes: number; durationMs: number };
-  /** Selection accuracy (block arm, fresh): the planner's answer against the corpus label. */
-  selection?: { chosen: string | null; source: "model" | "deterministic" | "omitted"; rejected?: string; correct: boolean };
+  /**
+   * Planning: what the arm routed to, and what it cost. A refinement reuses the fresh plan and reports no plan call.
+   * `failure` marks a failed planning call. On an unusable output the cell routed deterministically, as the app does;
+   * on a provider or policy failure the cell ended there, so it has no intent.
+   */
+  plan?: { intent?: string; source?: string; block?: BlockChoice; calls: ModelCallRecord[]; bytes: number; durationMs: number; failure?: { kind: FailureKind; message: string } };
+  /** Selection accuracy (block arm, fresh): the planner's answer against the corpus label. `planningFailed`: the planner gave no answer. */
+  selection?: { chosen: string | null; source: "model" | "deterministic" | "omitted"; rejected?: string; planningFailed?: true; correct: boolean };
   status: "completed" | "skipped";
   skipReason?: string;
-  /** The audit outcome (passed, failed-lint-exhausted, failed-gate, failed-adapter) or the Composer-side invariant-failure. */
+  /** The audit outcome (passed, failed-lint-exhausted, failed-gate, failed-adapter), the Composer-side invariant-failure, or the harness's planning-failure. */
   outcome?: string;
   passed: boolean;
   attempts: number;

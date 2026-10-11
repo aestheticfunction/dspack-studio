@@ -91,6 +91,8 @@ export interface SelectionStats {
   explicitNull: number;
   omitted: number;
   rejected: number;
+  /** The planning call returned an unusable output: no answer, counted wrong and in no other bucket. */
+  planningFailed: number;
   intentAccuracy: number | null;
 }
 
@@ -221,9 +223,14 @@ export function selectionStats(records: readonly RunRecord[]): SelectionStats[] 
   }
   const out: SelectionStats[] = [];
   for (const list of groups.values()) {
-    const s = { n: list.length, correct: 0, hit: 0, missedToNull: 0, wrongBlock: 0, nullCorrect: 0, falseBlock: 0, explicitNull: 0, omitted: 0, rejected: 0, intentCorrect: 0 };
+    const s = { n: list.length, correct: 0, hit: 0, missedToNull: 0, wrongBlock: 0, nullCorrect: 0, falseBlock: 0, explicitNull: 0, omitted: 0, rejected: 0, planningFailed: 0, intentCorrect: 0 };
     for (const r of list) {
       const sel = r.selection!;
+      // No answer: the routing came from the deterministic fallback, so neither the block nor the intent is the planner's.
+      if (sel.planningFailed) {
+        s.planningFailed += 1;
+        continue;
+      }
       // The planner's answer: a block reconciliation withdrew is still the block it named.
       const answer = sel.rejected ?? sel.chosen;
       if (answer === r.expected.block) s.correct += 1;

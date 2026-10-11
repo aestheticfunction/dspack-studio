@@ -52,7 +52,7 @@ import { checkParity } from "./parity";
 import { PacingCapReached } from "./pacing";
 import { createMeter, failureKindOf, type Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
-import { REFINEMENT_KIND, type Arm, type Condition, type Path, type PriorResult, type RunRecord } from "./types";
+import { REFINEMENT_KIND, type Arm, type Condition, type FailureKind, type Path, type PriorResult, type RunRecord } from "./types";
 
 type Json = Record<string, any>;
 
@@ -99,6 +99,18 @@ const switchTrace = (prior: { id: string; version: number; intent: string }, rea
     rawIsExpansion: true as const,
     refinement: { applied: false },
   });
+
+/** Provider-reported figures. A call missing EITHER figure is unreported: summing the missing one as zero would flatter the arm. */
+function tokensOf(calls: readonly ModelCallRecord[]): RunRecord["tokens"] {
+  const usage = aggregateUsage(calls);
+  return {
+    input: usage.provider.inputTokens,
+    output: usage.provider.outputTokens,
+    providerCalls: usage.provider.calls,
+    unreportedCalls: calls.filter((c) => c.source === "provider" && (c.inputTokens === undefined || c.outputTokens === undefined)).length,
+    modelFreeCalls: usage.none,
+  };
+}
 
 /** Watches the pipeline's adapter so a failed-adapter outcome keeps its typed cause. */
 function observed(adapter: StructuralAdapter, seen: { last?: unknown }): StructuralAdapter {
@@ -153,6 +165,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   let planMs: number | undefined;
   let planCalls: ModelCallRecord[] = [];
   let planBytes = 0;
+  let planFailure: { kind: FailureKind; message: string } | undefined;
   if (condition === "fresh") {
     const started = now();
     const planRecorder = createCallRecorder();
@@ -168,6 +181,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
         if (arm === "block") plan = { ...plan, block: reconcileBlockChoice(json, { intent: plan.intent, eligible }) };
       } catch (error) {
         if (error instanceof PacingCapReached) throw error;
+        const kind = failureKindOf(error);
+        planFailure = { kind: kind === "output" || kind === "policy" ? kind : "provider", message: error instanceof Error ? error.message : String(error) };
         plan = planDeterministic(goal, contract);
         if (arm === "block") plan = { ...plan, block: { id: null, reason: "planning-provider-failure", source: "deterministic" } };
       }
@@ -180,6 +195,31 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     meter.requests += planMeter.requests;
   } else {
     plan = { ...planDeterministic(goal, contract), intent: input.prior!.plan.intent, source: input.prior!.plan.source as GoalPlan["source"], ...(input.prior!.plan.block ? { block: input.prior!.plan.block } : {}) };
+  }
+
+  // A planning call the provider or the gateway failed ends the cell before generation: a provider (or policy)
+  // failure, re-run symmetrically and never an arm result (ADR-B3), so an outage cannot send one arm's prompts down
+  // another path. An unusable planning OUTPUT is the model's answer: the cell routes deterministically, as the app does.
+  if (planFailure && planFailure.kind !== "output") {
+    const calls = [...recorder.calls];
+    return {
+      record: {
+        ...key,
+        at: clock(),
+        expected,
+        plan: { calls: planCalls, bytes: planBytes, durationMs: planMs ?? 0, failure: planFailure },
+        status: "completed",
+        outcome: "planning-failure",
+        passed: false,
+        attempts: 0,
+        path: "planning-failure",
+        calls,
+        tokens: tokensOf(calls),
+        requestBytes: meter.bytes,
+        timings: { ...(planMs !== undefined ? { planMs } : {}), totalMs: now() - t0 },
+        failure: { ...planFailure, rerunEligible: true },
+      },
+    };
   }
   const intent = plan.intent;
   const choice: BlockChoice | undefined = plan.block;
@@ -296,9 +336,6 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   };
   const progress: Json = { status: "finished", ...(trace ? { block: trace } : {}), ...(outcome ? { outcome } : {}), ...(report ? { report } : {}), ...(surface ? { surface } : {}) };
   const calls = [...recorder.calls];
-  const usage = aggregateUsage(calls);
-  // A provider call missing EITHER figure is unreported: summing the missing one as zero would flatter the arm.
-  const unreportedCalls = calls.filter((c) => c.source === "provider" && (c.inputTokens === undefined || c.outputTokens === undefined)).length;
   const failureError = providerFailure ?? seen.last;
   const failure: RunRecord["failure"] | undefined =
     outcome === "failed-adapter"
@@ -311,16 +348,19 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const parity = passed && surface ? checkParity(surface, checklist) : undefined;
   const surfaceDigest = passed && surface ? await expansionDigest(surface as never) : undefined;
   // Selection is scored on the planner's ANSWER: a block it named that reconciliation withdrew is still its answer.
-  const selection =
+  // An unusable planning output is no answer at all: neither a null nor a block, and never correct.
+  const selection: RunRecord["selection"] =
     arm === "block" && condition === "fresh" && choice
-      ? { chosen: choice.id, source: choice.source, ...(choice.rejected ? { rejected: choice.rejected } : {}), correct: (choice.rejected ?? choice.id) === prompt.block }
+      ? planFailure
+        ? { chosen: null, source: choice.source, planningFailed: true, correct: false }
+        : { chosen: choice.id, source: choice.source, ...(choice.rejected ? { rejected: choice.rejected } : {}), correct: (choice.rejected ?? choice.id) === prompt.block }
       : undefined;
 
   const record: RunRecord = {
     ...key,
     at: clock(),
     expected,
-    ...(condition === "fresh" ? { plan: { intent, source: plan.source, ...(choice ? { block: choice } : {}), calls: planCalls, bytes: planBytes, durationMs: planMs ?? 0 } } : {}),
+    ...(condition === "fresh" ? { plan: { intent, source: plan.source, ...(choice ? { block: choice } : {}), calls: planCalls, bytes: planBytes, durationMs: planMs ?? 0, ...(planFailure ? { failure: planFailure } : {}) } } : {}),
     ...(selection ? { selection } : {}),
     status: "completed",
     ...(outcome ? { outcome } : {}),
@@ -330,13 +370,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     ...(budgetRemainingAtFallback !== undefined ? { budgetRemainingAtFallback } : {}),
     ...(trace ? { trace: trace as unknown as Record<string, unknown> } : {}),
     calls,
-    tokens: {
-      input: usage.provider.inputTokens,
-      output: usage.provider.outputTokens,
-      providerCalls: usage.provider.calls,
-      unreportedCalls,
-      modelFreeCalls: usage.none,
-    },
+    tokens: tokensOf(calls),
     requestBytes: meter.bytes,
     timings,
     ...(parity ? { parity } : {}),

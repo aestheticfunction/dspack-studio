@@ -143,7 +143,7 @@ export function readRecords(file: string): RunRecord[] {
 
 /** A passing fresh record, as the prior its refinements build on (from the log, after a resume). */
 export function priorFromRecord(record: RunRecord, goal: string): PriorResult | undefined {
-  if (record.condition !== "fresh" || !record.passed || !record.surface || !record.plan) return undefined;
+  if (record.condition !== "fresh" || !record.passed || !record.surface || !record.plan || record.plan.intent === undefined || record.plan.source === undefined) return undefined;
   return {
     goal,
     record,

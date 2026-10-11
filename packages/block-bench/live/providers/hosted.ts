@@ -80,9 +80,26 @@ const FAILURE_OUTCOME: Record<FailureKind, ModelCallRecord["outcome"]> = {
   unknown: "provider-error",
 };
 
-/** Whether a reply was refused before any provider call (the Worker's `calls: []`), so a retry costs nothing. */
-export const refusedBeforeProvider = (status: number, body: Record<string, unknown> | undefined): boolean =>
-  (status === 429 || status === 503) && Array.isArray(body?.calls) && body.calls.length === 0;
+/**
+ * Whether a refused reply reached no model, so a retry after a backoff costs nothing: the zone limiter's 429
+ * (`calls: []`), or the gateway's busy 503, which reports the one call the gateway rejected, with no usage
+ * (propose.mjs callModel). A reply that reports any usage, or any other outcome, spent something and is never retried.
+ */
+export const retryableRefusal = (status: number, body: Record<string, unknown> | undefined): boolean =>
+  (status === 429 || status === 503) &&
+  Array.isArray(body?.calls) &&
+  body.calls.every((raw) => {
+    const call = (raw ?? {}) as Record<string, unknown>;
+    return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
+  });
+
+/** The most requests one cell makes: the planning call and at most three generation requests, in every arm (ADR-B4). */
+export const CELL_REQUESTS = 4;
+/**
+ * A cell's worst case under the cap: every request refused and retried through the whole backoff schedule. A cell
+ * is admitted only when the cap covers it, so the cap never cuts a cell off after it has spent.
+ */
+export const cellRequestBound = (backoffSteps: number): number => CELL_REQUESTS * (1 + backoffSteps);
 
 export interface ProposeResult {
   json: unknown;
@@ -104,19 +121,21 @@ export function createHostedProvider(options: HostedOptions): Provider {
   ): Promise<ProposeResult> {
     const where = { operation: at.operation, ...(at.attempt !== undefined ? { attempt: at.attempt } : {}), ...(at.reissue ? { reissue: true as const } : {}) };
     const body = proposeBody(request, at.maxCalls !== undefined ? { maxCalls: at.maxCalls } : {});
-    const started = now();
-    const settle = (reply: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
-      const durationMs = now() - started;
-      const calls = callRecords(reply, where, { outcome, durationMs });
-      for (const call of calls) at.recorder.record(call);
-      return { calls, durationMs };
-    };
+    // Metered once: a refused retry re-sends the same bytes, and an arm's request size is what it asks for, not how
+    // often the gateway turned it away. The pacer counts every send against the cap.
+    at.meter.bytes += requestBytes(body);
+    at.meter.requests += 1;
     const failed = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
     for (let refusal = 0; ; refusal++) {
       if (options.pacer) await options.pacer.before();
-      at.meter.bytes += requestBytes(body);
-      at.meter.requests += 1;
+      const started = now();
+      const settle = (reply: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
+        const durationMs = now() - started;
+        const calls = callRecords(reply, where, { outcome, durationMs });
+        for (const call of calls) at.recorder.record(call);
+        return { calls, durationMs };
+      };
       let res: Response;
       try {
         res = await fetchImpl(`${base}/api/propose`, { method: "POST", headers: { "content-type": "application/json" }, body });
@@ -140,9 +159,16 @@ export function createHostedProvider(options: HostedOptions): Provider {
         /* not JSON: classified below */
       }
       if (!res.ok) {
-        // A refusal that reached no model (zone rate limit, busy) is retried
-        // after a backoff: nothing was spent, and the arm sees one request.
-        if (options.pacer && refusedBeforeProvider(res.status, reply) && (await options.pacer.backoff(refusal, `${res.status} ${String(reply?.error ?? "")}`.trim()))) continue;
+        // A refusal that reached no model (the zone limiter, the busy gateway) is retried after a backoff: nothing
+        // was spent, the arm sees one request, and the refused attempt is recorded as model-free. Once the schedule
+        // is spent, the refusal is recorded and thrown as the app's adapter would.
+        if (options.pacer && retryableRefusal(res.status, reply)) {
+          const durationMs = now() - started;
+          if (await options.pacer.backoff(refusal, `${res.status} ${String(reply?.error ?? "")}`.trim())) {
+            at.recorder.record({ ...where, source: "none", outcome: "refused", durationMs });
+            continue;
+          }
+        }
         const kind = errorKind(res.status, reply);
         settle(reply, FAILURE_OUTCOME[kind]);
         const message = typeof reply?.message === "string" && reply.message ? reply.message : `hosted AI endpoint returned ${res.status}`;
@@ -196,14 +222,12 @@ export function createHostedProvider(options: HostedOptions): Provider {
     };
   }
 
-  /** The most requests one cell can send under the budget: the planning call plus three. Refused retries are extra and free. */
-  const CELL_REQUESTS = 4;
   return {
     id: HOSTED_AI_ID,
     descriptor: `${HOSTED_AI_ID}@${base}`,
     kind: "hosted",
     plansWithModel: true,
-    beforeCell: () => options.pacer?.reserve(CELL_REQUESTS),
+    beforeCell: () => options.pacer?.reserve(cellRequestBound(options.pacer.config.backoffMs.length)),
     telemetry: () => (options.pacer ? { pacing: { ...options.pacer.config, backoffMs: [...options.pacer.config.backoffMs], sent: options.pacer.sent, waits: [...options.pacer.waits] } } : undefined),
     surfaceAdapter: adapter,
     blockAdapter: (opts: BlockAdapterOptions) => adapter({ ...opts, maxCalls: 1 }),
