@@ -194,7 +194,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
         reported = reportedUsd(records);
         const charged = records.filter((call) => call.source !== "none").length;
         itemized = Array.isArray(reply?.calls);
-        verified = itemized && charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
+        verified = itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         // Then held to the run's integrity conditions (live/integrity.ts), on every path but a release: a call that
         // reached the provider must report its usage and the model the run measures, or the run stops (RunHalted)
         // with this request settled on the way out like any other. The Worker names one model per reply, the one its

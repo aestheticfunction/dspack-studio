@@ -580,6 +580,7 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["a reply that does not itemize its calls", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 } }), [["request", priced], ["usage not verified", raise]]],
       // The prices are Claude Haiku 4.5's: a reply served by another model, or naming none, is not priced by them.
       ["a reply served by another model", () => reply(200, { json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      ["a parse retry, whose first call names no model of its own", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }, { inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       ["an unusable output, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "x", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       // A call that reached the model read at least one token.
       ["a call reporting no input", () => served(0, 0), [["request", priced], ["usage not verified", raise]]],
