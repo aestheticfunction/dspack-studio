@@ -23,7 +23,7 @@ import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
 import { guidedSystem } from "../../../apps/composer/worker/propose.mjs";
 import { CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, absoluteUsd, worstCaseUsd } from "./cost";
-import { PRE_CALL_REFUSALS, cellRequestBound, createHostedProvider, retryableRefusal } from "./providers/hosted";
+import { PRE_CALL_REFUSALS, USAGE_SPELLINGS, cellRequestBound, createHostedProvider, retryableRefusal } from "./providers/hosted";
 import { HarnessError, createMeter } from "./providers/types";
 import { ARMS } from "./types";
 import { callJsonSchema, encodeCall } from "@dspack-studio/composer-core/blocks";
@@ -600,6 +600,13 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["a call reporting no input", () => served(0, 0), [["request", priced], ["usage not verified", raise]]],
       // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves nothing.
       ["a total that contradicts its calls", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 1000, outputTokens: 100 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      // The app reads each figure from the first spelling it can (composer-core normalizeUsage): a figure stated
+      // otherwise under another spelling, or under one that is no whole count, proves nothing. Spellings that agree
+      // state it once.
+      ["a call that states its input twice, otherwise", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, input_tokens: 1000, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      ["a call whose first spelling of a figure is no count", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: -1000, input_tokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      ["a total that states its output twice, otherwise", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2, completion_tokens: 100 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
+      ["a call that states its input twice, the same", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, input_tokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }), [["request", priced], ["settled at the reported usage", settle]]],
       // More calls than the request allows proves nothing, however small each one is (and its earlier calls name no
       // model of their own).
       ["more calls than the request allows", () => reply(200, { json: { a: 1 }, raw: "{}", model: HAIKU, calls: Array.from({ length: 3 }, () => ({ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", raise]]],
@@ -630,6 +637,14 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     await expect(narrow.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false, maxCalls: 1 }).generate(request)).rejects.toBeInstanceOf(PacingCapReached);
     expect(posted).toBe(0);
     expect(lines).toEqual([]);
+  });
+
+  it("knows every spelling of a figure the app reads, so none of them goes unseen", () => {
+    // Every key composer-core's normalizeUsage reads for each figure, in its order: a new one fails here until the
+    // harness knows it.
+    const source = readFileSync(new URL("../../composer-core/src/usage.ts", import.meta.url), "utf8");
+    const read = (figure: string) => [...(source.match(new RegExp(`const ${figure} = (.+);`))?.[1] ?? "").matchAll(/r\.(\w+)/g)].map((m) => m[1]);
+    expect({ inputTokens: read("inputTokens"), outputTokens: read("outputTokens") }).toEqual(USAGE_SPELLINGS);
   });
 
   it("releases every refusal the Worker makes before any provider call, and nothing else that reports no call", async () => {
@@ -747,8 +762,11 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["a call past the output limit, and one unseen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [past, unseen] }, pastCost + absoluteUsd(1)],
       ["a call past the context window", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, calls: [{ inputTokens: MODEL_LIMITS.contextTokens + 1, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, Math.max(absoluteUsd(2), ((MODEL_LIMITS.contextTokens + 1) * 1e-6 + 2 * 5e-6) * 1.05)],
       ["more calls than the request allows, none seen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [unseen, unseen, unseen] }, 3 * absoluteUsd(1)],
-      // A total past what its calls could reach, each at the model's limits, counts on top of what the calls show.
+      // A total past what its calls could reach, each at the model's limits, counts when it shows more than the calls.
       ["a total past what its one call could reach", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 4 * MODEL_LIMITS.maxOutputTokens }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, (10 * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
+      // A figure past the limits under a spelling the app does not read first still shows what was reported.
+      ["a call past the output limit under its second spelling", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, output_tokens: 4 * MODEL_LIMITS.maxOutputTokens, outcome: "ok", durationMs: 1 }] }, (10 * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
+      ["a total past what its one call could reach, under its second spelling", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2, completion_tokens: 4 * MODEL_LIMITS.maxOutputTokens }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, (10 * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
     ];
     for (const [name, body, charged] of cases) {
       const lines: Array<[string, number]> = [];

@@ -8,7 +8,7 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, pastModelLimits, reportedUsd, totalPastModelLimits, totalUsd, withinReservation, worstCaseUsd } from "../cost";
+import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, pastModelLimits, reportedUsd, totalPastModelLimits, totalUsd, unprovenUsd, withinReservation, worstCaseUsd } from "../cost";
 import { UnboundedReply, UnpricedModel, type Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
@@ -108,8 +108,32 @@ export const PRE_CALL_REFUSALS: Readonly<Record<string, number>> = Object.freeze
   "invalid-request": 400,
 });
 
-/** Every spelling of usage the app reads (composer-core normalizeUsage), and the model: a call turned away reports none. */
-const UNSPENT_CALL_KEYS = ["inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens", "in", "out", "usage", "model"] as const;
+/** Every spelling of each figure the app reads (composer-core normalizeUsage), in the order it reads them. Pinned to its source by a test. */
+export const USAGE_SPELLINGS = {
+  inputTokens: ["inputTokens", "input_tokens", "prompt_tokens", "in"],
+  outputTokens: ["outputTokens", "output_tokens", "completion_tokens", "out"],
+} as const;
+
+/**
+ * What a usage object says under every spelling the app reads. normalizeUsage takes each figure from the first spelling
+ * it can read, so another spelling saying otherwise would go unseen: a figure is stated `once` only when every spelling
+ * given is a whole count and they agree, and `most` holds the largest number any spelling shows.
+ */
+function spelled(raw: unknown): { once: boolean; most: { inputTokens?: number; outputTokens?: number } } {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const most: { inputTokens?: number; outputTokens?: number } = {};
+  let once = true;
+  for (const figure of ["inputTokens", "outputTokens"] as const) {
+    const given = USAGE_SPELLINGS[figure].map((key) => r[key]).filter((value) => value != null);
+    if (given.some((value) => !Number.isSafeInteger(value) || (value as number) < 0) || new Set(given).size > 1) once = false;
+    const numbers = given.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    if (numbers.length > 0) most[figure] = Math.max(...numbers);
+  }
+  return { once, most };
+}
+
+/** Every spelling of usage the app reads, and the model: a call turned away reports none. */
+const UNSPENT_CALL_KEYS = [...USAGE_SPELLINGS.inputTokens, ...USAGE_SPELLINGS.outputTokens, "usage", "model"] as const;
 
 /** A refusal in the Worker's own shape: no usage and no model, which a refusal that reached no model cannot report. */
 const unspent = (body: Record<string, unknown> | undefined): boolean => body?.usage == null && body?.model == null;
@@ -197,15 +221,20 @@ export function createHostedProvider(options: HostedOptions): Provider {
         const records = callRecords(reply, where, { outcome, durationMs });
         for (const call of records) at.recorder.record(call);
         reported = reportedUsd(records);
+        // The app reads each figure from the first spelling it can: a call that states one otherwise under another
+        // spelling proves nothing, and counts at the most any spelling shows (each record by the raw call it came from).
+        const stated = (Array.isArray(reply?.calls) && reply.calls.length > 0 ? reply.calls : [reply?.usage]).map(spelled);
+        const largest = records.map((call, i) => ({ ...call, ...stated[i]!.most }));
         // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves
-        // nothing, and what it shows counts on top of what the calls show.
-        const total = normalizeUsage(reply?.usage);
+        // nothing, and what it shows counts when it is more than what the calls show.
+        const { once: totalOnce, most: total } = spelled(reply?.usage);
         const summed = (key: "inputTokens" | "outputTokens") => records.reduce((a, call) => a + (call.source === "none" ? 0 : (call[key] ?? 0)), 0);
-        const agrees = total === undefined || ((total.inputTokens === undefined || total.inputTokens === summed("inputTokens")) && (total.outputTokens === undefined || total.outputTokens === summed("outputTokens")));
-        bounded = Math.max(boundedUsd(records), totalUsd(total));
+        const agrees = (total.inputTokens === undefined || total.inputTokens === summed("inputTokens")) && (total.outputTokens === undefined || total.outputTokens === summed("outputTokens"));
+        const callsShow = largest.reduce((a, call, i) => a + (stated[i]!.once ? boundedUsd([call]) : call.source === "none" ? 0 : unprovenUsd(call)), 0);
+        bounded = Math.max(callsShow, totalUsd(total));
         const charged = records.filter((call) => call.source !== "none").length;
         itemized = Array.isArray(reply?.calls);
-        verified = agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
+        verified = totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         // What a reply another model served cost may exceed any bound at Haiku 4.5's prices: raised on the way out, it
         // stops the run, which sends nothing more. Any model the reply names counts, at its top or on any call it lists.
         const listed = Array.isArray(reply?.calls) ? reply.calls.map((raw) => ((raw ?? {}) as Record<string, unknown>).model) : [];
@@ -214,7 +243,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.
         if (options.pacer && !released && charged > calls) throw new UnboundedReply(`${charged} provider calls, more than the ${calls} its request allows`);
-        if (options.pacer && !released && (records.some(pastModelLimits) || totalPastModelLimits(total, charged))) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
+        if (options.pacer && !released && (largest.some(pastModelLimits) || totalPastModelLimits(total, charged))) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
         return { calls: records, durationMs };
       };
       try {
