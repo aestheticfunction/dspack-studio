@@ -8,8 +8,8 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
-import { UnpricedModel, type Pacer } from "../pacing";
+import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, pastModelLimits, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
+import { UnboundedReply, UnpricedModel, type Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
 
@@ -184,11 +184,12 @@ export function createHostedProvider(options: HostedOptions): Provider {
       // the price (its calls itemized, at least one provider call and no more than priced, each within its bounds and
       // naming the priced model itself) settles it at what the calls reported, and anything else (usage missing, a
       // figure past its bound, an extra call, no call reported, another model or none named, no reply at all) raises it
-      // to the absolute worst case, or to what it reported if that is more, on the way out. A reply that does not
+      // to the absolute worst case, or to what its calls can have cost if that is more (boundedUsd), on the way out. A reply that does not
       // itemize its calls, or no reply, may come from a Worker that ignores maxCalls, so it is raised to the most any
       // request can cost. The run's total never falls below what it spent.
       let released = false;
       let reported = 0;
+      let bounded = 0;
       let verified = false;
       let itemized = false;
       const settle = (reply: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
@@ -196,6 +197,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
         const records = callRecords(reply, where, { outcome, durationMs });
         for (const call of records) at.recorder.record(call);
         reported = reportedUsd(records);
+        bounded = boundedUsd(records);
         const charged = records.filter((call) => call.source !== "none").length;
         itemized = Array.isArray(reply?.calls);
         verified = itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
@@ -203,6 +205,10 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // stops the run, which sends nothing more.
         const foreign = ownModels(records).find((call) => typeof call.model === "string" && !PRICED_FAMILY.test(call.model));
         if (options.pacer && foreign) throw new UnpricedModel(foreign.model!);
+        // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
+        // model's documented limits.
+        if (options.pacer && !released && charged > calls) throw new UnboundedReply(`${charged} provider calls, more than the ${calls} its request allows`);
+        if (options.pacer && !released && records.some(pastModelLimits)) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
         return { calls: records, durationMs };
       };
       try {
@@ -266,7 +272,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
       } finally {
         if (options.pacer && !released) {
           if (verified) options.pacer.adjust(reported - priced, "settled at the reported usage");
-          else options.pacer.adjust(Math.max(itemized ? absolute : REQUEST_USD_BOUND, reported) - priced, "usage not verified");
+          else options.pacer.adjust(Math.max(itemized ? absolute : REQUEST_USD_BOUND, bounded) - priced, "usage not verified");
         }
       }
     }

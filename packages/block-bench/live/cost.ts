@@ -16,12 +16,13 @@
  * priced, each naming Claude Haiku 4.5) is settled at what its calls reported (reportedUsd), the provider's own count
  * of what is billed. One that does not (usage missing, a figure past its bound, an extra call, no call reported,
  * another model or none named, no reply at all) is charged instead at absoluteUsd, which rests on the model's documented
- * limits alone, or at what it reported if that is more; and no request is sent unless the most any request can cost
+ * limits alone, or at what its calls can have cost (boundedUsd) if that is more; and no request is sent unless the most any request can cost
  * (absoluteUsd(2)) still fits under the run's ceiling. So the ceiling holds even when an assumption fails, and a run's
- * total is what it spent plus what it cannot yet verify. Only a reply reporting more than those limits allow (a Worker that broke its
- * own call cap, or a provider past its documented limits) could push the total past the ceiling: the ledger records
- * what was reported, and refuses the next request. What no reply can show is outside this bound: a call the gateway
- * retried or billed without the Worker seeing it, or a model other than Claude Haiku 4.5 served under its name.
+ * total is what it spent plus what it cannot yet verify. A reply reporting more than those limits allow (a Worker that
+ * broke its own call cap, or a provider past its documented limits) breaks the bound: it is charged what it reported,
+ * each call it could not see at the most one call can cost (boundedUsd), and it stops the run, as a reply naming
+ * another model does. What no reply can show is outside this bound: a call the gateway retried or billed without the
+ * Worker seeing it, or a model other than Claude Haiku 4.5 served under its name.
  */
 import type { ModelCallRecord } from "@dspack-studio/composer-core";
 import type { GenerateRequest } from "@dspack-studio/composer-core/blocks";
@@ -82,6 +83,28 @@ export const CELL_USD_BOUND = CELL_REQUESTS * REQUEST_USD_BOUND;
 export function reportedUsd(calls: readonly ModelCallRecord[]): number {
   return calls.reduce((a, c) => (c.source === "none" ? a : a + usd(1, c.inputTokens ?? 0, c.outputTokens ?? 0)), 0);
 }
+
+/** A token count a call can be charged by: a whole, finite number, never negative. */
+const count = (n: unknown): number | undefined => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : undefined);
+
+/**
+ * The most a reply's calls can have cost, on what they show: a call that reported both counts at what it reported,
+ * one that did not at the most one call can cost (or at what it did report, if that is more), and a call that reached
+ * no model at nothing. A reply that cannot be verified is charged at least this.
+ */
+export function boundedUsd(calls: readonly ModelCallRecord[]): number {
+  return calls.reduce((a, c) => {
+    if (c.source === "none") return a;
+    const input = count(c.inputTokens);
+    const output = count(c.outputTokens);
+    const shown = usd(1, input ?? 0, output ?? 0);
+    return a + (input !== undefined && output !== undefined ? shown : Math.max(absoluteUsd(1), shown));
+  }, 0);
+}
+
+/** Whether a call reported usage past Claude Haiku 4.5's documented limits, which no price here bounds. */
+export const pastModelLimits = (c: ModelCallRecord): boolean =>
+  c.source !== "none" && ((count(c.inputTokens) ?? 0) > MODEL_LIMITS.contextTokens || (count(c.outputTokens) ?? 0) > MODEL_LIMITS.maxOutputTokens);
 
 /**
  * Whether a call stayed inside what its request was priced at: a call that reached no model, or one naming Claude

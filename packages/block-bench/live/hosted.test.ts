@@ -17,12 +17,12 @@ import { exampleFor, runCell } from "./arms";
 import { promptsFor, readCorpus, type Corpus } from "./corpus";
 import { selectionStats } from "./metrics";
 import { runEvaluation } from "./evaluate";
-import { PacingCapReached, RunStop, UnpricedModel, createPacer } from "./pacing";
+import { PacingCapReached, RunStop, UnboundedReply, UnpricedModel, createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
 import { guidedSystem } from "../../../apps/composer/worker/propose.mjs";
-import { CELL_USD_BOUND, MAX_OUTPUT_TOKENS, absoluteUsd, worstCaseUsd } from "./cost";
+import { CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, absoluteUsd, worstCaseUsd } from "./cost";
 import { PRE_CALL_REFUSALS, cellRequestBound, createHostedProvider, retryableRefusal } from "./providers/hosted";
 import { HarnessError, createMeter } from "./providers/types";
 import { ARMS } from "./types";
@@ -699,6 +699,44 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     expect(result.records).toHaveLength(0);
     expect(result.stopped).toMatchObject({ reason: "error" });
     expect(result.stopped!.message).toMatch(/does not price/);
+  });
+
+  it("charges each call it cannot see at its worst case on top of what the others reported, and stops the run at a reply past the model's limits", async () => {
+    // Usage past the model's documented limits, or more calls than the request allows, breaks every bound the prices
+    // rest on: the reply is charged what it reported, each call it could not see at one call's worst case, and the run
+    // sends nothing more.
+    // A call reporting twice the output limit costs more than any one call can, so the call beside it, unseen, must
+    // count on top of it: the two together can cost more than the most a two-call request was thought to.
+    const past = { inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens, outcome: "unusable-output", durationMs: 1 };
+    const unseen = { inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 };
+    const pastCost = (10 * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05;
+    expect(pastCost + absoluteUsd(1)).toBeGreaterThan(absoluteUsd(2));
+    const cases: Array<[string, unknown, number]> = [
+      ["a call past the output limit, and one unseen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [past, unseen] }, pastCost + absoluteUsd(1)],
+      ["a call past the context window", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, calls: [{ inputTokens: MODEL_LIMITS.contextTokens + 1, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, Math.max(absoluteUsd(2), ((MODEL_LIMITS.contextTokens + 1) * 1e-6 + 2 * 5e-6) * 1.05)],
+      ["more calls than the request allows, none seen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [unseen, unseen, unseen] }, 3 * absoluteUsd(1)],
+    ];
+    for (const [name, body, charged] of cases) {
+      const lines: Array<[string, number]> = [];
+      const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
+      pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record(usd = 0) { lines.push(["request", usd]); this.sent += 1; }, adjust(usd: number, reason: string) { lines.push([reason, usd]); } };
+      const status = "error" in (body as object) ? 502 : 200;
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(status, body)) as typeof fetch, pacer });
+      const failure = await provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request).then(() => undefined, (error: unknown) => error);
+      expect(lines.map(([reason]) => reason), name).toEqual(["request", "usage not verified"]);
+      expect(lines[0]![1] + lines[1]![1], name).toBeCloseTo(charged, 12);
+      expect(failure, name).toBeInstanceOf(UnboundedReply);
+      expect(failure, name).toBeInstanceOf(RunStop);
+    }
+    // Within the limits, an unseen call still counts at its worst case, and the run goes on.
+    const lines: Array<[string, number]> = [];
+    const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
+    pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record(usd = 0) { lines.push(["request", usd]); this.sent += 1; }, adjust(usd: number, reason: string) { lines.push([reason, usd]); } };
+    const within = { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: 10, outputTokens: MAX_OUTPUT_TOKENS + 1, outcome: "unusable-output", durationMs: 1 }, unseen] };
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(502, within)) as typeof fetch, pacer });
+    const failure = await provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request).then(() => undefined, (error: unknown) => error);
+    expect(failure).toBeInstanceOf(HarnessError);
+    expect(lines[0]![1] + lines[1]![1]).toBeCloseTo(absoluteUsd(2), 12);
   });
 
   it("a planning outage ends the cell before any generation, as a provider failure to re-run, never as an arm result or a selection", async () => {
