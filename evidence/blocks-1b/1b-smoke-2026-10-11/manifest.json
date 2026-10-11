@@ -1,0 +1,84 @@
+{
+  "runId": "2026-10-11T22-36-25-975Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com",
+  "startedAt": "2026-10-11T22:36:24.705Z",
+  "provider": "hosted-ai:claude-haiku-4.5@https://composer.aesthetic-function.com",
+  "corpus": {
+    "id": "blocks-1b",
+    "version": 1,
+    "frozenAt": "2026-10-10",
+    "sha256": "180f4480284b720e22a279a1147d95c6ae1132ff1fdcc03d8cddb1235a5e4231"
+  },
+  "references": [
+    {
+      "id": "shadcn-v3",
+      "status": "approved",
+      "baseSha256": "992b51b8215792bb71cad38af691bc07a01cacd7a4049e256cd20f11fea01e63",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "sidecarSha256": "c143c73746a6f5e8e71301e0f314f6242342c03f6d0c63242b4441ad9ed1daa3",
+      "contractSha256": "992b51b8215792bb71cad38af691bc07a01cacd7a4049e256cd20f11fea01e63",
+      "profileSha256": "ebe6b40f758a2c07d6bc487b3dc0f8f0d31fb1fc21f073453b9dd3561e447573"
+    },
+    {
+      "id": "astryx",
+      "status": "approved",
+      "baseSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "sidecarSha256": "13ded5b026553a0efde3f2de7fb30d7a0b3c6caf86cef45cc8a31da1535877bf",
+      "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+      "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9"
+    }
+  ],
+  "code": {
+    "sha256": "573b3e847c2b837913130405a53a3d70c5ad9605111a5be249b7a5cbf5d7341b",
+    "packages": {
+      "@aestheticfunction/dspack-gen": "0.5.0",
+      "@aestheticfunction/dspack-emit": "0.7.0"
+    }
+  },
+  "model": null,
+  "deployment": {
+    "baseUrl": "https://composer.aesthetic-function.com",
+    "buildId": "_mim-plk4T2Qgrjy6J_uQ",
+    "worker": "phase-0.5"
+  },
+  "selection": {
+    "arms": [
+      "block",
+      "block-positional",
+      "capped",
+      "production"
+    ],
+    "conditions": [
+      "fresh"
+    ],
+    "promptIds": [
+      "rt-01",
+      "af-01",
+      "gs-01",
+      "nb-01"
+    ],
+    "blocks": null,
+    "limit": null
+  },
+  "decision": {
+    "reduction": 0.3,
+    "margin": 0.05,
+    "minimum": 20
+  },
+  "limits": {
+    "maxTotalRequests": 160,
+    "maxTotalUsd": 25
+  },
+  "servedModel": {
+    "id": "claude-haiku-4-5-20251001",
+    "at": "2026-10-11T22:36:30.759Z"
+  }
+}

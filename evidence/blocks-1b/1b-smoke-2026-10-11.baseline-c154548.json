@@ -1,0 +1,40 @@
+{
+  "at": "2026-10-11T22:34:36.671Z",
+  "sidecars": [
+    {
+      "reference": "shadcn-v3",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    },
+    {
+      "reference": "astryx",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    }
+  ],
+  "drafts": false,
+  "baseUrl": "https://composer.aesthetic-function.com",
+  "buildId": "_mim-plk4T2Qgrjy6J_uQ",
+  "worker": {
+    "shape": "phase-0.5",
+    "status": 400,
+    "error": "invalid-request",
+    "calls": []
+  },
+  "models": [
+    "scripted",
+    "hosted-ai"
+  ]
+}
