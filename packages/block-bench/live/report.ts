@@ -53,7 +53,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     if (run) {
       out.push(
         run.capUsd !== undefined
-          ? `- The run: a cumulative cap of ${run.cap} requests and a dollar ceiling of $${run.capUsd.toFixed(2)} across every invocation (manifest.json); ${run.sent} sent, $${run.usd.toFixed(2)} reserved at their worst case (requests.jsonl).`
+          ? `- The run: a cumulative cap of ${run.cap} requests and a dollar ceiling of $${run.capUsd.toFixed(2)} across every invocation (manifest.json); ${run.sent} sent, $${run.usd.toFixed(2)} committed, what verified replies reported plus the worst case of every other request (requests.jsonl).`
           : `- The run: a cumulative cap of ${run.cap} requests across every invocation (manifest.json); ${run.sent} sent (requests.jsonl).`,
       );
     }

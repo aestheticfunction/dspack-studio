@@ -20,11 +20,11 @@
  *                             20); required to start a hosted run and recorded in its manifest. Every request is
  *                             counted in the run's requests.jsonl before it is sent, so a resume never resets it;
  *                             on --resume, a new value changes the recorded cap and the manifest records the change
- *   --max-total-usd <dollars> hosted: the dollars the whole run may reserve, each request at its worst case
- *                             (live/cost.ts), across every invocation and resume (at least one cell's worst case);
- *                             required to start a hosted run and recorded in its manifest. A request is sent only
- *                             while its absolute worst case still fits; on --resume, a new value changes the
- *                             recorded ceiling and the manifest records the change
+ *   --max-total-usd <dollars> hosted: the dollars the whole run may commit across every invocation and resume
+ *                             (live/cost.ts: what verified replies reported, plus the worst case of every other
+ *                             request), at least one cell's worst case; required to start a hosted run and recorded
+ *                             in its manifest. A request is sent only while its absolute worst case still fits; on
+ *                             --resume, a new value changes the recorded ceiling and the manifest records the change
  *   --spacing-ms <n>          hosted: minimum gap between requests (default 3000)
  *   --out <dir>               run directory (default live/runs/<time>-<provider>); not with --resume
  *   --resume <dir>            continue a run directory; with it, --rerun-failed re-runs provider and policy failures
@@ -63,7 +63,7 @@ export interface CliOptions {
   maxRequests: number;
   /** Hosted: the requests the whole run may send; absent on a resume means the manifest's. */
   maxTotalRequests?: number;
-  /** Hosted: the dollars the whole run may reserve; absent on a resume means the manifest's. */
+  /** Hosted: the dollars the whole run may commit; absent on a resume means the manifest's. */
   maxTotalUsd?: number;
   spacingMs: number;
   out?: string;
@@ -159,7 +159,7 @@ export function parseOptions(argv: readonly string[]): CliOptions {
     throw new Error(`--max-total-usd must be at least ${(Math.ceil(CELL_USD_BOUND * 100) / 100).toFixed(2)} for the hosted provider: a cell is admitted only when the ceiling covers its worst case, ${CELL_REQUESTS} requests each at the most a request can cost`);
   }
   if (hosted && maxTotalUsd === undefined && !values.has("--resume")) {
-    throw new Error("a hosted run needs --max-total-usd <dollars>: the dollars the whole run may reserve, each request at its worst case, across every invocation and resume (recorded in its manifest)");
+    throw new Error("a hosted run needs --max-total-usd <dollars>: the dollars the whole run may commit across every invocation and resume (recorded in its manifest)");
   }
   if (switches.has("--rerun-failed") && !values.has("--resume")) throw new Error("--rerun-failed needs --resume <dir>: it re-runs the failures of an existing run");
   if (values.has("--out") && values.has("--resume")) throw new Error("--out does not apply to --resume, which continues the run in its own directory");

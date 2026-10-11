@@ -8,7 +8,7 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, absoluteUsd, withinReservation, worstCaseUsd } from "../cost";
+import { CELL_REQUESTS, CELL_USD_BOUND, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
 import type { Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
@@ -141,16 +141,17 @@ export function createHostedProvider(options: HostedOptions): Provider {
     for (let refusal = 0; ; refusal++) {
       if (options.pacer) await options.pacer.before(priced, absolute);
       const started = now();
-      // Whether the reservation stands as priced: a refusal that reached no model releases it, and a reply proving that
-      // every call stayed inside the price confirms it. Anything else (usage missing, a figure past its bound, no
-      // reply at all) is raised to the absolute worst case on the way out, so the run's total stays an upper bound.
+      // How the reservation ends: a refusal that reached no model releases it, a reply proving that every call stayed
+      // inside the price settles it at what the calls reported, and anything else (usage missing, a figure past its
+      // bound, no reply at all) raises it to the absolute worst case on the way out. The run's total stays an upper
+      // bound on what it spent.
       let released = false;
-      let verified = false;
+      let spent: number | undefined;
       const settle = (reply: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
         const durationMs = now() - started;
         const records = callRecords(reply, where, { outcome, durationMs });
         for (const call of records) at.recorder.record(call);
-        verified = records.every((call) => withinReservation(request, call));
+        spent = records.every((call) => withinReservation(request, call)) ? reportedUsd(records) : undefined;
         return { calls: records, durationMs };
       };
       try {
@@ -212,7 +213,10 @@ export function createHostedProvider(options: HostedOptions): Provider {
           durationMs,
         };
       } finally {
-        if (options.pacer && !released && !verified) options.pacer.adjust(absolute - priced, "usage not verified");
+        if (options.pacer && !released) {
+          if (spent !== undefined) options.pacer.adjust(spent - priced, "settled at the reported usage");
+          else options.pacer.adjust(absolute - priced, "usage not verified");
+        }
       }
     }
   }

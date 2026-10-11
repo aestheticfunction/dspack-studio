@@ -11,10 +11,11 @@
  *
  * A request's priced worst case (worstCaseUsd) also assumes at most one token per UTF-8 byte of the text the model
  * reads, plus CALL_OVERHEAD_TOKENS of framing per call, and that the gateway honours max_tokens. Every reply is
- * checked against both (withinReservation). A reply that does not prove its calls stayed inside them (usage missing,
- * a figure past its bound, no reply at all) is charged instead at absoluteUsd, which rests on the model's documented
+ * checked against both (withinReservation). A reply that proves every call stayed inside them is settled at what its
+ * calls reported (reportedUsd), the provider's own count of what is billed. One that does not (usage missing, a
+ * figure past its bound, no reply at all) is charged instead at absoluteUsd, which rests on the model's documented
  * limits alone; and no request is sent unless that absolute worst case still fits under the run's ceiling. So the
- * ceiling holds even when an assumption fails.
+ * ceiling holds even when an assumption fails, and a run's total is what it spent plus what it cannot yet verify.
  */
 import type { ModelCallRecord } from "@dspack-studio/composer-core";
 import type { GenerateRequest } from "@dspack-studio/composer-core/blocks";
@@ -57,6 +58,11 @@ export const CELL_REQUESTS = 4;
 export const REQUEST_USD_BOUND = absoluteUsd(2);
 /** The most any cell can cost: the planning request and three generation requests, each at its absolute worst case. */
 export const CELL_USD_BOUND = CELL_REQUESTS * REQUEST_USD_BOUND;
+
+/** What a verified reply cost: each call's reported usage at the prices, the credit fee included; a call that reached no model costs nothing. */
+export function reportedUsd(calls: readonly ModelCallRecord[]): number {
+  return calls.reduce((a, c) => (c.source === "none" ? a : a + usd(1, c.inputTokens ?? 0, c.outputTokens ?? 0)), 0);
+}
 
 /**
  * Whether a call stayed inside what its request was priced at: a call that reached no model, or one that reports

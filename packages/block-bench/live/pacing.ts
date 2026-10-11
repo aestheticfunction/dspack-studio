@@ -2,7 +2,7 @@
  * Pacing for the shared zone gateway (ADR-B3, 1B): a cap on the requests
  * one invocation may send, the run's cumulative caps across every
  * invocation (its ledger, bound by the runner: requests, and the dollars
- * reserved at each request's worst case, live/cost.ts), a minimum spacing
+ * committed, live/cost.ts), a minimum spacing
  * between requests, and a backoff for a request the Worker refused before
  * any provider call (429, 503 busy). A refused request is retried after the
  * backoff because it reached no model; it is not the unusable-output
@@ -44,13 +44,13 @@ export interface RunLedger {
   readonly cap: number;
   /** Requests the run has sent, every earlier invocation included. */
   sent: number;
-  /** Dollars the whole run may reserve, across every invocation and resume. */
+  /** Dollars the whole run may commit, across every invocation and resume. */
   readonly capUsd?: number;
-  /** Dollars the run has reserved, every earlier invocation included: each request at its worst case, net of adjustments. */
+  /** Dollars the run has committed, every earlier invocation included: each request at its priced worst case, net of how its reservation ended. */
   usd?: number;
   /** Records one request, its count and its reservation, BEFORE it is sent, so a killed invocation is still counted. */
   record(usd?: number): void;
-  /** Changes the reserved total without a request: a release for a refusal that reached no model, or a raise for a reply that could not be verified. */
+  /** Ends a reservation without a request: a release for a refusal that reached no model, a settlement at a verified reply's reported usage, or a raise for a reply that could not be verified. */
   adjust?(usd: number, reason: string): void;
 }
 
@@ -71,7 +71,7 @@ export interface Pacer {
    * waits out the spacing, then records it with its priced worst case (`usd`). Throws PacingCapReached at any cap.
    */
   before(usd?: number, headroom?: number): Promise<void>;
-  /** Releases (negative) or raises (positive) the run's reserved dollars, on the record. */
+  /** Changes the run's committed dollars, on the record: down for a release or a settlement, up for a raise. */
   adjust(usd: number, reason: string): void;
   /** Waits the n-th backoff (0-based) and returns true, or returns false when the retries are spent. */
   backoff(attempt: number, reason: string): Promise<boolean>;

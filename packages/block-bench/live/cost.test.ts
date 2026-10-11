@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { guidedSystem, handlePropose } from "../../../apps/composer/worker/propose.mjs";
-import { CALL_OVERHEAD_TOKENS, CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, PRICE, PRICED_MODEL, REQUEST_USD_BOUND, absoluteUsd, inputTokenBound, withinReservation, worstCaseUsd } from "./cost";
+import { CALL_OVERHEAD_TOKENS, CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, PRICE, PRICED_MODEL, REQUEST_USD_BOUND, absoluteUsd, inputTokenBound, reportedUsd, withinReservation, worstCaseUsd } from "./cost";
 import { CELL_REQUESTS } from "./providers/hosted";
 
 const bytes = (text: string) => new TextEncoder().encode(text).length;
@@ -78,5 +78,11 @@ describe("a request's worst case", () => {
     expect(withinReservation(request, call({ inputTokens: 1, outputTokens: MAX_OUTPUT_TOKENS + 1 }))).toBe(false);
     expect(withinReservation(request, call({ inputTokens: 1 }))).toBe(false);
     expect(withinReservation(request, call({ outcome: "provider-error" }))).toBe(false);
+  });
+
+  it("settles a verified reply at what it reported: each call's usage at the prices, the credit fee included, and a call that reached no model at nothing", () => {
+    const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, ...fields });
+    const calls = [call({ inputTokens: 1000, outputTokens: 100 }), call({ inputTokens: 2000, outputTokens: 50, outcome: "unusable-output" }), call({ source: "none", outcome: "refused" })];
+    expect(reportedUsd(calls)).toBeCloseTo((3000 * 1e-6 + 150 * 5e-6) * 1.05, 12);
   });
 });
