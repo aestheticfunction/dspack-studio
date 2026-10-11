@@ -7,7 +7,9 @@
  * on that refusal. The build id identifies the deployed artifact (Next's
  * static export names its manifest by build id). Canonical usage and `cause`
  * can only be seen on real replies; the first metered call checks usage,
- * and a 502 is checked for `cause` when one arrives.
+ * and a 502 is checked for `cause` when one arrives. A local model is
+ * identified by the digest Ollama reports for its tag, so a resume cannot
+ * mix two pulls of one tag.
  */
 import type { LoadedReference } from "./references";
 
@@ -25,6 +27,8 @@ export interface Preflight {
   buildId?: string | null;
   worker?: WorkerProbe;
   models?: string[] | null;
+  /** The local model (Ollama runs): the tag and the digest of the weights behind it. */
+  model?: OllamaModel;
   sidecars: Array<{ reference: string; status: string; binding: string; usable: string[]; disabled: Array<{ block: string; issues: string[] }> }>;
   /** Whether any sidecar in use is a draft: results are provisional until the owner approves (ADR-B3). */
   drafts: boolean;
@@ -67,6 +71,26 @@ export async function readModels(baseUrl: string, fetchImpl: typeof fetch = fetc
   }
 }
 
+export interface OllamaModel {
+  name: string;
+  digest: string | null;
+  detail?: string;
+}
+
+/** The digest Ollama lists for a tag (a bare name means its `latest` tag, as Ollama reads it). */
+export async function readOllamaModel(host: string, model: string, fetchImpl: typeof fetch = fetch): Promise<OllamaModel> {
+  const name = model.includes(":") ? model : `${model}:latest`;
+  try {
+    const res = await fetchImpl(`${host.replace(/\/+$/, "")}/api/tags`);
+    const body = (await res.json()) as { models?: Array<{ name?: unknown; model?: unknown; digest?: unknown }> };
+    const found = (Array.isArray(body.models) ? body.models : []).find((m) => m?.name === name || m?.model === name);
+    if (found && typeof found.digest === "string" && found.digest) return { name, digest: found.digest };
+    return { name, digest: null, detail: `the host lists no model ${name}` };
+  } catch (error) {
+    return { name, digest: null, detail: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export function sidecarSummary(references: readonly LoadedReference[]): Pick<Preflight, "sidecars" | "drafts"> {
   const sidecars = references.map((r) => ({
     reference: r.id,
@@ -78,11 +102,18 @@ export function sidecarSummary(references: readonly LoadedReference[]): Pick<Pre
   return { sidecars, drafts: references.some((r) => r.sidecar?.status !== "approved" || r.blocks.some((b) => b.status !== "approved")) };
 }
 
-export async function preflight(options: { references: readonly LoadedReference[]; baseUrl?: string; fetchImpl?: typeof fetch; clock?: () => string }): Promise<Preflight> {
+export async function preflight(options: {
+  references: readonly LoadedReference[];
+  baseUrl?: string;
+  ollama?: { host: string; model: string };
+  fetchImpl?: typeof fetch;
+  clock?: () => string;
+}): Promise<Preflight> {
   const at = (options.clock ?? (() => new Date().toISOString()))();
   const base = { at, ...sidecarSummary(options.references) };
-  if (!options.baseUrl) return base;
   const fetchImpl = options.fetchImpl ?? fetch;
+  if (options.ollama) return { ...base, model: await readOllamaModel(options.ollama.host, options.ollama.model, fetchImpl) };
+  if (!options.baseUrl) return base;
   const worker = await probeWorker(options.baseUrl, fetchImpl);
   let buildId: string | null = null;
   try {

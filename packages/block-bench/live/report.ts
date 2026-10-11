@@ -17,22 +17,27 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     "",
     `Provider: \`${context.providerId}\`. Corpus: \`${context.corpus.corpus}\` v${context.corpus.version}, frozen ${context.corpus.frozenAt}. Cells: ${result.cells.done} of ${result.cells.total} done (${result.cells.reused} reused from the log).${result.stopped ? ` Stopped: ${result.stopped.reason}: ${result.stopped.message}` : ""}`,
     "",
-    `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
+    `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."}${preflight.model ? ` Local model ${preflight.model.name}, digest ${preflight.model.digest ?? "unknown"}.` : ""} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
     "",
   ];
-  const pacing = (result.telemetry?.pacing ?? null) as null | { maxRequests: number; spacingMs: number; backoffMs: number[]; sent: number; waits: Array<{ atMs: number; ms: number; reason: string }> };
-  if (pacing) {
-    const byReason = new Map<string, { n: number; ms: number }>();
-    for (const w of pacing.waits) {
-      const entry = byReason.get(w.reason) ?? { n: 0, ms: 0 };
-      entry.n += 1;
-      entry.ms += w.ms;
-      byReason.set(w.reason, entry);
-    }
-    out.push(
-      `Pacing: a cap of ${pacing.maxRequests} requests for this invocation, ${pacing.spacingMs} ms between requests, backoff ${pacing.backoffMs.map((ms) => `${ms / 1000}s`).join(", ") || "none"}; ${pacing.sent} requests sent; waits: ${pacing.waits.length === 0 ? "none" : [...byReason].map(([reason, e]) => `${e.n} for ${reason} (${Math.round(e.ms / 1000)}s)`).join(", ")}.`,
-      "",
-    );
+  type Pacing = { maxRequests: number; spacingMs: number; backoffMs: number[]; sent: number; waits: Array<{ atMs: number; ms: number; reason: string }> };
+  const paced = result.invocations.filter((i) => i.telemetry.pacing);
+  if (paced.length > 0) {
+    out.push("Pacing, for every invocation of this run:", "");
+    paced.forEach((invocation, n) => {
+      const pacing = invocation.telemetry.pacing as Pacing;
+      const byReason = new Map<string, { n: number; ms: number }>();
+      for (const w of pacing.waits) {
+        const entry = byReason.get(w.reason) ?? { n: 0, ms: 0 };
+        entry.n += 1;
+        entry.ms += w.ms;
+        byReason.set(w.reason, entry);
+      }
+      out.push(
+        `- Invocation ${n + 1} (${invocation.at}): a cap of ${pacing.maxRequests} requests, ${pacing.spacingMs} ms between requests, backoff ${pacing.backoffMs.map((ms) => `${ms / 1000}s`).join(", ") || "none"}; ${pacing.sent} requests sent; waits: ${pacing.waits.length === 0 ? "none" : [...byReason].map(([reason, e]) => `${e.n} for ${reason} (${Math.round(e.ms / 1000)}s)`).join(", ")}.`,
+      );
+    });
+    out.push("");
   }
   if (preflight.drafts) out.push("**Provisional.** At least one sidecar in use is a draft. ADR-B3 counts approved sidecars only; these numbers inform the drafts, they do not graduate anything.", "");
   if (context.providerId === "fake:scripted") out.push("**Dry run.** The scripted provider calls no model: every figure that needs provider-reported usage reads n/a, and parity reflects the replayed worked examples, not generation.", "");
@@ -120,5 +125,9 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
   }
   out.push("## Not measured in this run", "", "- Named vs positional encoding: the block phase takes the named encoding only; the request sizes of both are measured offline in `packages/block-bench/results.json`.", "- Time to first valid preview equals completion today (ADR-B3) and is the p50 total above.", "");
   out.push(`Totals: ${summary.totals.records} records, ${summary.totals.completed} completed, ${summary.totals.providerCalls} provider calls, ${summary.totals.inputTokens} input and ${summary.totals.outputTokens} output tokens reported, ${summary.totals.requestBytes} request bytes.`, "");
+  const s = result.superseded;
+  if (s.records > 0) {
+    out.push(`Superseded by re-runs: ${s.records} records, ${s.providerCalls} provider calls, ${s.inputTokens} input and ${s.outputTokens} output tokens, ${s.requestBytes} request bytes. Spent, and counted in no arm; the records are in runs.superseded.jsonl.`, "");
+  }
   return `${out.join("\n")}`;
 }

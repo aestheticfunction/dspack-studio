@@ -30,7 +30,7 @@ import { runEvaluation } from "./evaluate";
 import { createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { createHostedProvider } from "./providers/hosted";
-import { createOllamaProvider } from "./providers/ollama";
+import { createOllamaProvider, ollamaHost } from "./providers/ollama";
 import { createScriptedProvider } from "./providers/scripted";
 import type { Provider } from "./providers/types";
 import { REFERENCE_IDS, loadReference } from "./references";
@@ -132,8 +132,16 @@ export async function main(argv: readonly string[]): Promise<number> {
   else if (typeof o.provider === "object") provider = createOllamaProvider({ model: o.provider.ollama, ...(o.ollamaHost ? { host: o.ollamaHost } : {}) });
   else provider = createScriptedProvider({ faults: o.provider === "scripted:faults" });
 
-  const pre = await preflight({ references, ...(provider.kind === "hosted" ? { baseUrl: o.baseUrl } : {}) });
+  const pre = await preflight({
+    references,
+    ...(provider.kind === "hosted" ? { baseUrl: o.baseUrl } : {}),
+    ...(typeof o.provider === "object" ? { ollama: { host: ollamaHost(o.ollamaHost), model: o.provider.ollama } } : {}),
+  });
   console.log(JSON.stringify(pre, null, 2));
+  if (pre.model && !pre.model.digest) {
+    console.error(`Ollama reports no digest for ${pre.model.name} (${pre.model.detail ?? "unknown"}); a run must pin the weights it measures. Pull the model, or check --ollama-host.`);
+    return 1;
+  }
   if (provider.kind === "hosted" && pre.worker?.shape !== "phase-0.5" && !o.force) {
     console.error(`the Worker at ${o.baseUrl} is ${pre.worker?.shape}; Phase 1B needs the Phase 0.5 Worker. Pass --force to proceed anyway.`);
     return 1;

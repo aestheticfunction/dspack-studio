@@ -3,19 +3,22 @@
  * the resume, the re-run of failures, the summary and the report, with no
  * network at all.
  */
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { planDeterministic } from "@dspack-studio/composer-core";
-import { selectBlockDeterministic } from "@dspack-studio/composer-core/blocks";
+import { planDeterministic, proposeBody } from "@dspack-studio/composer-core";
+import { selectBlockDeterministic, type StructuralAdapter } from "@dspack-studio/composer-core/blocks";
 import { exampleFor } from "./arms";
 import { promptsFor, readCorpus, type Corpus } from "./corpus";
-import { faultFor } from "./providers/scripted";
-import { planCells, readRecords, runEvaluation } from "./evaluate";
-import { preflight, type Preflight } from "./preflight";
+import { SCRIPTED_ID, faultFor } from "./providers/scripted";
+import { manifestFor, manifestMismatches, planCells, readRecords, runEvaluation } from "./evaluate";
+import { codeIdentity, sourceDigest } from "./identity";
+import { preflight, readOllamaModel, type Preflight } from "./preflight";
 import { createScriptedProvider } from "./providers/scripted";
+import { HarnessError, requestBytes, type Provider } from "./providers/types";
 import { loadReference, type LoadedReference } from "./references";
+import type { Condition } from "./types";
 
 let corpus: Corpus;
 let references: LoadedReference[];
@@ -124,4 +127,133 @@ describe("dry run", () => {
     // The same deterministic faults fail again: honest, not retried into a pass.
     expect(rerun.records.filter((r) => r.failure?.rerunEligible)).toHaveLength(failed.length);
   }, 300_000);
+});
+
+/** The scripted provider with a transient, metered provider failure on every fresh generation while `failing.on`. */
+function transient(failing: { on: boolean }): Provider {
+  const inner = createScriptedProvider();
+  const wrap = (adapter: StructuralAdapter, opts: { recorder: { record(call: never): void }; meter: { bytes: number; requests: number }; refinement: boolean }): StructuralAdapter => ({
+    id: adapter.id,
+    async generate(request, context) {
+      if (failing.on && !opts.refinement) {
+        opts.meter.bytes += requestBytes(proposeBody(request));
+        opts.meter.requests += 1;
+        opts.recorder.record({ operation: "generate", source: "provider", inputTokens: 1000, outputTokens: 0, durationMs: 1, outcome: "provider-error" } as never);
+        throw new HarnessError(SCRIPTED_ID, "transient: the provider is unavailable", "provider", 502, "provider");
+      }
+      return adapter.generate(request, context);
+    },
+  });
+  return { ...inner, surfaceAdapter: (opts) => wrap(inner.surfaceAdapter(opts), opts), blockAdapter: (opts) => wrap(inner.blockAdapter(opts), opts) };
+}
+
+describe("a run directory stays whole across resumes", () => {
+  const fresh: Condition[] = ["fresh"];
+
+  it("re-running a failed fresh cell re-runs the refinements skipped for want of it, and keeps what the failed attempt spent", async () => {
+    const out = join(dir, "run-dependents");
+    const failing = { on: true };
+    const base = { runId: "dependents", provider: transient(failing), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], outDir: out };
+    const first = await runEvaluation(base);
+    const firstFresh = first.records.filter((r) => r.condition === "fresh");
+    expect(firstFresh.map((r) => r.failure?.rerunEligible)).toEqual([true, true, true]);
+    expect(first.records.filter((r) => r.condition !== "fresh").map((r) => r.status)).toEqual(new Array(12).fill("skipped"));
+
+    failing.on = false;
+    const rerun = await runEvaluation({ ...base, resume: true, rerunFailed: true });
+    expect(rerun.records.filter((r) => r.condition === "fresh").map((r) => r.passed)).toEqual([true, true, true]);
+    expect(rerun.records.filter((r) => r.condition !== "fresh").map((r) => r.status)).toEqual(new Array(12).fill("completed"));
+    expect(readRecords(join(out, "runs.jsonl"))).toHaveLength(15);
+    // The superseded attempts leave the log, never the record of what they spent.
+    expect(readRecords(join(out, "runs.superseded.jsonl"))).toHaveLength(15);
+    const spent = { providerCalls: 3, inputTokens: 3000, requestBytes: firstFresh.reduce((a, r) => a + r.requestBytes, 0) };
+    expect(spent.requestBytes).toBeGreaterThan(0);
+    expect(rerun.superseded).toMatchObject({ records: 15, ...spent });
+    expect(JSON.parse(readFileSync(join(out, "summary.json"), "utf8")).superseded).toMatchObject({ records: 15, ...spent });
+    expect(readFileSync(join(out, "REPORT.md"), "utf8")).toContain("Superseded by re-runs: 15 records, 3 provider calls, 3000 input and 0 output tokens");
+  }, 120_000);
+
+  it("a torn last line (an append cut off) is set aside and its cell runs again; a corrupt line elsewhere is refused with its file and line", async () => {
+    const out = join(dir, "run-torn");
+    const base = { runId: "torn", provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: fresh, outDir: out };
+    await runEvaluation(base);
+    const log = join(out, "runs.jsonl");
+    const lines = readFileSync(log, "utf8").split("\n").filter(Boolean);
+    expect(lines).toHaveLength(3);
+    const torn = lines[2]!.slice(0, 200);
+    writeFileSync(log, `${lines[0]}\n${lines[1]}\n${torn}`);
+    const resumed = await runEvaluation({ ...base, resume: true });
+    expect(resumed.cells).toMatchObject({ done: 3, reused: 2 });
+    expect(readRecords(log)).toHaveLength(3);
+    expect(readFileSync(join(out, "runs.torn.jsonl"), "utf8")).toBe(`${torn}\n`);
+    // The side logs are made whole the same way, before any cell runs.
+    const cut = lines[1]!.slice(0, 50);
+    writeFileSync(join(out, "runs.superseded.jsonl"), `${lines[0]}\n${cut}`);
+    const again = await runEvaluation({ ...base, resume: true });
+    expect(again.superseded.records).toBe(1);
+    expect(readFileSync(join(out, "runs.superseded.jsonl"), "utf8")).toBe(`${lines[0]}\n`);
+    expect(readFileSync(join(out, "runs.torn.jsonl"), "utf8")).toBe(`${torn}\n${cut}\n`);
+    writeFileSync(log, `${lines[0]}\n{"broken\n${lines[2]}\n`);
+    await expect(runEvaluation({ ...base, resume: true })).rejects.toThrow(/runs\.jsonl:2/);
+  }, 120_000);
+
+  it("keeps every invocation's pacing and waits, and the report states them all", async () => {
+    const out = join(dir, "run-pacing");
+    const paced = (pacing: Record<string, unknown>): Provider => ({ ...createScriptedProvider(), telemetry: () => ({ pacing }) });
+    const one = { maxRequests: 5, spacingMs: 3000, backoffMs: [30_000], sent: 4, waits: [{ atMs: 10, ms: 3000, reason: "spacing" }, { atMs: 20, ms: 30_000, reason: "503 busy" }] };
+    const two = { maxRequests: 300, spacingMs: 0, backoffMs: [], sent: 0, waits: [] };
+    const base = { runId: "paced", references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: fresh, outDir: out };
+    await runEvaluation({ ...base, provider: paced(one) });
+    const resumed = await runEvaluation({ ...base, provider: paced(two), resume: true, preflight: { ...pre, at: "2026-11-01T00:00:00.000Z" } });
+    expect(resumed.invocations.map((i) => (i.telemetry.pacing as { maxRequests: number }).maxRequests)).toEqual([5, 300]);
+    expect(readFileSync(join(out, "pacing.jsonl"), "utf8").trim().split("\n")).toHaveLength(2);
+    expect(JSON.parse(readFileSync(join(out, "summary.json"), "utf8")).invocations).toHaveLength(2);
+    const report = readFileSync(join(out, "REPORT.md"), "utf8");
+    expect(report).toContain(`Invocation 1 (${pre.at}): a cap of 5 requests, 3000 ms between requests, backoff 30s; 4 requests sent; waits: 1 for spacing (3s), 1 for 503 busy (30s).`);
+    expect(report).toContain("Invocation 2 (2026-11-01T00:00:00.000Z): a cap of 300 requests, 0 ms between requests, backoff none; 0 requests sent; waits: none.");
+  }, 120_000);
+
+  it("refuses a resume when a sidecar's content, the emit profile, the code or the local model changed, even under the same ids and versions", async () => {
+    const out = join(dir, "run-identity");
+    const ref = references[0]!;
+    const base = { runId: "identity", provider: createScriptedProvider(), references: [ref], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: fresh, outDir: out };
+    await runEvaluation(base);
+    const sidecar = ref.sidecar!;
+    const edited = { ...ref, sidecar: { ...sidecar, blocks: sidecar.blocks.map((b, i) => (i === 0 ? { ...b, summary: `${b.summary} Edited.` } : b)) } };
+    await expect(runEvaluation({ ...base, resume: true, references: [edited] })).rejects.toThrow(/sidecar content/);
+    await expect(runEvaluation({ ...base, resume: true, references: [{ ...ref, profileRaw: { ...ref.profileRaw, edited: true } }] })).rejects.toThrow(/emit profile/);
+    await expect(runEvaluation({ ...base, resume: true, preflight: { ...pre, model: { name: "gpt-oss:latest", digest: "sha256:another-pull" } } })).rejects.toThrow(/model/);
+    const recorded = await manifestFor(base);
+    expect(manifestMismatches(recorded, { ...recorded, code: { ...recorded.code, sha256: "0".repeat(64) } })).toEqual([expect.stringMatching(/^code: /)]);
+    expect(manifestMismatches(recorded, { ...recorded, code: { ...recorded.code, packages: { ...recorded.code.packages, "@aestheticfunction/dspack-gen": "9.9.9" } } })).toEqual([expect.stringMatching(/^code: .*dspack-gen/)]);
+    await expect(runEvaluation({ ...base, resume: true })).resolves.toMatchObject({ cells: { reused: 3 } });
+  }, 120_000);
+
+  it("the code identity is a digest of the harness and composer-core sources, tests excluded, plus the dspack package versions", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "block-bench-src-"));
+    try {
+      writeFileSync(join(tmp, "a.ts"), "export const a = 1;\n");
+      const before = sourceDigest([tmp]);
+      writeFileSync(join(tmp, "a.test.ts"), "it('x', () => {});\n");
+      writeFileSync(join(tmp, "notes.md"), "prose\n");
+      expect(sourceDigest([tmp])).toBe(before);
+      writeFileSync(join(tmp, "a.ts"), "export const a = 2;\n");
+      expect(sourceDigest([tmp])).not.toBe(before);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+    const code = codeIdentity();
+    expect(code.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(Object.keys(code.packages).sort()).toEqual(["@aestheticfunction/dspack-emit", "@aestheticfunction/dspack-gen"]);
+    for (const version of Object.values(code.packages)) expect(version).toMatch(/^\d+\.\d+\.\d+/);
+  });
+
+  it("an Ollama run is identified by the digest Ollama reports for the tag", async () => {
+    const tags = (async () => new Response(JSON.stringify({ models: [{ name: "gpt-oss:latest", model: "gpt-oss:latest", digest: "sha256:aaa" }] }))) as unknown as typeof fetch;
+    expect(await readOllamaModel("http://localhost:11434", "gpt-oss:latest", tags)).toEqual({ name: "gpt-oss:latest", digest: "sha256:aaa" });
+    expect(await readOllamaModel("http://localhost:11434", "gpt-oss", tags)).toEqual({ name: "gpt-oss:latest", digest: "sha256:aaa" });
+    expect(await readOllamaModel("http://localhost:11434", "qwen3:8b", tags)).toMatchObject({ name: "qwen3:8b", digest: null });
+    const p = await preflight({ references: [references[0]!], ollama: { host: "http://localhost:11434", model: "gpt-oss" }, fetchImpl: tags });
+    expect(p.model).toEqual({ name: "gpt-oss:latest", digest: "sha256:aaa" });
+  });
 });

@@ -22,6 +22,9 @@ export interface OllamaOptions {
   now?: () => number;
 }
 
+/** The host a run talks to: the option, else OLLAMA_HOST, else the local default. */
+export const ollamaHost = (host?: string): string => (host ?? process.env.OLLAMA_HOST ?? "http://localhost:11434").replace(/\/+$/, "");
+
 /** The plan's classifier for local models. */
 export function ollamaFailureKind(error: unknown): FailureKind {
   const message = error instanceof Error ? error.message : String(error);
@@ -34,7 +37,7 @@ export function createOllamaProvider(options: OllamaOptions): Provider {
   const now = options.now ?? (() => performance.now());
   const inner = new OllamaAdapter({
     model: options.model,
-    host: (options.host ?? process.env.OLLAMA_HOST ?? "http://localhost:11434").replace(/\/+$/, ""),
+    host: ollamaHost(options.host),
     fetch: ((url: unknown, init: { body: string }) => {
       const body = JSON.parse(init.body);
       body.options = { ...body.options, ...OLLAMA_OPTIONS };
@@ -87,7 +90,7 @@ export function createOllamaProvider(options: OllamaOptions): Provider {
 
   return {
     id,
-    descriptor: `${id}@${(options.host ?? process.env.OLLAMA_HOST ?? "http://localhost:11434").replace(/\/+$/, "")}`,
+    descriptor: `${id}@${ollamaHost(options.host)}`,
     kind: "ollama",
     plansWithModel: true,
     surfaceAdapter: adapter,
