@@ -1,5 +1,6 @@
 /** REPORT.md: a derived view of runs.jsonl and summary.json, regenerated, never edited. */
 import type { Corpus } from "./corpus";
+import { PRICED_MODEL } from "./cost";
 import type { EvaluationResult } from "./evaluate";
 import type { ArmStats, Clarity, Interval, PairedCounts } from "./metrics";
 import { CONDITIONS } from "./types";
@@ -29,6 +30,12 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     "",
     `Provider: \`${context.providerId}\`. Corpus: \`${context.corpus.corpus}\` v${context.corpus.version}, frozen ${context.corpus.frozenAt}. Cells: ${result.cells.done} of ${result.cells.total} done (${result.cells.reused} reused from the log).${result.stopped ? ` Stopped: ${result.stopped.reason}: ${result.stopped.message}` : ""}`,
     "",
+    ...(result.servedModel
+      ? [
+          `Served model: \`${result.servedModel.id}\`, recorded ${result.servedModel.at} from the run's first metered call (manifest.json); every later call is held to it.${result.servedModel.id === PRICED_MODEL ? " It is the configured id, which the Worker returns when the provider names no model, so it confirms no snapshot." : ""}`,
+          "",
+        ]
+      : []),
     `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."}${preflight.model ? ` Local model ${preflight.model.name}, digest ${preflight.model.digest ?? "unknown"}.` : ""} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
     "",
   ];

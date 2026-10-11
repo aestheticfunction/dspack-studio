@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readCorpus } from "./corpus";
 import { CELL_USD_BOUND } from "./cost";
-import { main, parseOptions, validateSelection } from "./run";
+import { main, parseOptions, stopNotice, validateSelection } from "./run";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -100,6 +100,18 @@ describe("the CLI refuses what would run nothing, or run something other than wh
     expect(fetch).not.toHaveBeenCalled();
     expect(existsSync(runs) ? readdirSync(runs).length : 0).toBe(before);
   }, 60_000);
+});
+
+describe("a run that stops early says why, and how to continue", () => {
+  it("ends cleanly at a cap, with its own exit code at a call the run cannot trust, and as an error otherwise; the first two resume", () => {
+    expect(stopNotice({ reason: "cap", message: "the run's cap is reached" }, "/runs/r")).toEqual({ code: 0, text: "stopped: the run's cap is reached\nresume with: --resume /runs/r" });
+    const integrity = stopNotice({ reason: "integrity", message: "model-changed: a plan call (ok) was served by b, but the run measures a (manifest.json)" }, "/runs/r");
+    expect(integrity.code).toBe(3);
+    expect(integrity.text).toContain("model-changed: a plan call (ok) was served by b");
+    expect(integrity.text).toMatch(/not an arm result/);
+    expect(integrity.text).toMatch(/--resume \/runs\/r$/);
+    expect(stopNotice({ reason: "error", message: "boom" }, "/runs/r")).toEqual({ code: 1, text: "stopped: boom" });
+  });
 });
 
 describe("a run measures the frozen corpus only", () => {

@@ -8,7 +8,8 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
+import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_MODEL, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
+import { holdCalls } from "../integrity";
 import type { Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
@@ -156,6 +157,11 @@ export function createHostedProvider(options: HostedOptions): Provider {
         reported = reportedUsd(records);
         const charged = records.filter((call) => call.source !== "none").length;
         verified = charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
+        // Then held to the run's integrity conditions (live/integrity.ts), on every path but a release: a call that
+        // reached the provider must report its usage and the model the run measures, or the run stops (RunHalted)
+        // with this request settled on the way out like any other.
+        const served = options.pacer?.served;
+        if (served && !released) holdCalls(records, served, PRICED_MODEL, outcome === "ok");
         return { calls: records, durationMs };
       };
       try {

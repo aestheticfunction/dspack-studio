@@ -19,7 +19,11 @@
  * worst case before it is sent and how that reservation ended after its
  * reply (released, settled at the reported usage, or raised), and each
  * invocation's pacer is bound to those totals, so no number of resumes
- * sends more, or spends more, than the run allows. One
+ * sends more, or spends more, than the run allows. Every call a hosted run
+ * sends that reaches the provider is held to the run's integrity conditions
+ * (live/integrity.ts): the manifest records the model the run measures, from
+ * its first metered call, and a call that breaks one stops the run cleanly,
+ * apart from arm results, so that a resume can continue it. One
  * invocation runs a directory at a time (run.lock), so two cannot spend the
  * same cap or interleave the logs.
  */
@@ -30,6 +34,7 @@ import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { REQUEST_USD_BOUND } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
+import { RunHalted } from "./integrity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
 import { PacingCapReached, type RunLedger } from "./pacing";
 import type { Preflight } from "./preflight";
@@ -101,7 +106,10 @@ export interface EvaluationResult {
   arms: Arm[];
   /** Hosted: the run's cumulative cap and dollar ceiling, and the requests sent and dollars committed against them, every invocation included. */
   requests?: { cap: number; sent: number; capUsd?: number; usd: number };
-  stopped?: { reason: "cap" | "error"; message: string };
+  /** Hosted: why the run stopped early. "integrity" is a call the run cannot trust (live/integrity.ts), never an arm result. */
+  stopped?: { reason: "cap" | "integrity" | "error"; message: string };
+  /** Hosted: the model the run measures (manifest.json), once its first metered call has recorded it. */
+  servedModel?: { id: string; at: string };
   outDir?: string;
   cells: { total: number; done: number; reused: number };
 }
@@ -132,6 +140,11 @@ export interface RunManifest {
    * either (a dollar change carries unit "usd"). Not identity: a resume may change them, on the record.
    */
   limits?: { maxTotalRequests: number; maxTotalUsd?: number; changes?: Array<{ at: string; unit?: "usd"; from?: number; to: number }> };
+  /**
+   * Hosted: the model the run measures, as the provider named it on the run's first metered call. Recorded once, before
+   * that call returns, and never changed: every later call, every resume included, must report the same (live/integrity.ts).
+   */
+  servedModel?: { id: string; at: string };
 }
 
 export async function manifestFor(options: EvaluationOptions): Promise<RunManifest> {
@@ -537,6 +550,21 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
     };
     pacer.ledger = ledger;
   }
+  // The model the run measures: recorded once, from its first metered call, and held to by every later call and every
+  // resume (live/integrity.ts). It is on disk before the call that reported it returns.
+  if (pacer) {
+    pacer.served = {
+      get id() {
+        return manifest.servedModel?.id;
+      },
+      record(id) {
+        if (manifest.servedModel) return;
+        const next = { ...manifest, servedModel: { id, at: new Date().toISOString() } };
+        if (outDir) replaceJson(join(outDir, "manifest.json"), next);
+        manifest = next;
+      },
+    };
+  }
 
   const records: RunRecord[] = [];
   const priors = new Map<string, PriorResult>();
@@ -575,6 +603,12 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
         log(`stopped: ${error.message}`);
         break;
       }
+      // A call the run cannot trust: the cell in flight logs no record, and what it spent stays in the ledger.
+      if (error instanceof RunHalted) {
+        stopped = { reason: "integrity", message: error.message };
+        log(`stopped on ${key}, a call the run cannot trust: ${error.message}`);
+        break;
+      }
       stopped = { reason: "error", message: error instanceof Error ? error.message : String(error) };
       log(`stopped on ${key}: ${stopped.message}`);
       break;
@@ -600,11 +634,12 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
     arms: [...manifest.selection.arms],
     ...(ledger ? { requests: { cap: ledger.cap, sent: ledger.sent, ...(ledger.capUsd !== undefined ? { capUsd: ledger.capUsd } : {}), usd: ledger.usd ?? 0 } } : {}),
     ...(stopped ? { stopped } : {}),
+    ...(manifest.servedModel ? { servedModel: manifest.servedModel } : {}),
     ...(outDir ? { outDir } : {}),
     cells: { total: cells.length, done: records.length, reused },
   };
   if (outDir) {
-    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, telemetry: telemetry ?? null, invocations, ...(result.requests ? { requests: result.requests } : {}), superseded: spent, summary });
+    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, servedModel: manifest.servedModel ?? null, telemetry: telemetry ?? null, invocations, ...(result.requests ? { requests: result.requests } : {}), superseded: spent, summary });
     writeFileSync(join(outDir, "REPORT.md"), renderReport(result, { providerId: options.provider.id, corpus: options.corpus }));
   }
   return result;
