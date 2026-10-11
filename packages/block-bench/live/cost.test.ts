@@ -85,6 +85,9 @@ describe("a request's worst case", () => {
     expect(withinReservation(request, call({ outcome: "provider-error" }))).toBe(false);
     // A call that reached the model read at least one token, and these prices are Claude Haiku 4.5's, by its whole id.
     expect(withinReservation(request, call({ inputTokens: 0, outputTokens: 0 }))).toBe(false);
+    // Tokens are whole: a fractional count proves nothing.
+    expect(withinReservation(request, call({ inputTokens: 10.5, outputTokens: 2 }))).toBe(false);
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 1.5 }))).toBe(false);
     for (const model of [undefined, "claude-opus-4-1-20250805", "claude-sonnet-4-5-20250929", "claude-haiku-5-5", "evil/claude-haiku-4-5/other", "claude-haiku-4-5-sonnet", "anthropic/claude-haiku-4-5", "ANTHROPIC/CLAUDE-HAIKU-4.5"]) {
       expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 2, model })), String(model)).toBe(false);
     }
@@ -100,9 +103,14 @@ describe("a request's worst case", () => {
     const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, ...fields });
     expect(boundedUsd([call({ inputTokens: 1000, outputTokens: 100 })])).toBeCloseTo((1000 * 1e-6 + 100 * 5e-6) * 1.05, 12);
     expect(boundedUsd([call({ source: "none", outcome: "refused" })])).toBe(0);
-    for (const [inputTokens, outputTokens] of [[null, 100], [1000, null], [-5, 100], [1000, -1], [Number.NaN, 100], [1000, Number.POSITIVE_INFINITY]]) {
+    for (const [inputTokens, outputTokens] of [[null, 100], [1000, null], [-5, 100], [1000, -1], [Number.NaN, 100], [1000, Number.POSITIVE_INFINITY], [1000.5, 100], [1000, 0.5]]) {
       expect(boundedUsd([call({ inputTokens, outputTokens })]), `${inputTokens}/${outputTokens}`).toBe(absoluteUsd(1));
     }
+    // A count that is not a whole number is no count, but what it shows still counts, rounded up to whole tokens: one
+    // past the limits charges at least that, and is past the limits.
+    const fractional = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens + 0.5 });
+    expect(boundedUsd([fractional])).toBeCloseTo((10 * 1e-6 + (2 * MODEL_LIMITS.maxOutputTokens + 1) * 5e-6) * 1.05, 12);
+    expect(pastModelLimits(fractional)).toBe(true);
     // A call reporting past the model's limits counts at what it reported, and one beside it that reported nothing on top.
     const past = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens });
     expect(boundedUsd([past, call({ inputTokens: null, outputTokens: null, outcome: "provider-error" })])).toBeCloseTo((10 * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05 + absoluteUsd(1), 12);

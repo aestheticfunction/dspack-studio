@@ -84,33 +84,35 @@ export function reportedUsd(calls: readonly ModelCallRecord[]): number {
   return calls.reduce((a, c) => (c.source === "none" ? a : a + usd(1, c.inputTokens ?? 0, c.outputTokens ?? 0)), 0);
 }
 
-/** A token count a call can be charged by: a whole, finite number, never negative. */
-const count = (n: unknown): number | undefined => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : undefined);
+/** A token count a call can be charged by: a whole number, never negative. Anything else is no count. */
+const count = (n: unknown): number | undefined => (typeof n === "number" && Number.isSafeInteger(n) && n >= 0 ? n : undefined);
+/** What a reported figure shows, whatever its form: a positive finite number, rounded up to whole tokens, or none. */
+const shown = (n: unknown): number => (typeof n === "number" && Number.isFinite(n) && n > 0 ? Math.ceil(n) : 0);
 
 /**
  * The most a reply's calls can have cost, on what they show: a call that reported both counts at what it reported,
- * one that did not at the most one call can cost (or at what it did report, if that is more), and a call that reached
- * no model at nothing. A reply that cannot be verified is charged at least this.
+ * one that did not at the most one call can cost (or at what it did show, rounded up to whole tokens, if that is
+ * more), and a call that reached no model at nothing. A reply that cannot be verified is charged at least this.
  */
 export function boundedUsd(calls: readonly ModelCallRecord[]): number {
   return calls.reduce((a, c) => {
     if (c.source === "none") return a;
     const input = count(c.inputTokens);
     const output = count(c.outputTokens);
-    const shown = usd(1, input ?? 0, output ?? 0);
-    return a + (input !== undefined && output !== undefined ? shown : Math.max(absoluteUsd(1), shown));
+    if (input !== undefined && output !== undefined) return a + usd(1, input, output);
+    return a + Math.max(absoluteUsd(1), usd(1, shown(c.inputTokens), shown(c.outputTokens)));
   }, 0);
 }
 
 /** Whether a call reported usage past Claude Haiku 4.5's documented limits, which no price here bounds. */
 export const pastModelLimits = (c: ModelCallRecord): boolean =>
-  c.source !== "none" && ((count(c.inputTokens) ?? 0) > MODEL_LIMITS.contextTokens || (count(c.outputTokens) ?? 0) > MODEL_LIMITS.maxOutputTokens);
+  c.source !== "none" && (shown(c.inputTokens) > MODEL_LIMITS.contextTokens || shown(c.outputTokens) > MODEL_LIMITS.maxOutputTokens);
 
 /**
  * Whether a call stayed inside what its request was priced at: a call that reached no model, or one naming Claude
- * Haiku 4.5 (PRICED_FAMILY) that reports both figures within the bounds, at least one input token among them, and at
- * least one output token if it answered. A call that reached a provider without reporting its usage, or the model
- * these prices are for, proves nothing.
+ * Haiku 4.5 (PRICED_FAMILY) that reports both figures as whole numbers within the bounds, at least one input token among
+ * them, and at least one output token if it answered. A call that reached a provider without reporting its usage, or
+ * the model these prices are for, proves nothing.
  */
 export function withinReservation(request: Priced, call: ModelCallRecord): boolean {
   if (call.source === "none") return true;
@@ -119,6 +121,8 @@ export function withinReservation(request: Priced, call: ModelCallRecord): boole
     PRICED_FAMILY.test(call.model) &&
     typeof call.inputTokens === "number" &&
     typeof call.outputTokens === "number" &&
+    Number.isSafeInteger(call.inputTokens) &&
+    Number.isSafeInteger(call.outputTokens) &&
     call.inputTokens >= 1 &&
     (call.outcome !== "ok" || call.outputTokens >= 1) &&
     call.inputTokens <= inputTokenBound(request) &&
