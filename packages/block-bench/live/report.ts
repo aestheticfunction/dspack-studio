@@ -39,6 +39,16 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."}${preflight.model ? ` Local model ${preflight.model.name}, digest ${preflight.model.digest ?? "unknown"}.` : ""} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
     "",
   ];
+  // Every integrity stop stays on the record, however the run ended: the cell each stopped ran again from its start.
+  const halts = result.invocations.filter((i) => i.stopped?.reason === "integrity");
+  if (halts.length > 0) {
+    out.push(
+      `Integrity stops: ${halts.length}. Each stopped the run at a call it could not trust (live/integrity.ts); the cell in flight logged no record, and the next resume ran it again from its start, drawing its result again.`,
+      "",
+      ...halts.map((i) => `- ${i.at}: ${i.stopped!.message}`),
+      "",
+    );
+  }
   type Pacing = { maxRequests: number; spacingMs: number; backoffMs: number[]; sent: number; waits: Array<{ atMs: number; ms: number; reason: string }> };
   const paced = result.invocations.filter((i) => i.telemetry.pacing);
   if (paced.length > 0) {

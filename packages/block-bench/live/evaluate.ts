@@ -98,8 +98,8 @@ export interface EvaluationResult {
   preflight: Preflight;
   /** What the provider reports about itself (pacing, waits), this invocation. */
   telemetry?: Record<string, unknown>;
-  /** Every invocation's telemetry, this one included, oldest first. */
-  invocations: Array<{ at: string; telemetry: Record<string, unknown> }>;
+  /** Every invocation's telemetry, this one included, oldest first, each with the stop that ended it early, if one did. */
+  invocations: Array<{ at: string; telemetry: Record<string, unknown>; stopped?: { reason: "cap" | "integrity" | "error"; message: string } }>;
   /** Records a re-run replaced: spent, and counted in no arm. */
   superseded: Spend;
   /** The arms this run selected (the manifest's), whether or not each has reached a cell yet. */
@@ -618,7 +618,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   const summary = summarize(records, options.decision ?? DEFAULT_DECISION);
   const telemetry = options.provider.telemetry?.();
   // Every invocation's pacing is kept: a resume must not erase the waits an earlier invocation sat through.
-  const invocation = telemetry ? { at: options.preflight.at, telemetry } : undefined;
+  const invocation = telemetry ? { at: options.preflight.at, telemetry, ...(stopped ? { stopped } : {}) } : undefined;
   if (pacingFile && invocation) appendFileSync(pacingFile, line(invocation));
   const invocations = [...earlierInvocations, ...(invocation ? [invocation] : [])];
   // Each superseded record once: a crash between moving records aside and rewriting the log can repeat a move.

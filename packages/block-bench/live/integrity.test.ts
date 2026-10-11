@@ -136,6 +136,12 @@ describe("the model a hosted run measures", () => {
       expect(resumed.stopped).toBeUndefined();
       expect(logged(dir)).toHaveLength(4);
       expect(manifestOf(dir).servedModel).toMatchObject({ id: HAIKU });
+      // The finished run keeps both stops on the record, in its summary and its report: a cell that stopped ran again.
+      const summary = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")) as { invocations: Array<{ stopped?: { reason: string } }> };
+      expect(summary.invocations.filter((i) => i.stopped?.reason === "integrity")).toHaveLength(2);
+      const report = readFileSync(join(dir, "REPORT.md"), "utf8");
+      expect(report).toMatch(/Integrity stops: 2/);
+      expect(report.match(/model-changed: /g)).toHaveLength(2);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
