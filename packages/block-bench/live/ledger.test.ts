@@ -160,13 +160,19 @@ describe("a ledger line that cannot be written", () => {
     await withRun("unwritten-request", async (dir) => {
       const w = worker(cellScript());
       hooks.append = (file, data) => {
-        if (file.endsWith("requests.jsonl") && !data.includes('"adjust"')) throw Object.assign(new Error("EIO: i/o error, write"), { code: "EIO" });
+        if (file.endsWith("requests.jsonl") && data.includes('"request"') && !data.includes('"adjust"')) throw Object.assign(new Error("EIO: i/o error, write"), { code: "EIO" });
       };
       const first = await invocation(dir, { fetchImpl: w.fetchImpl });
       expect(first.stopped).toMatchObject({ reason: "error" });
       expect(first.stopped!.message).toMatch(/could not write .*requests\.jsonl/);
       expect(w.posted()).toBe(0);
       expect(first.records).toHaveLength(0);
+      // And a ledger it cannot even settle in place at the start refuses the invocation before anything is sent.
+      hooks.append = (file, data) => {
+        if (file.endsWith("requests.jsonl") && data === "") throw Object.assign(new Error("EIO: i/o error, write"), { code: "EIO" });
+      };
+      await expect(invocation(dir, { fetchImpl: w.fetchImpl })).rejects.toThrow(/could not write .*requests\.jsonl/);
+      expect(w.posted()).toBe(0);
     });
   }, 60_000);
 });
@@ -385,6 +391,24 @@ describe("a crash of the machine loses no request that was sent", () => {
       };
       await invocation(dir, {});
       expect(order.slice(0, 3)).toEqual(["created", "synced", "send"]);
+    });
+  }, 60_000);
+
+  it("syncs an existing ledger's directory entry before a resume sends anything, whatever an earlier invocation managed", async () => {
+    await withRun("dir-entry-resume", async (dir) => {
+      await invocation(dir, { maxRequests: 0 });
+      // An earlier invocation created the ledger, and stopped before its directory entry was synced.
+      writeFileSync(join(dir, "requests.jsonl"), "");
+      const order: string[] = [];
+      hooks.fsync = (path) => {
+        if (path === dir) order.push("synced");
+      };
+      hooks.append = (file) => {
+        if (file === "<fetch>") order.push("send");
+      };
+      await invocation(dir, {});
+      expect(order.indexOf("synced")).toBeGreaterThanOrEqual(0);
+      expect(order.indexOf("synced")).toBeLessThan(order.indexOf("send"));
     });
   }, 60_000);
 

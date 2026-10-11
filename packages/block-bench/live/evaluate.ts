@@ -328,10 +328,20 @@ function replaceJson(file: string, value: unknown) {
  */
 function appendRecord(file: string, value: unknown): void {
   try {
-    const created = !existsSync(file);
     appendFileSync(file, line(value), { flush: true });
-    // A new ledger's directory entry goes to the disk too, so a crash cannot lose the file itself.
-    if (created) syncDirectory(dirname(file));
+  } catch (error) {
+    throw new RecordUnwritable(file, error);
+  }
+}
+
+/**
+ * Puts the ledger's own directory entry on the disk before an invocation sends anything: created here if it is new,
+ * and synced whatever an earlier invocation managed, so a crash cannot lose the file itself.
+ */
+function settleLedgerEntry(file: string): void {
+  try {
+    appendFileSync(file, "", { flush: true });
+    syncDirectory(dirname(file));
   } catch (error) {
     throw new RecordUnwritable(file, error);
   }
@@ -653,6 +663,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   let ledger: RunLedger | undefined;
   if (pacer && cap !== undefined) {
     const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: invocationId });
+    if (requestsFile) settleLedgerEntry(requestsFile);
     let committed = done.nanos;
     let sequence = 0;
     // The request the next settlement is for: requests are sent one at a time, and each is settled before the next.
