@@ -7,8 +7,12 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { loadProfile, type Profile } from "@aestheticfunction/dspack-emit";
 import {
+  budgetedInner,
   buildProvenanceEntry,
+  createBudget,
+  encodeCall,
   expandBlock,
   expansionDigest,
   parseBlocksSidecar,
@@ -16,9 +20,13 @@ import {
   provenanceStatus,
   pruneProvenance,
   PROVENANCE_MAX_BYTES,
+  runBlockPhase,
   validateCall,
   type BlockProvenanceEntry,
   type BlockTrace,
+  type CallEncoding,
+  type ErrorKind,
+  type StructuralAdapter,
 } from "./index";
 
 type Json = Record<string, any>;
@@ -143,3 +151,42 @@ describe("pruneProvenance", () => {
     expect(Object.keys(pruned).sort()).toEqual(["inert", "keep"]);
   });
 });
+
+/** The app's one durable block record, against a trace that saw an invalid answer before the valid one. */
+describe("provenance holds the validated named call only", () => {
+  const recordsTable = sidecar.blocks.find((b) => b.id === "records-table")!;
+  const triage = recordsTable.examples[0]!;
+  const contract = json("apps/composer/astryx-project/astryx.dspack.json");
+  const profile = loadProfile(json("apps/composer/astryx-project/astryx.profile.json") as never) as Profile;
+  const deps = {
+    classify: (): ErrorKind => "provider",
+    makeError: (_kind: string, message: string) => new Error(message),
+    lint: () => ({ pass: true, gates: ["S1", "S2", "S3"].map((gate) => ({ gate, status: "PASS", errors: [] })) }),
+  };
+  const MARK = "INVALID-ANSWER ";
+  const answers: Record<CallEncoding, Json[]> = {
+    named: [{ block: "records-table", version: 1, title: MARK.repeat(10) }, triage.call],
+    positional: [{ b: "records-table", v: 1, p: [MARK.repeat(10)] }, encodeCall(recordsTable, triage.call)],
+  };
+
+  it("never an earlier invalid answer or any literal model text, whichever encoding answered", async () => {
+    for (const encoding of ["named", "positional"] as const) {
+      const queue = [...answers[encoding]];
+      const inner: StructuralAdapter = { id: "test", generate: async () => {
+        const answer = queue.shift();
+        return { json: answer, raw: JSON.stringify(answer), model: "test-model" };
+      } };
+      const budget = createBudget(3);
+      const result = await runBlockPhase({ block: recordsTable, intent: triage.intent, goal: triage.prompt, reference: sidecar.reference, contract, profile, inner: budgetedInner(inner, budget, deps), budget, deps, encoding });
+      if (result.kind !== "expanded") throw new Error(result.kind);
+      expect(result.trace.attempts[0]!.rawText, encoding).toContain(MARK);
+      const entry = await buildProvenanceEntry(result.trace, result.surface, binding);
+      const text = JSON.stringify(entry);
+      expect(text, encoding).not.toContain(MARK);
+      expect(text, encoding).not.toMatch(/rawText|rawBlockText/);
+      expect(entry?.call, encoding).toEqual(triage.call);
+      expect(entry?.encoding, encoding).toBe("named");
+    }
+  });
+});
+

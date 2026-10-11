@@ -76,6 +76,8 @@ export interface EvaluationResult {
   invocations: Array<{ at: string; telemetry: Record<string, unknown> }>;
   /** Records a re-run replaced: spent, and counted in no arm. */
   superseded: Spend;
+  /** The arms this run selected (the manifest's), whether or not each has reached a cell yet. */
+  arms: Arm[];
   stopped?: { reason: "cap" | "error"; message: string };
   outDir?: string;
   cells: { total: number; done: number; reused: number };
@@ -383,6 +385,7 @@ export async function runEvaluation(options: EvaluationOptions): Promise<Evaluat
     ...(telemetry ? { telemetry } : {}),
     invocations,
     superseded: spent,
+    arms: [...manifest.selection.arms],
     ...(stopped ? { stopped } : {}),
     ...(outDir ? { outDir } : {}),
     cells: { total: cells.length, done: records.length, reused },

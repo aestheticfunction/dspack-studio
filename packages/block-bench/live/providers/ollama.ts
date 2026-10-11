@@ -25,6 +25,17 @@ export interface OllamaOptions {
 /** The host a run talks to: the option, else OLLAMA_HOST, else the local default. */
 export const ollamaHost = (host?: string): string => (host ?? process.env.OLLAMA_HOST ?? "http://localhost:11434").replace(/\/+$/, "");
 
+/**
+ * dspack-gen appends the head of an unusable output to its error message ("(output head: ...)"). The harness keeps
+ * the diagnosis and drops the model's text, so no failure it records carries an answer.
+ */
+function withoutOutput(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (typeof (error as { rawHead?: unknown })?.rawHead !== "string") return message;
+  const at = message.lastIndexOf(" (output head: ");
+  return at >= 0 ? message.slice(0, at) : message;
+}
+
 /** The plan's classifier for local models. */
 export function ollamaFailureKind(error: unknown): FailureKind {
   const message = error instanceof Error ? error.message : String(error);
@@ -67,7 +78,7 @@ export function createOllamaProvider(options: OllamaOptions): Provider {
     } catch (error) {
       const kind = error instanceof AdapterOutputError ? ollamaFailureKind(error) : "provider";
       at.recorder.record({ ...where, source: "provider", model: options.model, durationMs: now() - started, outcome: kind === "output" ? "unusable-output" : "provider-error" });
-      throw new HarnessError(id, error instanceof Error ? error.message : String(error), kind);
+      throw new HarnessError(id, withoutOutput(error), kind);
     }
   }
 

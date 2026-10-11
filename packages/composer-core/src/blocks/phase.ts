@@ -15,14 +15,19 @@
  * further call; a template defect (expansion, S1/S2, an emit refusal, an
  * undeclared action, non-determinism) is an invariant failure with zero
  * further calls, never handed to a model.
+ *
+ * Encoding (ADR-B2): the model answers the named call by default. Asked for
+ * the positional encoding, it answers the compact projection instead, and the
+ * answer is decoded to the named call before B1, so B2, the expansion, the
+ * trace and the next refinement's seed all read the contract either way.
  */
 import type { Profile } from "@aestheticfunction/dspack-emit";
 import { normalizeUsage, reconcileGenerationUsage, type ModelCallRecord } from "../usage";
-import { callJsonSchema, checkConstraints, validateCall, type CallIssue } from "./call";
+import { callJsonSchema, checkConstraints, decodeCall, encodeCall, validateCall, type CallEncoding, type CallIssue } from "./call";
 import { sha256Hex } from "./digest";
 import { expandBlock, expansionDigest, type ExpandedSurface } from "./expand";
 import { checkActions, emitCheck } from "./load";
-import type { BlockDefinition } from "./schema";
+import type { BlockDefinition, PropSpec, ValueSpec } from "./schema";
 
 type Json = Record<string, unknown>;
 
@@ -162,13 +167,32 @@ const SENTINEL_SCHEMA: Json = {
   properties: { unsupported: { const: true }, reason: { type: "string", maxLength: 240 } },
 };
 
-export function blockSystemPrompt(block: BlockDefinition, intent: string, reference: { name: string }, refinement: boolean): string {
+/** The compact call's wire order, as the prompt states it: each prop's index, and the field order of an object value. */
+function wireOrder(props: readonly PropSpec[]): string {
+  const shape = (spec: ValueSpec): string =>
+    spec.type === "object"
+      ? ` [${(spec.props ?? []).map((p) => `${p.name}${shape(p)}${p.required ? "" : "?"}`).join(", ")}]`
+      : spec.type === "array" && spec.items?.type === "object"
+        ? `, each item${shape(spec.items)}`
+        : "";
+  return props.map((p, i) => `${i} ${p.name}${shape(p)}${p.required ? "" : " (optional)"}`).join("; ");
+}
+
+export function blockSystemPrompt(block: BlockDefinition, intent: string, reference: { name: string }, refinement: boolean, encoding: CallEncoding = "named"): string {
   return [
     `You are filling an interface block for the "${reference.name}" design system.`,
     `Block: ${block.name} (${block.id} v${block.version}). ${block.summary}`,
     `Governed context: ${intent}.`,
-    "Answer with ONE JSON object matching the schema: the block's props only, in plain product language.",
-    "Never add a key the schema does not declare. Keep every string within its length limit and every list within its item limit.",
+    ...(encoding === "named"
+      ? [
+          "Answer with ONE JSON object matching the schema: the block's props only, in plain product language.",
+          "Never add a key the schema does not declare. Keep every string within its length limit and every list within its item limit.",
+        ]
+      : [
+          `Answer with ONE JSON object matching the schema, in the compact positional form {"b": "${block.id}", "v": ${block.version}, "p": [...]}: "p" holds the block's props by position, in plain product language.`,
+          `Positions in "p": ${wireOrder(block.props)}. An object value is an array of its fields in the order shown.`,
+          "Leave optional props off the end, and write null for a skipped optional before one you give. Never add a position the schema does not declare. Keep every string within its length limit and every list within its item limit.",
+        ]),
     ...(refinement
       ? [
           "The previous call is given. Answer with the complete revised call for the requested change.",
@@ -187,8 +211,13 @@ export function blockRepairMessage(issues: readonly CallIssue[]): string {
 
 export interface BlockCallAttempt {
   index: number;
-  /** The model's literal text. */
+  /** The model's literal text. In memory only: durableTrace keeps its sha256 and length. */
   rawText?: string;
+  /**
+   * The validated named call when the answer passed (a positional answer decoded first). For an invalid answer or
+   * the unsupported sentinel it is the model's literal JSON, so it is in memory only: durableTrace keeps a
+   * validated call alone.
+   */
   call?: unknown;
   b1: CallIssue[];
   b2: CallIssue[];
@@ -198,10 +227,17 @@ export interface BlockCallAttempt {
   outcome: "ok" | "invalid" | "unsupported" | "provider-error";
 }
 
-/** The immutable record of one block phase: complete before runPipeline starts. */
+/**
+ * The immutable record of one block phase: complete before runPipeline starts. A turn-level, in-memory artifact:
+ * it keeps the model's literal text (rawText, rawBlockText, an invalid answer's call, the sentinel's reason) for
+ * the live receipt. It is never persisted as is: durable state holds the validated named call and safe
+ * diagnostics only, so anything that stores a trace stores durableTrace(trace), and provenance stores the
+ * expansion's validated call.
+ */
 export interface BlockTrace {
   selected: { id: string; version: number; intent: string };
-  encoding: "named";
+  /** The wire form the model answered in. */
+  encoding: CallEncoding;
   blockSchemaSha256: string;
   blockSystemSha256: string;
   attempts: readonly BlockCallAttempt[];
@@ -214,10 +250,67 @@ export interface BlockTrace {
   expansionDigest?: string;
   /** The block attempt whose call was expanded. */
   expansionAttemptIndex?: number;
+  /** The expanded attempt's literal text. In memory only: durableTrace keeps its sha256 and length. */
   rawBlockText?: string;
   /** The pipeline's attempt 0 raw text is the expansion, not model text. */
   rawIsExpansion: true;
   refinement?: { applied: boolean };
+}
+
+/** A block attempt as it may be persisted: diagnostics, and the call only when it validated. */
+export interface DurableBlockAttempt {
+  index: number;
+  outcome: BlockCallAttempt["outcome"];
+  /** The validated named call (B1 and B2 passed). Absent for an invalid answer, the sentinel or a provider error. */
+  call?: Json;
+  b1: CallIssue[];
+  b2: CallIssue[];
+  /** sha256 and UTF-8 length of the model's literal text, never the text. */
+  rawSha256?: string;
+  rawBytes?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  durationMs?: number;
+}
+
+/** A trace as it may be persisted: see durableTrace. */
+export type DurableBlockTrace = Omit<BlockTrace, "attempts" | "rawBlockText"> & {
+  attempts: readonly DurableBlockAttempt[];
+  rawBlockSha256?: string;
+  rawBlockBytes?: number;
+};
+
+const UNSUPPORTED_REASON = "the model answered that this block cannot express the change";
+const utf8Bytes = (text: string) => new TextEncoder().encode(text).length;
+
+/**
+ * The governance boundary for anything that persists a trace: the validated named call and safe diagnostics,
+ * never the model's literal text. Literal answers, invalid calls and repair text become a sha256 and a length;
+ * only a validated attempt keeps its call; an unsupported refinement keeps its classification, not the sentinel's
+ * words. Issue paths, classifications, invariant reasons and the provider error's message stay: none of them is
+ * model text, provided the caller's errors carry none (the harness strips dspack-gen's output head).
+ */
+export async function durableTrace(trace: BlockTrace): Promise<DurableBlockTrace> {
+  const attempts = await Promise.all(
+    trace.attempts.map(async (a): Promise<DurableBlockAttempt> => ({
+      index: a.index,
+      outcome: a.outcome,
+      ...(a.outcome === "ok" && isObject(a.call) ? { call: a.call } : {}),
+      b1: a.b1,
+      b2: a.b2,
+      ...(a.rawText !== undefined ? { rawSha256: await sha256Hex(a.rawText), rawBytes: utf8Bytes(a.rawText) } : {}),
+      ...(a.inputTokens !== undefined ? { inputTokens: a.inputTokens } : {}),
+      ...(a.outputTokens !== undefined ? { outputTokens: a.outputTokens } : {}),
+      ...(a.durationMs !== undefined ? { durationMs: a.durationMs } : {}),
+    })),
+  );
+  const { attempts: _inMemory, rawBlockText, fallback, ...rest } = trace;
+  return {
+    ...rest,
+    attempts,
+    ...(rawBlockText !== undefined ? { rawBlockSha256: await sha256Hex(rawBlockText), rawBlockBytes: utf8Bytes(rawBlockText) } : {}),
+    ...(fallback ? { fallback: fallback.classification === "unsupported-refinement" ? { classification: fallback.classification, reason: UNSUPPORTED_REASON } : fallback } : {}),
+  };
 }
 
 export type BlockPhaseResult =
@@ -240,6 +333,8 @@ export interface BlockPhaseInput {
   deps: BlockPhaseDeps;
   /** Compact refinement: the prior turn's goal and its named call. */
   seed?: { priorGoal: string; priorCall: Json };
+  /** The wire form the model answers in (ADR-B2). Named is the default and the contract; positional is the projection Phase 1B benchmarks. */
+  encoding?: CallEncoding;
   now?: () => number;
 }
 
@@ -248,13 +343,15 @@ const isObject = (value: unknown): value is Json => !!value && typeof value === 
 export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseResult> {
   const { block, intent, goal, reference, contract, profile, inner, budget, deps, seed } = input;
   const now = input.now ?? (() => performance.now());
-  const schema: Json = seed ? { anyOf: [callJsonSchema(block, "named"), SENTINEL_SCHEMA] } : callJsonSchema(block, "named");
-  const system = blockSystemPrompt(block, intent, reference, !!seed);
+  const encoding: CallEncoding = input.encoding ?? "named";
+  const callSchema = callJsonSchema(block, encoding);
+  const schema: Json = seed ? { anyOf: [callSchema, SENTINEL_SCHEMA] } : callSchema;
+  const system = blockSystemPrompt(block, intent, reference, !!seed, encoding);
   const usedBefore = budget.used;
   const attempts: BlockCallAttempt[] = [];
   const base = {
     selected: { id: block.id, version: block.version, intent },
-    encoding: "named" as const,
+    encoding,
     blockSchemaSha256: await sha256Hex(JSON.stringify(schema)),
     blockSystemSha256: await sha256Hex(system),
     rawIsExpansion: true as const,
@@ -267,7 +364,7 @@ export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseR
   let messages: GenerateRequest["messages"] = seed
     ? [
         { role: "user", content: seed.priorGoal },
-        { role: "assistant", content: JSON.stringify(seed.priorCall) },
+        { role: "assistant", content: JSON.stringify(encoding === "positional" ? encodeCall(block, seed.priorCall) : seed.priorCall) },
         { role: "user", content: goal },
       ]
     : [{ role: "user", content: goal }];
@@ -286,8 +383,8 @@ export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseR
     const durationMs = now() - started;
     const usage = result.usage ?? {};
     const json = result.json;
-    const record = (outcome: BlockCallAttempt["outcome"], b1: CallIssue[], b2: CallIssue[]) =>
-      attempts.push({ index, rawText: result.raw, call: json, b1, b2, ...usage, durationMs, outcome });
+    const record = (outcome: BlockCallAttempt["outcome"], b1: CallIssue[], b2: CallIssue[], call: unknown = json) =>
+      attempts.push({ index, rawText: result.raw, call, b1, b2, ...usage, durationMs, outcome });
 
     if (seed && isObject(json) && json.unsupported === true) {
       record("unsupported", [], []);
@@ -295,10 +392,13 @@ export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseR
       return { kind: "fallback", reason, classification: "unsupported-refinement", trace: finish({ outcome: "fallback", fallback: { reason, classification: "unsupported-refinement" } }) };
     }
 
-    const b1 = validateCall(block, json);
-    const b2 = b1.length === 0 && isObject(json) ? checkConstraints(block, json) : [];
+    // A compact answer becomes the named call first; one that cannot is invalid like any other (B1).
+    const decoded = encoding === "positional" ? decodeCall(block, json) : undefined;
+    const call: unknown = decoded?.ok ? decoded.call : json;
+    const b1 = decoded && !decoded.ok ? decoded.issues : validateCall(block, call);
+    const b2 = b1.length === 0 && isObject(call) ? checkConstraints(block, call) : [];
     if (b1.length > 0 || b2.length > 0) {
-      record("invalid", b1, b2);
+      record("invalid", b1, b2, call);
       const issues = b1.length > 0 ? b1 : b2;
       // One feedback repair, and only while the budget can still pay for a
       // surface attempt afterwards: a repair that leaves nothing for the
@@ -310,10 +410,10 @@ export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseR
       const reason = issues.map((i) => `${i.path}: ${i.message}`).join("; ") + (index === 0 ? "; no budget for a block repair" : "");
       return { kind: "fallback", reason, classification: "invalid-call", trace: finish({ outcome: "fallback", fallback: { reason, classification: "invalid-call" } }) };
     }
-    record("ok", [], []);
+    record("ok", [], [], call);
 
     // Everything from here is deterministic machinery: a failure is a template defect.
-    const expanded = expandBlock(block, json as Json, { reference, intent });
+    const expanded = expandBlock(block, call as Json, { reference, intent });
     if (!expanded.ok) return invariant([`expansion ${expanded.path}: ${expanded.message}`]);
     let verdict: LintVerdict;
     try {
@@ -328,7 +428,7 @@ export async function runBlockPhase(input: BlockPhaseInput): Promise<BlockPhaseR
     const actions = checkActions(block, emitted.actions);
     if (actions.length > 0) return invariant(actions.map((i) => i.message));
     const digest = await expansionDigest(expanded.surface);
-    const again = expandBlock(block, json as Json, { reference, intent });
+    const again = expandBlock(block, call as Json, { reference, intent });
     if (!again.ok || (await expansionDigest(again.surface)) !== digest) return invariant(["re-expanding the same call gave different bytes"]);
     return { kind: "expanded", surface: expanded.surface, trace: finish({ outcome: "block", expansionDigest: digest, expansionAttemptIndex: index, rawBlockText: result.raw }) };
   }

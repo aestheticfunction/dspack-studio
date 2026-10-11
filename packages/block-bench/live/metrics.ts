@@ -252,9 +252,15 @@ export function selectionStats(records: readonly RunRecord[]): SelectionStats[] 
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
 }
 
+/** The arms the ADR-B3 rule reads. The positional arm is comparative (ADR-B2) and never opens or changes a decision. */
+export const DECISION_ARMS: readonly Arm[] = ["block", "capped", "production"];
+
 /** The ADR-B3 decision per reference and provider, over every evaluated result of every condition. */
 export function decide(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION): Decision[] {
-  const stats = armStats(records, { pooled: true });
+  const stats = armStats(
+    records.filter((r) => DECISION_ARMS.includes(r.arm)),
+    { pooled: true },
+  );
   const keys = new Set(stats.map((s) => `${s.reference}|${s.provider}`));
   const out: Decision[] = [];
   for (const key of keys) {

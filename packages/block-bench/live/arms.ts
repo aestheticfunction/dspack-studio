@@ -13,6 +13,8 @@
  *   budgeted primitive (3 - k - 1), on a provider failure the captured
  *   error replayed (today's failed-adapter shape), on an invariant failure
  *   no pipeline at all. A null selection is today's path, as in the app.
+ * - block-positional: the block arm with the model answering the compact
+ *   positional call (ADR-B2), decoded to the named call by the block phase.
  *
  * Refinements run on the same arm's fresh result: production and capped
  * refine over the full prior surface (refinementConversation); the block
@@ -36,6 +38,7 @@ import {
   budgetedInner,
   createBudget,
   decideRefinement,
+  durableTrace,
   expansionDigest,
   preloadedAdapter,
   reconcileBlockChoice,
@@ -45,6 +48,7 @@ import {
   type BlockDefinition,
   type BlockPhaseDeps,
   type BlockTrace,
+  type DurableBlockTrace,
   type StructuralAdapter,
 } from "@dspack-studio/composer-core/blocks";
 import { parityComponents, refinementFor, type Corpus, type CorpusPrompt } from "./corpus";
@@ -132,6 +136,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const now = input.now ?? (() => performance.now());
   const clock = input.clock ?? (() => new Date().toISOString());
   const key = { reference: reference.id, provider: provider.id, arm, prompt: prompt.id, condition };
+  const blockArm = arm === "block" || arm === "block-positional";
+  const encoding = arm === "block-positional" ? ("positional" as const) : ("named" as const);
   const expected = { intent: prompt.expectedIntent, block: prompt.block };
   const empty = (): RunRecord => ({
     ...key,
@@ -172,19 +178,19 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     const planMeter = createMeter();
     if (!provider.plansWithModel) {
       plan = planDeterministic(goal, contract);
-      if (arm === "block") plan = { ...plan, block: selectBlockDeterministic(goal, plan.intent, eligible) };
+      if (blockArm) plan = { ...plan, block: selectBlockDeterministic(goal, plan.intent, eligible) };
     } else {
-      const request = arm === "block" ? withBlockChoice(buildPlanRequest(goal, contract), eligible) : buildPlanRequest(goal, contract);
+      const request = blockArm ? withBlockChoice(buildPlanRequest(goal, contract), eligible) : buildPlanRequest(goal, contract);
       try {
         const json = await provider.plan(request, { recorder: planRecorder, meter: planMeter });
         plan = reconcilePlan(json, contract, goal);
-        if (arm === "block") plan = { ...plan, block: reconcileBlockChoice(json, { intent: plan.intent, eligible }) };
+        if (blockArm) plan = { ...plan, block: reconcileBlockChoice(json, { intent: plan.intent, eligible }) };
       } catch (error) {
         if (error instanceof PacingCapReached) throw error;
         const kind = failureKindOf(error);
         planFailure = { kind: kind === "output" || kind === "policy" ? kind : "provider", message: error instanceof Error ? error.message : String(error) };
         plan = planDeterministic(goal, contract);
-        if (arm === "block") plan = { ...plan, block: { id: null, reason: "planning-provider-failure", source: "deterministic" } };
+        if (blockArm) plan = { ...plan, block: { id: null, reason: "planning-provider-failure", source: "deterministic" } };
       }
     }
     planMs = now() - started;
@@ -237,7 +243,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const cappedAdapter = (budget: ReturnType<typeof createBudget>) =>
     observed(budgetedInner(provider.surfaceAdapter({ recorder, meter, refinement: refining, maxCalls: 1, ...scripted }), budget, deps), seen);
 
-  let trace: BlockTrace | undefined;
+  // What the record and the next refinement keep: the durable trace, never the model's literal text.
+  let trace: DurableBlockTrace | undefined;
   const pipeline = async (adapter: StructuralAdapter, maxRepairs: number) => {
     result = await runPipeline({
       contract: contract as never,
@@ -260,13 +267,13 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const blockRun = async (block: BlockDefinition, runIntent: string, runGoal: string, seed?: { priorGoal: string; priorCall: Json }): Promise<Path> => {
     const budget = createBudget(BUDGET);
     const surfaceInner = cappedAdapter(budget);
-    const blockInner = budgetedInner(provider.blockAdapter({ recorder, meter, refinement: !!seed, maxCalls: 1, block, intent: runIntent, goal: runGoal, ...(seed ? { seed } : {}), ...scripted }), budget, deps);
+    const blockInner = budgetedInner(provider.blockAdapter({ recorder, meter, refinement: !!seed, maxCalls: 1, block, intent: runIntent, goal: runGoal, encoding, ...(seed ? { seed } : {}), ...scripted }), budget, deps);
     const started = now();
-    const result = await runBlockPhase({ block, intent: runIntent, goal: runGoal, reference: { name: reference.name }, contract, profile, inner: blockInner, budget, deps, ...(seed ? { seed } : {}) });
+    const result = await runBlockPhase({ block, intent: runIntent, goal: runGoal, reference: { name: reference.name }, contract, profile, inner: blockInner, budget, deps, encoding, ...(seed ? { seed } : {}) });
     blockPhaseMs = now() - started;
     // The block phase classifies every throw; the run's own stop signal is not a provider failure.
     if (result.kind === "provider-failure" && result.error instanceof PacingCapReached) throw result.error;
-    trace = result.trace;
+    trace = await durableTrace(result.trace);
     switch (result.kind) {
       case "expanded": {
         const mirror = { block: block.id, version: block.version, expansionDigest: result.trace.expansionDigest, rawIsExpansion: true };
@@ -307,7 +314,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
       path = "switch";
       refinement = { mode: "switch", retained: false, reason: decision.reason };
       const selected = ((prior.progress.block as Json | undefined)?.selected ?? {}) as Json;
-      trace = switchTrace({ id: String(selected.id ?? ""), version: Number(selected.version ?? 0), intent: String(selected.intent ?? intent) }, decision.reason);
+      trace = await durableTrace(switchTrace({ id: String(selected.id ?? ""), version: Number(selected.version ?? 0), intent: String(selected.intent ?? intent) }, decision.reason));
       await pipeline(cappedAdapter(createBudget(BUDGET)), BUDGET - 1);
     } else {
       const block = eligible.find((b) => b.id === decision.seed.id)!;
@@ -350,7 +357,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   // Selection is scored on the planner's ANSWER: a block it named that reconciliation withdrew is still its answer.
   // An unusable planning output is no answer at all: neither a null nor a block, and never correct.
   const selection: RunRecord["selection"] =
-    arm === "block" && condition === "fresh" && choice
+    blockArm && condition === "fresh" && choice
       ? planFailure
         ? { chosen: null, source: choice.source, planningFailed: true, correct: false }
         : { chosen: choice.id, source: choice.source, ...(choice.rejected ? { rejected: choice.rejected } : {}), correct: (choice.rejected ?? choice.id) === prompt.block }

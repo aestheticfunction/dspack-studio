@@ -6,7 +6,7 @@
  */
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import type { CallRecorder, Usage } from "@dspack-studio/composer-core";
-import type { BlockDefinition, ErrorKind, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
+import type { BlockDefinition, CallEncoding, ErrorKind, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
 import { PacingCapReached } from "../pacing";
 import type { FailureKind } from "../types";
 
@@ -31,6 +31,8 @@ export interface BlockAdapterOptions extends AdapterOptions {
   block: BlockDefinition;
   intent: string;
   goal: string;
+  /** The encoding the block phase asks for; the request carries it, and the scripted provider answers in it. */
+  encoding: CallEncoding;
   seed?: { priorGoal: string; priorCall: Record<string, unknown> };
 }
 

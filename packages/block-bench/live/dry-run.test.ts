@@ -18,7 +18,10 @@ import { preflight, readOllamaModel, type Preflight } from "./preflight";
 import { createScriptedProvider } from "./providers/scripted";
 import { HarnessError, requestBytes, type Provider } from "./providers/types";
 import { loadReference, type LoadedReference } from "./references";
-import type { Condition } from "./types";
+import { decide } from "./metrics";
+import { PacingCapReached } from "./pacing";
+import { renderReport } from "./report";
+import { ARMS, type Arm, type Condition } from "./types";
 
 let corpus: Corpus;
 let references: LoadedReference[];
@@ -45,7 +48,8 @@ describe("dry run", () => {
     const promptIds = ["rt-01", "af-01", "gs-01", "nb-01"];
     const result = await runEvaluation({ runId: "dry-1", provider: createScriptedProvider(), references, corpus, preflight: pre, allowDrafts: true, promptIds, outDir: out, clock: () => "2026-10-10T00:00:00.000Z" });
     const cells = planCells({ references, corpus, promptIds });
-    expect(cells.length).toBe(2 * 4 * 3 * 5);
+    expect(ARMS).toContain("block-positional");
+    expect(cells.length).toBe(2 * 4 * ARMS.length * 5);
     expect(result.cells).toEqual({ total: cells.length, done: cells.length, reused: 0 });
     expect(result.stopped).toBeUndefined();
     expect(readRecords(join(out, "runs.jsonl"))).toHaveLength(cells.length);
@@ -149,11 +153,13 @@ function transient(failing: { on: boolean }): Provider {
 
 describe("a run directory stays whole across resumes", () => {
   const fresh: Condition[] = ["fresh"];
+  /** These tests are about the run directory, not the arm set: the three ADR-B4 arms keep their counts fixed. */
+  const arms: Arm[] = ["block", "capped", "production"];
 
   it("re-running a failed fresh cell re-runs the refinements skipped for want of it, and keeps what the failed attempt spent", async () => {
     const out = join(dir, "run-dependents");
     const failing = { on: true };
-    const base = { runId: "dependents", provider: transient(failing), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], outDir: out };
+    const base = { runId: "dependents", provider: transient(failing), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], arms, outDir: out };
     const first = await runEvaluation(base);
     const firstFresh = first.records.filter((r) => r.condition === "fresh");
     expect(firstFresh.map((r) => r.failure?.rerunEligible)).toEqual([true, true, true]);
@@ -175,7 +181,7 @@ describe("a run directory stays whole across resumes", () => {
 
   it("a torn last line (an append cut off) is set aside and its cell runs again; a corrupt line elsewhere is refused with its file and line", async () => {
     const out = join(dir, "run-torn");
-    const base = { runId: "torn", provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: fresh, outDir: out };
+    const base = { runId: "torn", provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: fresh, arms, outDir: out };
     await runEvaluation(base);
     const log = join(out, "runs.jsonl");
     const lines = readFileSync(log, "utf8").split("\n").filter(Boolean);
@@ -216,7 +222,7 @@ describe("a run directory stays whole across resumes", () => {
   it("refuses a resume when a sidecar's content, the emit profile, the code or the local model changed, even under the same ids and versions", async () => {
     const out = join(dir, "run-identity");
     const ref = references[0]!;
-    const base = { runId: "identity", provider: createScriptedProvider(), references: [ref], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: fresh, outDir: out };
+    const base = { runId: "identity", provider: createScriptedProvider(), references: [ref], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: fresh, arms, outDir: out };
     await runEvaluation(base);
     const sidecar = ref.sidecar!;
     const edited = { ...ref, sidecar: { ...sidecar, blocks: sidecar.blocks.map((b, i) => (i === 0 ? { ...b, summary: `${b.summary} Edited.` } : b)) } };
@@ -257,3 +263,76 @@ describe("a run directory stays whole across resumes", () => {
     expect(p.model).toEqual({ name: "gpt-oss:latest", digest: "sha256:aaa" });
   });
 });
+
+describe("named against positional in the report (ADR-B2)", () => {
+  it("sets the two encodings side by side per condition, and the ADR-B3 decision is the same with or without the positional arm", async () => {
+    const out = join(dir, "run-positional");
+    const result = await runEvaluation({ runId: "positional", provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01", "af-01", "nb-01"], outDir: out });
+    expect([...new Set(result.records.map((r) => r.arm))].sort()).toEqual(["block", "block-positional", "capped", "production"]);
+    const report = readFileSync(join(out, "REPORT.md"), "utf8");
+    expect(report).toContain("### Named vs positional encoding (ADR-B2)");
+    for (const condition of ["all", "fresh", "refine-content"]) {
+      expect(report).toMatch(new RegExp(`\\| ${condition} \\| named \\|`));
+      expect(report).toMatch(new RegExp(`\\| ${condition} \\| positional \\|`));
+    }
+    expect(report).not.toContain("the block phase takes the named encoding only");
+    // The rule reads the named block arm against the primitive arms; the positional arm informs ADR-B2 and decides nothing.
+    expect(decide(result.records)).toEqual(decide(result.records.filter((r) => r.arm !== "block-positional")));
+    expect(report.split("## Decision (ADR-B3)")[1]!.split("\n## ")[0]).not.toContain("positional");
+    const without = await runEvaluation({ runId: "named-only", provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], arms: ["block", "capped", "production"] });
+    const named = renderReport(without, { providerId: "fake:scripted", corpus });
+    expect(named).not.toContain("### Named vs positional encoding (ADR-B2)");
+    expect(named).toContain("Named vs positional encoding: the block-positional arm was not in this run's selection.");
+  }, 120_000);
+
+  it("tells an arm left out of the selection from one the run stopped before reaching", async () => {
+    let admitted = 0;
+    // A cap that admits the named block arm's five cells of the first prompt, then stops the run.
+    const stopping: Provider = { ...createScriptedProvider(), beforeCell: () => {
+      if (++admitted > 5) throw new PacingCapReached(5);
+    } };
+    const stopped = await runEvaluation({ runId: "stopped", provider: stopping, references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"] });
+    expect(stopped.stopped?.reason).toBe("cap");
+    expect(stopped.records.map((r) => r.arm)).toEqual(new Array(5).fill("block"));
+    const report = renderReport(stopped, { providerId: "fake:scripted", corpus });
+    expect(report).not.toContain("was not in this run's selection");
+    expect(report).not.toContain("### Named vs positional encoding (ADR-B2)");
+    expect(report).toContain("Named vs positional encoding: the block-positional arm is selected, but the run stopped before any of its cells ran; resume the run to reach it.");
+  }, 120_000);
+});
+
+describe("the run log keeps no raw model output", () => {
+  it("leaves out invalid answers, repair text, literal positional answers and the sentinel's words, and keeps validated calls, hashes and issue paths", async () => {
+    const astryx = references[0]!;
+    // A block prompt that draws an invalid first block call, and that the deterministic planner routes to its block.
+    const prompt = promptsFor(corpus, "astryx").find((p) => p.block !== null && faultFor(p.goal, true) === "invalid-block-call" && planDeterministic(p.goal, astryx.contract).intent === p.expectedIntent)!;
+    const faulty = join(dir, "run-durable-faults");
+    await runEvaluation({ runId: "durable-faults", provider: createScriptedProvider({ faults: true }), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: [prompt.id], arms: ["block", "block-positional"], conditions: ["fresh"], outDir: faulty });
+    const sentinel = join(dir, "run-durable-sentinel");
+    await runEvaluation({ runId: "durable-sentinel", provider: createScriptedProvider(), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], arms: ["block", "block-positional"], conditions: ["fresh", "refine-structural"], outDir: sentinel });
+    const log = readFileSync(join(faulty, "runs.jsonl"), "utf8") + readFileSync(join(sentinel, "runs.jsonl"), "utf8");
+    const records = [...readRecords(join(faulty, "runs.jsonl")), ...readRecords(join(sentinel, "runs.jsonl"))];
+    const attempts = records.flatMap((r) => ((r.trace as { attempts?: Array<Record<string, unknown>> } | undefined)?.attempts ?? []));
+    // The paths really ran: an invalid answer, its repair, compact answers and the sentinel.
+    expect(attempts.filter((a) => a.outcome === "invalid")).toHaveLength(2);
+    expect(attempts.filter((a) => a.outcome === "unsupported")).toHaveLength(2);
+    expect(records.filter((r) => (r.trace as { encoding?: string } | undefined)?.encoding === "positional").length).toBeGreaterThan(0);
+    // None of their literal text reaches the log.
+    expect(log).not.toMatch(/"rawText"|"rawBlockText"/);
+    expect(log).not.toContain(JSON.stringify({ block: prompt.block, version: 1 }));
+    expect(log).not.toContain(JSON.stringify({ b: prompt.block, v: 1, p: [] }));
+    expect(log).not.toContain('"p":[');
+    expect(log).not.toContain("changes the block's structure");
+    // What stays: the validated named call, hashes, byte counts, issue paths and classifications.
+    for (const a of attempts) {
+      expect(a.rawSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(a.rawBytes).toBeGreaterThan(0);
+      if (a.outcome === "ok") expect(a.call).toMatchObject({ block: expect.any(String), version: 1 });
+      else expect(a).not.toHaveProperty("call");
+    }
+    expect(attempts.filter((a) => a.outcome === "invalid").every((a) => (a.b1 as unknown[]).length > 0)).toBe(true);
+    const fellBack = records.filter((r) => r.condition === "refine-structural");
+    expect(fellBack.map((r) => r.refinement?.reason)).toEqual(new Array(2).fill("the model answered that this block cannot express the change"));
+  }, 120_000);
+});
+

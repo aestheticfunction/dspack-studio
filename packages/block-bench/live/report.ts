@@ -2,6 +2,7 @@
 import type { Corpus } from "./corpus";
 import type { EvaluationResult } from "./evaluate";
 import type { ArmStats } from "./metrics";
+import { CONDITIONS } from "./types";
 
 const row = (cells: Array<string | number | null | undefined>) => `| ${cells.map((c) => (c === null || c === undefined ? "n/a" : String(c))).join(" | ")} |`;
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? "n/a" : `${(100 * v).toFixed(1)}%`);
@@ -115,6 +116,19 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, pct(s.passRate), pct(s.changedRate), pct(s.retention), `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`, s.rerunEligible]));
       out.push("");
     }
+    if (stats.some((x) => x.arm === "block-positional")) {
+      const pooled = summary.pooled.filter((x) => `${x.reference} on ${x.provider}` === title);
+      out.push("### Named vs positional encoding (ADR-B2)", "");
+      out.push(row(["Condition", "Encoding", "Cells", "Evaluated", "Pass rate", "Tokens/success (metered runs / successes)", "Input", "Output", "Provider calls/run", "Request bytes/run", "p50 block phase"]));
+      out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
+      for (const condition of ["all", ...CONDITIONS]) {
+        for (const [encoding, arm] of [["named", "block"], ["positional", "block-positional"]] as const) {
+          const s = (condition === "all" ? pooled : stats).find((x) => x.arm === arm && x.condition === condition);
+          if (s) out.push(row([condition, encoding, s.n, s.evaluated, pct(s.passRate), `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`, num(s.inputTokensPerSuccess), num(s.outputTokensPerSuccess), num(s.providerCallsPerRun, 2), num(s.requestBytesPerRun), ms(s.latency.blockPhaseMs)]));
+        }
+      }
+      out.push("", "The same named call on the wire two ways: the positional answer is decoded to the named call before B1, so the gates, the expansion and the parity check are the named arm's. The ADR-B3 decision reads the named block arm; this comparison informs ADR-B2 and decides nothing.", "");
+    }
     const failures = stats.filter((x) => x.rerunEligible > 0);
     if (failures.length > 0) {
       out.push("### Provider and policy failures (re-run symmetrically; not arm results)", "");
@@ -123,7 +137,21 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       out.push("");
     }
   }
-  out.push("## Not measured in this run", "", "- Named vs positional encoding: the block phase takes the named encoding only; the request sizes of both are measured offline in `packages/block-bench/results.json`.", "- Time to first valid preview equals completion today (ADR-B3) and is the p50 total above.", "");
+  // Three states: not selected, selected but not reached (the run stopped first), reached (the table above).
+  const positional = !result.arms.includes("block-positional")
+    ? "the block-positional arm was not in this run's selection."
+    : summary.arms.some((x) => x.arm === "block-positional")
+      ? null
+      : result.stopped
+        ? "the block-positional arm is selected, but the run stopped before any of its cells ran; resume the run to reach it."
+        : "the block-positional arm is selected, but no cell of it was planned.";
+  out.push(
+    "## Not measured in this run",
+    "",
+    ...(positional ? [`- Named vs positional encoding: ${positional}`] : []),
+    "- Time to first valid preview equals completion today (ADR-B3) and is the p50 total above.",
+    "",
+  );
   out.push(`Totals: ${summary.totals.records} records, ${summary.totals.completed} completed, ${summary.totals.providerCalls} provider calls, ${summary.totals.inputTokens} input and ${summary.totals.outputTokens} output tokens reported, ${summary.totals.requestBytes} request bytes.`, "");
   const s = result.superseded;
   if (s.records > 0) {
