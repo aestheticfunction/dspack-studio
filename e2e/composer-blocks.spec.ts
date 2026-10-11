@@ -53,15 +53,15 @@ const ok = (json: unknown) => ({ status: 200, body: { json, raw: JSON.stringify(
 const planFor = (intent: string, block: string | null) => ok({ intent, feasible: true, restated: `A ${intent} surface.`, reason: "it fits", block, blockReason: block ? `the goal is a ${block}` : "nothing fits" });
 const providerDown = () => ({ status: 502, body: { error: "provider-unavailable", cause: "provider", message: "The shared generation gateway is busy right now.", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 45000 }] } });
 
-test("the Settings preference persists across a reload, and each reference reports its draft blocks", async ({ page }) => {
+test("the Settings preference persists across a reload, and each reference reports its blocks and their status", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("nav-settings").click();
   const toggle = page.getByTestId("experimental-blocks");
   await expect(toggle).not.toBeChecked();
   await toggle.check();
   await expect(page.getByTestId("experimental-blocks-shadcn")).toContainText(/binding ok/);
-  await expect(page.getByTestId("experimental-blocks-shadcn")).toContainText("auth-form (draft)");
-  await expect(page.getByTestId("experimental-blocks-astryx")).toContainText("records-table (draft)");
+  await expect(page.getByTestId("experimental-blocks-shadcn")).toContainText("auth-form (approved)");
+  await expect(page.getByTestId("experimental-blocks-astryx")).toContainText("records-table (approved)");
   await page.reload();
   await page.getByTestId("nav-settings").click();
   await expect(page.getByTestId("experimental-blocks")).toBeChecked();

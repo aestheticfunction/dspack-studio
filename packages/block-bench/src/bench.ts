@@ -297,7 +297,7 @@ function drafts(ref: (typeof REFERENCES)[number], sidecar: BlocksSidecar, contra
       const golden = read(goldenPath(ref.id, block.id, example));
       const today = generation.find((g) => g.intent === example.intent && g.mode === "fresh");
       return {
-        provisional: true,
+        provisional: block.status !== "approved",
         block: block.id,
         status: block.status,
         example: example.id,

@@ -4,9 +4,9 @@ The owner's harness for docs/BLOCKS.md, ADR-B3. Everything it measures runs thro
 
 ```
 pnpm --filter @dspack-studio/block-bench baseline                    # record the deployed baseline (no provider call)
-pnpm --filter @dspack-studio/block-bench eval:live -- --provider scripted --allow-drafts --limit 2   # dry run, no model
-pnpm --filter @dspack-studio/block-bench eval:live -- --provider hosted --allow-drafts --max-requests 200 --spacing-ms 3000
-pnpm --filter @dspack-studio/block-bench eval:live -- --provider ollama:gpt-oss:latest --allow-drafts
+pnpm --filter @dspack-studio/block-bench eval:live -- --provider scripted --limit 2   # dry run, no model
+pnpm --filter @dspack-studio/block-bench eval:live -- --provider hosted --max-requests 200 --spacing-ms 3000
+pnpm --filter @dspack-studio/block-bench eval:live -- --provider ollama:gpt-oss:latest
 pnpm --filter @dspack-studio/block-bench eval:live -- --provider hosted --resume live/runs/<dir> --rerun-failed
 ```
 

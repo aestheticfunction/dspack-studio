@@ -50,7 +50,7 @@ Token counts: js-tiktoken o200k_base (offline estimate; not Claude's tokenizer).
 | ex.import-run-status | 313 | 425 | 536 |
 | ex.orders-table-loading | 589 | 237 | 1205 |
 
-### Draft blocks (provisional: drafts, not owner-approved)
+### Blocks (owner-approved)
 
 | Block | Intent | Named call tokens | Positional call tokens | Expanded surface tokens | Block schema tokens (named) | Surface schema tokens today | S1/S2/S3 | Emitted actions |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
@@ -93,7 +93,7 @@ B0 parity: 116 generation-schema components; component set matches; id-required 
 | ex.signup-basic | 186 | 267 | 209 |
 | ex.plan-comparison | 300 | 377 | 280 |
 
-### Draft blocks (provisional: drafts, not owner-approved)
+### Blocks (owner-approved)
 
 | Block | Intent | Named call tokens | Positional call tokens | Expanded surface tokens | Block schema tokens (named) | Surface schema tokens today | S1/S2/S3 | Emitted actions |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |

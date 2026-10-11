@@ -37,9 +37,21 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 afterEach(() => vi.unstubAllGlobals());
 
 describe("dry run", () => {
-  it("refuses drafts unless allowed, and names why", async () => {
-    expect(pre.drafts).toBe(true);
-    await expect(runEvaluation({ runId: "x", provider: createScriptedProvider(), references, corpus, preflight: pre })).rejects.toThrow(/approved sidecars only/);
+  it("runs on the approved sidecars with no allowance, and refuses a draft sidecar or block unless allowed, marking that run provisional", async () => {
+    expect(pre.drafts).toBe(false);
+    const fresh = { promptIds: ["rt-01"], conditions: ["fresh"] as Condition[] };
+    await expect(runEvaluation({ runId: "approved", provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, ...fresh })).resolves.toMatchObject({ cells: { done: ARMS.length } });
+    const ref = references[0]!;
+    const draftSidecar = { ...ref, sidecar: { ...ref.sidecar!, status: "draft" as const } };
+    const draftBlock = { ...ref, blocks: ref.blocks.map((b, i) => (i === 0 ? { ...b, status: "draft" as const } : b)) };
+    for (const draft of [draftSidecar, draftBlock]) {
+      const draftPre = await preflight({ references: [draft] });
+      expect(draftPre.drafts).toBe(true);
+      await expect(runEvaluation({ runId: "x", provider: createScriptedProvider(), references: [draft], corpus, preflight: draftPre, ...fresh })).rejects.toThrow(/approved sidecars only/);
+    }
+    const out = join(dir, "run-draft");
+    await runEvaluation({ runId: "draft", provider: createScriptedProvider(), references: [draftSidecar], corpus, preflight: await preflight({ references: [draftSidecar] }), allowDrafts: true, outDir: out, ...fresh });
+    expect(readFileSync(join(out, "REPORT.md"), "utf8")).toContain("**Provisional.**");
   });
 
   it("runs every cell prompt-major, logs each record, writes the summary and the report, and never touches the network", async () => {
@@ -83,7 +95,7 @@ describe("dry run", () => {
     const report = readFileSync(join(out, "REPORT.md"), "utf8");
     expect(report).toContain("# Interface-blocks live evaluation (Phase 1B): run dry-1");
     expect(report).toContain("**Dry run.**");
-    expect(report).toContain("**Provisional.**");
+    expect(report).not.toContain("**Provisional.**");
     expect(report).toContain("### Selection accuracy (block arm, fresh)");
     expect(report).toContain("| refine-content | block |");
     expect(fetch).not.toHaveBeenCalled();

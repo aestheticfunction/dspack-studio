@@ -996,9 +996,9 @@
       ],
       "drafts": [
         {
-          "provisional": true,
+          "provisional": false,
           "block": "records-table",
-          "status": "draft",
+          "status": "approved",
           "example": "blk.support-queue",
           "intent": "record-collection",
           "golden": "packages/block-bench/goldens/shadcn-v3/records-table.blk.support-queue.dsurface.json",
@@ -1062,9 +1062,9 @@
           ]
         },
         {
-          "provisional": true,
+          "provisional": false,
           "block": "auth-form",
-          "status": "draft",
+          "status": "approved",
           "example": "blk.sign-in",
           "intent": "structured-input",
           "golden": "packages/block-bench/goldens/shadcn-v3/auth-form.blk.sign-in.dsurface.json",
@@ -1132,9 +1132,9 @@
           ]
         },
         {
-          "provisional": true,
+          "provisional": false,
           "block": "guide-steps",
-          "status": "draft",
+          "status": "approved",
           "example": "blk.tomato-pasta",
           "intent": "record-detail",
           "golden": "packages/block-bench/goldens/shadcn-v3/guide-steps.blk.tomato-pasta.dsurface.json",
@@ -1776,9 +1776,9 @@
       ],
       "drafts": [
         {
-          "provisional": true,
+          "provisional": false,
           "block": "records-table",
-          "status": "draft",
+          "status": "approved",
           "example": "blk.support-triage",
           "intent": "record-collection",
           "golden": "packages/block-bench/goldens/astryx/records-table.blk.support-triage.dsurface.json",
@@ -1841,9 +1841,9 @@
           ]
         },
         {
-          "provisional": true,
+          "provisional": false,
           "block": "auth-form",
-          "status": "draft",
+          "status": "approved",
           "example": "blk.sign-up",
           "intent": "data-collection",
           "golden": "packages/block-bench/goldens/astryx/auth-form.blk.sign-up.dsurface.json",
@@ -1910,9 +1910,9 @@
           ]
         },
         {
-          "provisional": true,
+          "provisional": false,
           "block": "guide-steps",
-          "status": "draft",
+          "status": "approved",
           "example": "blk.weeknight-pasta",
           "intent": "structured-editing",
           "golden": "packages/block-bench/goldens/astryx/guide-steps.blk.weeknight-pasta.dsurface.json",

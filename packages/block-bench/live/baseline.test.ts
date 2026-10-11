@@ -108,7 +108,7 @@ describe("pnpm --filter @dspack-studio/block-bench baseline", () => {
     const file = join(invoked, "docs/blocks/baseline.json");
     expect(existsSync(join(PACKAGE_DIR, "docs/blocks/baseline.json"))).toBe(false);
     const record = JSON.parse(readFileSync(file, "utf8"));
-    expect(record).toMatchObject({ baseUrl: origin, buildId: BUILD, worker: { shape: "phase-0.5", status: 400, error: "invalid-request", calls: [] }, models: ["scripted", "hosted-ai"], drafts: true });
+    expect(record).toMatchObject({ baseUrl: origin, buildId: BUILD, worker: { shape: "phase-0.5", status: 400, error: "invalid-request", calls: [] }, models: ["scripted", "hosted-ai"], drafts: false });
     expect(Number.isNaN(Date.parse(record.at))).toBe(false);
     expect(run.stdout).toContain(`baseline: wrote ${file}`);
   }, 60_000);
