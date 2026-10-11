@@ -18,6 +18,7 @@ import { MODEL_FAMILY, RunHalted } from "./integrity";
 import { createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { createHostedProvider } from "./providers/hosted";
+import { createOllamaProvider } from "./providers/ollama";
 import { createMeter } from "./providers/types";
 import { loadReference, type LoadedReference } from "./references";
 
@@ -234,6 +235,99 @@ describe("a resume holds to the model the run measured, whatever its manifest no
       expect(resumed.stopped).toBeUndefined();
       expect(logged(dir)).toHaveLength(4);
       expect(manifestOf(dir).servedModel).toMatchObject({ id: HAIKU });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  /** A run directory measured on Haiku 4.5 (as `measured`), its files then changed by `change`; deleted afterwards. */
+  const withMeasured = async (change: (dir: string) => void, body: (dir: string) => Promise<void>) => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
+    try {
+      await measured(dir);
+      change(dir);
+      await body(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+  const loseLedger = (dir: string) => rmSync(join(dir, "requests.jsonl"));
+
+  it("holds a resume to the model a logged cell names, even with its ledger deleted and the log's last newline lost, so no result mixes two models", async () => {
+    // A whole record whose newline was lost is a logged result (readLog keeps it), so it counts as measured.
+    await withMeasured(
+      (dir) => {
+        loseLedger(dir);
+        writeFileSync(join(dir, "runs.jsonl"), readFileSync(join(dir, "runs.jsonl"), "utf8").trimEnd());
+      },
+      async (dir) => {
+        const resumed = await invocation(dir, worker(() => OTHER).fetchImpl);
+        expect(resumed.stopped?.message).toMatch(/^model-changed: /);
+        expect(logged(dir)).toHaveLength(1);
+        expect(manifestOf(dir).servedModel).toMatchObject({ id: HAIKU });
+        expect(manifestOf(dir).setAside).toBeUndefined();
+      },
+    );
+  }, 60_000);
+
+  it("reads a cell a re-run replaced as measured too", async () => {
+    // Right after --rerun-failed moves a record aside, only runs.superseded.jsonl names the model it was measured on.
+    await withMeasured(
+      (dir) => {
+        loseLedger(dir);
+        writeFileSync(join(dir, "runs.superseded.jsonl"), readFileSync(join(dir, "runs.jsonl"), "utf8"));
+        writeFileSync(join(dir, "runs.jsonl"), "");
+      },
+      async (dir) => {
+        tamper(dir, undefined);
+        const w = worker(() => OTHER);
+        await expect(invocation(dir, w.fetchImpl)).rejects.toThrow(new RegExp(`^resume refused: .*${HAIKU}`, "s"));
+        expect(w.posted()).toBe(0);
+      },
+    );
+  }, 60_000);
+
+  it("refuses a run whose records show two models, whatever its manifest names", async () => {
+    await withMeasured(
+      (dir) => writeFileSync(join(dir, "runs.jsonl"), readFileSync(join(dir, "runs.jsonl"), "utf8").replaceAll(HAIKU, OTHER)),
+      async (dir) => {
+        for (const servedModel of [{ id: HAIKU, at: manifestOf(dir).servedModel.at }, { id: OTHER, at: manifestOf(dir).servedModel.at }, undefined]) {
+          tamper(dir, servedModel);
+          const w = worker(() => HAIKU);
+          await expect(invocation(dir, w.fetchImpl), JSON.stringify(servedModel)).rejects.toThrow(/^resume refused: .*cannot be held to one model/s);
+          expect(w.posted()).toBe(0);
+        }
+      },
+    );
+  }, 60_000);
+
+  it("sets aside a cut-off last line of the run log, which names no model, and resumes", async () => {
+    await withMeasured(
+      (dir) => writeFileSync(join(dir, "runs.jsonl"), `${readFileSync(join(dir, "runs.jsonl"), "utf8")}{"calls":[{"source":"provider","model":"claude-haiku`),
+      async (dir) => {
+        const resumed = await invocation(dir, worker(() => HAIKU).fetchImpl);
+        expect(resumed.stopped).toBeUndefined();
+        expect(logged(dir)).toHaveLength(4);
+        expect(readFileSync(join(dir, "runs.torn.jsonl"), "utf8")).toContain('"model":"claude-haiku');
+      },
+    );
+  }, 60_000);
+
+  it("leaves a local model's run alone: its resume is never held to the models its calls name", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-integrity-"));
+    try {
+      const host = "http://127.0.0.1:9";
+      const ollama = (async (url: string) =>
+        String(url).endsWith("/api/tags")
+          ? new Response(JSON.stringify({ models: [{ name: "gpt-oss:latest", digest: "sha256:0123" }] }))
+          : new Response(JSON.stringify({ model: "gpt-oss:latest", message: { role: "assistant", content: "not json" }, done: true, prompt_eval_count: 10, eval_count: 5 }))) as unknown as typeof fetch;
+      const pre = await preflight({ references: [astryx], ollama: { host, model: "gpt-oss:latest" }, fetchImpl: ollama });
+      const run = (resume: boolean) =>
+        runEvaluation({ runId: "local", provider: createOllamaProvider({ model: "gpt-oss:latest", host, fetchImpl: ollama }), references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], arms: ["production"], conditions: ["fresh"], outDir: dir, resume });
+      await run(false);
+      expect(logged(dir)).toHaveLength(1);
+      expect(logged(dir)[0]).toContain('"model":"gpt-oss:latest"');
+      await expect(run(true)).resolves.toMatchObject({ cells: { done: 1, reused: 1 } });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
