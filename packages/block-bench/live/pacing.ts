@@ -57,6 +57,30 @@ export class RecordUnwritable extends RunStop {
 }
 
 /**
+ * A reply named a model the run does not price (cost.ts prices Claude Haiku 4.5 alone). What it cost may exceed any
+ * bound at those prices, so the run sends nothing more; its request is raised to the most it could cost at them, which
+ * is all the record can say.
+ */
+export class UnpricedModel extends RunStop {
+  constructor(readonly model: string) {
+    super(`a reply was served by ${JSON.stringify(model.slice(0, 200))}, which the run does not price (it prices Claude Haiku 4.5 alone), so nothing more is sent; its request is raised to the most it could cost at those prices, which may understate it. Find out why the gateway served that model before resuming`);
+    this.name = "UnpricedModel";
+  }
+}
+
+/**
+ * A reply showed that no bound the run prices holds: a call past Claude Haiku 4.5's documented limits, or more calls
+ * than its request allows. It is charged what it reported, each call it could not see at the most one call can cost,
+ * and the run sends nothing more.
+ */
+export class UnboundedReply extends RunStop {
+  constructor(readonly why: string) {
+    super(`a reply reported ${why}, so no bound the run prices holds and nothing more is sent; it is charged what it reported, and each call it could not see at the most one call can cost. Find out why before resuming`);
+    this.name = "UnboundedReply";
+  }
+}
+
+/**
  * The run's lock (run.lock) no longer names this invocation: another invocation took it over, so this one sends nothing
  * more. The request whose line it had just put on the record was never sent, and the next resume counts it at its worst
  * case.
