@@ -8,6 +8,7 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
+import { CELL_REQUESTS, CELL_USD_BOUND, absoluteUsd, withinReservation, worstCaseUsd } from "../cost";
 import type { Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
@@ -93,11 +94,15 @@ export const retryableRefusal = (status: number, body: Record<string, unknown> |
     return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
   });
 
-/** The most requests one cell makes: the planning call and at most three generation requests, in every arm (ADR-B4). */
-export const CELL_REQUESTS = 4;
+export { CELL_REQUESTS };
+
+/** Whether a refusal reached no model: the Worker refused before any provider call (`calls: []`), or the gateway turned the call away unspent. */
+const modelFree = (status: number, body: Record<string, unknown> | undefined): boolean => Array.isArray(body?.calls) && (body.calls.length === 0 || retryableRefusal(status, body));
+
 /**
- * A cell's worst case under the cap: every request refused and retried through the whole backoff schedule. A cell
- * is admitted only when the cap covers it, so the cap never cuts a cell off after it has spent.
+ * A cell's worst case under the request caps: every request refused and retried through the whole backoff schedule.
+ * A cell is admitted only when the caps cover it, and the dollar ceiling its worst case (CELL_USD_BOUND), so no cap
+ * cuts a cell off after it has spent.
  */
 export const cellRequestBound = (backoffSteps: number): number => CELL_REQUESTS * (1 + backoffSteps);
 
@@ -121,6 +126,12 @@ export function createHostedProvider(options: HostedOptions): Provider {
   ): Promise<ProposeResult> {
     const where = { operation: at.operation, ...(at.attempt !== undefined ? { attempt: at.attempt } : {}), ...(at.reissue ? { reissue: true as const } : {}) };
     const body = proposeBody(request, at.maxCalls !== undefined ? { maxCalls: at.maxCalls } : {});
+    // Priced before it is sent (live/cost.ts): reserved at its worst case, and admitted only while the most it could
+    // cost, from the model's documented limits alone, still fits under the run's dollar ceiling. The Worker makes at
+    // most two calls when maxCalls is absent.
+    const calls = at.maxCalls ?? 2;
+    const priced = worstCaseUsd(request, calls);
+    const absolute = absoluteUsd(calls);
     // Metered once: a refused retry re-sends the same bytes, and an arm's request size is what it asks for, not how
     // often the gateway turned it away. The pacer counts every send against the cap.
     at.meter.bytes += requestBytes(body);
@@ -128,66 +139,81 @@ export function createHostedProvider(options: HostedOptions): Provider {
     const failed = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
     for (let refusal = 0; ; refusal++) {
-      if (options.pacer) await options.pacer.before();
+      if (options.pacer) await options.pacer.before(priced, absolute);
       const started = now();
+      // Whether the reservation stands as priced: a refusal that reached no model releases it, and a reply proving that
+      // every call stayed inside the price confirms it. Anything else (usage missing, a figure past its bound, no
+      // reply at all) is raised to the absolute worst case on the way out, so the run's total stays an upper bound.
+      let released = false;
+      let verified = false;
       const settle = (reply: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
         const durationMs = now() - started;
-        const calls = callRecords(reply, where, { outcome, durationMs });
-        for (const call of calls) at.recorder.record(call);
-        return { calls, durationMs };
+        const records = callRecords(reply, where, { outcome, durationMs });
+        for (const call of records) at.recorder.record(call);
+        verified = records.every((call) => withinReservation(request, call));
+        return { calls: records, durationMs };
       };
-      let res: Response;
       try {
-        res = await fetchImpl(`${base}/api/propose`, { method: "POST", headers: { "content-type": "application/json" }, body });
-      } catch (error) {
-        settle(undefined, "provider-error");
-        throw new HarnessError(HOSTED_AI_ID, `hosted AI request failed: ${failed(error)}`, "provider");
-      }
-      let text: string;
-      try {
-        text = await res.text();
-      } catch (error) {
-        const kind: FailureKind = res.ok ? "provider" : errorKind(res.status, undefined);
-        settle(undefined, FAILURE_OUTCOME[kind]);
-        throw new HarnessError(HOSTED_AI_ID, `hosted AI response could not be read: ${failed(error)}`, kind, res.status);
-      }
-      let reply: Record<string, unknown> | undefined;
-      try {
-        const parsed: unknown = JSON.parse(text);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) reply = parsed as Record<string, unknown>;
-      } catch {
-        /* not JSON: classified below */
-      }
-      if (!res.ok) {
-        // A refusal that reached no model (the zone limiter, the busy gateway) is retried after a backoff: nothing
-        // was spent, the arm sees one request, and the refused attempt is recorded as model-free. Once the schedule
-        // is spent, the refusal is recorded and thrown as the app's adapter would.
-        if (options.pacer && retryableRefusal(res.status, reply)) {
-          const durationMs = now() - started;
-          if (await options.pacer.backoff(refusal, `${res.status} ${String(reply?.error ?? "")}`.trim())) {
-            at.recorder.record({ ...where, source: "none", outcome: "refused", durationMs });
-            continue;
-          }
+        let res: Response;
+        try {
+          res = await fetchImpl(`${base}/api/propose`, { method: "POST", headers: { "content-type": "application/json" }, body });
+        } catch (error) {
+          settle(undefined, "provider-error");
+          throw new HarnessError(HOSTED_AI_ID, `hosted AI request failed: ${failed(error)}`, "provider");
         }
-        const kind = errorKind(res.status, reply);
-        settle(reply, FAILURE_OUTCOME[kind]);
-        const message = typeof reply?.message === "string" && reply.message ? reply.message : `hosted AI endpoint returned ${res.status}`;
-        throw new HarnessError(HOSTED_AI_ID, message, kind, res.status, typeof reply?.cause === "string" ? reply.cause : undefined, normalizeUsage(reply?.usage));
+        let text: string;
+        try {
+          text = await res.text();
+        } catch (error) {
+          const kind: FailureKind = res.ok ? "provider" : errorKind(res.status, undefined);
+          settle(undefined, FAILURE_OUTCOME[kind]);
+          throw new HarnessError(HOSTED_AI_ID, `hosted AI response could not be read: ${failed(error)}`, kind, res.status);
+        }
+        let reply: Record<string, unknown> | undefined;
+        try {
+          const parsed: unknown = JSON.parse(text);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) reply = parsed as Record<string, unknown>;
+        } catch {
+          /* not JSON: classified below */
+        }
+        if (!res.ok) {
+          // A refusal the Worker made before any provider call (`calls: []`), or the busy gateway's, cost nothing.
+          if (options.pacer && modelFree(res.status, reply)) {
+            options.pacer.adjust(-priced, "refused before any provider call");
+            released = true;
+          }
+          // A refusal that reached no model (the zone limiter, the busy gateway) is retried after a backoff: nothing
+          // was spent, the arm sees one request, and the refused attempt is recorded as model-free. Once the schedule
+          // is spent, the refusal is recorded and thrown as the app's adapter would.
+          if (options.pacer && retryableRefusal(res.status, reply)) {
+            const durationMs = now() - started;
+            if (await options.pacer.backoff(refusal, `${res.status} ${String(reply?.error ?? "")}`.trim())) {
+              at.recorder.record({ ...where, source: "none", outcome: "refused", durationMs });
+              continue;
+            }
+          }
+          const kind = errorKind(res.status, reply);
+          settle(reply, FAILURE_OUTCOME[kind]);
+          const message = typeof reply?.message === "string" && reply.message ? reply.message : `hosted AI endpoint returned ${res.status}`;
+          throw new HarnessError(HOSTED_AI_ID, message, kind, res.status, typeof reply?.cause === "string" ? reply.cause : undefined, normalizeUsage(reply?.usage));
+        }
+        if (!reply) {
+          settle(undefined, "provider-error");
+          throw new HarnessError(HOSTED_AI_ID, "hosted AI endpoint returned an unreadable response", "provider", res.status);
+        }
+        const { calls: records, durationMs } = settle(reply, "ok");
+        const usage = normalizeUsage(reply.usage);
+        return {
+          json: reply.json,
+          ...(typeof reply.raw === "string" ? { raw: reply.raw } : {}),
+          ...(typeof reply.model === "string" ? { model: reply.model } : {}),
+          ...(usage ? { usage } : {}),
+          calls: records,
+          durationMs,
+        };
+      } finally {
+        if (options.pacer && !released && !verified) options.pacer.adjust(absolute - priced, "usage not verified");
       }
-      if (!reply) {
-        settle(undefined, "provider-error");
-        throw new HarnessError(HOSTED_AI_ID, "hosted AI endpoint returned an unreadable response", "provider", res.status);
-      }
-      const { calls, durationMs } = settle(reply, "ok");
-      const usage = normalizeUsage(reply.usage);
-      return {
-        json: reply.json,
-        ...(typeof reply.raw === "string" ? { raw: reply.raw } : {}),
-        ...(typeof reply.model === "string" ? { model: reply.model } : {}),
-        ...(usage ? { usage } : {}),
-        calls,
-        durationMs,
-      };
     }
   }
 
@@ -228,7 +254,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
     kind: "hosted",
     plansWithModel: true,
     ...(options.pacer ? { pacer: options.pacer } : {}),
-    beforeCell: () => options.pacer?.reserve(cellRequestBound(options.pacer.config.backoffMs.length)),
+    beforeCell: () => options.pacer?.reserve(cellRequestBound(options.pacer.config.backoffMs.length), CELL_USD_BOUND),
     telemetry: () => (options.pacer ? { pacing: { ...options.pacer.config, backoffMs: [...options.pacer.config.backoffMs], sent: options.pacer.sent, waits: [...options.pacer.waits] } } : undefined),
     surfaceAdapter: adapter,
     blockAdapter: (opts: BlockAdapterOptions) => adapter({ ...opts, maxCalls: 1 }),

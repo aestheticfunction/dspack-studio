@@ -49,7 +49,14 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
         `- Invocation ${n + 1} (${invocation.at}): a cap of ${pacing.maxRequests} requests, ${pacing.spacingMs} ms between requests, backoff ${pacing.backoffMs.map((ms) => `${ms / 1000}s`).join(", ") || "none"}; ${pacing.sent} requests sent; waits: ${pacing.waits.length === 0 ? "none" : [...byReason].map(([reason, e]) => `${e.n} for ${reason} (${Math.round(e.ms / 1000)}s)`).join(", ")}.`,
       );
     });
-    if (result.requests) out.push(`- The run: a cumulative cap of ${result.requests.cap} requests across every invocation (manifest.json); ${result.requests.sent} sent (requests.jsonl).`);
+    const run = result.requests;
+    if (run) {
+      out.push(
+        run.capUsd !== undefined
+          ? `- The run: a cumulative cap of ${run.cap} requests and a dollar ceiling of $${run.capUsd.toFixed(2)} across every invocation (manifest.json); ${run.sent} sent, $${run.usd.toFixed(2)} reserved at their worst case (requests.jsonl).`
+          : `- The run: a cumulative cap of ${run.cap} requests across every invocation (manifest.json); ${run.sent} sent (requests.jsonl).`,
+      );
+    }
     out.push("");
   }
   if (preflight.drafts) out.push("**Provisional.** At least one sidecar in use is a draft. ADR-B3 counts approved sidecars only; these numbers inform the drafts, they do not graduate anything.", "");
