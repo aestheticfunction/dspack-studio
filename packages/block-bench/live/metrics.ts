@@ -1,0 +1,326 @@
+/**
+ * The summary and the decision rule (ADR-B3), pure over run records.
+ *
+ * Pass rates count completed runs minus the provider and policy failures,
+ * which are reported separately and re-run symmetrically; budget exhaustion,
+ * fallback and invariant outcomes are arm results. Tokens per success is the
+ * ADR-B3 figure: provider-reported input plus output across every call of
+ * every metered evaluated run, failures included, divided by the metered
+ * successes. A run with a call missing either figure leaves the cohort
+ * entirely, never estimated. The guardrail holds the block arm within the
+ * margin of BOTH primitive arms (ADR-B4 fairness).
+ *
+ * The decision pools every evaluated result of every condition, fresh
+ * builds and refinements alike: ADR-B3 counts "every call (planning,
+ * generation, repairs, fallback, refinement)". Its minimum applies to the
+ * evaluated runs AND to the metered cohort the token figure rests on, and
+ * its boundaries are inclusive: an exact 30% cut passes, and a gap of
+ * exactly the margin is within it.
+ */
+import type { Arm, Condition, FailureKind, Path, RunRecord } from "./types";
+
+export interface DecisionOptions {
+  /** The required drop in tokens per success against today's production configuration. */
+  reduction: number;
+  /** The non-inferiority margin on the pass rate, in points of rate. */
+  margin: number;
+  /** Evaluated runs each arm needs before the rule can be applied. */
+  minimum: number;
+}
+/** ADR-B3's rule, fixed before any run: frozen here and pinned by a test, and recorded in every run manifest. */
+export const DEFAULT_DECISION: Readonly<DecisionOptions> = Object.freeze({ reduction: 0.3, margin: 0.05, minimum: 20 });
+
+export interface ArmStats {
+  reference: string;
+  provider: string;
+  arm: Arm;
+  /** "all" for the pooled stats the decision reads. */
+  condition: Condition | "all";
+  n: number;
+  skipped: number;
+  completed: number;
+  /** Provider and policy failures: reported separately, to be re-run. */
+  rerunEligible: number;
+  rerunByKind: Partial<Record<FailureKind, number>>;
+  /** completed - rerunEligible: the pass-rate denominator. */
+  evaluated: number;
+  passed: number;
+  passRate: number | null;
+  firstAttemptPassRate: number | null;
+  repairsPerSuccess: number | null;
+  /** The cohort: evaluated runs whose every provider call reported its usage, failures included. */
+  meteredRuns: number;
+  meteredSuccesses: number;
+  unmeteredRuns: number;
+  unmeteredSuccesses: number;
+  /** ADR-B3: the cohort's tokens over its successes. Null when the cohort reports no provider usage at all (scripted). */
+  tokensPerSuccess: number | null;
+  inputTokensPerSuccess: number | null;
+  outputTokensPerSuccess: number | null;
+  /** The mean cost of a passing run alone: context for the figure above, never the rule's input. */
+  tokensPerPassingRun: number | null;
+  providerCallsPerRun: number | null;
+  requestBytesPerRun: number | null;
+  latency: { totalMs: number | null; firstGatedAttemptMs: number | null; blockPhaseMs: number | null; emitMs: number | null; planMs: number | null };
+  parity: { meanScore: number | null; fullyParityPassed: number };
+  paths: Partial<Record<Path, { n: number; passed: number }>>;
+  budgetRemainingAtFallback: Record<string, number>;
+  fallbackByClassification: Record<string, number>;
+  invariantFailures: number;
+  budgetExhausted: number;
+  /** Refinements only. */
+  changedRate: number | null;
+  retention: number | null;
+}
+
+export interface SelectionStats {
+  reference: string;
+  provider: string;
+  n: number;
+  correct: number;
+  accuracy: number | null;
+  /** expected block, same block chosen */
+  hit: number;
+  /** expected block, null answered */
+  missedToNull: number;
+  /** expected block, another block chosen */
+  wrongBlock: number;
+  /** expected null, null answered */
+  nullCorrect: number;
+  /** expected null, a block chosen */
+  falseBlock: number;
+  explicitNull: number;
+  omitted: number;
+  rejected: number;
+  /** The planning call returned an unusable output: no answer, counted wrong and in no other bucket. */
+  planningFailed: number;
+  intentAccuracy: number | null;
+}
+
+export interface Decision {
+  reference: string;
+  provider: string;
+  verdict: "pass" | "fail" | "insufficient";
+  reasons: string[];
+  tokens: { block: number | null; capped: number | null; production: number | null; reductionVsProduction: number | null; reductionVsCapped: number | null };
+  passRates: { block: number | null; capped: number | null; production: number | null };
+  evaluated: { block: number; capped: number; production: number };
+  /** Runs in each arm's token cohort. */
+  metered: { block: number; capped: number; production: number };
+  options: DecisionOptions;
+}
+
+export interface Summary {
+  /** Per condition. */
+  arms: ArmStats[];
+  /** Per arm, every condition pooled: what the decision reads. */
+  pooled: ArmStats[];
+  selection: SelectionStats[];
+  decisions: Decision[];
+  totals: { records: number; completed: number; providerCalls: number; inputTokens: number; outputTokens: number; requestBytes: number };
+}
+
+const ratio = (part: number, whole: number): number | null => (whole === 0 ? null : part / whole);
+const mean = (values: number[]): number | null => (values.length === 0 ? null : values.reduce((a, b) => a + b, 0) / values.length);
+export function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+}
+/** Boundaries are inclusive and judged exactly: floating point must not turn an exact 30% cut or a 5-point gap into a failure. */
+const EPSILON = 1e-9;
+
+export function armStats(records: readonly RunRecord[], options: { pooled?: boolean } = {}): ArmStats[] {
+  const groupKey = (r: RunRecord) => `${r.reference}|${r.provider}|${r.arm}|${options.pooled ? "all" : r.condition}`;
+  const groups = new Map<string, RunRecord[]>();
+  for (const r of records) {
+    const list = groups.get(groupKey(r)) ?? [];
+    list.push(r);
+    groups.set(groupKey(r), list);
+  }
+  const out: ArmStats[] = [];
+  for (const list of groups.values()) {
+    const first = list[0]!;
+    const completed = list.filter((r) => r.status === "completed");
+    const rerun = completed.filter((r) => r.failure?.rerunEligible);
+    const rerunByKind: Partial<Record<FailureKind, number>> = {};
+    for (const r of rerun) rerunByKind[r.failure!.kind] = (rerunByKind[r.failure!.kind] ?? 0) + 1;
+    const evaluated = completed.filter((r) => !r.failure?.rerunEligible);
+    const passed = evaluated.filter((r) => r.passed);
+    const metered = evaluated.filter((r) => r.tokens.unreportedCalls === 0);
+    const meteredSuccesses = metered.filter((r) => r.passed);
+    const reported = metered.some((r) => r.tokens.providerCalls > 0);
+    const perSuccess = (pick: (r: RunRecord) => number): number | null =>
+      !reported || meteredSuccesses.length === 0 ? null : metered.reduce((a, r) => a + pick(r), 0) / meteredSuccesses.length;
+    const paths: ArmStats["paths"] = {};
+    for (const r of completed) {
+      const p = r.path ?? "primitive";
+      const entry = paths[p] ?? { n: 0, passed: 0 };
+      entry.n += 1;
+      if (r.passed) entry.passed += 1;
+      paths[p] = entry;
+    }
+    const budgetRemainingAtFallback: Record<string, number> = {};
+    const fallbackByClassification: Record<string, number> = {};
+    for (const r of completed) {
+      if (r.budgetRemainingAtFallback !== undefined) budgetRemainingAtFallback[String(r.budgetRemainingAtFallback)] = (budgetRemainingAtFallback[String(r.budgetRemainingAtFallback)] ?? 0) + 1;
+      const classification = (r.trace as { fallback?: { classification?: string } } | undefined)?.fallback?.classification;
+      if (classification) fallbackByClassification[classification] = (fallbackByClassification[classification] ?? 0) + 1;
+    }
+    const refinements = completed.filter((r) => r.condition !== "fresh");
+    const withBlockPrior = refinements.filter((r) => r.refinement && r.refinement.mode !== "primitive");
+    out.push({
+      reference: first.reference,
+      provider: first.provider,
+      arm: first.arm,
+      condition: options.pooled ? "all" : first.condition,
+      n: list.length,
+      skipped: list.length - completed.length,
+      completed: completed.length,
+      rerunEligible: rerun.length,
+      rerunByKind,
+      evaluated: evaluated.length,
+      passed: passed.length,
+      passRate: ratio(passed.length, evaluated.length),
+      firstAttemptPassRate: ratio(passed.filter((r) => r.attempts === 1).length, evaluated.length),
+      repairsPerSuccess: passed.length === 0 ? null : passed.reduce((a, r) => a + Math.max(0, r.attempts - 1), 0) / passed.length,
+      meteredRuns: metered.length,
+      meteredSuccesses: meteredSuccesses.length,
+      unmeteredRuns: evaluated.length - metered.length,
+      unmeteredSuccesses: passed.length - meteredSuccesses.length,
+      tokensPerSuccess: perSuccess((r) => r.tokens.input + r.tokens.output),
+      inputTokensPerSuccess: perSuccess((r) => r.tokens.input),
+      outputTokensPerSuccess: perSuccess((r) => r.tokens.output),
+      tokensPerPassingRun: !reported ? null : mean(meteredSuccesses.map((r) => r.tokens.input + r.tokens.output)),
+      providerCallsPerRun: mean(completed.map((r) => r.tokens.providerCalls)),
+      requestBytesPerRun: mean(completed.map((r) => r.requestBytes)),
+      latency: {
+        totalMs: median(completed.map((r) => r.timings.totalMs)),
+        firstGatedAttemptMs: median(completed.map((r) => r.timings.firstGatedAttemptMs).filter((v): v is number => typeof v === "number")),
+        blockPhaseMs: median(completed.map((r) => r.timings.blockPhaseMs).filter((v): v is number => typeof v === "number")),
+        emitMs: median(completed.map((r) => r.timings.emitMs).filter((v): v is number => typeof v === "number")),
+        planMs: median(completed.map((r) => r.timings.planMs).filter((v): v is number => typeof v === "number")),
+      },
+      parity: { meanScore: mean(passed.map((r) => r.parity?.score).filter((v): v is number => typeof v === "number")), fullyParityPassed: passed.filter((r) => r.parity?.score === 1).length },
+      paths,
+      budgetRemainingAtFallback,
+      fallbackByClassification,
+      invariantFailures: completed.filter((r) => r.outcome === "invariant-failure").length,
+      budgetExhausted: completed.filter((r) => r.failure?.kind === "budget").length,
+      changedRate: refinements.length === 0 ? null : ratio(refinements.filter((r) => r.passed && r.changed).length, refinements.filter((r) => r.passed).length),
+      retention: withBlockPrior.length === 0 ? null : ratio(withBlockPrior.filter((r) => r.refinement!.retained).length, withBlockPrior.length),
+    });
+  }
+  return out.sort((a, b) => `${a.reference}|${a.provider}|${a.condition}|${a.arm}`.localeCompare(`${b.reference}|${b.provider}|${b.condition}|${b.arm}`));
+}
+
+export function selectionStats(records: readonly RunRecord[]): SelectionStats[] {
+  const groups = new Map<string, RunRecord[]>();
+  for (const r of records) {
+    if (r.arm !== "block" || r.condition !== "fresh" || r.status !== "completed" || !r.selection) continue;
+    const k = `${r.reference}|${r.provider}`;
+    groups.set(k, [...(groups.get(k) ?? []), r]);
+  }
+  const out: SelectionStats[] = [];
+  for (const list of groups.values()) {
+    const s = { n: list.length, correct: 0, hit: 0, missedToNull: 0, wrongBlock: 0, nullCorrect: 0, falseBlock: 0, explicitNull: 0, omitted: 0, rejected: 0, planningFailed: 0, intentCorrect: 0 };
+    for (const r of list) {
+      const sel = r.selection!;
+      // No answer: the routing came from the deterministic fallback, so neither the block nor the intent is the planner's.
+      if (sel.planningFailed) {
+        s.planningFailed += 1;
+        continue;
+      }
+      // The planner's answer: a block reconciliation withdrew is still the block it named.
+      const answer = sel.rejected ?? sel.chosen;
+      if (answer === r.expected.block) s.correct += 1;
+      if (r.expected.block) {
+        if (answer === r.expected.block) s.hit += 1;
+        else if (answer === null) s.missedToNull += 1;
+        else s.wrongBlock += 1;
+      } else if (answer === null) s.nullCorrect += 1;
+      else s.falseBlock += 1;
+      if (sel.source === "omitted") s.omitted += 1;
+      else if (answer === null) s.explicitNull += 1;
+      if (sel.rejected) s.rejected += 1;
+      if (r.plan?.intent === r.expected.intent) s.intentCorrect += 1;
+    }
+    const first = list[0]!;
+    out.push({ reference: first.reference, provider: first.provider, ...s, accuracy: ratio(s.correct, s.n), intentAccuracy: ratio(s.intentCorrect, s.n) });
+  }
+  return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
+}
+
+/** The ADR-B3 decision per reference and provider, over every evaluated result of every condition. */
+export function decide(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION): Decision[] {
+  const stats = armStats(records, { pooled: true });
+  const keys = new Set(stats.map((s) => `${s.reference}|${s.provider}`));
+  const out: Decision[] = [];
+  for (const key of keys) {
+    const [reference, provider] = key.split("|") as [string, string];
+    const arm = (a: Arm) => stats.find((s) => s.reference === reference && s.provider === provider && s.arm === a);
+    const block = arm("block");
+    const capped = arm("capped");
+    const production = arm("production");
+    const evaluated = { block: block?.evaluated ?? 0, capped: capped?.evaluated ?? 0, production: production?.evaluated ?? 0 };
+    const metered = { block: block?.meteredRuns ?? 0, capped: capped?.meteredRuns ?? 0, production: production?.meteredRuns ?? 0 };
+    const tokens = {
+      block: block?.tokensPerSuccess ?? null,
+      capped: capped?.tokensPerSuccess ?? null,
+      production: production?.tokensPerSuccess ?? null,
+      reductionVsProduction: null as number | null,
+      reductionVsCapped: null as number | null,
+    };
+    if (tokens.block !== null && tokens.production !== null && tokens.production > 0) tokens.reductionVsProduction = 1 - tokens.block / tokens.production;
+    if (tokens.block !== null && tokens.capped !== null && tokens.capped > 0) tokens.reductionVsCapped = 1 - tokens.block / tokens.capped;
+    const passRates = { block: block?.passRate ?? null, capped: capped?.passRate ?? null, production: production?.passRate ?? null };
+    const reasons: string[] = [];
+    let verdict: Decision["verdict"] = "pass";
+    for (const [name, n] of Object.entries(evaluated)) if (n < options.minimum) reasons.push(`${name}: ${n} evaluated runs, fewer than the ${options.minimum} the rule needs`);
+    // The token figure rests on the metered cohort, so the minimum applies there too.
+    for (const [name, n] of Object.entries(metered) as Array<[keyof typeof evaluated, number]>) {
+      if (n < options.minimum && n < evaluated[name]) reasons.push(`${name}: ${n} metered ${n === 1 ? "run" : "runs"} in the token cohort, fewer than the ${options.minimum} the rule needs`);
+    }
+    if (reasons.length > 0) verdict = "insufficient";
+    else {
+      if (tokens.reductionVsProduction === null) {
+        verdict = "insufficient";
+        reasons.push("tokens per success is not measurable: a metered passing run is missing in the block arm or the production arm (scripted or unreported usage)");
+      } else if (tokens.reductionVsProduction < options.reduction - EPSILON) {
+        verdict = "fail";
+        reasons.push(`tokens per success fell ${(100 * tokens.reductionVsProduction).toFixed(1)}% against production; the rule needs ${100 * options.reduction}%`);
+      } else reasons.push(`tokens per success fell ${(100 * tokens.reductionVsProduction).toFixed(1)}% against production (needs ${100 * options.reduction}%)`);
+      for (const [name, rate] of [["production", passRates.production], ["capped", passRates.capped]] as const) {
+        if (passRates.block === null || rate === null) {
+          verdict = "insufficient";
+          reasons.push(`pass rate unavailable for the ${name} comparison`);
+        } else if (passRates.block < rate - options.margin - EPSILON) {
+          verdict = verdict === "insufficient" ? verdict : "fail";
+          reasons.push(`pass rate ${(100 * passRates.block).toFixed(1)}% is more than ${100 * options.margin} points below ${name} (${(100 * rate).toFixed(1)}%)`);
+        } else reasons.push(`pass rate ${(100 * passRates.block).toFixed(1)}% is within ${100 * options.margin} points of ${name} (${(100 * rate).toFixed(1)}%)`);
+      }
+    }
+    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, options });
+  }
+  return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
+}
+
+export function summarize(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION): Summary {
+  const arms = armStats(records);
+  const completed = records.filter((r) => r.status === "completed");
+  return {
+    arms,
+    pooled: armStats(records, { pooled: true }),
+    selection: selectionStats(records),
+    decisions: decide(records, options),
+    totals: {
+      records: records.length,
+      completed: completed.length,
+      providerCalls: completed.reduce((a, r) => a + r.tokens.providerCalls, 0),
+      inputTokens: completed.reduce((a, r) => a + r.tokens.input, 0),
+      outputTokens: completed.reduce((a, r) => a + r.tokens.output, 0),
+      requestBytes: completed.reduce((a, r) => a + r.requestBytes, 0),
+    },
+  };
+}
