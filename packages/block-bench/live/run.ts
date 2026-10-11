@@ -24,7 +24,8 @@
  *                             (live/cost.ts: what verified replies reported, plus the worst case of every other
  *                             request), at least one cell's worst case; required to start a hosted run and recorded
  *                             in its manifest. A request is sent only while its absolute worst case still fits; on
- *                             --resume, a new value changes the recorded ceiling and the manifest records the change
+ *                             --resume, a new value changes the recorded ceiling and the manifest records the
+ *                             change; neither limit may go below what the run has already sent or committed
  *   --spacing-ms <n>          hosted: minimum gap between requests (default 3000)
  *   --out <dir>               run directory (default live/runs/<time>-<provider>); not with --resume
  *   --resume <dir>            continue a run directory; with it, --rerun-failed re-runs provider and policy failures

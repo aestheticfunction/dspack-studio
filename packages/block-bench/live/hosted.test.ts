@@ -316,6 +316,10 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       expect(posted).toBe(0);
       expect(resumed.requests).toMatchObject({ cap: 50, sent: 35, capUsd: USD });
       expect(resumed.requests!.usd).toBeCloseTo(35 * absoluteUsd(2), 9);
+      // Nor can a cap be lowered past what the run has already sent.
+      await expect(invocation({ resume: true, maxTotalRequests: 30 })).rejects.toThrow(/--max-total-requests 30 is below the 35 requests the run .* has already sent/);
+      expect(JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")).limits.maxTotalRequests).toBe(50);
+      expect(posted).toBe(0);
       // A request sent whose reply was never read (the invocation was killed) is raised to the most any request can cost,
       // on the record, before anything else is appended; so is one whose settlement was cut off mid-line, which is set
       // aside. A request line cut off itself was never sent, and is set aside at no cost.
@@ -513,6 +517,13 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       const committed = lines().reduce((a, l) => a + (l.usd ?? 0) + (l.adjust ?? 0), 0);
       expect(committed).toBeLessThanOrEqual(raised);
       expect(third.requests?.usd).toBeCloseTo(committed, 9);
+      // A ceiling cannot be lowered past what the run has already committed: the resume is refused before it sends
+      // anything, and the manifest keeps its ceiling.
+      const recorded = readFileSync(join(dir, "manifest.json"), "utf8");
+      const sentBefore = bodies.length;
+      await expect(invocation(committed / 2)).rejects.toThrow(/--max-total-usd .* is below the \$[0-9.]+ the run .* has already committed/);
+      expect(readFileSync(join(dir, "manifest.json"), "utf8")).toBe(recorded);
+      expect(bodies).toHaveLength(sentBefore);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

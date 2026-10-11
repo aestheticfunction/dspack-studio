@@ -348,6 +348,21 @@ function readLedger(file: string, settle: { at: string; invocation: string }): {
   return { count, usd, invocations };
 }
 
+/**
+ * What the run has sent and committed so far, every invocation included: the ledger (settled first), plus what each
+ * invocation from before the ledger reported (one that recorded nothing in it), each at the most a request can cost.
+ */
+function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["invocations"], settle: { at: string; invocation: string }): { sent: number; usd: number } {
+  const recorded = requestsFile ? readLedger(requestsFile, settle) : { count: 0, usd: 0, invocations: new Set<string>() };
+  const unrecorded = earlier
+    .filter((i) => !recorded.invocations.has(i.at))
+    .reduce((sum, i) => {
+      const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
+      return sum + (typeof sent === "number" && Number.isFinite(sent) ? sent : 0);
+    }, 0);
+  return { sent: recorded.count + unrecorded, usd: recorded.usd + unrecorded * REQUEST_USD_BOUND };
+}
+
 /** Whether a process is running: signal 0 tests for it without sending anything. */
 function alive(pid: number): boolean {
   try {
@@ -422,6 +437,16 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       // The cumulative cap and the dollar ceiling stay what the run recorded unless this invocation names a new one,
       // which is recorded.
       const was = recorded.limits;
+      // A limit holds what the run has already done: it can be raised, or lowered as far as that, never past it.
+      if (options.maxTotalRequests !== undefined || options.maxTotalUsd !== undefined) {
+        const done = runTotals(join(outDir, "requests.jsonl"), readLog<EvaluationResult["invocations"][number]>(join(outDir, "pacing.jsonl")).records, { at: new Date().toISOString(), invocation: options.preflight.at });
+        if (options.maxTotalRequests !== undefined && options.maxTotalRequests < done.sent) {
+          throw new Error(`--max-total-requests ${options.maxTotalRequests} is below the ${done.sent} requests the run in ${outDir} has already sent; a cap can be lowered only as far as that`);
+        }
+        if (options.maxTotalUsd !== undefined && options.maxTotalUsd < done.usd) {
+          throw new Error(`--max-total-usd ${options.maxTotalUsd} is below the $${done.usd.toFixed(4)} the run in ${outDir} has already committed; a ceiling can be lowered only as far as that`);
+        }
+      }
       const changes = [...(was?.changes ?? [])];
       const said: string[] = [];
       if (options.maxTotalRequests !== undefined && options.maxTotalRequests !== was?.maxTotalRequests) {
@@ -494,18 +519,12 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   const requestsFile = outDir ? join(outDir, "requests.jsonl") : undefined;
   let ledger: RunLedger | undefined;
   if (pacer && cap !== undefined) {
-    const recorded = requestsFile ? readLedger(requestsFile, { at: new Date().toISOString(), invocation: options.preflight.at }) : { count: 0, usd: 0, invocations: new Set<string>() };
-    const unrecorded = earlierInvocations
-      .filter((i) => !recorded.invocations.has(i.at))
-      .reduce((sum, i) => {
-        const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
-        return sum + (typeof sent === "number" && Number.isFinite(sent) ? sent : 0);
-      }, 0);
+    const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: options.preflight.at });
     ledger = {
       cap,
-      sent: recorded.count + unrecorded,
+      sent: done.sent,
       ...(capUsd !== undefined ? { capUsd } : {}),
-      usd: recorded.usd + unrecorded * REQUEST_USD_BOUND,
+      usd: done.usd,
       record(usd = 0) {
         if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at, usd }));
         this.sent += 1;
