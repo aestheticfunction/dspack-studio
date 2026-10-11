@@ -17,9 +17,18 @@ Run on a machine that can reach the deployed site:
 pnpm --filter @dspack-studio/block-bench baseline --out docs/blocks/baseline.json
 ```
 
-It records, with no provider call: the deployed build id (Next names the static export's manifest by it), the Worker's reply shape on a refused empty body, the hosted model list, and the sidecars this checkout would offer. The harness repeats the same probe at the start of every run and writes it to `preflight.json`; a run whose build id differs from the committed baseline is against a later deployment, and the report says so.
+It records, with no provider call, the deployed build id, the Worker's reply shape on a refused empty body, the hosted model list, and the sidecars this checkout would offer. It makes four requests, none of which reaches a model:
 
-Status: the record is not yet committed. This checkout could not reach composer.aesthetic-function.com (the session's network policy denied the host), so the owner runs the command above once the merge has deployed and commits `baseline.json` beside this file.
+1. `POST /api/propose` with the body `{}`, which the Worker refuses with 400 before any provider call.
+2. `GET /`.
+3. `GET /_next/static/<build id>/_buildManifest.js`. Composer is an app-router static export, so its HTML names no build manifest. The id comes from the page's flight payload and counts only when the deployment serves that build's manifest.
+4. `GET /api/models`.
+
+A test runs the command as its own process against the real Worker module with a model binding that counts calls, and holds it to exactly these requests and no model call. `--out` is resolved against the directory the command is typed in. The record is written only when it is whole: a Phase 0.5 Worker, a confirmed build id and the model list. Anything less exits 1, writes nothing and says what was missing.
+
+The build id is random per build. It names a deployment but does not say which commit it was built from: that link is in the Workers Builds deployment log. The harness repeats the same probe at the start of every run and writes it to `preflight.json`, and the report prints the build id it ran against. A run whose build id differs from the committed baseline's ran against a later deployment.
+
+Status: the record is not yet committed. This checkout could not reach composer.aesthetic-function.com (the session's network policy denied the host), so the owner runs the command above from the repository root once the merge has deployed and commits `baseline.json` beside this file.
 
 ## What a live run must state
 

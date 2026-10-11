@@ -4,8 +4,8 @@
  *
  * The Worker probe costs no provider call: an empty body is refused with 400
  * by every Worker version, and only the Phase 0.5 Worker reports `calls: []`
- * on that refusal. The build id identifies the deployed artifact (Next's
- * static export names its manifest by build id). Canonical usage and `cause`
+ * on that refusal. The build id identifies the deployed artifact (Next
+ * mints one per build and serves the build's manifest under it). Canonical usage and `cause`
  * can only be seen on real replies; the first metered call checks usage,
  * and a 502 is checked for `cause` when one arrives. A local model is
  * identified by the digest Ollama reports for its tag, so a resume cannot
@@ -53,12 +53,21 @@ export async function probeWorker(baseUrl: string, fetchImpl: typeof fetch = fet
   return { shape: "pre-0.5", status: res.status, error: "invalid-request", detail: "the refusal carries no calls list: the Worker predates Phase 0.5 accounting" };
 }
 
+/**
+ * The deployed build id. The pages router names its build manifest in the HTML; the app router's static export
+ * (Composer's) names none and carries the id in its flight payload, as "b". Either way the id counts only when the
+ * deployment serves that build's manifest, so a stray match is never recorded as the deployed build.
+ */
 export async function readBuildId(baseUrl: string, fetchImpl: typeof fetch = fetch): Promise<string | null> {
   const base = baseUrl.replace(/\/+$/, "");
   const res = await fetchImpl(`${base}/`, { headers: { accept: "text/html" } });
   const html = await res.text();
-  const match = /_next\/static\/([A-Za-z0-9_-]+)\/_buildManifest\.js/.exec(html);
-  return match ? match[1]! : null;
+  const match = /_next\/static\/([A-Za-z0-9_-]+)\/_buildManifest\.js/.exec(html) ?? /\\?"b\\?":\\?"([A-Za-z0-9_-]+)\\?"/.exec(html);
+  if (!match) return null;
+  const id = match[1]!;
+  const manifest = await fetchImpl(`${base}/_next/static/${id}/_buildManifest.js`);
+  await manifest.arrayBuffer().catch(() => undefined);
+  return manifest.ok ? id : null;
 }
 
 export async function readModels(baseUrl: string, fetchImpl: typeof fetch = fetch): Promise<string[] | null> {
