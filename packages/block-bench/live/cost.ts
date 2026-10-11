@@ -91,31 +91,32 @@ const count = (n: unknown): number | undefined => (typeof n === "number" && Numb
 const shown = (n: unknown): number => (typeof n === "number" && Number.isFinite(n) && n > 0 ? Math.ceil(n) : 0);
 
 /**
- * The most a call that reached the model can have cost when its counts prove nothing: the most one call can cost, or
- * what its figures show, rounded up to whole tokens, if that is more.
+ * The most a reply can have cost on what it shows, counted figure by figure and priced once. Each call that reached the
+ * model counts at what it reported, if it reported both counts as such a call can (at least one input token, and one
+ * output token for an answer) and stated each once; any other counts at the most one call can read and write, or at what
+ * it shows, rounded up to whole tokens, where that is more. The calls are summed, and the reply's total counts instead
+ * wherever it shows more of a figure. Each figure stands on its own, so what a reply shows of one is never traded against
+ * the other. A call that reached no model counts nothing. A reply that cannot be verified is charged at least this.
  */
-export const unprovenUsd = (c: { inputTokens?: number; outputTokens?: number }): number => Math.max(absoluteUsd(1), usd(1, shown(c.inputTokens), shown(c.outputTokens)));
-
-/**
- * The most a reply's calls can have cost, on what they show: a call that reported both counts, as a call that reached
- * the model can (at least one input token, and one output token for an answer), at what it reported; any other at
- * unprovenUsd; and a call that reached no model at nothing. A reply that cannot be verified is charged at least this.
- */
-export function boundedUsd(calls: readonly ModelCallRecord[]): number {
-  return calls.reduce((a, c) => {
-    if (c.source === "none") return a;
-    const input = count(c.inputTokens);
-    const output = count(c.outputTokens);
-    // A call that reached the model read at least one token, and an answer wrote at least one: counts saying otherwise
-    // prove nothing.
-    if (input !== undefined && output !== undefined && input >= 1 && (c.outcome !== "ok" || output >= 1)) return a + usd(1, input, output);
-    return a + unprovenUsd(c);
-  }, 0);
+export function boundedUsd(calls: ReadonlyArray<ModelCallRecord & { stated?: boolean }>, total?: { inputTokens?: number; outputTokens?: number }): number {
+  let input = 0;
+  let output = 0;
+  for (const c of calls) {
+    if (c.source === "none") continue;
+    const read = count(c.inputTokens);
+    const wrote = count(c.outputTokens);
+    // A call that reached the model read at least one token, and an answer wrote at least one: counts saying otherwise,
+    // or stated two ways, prove nothing.
+    if (c.stated !== false && read !== undefined && wrote !== undefined && read >= 1 && (c.outcome !== "ok" || wrote >= 1)) {
+      input += read;
+      output += wrote;
+    } else {
+      input += Math.max(MODEL_LIMITS.contextTokens, shown(c.inputTokens));
+      output += Math.max(MODEL_LIMITS.maxOutputTokens, shown(c.outputTokens));
+    }
+  }
+  return usd(1, Math.max(input, shown(total?.inputTokens)), Math.max(output, shown(total?.outputTokens)));
 }
-
-/** What a reply's total shows, at the prices: its counts, rounded up to whole tokens. */
-export const totalUsd = (total: { inputTokens?: number; outputTokens?: number } | undefined): number =>
-  total ? usd(1, shown(total.inputTokens), shown(total.outputTokens)) : 0;
 
 /** Whether a reply's total reports past what its calls could reach, each at Claude Haiku 4.5's documented limits. */
 export const totalPastModelLimits = (total: { inputTokens?: number; outputTokens?: number } | undefined, calls: number): boolean =>

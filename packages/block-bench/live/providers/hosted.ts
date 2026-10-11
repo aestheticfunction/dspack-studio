@@ -8,7 +8,7 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, pastModelLimits, reportedUsd, totalPastModelLimits, totalUsd, unprovenUsd, withinReservation, worstCaseUsd } from "../cost";
+import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, pastModelLimits, reportedUsd, totalPastModelLimits, withinReservation, worstCaseUsd } from "../cost";
 import { UnboundedReply, UnpricedModel, type Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
@@ -208,7 +208,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
       // the price (its calls itemized, at least one provider call and no more than priced, each within its bounds and
       // naming the priced model itself) settles it at what the calls reported, and anything else (usage missing, a
       // figure past its bound, an extra call, no call reported, another model or none named, no reply at all) raises it
-      // to the absolute worst case, or to what its calls can have cost if that is more (boundedUsd), on the way out.
+      // to the absolute worst case, or to what the reply can have cost if that is more (boundedUsd), on the way out.
       // A reply that does not itemize its calls, or no reply, may come from a Worker that ignores maxCalls, so it is
       // raised to the most any request can cost. The run's total never falls below what it spent.
       let released = false;
@@ -222,16 +222,15 @@ export function createHostedProvider(options: HostedOptions): Provider {
         for (const call of records) at.recorder.record(call);
         reported = reportedUsd(records);
         // The app reads each figure from the first spelling it can: a call that states one otherwise under another
-        // spelling proves nothing, and counts at the most any spelling shows (each record by the raw call it came from).
+        // spelling proves nothing, and shows the most any spelling does (each record by the raw call it came from).
         const stated = (Array.isArray(reply?.calls) && reply.calls.length > 0 ? reply.calls : [reply?.usage]).map(spelled);
-        const largest = records.map((call, i) => ({ ...call, ...stated[i]!.most }));
+        const largest = records.map((call, i) => ({ ...call, ...stated[i]!.most, stated: stated[i]!.once }));
         // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves
-        // nothing, and what it shows counts when it is more than what the calls show.
+        // nothing, and counts wherever it shows more of a figure than the calls do.
         const { once: totalOnce, most: total } = spelled(reply?.usage);
         const summed = (key: "inputTokens" | "outputTokens") => records.reduce((a, call) => a + (call.source === "none" ? 0 : (call[key] ?? 0)), 0);
         const agrees = (total.inputTokens === undefined || total.inputTokens === summed("inputTokens")) && (total.outputTokens === undefined || total.outputTokens === summed("outputTokens"));
-        const callsShow = largest.reduce((a, call, i) => a + (stated[i]!.once ? boundedUsd([call]) : call.source === "none" ? 0 : unprovenUsd(call)), 0);
-        bounded = Math.max(callsShow, totalUsd(total));
+        bounded = boundedUsd(largest, total);
         const charged = records.filter((call) => call.source !== "none").length;
         itemized = Array.isArray(reply?.calls);
         verified = totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));

@@ -116,12 +116,23 @@ describe("a request's worst case", () => {
     expect(boundedUsd([call({ inputTokens: 10, outputTokens: 0 })])).toBe(absoluteUsd(1));
     expect(boundedUsd([call({ inputTokens: 10, outputTokens: 0, outcome: "unusable-output" })])).toBeCloseTo(10 * 1e-6 * 1.05, 12);
     const unread = Array.from({ length: 4 }, () => call({ inputTokens: 0, outputTokens: MODEL_LIMITS.maxOutputTokens }));
-    expect(boundedUsd(unread)).toBe(4 * absoluteUsd(1));
+    expect(boundedUsd(unread)).toBeCloseTo(4 * absoluteUsd(1), 12);
     // A count that is not a whole number is no count, but what it shows still counts, rounded up to whole tokens: one
-    // past the limits charges at least that, and is past the limits.
+    // past the limits charges at least that, and is past the limits. The call proves nothing, so its other figure
+    // counts at the most one call can read or write.
     const fractional = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens + 0.5 });
-    expect(boundedUsd([fractional])).toBeCloseTo((10 * 1e-6 + (2 * MODEL_LIMITS.maxOutputTokens + 1) * 5e-6) * 1.05, 12);
+    expect(boundedUsd([fractional])).toBeCloseTo((MODEL_LIMITS.contextTokens * 1e-6 + (2 * MODEL_LIMITS.maxOutputTokens + 1) * 5e-6) * 1.05, 12);
     expect(pastModelLimits(fractional)).toBe(true);
+    // Each figure stands on its own: a call showing input past the context window and no output count may still have
+    // written the most one call can.
+    expect(boundedUsd([call({ inputTokens: 300_000, outputTokens: null })])).toBeCloseTo((300_000 * 1e-6 + MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05, 12);
+    // A call that states a figure two ways proves nothing, whatever its counts.
+    expect(boundedUsd([{ ...call({ inputTokens: 10, outputTokens: 2 }), stated: false }])).toBe(absoluteUsd(1));
+    // A reply's total counts where it shows more of a figure than its calls do, figure by figure: the calls' input and
+    // the total's output can each be what was billed.
+    const wide = Array.from({ length: 3 }, () => call({ inputTokens: MODEL_LIMITS.contextTokens, outputTokens: 1 }));
+    expect(boundedUsd(wide, { inputTokens: 3, outputTokens: 3 * MODEL_LIMITS.maxOutputTokens })).toBeCloseTo((3 * MODEL_LIMITS.contextTokens * 1e-6 + 3 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05, 12);
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 2 })], { inputTokens: 5, outputTokens: 1 })).toBeCloseTo((10 * 1e-6 + 2 * 5e-6) * 1.05, 12);
     // A call reporting past the model's limits counts at what it reported, and one beside it that reported nothing on top.
     const past = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens });
     expect(boundedUsd([past, call({ inputTokens: null, outputTokens: null, outcome: "provider-error" })])).toBeCloseTo((10 * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05 + absoluteUsd(1), 12);
