@@ -7,7 +7,7 @@
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import type { CallRecorder, Usage } from "@dspack-studio/composer-core";
 import type { BlockDefinition, CallEncoding, ErrorKind, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { PacingCapReached, type Pacer } from "../pacing";
+import { RunStop, type Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 
 /** Counts what left the harness: request bodies in bytes, and how many. */
@@ -97,9 +97,9 @@ export function classifyHarnessError(error: unknown): ErrorKind {
 export function makeHarnessError(adapterId: string): (kind: string, message: string, cause?: unknown) => Error {
   return (kind, message, cause) => {
     if (cause instanceof AdapterOutputError) return cause;
-    // The pacing cap is the run's own stop signal, not a provider failure: it
-    // passes through untouched so runPipeline lets it escape and the loop stops.
-    if (cause instanceof PacingCapReached) return cause;
+    // The run's own stop signals (a cap, a record it cannot write) are not provider failures:
+    // they pass through untouched so runPipeline lets them escape and the loop stops.
+    if (cause instanceof RunStop) return cause;
     const k: FailureKind = kind === "budget" ? "budget" : kind === "output" ? "output" : kind === "policy" ? "policy" : "provider";
     return new HarnessError(adapterId, `${kind}: ${message}`, k);
   };

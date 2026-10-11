@@ -55,6 +55,13 @@ export function absoluteUsd(maxCalls: 1 | 2): number {
   return usd(maxCalls, MODEL_LIMITS.contextTokens, MODEL_LIMITS.maxOutputTokens);
 }
 
+/**
+ * Dollars as whole nanodollars, the unit the run's ledger counts in. Every price here is a whole number of them (1,050 an
+ * input token and 5,250 an output token, the credit fee included), so the ledger's sums and its comparisons with the
+ * ceiling are exact: no rounding can admit a request past the ceiling, or refuse one inside a cell it admitted.
+ */
+export const toNanos = (usd: number): number => Math.round(usd * 1e9);
+
 /** The most requests one cell makes: the planning call and at most three generation requests, in every arm (ADR-B4). */
 export const CELL_REQUESTS = 4;
 /** The most any request can cost (two calls). */

@@ -15,23 +15,26 @@
  * is appended to pacing.jsonl, and a cut-off last line is set aside in
  * runs.torn.jsonl. A hosted run also carries a cumulative cap and a dollar
  * ceiling: the manifest records the requests the whole run may send and the
- * dollars it may commit, requests.jsonl records every request with its
- * worst case before it is sent and how that reservation ended after its
- * reply (released, settled at the reported usage, or raised), and each
+ * dollars it may commit, requests.jsonl records every request, by id, with
+ * its worst case, on the disk before it is sent, and how that reservation
+ * ended after its reply (released, settled at the reported usage, or
+ * raised), in whole nanodollars, and each
  * invocation's pacer is bound to those totals, so no number of resumes
  * sends more, or spends more, than the run allows. One
  * invocation runs a directory at a time (run.lock), so two cannot spend the
  * same cap or interleave the logs.
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { appendFileSync, closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { hostname } from "node:os";
 import { dirname, join } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
-import { REQUEST_USD_BOUND } from "./cost";
+import { REQUEST_USD_BOUND, toNanos } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
-import { PacingCapReached, type RunLedger } from "./pacing";
+import { PacingCapReached, RecordUnwritable, type RunLedger } from "./pacing";
 import type { Preflight } from "./preflight";
 import type { Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
@@ -296,71 +299,135 @@ export function priorFromRecord(record: RunRecord, goal: string): PriorResult | 
 
 const writeJson = (file: string, value: unknown) => writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 
-/** Replaced whole, never truncated in place: a crash leaves the old file or the new one. */
+/** Flushes a directory's entries to the disk (a file renamed into it), where the platform can. */
+function syncDirectory(dir: string): void {
+  let fd: number | undefined;
+  try {
+    fd = openSync(dir, "r");
+    fsyncSync(fd);
+  } catch {
+    /* not every platform can sync a directory */
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
+}
+
+/** Replaced whole, never truncated in place, and on the disk before it is moved into place: a crash leaves the old file or the new one. */
 function replaceJson(file: string, value: unknown) {
-  writeJson(`${file}.tmp`, value);
+  writeFileSync(`${file}.tmp`, `${JSON.stringify(value, null, 2)}\n`, { flush: true });
   renameSync(`${file}.tmp`, file);
+  syncDirectory(dirname(file));
 }
 
 /**
- * The requests a run recorded before sending them, one line each with its priced worst case; the adjustment recorded
- * after each reply (a release, a settlement at the reported usage, or a raise), which is not a request; and the
- * invocations that recorded them. A request with no price (recorded before the dollar ledger, or unreadable) counts
- * at the most any request can cost.
+ * Appends one line to the run's ledger and flushes it to the disk before returning, so a request is on the record
+ * before it is sent and a crash of the machine cannot take it back. A line that cannot be written stops the run.
+ */
+function appendRecord(file: string, value: unknown): void {
+  try {
+    appendFileSync(file, line(value), { flush: true });
+  } catch (error) {
+    throw new RecordUnwritable(file, error);
+  }
+}
+
+/**
+ * The requests a run recorded before sending them, one line each with its id and its priced worst case; the settlement
+ * recorded after each reply (a release, a settlement at the reported usage, or a raise), which names its request and
+ * carries its final amount, and is not a request; and how many requests each invocation recorded. The ledger counts in
+ * whole nanodollars (toNanos), so its sums are exact.
+ *
+ * Each request counts at its settlement, the largest if it has several, in whatever order they were written. One that
+ * has none it could have (its reply was never read, or its settlement could not be written), wherever it sits, is raised
+ * to the most any request can cost, on the record. A settlement whose request has no line is a request that was sent,
+ * counted at least at that most. A request with no id or no price (unreadable, or recorded before either existed)
+ * counts at that most, and no settlement lowers it.
  *
  * The ledger is settled before anything is appended. A cut-off last line is set aside: a request line cut off was
- * never sent, and an adjustment cut off leaves its request unsettled. A request whose reply was never read (the
- * invocation was killed after sending it) is raised to the most any request can cost, on the record.
+ * never sent, and a settlement cut off leaves its request unsettled.
  */
-function readLedger(file: string, settle: { at: string; invocation: string }): { count: number; usd: number; invocations: Set<string> } {
-  const invocations = new Set<string>();
-  if (!existsSync(file)) return { count: 0, usd: 0, invocations };
+function readLedger(file: string, settle: { at: string; invocation: string }): { count: number; nanos: number; invocations: Map<string, number> } {
+  const invocations = new Map<string, number>();
+  if (!existsSync(file)) return { count: 0, nanos: 0, invocations };
   const text = readFileSync(file, "utf8");
   const lines = text.split("\n");
   const torn = lines.pop()!.trim() !== "";
-  let usd = 0;
-  let count = 0;
-  let pending: number | undefined;
-  for (const entry of lines) {
-    let parsed: { invocation?: unknown; usd?: unknown; adjust?: unknown } = {};
+  const bound = toNanos(REQUEST_USD_BOUND);
+  type Entry = { invocation?: unknown; request?: unknown; usd?: unknown; adjust?: unknown; final?: unknown };
+  const entries = lines.map((entry): Entry => {
     try {
-      parsed = JSON.parse(entry) as typeof parsed;
+      const parsed: unknown = JSON.parse(entry);
+      return parsed && typeof parsed === "object" ? (parsed as Entry) : {};
     } catch {
-      /* still counted: a request was recorded */
+      return {}; /* still counted: a request was recorded */
     }
-    if (typeof parsed.invocation === "string") invocations.add(parsed.invocation);
-    if (typeof parsed.adjust === "number" && Number.isFinite(parsed.adjust)) {
-      usd += parsed.adjust;
-      pending = undefined;
+  });
+  const nanosOf = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? toNanos(value) : undefined);
+  const isSettlement = (entry: Entry) => nanosOf(entry.adjust) !== undefined;
+  let count = 0;
+  let nanos = 0;
+  const counted = (invocation: unknown) => {
+    count += 1;
+    if (typeof invocation === "string") invocations.set(invocation, (invocations.get(invocation) ?? 0) + 1);
+  };
+  // Each request by its id, at its price; one without either at the most any request can cost.
+  const priced = new Map<string, number>();
+  for (const entry of entries) {
+    if (isSettlement(entry)) continue;
+    counted(entry.invocation);
+    const price = nanosOf(entry.usd);
+    if (typeof entry.request === "string" && !priced.has(entry.request) && price !== undefined && price >= 0) priced.set(entry.request, price);
+    else nanos += bound;
+  }
+  // Each settlement as its request's final amount, never below nothing; the largest counts.
+  const finals = new Map<string, number>();
+  const strays = new Map<string, { invocation: unknown; final: number }>();
+  for (const entry of entries) {
+    if (!isSettlement(entry) || typeof entry.request !== "string") continue;
+    const price = priced.get(entry.request);
+    const final = nanosOf(entry.final) ?? (price !== undefined ? price + nanosOf(entry.adjust)! : undefined);
+    if (price === undefined) {
+      const stray = strays.get(entry.request) ?? { invocation: entry.invocation, final: bound };
+      if (final !== undefined && final > stray.final) stray.final = final;
+      strays.set(entry.request, stray);
+    } else if (final !== undefined && final >= 0) finals.set(entry.request, Math.max(finals.get(entry.request) ?? 0, final));
+  }
+  const raises: string[] = [];
+  for (const [request, price] of priced) {
+    const final = finals.get(request);
+    if (final !== undefined) {
+      nanos += final;
       continue;
     }
-    count += 1;
-    const priced = typeof parsed.usd === "number" && Number.isFinite(parsed.usd) && parsed.usd >= 0 ? parsed.usd : undefined;
-    usd += priced ?? REQUEST_USD_BOUND;
-    pending = priced;
+    const raised = Math.max(bound, price);
+    raises.push(line({ ...settle, request, adjust: (raised - price) / 1e9, final: raised / 1e9, reason: "a request whose reply was never read" }));
+    nanos += raised;
   }
-  const raise = pending === undefined ? 0 : REQUEST_USD_BOUND - pending;
-  if (torn || raise > 0) {
-    writeFileSync(`${file}.tmp`, text.slice(0, text.lastIndexOf("\n") + 1) + (raise > 0 ? line({ ...settle, adjust: raise, reason: "a request whose reply was never read" }) : ""));
+  for (const stray of strays.values()) {
+    counted(stray.invocation);
+    nanos += stray.final;
+  }
+  if (torn || raises.length > 0) {
+    writeFileSync(`${file}.tmp`, text.slice(0, text.lastIndexOf("\n") + 1) + raises.join(""), { flush: true });
     renameSync(`${file}.tmp`, file);
-    usd += raise;
+    syncDirectory(dirname(file));
   }
-  return { count, usd, invocations };
+  return { count, nanos, invocations };
 }
 
 /**
- * What the run has sent and committed so far, every invocation included: the ledger (settled first), plus what each
- * invocation from before the ledger reported (one that recorded nothing in it), each at the most a request can cost.
+ * What the run has sent and committed so far, every invocation included: the ledger (settled first), plus whatever
+ * each earlier invocation reported sending beyond the lines it left there (all of it, for one from before the ledger),
+ * each at the most a request can cost. A report of fewer than none counts as none.
  */
-function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["invocations"], settle: { at: string; invocation: string }): { sent: number; usd: number } {
-  const recorded = requestsFile ? readLedger(requestsFile, settle) : { count: 0, usd: 0, invocations: new Set<string>() };
-  const unrecorded = earlier
-    .filter((i) => !recorded.invocations.has(i.at))
-    .reduce((sum, i) => {
-      const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
-      return sum + (typeof sent === "number" && Number.isFinite(sent) ? sent : 0);
-    }, 0);
-  return { sent: recorded.count + unrecorded, usd: recorded.usd + unrecorded * REQUEST_USD_BOUND };
+function runTotals(requestsFile: string | undefined, earlier: EvaluationResult["invocations"], settle: { at: string; invocation: string }): { sent: number; nanos: number } {
+  const recorded = requestsFile ? readLedger(requestsFile, settle) : { count: 0, nanos: 0, invocations: new Map<string, number>() };
+  const unrecorded = earlier.reduce((sum, i) => {
+    const sent = (i.telemetry.pacing as { sent?: unknown } | undefined)?.sent;
+    const reported = typeof sent === "number" && Number.isFinite(sent) && sent > 0 ? Math.floor(sent) : 0;
+    return sum + Math.max(0, reported - (recorded.invocations.get(i.at) ?? 0));
+  }, 0);
+  return { sent: recorded.count + unrecorded, nanos: recorded.nanos + unrecorded * toNanos(REQUEST_USD_BOUND) };
 }
 
 /** Whether a process is running: signal 0 tests for it without sending anything. */
@@ -375,28 +442,76 @@ function alive(pid: number): boolean {
 
 /**
  * One invocation at a time per run directory: two would each spend the same cumulative cap and interleave the logs.
- * A lock whose process is gone (a killed invocation) is taken over. Returns the release.
+ * The lock names its holder (its pid, its host and a nonce of its own) and is written whole before it is linked into
+ * place, so it is never seen empty. A lock whose process is gone from this host (a killed invocation) is taken over:
+ * moved aside under this invocation's own name, and taken only if what moved is the lock judged stale, else put back.
+ * A holder on another host is never judged gone. Returns the release, which removes the lock only while it is still
+ * this invocation's own.
  */
-function lockRun(outDir: string): () => void {
+export function lockRun(outDir: string): () => void {
   const file = join(outDir, "run.lock");
-  const take = () => writeFileSync(file, `${JSON.stringify({ pid: process.pid, at: new Date().toISOString() })}\n`, { flag: "wx" });
-  try {
-    take();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    let holder: { pid?: unknown; at?: unknown } = {};
+  const nonce = randomUUID();
+  const host = hostname();
+  const own = `${JSON.stringify({ pid: process.pid, host, nonce, at: new Date().toISOString() })}\n`;
+  const read = (path: string) => {
     try {
-      holder = JSON.parse(readFileSync(file, "utf8")) as typeof holder;
+      return readFileSync(path, "utf8");
     } catch {
-      /* unreadable: its writer died mid-write */
+      return "";
     }
-    if (typeof holder.pid === "number" && alive(holder.pid)) {
-      throw new Error(`another invocation (pid ${holder.pid}, started ${String(holder.at)}) is running the run in ${outDir}; wait for it to finish or stop it. If no invocation is running, delete ${file}.`);
+  };
+  const holderOf = (text: string): { pid?: unknown; host?: unknown; at?: unknown } => {
+    try {
+      const holder: unknown = JSON.parse(text);
+      return holder && typeof holder === "object" ? (holder as { pid?: unknown; host?: unknown; at?: unknown }) : {};
+    } catch {
+      return {}; /* unreadable: its writer died mid-write */
     }
-    rmSync(file, { force: true });
-    take();
+  };
+  const busy = (text: string) => {
+    const holder = holderOf(text);
+    return new Error(`another invocation (pid ${String(holder.pid)}${typeof holder.host === "string" ? ` on ${holder.host}` : ""}, started ${String(holder.at)}) is running the run in ${outDir}; wait for it to finish or stop it. If no invocation is running, delete ${file}.`);
+  };
+  const take = (): boolean => {
+    const whole = `${file}.${nonce}`;
+    writeFileSync(whole, own, { flush: true });
+    try {
+      linkSync(whole, file);
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+      throw error;
+    } finally {
+      rmSync(whole, { force: true });
+    }
+  };
+  if (!take()) {
+    const seen = read(file);
+    const holder = holderOf(seen);
+    if ((typeof holder.host === "string" && holder.host !== host) || (typeof holder.pid === "number" && alive(holder.pid))) throw busy(seen);
+    const aside = `${file}.stale.${nonce}`;
+    try {
+      renameSync(file, aside);
+    } catch {
+      throw busy(read(file)); /* gone: another invocation is taking it over */
+    }
+    const moved = read(aside);
+    if (moved !== seen) {
+      // Another invocation took it between the read and the move: its lock goes back, and this one refuses.
+      try {
+        linkSync(aside, file);
+      } catch {
+        /* a third took it meanwhile: refuse either way */
+      }
+      rmSync(aside, { force: true });
+      throw busy(moved);
+    }
+    rmSync(aside, { force: true });
+    if (!take()) throw busy(read(file));
   }
-  return () => rmSync(file, { force: true });
+  return () => {
+    if (read(file) === own) rmSync(file, { force: true });
+  };
 }
 
 export async function runEvaluation(options: EvaluationOptions): Promise<EvaluationResult> {
@@ -443,8 +558,8 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
         if (options.maxTotalRequests !== undefined && options.maxTotalRequests < done.sent) {
           throw new Error(`--max-total-requests ${options.maxTotalRequests} is below the ${done.sent} requests the run in ${outDir} has already sent; a cap can be lowered only as far as that`);
         }
-        if (options.maxTotalUsd !== undefined && options.maxTotalUsd < done.usd) {
-          throw new Error(`--max-total-usd ${options.maxTotalUsd} is below the $${done.usd.toFixed(4)} the run in ${outDir} has already committed; a ceiling can be lowered only as far as that`);
+        if (options.maxTotalUsd !== undefined && toNanos(options.maxTotalUsd) < done.nanos) {
+          throw new Error(`--max-total-usd ${options.maxTotalUsd} is below the $${(done.nanos / 1e9).toFixed(4)} the run in ${outDir} has already committed; a ceiling can be lowered only as far as that`);
         }
       }
       const changes = [...(was?.changes ?? [])];
@@ -479,7 +594,7 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
       if (hosted && options.maxTotalUsd === undefined) {
         throw new Error("a hosted run needs a dollar ceiling: the dollars the whole run may commit, across every invocation and resume (--max-total-usd)");
       }
-      writeJson(manifestFile, manifest);
+      replaceJson(manifestFile, manifest);
       writeJson(join(outDir, "preflight.json"), preflight);
     }
   }
@@ -511,8 +626,9 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   }
 
   // The run's cumulative cap and dollar ceiling, bound to this invocation's pacer. Its count is every request the run
-  // has recorded, plus what each invocation from before the ledger reported (one that recorded nothing in it), each
-  // at the most a request can cost; each request is recorded with its priced worst case before it is sent.
+  // has recorded, plus whatever each earlier invocation reported sending beyond its lines there, each at the most a
+  // request can cost; each request is recorded with its id and priced worst case, on the disk, before it is sent, and
+  // settled by its id after its reply. The dollars are kept in whole nanodollars, so they sum exactly.
   const pacer = options.provider.pacer;
   const cap = manifest.limits?.maxTotalRequests;
   const capUsd = manifest.limits?.maxTotalUsd;
@@ -520,19 +636,34 @@ async function evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
   let ledger: RunLedger | undefined;
   if (pacer && cap !== undefined) {
     const done = runTotals(requestsFile, earlierInvocations, { at: new Date().toISOString(), invocation: options.preflight.at });
+    let committed = done.nanos;
+    let sequence = 0;
+    // The request the next settlement is for: requests are sent one at a time, and each is settled before the next.
+    let open: { request: string; nanos: number } | undefined;
+    const stamp = () => ({ at: new Date().toISOString(), invocation: options.preflight.at });
     ledger = {
       cap,
       sent: done.sent,
       ...(capUsd !== undefined ? { capUsd } : {}),
-      usd: done.usd,
+      get usd() {
+        return committed / 1e9;
+      },
       record(usd = 0) {
-        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at, usd }));
+        const request = `${options.preflight.at}#${sequence + 1}`;
+        if (requestsFile) appendRecord(requestsFile, { ...stamp(), request, usd });
+        sequence += 1;
         this.sent += 1;
-        this.usd = (this.usd ?? 0) + usd;
+        committed += toNanos(usd);
+        open = { request, nanos: toNanos(usd) };
       },
       adjust(usd, reason) {
-        if (requestsFile) appendFileSync(requestsFile, line({ at: new Date().toISOString(), invocation: options.preflight.at, adjust: usd, reason }));
-        this.usd = (this.usd ?? 0) + usd;
+        const delta = toNanos(usd);
+        const of = open;
+        open = undefined;
+        // A raise counts even when its line cannot be written: the run's total never falls below what it spent.
+        if (delta > 0) committed += delta;
+        if (requestsFile) appendRecord(requestsFile, { ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason });
+        if (delta <= 0) committed += delta;
       },
     };
     pacer.ledger = ledger;

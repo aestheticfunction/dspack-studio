@@ -323,8 +323,8 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       // A request sent whose reply was never read (the invocation was killed) is raised to the most any request can cost,
       // on the record, before anything else is appended; so is one whose settlement was cut off mid-line, which is set
       // aside. A request line cut off itself was never sent, and is set aside at no cost.
-      const request = (usd: number) => JSON.stringify({ at: "2026-10-03T00:00:01.000Z", invocation: "2026-10-03T00:00:00.000Z", usd });
-      const settle = (adjust: number) => JSON.stringify({ at: "2026-10-03T00:00:02.000Z", invocation: "2026-10-03T00:00:00.000Z", adjust, reason: "settled at the reported usage" });
+      const request = (usd: number) => JSON.stringify({ at: "2026-10-03T00:00:01.000Z", invocation: "2026-10-03T00:00:00.000Z", request: "2026-10-03T00:00:00.000Z#1", usd });
+      const settle = (adjust: number) => JSON.stringify({ at: "2026-10-03T00:00:02.000Z", invocation: "2026-10-03T00:00:00.000Z", request: "2026-10-03T00:00:00.000Z#1", adjust, final: 0.5 + adjust, reason: "settled at the reported usage" });
       writeFileSync(join(dir, "pacing.jsonl"), "");
       const read = () => readFileSync(join(dir, "requests.jsonl"), "utf8").split("\n");
       posted = 0;

@@ -53,7 +53,7 @@ import {
 } from "@dspack-studio/composer-core/blocks";
 import { parityComponents, refinementFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { checkParity } from "./parity";
-import { PacingCapReached } from "./pacing";
+import { RunStop } from "./pacing";
 import { createMeter, failureKindOf, type Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
 import { REFINEMENT_KIND, type Arm, type Condition, type FailureKind, type Path, type PriorResult, type RunRecord } from "./types";
@@ -186,7 +186,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
         plan = reconcilePlan(json, contract, goal);
         if (blockArm) plan = { ...plan, block: reconcileBlockChoice(json, { intent: plan.intent, eligible }) };
       } catch (error) {
-        if (error instanceof PacingCapReached) throw error;
+        if (error instanceof RunStop) throw error;
         const kind = failureKindOf(error);
         planFailure = { kind: kind === "output" || kind === "policy" ? kind : "provider", message: error instanceof Error ? error.message : String(error) };
         plan = planDeterministic(goal, contract);
@@ -271,8 +271,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     const started = now();
     const result = await runBlockPhase({ block, intent: runIntent, goal: runGoal, reference: { name: reference.name }, contract, profile, inner: blockInner, budget, deps, encoding, ...(seed ? { seed } : {}) });
     blockPhaseMs = now() - started;
-    // The block phase classifies every throw; the run's own stop signal is not a provider failure.
-    if (result.kind === "provider-failure" && result.error instanceof PacingCapReached) throw result.error;
+    // The block phase classifies every throw; the run's own stop signals are not provider failures.
+    if (result.kind === "provider-failure" && result.error instanceof RunStop) throw result.error;
     trace = await durableTrace(result.trace);
     switch (result.kind) {
       case "expanded": {
