@@ -227,6 +227,7 @@ export function createHostedProvider(options: HostedOptions): Provider {
     descriptor: `${HOSTED_AI_ID}@${base}`,
     kind: "hosted",
     plansWithModel: true,
+    ...(options.pacer ? { pacer: options.pacer } : {}),
     beforeCell: () => options.pacer?.reserve(cellRequestBound(options.pacer.config.backoffMs.length)),
     telemetry: () => (options.pacer ? { pacing: { ...options.pacer.config, backoffMs: [...options.pacer.config.backoffMs], sent: options.pacer.sent, waits: [...options.pacer.waits] } } : undefined),
     surfaceAdapter: adapter,

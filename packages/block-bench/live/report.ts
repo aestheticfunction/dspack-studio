@@ -38,6 +38,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
         `- Invocation ${n + 1} (${invocation.at}): a cap of ${pacing.maxRequests} requests, ${pacing.spacingMs} ms between requests, backoff ${pacing.backoffMs.map((ms) => `${ms / 1000}s`).join(", ") || "none"}; ${pacing.sent} requests sent; waits: ${pacing.waits.length === 0 ? "none" : [...byReason].map(([reason, e]) => `${e.n} for ${reason} (${Math.round(e.ms / 1000)}s)`).join(", ")}.`,
       );
     });
+    if (result.requests) out.push(`- The run: a cumulative cap of ${result.requests.cap} requests across every invocation (manifest.json); ${result.requests.sent} sent (requests.jsonl).`);
     out.push("");
   }
   if (preflight.drafts) out.push("**Provisional.** At least one sidecar in use is a draft. ADR-B3 counts approved sidecars only; these numbers inform the drafts, they do not graduate anything.", "");

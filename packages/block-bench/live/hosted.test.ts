@@ -5,6 +5,9 @@
  * the HTTP status, the Worker's cause, and every call record. The app's
  * adapter posts to a relative URL, which the stub accepts.
  */
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createCallRecorder, type ModelCallRecord } from "@dspack-studio/composer-core";
 import { GatewayError, gatewayAdapter } from "../../../apps/composer/app/hosted-build";
@@ -179,6 +182,72 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
     expect(result.stopped).toMatchObject({ reason: "cap" });
     expect(result.records).toEqual([]);
     expect(posted).toBe(0);
+  });
+
+  it("the run's cumulative cap holds across resumes: each invocation has a new pacer, and together they never send more than the run's cap", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-cumulative-"));
+    try {
+      let posted = 0;
+      // The provider is down: every fresh cell is one planning request that fails, so the count is easy to read.
+      const fetchImpl = (async () => {
+        posted += 1;
+        return reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] });
+      }) as typeof fetch;
+      const pre = await preflight({ references: [astryx] });
+      // Each invocation is what one CLI process builds: a new provider and a new pacer with its own cap of 300.
+      const invocation = (maxTotalRequests?: number) =>
+        runEvaluation({
+          runId: "cumulative",
+          provider: createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 300, spacingMs: 0, now: () => 0, sleep: async () => undefined }) }),
+          references: [astryx],
+          corpus,
+          preflight: pre,
+          allowDrafts: true,
+          conditions: ["fresh"],
+          outDir: dir,
+          resume: existsSync(join(dir, "manifest.json")),
+          ...(maxTotalRequests !== undefined ? { maxTotalRequests } : {}),
+        });
+      const first = await invocation(25);
+      expect(first.stopped).toMatchObject({ reason: "cap" });
+      expect(posted).toBeGreaterThan(0);
+      expect(posted).toBeLessThanOrEqual(25);
+      const sent = posted;
+      // A resume that names no new cap holds to the recorded one, which is spent: nothing more is sent.
+      const second = await invocation();
+      expect(second.stopped).toMatchObject({ reason: "cap" });
+      expect(second.stopped?.message).toMatch(/--max-total-requests/);
+      expect(posted).toBe(sent);
+      // Raising it is explicit and recorded; the run then continues up to the new cap, never past it.
+      await invocation(45);
+      expect(posted).toBeGreaterThan(sent);
+      expect(posted).toBeLessThanOrEqual(45);
+      const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
+      expect(manifest.limits).toMatchObject({ maxTotalRequests: 45, changes: [{ from: 25, to: 45 }] });
+      // Every request was recorded before it was sent, and the summary and the report state the run's total.
+      expect(readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n")).toHaveLength(posted);
+      expect(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).requests).toEqual({ cap: 45, sent: posted });
+      expect(readFileSync(join(dir, "REPORT.md"), "utf8")).toContain(`- The run: a cumulative cap of 45 requests across every invocation (manifest.json); ${posted} sent (requests.jsonl).`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("a persisted hosted run refuses to start without a cumulative cap", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "block-bench-uncapped-"));
+    try {
+      let posted = 0;
+      const fetchImpl = (async () => {
+        posted += 1;
+        return okReply(planAnswer);
+      }) as typeof fetch;
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 300, spacingMs: 0, now: () => 0, sleep: async () => undefined }) });
+      const pre = await preflight({ references: [astryx] });
+      await expect(runEvaluation({ runId: "uncapped", provider, references: [astryx], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: dir })).rejects.toThrow(/cumulative cap/);
+      expect(posted).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("reports its pacing: the configuration, the requests sent and every wait", async () => {

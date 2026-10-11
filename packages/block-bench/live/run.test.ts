@@ -11,8 +11,8 @@ afterEach(() => {
 
 describe("the CLI validates its options before any preflight or provider call", () => {
   it("accepts the documented values and parses the numbers, and ignores the '--' separator pnpm forwards", () => {
-    const o = parseOptions(["--", "--provider", "hosted", "--arms", "block,capped", "--conditions", "fresh,refine-add", "--limit", "5", "--max-requests", "40", "--spacing-ms", "0"]);
-    expect(o).toMatchObject({ provider: "hosted", arms: ["block", "capped"], conditions: ["fresh", "refine-add"], limit: 5, maxRequests: 40, spacingMs: 0 });
+    const o = parseOptions(["--", "--provider", "hosted", "--arms", "block,capped", "--conditions", "fresh,refine-add", "--limit", "5", "--max-requests", "40", "--max-total-requests", "400", "--spacing-ms", "0"]);
+    expect(o).toMatchObject({ provider: "hosted", arms: ["block", "capped"], conditions: ["fresh", "refine-add"], limit: 5, maxRequests: 40, maxTotalRequests: 400, spacingMs: 0 });
     expect(parseOptions(["--arms", "block,block-positional"]).arms).toEqual(["block", "block-positional"]);
   });
   it("rejects an unknown arm, an unknown condition, an unknown provider, and a number that is not a whole non-negative count", () => {
@@ -47,9 +47,19 @@ describe("the CLI refuses what would run nothing, or run something other than wh
     expect(() => parseOptions(["--provider", "hosted", "--ollama-host", "http://localhost:11434"])).toThrow(/--ollama-host applies to an ollama provider only/);
   });
 
+  it("a hosted run states the requests the whole run may send across every resume, and a resume may change it only by saying so", () => {
+    expect(() => parseOptions(["--provider", "hosted"])).toThrow(/--max-total-requests/);
+    expect(parseOptions(["--provider", "hosted", "--max-total-requests", "500"]).maxTotalRequests).toBe(500);
+    expect(() => parseOptions(["--provider", "hosted", "--max-total-requests", "19"])).toThrow(/--max-total-requests must be at least 20/);
+    expect(() => parseOptions(["--provider", "scripted", "--max-total-requests", "500"])).toThrow(/--max-total-requests applies to the hosted provider only/);
+    // A resume holds to the cap its manifest records; passing one changes it, and the change is recorded.
+    expect(parseOptions(["--provider", "hosted", "--resume", "live/runs/x"]).maxTotalRequests).toBeUndefined();
+    expect(parseOptions(["--provider", "hosted", "--resume", "live/runs/x", "--max-total-requests", "900"]).maxTotalRequests).toBe(900);
+  });
+
   it("refuses a hosted cap that can never admit a cell, and accepts the smallest one that can", () => {
     expect(() => parseOptions(["--provider", "hosted", "--max-requests", "19"])).toThrow(/--max-requests must be at least 20/);
-    expect(parseOptions(["--provider", "hosted", "--max-requests", "20"]).maxRequests).toBe(20);
+    expect(parseOptions(["--provider", "hosted", "--max-requests", "20", "--max-total-requests", "20"]).maxRequests).toBe(20);
   });
 
   it("refuses prompt and block ids the corpus does not hold for the selected references", () => {
@@ -67,9 +77,9 @@ describe("the CLI refuses what would run nothing, or run something other than wh
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     const runs = fileURLToPath(new URL("./runs", import.meta.url));
     const before = existsSync(runs) ? readdirSync(runs).length : 0;
-    expect(await main(["--provider", "hosted", "--prompts", "rt-01", "--blocks", "auth-form", "--allow-drafts"])).toBe(2);
+    expect(await main(["--provider", "hosted", "--max-total-requests", "300", "--prompts", "rt-01", "--blocks", "auth-form", "--allow-drafts"])).toBe(2);
     expect(errors.mock.calls.flat().join("\n")).toMatch(/plans no cells/);
-    expect(await main(["--provider", "hosted", "--prompts", "rt-1", "--allow-drafts"])).toBe(2);
+    expect(await main(["--provider", "hosted", "--max-total-requests", "300", "--prompts", "rt-1", "--allow-drafts"])).toBe(2);
     expect(errors.mock.calls.flat().join("\n")).toMatch(/unknown prompt 'rt-1'/);
     expect(fetch).not.toHaveBeenCalled();
     expect(existsSync(runs) ? readdirSync(runs).length : 0).toBe(before);

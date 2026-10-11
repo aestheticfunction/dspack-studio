@@ -7,7 +7,7 @@
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
 import type { CallRecorder, Usage } from "@dspack-studio/composer-core";
 import type { BlockDefinition, CallEncoding, ErrorKind, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { PacingCapReached } from "../pacing";
+import { PacingCapReached, type Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 
 /** Counts what left the harness: request bodies in bytes, and how many. */
@@ -49,6 +49,8 @@ export interface Provider {
   kind: "hosted" | "ollama" | "scripted";
   /** Called before a cell's first request; a hosted provider refuses the cell when its cap cannot cover it (PacingCapReached). */
   beforeCell?(): void;
+  /** Hosted: the pacer every request passes through, so the runner can bind the run's cumulative ledger to it. */
+  readonly pacer?: Pacer;
   /** What the run report records about this provider (pacing, waits). */
   telemetry?(): Record<string, unknown> | undefined;
   /** Whether this provider answers the planning request with a model (scripted routes deterministically). */
