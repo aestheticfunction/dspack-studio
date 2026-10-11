@@ -11,11 +11,14 @@
  *
  * A request's priced worst case (worstCaseUsd) also assumes at most one token per UTF-8 byte of the text the model
  * reads, plus CALL_OVERHEAD_TOKENS of framing per call, and that the gateway honours max_tokens. Every reply is
- * checked against both (withinReservation). A reply that proves every call stayed inside them is settled at what its
- * calls reported (reportedUsd), the provider's own count of what is billed. One that does not (usage missing, a
- * figure past its bound, no reply at all) is charged instead at absoluteUsd, which rests on the model's documented
- * limits alone; and no request is sent unless that absolute worst case still fits under the run's ceiling. So the
- * ceiling holds even when an assumption fails, and a run's total is what it spent plus what it cannot yet verify.
+ * checked against both (withinReservation), and against the number of calls priced. A reply that proves it stayed
+ * inside them is settled at what its calls reported (reportedUsd), the provider's own count of what is billed. One
+ * that does not (usage missing, a figure past its bound, an extra call, no reply at all) is charged instead at
+ * absoluteUsd, which rests on the model's documented limits alone, or at what it reported if that is more; and no
+ * request is sent unless its absolute worst case still fits under the run's ceiling. So the ceiling holds even when
+ * an assumption fails, and a run's total is what it spent plus what it cannot yet verify. Only a Worker that broke
+ * its own call cap could push the total past the ceiling: the ledger would record what was reported, and refuse the
+ * next request.
  */
 import type { ModelCallRecord } from "@dspack-studio/composer-core";
 import type { GenerateRequest } from "@dspack-studio/composer-core/blocks";

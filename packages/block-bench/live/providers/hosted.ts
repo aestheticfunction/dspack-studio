@@ -141,17 +141,20 @@ export function createHostedProvider(options: HostedOptions): Provider {
     for (let refusal = 0; ; refusal++) {
       if (options.pacer) await options.pacer.before(priced, absolute);
       const started = now();
-      // How the reservation ends: a refusal that reached no model releases it, a reply proving that every call stayed
-      // inside the price settles it at what the calls reported, and anything else (usage missing, a figure past its
-      // bound, no reply at all) raises it to the absolute worst case on the way out. The run's total stays an upper
-      // bound on what it spent.
+      // How the reservation ends: a refusal that reached no model releases it, a reply proving that it stayed inside
+      // the price (no more calls than priced, each within its bounds) settles it at what the calls reported, and
+      // anything else (usage missing, a figure past its bound, an extra call, no reply at all) raises it to the
+      // absolute worst case, or to what it reported if that is more, on the way out. The run's total never falls
+      // below what it spent.
       let released = false;
-      let spent: number | undefined;
+      let reported = 0;
+      let verified = false;
       const settle = (reply: Record<string, unknown> | undefined, outcome: ModelCallRecord["outcome"]) => {
         const durationMs = now() - started;
         const records = callRecords(reply, where, { outcome, durationMs });
         for (const call of records) at.recorder.record(call);
-        spent = records.every((call) => withinReservation(request, call)) ? reportedUsd(records) : undefined;
+        reported = reportedUsd(records);
+        verified = records.filter((call) => call.source !== "none").length <= calls && records.every((call) => withinReservation(request, call));
         return { calls: records, durationMs };
       };
       try {
@@ -214,8 +217,8 @@ export function createHostedProvider(options: HostedOptions): Provider {
         };
       } finally {
         if (options.pacer && !released) {
-          if (spent !== undefined) options.pacer.adjust(spent - priced, "settled at the reported usage");
-          else options.pacer.adjust(absolute - priced, "usage not verified");
+          if (verified) options.pacer.adjust(reported - priced, "settled at the reported usage");
+          else options.pacer.adjust(Math.max(absolute, reported) - priced, "usage not verified");
         }
       }
     }

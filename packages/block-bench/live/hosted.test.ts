@@ -561,6 +561,10 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["a provider failure without usage", () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }), [["request", priced], ["usage not verified", raise]]],
       ["output past the max_tokens the price assumed", () => served(9000), [["request", priced], ["usage not verified", raise]]],
       ["a reply that never arrived", () => Promise.reject(new TypeError("network down")), [["request", priced], ["usage not verified", raise]]],
+      // More calls than the request allows proves nothing, however small each one is.
+      ["more calls than the request allows", () => reply(200, { json: { a: 1 }, raw: "{}", model: "m", calls: Array.from({ length: 3 }, () => ({ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", raise]]],
+      // A reply that reports more than the absolute worst case is charged what it reported: never less than was spent.
+      ["a reply reporting past the model's limits", () => reply(200, { json: { a: 1 }, raw: "{}", model: "m", calls: Array.from({ length: 3 }, () => ({ inputTokens: 204_800, outputTokens: 65_536, outcome: "ok", durationMs: 1 })) }), [["request", priced], ["usage not verified", 3 * absoluteUsd(1) - priced]]],
     ];
     for (const [name, answer, expected] of cases) {
       lines.length = 0;
