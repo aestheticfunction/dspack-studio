@@ -771,6 +771,9 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
       get usd() {
         return committed / 1e9;
       },
+      get nanos() {
+        return committed;
+      },
       record(usd = 0) {
         const request = `${invocationId}#${sequence + 1}`;
         append({ ...stamp(), request, usd });

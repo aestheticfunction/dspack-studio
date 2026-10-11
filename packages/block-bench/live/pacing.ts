@@ -81,9 +81,14 @@ export interface RunLedger {
   readonly capUsd?: number;
   /**
    * Dollars the run has committed, every earlier invocation included: each request at its priced worst case, net of how
-   * its reservation ended. Compared with the ceiling in whole nanodollars (toNanos), so the comparison is exact.
+   * its reservation ended.
    */
   usd?: number;
+  /**
+   * The same in whole nanodollars (toNanos), as the ledger counts it. It is what is compared with the ceiling, so the
+   * comparison is exact: dollars read back into nanodollars can come out one off near the largest ceiling allowed.
+   */
+  readonly nanos?: number;
   /** Records one request, its count and its reservation, BEFORE it is sent, so a killed invocation is still counted. */
   record(usd?: number): void;
   /** Ends a reservation without a request: a release for a refusal that reached no model, a settlement at a verified reply's reported usage, or a raise for a reply that could not be verified. */
@@ -122,7 +127,7 @@ export function createPacer(options: PacingOptions): Pacer {
   const started = now();
   let last: number | null = null;
   /** Whether `usd` more fits under the run's dollar ceiling, in whole nanodollars; a run without one has nothing to exceed. */
-  const fitsUsd = (usd: number) => pacer.ledger?.capUsd === undefined || toNanos(pacer.ledger.usd ?? 0) + toNanos(usd) <= toNanos(pacer.ledger.capUsd);
+  const fitsUsd = (usd: number) => pacer.ledger?.capUsd === undefined || (pacer.ledger.nanos ?? toNanos(pacer.ledger.usd ?? 0)) + toNanos(usd) <= toNanos(pacer.ledger.capUsd);
   const pacer: Pacer = {
     config: { maxRequests: options.maxRequests, spacingMs: options.spacingMs, backoffMs: schedule },
     sent: 0,

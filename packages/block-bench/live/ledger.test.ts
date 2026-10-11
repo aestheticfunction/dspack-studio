@@ -66,7 +66,7 @@ import { exampleFor } from "./arms";
 import { readCorpus, type Corpus } from "./corpus";
 import { CELL_USD_BOUND, REQUEST_USD_BOUND, absoluteUsd, toNanos } from "./cost";
 import { lockRun, runEvaluation } from "./evaluate";
-import { createPacer } from "./pacing";
+import { PacingCapReached, createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { createHostedProvider } from "./providers/hosted";
 import { loadReference, type LoadedReference } from "./references";
@@ -326,6 +326,21 @@ describe("admission is exact", () => {
     }
     throw new Error("no edge found");
   };
+
+  it("compares the run's exact total with the ceiling, never that total read back through floating-point dollars", async () => {
+    // Near the largest ceiling the ledger allows, a total in nanodollars reads back from dollars one off: this one
+    // reads back a nanodollar over, so a request that fits the ceiling exactly was refused.
+    const nanos = 9_007_195_881_925_500;
+    const capUsd = 9_007_197.000_133_5;
+    expect(toNanos(nanos / 1e9)).toBe(nanos + 1);
+    expect(nanos + toNanos(REQUEST_USD_BOUND)).toBe(toNanos(capUsd));
+    const pacer = createPacer({ maxRequests: 10, spacingMs: 0, now: () => 0, sleep: async () => undefined });
+    pacer.ledger = { cap: 10, sent: 0, capUsd, nanos, usd: nanos / 1e9, record() {}, adjust() {} };
+    await expect(pacer.before(0, REQUEST_USD_BOUND)).resolves.toBeUndefined();
+    // And one nanodollar more is refused.
+    pacer.ledger = { cap: 10, sent: 0, capUsd, nanos: nanos + 1, usd: (nanos + 1) / 1e9, record() {}, adjust() {} };
+    await expect(pacer.before(0, REQUEST_USD_BOUND)).rejects.toBeInstanceOf(PacingCapReached);
+  });
 
   it("never cuts off a cell it admitted, and never commits past the ceiling, where floating-point sums once did", async () => {
     const priced = await probePrices();
