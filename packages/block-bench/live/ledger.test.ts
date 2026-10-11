@@ -319,6 +319,17 @@ describe("admission is exact", () => {
   }, 120_000);
 });
 
+describe("a ceiling the ledger cannot count exactly", () => {
+  it("is refused: whole nanodollars are exact only up to the largest safe integer", async () => {
+    await withRun("ceiling-exact", async (dir) => {
+      const largest = Math.floor(Number.MAX_SAFE_INTEGER / 1e9);
+      await expect(invocation(dir, { maxRequests: 0, maxTotalUsd: largest + 1 })).rejects.toThrow(/whole nanodollars/);
+      expect(existsSync(join(dir, "manifest.json"))).toBe(false);
+      await expect(invocation(dir, { maxRequests: 0, maxTotalUsd: largest })).resolves.toMatchObject({ requests: { capUsd: largest } });
+    });
+  });
+});
+
 describe("one invocation at a time", () => {
   const holder = (fields: Record<string, unknown>) => `${JSON.stringify({ at: "2026-10-01T00:00:00.000Z", ...fields })}\n`;
   const deadPid = () => spawnSync(process.execPath, ["-e", ""]).pid!;
@@ -488,6 +499,64 @@ describe("one invocation at a time", () => {
         expect(() => lockRun(dir), JSON.stringify(text)).toThrow(/another invocation/);
         expect(readFileSync(file, "utf8"), JSON.stringify(text)).toBe(text);
       }
+    });
+  });
+
+  it("takes over a stale lock one invocation at a time, so none is left believing it holds a lock another has", async () => {
+    await withRun("lock-three", async (dir) => {
+      const file = join(dir, "run.lock");
+      writeFileSync(file, holder({ pid: deadPid(), host: hostname() }));
+      // While one invocation takes over the stale lock, a second tries the same as it moves the lock aside, and a
+      // third arrives as anything is linked back into the lock's place.
+      const others: unknown[] = [];
+      const attempt = () => {
+        try {
+          others.push(lockRun(dir));
+        } catch (error) {
+          others.push(error);
+        }
+      };
+      let moved = false;
+      let linked = false;
+      hooks.move = (path) => {
+        if (!moved && path === file) {
+          moved = true;
+          attempt();
+        }
+      };
+      hooks.link = (from) => {
+        if (!linked && from.includes(".stale.")) {
+          linked = true;
+          attempt();
+        }
+      };
+      let first: unknown;
+      try {
+        first = lockRun(dir);
+      } catch (error) {
+        first = error;
+      }
+      hooks.move = undefined;
+      hooks.link = undefined;
+      const holders = [first, ...others].filter((x): x is ReturnType<typeof lockRun> => !(x instanceof Error));
+      expect(holders).toHaveLength(1);
+      expect(holders[0]!.held()).toBe(true);
+      for (const refused of [first, ...others].filter((x) => x instanceof Error)) expect((refused as Error).message).toMatch(/another invocation/);
+      holders[0]!.release();
+      expect(existsSync(file)).toBe(false);
+      expect(existsSync(`${file}.takeover`)).toBe(false);
+    });
+  });
+
+  it("refuses while another invocation is taking over the lock, and names the file to delete if none is", async () => {
+    await withRun("lock-takeover", async (dir) => {
+      const file = join(dir, "run.lock");
+      const stale = holder({ pid: deadPid(), host: hostname() });
+      writeFileSync(file, stale);
+      writeFileSync(`${file}.takeover`, holder({ pid: process.pid, host: hostname(), nonce: "taking-over" }));
+      expect(() => lockRun(dir)).toThrow(/another invocation is taking over .*run\.lock\.takeover/);
+      expect(readFileSync(file, "utf8")).toBe(stale);
+      expect(existsSync(`${file}.takeover`)).toBe(true);
     });
   });
 

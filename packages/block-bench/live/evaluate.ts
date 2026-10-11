@@ -490,15 +490,17 @@ export interface RunLock {
 /**
  * One invocation at a time per run directory: two would each spend the same cumulative cap and interleave the logs.
  * The lock names its holder (its pid, its host and a nonce of its own) and is written whole before it is linked into
- * place, so it is never seen empty. A lock whose process is gone from this host (a killed invocation) is taken over:
- * moved aside under this invocation's own name, and taken only if what moved is the lock judged stale, else put back.
- * A holder on another host, or a lock that names no host and pid (one still being written), is never judged gone.
- * Three invocations racing one stale lock can still leave one running
- * without it (a second moves its fresh lock aside as stale, and a third takes the empty place before it is put back),
- * so the run checks `held` before each request it sends.
+ * place, so it is never seen empty; where hard links are unsupported it is created exclusively instead. A lock whose
+ * holder is gone from this host (a killed invocation) is taken over, one invocation at a time: the takeover holds a
+ * file of its own (run.lock.takeover) while it reads the lock, moves it aside under its own name, checks that what
+ * moved is the lock it judged, and takes the lock's place. Nothing else replaces a lock that stands, so a lock that is
+ * held is never moved. A holder on another host, a lock that names no host and pid (one still being written), and a
+ * takeover a killed invocation left are never judged gone: each needs deleting by hand. The run also checks `held`
+ * before each request it sends, so an invocation whose lock is lost any other way (deleted by hand) stops there.
  */
 export function lockRun(outDir: string): RunLock {
   const file = join(outDir, "run.lock");
+  const takeover = `${file}.takeover`;
   const nonce = randomUUID();
   const host = hostname();
   const own = `${JSON.stringify({ pid: process.pid, host, nonce, at: new Date().toISOString() })}\n`;
@@ -523,11 +525,12 @@ export function lockRun(outDir: string): RunLock {
     const holder = holderOf(text);
     return new Error(`another invocation (pid ${String(holder.pid)}${typeof holder.host === "string" ? ` on ${holder.host}` : ""}, started ${String(holder.at)}) is running the run in ${outDir}; wait for it to finish or stop it. If no invocation is running, delete ${file}.`);
   };
-  const take = (): boolean => {
-    const whole = `${file}.${nonce}`;
+  /** Puts this invocation's record at `target` only where none stands: written whole, then linked into place. */
+  const place = (target: string): boolean => {
+    const whole = `${target}.${nonce}`;
     writeDurably(whole, own, "w");
     try {
-      linkSync(whole, file);
+      linkSync(whole, target);
       return true;
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code ?? "";
@@ -536,49 +539,58 @@ export function lockRun(outDir: string): RunLock {
     } finally {
       rmSync(whole, { force: true });
     }
-    // A filesystem without hard links: the lock is created exclusively instead, so another invocation can see it empty
-    // for an instant, and an empty lock names no holder, which is never judged gone.
+    // A filesystem without hard links: the record is created exclusively instead, so another invocation can see a lock
+    // empty for an instant, and an empty lock names no holder, which is never judged gone.
     try {
-      writeDurably(file, own, "wx");
+      writeDurably(target, own, "wx");
       return true;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
       throw error;
     }
   };
-  if (!take()) {
-    const seen = read(file);
-    const holder = holderOf(seen);
-    // Only a holder this host can check is ever judged gone: one that names no host and pid (empty, cut off, or
-    // otherwise unreadable as a holder) may still be being written.
-    if (typeof holder.host !== "string" || typeof holder.pid !== "number" || holder.host !== host || alive(holder.pid)) throw busy(seen);
-    const aside = `${file}.stale.${nonce}`;
+  if (!place(file)) {
+    if (!place(takeover)) throw new Error(`another invocation is taking over the lock of the run in ${outDir}; try again in a moment. If no invocation is running, delete ${takeover}.`);
     try {
-      renameSync(file, aside);
-    } catch {
-      throw busy(read(file)); /* gone: another invocation is taking it over */
-    }
-    const moved = read(aside);
-    if (moved !== seen) {
-      // Another invocation took it between the read and the move: its lock goes back, and this one refuses. It is
-      // linked back, or renamed back if it cannot be linked; it is deleted only when a third lock already stands.
-      try {
-        linkSync(aside, file);
-        rmSync(aside, { force: true });
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "EEXIST") rmSync(aside, { force: true });
-        else {
-          try {
-            renameSync(aside, file);
-          } catch {
-            /* left aside under this invocation's name, never deleted */
-          }
+      const seen = read(file);
+      if (seen === "") {
+        // Gone since (its holder finished), or still being written: taken only if its place is free.
+        if (!place(file)) throw busy(read(file));
+      } else {
+        const holder = holderOf(seen);
+        // Only a holder this host can check is ever judged gone: one that names no host and pid (empty, cut off, or
+        // otherwise unreadable as a holder) may still be being written.
+        if (typeof holder.host !== "string" || typeof holder.pid !== "number" || holder.host !== host || alive(holder.pid)) throw busy(seen);
+        const aside = `${file}.stale.${nonce}`;
+        try {
+          renameSync(file, aside);
+        } catch {
+          throw busy(read(file)); /* gone: deleted by hand */
         }
+        const moved = read(aside);
+        if (moved !== seen) {
+          // Not the lock judged stale, so something outside this protocol replaced it: it goes back where its place is
+          // still free, linked, or renamed where links are unsupported, and is never deleted. This one refuses.
+          try {
+            linkSync(aside, file);
+            rmSync(aside, { force: true });
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+              try {
+                renameSync(aside, file);
+              } catch {
+                /* left aside under this invocation's name */
+              }
+            }
+          }
+          throw busy(moved);
+        }
+        rmSync(aside, { force: true });
+        if (!place(file)) throw busy(read(file));
       }
-      throw busy(moved);
+    } finally {
+      rmSync(takeover, { force: true });
     }
-    rmSync(aside, { force: true });
-    if (!take()) throw busy(read(file));
   }
   const held = () => {
     try {
@@ -597,10 +609,21 @@ export function lockRun(outDir: string): RunLock {
   };
 }
 
+/** The largest ceiling the ledger counts exactly: whole nanodollars are exact up to the largest safe integer. */
+const MAX_CEILING_USD = Math.floor(Number.MAX_SAFE_INTEGER / 1e9);
+
+/** Refuses a dollar ceiling the ledger cannot count exactly. */
+function exactCeiling(usd: number, where: string): void {
+  if (!(Number.isFinite(usd) && usd > 0 && usd <= MAX_CEILING_USD)) {
+    throw new Error(`${where} $${usd} cannot be counted exactly in whole nanodollars: a dollar ceiling must be more than $0 and at most $${MAX_CEILING_USD}`);
+  }
+}
+
 export async function runEvaluation(options: EvaluationOptions): Promise<EvaluationResult> {
   if (options.preflight.drafts && !options.allowDrafts) {
     throw new Error("the sidecars in use are drafts; Phase 1B counts approved sidecars only. Pass allowDrafts for a provisional run.");
   }
+  if (options.maxTotalUsd !== undefined) exactCeiling(options.maxTotalUsd, "--max-total-usd");
   if (!options.outDir) return evaluate(options);
   mkdirSync(options.outDir, { recursive: true });
   const lock = lockRun(options.outDir);
@@ -717,6 +740,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
   const pacer = options.provider.pacer;
   const cap = manifest.limits?.maxTotalRequests;
   const capUsd = manifest.limits?.maxTotalUsd;
+  if (capUsd !== undefined) exactCeiling(capUsd, "the run's recorded dollar ceiling");
   const requestsFile = outDir ? join(outDir, "requests.jsonl") : undefined;
   let ledger: RunLedger | undefined;
   if (pacer && cap !== undefined) {
