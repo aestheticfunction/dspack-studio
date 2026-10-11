@@ -799,6 +799,20 @@ describe("a model none of the run's records shows measured", () => {
     }
   }, 60_000);
 
+  it("is reported as set aside, never as replaced, when the resume stops before any reply could record a model", async () => {
+    await withRun("unclaimed-stopped", async (dir) => {
+      await unclaimed(dir);
+      const resumed = await invocation(dir, { maxRequests: 0 });
+      expect(resumed.stopped).toMatchObject({ reason: "cap" });
+      expect(resumed.servedModel).toBeUndefined();
+      expect(resumed.setAside).toEqual([{ servedModel: { id: HAIKU, at: expect.any(String) }, at: expect.any(String), invocation: expect.any(String) }]);
+      const report = readFileSync(join(dir, "REPORT.md"), "utf8");
+      expect(report).toContain("Served models set aside");
+      expect(report).not.toContain("Served model: ");
+      expect(report).not.toMatch(/recorded the model it was served/);
+    });
+  }, 60_000);
+
   it("is refused all the same when the manifest's servedModel is malformed, before anything is sent", async () => {
     await withRun("unclaimed-malformed", async (dir) => {
       const recorded = await unclaimed(dir);
@@ -810,18 +824,34 @@ describe("a model none of the run's records shows measured", () => {
         await expect(invocation(dir, { fetchImpl: served.fetchImpl }), JSON.stringify(servedModel)).rejects.toThrow(/^resume refused: .*servedModel/s);
         expect(served.posted(), JSON.stringify(servedModel)).toBe(0);
       }
-      // So is a list of set-aside models the run did not write.
-      for (const setAside of [5, {}, [{}], [{ servedModel: HAIKU, at, invocation: "x" }]]) {
+      // So is a list of set-aside models the run did not write: each entry exactly the served model it set aside, as
+      // strictly as servedModel, the time, as the run writes it, and the invocation, and never an empty list.
+      const valid = { servedModel: { id: HAIKU, at }, at, invocation: "an invocation" };
+      for (const setAside of [
+        5,
+        {},
+        [],
+        [{}],
+        [{ servedModel: HAIKU, at, invocation: "x" }],
+        [{ ...valid, servedModel: { id: "claude-opus-4-1-20250805", at } }],
+        [{ ...valid, servedModel: { id: HAIKU, at: "2026-10-11" } }],
+        [{ ...valid, servedModel: { id: HAIKU, at, restored: "by hand" } }],
+        [{ ...valid, at: "not a date" }],
+        [{ ...valid, invocation: "" }],
+        [{ ...valid, note: "by hand" }],
+        [valid, null],
+      ]) {
         write(dir, { ...recorded, setAside });
         const served = servedBy(HAIKU);
         await expect(invocation(dir, { fetchImpl: served.fetchImpl }), JSON.stringify(setAside)).rejects.toThrow(/^resume refused: .*setAside/s);
         expect(served.posted(), JSON.stringify(setAside)).toBe(0);
       }
-      // Restored as it was, the record the run wrote resumes.
-      write(dir, recorded);
+      // Restored as it was, with a list of the kind the run writes, the run resumes, and appends to that list.
+      write(dir, { ...recorded, setAside: [valid] });
       const resumed = await invocation(dir, { fetchImpl: servedBy(HAIKU).fetchImpl });
       expect(resumed.stopped).toBeUndefined();
       expect(resumed.records).toHaveLength(1);
+      expect(resumed.setAside).toEqual([valid, { servedModel: recorded.servedModel, at: expect.any(String), invocation: expect.any(String) }]);
     });
   }, 60_000);
 });

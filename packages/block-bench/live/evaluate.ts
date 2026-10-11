@@ -663,20 +663,19 @@ function holdServedModel(recorded: RunManifest, outDir: string, hosted: boolean)
   const manifestFile = join(outDir, "manifest.json");
   const refuse = (problem: string) =>
     new Error(`resume refused: ${manifestFile} ${problem}, so the run could not hold later calls to the model it measures. Restore it, or start a new run directory.`);
+  // Only what the run writes: exactly these fields, a time as toISOString wrote it, and a Claude Haiku 4.5 id.
+  const exactly = (value: unknown, keys: string): value is Record<string, unknown> =>
+    !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join(",") === keys;
+  const recordedTime = (at: unknown) => typeof at === "string" && Number.isFinite(Date.parse(at)) && new Date(Date.parse(at)).toISOString() === at;
+  const servedModelOf = (value: unknown) => exactly(value, "at,id") && typeof value.id === "string" && MODEL_FAMILY.test(value.id) && recordedTime(value.at);
   const served = (recorded as { servedModel?: unknown }).servedModel;
-  if (served !== undefined) {
-    const record = served as Record<string, unknown> | null;
-    const recordedTime = (at: unknown) => typeof at === "string" && Number.isFinite(Date.parse(at)) && new Date(Date.parse(at)).toISOString() === at;
-    if (!record || typeof record !== "object" || Array.isArray(record) || Object.keys(record).sort().join(",") !== "at,id" || typeof record.id !== "string" || !MODEL_FAMILY.test(record.id) || !recordedTime(record.at)) {
-      throw refuse(`records a servedModel that is not a Claude Haiku 4.5 id and the time it was recorded, and nothing else (${String(JSON.stringify(served)).slice(0, 200)})`);
-    }
+  if (served !== undefined && !servedModelOf(served)) {
+    throw refuse(`records a servedModel that is not a Claude Haiku 4.5 id and the time it was recorded, and nothing else (${String(JSON.stringify(served)).slice(0, 200)})`);
   }
+  // Each entry a resume appended: the served model it set aside, when, and by which invocation, and nothing else.
   const setAsides = (recorded as { setAside?: unknown }).setAside;
-  const entry = (e: unknown) => {
-    const { servedModel: m, at, invocation } = (e && typeof e === "object" ? e : {}) as Record<string, unknown>;
-    return !!m && typeof m === "object" && typeof (m as { id?: unknown }).id === "string" && typeof (m as { at?: unknown }).at === "string" && typeof at === "string" && typeof invocation === "string";
-  };
-  if (setAsides !== undefined && !(Array.isArray(setAsides) && setAsides.every(entry))) {
+  const entry = (e: unknown) => exactly(e, "at,invocation,servedModel") && servedModelOf(e.servedModel) && recordedTime(e.at) && typeof e.invocation === "string" && e.invocation !== "";
+  if (setAsides !== undefined && !(Array.isArray(setAsides) && setAsides.length > 0 && setAsides.every(entry))) {
     throw refuse(`records a setAside that is not the list of served models the run set aside (${String(JSON.stringify(setAsides)).slice(0, 200)})`);
   }
   const id = (served as { id?: string } | undefined)?.id;
@@ -776,7 +775,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
         // model off the record without saying so.
         manifest = { ...manifest, setAside: [...(manifest.setAside ?? []), { servedModel: held.setAside, at: new Date().toISOString(), invocation: invocationId }] };
         replaceJson(manifestFile, manifest);
-        log(`set aside servedModel ${held.setAside.id} in ${manifestFile}: none of the run's records (requests.jsonl, runs.jsonl) shows it measured, so this invocation records the model it is served`);
+        log(`set aside servedModel ${held.setAside.id} in ${manifestFile}: none of the run's records (requests.jsonl, runs.jsonl) shows it measured, so the run records the first model a reply that holds reports from here`);
       }
       // The cumulative cap and the dollar ceiling stay what the run recorded unless this invocation names a new one,
       // which is recorded.

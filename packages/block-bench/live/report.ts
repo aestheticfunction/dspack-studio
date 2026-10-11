@@ -40,7 +40,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     // measured.
     ...(result.setAside?.length
       ? [
-          "Served models set aside (manifest.json): the manifest named each, but none of the run's records (requests.jsonl, runs.jsonl) showed it measured, so the resume recorded the model it was served instead.",
+          "Served models set aside (manifest.json): the manifest named each, but none of the run's records (requests.jsonl, runs.jsonl) showed it measured. From each, the run records the first model a reply that holds reports, as a fresh run does.",
           "",
           ...result.setAside.map((s) => `- ${s.at}: \`${s.servedModel.id}\`, recorded ${s.servedModel.at}, set aside by invocation ${s.invocation}`),
           "",
