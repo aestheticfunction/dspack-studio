@@ -16,6 +16,16 @@
  * evaluated runs AND to the metered cohort the token figure rests on, and
  * its boundaries are inclusive: an exact 30% cut passes, and a gap of
  * exactly the margin is within it.
+ *
+ * The pre-data addendum (docs/blocks/ADR-B3-ADDENDUM.md) keeps every
+ * threshold and makes the unit explicit. The rule is a descriptive product
+ * decision rule, not a statistical test. The independent unit is the prompt
+ * thread (one prompt on one reference in one arm: its fresh build and its
+ * refinements, which are repeated observations), so the minimum counts
+ * threads, never cells. Arms are compared paired by prompt. Each criterion
+ * carries a 95% interval from a paired cluster bootstrap over prompts, and
+ * is called clear only when the whole interval sits on one side of its
+ * threshold.
  */
 import type { Arm, Condition, FailureKind, Path, RunRecord } from "./types";
 
@@ -46,6 +56,8 @@ export interface ArmStats {
   evaluated: number;
   passed: number;
   passRate: number | null;
+  /** Passed at the first attempt: the numerator of firstAttemptPassRate (over evaluated). */
+  firstAttemptPassed: number;
   firstAttemptPassRate: number | null;
   repairsPerSuccess: number | null;
   /** The cohort: evaluated runs whose every provider call reported its usage, failures included. */
@@ -62,15 +74,21 @@ export interface ArmStats {
   providerCallsPerRun: number | null;
   requestBytesPerRun: number | null;
   latency: { totalMs: number | null; firstGatedAttemptMs: number | null; blockPhaseMs: number | null; emitMs: number | null; planMs: number | null };
-  parity: { meanScore: number | null; fullyParityPassed: number };
+  /** Mean checklist score over the passing runs scored (scored), and how many scored a full pass. */
+  parity: { meanScore: number | null; scored: number; fullyParityPassed: number };
   paths: Partial<Record<Path, { n: number; passed: number }>>;
   budgetRemainingAtFallback: Record<string, number>;
   fallbackByClassification: Record<string, number>;
   invariantFailures: number;
   budgetExhausted: number;
-  /** Refinements only. */
+  /** Refinements only: passing refinements that changed the surface (changed of refinedPassed). */
   changedRate: number | null;
+  changed: number;
+  refinedPassed: number;
+  /** Refinements on a block prior that stayed in block mode (retained of onBlockPrior). */
   retention: number | null;
+  retained: number;
+  onBlockPrior: number;
 }
 
 export interface SelectionStats {
@@ -94,8 +112,44 @@ export interface SelectionStats {
   rejected: number;
   /** The planning call returned an unusable output: no answer, counted wrong and in no other bucket. */
   planningFailed: number;
+  /** The planner's intent matched the label: the numerator of intentAccuracy (over n). */
+  intentCorrect: number;
   intentAccuracy: number | null;
 }
+
+/** Named against positional encoding (ADR-B2), paired by prompt: informs ADR-B2 and decides nothing. */
+export interface EncodingComparison {
+  reference: string;
+  provider: string;
+  /** Positional against named, prompt by prompt. */
+  paired: PairedCounts;
+  /** 95% paired cluster-bootstrap intervals: positional pass rate minus named, and positional's token reduction against named. */
+  intervals: { passDiff: Interval | null; tokenReduction: Interval | null };
+}
+
+/** The addendum's uncertainty: a paired cluster bootstrap over prompts, fixed before any hosted result. */
+export const BOOTSTRAP: Readonly<{ resamples: number; level: number }> = Object.freeze({ resamples: 2000, level: 0.95 });
+
+/** A percentile interval and the resamples it rests on (a resample with no success in an arm has no token figure). */
+export interface Interval {
+  low: number;
+  high: number;
+  resamples: number;
+}
+
+/** Whether a criterion's whole interval sits on one side of its unchanged threshold. */
+export type Clarity = "clear-pass" | "clear-fail" | "uncertain" | "n/a";
+
+/** One arm against another, prompt by prompt, over the prompts both evaluated. */
+export interface PairedCounts {
+  prompts: number;
+  /** The first arm's thread pass rate against the second's. */
+  passRate: { better: number; same: number; worse: number };
+  /** Tokens per success, over the prompts where both threads have a metered success. */
+  tokensPerSuccess: { lower: number; same: number; higher: number; comparable: number };
+}
+
+type Trio<T> = { block: T; capped: T; production: T };
 
 export interface Decision {
   reference: string;
@@ -104,9 +158,20 @@ export interface Decision {
   reasons: string[];
   tokens: { block: number | null; capped: number | null; production: number | null; reductionVsProduction: number | null; reductionVsCapped: number | null };
   passRates: { block: number | null; capped: number | null; production: number | null };
-  evaluated: { block: number; capped: number; production: number };
-  /** Runs in each arm's token cohort. */
-  metered: { block: number; capped: number; production: number };
+  /** Evaluated cells per arm. */
+  evaluated: Trio<number>;
+  /** Cells in each arm's token cohort. */
+  metered: Trio<number>;
+  /** Prompt threads with an evaluated cell, per arm: the unit the minimum counts. */
+  threads: Trio<number>;
+  /** Prompt threads with a metered evaluated cell, per arm. */
+  meteredThreads: Trio<number>;
+  /** The raw counts behind every rate: passed of evaluated, metered tokens over metered successes. */
+  counts: { passed: Trio<number>; meteredTokens: Trio<number>; meteredSuccesses: Trio<number> };
+  /** 95% paired cluster-bootstrap intervals (prompts resampled, the same resample in every arm). Pass differences are the block arm's rate minus the other's. */
+  intervals: { reductionVsProduction: Interval | null; reductionVsCapped: Interval | null; passDiffVsProduction: Interval | null; passDiffVsCapped: Interval | null };
+  clarity: { tokens: Clarity; vsProduction: Clarity; vsCapped: Clarity; overall: "clear" | "uncertain" };
+  paired: { vsProduction: PairedCounts; vsCapped: PairedCounts };
   options: DecisionOptions;
 }
 
@@ -117,6 +182,7 @@ export interface Summary {
   pooled: ArmStats[];
   selection: SelectionStats[];
   decisions: Decision[];
+  encodings: EncodingComparison[];
   totals: { records: number; completed: number; providerCalls: number; inputTokens: number; outputTokens: number; requestBytes: number };
 }
 
@@ -170,6 +236,8 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
     }
     const refinements = completed.filter((r) => r.condition !== "fresh");
     const withBlockPrior = refinements.filter((r) => r.refinement && r.refinement.mode !== "primitive");
+    const refinedPassed = refinements.filter((r) => r.passed);
+    const scored = passed.map((r) => r.parity?.score).filter((v): v is number => typeof v === "number");
     out.push({
       reference: first.reference,
       provider: first.provider,
@@ -183,6 +251,7 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
       evaluated: evaluated.length,
       passed: passed.length,
       passRate: ratio(passed.length, evaluated.length),
+      firstAttemptPassed: passed.filter((r) => r.attempts === 1).length,
       firstAttemptPassRate: ratio(passed.filter((r) => r.attempts === 1).length, evaluated.length),
       repairsPerSuccess: passed.length === 0 ? null : passed.reduce((a, r) => a + Math.max(0, r.attempts - 1), 0) / passed.length,
       meteredRuns: metered.length,
@@ -202,14 +271,18 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
         emitMs: median(completed.map((r) => r.timings.emitMs).filter((v): v is number => typeof v === "number")),
         planMs: median(completed.map((r) => r.timings.planMs).filter((v): v is number => typeof v === "number")),
       },
-      parity: { meanScore: mean(passed.map((r) => r.parity?.score).filter((v): v is number => typeof v === "number")), fullyParityPassed: passed.filter((r) => r.parity?.score === 1).length },
+      parity: { meanScore: mean(scored), scored: scored.length, fullyParityPassed: passed.filter((r) => r.parity?.score === 1).length },
       paths,
       budgetRemainingAtFallback,
       fallbackByClassification,
       invariantFailures: completed.filter((r) => r.outcome === "invariant-failure").length,
       budgetExhausted: completed.filter((r) => r.failure?.kind === "budget").length,
-      changedRate: refinements.length === 0 ? null : ratio(refinements.filter((r) => r.passed && r.changed).length, refinements.filter((r) => r.passed).length),
+      changedRate: refinements.length === 0 ? null : ratio(refinedPassed.filter((r) => r.changed).length, refinedPassed.length),
+      changed: refinedPassed.filter((r) => r.changed).length,
+      refinedPassed: refinedPassed.length,
       retention: withBlockPrior.length === 0 ? null : ratio(withBlockPrior.filter((r) => r.refinement!.retained).length, withBlockPrior.length),
+      retained: withBlockPrior.filter((r) => r.refinement!.retained).length,
+      onBlockPrior: withBlockPrior.length,
     });
   }
   return out.sort((a, b) => `${a.reference}|${a.provider}|${a.condition}|${a.arm}`.localeCompare(`${b.reference}|${b.provider}|${b.condition}|${b.arm}`));
@@ -252,15 +325,138 @@ export function selectionStats(records: readonly RunRecord[]): SelectionStats[] 
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
 }
 
+/** One prompt thread's evaluated cells, summed: what the bootstrap resamples. */
+interface ThreadSums {
+  evaluated: number;
+  passed: number;
+  metered: number;
+  meteredSuccesses: number;
+  meteredTokens: number;
+  reported: boolean;
+}
+
+/** Per prompt, the sums of one arm's evaluated cells (provider and policy failures excluded, as in the pass rate). */
+export function threadSums(records: readonly RunRecord[], arm: Arm): Map<string, ThreadSums> {
+  const out = new Map<string, ThreadSums>();
+  for (const r of records) {
+    if (r.arm !== arm || r.status !== "completed" || r.failure?.rerunEligible) continue;
+    const t = out.get(r.prompt) ?? { evaluated: 0, passed: 0, metered: 0, meteredSuccesses: 0, meteredTokens: 0, reported: false };
+    t.evaluated += 1;
+    if (r.passed) t.passed += 1;
+    if (r.tokens.unreportedCalls === 0) {
+      t.metered += 1;
+      t.meteredTokens += r.tokens.input + r.tokens.output;
+      if (r.passed) t.meteredSuccesses += 1;
+      if (r.tokens.providerCalls > 0) t.reported = true;
+    }
+    out.set(r.prompt, t);
+  }
+  return out;
+}
+
+/** An arm's pooled pass rate and tokens per success over a multiset of prompts (a resample repeats prompts). */
+function pooledOver(sums: Map<string, ThreadSums>, prompts: readonly string[]): { passRate: number | null; tokensPerSuccess: number | null } {
+  let evaluated = 0;
+  let passed = 0;
+  let meteredSuccesses = 0;
+  let meteredTokens = 0;
+  let reported = false;
+  for (const p of prompts) {
+    const t = sums.get(p);
+    if (!t) continue;
+    evaluated += t.evaluated;
+    passed += t.passed;
+    meteredSuccesses += t.meteredSuccesses;
+    meteredTokens += t.meteredTokens;
+    reported ||= t.reported;
+  }
+  return { passRate: ratio(passed, evaluated), tokensPerSuccess: !reported || meteredSuccesses === 0 ? null : meteredTokens / meteredSuccesses };
+}
+
+/** A small seeded generator (mulberry32), so an interval is the same every time the same records are summarized. */
+function seeded(label: string): () => number {
+  let h = 2166136261;
+  for (let i = 0; i < label.length; i++) h = Math.imul(h ^ label.charCodeAt(i), 16777619) >>> 0;
+  let a = h;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The percentile interval of the values a statistic took across resamples; null when it never had one. */
+function interval(values: number[], level: number): Interval | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const at = (q: number) => {
+    const i = q * (sorted.length - 1);
+    const lo = Math.floor(i);
+    const hi = Math.ceil(i);
+    return lo === hi ? sorted[lo]! : sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (i - lo);
+  };
+  return { low: at((1 - level) / 2), high: at(1 - (1 - level) / 2), resamples: values.length };
+}
+
+/**
+ * A paired cluster bootstrap: resample the prompts with replacement and compute every arm's pooled figures on the
+ * same resample, so each interval carries the between-prompt variation and the pairing. Cells inside a thread are
+ * never resampled on their own, so repeating them cannot narrow an interval.
+ */
+export function pairedBootstrap(
+  sums: Readonly<Record<string, Map<string, ThreadSums>>>,
+  statistics: Record<string, (pooled: Record<string, { passRate: number | null; tokensPerSuccess: number | null }>) => number | null>,
+  label: string,
+  options: { resamples: number; level: number } = BOOTSTRAP,
+): Record<string, Interval | null> {
+  const prompts = [...new Set(Object.values(sums).flatMap((m) => [...m.keys()]))].sort();
+  const values: Record<string, number[]> = Object.fromEntries(Object.keys(statistics).map((k) => [k, []]));
+  if (prompts.length > 0) {
+    const random = seeded(label);
+    const sample: string[] = new Array(prompts.length);
+    for (let b = 0; b < options.resamples; b++) {
+      for (let i = 0; i < prompts.length; i++) sample[i] = prompts[Math.floor(random() * prompts.length)]!;
+      const pooled = Object.fromEntries(Object.entries(sums).map(([arm, m]) => [arm, pooledOver(m, sample)]));
+      for (const [name, statistic] of Object.entries(statistics)) {
+        const v = statistic(pooled);
+        if (v !== null && Number.isFinite(v)) values[name]!.push(v);
+      }
+    }
+  }
+  return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, interval(v, options.level)]));
+}
+
+/** One arm against another, prompt by prompt. */
+export function pairedCounts(first: Map<string, ThreadSums>, second: Map<string, ThreadSums>): PairedCounts {
+  const out: PairedCounts = { prompts: 0, passRate: { better: 0, same: 0, worse: 0 }, tokensPerSuccess: { lower: 0, same: 0, higher: 0, comparable: 0 } };
+  for (const [prompt, a] of first) {
+    const b = second.get(prompt);
+    if (!b || a.evaluated === 0 || b.evaluated === 0) continue;
+    out.prompts += 1;
+    const ra = a.passed / a.evaluated;
+    const rb = b.passed / b.evaluated;
+    out.passRate[ra > rb ? "better" : ra < rb ? "worse" : "same"] += 1;
+    if (a.reported && b.reported && a.meteredSuccesses > 0 && b.meteredSuccesses > 0) {
+      const ta = a.meteredTokens / a.meteredSuccesses;
+      const tb = b.meteredTokens / b.meteredSuccesses;
+      out.tokensPerSuccess.comparable += 1;
+      out.tokensPerSuccess[ta < tb ? "lower" : ta > tb ? "higher" : "same"] += 1;
+    }
+  }
+  return out;
+}
+
+const clarityOf = (iv: Interval | null, threshold: number): Clarity => (!iv ? "n/a" : iv.low >= threshold - EPSILON ? "clear-pass" : iv.high < threshold - EPSILON ? "clear-fail" : "uncertain");
+
 /** The arms the ADR-B3 rule reads. The positional arm is comparative (ADR-B2) and never opens or changes a decision. */
 export const DECISION_ARMS: readonly Arm[] = ["block", "capped", "production"];
 
 /** The ADR-B3 decision per reference and provider, over every evaluated result of every condition. */
 export function decide(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION): Decision[] {
-  const stats = armStats(
-    records.filter((r) => DECISION_ARMS.includes(r.arm)),
-    { pooled: true },
-  );
+  const decisionRecords = records.filter((r) => DECISION_ARMS.includes(r.arm));
+  const stats = armStats(decisionRecords, { pooled: true });
   const keys = new Set(stats.map((s) => `${s.reference}|${s.provider}`));
   const out: Decision[] = [];
   for (const key of keys) {
@@ -271,6 +467,26 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     const production = arm("production");
     const evaluated = { block: block?.evaluated ?? 0, capped: capped?.evaluated ?? 0, production: production?.evaluated ?? 0 };
     const metered = { block: block?.meteredRuns ?? 0, capped: capped?.meteredRuns ?? 0, production: production?.meteredRuns ?? 0 };
+    const scope = decisionRecords.filter((r) => r.reference === reference && r.provider === provider);
+    const sums = { block: threadSums(scope, "block"), capped: threadSums(scope, "capped"), production: threadSums(scope, "production") };
+    const trio = <T>(pick: (m: Map<string, ThreadSums>) => T): Trio<T> => ({ block: pick(sums.block), capped: pick(sums.capped), production: pick(sums.production) });
+    const threads = trio((m) => [...m.values()].filter((t) => t.evaluated > 0).length);
+    const meteredThreads = trio((m) => [...m.values()].filter((t) => t.metered > 0).length);
+    const total = (pick: (t: ThreadSums) => number) => trio((m) => [...m.values()].reduce((a, t) => a + pick(t), 0));
+    const counts = { passed: total((t) => t.passed), meteredTokens: total((t) => t.meteredTokens), meteredSuccesses: total((t) => t.meteredSuccesses) };
+    const reduction = (other: "production" | "capped") => (p: Record<string, { tokensPerSuccess: number | null }>) => {
+      const b = p.block?.tokensPerSuccess ?? null;
+      const o = p[other]?.tokensPerSuccess ?? null;
+      return b === null || o === null || o <= 0 ? null : 1 - b / o;
+    };
+    const passDiff = (other: "production" | "capped") => (p: Record<string, { passRate: number | null }>) => {
+      const b = p.block?.passRate ?? null;
+      const o = p[other]?.passRate ?? null;
+      return b === null || o === null ? null : b - o;
+    };
+    const iv = pairedBootstrap(sums, { reductionVsProduction: reduction("production"), reductionVsCapped: reduction("capped"), passDiffVsProduction: passDiff("production"), passDiffVsCapped: passDiff("capped") }, `${reference}|${provider}`);
+    const intervals = { reductionVsProduction: iv.reductionVsProduction ?? null, reductionVsCapped: iv.reductionVsCapped ?? null, passDiffVsProduction: iv.passDiffVsProduction ?? null, passDiffVsCapped: iv.passDiffVsCapped ?? null };
+    const paired = { vsProduction: pairedCounts(sums.block, sums.production), vsCapped: pairedCounts(sums.block, sums.capped) };
     const tokens = {
       block: block?.tokensPerSuccess ?? null,
       capped: capped?.tokensPerSuccess ?? null,
@@ -283,10 +499,14 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     const passRates = { block: block?.passRate ?? null, capped: capped?.passRate ?? null, production: production?.passRate ?? null };
     const reasons: string[] = [];
     let verdict: Decision["verdict"] = "pass";
-    for (const [name, n] of Object.entries(evaluated)) if (n < options.minimum) reasons.push(`${name}: ${n} evaluated runs, fewer than the ${options.minimum} the rule needs`);
+    // The minimum counts independent prompt threads (the addendum's unit), never cells: refinements are repeated
+    // observations within a thread and cannot stand in for prompts.
+    for (const [name, n] of Object.entries(threads) as Array<[keyof typeof threads, number]>) {
+      if (n < options.minimum) reasons.push(`${name}: ${n} prompt ${n === 1 ? "thread" : "threads"} (${evaluated[name]} cells), fewer than the ${options.minimum} the rule needs`);
+    }
     // The token figure rests on the metered cohort, so the minimum applies there too.
-    for (const [name, n] of Object.entries(metered) as Array<[keyof typeof evaluated, number]>) {
-      if (n < options.minimum && n < evaluated[name]) reasons.push(`${name}: ${n} metered ${n === 1 ? "run" : "runs"} in the token cohort, fewer than the ${options.minimum} the rule needs`);
+    for (const [name, n] of Object.entries(meteredThreads) as Array<[keyof typeof threads, number]>) {
+      if (n < options.minimum && n < threads[name]) reasons.push(`${name}: ${n} metered prompt ${n === 1 ? "thread" : "threads"} (${metered[name]} metered ${metered[name] === 1 ? "cell" : "cells"}) in the token cohort, fewer than the ${options.minimum} the rule needs`);
     }
     if (reasons.length > 0) verdict = "insufficient";
     else {
@@ -307,9 +527,39 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
         } else reasons.push(`pass rate ${(100 * passRates.block).toFixed(1)}% is within ${100 * options.margin} points of ${name} (${(100 * rate).toFixed(1)}%)`);
       }
     }
-    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, options });
+    const clarity = {
+      tokens: clarityOf(intervals.reductionVsProduction, options.reduction),
+      vsProduction: clarityOf(intervals.passDiffVsProduction, -options.margin),
+      vsCapped: clarityOf(intervals.passDiffVsCapped, -options.margin),
+    };
+    const criteria = [clarity.tokens, clarity.vsProduction, clarity.vsCapped];
+    // Clear: the outcome cannot flip inside the intervals (every criterion clearly passes, or one clearly fails).
+    const overall: Decision["clarity"]["overall"] = verdict !== "insufficient" && (criteria.every((c) => c === "clear-pass") || criteria.includes("clear-fail")) ? "clear" : "uncertain";
+    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, threads, meteredThreads, counts, intervals, clarity: { ...clarity, overall }, paired, options });
   }
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
+}
+
+/** Named against positional (ADR-B2), paired by prompt, wherever both arms ran on a reference. */
+export function compareEncodings(records: readonly RunRecord[]): EncodingComparison[] {
+  const keys = [...new Set(records.filter((r) => r.arm === "block-positional").map((r) => `${r.reference}|${r.provider}`))].sort();
+  const out: EncodingComparison[] = [];
+  for (const key of keys) {
+    const [reference, provider] = key.split("|") as [string, string];
+    const scope = records.filter((r) => r.reference === reference && r.provider === provider);
+    const sums = { named: threadSums(scope, "block"), positional: threadSums(scope, "block-positional") };
+    if (sums.named.size === 0) continue;
+    const iv = pairedBootstrap(
+      sums,
+      {
+        passDiff: (p) => (p.positional?.passRate == null || p.named?.passRate == null ? null : p.positional.passRate - p.named.passRate),
+        tokenReduction: (p) => (p.positional?.tokensPerSuccess == null || p.named?.tokensPerSuccess == null || p.named.tokensPerSuccess <= 0 ? null : 1 - p.positional.tokensPerSuccess / p.named.tokensPerSuccess),
+      },
+      `${key}|encoding`,
+    );
+    out.push({ reference, provider, paired: pairedCounts(sums.positional, sums.named), intervals: { passDiff: iv.passDiff ?? null, tokenReduction: iv.tokenReduction ?? null } });
+  }
+  return out;
 }
 
 export function summarize(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION): Summary {
@@ -320,6 +570,7 @@ export function summarize(records: readonly RunRecord[], options: DecisionOption
     pooled: armStats(records, { pooled: true }),
     selection: selectionStats(records),
     decisions: decide(records, options),
+    encodings: compareEncodings(records),
     totals: {
       records: records.length,
       completed: completed.length,

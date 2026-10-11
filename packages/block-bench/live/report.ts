@@ -1,13 +1,21 @@
 /** REPORT.md: a derived view of runs.jsonl and summary.json, regenerated, never edited. */
 import type { Corpus } from "./corpus";
 import type { EvaluationResult } from "./evaluate";
-import type { ArmStats } from "./metrics";
+import type { ArmStats, Clarity, Interval, PairedCounts } from "./metrics";
 import { CONDITIONS } from "./types";
 
 const row = (cells: Array<string | number | null | undefined>) => `| ${cells.map((c) => (c === null || c === undefined ? "n/a" : String(c))).join(" | ")} |`;
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? "n/a" : `${(100 * v).toFixed(1)}%`);
 const num = (v: number | null | undefined, digits = 0) => (v === null || v === undefined ? "n/a" : v.toFixed(digits));
 const ms = (v: number | null | undefined) => (v === null || v === undefined ? "n/a" : `${Math.round(v)} ms`);
+/** A rate with the counts behind it (the ADR-B3 addendum: no rate without its numerator and denominator). */
+const rate = (v: number | null | undefined, n: number, d: number) => (d === 0 ? "n/a" : `${pct(v)} (${n}/${d})`);
+const signed = (v: number) => `${v >= 0 ? "+" : ""}${(100 * v).toFixed(1)}`;
+/** A 95% paired cluster-bootstrap interval, as percent or as points of rate. */
+const span = (iv: Interval | null, unit: "%" | " points") => (iv ? `95% interval ${unit === "%" ? `${(100 * iv.low).toFixed(1)}% to ${(100 * iv.high).toFixed(1)}%` : `${signed(iv.low)} to ${signed(iv.high)} points`}, ${iv.resamples} resamples` : "no interval");
+const CLARITY: Record<Clarity, string> = { "clear-pass": "clearly met", "clear-fail": "clearly missed", uncertain: "uncertain: the interval straddles the threshold", "n/a": "not measurable" };
+const pairedText = (p: PairedCounts, first: string, second: string) =>
+  `${p.prompts} prompts against ${second} (${first}'s thread pass rate higher on ${p.passRate.better}, the same on ${p.passRate.same}, lower on ${p.passRate.worse}; tokens per success lower on ${p.tokensPerSuccess.lower}, the same on ${p.tokensPerSuccess.same}, higher on ${p.tokensPerSuccess.higher}, of ${p.tokensPerSuccess.comparable} comparable)`;
 
 export function renderReport(result: EvaluationResult, context: { providerId: string; corpus: Corpus }): string {
   const { summary, preflight } = result;
@@ -49,14 +57,24 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
   );
 
   out.push("## Decision (ADR-B3)", "");
+  out.push(
+    "The rule is a descriptive product decision rule: an engineering threshold, fixed before any run, for whether interface blocks earn Phase 2. It is not a statistical test, and meeting it is not publication-grade evidence. The independent unit is the prompt thread: one prompt on one reference in one arm, its fresh build and its refinements, which are repeated observations of that prompt and never independent samples. The minimum counts threads. Arms ran the same prompts, so they are compared paired by prompt, and every interval is a paired cluster bootstrap over prompts (docs/blocks/ADR-B3-ADDENDUM.md).",
+    "",
+  );
   if (summary.decisions.length === 0) out.push("No fresh cells with all three arms yet.", "");
   for (const d of summary.decisions) {
-    out.push(`### ${d.reference} on ${d.provider}: **${d.verdict}**`, "");
-    out.push(row(["Arm", "Evaluated", "Metered", "Pass rate", "Tokens per success"]), row(["---", "---:", "---:", "---:", "---:"]));
-    for (const arm of ["block", "capped", "production"] as const) out.push(row([arm, d.evaluated[arm], d.metered[arm], pct(d.passRates[arm]), num(d.tokens[arm])]));
+    out.push(`### ${d.reference} on ${d.provider}: **${d.verdict}** (${d.clarity.overall})`, "");
+    out.push(row(["Arm", "Prompt threads", "Evaluated cells", "Metered threads / cells", "Pass rate (passed/evaluated)", "Tokens per success (metered tokens/successes)"]), row(["---", "---:", "---:", "---:", "---:", "---:"]));
+    for (const arm of ["block", "capped", "production"] as const) {
+      out.push(row([arm, d.threads[arm], d.evaluated[arm], `${d.meteredThreads[arm]} / ${d.metered[arm]}`, rate(d.passRates[arm], d.counts.passed[arm], d.evaluated[arm]), d.tokens[arm] === null ? "n/a" : `${num(d.tokens[arm])} (${d.counts.meteredTokens[arm]}/${d.counts.meteredSuccesses[arm]})`]));
+    }
     out.push(
       "",
-      `The decision pools every evaluated result of every condition, fresh builds and refinements alike, because ADR-B3 counts every call, refinements included. Token reduction vs production: ${pct(d.tokens.reductionVsProduction)}; vs capped: ${pct(d.tokens.reductionVsCapped)}. Rule: at least ${100 * d.options.reduction}% fewer tokens per success and a pass rate within ${100 * d.options.margin} points of both primitive arms, both boundaries inclusive, with at least ${d.options.minimum} evaluated and ${d.options.minimum} metered runs per arm.`,
+      `- Token reduction vs production: ${pct(d.tokens.reductionVsProduction)} (${span(d.intervals.reductionVsProduction, "%")}): ${CLARITY[d.clarity.tokens]}. Vs capped: ${pct(d.tokens.reductionVsCapped)} (${span(d.intervals.reductionVsCapped, "%")}).`,
+      `- Pass rate, block minus production: ${d.passRates.block === null || d.passRates.production === null ? "n/a" : `${signed(d.passRates.block - d.passRates.production)} points`} (${span(d.intervals.passDiffVsProduction, " points")}): ${CLARITY[d.clarity.vsProduction]}. Block minus capped: ${d.passRates.block === null || d.passRates.capped === null ? "n/a" : `${signed(d.passRates.block - d.passRates.capped)} points`} (${span(d.intervals.passDiffVsCapped, " points")}): ${CLARITY[d.clarity.vsCapped]}.`,
+      `- Compared paired by prompt: ${pairedText(d.paired.vsProduction, "block", "production")}; ${pairedText(d.paired.vsCapped, "block", "capped")}.`,
+      "",
+      `The decision pools every evaluated result of every condition, fresh builds and refinements alike, because ADR-B3 counts every call, refinements included. Rule: at least ${100 * d.options.reduction}% fewer tokens per success and a pass rate within ${100 * d.options.margin} points of both primitive arms, both boundaries inclusive, with at least ${d.options.minimum} evaluated and ${d.options.minimum} metered prompt threads per arm. The verdict reads the point estimates; a criterion is clear only when its whole interval sits on one side of its threshold.`,
       "",
     );
     for (const reason of d.reasons) out.push(`- ${reason}`);
@@ -77,8 +95,8 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
           s.n,
           s.evaluated,
           s.passed,
-          pct(s.passRate),
-          pct(s.firstAttemptPassRate),
+          rate(s.passRate, s.passed, s.evaluated),
+          rate(s.firstAttemptPassRate, s.firstAttemptPassed, s.evaluated),
           num(s.repairsPerSuccess, 2),
           `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`,
           num(s.inputTokensPerSuccess),
@@ -89,7 +107,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
           ms(s.latency.totalMs),
           ms(s.latency.firstGatedAttemptMs),
           ms(s.latency.blockPhaseMs),
-          pct(s.parity.meanScore),
+          s.parity.scored === 0 ? "n/a" : `${pct(s.parity.meanScore)} (${s.parity.scored} scored)`,
           s.rerunEligible,
         ]),
       );
@@ -107,14 +125,14 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       out.push("### Selection accuracy (block arm, fresh)", "");
       out.push(row(["Prompts", "Accuracy", "Hit", "Missed to null", "Wrong block", "Null correct", "False block", "Explicit null", "Omitted", "Rejected", "Planning failed", "Intent accuracy"]));
       out.push(row(["---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
-      out.push(row([sel.n, pct(sel.accuracy), sel.hit, sel.missedToNull, sel.wrongBlock, sel.nullCorrect, sel.falseBlock, sel.explicitNull, sel.omitted, sel.rejected, sel.planningFailed, pct(sel.intentAccuracy)]), "");
+      out.push(row([sel.n, rate(sel.accuracy, sel.correct, sel.n), sel.hit, sel.missedToNull, sel.wrongBlock, sel.nullCorrect, sel.falseBlock, sel.explicitNull, sel.omitted, sel.rejected, sel.planningFailed, rate(sel.intentAccuracy, sel.intentCorrect, sel.n)]), "");
     }
     const refinements = stats.filter((x) => x.condition !== "fresh");
     if (refinements.length > 0) {
       out.push("### Refinements (on each arm's own fresh result)", "");
       out.push(row(["Condition", "Arm", "Cells", "Skipped", "Evaluated", "Pass rate", "Changed", "Retention", "Tokens/success (metered runs / successes)", "Re-run eligible"]));
       out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
-      for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, pct(s.passRate), pct(s.changedRate), pct(s.retention), `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`, s.rerunEligible]));
+      for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), rate(s.retention, s.retained, s.onBlockPrior), `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`, s.rerunEligible]));
       out.push("");
     }
     if (stats.some((x) => x.arm === "block-positional")) {
@@ -125,8 +143,15 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       for (const condition of ["all", ...CONDITIONS]) {
         for (const [encoding, arm] of [["named", "block"], ["positional", "block-positional"]] as const) {
           const s = (condition === "all" ? pooled : stats).find((x) => x.arm === arm && x.condition === condition);
-          if (s) out.push(row([condition, encoding, s.n, s.evaluated, pct(s.passRate), `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`, num(s.inputTokensPerSuccess), num(s.outputTokensPerSuccess), num(s.providerCallsPerRun, 2), num(s.requestBytesPerRun), ms(s.latency.blockPhaseMs)]));
+          if (s) out.push(row([condition, encoding, s.n, s.evaluated, rate(s.passRate, s.passed, s.evaluated), `${num(s.tokensPerSuccess)} (${s.meteredRuns} / ${s.meteredSuccesses})`, num(s.inputTokensPerSuccess), num(s.outputTokensPerSuccess), num(s.providerCallsPerRun, 2), num(s.requestBytesPerRun), ms(s.latency.blockPhaseMs)]));
         }
+      }
+      const enc = summary.encodings.find((e) => `${e.reference} on ${e.provider}` === title);
+      if (enc) {
+        out.push(
+          "",
+          `Positional against named, compared paired by prompt: ${pairedText(enc.paired, "positional", "named")}. Pass rate, positional minus named: ${span(enc.intervals.passDiff, " points")}; positional's token reduction against named: ${span(enc.intervals.tokenReduction, "%")}.`,
+        );
       }
       out.push("", "The same named call on the wire two ways: the positional answer is decoded to the named call before B1, so the gates, the expansion and the parity check are the named arm's. The ADR-B3 decision reads the named block arm; this comparison informs ADR-B2 and decides nothing.", "");
     }
