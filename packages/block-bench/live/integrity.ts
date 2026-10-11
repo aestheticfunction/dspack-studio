@@ -7,13 +7,19 @@
  * that showed it reached no model is released before these checks and never trips them; any other reply is held to
  * them, so a reply that cannot show whether a model ran (no itemized calls, or none reported) stops the run too.
  *
- * The Worker names the model only on a successful reply (`raw.model`, or the configured id when the provider omits
- * it), so a reply the Worker sends as an error (an unusable output, a provider failure) stops the run too.
+ * The Worker names one model per reply, and only on a successful one: the model its final, successful call reported
+ * (`raw.model`, or the configured id when the provider omits it). So a reply the Worker sends as an error (an unusable
+ * output, a provider failure) stops the run too, and so does the first call of its parse retry, which names no model
+ * of its own.
  */
 import type { ModelCallRecord } from "@dspack-studio/composer-core";
 
-/** Claude Haiku 4.5 as its providers name it: `claude-haiku-4-5`, its dated snapshots, `anthropic/claude-haiku-4.5`. */
-export const MODEL_FAMILY = /(^|[^a-z0-9])claude-haiku-4[-.]5($|[^0-9a-z.])/i;
+/**
+ * Claude Haiku 4.5 by the whole ids this deployment can return: the configured id (`anthropic/claude-haiku-4.5`, which
+ * the Worker also returns when the provider names no model), Anthropic's alias (`claude-haiku-4-5`) and its dated
+ * snapshots (`claude-haiku-4-5-20251001`). Any other spelling stops the run, until it is added here deliberately.
+ */
+export const MODEL_FAMILY = /^(?:anthropic\/claude-haiku-4\.5|claude-haiku-4-5(?:-\d{8})?)$/;
 
 export type HaltCondition = "usage-missing" | "model-missing" | "model-family" | "model-changed";
 

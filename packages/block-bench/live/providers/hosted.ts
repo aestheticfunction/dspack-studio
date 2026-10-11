@@ -74,6 +74,14 @@ export function callRecords(
   ];
 }
 
+/** Each call with the model the Worker named for it: the reply's model belongs to its final, successful call alone. */
+export const ownModels = (records: readonly ModelCallRecord[]): ModelCallRecord[] =>
+  records.map((call, index) => {
+    if (call.outcome === "ok" && index === records.length - 1) return call;
+    const { model: _replyModel, ...own } = call;
+    return own;
+  });
+
 const FAILURE_OUTCOME: Record<FailureKind, ModelCallRecord["outcome"]> = {
   provider: "provider-error",
   output: "unusable-output",
@@ -159,9 +167,11 @@ export function createHostedProvider(options: HostedOptions): Provider {
         verified = charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
         // Then held to the run's integrity conditions (live/integrity.ts), on every path but a release: a call that
         // reached the provider must report its usage and the model the run measures, or the run stops (RunHalted)
-        // with this request settled on the way out like any other.
+        // with this request settled on the way out like any other. The Worker names one model per reply, the one its
+        // final, successful call reported, and callRecords gives it to every call as the app records it; held to the
+        // conditions, only that call keeps it, so the first call of a parse retry names no model of its own.
         const served = options.pacer?.served;
-        if (served && !released) holdCalls(records, served, PRICED_MODEL, { itemized: Array.isArray(reply?.calls) });
+        if (served && !released) holdCalls(ownModels(records), served, PRICED_MODEL, { itemized: Array.isArray(reply?.calls) });
         return { calls: records, durationMs };
       };
       try {

@@ -189,6 +189,9 @@ describe("a call that reached the provider stops the run unless it can be truste
       ["an answer that reports no provider call", () => served([]), "usage-missing"],
       ["an answer that reports no calls at all", () => served(undefined as never, { model: HAIKU, usage: null }), "usage-missing"],
       ["no model named", () => served([call({})], {}), "model-missing"],
+      // The Worker names one model per reply, the one its final, successful call reported: the first call of its parse
+      // retry names none of its own, and is not given the reply's.
+      ["a parse retry, whose first call the reply's model does not name", () => served([call({ outcome: "unusable-output" }), call({})]), "model-missing"],
       ["an unusable output, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "no usable output", usage: { inputTokens: 10, outputTokens: 2 }, calls: [call({ outcome: "unusable-output" })] }), "model-missing"],
       ["another model family", () => served([call({})], { model: "claude-sonnet-4-5-20250929" }), "model-family"],
       ["a later Haiku generation", () => served([call({})], { model: "claude-haiku-5-5" }), "model-family"],
@@ -199,9 +202,12 @@ describe("a call that reached the provider stops the run unless it can be truste
     }
   });
 
-  it("knows Claude Haiku 4.5 by the configured id and the ids its providers document, and nothing else", () => {
-    for (const id of [PRICED_MODEL, "claude-haiku-4-5", HAIKU, "anthropic/claude-haiku-4.5", "anthropic.claude-haiku-4-5-20251001-v1:0", "claude-haiku-4-5@20251001"]) expect(MODEL_FAMILY.test(id), id).toBe(true);
-    for (const id of ["claude-haiku-4-50", "claude-haiku-4-5.1", "claude-haiku-45", "xclaude-haiku-4-5", "claude-3-5-haiku-20241022", "claude-haiku-5-5", "claude-sonnet-4-5-20250929", "anthropic/claude-haiku-4"]) expect(MODEL_FAMILY.test(id), id).toBe(false);
+  it("knows Claude Haiku 4.5 only by the whole ids this deployment can return: the configured id, Anthropic's alias and its dated snapshots", () => {
+    for (const id of [PRICED_MODEL, "claude-haiku-4-5", HAIKU, "claude-haiku-4-5-20260301"]) expect(MODEL_FAMILY.test(id), id).toBe(true);
+    const others = ["claude-haiku-4-50", "claude-haiku-4-5.1", "claude-haiku-45", "xclaude-haiku-4-5", "claude-3-5-haiku-20241022", "claude-haiku-5-5", "claude-sonnet-4-5-20250929", "anthropic/claude-haiku-4"];
+    // Ids that merely contain one, or spell it another provider's way: any of them stops the run, until it is added here.
+    const contained = ["evil/claude-haiku-4-5/other", "claude-haiku-4-5-sonnet", "claude-haiku-4-5-2025100", "anthropic/claude-haiku-4-5", "ANTHROPIC/CLAUDE-HAIKU-4.5", "anthropic.claude-haiku-4-5-20251001-v1:0", "claude-haiku-4-5@20251001", " claude-haiku-4-5"];
+    for (const id of [...others, ...contained]) expect(MODEL_FAMILY.test(id), id).toBe(false);
   });
 
   it("records the first metered model, accepts it again, and stops on any other", async () => {
