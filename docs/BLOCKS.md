@@ -1,6 +1,6 @@
 # Interface blocks (experimental)
 
-**Status: Phase 0.** Nothing here changes what Composer does today. The block format is an RFC that is not proposed upstream. The three block definitions are drafts that the owner rewrites before any evaluation result counts. The format specification is [blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). The measurements are in [packages/block-bench/RESULTS.md](../packages/block-bench/RESULTS.md).
+**Status: Phase 0.** Nothing here changes what Composer does today. The block format is an RFC that is not proposed upstream. The owner approved the three block definitions on each reference, and the frozen Phase 1B corpus, on 2026-10-11; their wording, templates, keywords and action names are owner-authored governance. The format specification is [blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). The measurements are in [packages/block-bench/RESULTS.md](../packages/block-bench/RESULTS.md).
 
 ## What an interface block is
 
@@ -25,7 +25,7 @@ These figures come from offline, deterministic runs of the real code paths. Toke
 - **Hosted input is dominated by schema text.**
   - On shadcn/ui v3, a fresh hosted generation request carries 52,413 to 56,427 input tokens, and 83% to 90% of that is the generation schema. The Worker pastes the schema into the system prompt as text (`apps/composer/worker/propose.mjs`, `guidedSystem`). Request bodies are 220 to 240 KB.
   - On Astryx the same request is 9,352 to 9,862 tokens, of which 79% to 83% is schema text.
-- **A block's selected-block schema is a few hundred tokens:** 239 to 352 in the named encoding, against 47,090 tokens of surface schema for shadcn/ui v3. Model output shrinks too: draft calls are 49 to 122 tokens named and 40 to 106 positional, against expanded surfaces of 198 to 488 tokens. Both figures are provisional: the drafts are not owner-approved and no model has produced them.
+- **A block's selected-block schema is a few hundred tokens:** 239 to 352 in the named encoding, against 47,090 tokens of surface schema for shadcn/ui v3. Model output shrinks too: the example calls are 49 to 122 tokens named and 40 to 106 positional, against expanded surfaces of 198 to 488 tokens. Both figures are provisional: no model has produced them.
 - **Structural validity is not governance.** 5 of 6 recorded live attempts that fail S3 pass every structural check: A1 to A3 on both A2UI versions, and the json-render J2/J3 offline check. The sixth is refused by the emitter. The scope is narrow: local models, Astryx, recorded July 2026. This is not hosted evidence.
 
 So the input side is the first-order lever on hosted cost. The external research's output-token savings are real but second-order.
@@ -144,7 +144,7 @@ Blocks exist only in an experimental build. The default build, the one every dep
 - **The flag is inlined.** `next.config.mjs` writes `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL` into the bundle as `"0"` or `"1"`. Every gated site spells the literal `process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"`, which Next folds away in the default build. There is no shared constant: a constant imported from another module is not folded, and a source ratchet (`apps/composer/lib/experimental-guard.test.mjs`) reads the syntax tree of every app source and fails on any `import()` of block code that is not enclosed by the literal check (the then-branch of an `if`, the true arm of a ternary, or the right side of an `&&` whose chain begins with the literal), and on any static import or re-export of block code from app code.
 - **The directory is aliased away.** Unless the flag is on, `apps/composer/experimental/` (the sidecars and the runtime) resolves to nothing.
 - **The flag and the output directory must agree.** `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1` builds only into `out-experimental/` (`pnpm --filter composer build:experimental`); the flag alone fails the build, as does the directory alone. `out-experimental/` is git-ignored and is never the deploy artifact.
-- **The artifact is scanned.** `scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key or any draft block id. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
+- **The artifact is scanned.** `scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key or any block id. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
 
 **Running it.**
 
@@ -161,9 +161,9 @@ The experimental suite (`e2e/composer-blocks.spec.ts`) is agent-free and stubs t
 
 The harness lives in `packages/block-bench/live/` and is run by the owner; nothing in it runs in CI except its own tests and a dry run on the scripted provider. It measures the real code paths, never a re-implementation: composer-core's block phase, budget and refinement decision; dspack-gen's `runPipeline`; the request bytes the app posts (`proposeBody`); the app's fold (`foldBuildEvents`). The hosted client is held to the app's gateway adapter by a parity test over every reply shape.
 
-**Preconditions.** The deployed Worker must be the Phase 0.5 Worker: the harness posts an empty body, which every Worker refuses, and proceeds only when the refusal carries `calls: []`. It records the deployed build id and the sidecar status with the run. The drafts are counted only with `--allow-drafts`, and the report is then marked provisional. The production configuration it compares against is fixed in `docs/blocks/BASELINE.md`.
+**Preconditions.** The deployed Worker must be the Phase 0.5 Worker: the harness posts an empty body, which every Worker refuses, and proceeds only when the refusal carries `calls: []`. It records the deployed build id and the sidecar status with the run. A draft sidecar or block runs only with `--allow-drafts`, and its report is then marked provisional. The production configuration it compares against is fixed in `docs/blocks/BASELINE.md`.
 
-**Corpus.** `live/corpora/blocks.json`, frozen on 2026-10-10: 22 prompts per block and at least 20 null prompts per reference, each with its expected block (or null), its expected intent per reference, and a parity checklist (labels that must appear in the surface's text, components that must appear). Near-miss nulls (a kanban board, a contact form, an order summary) sit inside the block intents on purpose. A validity test holds every rule. Frozen means pinned: `live/corpora/frozen.json` holds the corpus's name, version, freeze date and content digest, a test holds the corpus to it, and the CLI refuses to run on anything else. A deliberate edit re-freezes the corpus, changing the date and the digest together. The decision thresholds are frozen in code and pinned by a test the same way.
+**Corpus.** `live/corpora/blocks.json`, frozen on 2026-10-10 and approved by the owner on 2026-10-11: 22 prompts per block and at least 20 null prompts per reference, each with its expected block (or null), its expected intent per reference, and a parity checklist (labels that must appear in the surface's text, components that must appear). Near-miss nulls (a kanban board, a contact form, an order summary) sit inside the block intents on purpose. A validity test holds every rule. Frozen means pinned: `live/corpora/frozen.json` holds the corpus's name, version, freeze date and content digest, a test holds the corpus to it, and the CLI refuses to run on anything else. A deliberate edit re-freezes the corpus, changing the date and the digest together. The decision thresholds are frozen in code and pinned by a test the same way.
 
 **Arms and conditions.** `production` is today's path (the planning call, `maxRepairs` 2, the Worker's parse retry on). `capped` is the budget-matched primitive arm (the same planning call, `budgetedInner` with the budget of 3, `maxCalls` 1). `block` is the experimental path (the planning call with the block question, the block phase, then the preloaded, fallback or replayed pipeline; a null selection is today's path, as in the app). `block-positional` is the same path with the model answering the compact positional call (ADR-B2), which the block phase decodes to the named call before B1, so the gates, the expansion and the parity check are the named arm's. Each prompt runs fresh, then four refinements on the arm's own fresh result: a content change, adding a repeated item, removing one, and a structural change the blocks do not support. The cells run prompt-major, so a run stopped at any point holds balanced comparisons.
 
@@ -196,19 +196,18 @@ The external research ranked twelve block families. Admission is not by rank. A 
 | 1 | Search, browse, compare | Later | Expressible on both references (Astryx: selectable-card, metadata-list) |
 | 2 | Analytics dashboard | Vocabulary-gated | KPI cards and tables only; no chart vocabulary exists |
 | 3 | Task workflow | Later | List and table views only |
-| 4 | **Record manager** (`records-table`) | **Draft** | Native on both; per-row actions blocked (dropdown-menu is a casualty on Astryx, and its items carry no action on shadcn/ui v3) |
+| 4 | **Record manager** (`records-table`) | **Approved** | Native on both; per-row actions blocked (dropdown-menu is a casualty on Astryx, and its items carry no action on shadcn/ui v3) |
 | 5 | Product detail, cart, checkout | Later | Expressible; host-authoritative pricing |
 | 6 | Booking | Later | Pre-offered slots only; no date picker |
-| 7 | **Step-by-step guide** (`guide-steps`) | **Draft** | Tables on both; checking off steps is presentation state |
+| 7 | **Step-by-step guide** (`guide-steps`) | **Approved** | Tables on both; checking off steps is presentation state |
 | 8 | Quiz, assessment | Later | Expressible on shadcn/ui v3 |
 | 9 | Calendar | Vocabulary-gated | Agenda table only |
 | 10 | Map | Vocabulary-gated | List only; provider and licensing decision required |
-| 11 | **Account access** (`auth-form`) | **Draft** | Native on both; autocomplete purposes are a vocabulary gap |
+| 11 | **Account access** (`auth-form`) | **Approved** | Native on both; autocomplete purposes are a vocabulary gap |
 | 12 | Status monitor | Later | Expressible |
 
 ## Open decisions
 
-- **Owner rewrite.** The drafts' wording, templates, keywords and action names are owner-authored governance. The sidecars carry `"status": "draft"` until then.
 - **Positional encoding.** Whether to commit to it is decided by 1B evidence, not before.
 - **Vocabulary gaps.** Input `autocomplete` purposes, row actions (dropdown-menu items), charts, calendars and maps each need upstream vocabulary first.
 - **OpenUI pin.** When to move the gate package from lang-core 0.3.x to 0.4.x, once 0.4.x is at least 14 days old.
@@ -227,7 +226,7 @@ For the "later, deliberately" list:
 
 - `packages/composer-core/src/blocks/` holds the sidecar schema, the call contract (named, positional, B1, constraints), the generation view (B0's oracle) and the binding digest. It is pure and not wired into the app.
 - `packages/composer-core/src/requests.ts` holds the request builders the app actually uses. They are the byte-identity oracle's source.
-- `apps/composer/experimental/blocks/*.blocks.json` holds the draft sidecars. They are never statically imported.
+- `apps/composer/experimental/blocks/*.blocks.json` holds the sidecars, approved by the owner. They are never statically imported.
 - `packages/block-bench/` holds the bench, its goldens and its committed results. `pnpm test` fails on any drift; `pnpm --filter @dspack-studio/block-bench bench` regenerates them.
 - `packages/block-bench/live/` holds the Phase 1B harness: the frozen corpus, the providers (hosted, Ollama, scripted), the arms, the metrics and decision rule, and the runner. `pnpm --filter @dspack-studio/block-bench eval:live` runs it; `baseline` records the deployment it compares against.
 - `docs/blocks/BASELINE.md` fixes the production configuration the evaluation compares against.

@@ -1,6 +1,6 @@
 {
   "blocksSidecar": "0.1",
-  "status": "draft",
+  "status": "approved",
   "reference": {
     "name": "shadcn/ui",
     "dspack": "0.4",
@@ -11,7 +11,7 @@
     {
       "id": "records-table",
       "version": 1,
-      "status": "draft",
+      "status": "approved",
       "name": "Record manager",
       "summary": "Many records of one kind, scanned as a captioned table with an optional status column and collection actions.",
       "relatedPattern": "data-table-with-row-actions",
@@ -382,7 +382,7 @@
     {
       "id": "auth-form",
       "version": 1,
-      "status": "draft",
+      "status": "approved",
       "name": "Account access",
       "summary": "Sign in, sign up, or password reset: labeled fields, one submit action, and optional provider and recovery actions. Never carries entered values.",
       "relatedPattern": "form-field-layout",
@@ -716,7 +716,7 @@
     {
       "id": "guide-steps",
       "version": 1,
-      "status": "draft",
+      "status": "approved",
       "name": "Step-by-step guide",
       "summary": "One guide read in order: what you need, then numbered steps, with optional facts and actions. Recipes, setup, repair, onboarding.",
       "intents": [

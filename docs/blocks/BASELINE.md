@@ -32,6 +32,6 @@ Status: the record is not yet committed. This checkout could not reach composer.
 
 ## What a live run must state
 
-- The sidecar status. The drafts shipped in Phase 0 are `"status": "draft"`; ADR-B3 counts approved sidecars only. A run on drafts is provisional and its report says so.
+- The sidecar status. ADR-B3 counts approved sidecars only. The owner approved both sidecars and all six blocks on 2026-10-11; a run on a draft is provisional and its report says so.
 - The provider and, for hosted, the pacing used (`--spacing-ms`, `--max-requests`) and every wait the gateway imposed.
 - The corpus id and freeze date, which the report carries.

@@ -34,7 +34,8 @@ export function renderMarkdown(results: BenchResults): string {
     for (const o of ref.outputs as Json[]) {
       out.push(row([o.example, o.surface.tokens, o.a2ui.refusal ? "refused" : o.a2ui.tokens, o.jsonRender.refusal ? "refused" : o.jsonRender.tokens]));
     }
-    out.push("", "### Draft blocks (provisional: drafts, not owner-approved)", "");
+    const approved = (ref.drafts as Json[]).every((d) => d.provisional === false);
+    out.push("", approved ? "### Blocks (owner-approved)" : "### Draft blocks (provisional: drafts, not owner-approved)", "");
     out.push(row(["Block", "Intent", "Named call tokens", "Positional call tokens", "Expanded surface tokens", "Block schema tokens (named)", "Surface schema tokens today", "S1/S2/S3", "Emitted actions"]));
     out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---", "---"]));
     for (const d of ref.drafts as Json[]) {
