@@ -17,7 +17,7 @@ import { exampleFor, runCell } from "./arms";
 import { promptsFor, readCorpus, type Corpus } from "./corpus";
 import { selectionStats } from "./metrics";
 import { runEvaluation } from "./evaluate";
-import { PacingCapReached, createPacer } from "./pacing";
+import { PacingCapReached, RunStop, UnpricedModel, createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
@@ -160,7 +160,7 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
     astryx = await loadReference("astryx");
   }, 60_000);
   const planAnswer = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits", block: "records-table", blockReason: "it is a table" };
-  const okReply = (json: unknown) => reply(200, { json, raw: JSON.stringify(json), model: "m", usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
+  const okReply = (json: unknown) => reply(200, { json, raw: JSON.stringify(json), model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
   const prompt = () => promptsFor(corpus, "astryx").find((p) => p.id === "rt-01")!;
   const cell = (provider: ReturnType<typeof createHostedProvider>, arm: "block" | "capped" | "production") => runCell({ reference: astryx, provider, arm, condition: "fresh", prompt: prompt(), corpus });
 
@@ -674,6 +674,32 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     expect(lines.map(([reason]) => reason)).toEqual(["request", "usage not verified"]);
     expect(lines[1]![1]).toBeCloseTo(absoluteUsd(2) - worstCaseUsd(request, 2), 12);
   }, 60_000);
+
+  it("stops the run at a reply served by a model it does not price, after raising the request to its absolute bound", async () => {
+    // The ceiling holds at Claude Haiku 4.5's prices: what another model's reply cost may exceed any bound at them.
+    const served = (model: string) => () => reply(200, { json: { a: 1 }, raw: "{}", model, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
+    for (const model of ["claude-opus-4-1-20250805", "evil/claude-haiku-4-5/other"]) {
+      const lines: Array<[string, number]> = [];
+      const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
+      pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record(usd = 0) { lines.push(["request", usd]); this.sent += 1; }, adjust(usd: number, reason: string) { lines.push([reason, usd]); } };
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => served(model)()) as typeof fetch, pacer });
+      const failure = await provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request).then(() => undefined, (error: unknown) => error);
+      expect(failure, model).toBeInstanceOf(UnpricedModel);
+      expect(failure, model).toBeInstanceOf(RunStop);
+      expect((failure as Error).message, model).toContain(model);
+      expect(lines.map(([reason]) => reason), model).toEqual(["request", "usage not verified"]);
+      expect(lines[1]![1], model).toBeCloseTo(absoluteUsd(2) - worstCaseUsd(request, 2), 12);
+    }
+    // Through a run: the first request (the plan) stops it, no cell is logged, and nothing more is sent.
+    let posted = 0;
+    const fetchImpl = (async () => (posted++, served("claude-opus-4-1-20250805")())) as typeof fetch;
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 100, spacingMs: 0, now: () => 0, sleep: async () => undefined }) });
+    const result = await runEvaluation({ runId: "unpriced", provider, references: [astryx], corpus, preflight: await preflight({ references: [astryx] }), allowDrafts: true, promptIds: ["rt-01"], arms: ["production"], conditions: ["fresh"] });
+    expect(posted).toBe(1);
+    expect(result.records).toHaveLength(0);
+    expect(result.stopped).toMatchObject({ reason: "error" });
+    expect(result.stopped!.message).toMatch(/does not price/);
+  });
 
   it("a planning outage ends the cell before any generation, as a provider failure to re-run, never as an arm result or a selection", async () => {
     const w = workerFetch((kind) => {

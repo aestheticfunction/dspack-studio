@@ -8,8 +8,8 @@
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
-import { CELL_REQUESTS, CELL_USD_BOUND, REQUEST_USD_BOUND, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
-import type { Pacer } from "../pacing";
+import { CELL_REQUESTS, CELL_USD_BOUND, PRICED_FAMILY, REQUEST_USD_BOUND, absoluteUsd, reportedUsd, withinReservation, worstCaseUsd } from "../cost";
+import { UnpricedModel, type Pacer } from "../pacing";
 import type { FailureKind } from "../types";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Meter, type PlanOptions, type Provider } from "./types";
 
@@ -199,6 +199,10 @@ export function createHostedProvider(options: HostedOptions): Provider {
         const charged = records.filter((call) => call.source !== "none").length;
         itemized = Array.isArray(reply?.calls);
         verified = itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
+        // What a reply another model served cost may exceed any bound at Haiku 4.5's prices: raised on the way out, it
+        // stops the run, which sends nothing more.
+        const foreign = ownModels(records).find((call) => typeof call.model === "string" && !PRICED_FAMILY.test(call.model));
+        if (options.pacer && foreign) throw new UnpricedModel(foreign.model!);
         return { calls: records, durationMs };
       };
       try {
