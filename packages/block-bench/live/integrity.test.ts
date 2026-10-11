@@ -208,8 +208,8 @@ describe("a call that reached the provider stops the run unless it can be truste
     }
   });
 
-  it("knows Claude Haiku 4.5 only by the whole ids this deployment can return: the configured id, Anthropic's alias and its dated snapshots", () => {
-    for (const id of [PRICED_MODEL, "claude-haiku-4-5", HAIKU, "claude-haiku-4-5-20260301"]) expect(MODEL_FAMILY.test(id), id).toBe(true);
+  it("knows Claude Haiku 4.5 only by the whole ids this deployment can return: the configured id, its unprefixed catalog name, Anthropic's alias and its dated snapshots", () => {
+    for (const id of [PRICED_MODEL, "claude-haiku-4.5", "claude-haiku-4-5", HAIKU, "claude-haiku-4-5-20260301"]) expect(MODEL_FAMILY.test(id), id).toBe(true);
     const others = ["claude-haiku-4-50", "claude-haiku-4-5.1", "claude-haiku-45", "xclaude-haiku-4-5", "claude-3-5-haiku-20241022", "claude-haiku-5-5", "claude-sonnet-4-5-20250929", "anthropic/claude-haiku-4"];
     // Ids that merely contain one, or spell it another provider's way: any of them stops the run, until it is added here.
     const contained = ["evil/claude-haiku-4-5/other", "claude-haiku-4-5-sonnet", "claude-haiku-4-5-2025100", "anthropic/claude-haiku-4-5", "ANTHROPIC/CLAUDE-HAIKU-4.5", "anthropic.claude-haiku-4-5-20251001-v1:0", "claude-haiku-4-5@20251001", " claude-haiku-4-5"];

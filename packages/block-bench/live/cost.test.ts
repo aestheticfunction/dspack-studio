@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { guidedSystem, handlePropose } from "../../../apps/composer/worker/propose.mjs";
-import { CALL_OVERHEAD_TOKENS, CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, PRICE, PRICED_MODEL, REQUEST_USD_BOUND, absoluteUsd, inputTokenBound, reportedUsd, withinReservation, worstCaseUsd } from "./cost";
+import { CALL_OVERHEAD_TOKENS, CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, PRICE, PRICED_MODEL, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, inputTokenBound, pastModelLimits, reportedUsd, totalPastModelLimits, withinReservation, worstCaseUsd } from "./cost";
 import { CELL_REQUESTS } from "./providers/hosted";
 
 const bytes = (text: string) => new TextEncoder().encode(text).length;
@@ -68,21 +68,97 @@ describe("a request's worst case", () => {
     expect(CELL_USD_BOUND).toBeCloseTo(CELL_REQUESTS * REQUEST_USD_BOUND, 12);
   });
 
-  it("holds only for a call whose reported usage is within what it was priced at: a refused call, or one that reports both figures inside the bounds", () => {
+  it("holds only for a call whose reported usage is within what it was priced at: a refused call, or one naming Claude Haiku 4.5 that reports both figures inside the bounds", () => {
     const request = { system: "s", messages: [{ role: "user" as const, content: "u" }], jsonSchema: {} };
     const bound = inputTokenBound(request);
-    const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, ...fields });
+    const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, model: "claude-haiku-4-5-20251001", ...fields });
     expect(withinReservation(request, call({ inputTokens: bound, outputTokens: MAX_OUTPUT_TOKENS }))).toBe(true);
-    expect(withinReservation(request, call({ source: "none", outcome: "refused" }))).toBe(true);
+    expect(withinReservation(request, call({ inputTokens: 1, outputTokens: 1, model: PRICED_MODEL }))).toBe(true);
+    expect(withinReservation(request, call({ inputTokens: 1, outputTokens: 1, model: "claude-haiku-4-5" }))).toBe(true);
+    // The catalog's name without its vendor prefix names the same model.
+    expect(withinReservation(request, call({ inputTokens: 1, outputTokens: 1, model: "claude-haiku-4.5" }))).toBe(true);
+    // An answer took at least one output token; an unusable output may have taken none.
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 0 }))).toBe(false);
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 0, outcome: "unusable-output" }))).toBe(true);
+    expect(withinReservation(request, call({ source: "none", outcome: "refused", model: undefined }))).toBe(true);
     expect(withinReservation(request, call({ inputTokens: bound + 1, outputTokens: 1 }))).toBe(false);
     expect(withinReservation(request, call({ inputTokens: 1, outputTokens: MAX_OUTPUT_TOKENS + 1 }))).toBe(false);
     expect(withinReservation(request, call({ inputTokens: 1 }))).toBe(false);
     expect(withinReservation(request, call({ outcome: "provider-error" }))).toBe(false);
+    // A call that reached the model read at least one token, and these prices are Claude Haiku 4.5's, by its whole id.
+    expect(withinReservation(request, call({ inputTokens: 0, outputTokens: 0 }))).toBe(false);
+    // Tokens are counted, never negative, an unusable output's included.
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: -1, outcome: "unusable-output" }))).toBe(false);
+    // Tokens are whole: a fractional count proves nothing.
+    expect(withinReservation(request, call({ inputTokens: 10.5, outputTokens: 2 }))).toBe(false);
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 1.5 }))).toBe(false);
+    for (const model of [undefined, "claude-opus-4-1-20250805", "claude-sonnet-4-5-20250929", "claude-haiku-5-5", "evil/claude-haiku-4-5/other", "claude-haiku-4-5-sonnet", "anthropic/claude-haiku-4-5", "ANTHROPIC/CLAUDE-HAIKU-4.5"]) {
+      expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 2, model })), String(model)).toBe(false);
+    }
   });
 
   it("settles a verified reply at what it reported: each call's usage at the prices, the credit fee included, and a call that reached no model at nothing", () => {
     const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, ...fields });
     const calls = [call({ inputTokens: 1000, outputTokens: 100 }), call({ inputTokens: 2000, outputTokens: 50, outcome: "unusable-output" }), call({ source: "none", outcome: "refused" })];
     expect(reportedUsd(calls)).toBeCloseTo((3000 * 1e-6 + 150 * 5e-6) * 1.05, 12);
+  });
+
+  it("charges a reply it cannot verify at least what its calls can have cost: one missing a count, or reporting one that is negative or not finite, at the most one call can cost", () => {
+    const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, ...fields });
+    expect(boundedUsd([call({ inputTokens: 1000, outputTokens: 100 })])).toBeCloseTo((1000 * 1e-6 + 100 * 5e-6) * 1.05, 12);
+    expect(boundedUsd([call({ source: "none", outcome: "refused" })])).toBe(0);
+    for (const [inputTokens, outputTokens] of [[null, 100], [1000, null], [-5, 100], [1000, -1], [Number.NaN, 100], [1000, Number.POSITIVE_INFINITY], [1000.5, 100], [1000, 0.5]]) {
+      expect(boundedUsd([call({ inputTokens, outputTokens })]), `${inputTokens}/${outputTokens}`).toBe(absoluteUsd(1));
+    }
+    // A call that reached the model read at least one token, and an answer wrote at least one: a count saying otherwise
+    // proves nothing, and the call counts at the most one call can cost.
+    expect(boundedUsd([call({ inputTokens: 0, outputTokens: 100 })])).toBe(absoluteUsd(1));
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 0 })])).toBe(absoluteUsd(1));
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 0, outcome: "unusable-output" })])).toBeCloseTo(10 * 1e-6 * 1.05, 12);
+    const unread = Array.from({ length: 4 }, () => call({ inputTokens: 0, outputTokens: MODEL_LIMITS.maxOutputTokens }));
+    expect(boundedUsd(unread)).toBeCloseTo(4 * absoluteUsd(1), 12);
+    // A count that is not a whole number is no count, but what it shows still counts, rounded up to whole tokens: one
+    // past the limits charges at least that, and is past the limits. The call proves nothing, so its other figure
+    // counts at the most one call can read or write.
+    const fractional = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens + 0.5 });
+    expect(boundedUsd([fractional])).toBeCloseTo((MODEL_LIMITS.contextTokens * 1e-6 + (2 * MODEL_LIMITS.maxOutputTokens + 1) * 5e-6) * 1.05, 12);
+    expect(pastModelLimits(fractional)).toBe(true);
+    // Each figure stands on its own: a call showing input past the context window and no output count may still have
+    // written the most one call can.
+    expect(boundedUsd([call({ inputTokens: 300_000, outputTokens: null })])).toBeCloseTo((300_000 * 1e-6 + MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05, 12);
+    // A call that states a figure two ways proves nothing, whatever its counts.
+    expect(boundedUsd([{ ...call({ inputTokens: 10, outputTokens: 2 }), stated: false }])).toBe(absoluteUsd(1));
+    // A reply's total counts where it shows more of a figure than its calls do, figure by figure: the calls' input and
+    // the total's output can each be what was billed.
+    const wide = Array.from({ length: 3 }, () => call({ inputTokens: MODEL_LIMITS.contextTokens, outputTokens: 1 }));
+    expect(boundedUsd(wide, { inputTokens: 3, outputTokens: 3 * MODEL_LIMITS.maxOutputTokens })).toBeCloseTo((3 * MODEL_LIMITS.contextTokens * 1e-6 + 3 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05, 12);
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 2 })], { inputTokens: 5, outputTokens: 1 })).toBeCloseTo((10 * 1e-6 + 2 * 5e-6) * 1.05, 12);
+    // A reply is held to the calls its request was priced for: each one it does not list counts as unseen, figure by
+    // figure, never traded against what was shown.
+    const unseen = call({ inputTokens: null, outputTokens: null, outcome: "provider-error" });
+    expect(boundedUsd([unseen], { inputTokens: 3 * MODEL_LIMITS.contextTokens }, 2)).toBeCloseTo((3 * MODEL_LIMITS.contextTokens * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05, 12);
+    expect(boundedUsd([unseen], undefined, 2)).toBe(absoluteUsd(2));
+    expect(boundedUsd([], undefined, 1)).toBe(absoluteUsd(1));
+    // A call the reply lists takes its place: one that proved its counts counts at them, not at the limits.
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 2 }), unseen], undefined, 2)).toBeCloseTo(((10 + MODEL_LIMITS.contextTokens) * 1e-6 + (2 + MODEL_LIMITS.maxOutputTokens) * 5e-6) * 1.05, 12);
+    // A call reporting past the model's limits counts at what it reported, and one beside it that reported nothing on top.
+    const past = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens });
+    expect(boundedUsd([past, call({ inputTokens: null, outputTokens: null, outcome: "provider-error" })])).toBeCloseTo((10 * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05 + absoluteUsd(1), 12);
+    expect(pastModelLimits(past)).toBe(true);
+    expect(pastModelLimits(call({ inputTokens: MODEL_LIMITS.contextTokens + 1, outputTokens: 1 }))).toBe(true);
+    expect(pastModelLimits(call({ inputTokens: MODEL_LIMITS.contextTokens, outputTokens: MODEL_LIMITS.maxOutputTokens }))).toBe(false);
+    expect(pastModelLimits(call({ inputTokens: null, outputTokens: null }))).toBe(false);
+    expect(pastModelLimits(call({ source: "none", outcome: "refused", inputTokens: 1e9 }))).toBe(false);
+    // A figure past every count (JSON's 1e400 reads as Infinity) is past the limits; a negative one shows nothing.
+    expect(pastModelLimits(call({ inputTokens: Number.POSITIVE_INFINITY, outputTokens: 2 }))).toBe(true);
+    expect(pastModelLimits(call({ inputTokens: 10, outputTokens: Number.NEGATIVE_INFINITY }))).toBe(false);
+    expect(totalPastModelLimits({ outputTokens: Number.POSITIVE_INFINITY }, 1)).toBe(true);
+    expect(totalPastModelLimits({ inputTokens: 2 * MODEL_LIMITS.contextTokens }, 2)).toBe(false);
+    // Figures past what the ledger can count are held to a finite charge, past every ceiling a run can name: summed, two
+    // of 1e308 would otherwise be Infinity, which JSON writes as null.
+    const huge = call({ inputTokens: 1e308, outputTokens: 2 });
+    expect(Number.isFinite(boundedUsd([huge, huge]))).toBe(true);
+    expect(boundedUsd([huge, huge])).toBeGreaterThan(9_007_199);
+    expect(Number.isFinite(boundedUsd([], { inputTokens: 1e308, outputTokens: 1e308 }))).toBe(true);
   });
 });

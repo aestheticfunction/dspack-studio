@@ -13,13 +13,15 @@
  * of its own.
  */
 import type { ModelCallRecord } from "@dspack-studio/composer-core";
+import { PRICED_FAMILY } from "./cost";
+import { RunStop } from "./pacing";
 
 /**
- * Claude Haiku 4.5 by the whole ids this deployment can return: the configured id (`anthropic/claude-haiku-4.5`, which
- * the Worker also returns when the provider names no model), Anthropic's alias (`claude-haiku-4-5`) and its dated
- * snapshots (`claude-haiku-4-5-20251001`). Any other spelling stops the run, until it is added here deliberately.
+ * Claude Haiku 4.5 by the whole ids this deployment can return (cost.ts PRICED_FAMILY): the model the run prices is
+ * the model it measures, so the two are one pattern. Any other spelling stops the run, until it is added there
+ * deliberately.
  */
-export const MODEL_FAMILY = /^(?:anthropic\/claude-haiku-4\.5|claude-haiku-4-5(?:-\d{8})?)$/;
+export const MODEL_FAMILY = PRICED_FAMILY;
 
 export type HaltCondition = "usage-missing" | "model-missing" | "model-family" | "model-changed";
 
@@ -27,7 +29,7 @@ export type HaltCondition = "usage-missing" | "model-missing" | "model-family" |
 const whole = (n: unknown, least = 0): n is number => typeof n === "number" && Number.isSafeInteger(n) && n >= least;
 
 /** The run's stop signal for a call it cannot trust: never an arm result, and the run stays resumable. */
-export class RunHalted extends Error {
+export class RunHalted extends RunStop {
   constructor(
     readonly condition: HaltCondition,
     detail: string,
