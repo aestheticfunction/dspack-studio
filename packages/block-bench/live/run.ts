@@ -10,7 +10,7 @@
  *   --base-url <origin>       hosted: the origin (default https://composer.aesthetic-function.com)
  *   --ollama-host <url>       ollama: the host (default OLLAMA_HOST or http://localhost:11434)
  *   --reference <id,...>      references to run (default: all packaged references)
- *   --arms <a,...>            block, capped, production (default: all)
+ *   --arms <a,...>            block, block-positional, capped, production (default: all)
  *   --conditions <c,...>      fresh, refine-content, refine-add, refine-remove, refine-structural (default: all)
  *   --prompts <id,...>        prompt ids; --blocks <id,...|null> expected-block filter; --limit <n> prompts per reference
  *   --allow-drafts            run on draft sidecars (results are provisional)

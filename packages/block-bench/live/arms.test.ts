@@ -139,3 +139,36 @@ describe("refinements on each arm's own fresh result", () => {
     expect(refined.record.trace).toBeUndefined();
   });
 });
+
+describe("the block-positional arm (ADR-B2: named against positional)", () => {
+  it("runs the block path in the compact encoding: the same selection, a positional trace, and the surface the named block arm builds", async () => {
+    const named = await cell({ arm: "block" });
+    const positional = await cell({ arm: "block-positional" });
+    expect(positional.record).toMatchObject({ arm: "block-positional", outcome: "passed", path: "block", attempts: 1, selection: { chosen: "records-table" } });
+    expect((positional.record.trace as { encoding: string }).encoding).toBe("positional");
+    expect((named.record.trace as { encoding: string }).encoding).toBe("named");
+    expect(positional.record.surfaceDigest).toBe(named.record.surfaceDigest);
+    expect(positional.record.calls.map((c) => c.operation)).toEqual(["block"]);
+  });
+
+  it("refines compactly in the positional encoding, and a structural change falls back as in the named arm", async () => {
+    const fresh = await cell({ arm: "block-positional" });
+    const content = await cell({ arm: "block-positional", condition: "refine-content", prior: fresh.prior });
+    expect(content.record).toMatchObject({ passed: true, path: "block", refinement: { mode: "compact", retained: true }, changed: true });
+    expect((content.record.trace as { encoding: string }).encoding).toBe("positional");
+    const structural = await cell({ arm: "block-positional", condition: "refine-structural", prior: fresh.prior });
+    expect(structural.record).toMatchObject({ passed: true, path: "fallback", refinement: { mode: "compact", retained: false } });
+    expect(structural.record.budgetRemainingAtFallback).toBe(2);
+  });
+
+  it("spends the same budget as the named arm on the same faults: one repair, one re-issue", async () => {
+    for (const fault of ["invalid-block-call", "unusable-output"] as const) {
+      const prompt = promptWithFault(fault);
+      const named = await cell({ arm: "block", prompt, faults: true });
+      const positional = await cell({ arm: "block-positional", prompt, faults: true });
+      const shape = (r: typeof named.record) => ({ path: r.path, passed: r.passed, calls: r.calls.map((c) => [c.operation, c.outcome, c.reissue ?? false]) });
+      expect(shape(positional.record), fault).toEqual(shape(named.record));
+    }
+  });
+});
+

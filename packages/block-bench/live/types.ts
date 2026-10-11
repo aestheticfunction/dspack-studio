@@ -8,16 +8,18 @@
 import type { ModelCallRecord } from "@dspack-studio/composer-core";
 import type { BlockChoice } from "@dspack-studio/composer-core";
 
-/** The three arms ADR-B4 names. */
-export type Arm = "block" | "capped" | "production";
-export const ARMS: readonly Arm[] = ["block", "capped", "production"];
+/**
+ * The three arms ADR-B4 names, and the block arm in the positional encoding (ADR-B2: Phase 1B benchmarks named
+ * against positional). The decision rule reads `block`, `capped` and `production` only.
+ */
+export type Arm = "block" | "block-positional" | "capped" | "production";
+export const ARMS: readonly Arm[] = ["block", "block-positional", "capped", "production"];
 
 /**
  * The conditions. `fresh` is a first build. The refinements run on top of
  * the SAME arm's fresh result for the same prompt, so each arm refines what
- * it built. The positional encoding is not a runnable condition yet: the
- * block phase takes the named encoding only (composer-core); its request
- * sizes are measured offline in results.json.
+ * it built. The positional encoding is an arm, not a condition: the
+ * block-positional arm runs every condition with the compact call.
  */
 export type Condition = "fresh" | "refine-content" | "refine-add" | "refine-remove" | "refine-structural";
 export const CONDITIONS: readonly Condition[] = ["fresh", "refine-content", "refine-add", "refine-remove", "refine-structural"];

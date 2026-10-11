@@ -13,6 +13,7 @@ describe("the CLI validates its options before any preflight or provider call", 
   it("accepts the documented values and parses the numbers, and ignores the '--' separator pnpm forwards", () => {
     const o = parseOptions(["--", "--provider", "hosted", "--arms", "block,capped", "--conditions", "fresh,refine-add", "--limit", "5", "--max-requests", "40", "--spacing-ms", "0"]);
     expect(o).toMatchObject({ provider: "hosted", arms: ["block", "capped"], conditions: ["fresh", "refine-add"], limit: 5, maxRequests: 40, spacingMs: 0 });
+    expect(parseOptions(["--arms", "block,block-positional"]).arms).toEqual(["block", "block-positional"]);
   });
   it("rejects an unknown arm, an unknown condition, an unknown provider, and a number that is not a whole non-negative count", () => {
     expect(() => parseOptions(["--arms", "block,nope"])).toThrow(/unknown arm 'nope'/);

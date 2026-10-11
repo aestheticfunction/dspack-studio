@@ -11,7 +11,7 @@
  * re-issue, repair and provider-failure paths are exercised end to end.
  */
 import { proposeBody, type CallOperation } from "@dspack-studio/composer-core";
-import { scriptedBlockScript, type ErrorKind, type GenerateContext, type GenerateRequest, type GenerateResult, type StructuralAdapter } from "@dspack-studio/composer-core/blocks";
+import { encodeCall, scriptedBlockScript, type ErrorKind, type GenerateContext, type GenerateRequest, type GenerateResult, type StructuralAdapter } from "@dspack-studio/composer-core/blocks";
 import { HarnessError, classifyHarnessError, makeHarnessError, requestBytes, type AdapterOptions, type BlockAdapterOptions, type Provider } from "./types";
 
 export const SCRIPTED_ID = "fake:scripted";
@@ -118,15 +118,22 @@ export function createScriptedProvider(options: { faults?: boolean; now?: () => 
       const script = scriptedBlockScript(opts.block, opts.intent, opts.goal, opts.seed);
       const fault = faultFor(opts.goal, faults);
       let answered = 0;
+      // The script answers named calls; a positional run gets their compact projection (the sentinel stays as it is).
+      const wire = (result: GenerateResult): GenerateResult => {
+        const json = result.json as Json;
+        if (opts.encoding !== "positional" || json?.unsupported === true) return result;
+        const compact = encodeCall(opts.block, json);
+        return { ...result, json: compact, raw: JSON.stringify(compact) };
+      };
       return labelled(opts, async (request, context, nth) => {
         if (fault === "provider-failure" && nth === 0) throw new HarnessError(SCRIPTED_ID, "scripted fault: the provider is unavailable", "provider", 502, "provider");
         if (fault === "unusable-output" && nth === 0) throw new HarnessError(SCRIPTED_ID, "scripted fault: the model answered with no usable proposal", "output", 502, "unusable-output");
         answered += 1;
         if (fault === "invalid-block-call" && answered === 1) {
           const json = { block: opts.block.id, version: opts.block.version };
-          return { json, raw: JSON.stringify(json), model: "scripted" };
+          return wire({ json, raw: JSON.stringify(json), model: "scripted" });
         }
-        return script.generate(request, context);
+        return wire(await script.generate(request, context));
       });
     },
     async plan() {

@@ -19,6 +19,7 @@ import { loadReference, type LoadedReference } from "./references";
 import { probeWorker, readBuildId } from "./preflight";
 import { cellRequestBound, createHostedProvider, retryableRefusal } from "./providers/hosted";
 import { HarnessError, createMeter } from "./providers/types";
+import { callJsonSchema, encodeCall } from "@dspack-studio/composer-core/blocks";
 
 const request = { system: "s", messages: [{ role: "user" as const, content: "u" }], jsonSchema: { type: "object" } };
 const reply = (status: number, body: unknown, raw = false) => new Response(raw ? String(body) : JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -337,3 +338,39 @@ describe("preflight probes cost no provider call", () => {
     expect(await readBuildId("https://example.test", html)).toBe("abc123_XYZ");
   });
 });
+
+describe("the block-positional arm through the real Worker", () => {
+  it("posts the compact block request with maxCalls 1, and the Worker's compact answer is decoded to the named call", async () => {
+    const corpus = readCorpus();
+    const astryx = await loadReference("astryx");
+    const records = astryx.blocks.find((b) => b.id === "records-table")!;
+    const example = records.examples[0]!;
+    const ok = (json: unknown) => ({ content: [{ type: "text", text: JSON.stringify(json) }], usage: { input_tokens: 100, output_tokens: 10 } });
+    const plan = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits", block: "records-table", blockReason: "it is a table" };
+    const env = {
+      HOSTED_AI: "on",
+      AI: {
+        run: async (_model: string, input: { system: string }) => {
+          if (input.system.includes("routing step")) return ok(plan);
+          if (input.system.includes("filling an interface block")) return ok(encodeCall(records, example.call));
+          return ok(exampleFor(astryx, "record-collection"));
+        },
+      },
+    };
+    const posted: Array<Record<string, any>> = [];
+    const fetchImpl = (async (url: string, init: RequestInit) => {
+      posted.push(JSON.parse(String(init.body)));
+      return handlePropose(new Request(url, init), env);
+    }) as typeof fetch;
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl });
+    const prompt = promptsFor(corpus, "astryx").find((p) => p.id === "rt-01")!;
+    const { record } = await runCell({ reference: astryx, provider, arm: "block-positional", condition: "fresh", prompt, corpus });
+    expect(record).toMatchObject({ passed: true, path: "block", selection: { chosen: "records-table" } });
+    expect(posted).toHaveLength(2);
+    expect(posted[1]).toMatchObject({ maxCalls: 1, jsonSchema: callJsonSchema(records, "positional") });
+    expect((record.trace as { encoding: string; attempts: Array<{ call: unknown }> }).encoding).toBe("positional");
+    expect((record.trace as { attempts: Array<{ call: unknown }> }).attempts[0]!.call).toEqual(example.call);
+    expect(record.tokens).toMatchObject({ providerCalls: 2, unreportedCalls: 0 });
+  });
+});
+
