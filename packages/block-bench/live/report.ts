@@ -1,5 +1,6 @@
 /** REPORT.md: a derived view of runs.jsonl and summary.json, regenerated, never edited. */
 import type { Corpus } from "./corpus";
+import { PRICED_MODEL } from "./cost";
 import type { EvaluationResult } from "./evaluate";
 import type { ArmStats, Clarity, Interval, PairedCounts } from "./metrics";
 import { CONDITIONS } from "./types";
@@ -29,9 +30,36 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     "",
     `Provider: \`${context.providerId}\`. Corpus: \`${context.corpus.corpus}\` v${context.corpus.version}, frozen ${context.corpus.frozenAt}. Cells: ${result.cells.done} of ${result.cells.total} done (${result.cells.reused} reused from the log).${result.stopped ? ` Stopped: ${result.stopped.reason}: ${result.stopped.message}` : ""}`,
     "",
+    ...(result.servedModel
+      ? [
+          `Served model: \`${result.servedModel.id}\`, recorded ${result.servedModel.at} from the run's first metered call (manifest.json); every later call is held to it.${result.servedModel.id === PRICED_MODEL ? " It is the configured id, which the Worker returns when the provider names no model, so it confirms no snapshot." : ""}`,
+          "",
+        ]
+      : []),
+    // A served model set aside stays on the record: the manifest named it, but none of the run's records showed it
+    // measured.
+    ...(result.setAside?.length
+      ? [
+          "Served models set aside (manifest.json): the manifest named each, but none of the run's records (requests.jsonl, runs.jsonl) showed it measured. From each, the run records the first model a reply that holds reports, as a fresh run does.",
+          "",
+          ...result.setAside.map((s) => `- ${s.at}: \`${s.servedModel.id}\`, recorded ${s.servedModel.at}, set aside by invocation ${s.invocation}`),
+          "",
+        ]
+      : []),
     `Preflight (${preflight.at}): ${preflight.baseUrl ? `deployed at ${preflight.baseUrl}, build id ${preflight.buildId ?? "unknown"}, Worker ${preflight.worker?.shape ?? "not probed"}, hosted models ${preflight.models?.join(", ") ?? "unknown"}.` : "no deployment probed (not a hosted run)."}${preflight.model ? ` Local model ${preflight.model.name}, digest ${preflight.model.digest ?? "unknown"}.` : ""} Sidecars: ${preflight.sidecars.map((s) => `${s.reference} ${s.status}, binding ${s.binding}, usable ${s.usable.join(" ") || "none"}`).join("; ")}.`,
     "",
   ];
+  // Every integrity stop stays on the record, however the run ended: a resume runs the cell each stopped again from its
+  // start.
+  const halts = result.invocations.filter((i) => i.stopped?.reason === "integrity");
+  if (halts.length > 0) {
+    out.push(
+      `Integrity stops: ${halts.length}. Each stopped the run at a call it could not trust (live/integrity.ts); the cell in flight logged no record, and a resume runs the cell again from its start, drawing its result again.`,
+      "",
+      ...halts.map((i) => `- ${i.at}: ${i.stopped!.message}`),
+      "",
+    );
+  }
   type Pacing = { maxRequests: number; spacingMs: number; backoffMs: number[]; sent: number; waits: Array<{ atMs: number; ms: number; reason: string }> };
   const paced = result.invocations.filter((i) => i.telemetry.pacing);
   if (paced.length > 0) {

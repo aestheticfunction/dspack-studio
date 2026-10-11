@@ -20,7 +20,11 @@
  * ended after its reply (released, settled at the reported usage, or
  * raised), in whole nanodollars, and each
  * invocation's pacer is bound to those totals, so no number of resumes
- * sends more, or spends more, than the run allows. One
+ * sends more, or spends more, than the run allows. Every call a hosted run
+ * sends that reaches the provider is held to the run's integrity conditions
+ * (live/integrity.ts): the manifest records the model the run measures, from
+ * its first metered call, and a call that breaks one stops the run cleanly,
+ * apart from arm results, so that a resume can continue it. One
  * invocation runs a directory at a time (run.lock), so two cannot spend the
  * same cap or interleave the logs.
  */
@@ -33,6 +37,7 @@ import { runCell } from "./arms";
 import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
 import { REQUEST_USD_BOUND, toNanos } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
+import { MODEL_FAMILY, RunHalted } from "./integrity";
 import { DEFAULT_DECISION, summarize, type DecisionOptions, type Summary } from "./metrics";
 import { LockLost, PacingCapReached, RecordUnwritable, type RunLedger } from "./pacing";
 import type { Preflight } from "./preflight";
@@ -96,15 +101,20 @@ export interface EvaluationResult {
   preflight: Preflight;
   /** What the provider reports about itself (pacing, waits), this invocation. */
   telemetry?: Record<string, unknown>;
-  /** Every invocation's telemetry, this one included, oldest first, with the id its lines carry in requests.jsonl. */
-  invocations: Array<{ at: string; id?: string; telemetry: Record<string, unknown> }>;
+  /** Every invocation's telemetry, this one included, oldest first: the id its lines carry in requests.jsonl, and the stop that ended it early, if one did. */
+  invocations: Array<{ at: string; id?: string; telemetry: Record<string, unknown>; stopped?: { reason: "cap" | "integrity" | "error"; message: string } }>;
   /** Records a re-run replaced: spent, and counted in no arm. */
   superseded: Spend;
   /** The arms this run selected (the manifest's), whether or not each has reached a cell yet. */
   arms: Arm[];
   /** Hosted: the run's cumulative cap and dollar ceiling, and the requests sent and dollars committed against them, every invocation included. */
   requests?: { cap: number; sent: number; capUsd?: number; usd: number };
-  stopped?: { reason: "cap" | "error"; message: string };
+  /** Hosted: why the run stopped early. "integrity" is a call the run cannot trust (live/integrity.ts), never an arm result. */
+  stopped?: { reason: "cap" | "integrity" | "error"; message: string };
+  /** Hosted: the model the run measures (manifest.json), once its first metered call has recorded it. */
+  servedModel?: { id: string; at: string };
+  /** Hosted: each served model a resume set aside (manifest.json), oldest first. */
+  setAside?: NonNullable<RunManifest["setAside"]>;
   outDir?: string;
   cells: { total: number; done: number; reused: number };
 }
@@ -135,6 +145,19 @@ export interface RunManifest {
    * either (a dollar change carries unit "usd"). Not identity: a resume may change them, on the record.
    */
   limits?: { maxTotalRequests: number; maxTotalUsd?: number; changes?: Array<{ at: string; unit?: "usd"; from?: number; to: number }> };
+  /**
+   * Hosted: the model the run measures, as the provider named it on the run's first metered call. Recorded once, before
+   * that call returns, and claimed by every settlement on the ledger from then on. Once the run's records show it
+   * measured, never changed: every later call, every resume included, must report the same (live/integrity.ts). One they
+   * do not show measured, a resume sets aside (holdServedModel).
+   */
+  servedModel?: { id: string; at: string };
+  /**
+   * Hosted: each served model a resume set aside because none of the run's records showed it measured: the model as the
+   * manifest named it, when it was set aside, and by which invocation. On the disk before that resume sends anything,
+   * and kept by every later write of the manifest.
+   */
+  setAside?: Array<{ servedModel: { id: string; at: string }; at: string; invocation: string }>;
 }
 
 export async function manifestFor(options: EvaluationOptions): Promise<RunManifest> {
@@ -625,6 +648,84 @@ function makeRunDirectory(dir: string): void {
 /** The largest ceiling the ledger counts exactly: whole nanodollars are exact up to the largest safe integer. */
 const MAX_CEILING_USD = Math.floor(Number.MAX_SAFE_INTEGER / 1e9);
 
+/**
+ * The manifest a resume holds to (live/integrity.ts). The run's records are its authority on the model it measures:
+ * each settlement made once a model is recorded claims it on the ledger (requests.jsonl), and no cell is logged before
+ * one does, and each logged cell's provider calls name it (runs.jsonl, and runs.superseded.jsonl for those a re-run
+ * replaced). So a resume refuses a served model on the record that is not a Claude Haiku 4.5 id and the time it was
+ * recorded, and nothing else, and a manifest that names another model, or none, than the one the records show: it could
+ * not hold later calls to that model, and nothing is sent. When the records show no model, the run has measured none: a
+ * fresh run, one stopped before any reply could record one, or one whose reply recorded a model but whose settlement
+ * never reached the ledger. A served model the manifest names then is set aside, whatever a hand edit made of it, on
+ * the record (the manifest's setAside), and the resume records its first model afresh.
+ */
+function holdServedModel(recorded: RunManifest, outDir: string, hosted: boolean): { manifest: RunManifest; setAside?: { id: string; at: string } } {
+  const manifestFile = join(outDir, "manifest.json");
+  const refuse = (problem: string) =>
+    new Error(`resume refused: ${manifestFile} ${problem}, so the run could not hold later calls to the model it measures. Restore it, or start a new run directory.`);
+  // Only what the run writes: exactly these fields, a time as toISOString wrote it, and a Claude Haiku 4.5 id.
+  const exactly = (value: unknown, keys: string): value is Record<string, unknown> =>
+    !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join(",") === keys;
+  const recordedTime = (at: unknown) => typeof at === "string" && Number.isFinite(Date.parse(at)) && new Date(Date.parse(at)).toISOString() === at;
+  const servedModelOf = (value: unknown) => exactly(value, "at,id") && typeof value.id === "string" && MODEL_FAMILY.test(value.id) && recordedTime(value.at);
+  const served = (recorded as { servedModel?: unknown }).servedModel;
+  if (served !== undefined && !servedModelOf(served)) {
+    throw refuse(`records a servedModel that is not a Claude Haiku 4.5 id and the time it was recorded, and nothing else (${String(JSON.stringify(served)).slice(0, 200)})`);
+  }
+  // Each entry a resume appended: the served model it set aside, when, and by which invocation, and nothing else.
+  const setAsides = (recorded as { setAside?: unknown }).setAside;
+  const entry = (e: unknown) => exactly(e, "at,invocation,servedModel") && servedModelOf(e.servedModel) && recordedTime(e.at) && typeof e.invocation === "string" && e.invocation !== "";
+  if (setAsides !== undefined && !(Array.isArray(setAsides) && setAsides.length > 0 && setAsides.every(entry))) {
+    throw refuse(`records a setAside that is not the list of served models the run set aside (${String(JSON.stringify(setAsides)).slice(0, 200)})`);
+  }
+  const id = (served as { id?: string } | undefined)?.id;
+  const measured = measuredModels(outDir, hosted);
+  if (measured.size > 1) throw refuse(`cannot be held to one model: the run's records (requests.jsonl, runs.jsonl) show it measured ${[...measured].join(" and ")}`);
+  const [model] = measured;
+  if (model !== undefined) {
+    if (model !== id) throw refuse(`${id === undefined ? "records no servedModel" : `records servedModel ${id}`}, but the run's records (requests.jsonl, runs.jsonl) show it measured ${model}`);
+    return { manifest: recorded };
+  }
+  if (!recorded.servedModel) return { manifest: recorded };
+  const { servedModel: setAside, ...rest } = recorded;
+  return { manifest: rest, setAside };
+}
+
+/**
+ * Every model the run's records show it measured: each claim on the ledger, and, for a hosted run, each model a logged
+ * cell's provider calls name. Each file is read as the run reads it. The ledger sets aside its last line when no newline
+ * ends it, and a line it cannot read claims nothing (readLedger). A run log is read by readLog itself: a whole last
+ * record keeps its place though its newline was lost, a cut-off one is set aside, and any other unreadable line stops
+ * the resume here, before the manifest is written, as it would later.
+ */
+function measuredModels(outDir: string, hosted: boolean): Set<string> {
+  const models = new Set<string>();
+  const ledgerFile = join(outDir, "requests.jsonl");
+  if (existsSync(ledgerFile)) {
+    const lines = readFileSync(ledgerFile, "utf8").split("\n");
+    lines.pop();
+    for (const text of lines) {
+      try {
+        const entry: unknown = JSON.parse(text);
+        const model = entry && typeof entry === "object" ? (entry as { servedModel?: unknown }).servedModel : undefined;
+        if (typeof model === "string") models.add(model);
+      } catch {
+        /* not a whole line: it claims no model */
+      }
+    }
+  }
+  if (!hosted) return models;
+  const named = (calls: unknown) => (Array.isArray(calls) ? calls : []).map((call) => (call && typeof call === "object" ? (call as { source?: unknown; model?: unknown }) : {}));
+  for (const record of [...readLog<unknown>(join(outDir, "runs.jsonl")).records, ...readLog<unknown>(join(outDir, "runs.superseded.jsonl")).records]) {
+    if (!record || typeof record !== "object") continue;
+    const { calls, plan } = record as { calls?: unknown; plan?: { calls?: unknown } };
+    for (const call of [...named(calls), ...named(plan && typeof plan === "object" ? plan.calls : undefined)]) {
+      if (call.source === "provider" && typeof call.model === "string") models.add(call.model);
+    }
+  }
+  return models;
+}
+
 /** Refuses a dollar ceiling the ledger cannot count exactly. */
 function exactCeiling(usd: number, where: string): void {
   if (!(Number.isFinite(usd) && usd > 0 && usd <= MAX_CEILING_USD)) {
@@ -669,7 +770,15 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
       const recorded = JSON.parse(readFileSync(manifestFile, "utf8")) as RunManifest;
       const mismatches = manifestMismatches(recorded, manifest);
       if (mismatches.length > 0) throw new Error(`resume refused, the run in ${outDir} does not match this invocation:\n- ${mismatches.join("\n- ")}\nStart a new run directory instead.`);
-      manifest = recorded;
+      const held = holdServedModel(recorded, outDir, hosted);
+      manifest = held.manifest;
+      if (held.setAside) {
+        // On the disk before anything is sent, and kept by every later write of the manifest, so no crash can take the
+        // model off the record without saying so.
+        manifest = { ...manifest, setAside: [...(manifest.setAside ?? []), { servedModel: held.setAside, at: new Date().toISOString(), invocation: invocationId }] };
+        replaceJson(manifestFile, manifest);
+        log(`set aside servedModel ${held.setAside.id} in ${manifestFile}: none of the run's records (requests.jsonl, runs.jsonl) shows it measured, so the run records the first model a reply that holds reports from here`);
+      }
       // The cumulative cap and the dollar ceiling stay what the run recorded unless this invocation names a new one,
       // which is recorded.
       const was = recorded.limits;
@@ -696,7 +805,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
       const maxTotalRequests = options.maxTotalRequests ?? was?.maxTotalRequests;
       const maxTotalUsd = options.maxTotalUsd ?? was?.maxTotalUsd;
       if (said.length > 0 && maxTotalRequests !== undefined) {
-        manifest = { ...recorded, limits: { maxTotalRequests, ...(maxTotalUsd !== undefined ? { maxTotalUsd } : {}), changes } };
+        manifest = { ...manifest, limits: { maxTotalRequests, ...(maxTotalUsd !== undefined ? { maxTotalUsd } : {}), changes } };
         replaceJson(manifestFile, manifest);
         for (const message of said) log(message);
       }
@@ -804,11 +913,37 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
         open = undefined;
         // A raise counts even when its line cannot be written: the run's total never falls below what it spent.
         if (delta > 0) committed += delta;
-        append({ ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason });
+        // It carries the model the run had recorded by then, so the ledger shows what the run measured: a resume holds
+        // the manifest to it (holdServedModel).
+        append({ ...stamp(), ...(of ? { request: of.request, final: (of.nanos + delta) / 1e9 } : {}), adjust: usd, reason, ...(manifest.servedModel ? { servedModel: manifest.servedModel.id } : {}) });
         if (delta <= 0) committed += delta;
       },
     };
     pacer.ledger = ledger;
+  }
+  // The model the run measures: recorded once, from its first metered call, and held to by every later call and every
+  // resume (live/integrity.ts). It is on disk before the call that reported it returns.
+  if (pacer) {
+    pacer.served = {
+      get id() {
+        return manifest.servedModel?.id;
+      },
+      record(id) {
+        if (manifest.servedModel) return;
+        const next = { ...manifest, servedModel: { id, at: new Date().toISOString() } };
+        // A model the run cannot put on the record stops it, like any record it cannot write: a resume could not
+        // hold later calls to it.
+        if (outDir) {
+          const file = join(outDir, "manifest.json");
+          try {
+            replaceJson(file, next);
+          } catch (error) {
+            throw new RecordUnwritable(file, error);
+          }
+        }
+        manifest = next;
+      },
+    };
   }
 
   const records: RunRecord[] = [];
@@ -848,6 +983,12 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
         log(`stopped: ${error.message}`);
         break;
       }
+      // A call the run cannot trust: the cell in flight logs no record, and what it spent stays in the ledger.
+      if (error instanceof RunHalted) {
+        stopped = { reason: "integrity", message: error.message };
+        log(`stopped on ${key}, a call the run cannot trust: ${error.message}`);
+        break;
+      }
       stopped = { reason: "error", message: error instanceof Error ? error.message : String(error) };
       log(`stopped on ${key}: ${stopped.message}`);
       break;
@@ -857,7 +998,7 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
   const summary = summarize(records, options.decision ?? DEFAULT_DECISION);
   const telemetry = options.provider.telemetry?.();
   // Every invocation's pacing is kept: a resume must not erase the waits an earlier invocation sat through.
-  const invocation = telemetry ? { at: options.preflight.at, id: invocationId, telemetry } : undefined;
+  const invocation = telemetry ? { at: options.preflight.at, id: invocationId, telemetry, ...(stopped ? { stopped } : {}) } : undefined;
   if (pacingFile && invocation) appendFileSync(pacingFile, line(invocation));
   const invocations = [...earlierInvocations, ...(invocation ? [invocation] : [])];
   // Each superseded record once: a crash between moving records aside and rewriting the log can repeat a move.
@@ -873,11 +1014,13 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
     arms: [...manifest.selection.arms],
     ...(ledger ? { requests: { cap: ledger.cap, sent: ledger.sent, ...(ledger.capUsd !== undefined ? { capUsd: ledger.capUsd } : {}), usd: ledger.usd ?? 0 } } : {}),
     ...(stopped ? { stopped } : {}),
+    ...(manifest.servedModel ? { servedModel: manifest.servedModel } : {}),
+    ...(manifest.setAside?.length ? { setAside: manifest.setAside } : {}),
     ...(outDir ? { outDir } : {}),
     cells: { total: cells.length, done: records.length, reused },
   };
   if (outDir) {
-    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, telemetry: telemetry ?? null, invocations, ...(result.requests ? { requests: result.requests } : {}), superseded: spent, summary });
+    writeJson(join(outDir, "summary.json"), { runId: manifest.runId, provider: options.provider.descriptor, corpus: manifest.corpus, cells: result.cells, stopped: stopped ?? null, servedModel: manifest.servedModel ?? null, ...(result.setAside ? { setAside: result.setAside } : {}), telemetry: telemetry ?? null, invocations, ...(result.requests ? { requests: result.requests } : {}), superseded: spent, summary });
     writeFileSync(join(outDir, "REPORT.md"), renderReport(result, { providerId: options.provider.id, corpus: options.corpus }));
   }
   return result;

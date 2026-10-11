@@ -178,6 +178,8 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
   }, 60_000);
   const planAnswer = { intent: "record-collection", feasible: true, restated: "A table.", reason: "fits", block: "records-table", blockReason: "it is a table" };
   const okReply = (json: unknown) => reply(200, { json, raw: JSON.stringify(json), model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
+  /** The Worker refusing a request before any provider call, never retried: it counts against the caps, costs nothing, and stops no run (live/integrity.ts). */
+  const refused = () => reply(400, { error: "invalid-request", message: "refused", calls: [] });
   const prompt = () => promptsFor(corpus, "astryx").find((p) => p.id === "rt-01")!;
   const cell = (provider: ReturnType<typeof createHostedProvider>, arm: "block" | "capped" | "production") => runCell({ reference: astryx, provider, arm, condition: "fresh", prompt: prompt(), corpus });
 
@@ -214,10 +216,11 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
     const dir = mkdtempSync(join(tmpdir(), "block-bench-cumulative-"));
     try {
       let posted = 0;
-      // The provider is down: every fresh cell is one planning request that fails, so the count is easy to read.
+      // The Worker refuses every request: every fresh cell is one planning request that fails, so the count is easy to
+      // read. (A provider failure after a call would stop the run instead: live/integrity.ts.)
       const fetchImpl = (async () => {
         posted += 1;
-        return reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] });
+        return refused();
       }) as typeof fetch;
       const pre = await preflight({ references: [astryx] });
       // Each invocation is what one CLI process builds: a new provider and a new pacer with its own cap of 300.
@@ -251,13 +254,14 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       expect(posted).toBeLessThanOrEqual(45);
       const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
       expect(manifest.limits).toMatchObject({ maxTotalRequests: 45, maxTotalUsd: USD, changes: [{ from: 25, to: 45 }] });
-      // Every request was recorded before it was sent, and the summary and the report state the run's total. The
-      // provider was down without reporting usage, so every request is held at its absolute worst case.
-      const lines = readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { adjust?: number });
+      // Every request was recorded before it was sent, and the summary and the report state the run's total. Each was
+      // refused before any provider call, so each reservation was released: counted against the cap, at no cost.
+      const lines = readFileSync(join(dir, "requests.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { adjust?: number; reason?: string });
       expect(lines.filter((l) => l.adjust === undefined)).toHaveLength(posted);
+      expect(lines.filter((l) => l.reason === "refused before any provider call")).toHaveLength(posted);
       const summary = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")).requests;
       expect(summary).toMatchObject({ cap: 45, sent: posted, capUsd: USD });
-      expect(summary.usd).toBeCloseTo(posted * absoluteUsd(2), 9);
+      expect(summary.usd).toBeCloseTo(0, 9);
       expect(readFileSync(join(dir, "REPORT.md"), "utf8")).toContain(`- The run: a cumulative cap of 45 requests and a dollar ceiling of $${USD.toFixed(2)} across every invocation (manifest.json); ${posted} sent, $${summary.usd.toFixed(2)} committed, what verified replies reported plus the worst case of every other request (requests.jsonl).`);
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -378,7 +382,7 @@ describe("the pacing cap stops the run cleanly, in every arm and at every call",
       const fetchImpl = (async () => {
         posted += 1;
         await gate;
-        return down();
+        return refused();
       }) as typeof fetch;
       const pre = await preflight({ references: [astryx] });
       const invocation = (resume: boolean) =>
@@ -753,15 +757,16 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       expect(lines.map(([reason]) => reason), model).toEqual(["request", "usage not verified"]);
       expect(lines[1]![1], model).toBeCloseTo(absoluteUsd(2) - worstCaseUsd(request, 2), 12);
     }
-    // Through a run: the first request (the plan) stops it, no cell is logged, and nothing more is sent.
+    // Through a run, which holds every call to its integrity conditions: the first request (the plan) stops it as an
+    // integrity stop, no cell is logged, and nothing more is sent.
     let posted = 0;
     const fetchImpl = (async () => (posted++, served("claude-opus-4-1-20250805")())) as typeof fetch;
     const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer: createPacer({ maxRequests: 100, spacingMs: 0, now: () => 0, sleep: async () => undefined }) });
     const result = await runEvaluation({ runId: "unpriced", provider, references: [astryx], corpus, preflight: await preflight({ references: [astryx] }), allowDrafts: true, promptIds: ["rt-01"], arms: ["production"], conditions: ["fresh"] });
     expect(posted).toBe(1);
     expect(result.records).toHaveLength(0);
-    expect(result.stopped).toMatchObject({ reason: "error" });
-    expect(result.stopped!.message).toMatch(/does not price/);
+    expect(result.stopped).toMatchObject({ reason: "integrity" });
+    expect(result.stopped!.message).toMatch(/^model-family: /);
   });
 
   it("charges each call it cannot see at its worst case on top of what the others reported, and stops the run at a reply past the model's limits", async () => {

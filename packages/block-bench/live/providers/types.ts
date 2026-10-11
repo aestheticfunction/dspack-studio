@@ -97,7 +97,7 @@ export function classifyHarnessError(error: unknown): ErrorKind {
 export function makeHarnessError(adapterId: string): (kind: string, message: string, cause?: unknown) => Error {
   return (kind, message, cause) => {
     if (cause instanceof AdapterOutputError) return cause;
-    // The run's own stop signals (a cap, a record it cannot write) are not provider failures:
+    // The run's own stop signals (a cap, a record it cannot write, an integrity stop) are not provider failures:
     // they pass through untouched so runPipeline lets them escape and the loop stops.
     if (cause instanceof RunStop) return cause;
     const k: FailureKind = kind === "budget" ? "budget" : kind === "output" ? "output" : kind === "policy" ? "policy" : "provider";

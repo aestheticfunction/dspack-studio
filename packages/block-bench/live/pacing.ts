@@ -9,6 +9,7 @@
  * re-issue, which budgetedInner owns. The waits are reported, never hidden.
  */
 import { toNanos } from "./cost";
+import type { ServedModel } from "./integrity";
 
 export interface PacingOptions {
   /** Requests this invocation may send; the run stops cleanly at the cap. */
@@ -125,6 +126,8 @@ export interface Pacer {
   sent: number;
   /** The run's cumulative cap and count, bound by the runner once it has read the run directory. */
   ledger?: RunLedger;
+  /** The model the run measures (manifest.json), bound by the runner: every call that reaches the provider is held to it (live/integrity.ts). */
+  served?: ServedModel;
   readonly waits: Array<{ atMs: number; ms: number; reason: string }>;
   /**
    * Throws PacingCapReached unless n more requests fit under both request caps and `usd` more fits under the run's

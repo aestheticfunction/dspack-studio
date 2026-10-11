@@ -31,6 +31,12 @@
  *   --resume <dir>            continue a run directory; with it, --rerun-failed re-runs provider and policy failures
  *   --force                   hosted: proceed although the Worker probe is not phase-0.5
  *
+ * A hosted run stops cleanly, and can resume, at a cap (exit 0) or at a call
+ * it cannot trust (exit 3; live/integrity.ts): a call that reached the
+ * provider without reporting its usage or the model that served it, a model
+ * outside Claude Haiku 4.5, or a model other than the one the run's first
+ * metered call recorded in its manifest. The second is never an arm result.
+ *
  * Every option is validated, and the cells planned, before any preflight or
  * provider call: an unknown arm, condition, provider, reference, prompt,
  * block or option, an empty list, a count that is not a whole number, an
@@ -40,7 +46,7 @@
  */
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { frozenMismatches, readCorpus, type Corpus } from "./corpus";
-import { planCells, runEvaluation } from "./evaluate";
+import { planCells, runEvaluation, type EvaluationResult } from "./evaluate";
 import { DEFAULT_BACKOFF_MS, createPacer } from "./pacing";
 import { preflight } from "./preflight";
 import { CELL_USD_BOUND } from "./cost";
@@ -198,6 +204,21 @@ export function validateSelection(o: CliOptions, corpus: Corpus): void {
   for (const block of o.blocks ?? []) if (block !== "null" && !known.includes(block)) throw new Error(`unknown block '${block}'; use ${known.join(", ")} or null`);
 }
 
+/**
+ * How the CLI ends a run that stopped early: cleanly at a cap (0); with its own code at a call the run cannot trust
+ * (3), which is not an arm result; both resume. Any other stop is an error (1).
+ */
+export function stopNotice(stopped: NonNullable<EvaluationResult["stopped"]>, outDir: string): { code: number; text: string } {
+  if (stopped.reason === "cap") return { code: 0, text: `stopped: ${stopped.message}\nresume with: --resume ${outDir}` };
+  if (stopped.reason === "integrity") {
+    return {
+      code: 3,
+      text: `stopped, a call the run cannot trust (not an arm result): ${stopped.message}\nNo record was logged for the cell in flight, and what it spent is in requests.jsonl. Once the cause is understood, resume with: --resume ${outDir}`,
+    };
+  }
+  return { code: 1, text: `stopped: ${stopped.message}` };
+}
+
 export async function main(argv: readonly string[], io: { corpus?: Corpus } = {}): Promise<number> {
   let o: CliOptions;
   const corpus = io.corpus ?? readCorpus();
@@ -278,8 +299,10 @@ export async function main(argv: readonly string[], io: { corpus?: Corpus } = {}
   }
   console.log(`\nrun ${result.runId}: ${result.cells.done} of ${result.cells.total} cells (${result.cells.reused} reused); report at ${outDir}/REPORT.md`);
   for (const d of result.summary.decisions) console.log(`${d.reference} on ${d.provider}: ${d.verdict}\n  ${d.reasons.join("\n  ")}`);
-  if (result.stopped) console.log(`stopped: ${result.stopped.message}${result.stopped.reason === "cap" ? `\nresume with: --resume ${outDir}` : ""}`);
-  return result.stopped?.reason === "error" ? 1 : 0;
+  if (!result.stopped) return 0;
+  const notice = stopNotice(result.stopped, outDir);
+  console.log(notice.text);
+  return notice.code;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
