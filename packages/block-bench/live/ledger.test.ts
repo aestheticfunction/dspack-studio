@@ -621,6 +621,28 @@ describe("one invocation at a time", () => {
   });
 });
 
+describe("the model the run measures is on the record before the run goes on", () => {
+  it("stops the run when the model its first call reported cannot be written to the manifest", async () => {
+    await withRun("served-unwritable", async (dir) => {
+      const manifest = join(dir, "manifest.json");
+      const w = worker(cellScript());
+      hooks.wrote = (path, data) => {
+        if (path === `${manifest}.tmp` && data.includes("servedModel")) throw Object.assign(new Error("ENOSPC: no space left on device, write"), { code: "ENOSPC" });
+      };
+      const result = await invocation(dir, { fetchImpl: w.fetchImpl });
+      hooks.wrote = undefined;
+      // Without it, a resume could not hold later calls to the model this one measured: nothing more is sent.
+      expect(w.posted()).toBe(1);
+      expect(result.records).toHaveLength(0);
+      expect(result.stopped).toMatchObject({ reason: "error" });
+      expect(result.stopped!.message).toMatch(/could not write .*manifest\.json \(ENOSPC\)/);
+      expect(JSON.parse(readFileSync(manifest, "utf8")).servedModel).toBeUndefined();
+      // Its request is settled on the record like any other.
+      expect(ledger(dir).filter((l) => l.adjust !== undefined)).toHaveLength(1);
+    });
+  });
+});
+
 describe("a crash of the machine loses no request that was sent", () => {
   it("puts a new ledger's directory entry on the disk before the first request is sent", async () => {
     await withRun("dir-entry", async (dir) => {

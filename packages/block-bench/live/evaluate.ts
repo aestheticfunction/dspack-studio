@@ -833,7 +833,16 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
       record(id) {
         if (manifest.servedModel) return;
         const next = { ...manifest, servedModel: { id, at: new Date().toISOString() } };
-        if (outDir) replaceJson(join(outDir, "manifest.json"), next);
+        // A model the run cannot put on the record stops it, like any record it cannot write: a resume could not
+        // hold later calls to it.
+        if (outDir) {
+          const file = join(outDir, "manifest.json");
+          try {
+            replaceJson(file, next);
+          } catch (error) {
+            throw new RecordUnwritable(file, error);
+          }
+        }
         manifest = next;
       },
     };
