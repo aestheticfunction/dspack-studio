@@ -127,6 +127,20 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
     expect(apart!.intervals).toEqual({ reductionVsProduction: null, reductionVsCapped: null, passDiffVsProduction: null, passDiffVsCapped: null });
   });
 
+  it("calls a decision clear only when its intervals agree with its verdict: a pooled fail with every interval clearly met is uncertain", () => {
+    // 24 prompts every arm evaluated, all passing, and three the block arm alone reached, all failing (a partial run,
+    // or threads another arm lost to provider failures): the pooled pass rate fails the margin, the shared intervals do not.
+    const records = [
+      ...prompts(24).flatMap((p) => [...thread("block", p, () => true, [50, 0]), ...thread("capped", p, () => true, [100, 0]), ...thread("production", p, () => true, [100, 0])]),
+      ...["x-01", "x-02", "x-03"].flatMap((p) => thread("block", p, () => false, [50, 0])),
+    ];
+    const [d] = decide(records);
+    expect(d!.verdict).toBe("fail");
+    expect(d!.cohort).toBe(24);
+    expect(d!.clarity).toMatchObject({ tokens: "clear-pass", vsProduction: "clear-pass", vsCapped: "clear-pass" });
+    expect(d!.clarity.overall).toBe("uncertain");
+  });
+
   it("calls a decision clear only when its intervals rest on at least the minimum's prompts in common", () => {
     // Every arm has its 20 threads, but the arms share only 10 prompts.
     const records = [

@@ -549,10 +549,11 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
       vsCapped: clarityOf(intervals.passDiffVsCapped, -options.margin),
     };
     const criteria = [clarity.tokens, clarity.vsProduction, clarity.vsCapped];
-    // Clear: the outcome cannot flip inside the intervals (every criterion clearly passes, or one clearly fails), and
-    // the intervals rest on at least the minimum's prompts in common, not on a few prompts the arms happen to share.
-    const overall: Decision["clarity"]["overall"] =
-      verdict !== "insufficient" && cohort >= options.minimum && (criteria.every((c) => c === "clear-pass") || criteria.includes("clear-fail")) ? "clear" : "uncertain";
+    // Clear: the outcome cannot flip inside the intervals (every criterion clearly passes, or one clearly fails), that
+    // outcome is the verdict's (the verdict pools prompts an arm alone reached; the intervals draw from the shared ones),
+    // and the intervals rest on at least the minimum's prompts in common, not on a few the arms happen to share.
+    const agrees = (verdict === "pass" && criteria.every((c) => c === "clear-pass")) || (verdict === "fail" && criteria.includes("clear-fail"));
+    const overall: Decision["clarity"]["overall"] = agrees && cohort >= options.minimum ? "clear" : "uncertain";
     out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, threads, meteredThreads, counts, cohort, intervals, clarity: { ...clarity, overall }, paired, options });
   }
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));

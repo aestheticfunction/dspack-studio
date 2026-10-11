@@ -56,7 +56,7 @@ Named against positional encoding (ADR-B2) is compared the same way. It informs 
 - the token reduction against production and against capped;
 - the pass-rate difference, block minus production and block minus capped, in points.
 
-**Clarity.** A criterion is **clearly met** or **clearly missed** only when its whole interval lies on one side of its unchanged threshold. Otherwise it is **uncertain**. The decision as a whole is **clear** when the outcome cannot flip inside the intervals (every criterion clearly met, or one clearly missed) and the intervals rest on at least the minimum's 20 prompts that every decision arm evaluated. The verdict still reads the point estimates.
+**Clarity.** A criterion is **clearly met** or **clearly missed** only when its whole interval lies on one side of its unchanged threshold. Otherwise it is **uncertain**. The decision as a whole is **clear** when the outcome cannot flip inside the intervals (every criterion clearly met, or one clearly missed), that outcome is the verdict's, and the intervals rest on at least the minimum's 20 prompts that every decision arm evaluated. The verdict still reads the point estimates, which pool every evaluated cell; when a partial run leaves prompts that only some arms reached, the verdict and the intervals can disagree, and the decision is then uncertain.
 
 **Limitations.** These hold however many cells are run:
 
