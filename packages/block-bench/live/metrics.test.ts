@@ -122,7 +122,7 @@ describe("the decision covers every result and judges its boundaries exactly (AD
     ];
     const [d] = summarize(records).decisions;
     expect(d!.verdict).toBe("insufficient");
-    expect(d!.reasons.join(" ")).toMatch(/block: 1 metered run/);
+    expect(d!.reasons.join(" ")).toMatch(/block: 1 metered prompt thread \(1 metered cell\) in the token cohort/);
   });
 
   it("an exact 30% cut passes, and a pass-rate gap of exactly 5 points is within the margin", () => {
