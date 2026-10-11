@@ -161,6 +161,9 @@ describe("the hosted client agrees with the app's gateway adapter on every reply
     expect(retryableRefusal(503, { error: "busy", calls: [rejected], usage: null })).toBe(true);
     expect(retryableRefusal(503, { error: "busy", calls: [rejected], usage: { inputTokens: 10, outputTokens: 2 } })).toBe(false);
     expect(retryableRefusal(503, { error: "busy", calls: [rejected], model: "claude-haiku-4-5-20251001" })).toBe(false);
+    // Nor a rejected call that names a model, or reports usage under either spelling the app reads.
+    expect(retryableRefusal(503, { error: "busy", calls: [{ ...rejected, model: "claude-opus-4-1-20250805" }] })).toBe(false);
+    expect(retryableRefusal(503, { error: "busy", calls: [{ ...rejected, input_tokens: 5, output_tokens: 1 }] })).toBe(false);
   });
 });
 
@@ -692,7 +695,12 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     const served = (model: string) => () => reply(200, { json: { a: 1 }, raw: "{}", model, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] });
     // However the reply's calls ended: an answer that names another model stops the run even when its calls do not
     // carry that model as their own.
-    for (const body of [{ json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] }, { json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [] }]) {
+    for (const body of [
+      { json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [{ inputTokens: 10, outputTokens: 2, outcome: "unusable-output", durationMs: 1 }] },
+      { json: { a: 1 }, raw: "{}", model: "claude-opus-4-1-20250805", calls: [] },
+      // A call that names its own model, which a Worker naming the model on every call would send.
+      { json: { a: 1 }, raw: "{}", model: HAIKU_ID, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1, model: "claude-opus-4-1-20250805" }] },
+    ]) {
       const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
       pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record() { this.sent += 1; }, adjust() {} };
       const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(200, body)) as typeof fetch, pacer });

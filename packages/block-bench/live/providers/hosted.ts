@@ -125,7 +125,8 @@ export const retryableRefusal = (status: number, body: Record<string, unknown> |
   if (refusedBeforeAnyCall(status, body)) return true;
   if (status !== 503 || body?.error !== "busy" || !Array.isArray(body.calls) || body.calls.length !== 1 || !unspent(body)) return false;
   const call = (body.calls[0] ?? {}) as Record<string, unknown>;
-  return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
+  // The one call the gateway turned away reports no usage, under either spelling the app reads, and no model.
+  return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null && call.input_tokens == null && call.output_tokens == null && call.model == null;
 };
 
 export { CELL_REQUESTS };
@@ -198,8 +199,9 @@ export function createHostedProvider(options: HostedOptions): Provider {
         itemized = Array.isArray(reply?.calls);
         verified = itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         // What a reply another model served cost may exceed any bound at Haiku 4.5's prices: raised on the way out, it
-        // stops the run, which sends nothing more. Any model the reply names counts, whichever call it is given to.
-        const foreign = [...records.map((call) => call.model), reply?.model].find((model): model is string => typeof model === "string" && !PRICED_FAMILY.test(model));
+        // stops the run, which sends nothing more. Any model the reply names counts, at its top or on any call it lists.
+        const listed = Array.isArray(reply?.calls) ? reply.calls.map((raw) => ((raw ?? {}) as Record<string, unknown>).model) : [];
+        const foreign = [...records.map((call) => call.model), reply?.model, ...listed].find((model): model is string => typeof model === "string" && !PRICED_FAMILY.test(model));
         if (options.pacer && !released && foreign !== undefined) throw new UnpricedModel(foreign);
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.
