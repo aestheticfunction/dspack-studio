@@ -7,29 +7,32 @@
  * ollama:<model> (a local model), scripted or scripted:faults (the dry run).
  *
  * Options:
- *   --base-url <origin>       hosted origin (default https://composer.aesthetic-function.com)
- *   --ollama-host <url>       Ollama host (default OLLAMA_HOST or http://localhost:11434)
+ *   --base-url <origin>       hosted: the origin (default https://composer.aesthetic-function.com)
+ *   --ollama-host <url>       ollama: the host (default OLLAMA_HOST or http://localhost:11434)
  *   --reference <id,...>      references to run (default: all packaged references)
  *   --arms <a,...>            block, capped, production (default: all)
  *   --conditions <c,...>      fresh, refine-content, refine-add, refine-remove, refine-structural (default: all)
  *   --prompts <id,...>        prompt ids; --blocks <id,...|null> expected-block filter; --limit <n> prompts per reference
  *   --allow-drafts            run on draft sidecars (results are provisional)
- *   --max-requests <n>        requests this invocation may send (default 300); the run stops cleanly and can resume
- *   --spacing-ms <n>          minimum gap between hosted requests (default 3000)
- *   --out <dir>               run directory (default live/runs/<time>-<provider>)
- *   --resume <dir>            continue a run directory; --rerun-failed re-runs provider and policy failures
- *   --force                   proceed although the Worker probe is not phase-0.5
+ *   --max-requests <n>        hosted: requests this invocation may send (default 300, at least 20, one cell's worst
+ *                             case); the run stops cleanly before a cell the cap cannot cover, and can resume
+ *   --spacing-ms <n>          hosted: minimum gap between requests (default 3000)
+ *   --out <dir>               run directory (default live/runs/<time>-<provider>); not with --resume
+ *   --resume <dir>            continue a run directory; with it, --rerun-failed re-runs provider and policy failures
+ *   --force                   hosted: proceed although the Worker probe is not phase-0.5
  *
- * Every option is validated before any preflight or provider call: an
- * unknown arm, condition, provider or option, or a count that is not a
- * whole number, is refused with its name.
+ * Every option is validated, and the cells planned, before any preflight or
+ * provider call: an unknown arm, condition, provider, reference, prompt,
+ * block or option, an empty list, a count that is not a whole number, an
+ * option the chosen provider would ignore, a hosted cap too small to admit
+ * a cell, and a selection that plans no cells are each refused by name.
  */
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { readCorpus } from "./corpus";
-import { runEvaluation } from "./evaluate";
-import { createPacer } from "./pacing";
+import { readCorpus, type Corpus } from "./corpus";
+import { planCells, runEvaluation } from "./evaluate";
+import { DEFAULT_BACKOFF_MS, createPacer } from "./pacing";
 import { preflight } from "./preflight";
-import { createHostedProvider } from "./providers/hosted";
+import { CELL_REQUESTS, cellRequestBound, createHostedProvider } from "./providers/hosted";
 import { createOllamaProvider, ollamaHost } from "./providers/ollama";
 import { createScriptedProvider } from "./providers/scripted";
 import type { Provider } from "./providers/types";
@@ -76,7 +79,13 @@ export function parseOptions(argv: readonly string[]): CliOptions {
       throw new Error(`unknown option '${token}'`);
     }
   }
-  const list = (flag: string): string[] | undefined => values.get(flag)?.split(",").map((s) => s.trim()).filter(Boolean);
+  const list = (flag: string): string[] | undefined => {
+    const raw = values.get(flag);
+    if (raw === undefined) return undefined;
+    const items = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (items.length === 0) throw new Error(`${flag} needs at least one value`);
+    return items;
+  };
   const count = (flag: string, minimum: number, fallback?: number): number | undefined => {
     const raw = values.get(flag);
     if (raw === undefined) return fallback;
@@ -95,19 +104,39 @@ export function parseOptions(argv: readonly string[]): CliOptions {
   for (const arm of arms ?? []) if (!ARMS.includes(arm)) throw new Error(`unknown arm '${arm}'; use ${ARMS.join(", ")}`);
   const conditions = list("--conditions") as Condition[] | undefined;
   for (const condition of conditions ?? []) if (!CONDITIONS.includes(condition)) throw new Error(`unknown condition '${condition}'; use ${CONDITIONS.join(", ")}`);
+  const references = list("--reference") ?? [...REFERENCE_IDS];
+  for (const reference of references) if (!REFERENCE_IDS.includes(reference)) throw new Error(`unknown reference '${reference}'; use ${REFERENCE_IDS.join(", ")}`);
+  const prompts = list("--prompts");
+  const blocks = list("--blocks");
+  const limit = count("--limit", 1);
+  const maxRequests = count("--max-requests", 1, 300)!;
+  const spacingMs = count("--spacing-ms", 0, 3000)!;
+
+  // An option the chosen provider would ignore is refused, never dropped.
+  const hosted = provider === "hosted";
+  for (const flag of ["--max-requests", "--spacing-ms", "--base-url"]) if (values.has(flag) && !hosted) throw new Error(`${flag} applies to the hosted provider only`);
+  if (switches.has("--force") && !hosted) throw new Error("--force applies to the hosted provider only");
+  if (values.has("--ollama-host") && typeof provider !== "object") throw new Error("--ollama-host applies to an ollama provider only");
+  // The pacer admits a cell only when the cap covers its worst case, so a smaller cap could never run one.
+  const bound = cellRequestBound(DEFAULT_BACKOFF_MS.length);
+  if (hosted && maxRequests < bound) {
+    throw new Error(`--max-requests must be at least ${bound} for the hosted provider: a cell is admitted only when the cap covers its worst case, ${CELL_REQUESTS} requests each retried up to ${DEFAULT_BACKOFF_MS.length} times`);
+  }
+  if (switches.has("--rerun-failed") && !values.has("--resume")) throw new Error("--rerun-failed needs --resume <dir>: it re-runs the failures of an existing run");
+  if (values.has("--out") && values.has("--resume")) throw new Error("--out does not apply to --resume, which continues the run in its own directory");
 
   return {
     provider,
     baseUrl: values.get("--base-url") ?? process.env.COMPOSER_PROD_URL ?? "https://composer.aesthetic-function.com",
     ...(values.has("--ollama-host") ? { ollamaHost: values.get("--ollama-host")! } : {}),
-    references: list("--reference") ?? [...REFERENCE_IDS],
+    references,
     ...(arms ? { arms } : {}),
     ...(conditions ? { conditions } : {}),
-    ...(list("--prompts") ? { prompts: list("--prompts")! } : {}),
-    ...(list("--blocks") ? { blocks: list("--blocks")! } : {}),
-    ...(count("--limit", 1) !== undefined ? { limit: count("--limit", 1)! } : {}),
-    maxRequests: count("--max-requests", 1, 300)!,
-    spacingMs: count("--spacing-ms", 0, 3000)!,
+    ...(prompts ? { prompts } : {}),
+    ...(blocks ? { blocks } : {}),
+    ...(limit !== undefined ? { limit } : {}),
+    maxRequests,
+    spacingMs,
     ...(values.has("--out") ? { out: values.get("--out")! } : {}),
     ...(values.has("--resume") ? { resume: values.get("--resume")! } : {}),
     rerunFailed: switches.has("--rerun-failed"),
@@ -116,16 +145,40 @@ export function parseOptions(argv: readonly string[]): CliOptions {
   };
 }
 
+/** Prompt and block ids must be ones the corpus holds for the selected references: a typo is refused, never run as nothing. */
+export function validateSelection(o: CliOptions, corpus: Corpus): void {
+  for (const id of o.prompts ?? []) {
+    const prompt = corpus.prompts.find((p) => p.id === id);
+    if (!prompt) throw new Error(`unknown prompt '${id}' in corpus ${corpus.corpus}`);
+    if (!o.references.some((reference) => typeof prompt.intent[reference] === "string")) throw new Error(`prompt '${id}' does not apply to ${o.references.join(" or ")}`);
+  }
+  const known = [...new Set(corpus.prompts.map((p) => p.block).filter((b): b is string => b !== null))].sort();
+  for (const block of o.blocks ?? []) if (block !== "null" && !known.includes(block)) throw new Error(`unknown block '${block}'; use ${known.join(", ")} or null`);
+}
+
 export async function main(argv: readonly string[]): Promise<number> {
   let o: CliOptions;
+  const corpus = readCorpus();
   try {
     o = parseOptions(argv);
+    validateSelection(o, corpus);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return 2;
   }
   const references = await Promise.all(o.references.map((id) => loadReference(id)));
-  const corpus = readCorpus();
+  const selection = {
+    ...(o.arms ? { arms: o.arms } : {}),
+    ...(o.conditions ? { conditions: o.conditions } : {}),
+    ...(o.prompts ? { promptIds: o.prompts } : {}),
+    ...(o.blocks ? { blocks: o.blocks } : {}),
+    ...(o.limit !== undefined ? { limit: o.limit } : {}),
+  };
+  // Planned before any network call: a selection that plans nothing is refused here, creating nothing.
+  if (planCells({ references, corpus, ...selection }).length === 0) {
+    console.error("the selection plans no cells: no prompt matches every filter given (--reference, --prompts, --blocks)");
+    return 2;
+  }
 
   let provider: Provider;
   if (o.provider === "hosted") provider = createHostedProvider({ baseUrl: o.baseUrl, pacer: createPacer({ maxRequests: o.maxRequests, spacingMs: o.spacingMs }) });
@@ -163,11 +216,7 @@ export async function main(argv: readonly string[]): Promise<number> {
       corpus,
       preflight: pre,
       allowDrafts: o.allowDrafts,
-      ...(o.arms ? { arms: o.arms } : {}),
-      ...(o.conditions ? { conditions: o.conditions } : {}),
-      ...(o.prompts ? { promptIds: o.prompts } : {}),
-      ...(o.blocks ? { blocks: o.blocks } : {}),
-      ...(o.limit !== undefined ? { limit: o.limit } : {}),
+      ...selection,
       outDir,
       resume: !!o.resume,
       rerunFailed: o.rerunFailed,
