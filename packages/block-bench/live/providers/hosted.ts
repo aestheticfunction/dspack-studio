@@ -87,8 +87,9 @@ const FAILURE_OUTCOME: Record<FailureKind, ModelCallRecord["outcome"]> = {
 
 /**
  * The Worker's refusals made before any provider call (propose.mjs refuse), each code with its status: the only replies
- * whose `calls: []` shows that no model ran. The Worker also answers `calls: []` when its own reply fails after a billed
- * call (a 502), so any other reply that reports no call proves nothing. Pinned to the Worker's source by a test.
+ * whose `calls: []` shows that no model ran. A Worker before Option B also answered `calls: []` when its own reply failed
+ * after a billed call (a 502), so any other reply that reports no call proves nothing. Pinned to the Worker's source by
+ * a test.
  */
 export const PRE_CALL_REFUSALS: Readonly<Record<string, number>> = Object.freeze({
   "method-not-allowed": 405,

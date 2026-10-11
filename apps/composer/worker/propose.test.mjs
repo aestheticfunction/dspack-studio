@@ -238,6 +238,49 @@ describe("hosted propose — every call names the model that served it (Option B
     expect(body.calls).toEqual([{ inputTokens: 300, outputTokens: 7, model: HAIKU, outcome: "unusable-output", durationMs: expect.any(Number) }]);
   });
 
+  it("reads the model and usage before the output: reading the text cannot change what the call records", async () => {
+    // A response whose text, once read, rewrites its model and usage: only a read made before parsing sees the originals.
+    for (const text of [SURFACE, "not json"]) {
+      const response = {
+        model: HAIKU,
+        usage: { input_tokens: 300, output_tokens: 7 },
+        get content() {
+          this.model = "rewritten-after-parse";
+          this.usage = { input_tokens: 1, output_tokens: 1 };
+          return [{ type: "text", text }];
+        },
+      };
+      const run = vi.fn().mockResolvedValue(response);
+      const body = await (await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } })).json();
+      expect(body.calls, text).toEqual([{ inputTokens: 300, outputTokens: 7, model: HAIKU, outcome: text === SURFACE ? "ok" : "unusable-output", durationMs: expect.any(Number) }]);
+    }
+  });
+
+  it("a response whose model or usage cannot be read still keeps its call, and every earlier one, with what could be read", async () => {
+    const throwing = (key, value) => ({
+      ...metered(SURFACE, 300, 7),
+      model: HAIKU,
+      ...value,
+      get [key]() {
+        throw new Error(`unreadable ${key}`);
+      },
+    });
+    // The model cannot be read: the call keeps its usage and names no model. Its top-level model cannot be read either,
+    // so the Worker treats the answer as unusable.
+    let run = vi.fn().mockResolvedValue(throwing("model", {}));
+    let res = await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } });
+    expect(res.status).toBe(502);
+    expect((await res.json()).calls).toEqual([{ inputTokens: 300, outputTokens: 7, outcome: "unusable-output", durationMs: expect.any(Number) }]);
+    // The usage cannot be read, on the retry of an unusable first call: both calls are kept, the second with no usage.
+    run = vi.fn().mockResolvedValueOnce(servedBy("prose", HAIKU, 700, 30)).mockResolvedValueOnce(throwing("usage", {}));
+    res = await worker.handlePropose(post(), { AI: { run } });
+    expect(res.status).toBe(200);
+    expect((await res.json()).calls).toEqual([
+      { inputTokens: 700, outputTokens: 30, model: HAIKU, outcome: "unusable-output", durationMs: expect.any(Number) },
+      { inputTokens: null, outputTokens: null, model: HAIKU, outcome: "ok", durationMs: expect.any(Number) },
+    ]);
+  });
+
   it("an unusable output keeps its call's model and usage on the 502, and the reply carries nothing of the output itself", async () => {
     const run = vi.fn().mockResolvedValue(servedBy("Sure! Here is the form you asked for.", HAIKU, 500, 9));
     const res = await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } });
@@ -351,13 +394,35 @@ describe("hosted propose — every call names the model that served it (Option B
     expect(run).not.toHaveBeenCalled();
   });
 
-  it("sends the provider exactly what it sent before Option B, whatever maxCalls says", async () => {
-    // sha256 of env.AI.run's arguments for this request, pinned on the Worker at c154548 (before Option B).
+  it("sends the provider exactly what it sent before Option B, whatever maxCalls says, its parse retry included", async () => {
+    // sha256 of env.AI.run's arguments for this request, pinned on the Worker at c154548 (before Option B): one call,
+    // and the two calls of a parse retry (an unusable first answer, then a usable one).
     const PINNED = "e7260328c794adc9fa4cd579df3a376d2e4acced134bb5598f65887736752b82";
+    const PINNED_RETRY = "44afc307962c3034580839cb49fa1355863853e881b63aacc6bde847dbc29103";
+    const hash = (run) => createHash("sha256").update(JSON.stringify(run.mock.calls)).digest("hex");
     for (const extra of [{}, { maxCalls: 1 }, { maxCalls: 2 }]) {
       const run = vi.fn().mockResolvedValue(servedBy('{"a":1}', HAIKU, 5, 1));
       await worker.handlePropose(postWith(extra), { AI: { run } });
-      expect(createHash("sha256").update(JSON.stringify(run.mock.calls)).digest("hex"), JSON.stringify(extra)).toBe(PINNED);
+      expect(hash(run), JSON.stringify(extra)).toBe(PINNED);
     }
+    for (const extra of [{}, { maxCalls: 2 }]) {
+      const run = vi.fn().mockResolvedValueOnce(servedBy("prose", HAIKU, 5, 1)).mockResolvedValueOnce(servedBy('{"a":1}', HAIKU, 5, 1));
+      await worker.handlePropose(postWith(extra), { AI: { run } });
+      expect(run, JSON.stringify(extra)).toHaveBeenCalledTimes(2);
+      expect(hash(run), JSON.stringify(extra)).toBe(PINNED_RETRY);
+    }
+  });
+
+  it("every reply keeps the endpoint's headers: success, an unusable output, an unserializable answer, and a refusal", async () => {
+    const HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer" };
+    const deep = "[".repeat(20_000) + "]".repeat(20_000);
+    const replies = [
+      await worker.handlePropose(post(), { AI: { run: vi.fn().mockResolvedValue(servedBy(SURFACE, HAIKU)) } }),
+      await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run: vi.fn().mockResolvedValue(servedBy("prose", HAIKU)) } }),
+      await worker.handlePropose(post(), { AI: { run: vi.fn().mockResolvedValue(servedBy(deep, HAIKU)) } }),
+      await worker.handlePropose(postWith({ maxCalls: 3 }), { AI: { run: vi.fn() } }),
+    ];
+    expect(replies.map((r) => r.status)).toEqual([200, 502, 502, 400]);
+    for (const res of replies) expect(Object.fromEntries(res.headers), String(res.status)).toEqual(HEADERS);
   });
 });

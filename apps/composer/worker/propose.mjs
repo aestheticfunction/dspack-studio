@@ -33,11 +33,13 @@ const HEADERS = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
 };
-const json = (status, body) => new Response(JSON.stringify(body) + "\n", { status, headers: HEADERS });
+const reply = (status, text) => new Response(text + "\n", { status, headers: HEADERS });
+const json = (status, body) => reply(status, JSON.stringify(body));
 /* What this Worker reports beyond its Phase 0.5 shape, advertised on every
    refusal made before a provider call, so a probe that costs no model call
    (an empty body, refused 400) can tell it from an older Worker.
-   "per-call-model": every calls[] entry names the model that served it. */
+   "per-call-model": every calls[] entry for a call whose response arrived
+   names the model the provider said served it (callModel). */
 export const CAPABILITIES = Object.freeze(["per-call-model"]);
 /* A /api/propose reply sent BEFORE any provider call. `calls: []` says so
    explicitly, so the browser can tell "no model was reached" from an older
@@ -130,12 +132,18 @@ function servedModel(raw) {
    dspack-gen's audit report reads ({inputTokens, outputTokens}). null means
    the provider did not report it; it is never guessed. */
 const tokenCount = (value) => (typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null);
+/* Never throws, like servedModel: a response whose usage cannot be read keeps
+   its call record, with no usage. */
 function usageOf(raw) {
-  const u = raw?.usage ?? {};
-  return {
-    inputTokens: tokenCount(u.input_tokens ?? u.prompt_tokens),
-    outputTokens: tokenCount(u.output_tokens ?? u.completion_tokens),
-  };
+  try {
+    const u = raw?.usage ?? {};
+    return {
+      inputTokens: tokenCount(u.input_tokens ?? u.prompt_tokens),
+      outputTokens: tokenCount(u.output_tokens ?? u.completion_tokens),
+    };
+  } catch {
+    return { inputTokens: null, outputTokens: null };
+  }
 }
 
 /** The request's total: each key summed over the calls that reported it;
@@ -149,9 +157,6 @@ function sumUsage(calls) {
   return usage.inputTokens === null && usage.outputTokens === null ? null : usage;
 }
 
-/** A failed request, carrying every provider call it made. `failure` is
-    "provider" (a call was rejected, or its answer could not be serialized)
-    or "unusable-output". */
 /** The shape the busy classifier reads. Never throws: a rejection value
     String() cannot convert must not cost the request its call records. */
 function describe(error) {
@@ -162,6 +167,9 @@ function describe(error) {
   }
 }
 
+/** A failed request, carrying every provider call it made. `failure` is
+    "provider" (a call was rejected, or its answer could not be serialized)
+    or "unusable-output". */
 class CallFailure extends Error {
   constructor(error, calls, failure) {
     super(describe(error));
@@ -324,7 +332,7 @@ export async function handlePropose(request, env) {
   } catch (error) {
     return failed(new CallFailure(error, result.calls, "provider"));
   }
-  return new Response(text + "\n", { status: 200, headers: HEADERS });
+  return reply(200, text);
 }
 
 /** The error reply for a request that made provider calls, carrying them. */
