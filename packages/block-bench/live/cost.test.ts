@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { guidedSystem, handlePropose } from "../../../apps/composer/worker/propose.mjs";
-import { CALL_OVERHEAD_TOKENS, CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, PRICE, PRICED_MODEL, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, inputTokenBound, pastModelLimits, reportedUsd, withinReservation, worstCaseUsd } from "./cost";
+import { CALL_OVERHEAD_TOKENS, CELL_USD_BOUND, MAX_OUTPUT_TOKENS, MODEL_LIMITS, PRICE, PRICED_MODEL, REQUEST_USD_BOUND, absoluteUsd, boundedUsd, inputTokenBound, pastModelLimits, reportedUsd, totalPastModelLimits, withinReservation, worstCaseUsd } from "./cost";
 import { CELL_REQUESTS } from "./providers/hosted";
 
 const bytes = (text: string) => new TextEncoder().encode(text).length;
@@ -133,6 +133,14 @@ describe("a request's worst case", () => {
     const wide = Array.from({ length: 3 }, () => call({ inputTokens: MODEL_LIMITS.contextTokens, outputTokens: 1 }));
     expect(boundedUsd(wide, { inputTokens: 3, outputTokens: 3 * MODEL_LIMITS.maxOutputTokens })).toBeCloseTo((3 * MODEL_LIMITS.contextTokens * 1e-6 + 3 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05, 12);
     expect(boundedUsd([call({ inputTokens: 10, outputTokens: 2 })], { inputTokens: 5, outputTokens: 1 })).toBeCloseTo((10 * 1e-6 + 2 * 5e-6) * 1.05, 12);
+    // A reply is held to the calls its request was priced for: each one it does not list counts as unseen, figure by
+    // figure, never traded against what was shown.
+    const unseen = call({ inputTokens: null, outputTokens: null, outcome: "provider-error" });
+    expect(boundedUsd([unseen], { inputTokens: 3 * MODEL_LIMITS.contextTokens }, 2)).toBeCloseTo((3 * MODEL_LIMITS.contextTokens * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05, 12);
+    expect(boundedUsd([unseen], undefined, 2)).toBe(absoluteUsd(2));
+    expect(boundedUsd([], undefined, 1)).toBe(absoluteUsd(1));
+    // A call the reply lists takes its place: one that proved its counts counts at them, not at the limits.
+    expect(boundedUsd([call({ inputTokens: 10, outputTokens: 2 }), unseen], undefined, 2)).toBeCloseTo(((10 + MODEL_LIMITS.contextTokens) * 1e-6 + (2 + MODEL_LIMITS.maxOutputTokens) * 5e-6) * 1.05, 12);
     // A call reporting past the model's limits counts at what it reported, and one beside it that reported nothing on top.
     const past = call({ inputTokens: 10, outputTokens: 2 * MODEL_LIMITS.maxOutputTokens });
     expect(boundedUsd([past, call({ inputTokens: null, outputTokens: null, outcome: "provider-error" })])).toBeCloseTo((10 * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05 + absoluteUsd(1), 12);
@@ -141,5 +149,10 @@ describe("a request's worst case", () => {
     expect(pastModelLimits(call({ inputTokens: MODEL_LIMITS.contextTokens, outputTokens: MODEL_LIMITS.maxOutputTokens }))).toBe(false);
     expect(pastModelLimits(call({ inputTokens: null, outputTokens: null }))).toBe(false);
     expect(pastModelLimits(call({ source: "none", outcome: "refused", inputTokens: 1e9 }))).toBe(false);
+    // A figure past every count (JSON's 1e400 reads as Infinity) is past the limits; a negative one shows nothing.
+    expect(pastModelLimits(call({ inputTokens: Number.POSITIVE_INFINITY, outputTokens: 2 }))).toBe(true);
+    expect(pastModelLimits(call({ inputTokens: 10, outputTokens: Number.NEGATIVE_INFINITY }))).toBe(false);
+    expect(totalPastModelLimits({ outputTokens: Number.POSITIVE_INFINITY }, 1)).toBe(true);
+    expect(totalPastModelLimits({ inputTokens: 2 * MODEL_LIMITS.contextTokens }, 2)).toBe(false);
   });
 });

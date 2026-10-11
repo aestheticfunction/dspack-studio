@@ -117,7 +117,8 @@ export const USAGE_SPELLINGS = {
 /**
  * What a usage object says under every spelling the app reads. normalizeUsage takes each figure from the first spelling
  * it can read, so another spelling saying otherwise would go unseen: a figure is stated `once` only when every spelling
- * given is a whole count and they agree, and `most` holds the largest number any spelling shows.
+ * given is a whole count and they agree, and `most` holds the largest number any spelling shows (Infinity included, for
+ * JSON's 1e400, which is past every limit).
  */
 function spelled(raw: unknown): { once: boolean; most: { inputTokens?: number; outputTokens?: number } } {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -126,7 +127,7 @@ function spelled(raw: unknown): { once: boolean; most: { inputTokens?: number; o
   for (const figure of ["inputTokens", "outputTokens"] as const) {
     const given = USAGE_SPELLINGS[figure].map((key) => r[key]).filter((value) => value != null);
     if (given.some((value) => !Number.isSafeInteger(value) || (value as number) < 0) || new Set(given).size > 1) once = false;
-    const numbers = given.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    const numbers = given.filter((value): value is number => typeof value === "number" && !Number.isNaN(value));
     if (numbers.length > 0) most[figure] = Math.max(...numbers);
   }
   return { once, most };
@@ -224,20 +225,28 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // The app reads each figure from the first spelling it can: a call that states one otherwise under another
         // spelling proves nothing, and shows the most any spelling does (each record by the raw call it came from).
         const stated = (Array.isArray(reply?.calls) && reply.calls.length > 0 ? reply.calls : [reply?.usage]).map(spelled);
-        const largest = records.map((call, i) => ({ ...call, ...stated[i]!.most, stated: stated[i]!.once }));
+        const larger = (a: number | undefined, b: number | undefined) => (a === undefined ? b : b === undefined ? a : Math.max(a, b));
+        const largest = records.map((call, i) => {
+          const inputTokens = larger(call.inputTokens, stated[i]!.most.inputTokens);
+          const outputTokens = larger(call.outputTokens, stated[i]!.most.outputTokens);
+          return { ...call, ...(inputTokens !== undefined ? { inputTokens } : {}), ...(outputTokens !== undefined ? { outputTokens } : {}), stated: stated[i]!.once };
+        });
         // The Worker reports a reply's total as the sum of its calls' counts: a total that says otherwise proves
         // nothing, and counts wherever it shows more of a figure than the calls do.
         const { once: totalOnce, most: total } = spelled(reply?.usage);
         const summed = (key: "inputTokens" | "outputTokens") => records.reduce((a, call) => a + (call.source === "none" ? 0 : (call[key] ?? 0)), 0);
         const agrees = (total.inputTokens === undefined || total.inputTokens === summed("inputTokens")) && (total.outputTokens === undefined || total.outputTokens === summed("outputTokens"));
-        bounded = boundedUsd(largest, total);
-        const charged = records.filter((call) => call.source !== "none").length;
         itemized = Array.isArray(reply?.calls);
-        verified = totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
-        // What a reply another model served cost may exceed any bound at Haiku 4.5's prices: raised on the way out, it
-        // stops the run, which sends nothing more. Any model the reply names counts, at its top or on any call it lists.
+        // Held to the calls its request was priced for: each one the reply does not list counts as unseen, figure by
+        // figure. A reply that does not itemize its calls may come from a Worker that ignores maxCalls, so it is held to two.
+        bounded = boundedUsd(largest, total, itemized ? calls : 2);
+        const charged = records.filter((call) => call.source !== "none").length;
+        // Any model the reply names counts, at its top or on any call it lists: a reply naming another model is never
+        // verified, and what it cost may exceed any bound at Haiku 4.5's prices, so raised on the way out, it stops the
+        // run, which sends nothing more.
         const listed = Array.isArray(reply?.calls) ? reply.calls.map((raw) => ((raw ?? {}) as Record<string, unknown>).model) : [];
         const foreign = [...records.map((call) => call.model), reply?.model, ...listed].find((model): model is string => typeof model === "string" && !PRICED_FAMILY.test(model));
+        verified = foreign === undefined && totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         if (options.pacer && !released && foreign !== undefined) throw new UnpricedModel(foreign);
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.

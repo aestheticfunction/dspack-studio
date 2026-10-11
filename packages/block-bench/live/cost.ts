@@ -95,14 +95,18 @@ const shown = (n: unknown): number => (typeof n === "number" && Number.isFinite(
  * model counts at what it reported, if it reported both counts as such a call can (at least one input token, and one
  * output token for an answer) and stated each once; any other counts at the most one call can read and write, or at what
  * it shows, rounded up to whole tokens, where that is more. The calls are summed, and the reply's total counts instead
- * wherever it shows more of a figure. Each figure stands on its own, so what a reply shows of one is never traded against
- * the other. A call that reached no model counts nothing. A reply that cannot be verified is charged at least this.
+ * wherever it shows more of a figure. A reply listing fewer calls that reached the model than `floor` (the calls its
+ * request was priced for) is held to that many: each one it does not list counts as one it could not see. Each figure
+ * stands on its own, so what a reply shows of one is never traded against the other. A call that reached no model counts
+ * nothing. A reply that cannot be verified is charged at least this.
  */
-export function boundedUsd(calls: ReadonlyArray<ModelCallRecord & { stated?: boolean }>, total?: { inputTokens?: number; outputTokens?: number }): number {
+export function boundedUsd(calls: ReadonlyArray<ModelCallRecord & { stated?: boolean }>, total?: { inputTokens?: number; outputTokens?: number }, floor = 0): number {
   let input = 0;
   let output = 0;
+  let reached = 0;
   for (const c of calls) {
     if (c.source === "none") continue;
+    reached += 1;
     const read = count(c.inputTokens);
     const wrote = count(c.outputTokens);
     // A call that reached the model read at least one token, and an answer wrote at least one: counts saying otherwise,
@@ -115,16 +119,22 @@ export function boundedUsd(calls: ReadonlyArray<ModelCallRecord & { stated?: boo
       output += Math.max(MODEL_LIMITS.maxOutputTokens, shown(c.outputTokens));
     }
   }
+  const unlisted = Math.max(0, floor - reached);
+  input += unlisted * MODEL_LIMITS.contextTokens;
+  output += unlisted * MODEL_LIMITS.maxOutputTokens;
   return usd(1, Math.max(input, shown(total?.inputTokens)), Math.max(output, shown(total?.outputTokens)));
 }
 
+/** Whether a reported figure is past a limit: more whole tokens than it, or a number past every count (JSON's 1e400). */
+const pastLimit = (n: unknown, limit: number): boolean => n === Number.POSITIVE_INFINITY || shown(n) > limit;
+
 /** Whether a reply's total reports past what its calls could reach, each at Claude Haiku 4.5's documented limits. */
 export const totalPastModelLimits = (total: { inputTokens?: number; outputTokens?: number } | undefined, calls: number): boolean =>
-  total !== undefined && (shown(total.inputTokens) > Math.max(1, calls) * MODEL_LIMITS.contextTokens || shown(total.outputTokens) > Math.max(1, calls) * MODEL_LIMITS.maxOutputTokens);
+  total !== undefined && (pastLimit(total.inputTokens, Math.max(1, calls) * MODEL_LIMITS.contextTokens) || pastLimit(total.outputTokens, Math.max(1, calls) * MODEL_LIMITS.maxOutputTokens));
 
 /** Whether a call reported usage past Claude Haiku 4.5's documented limits, which no price here bounds. */
 export const pastModelLimits = (c: ModelCallRecord): boolean =>
-  c.source !== "none" && (shown(c.inputTokens) > MODEL_LIMITS.contextTokens || shown(c.outputTokens) > MODEL_LIMITS.maxOutputTokens);
+  c.source !== "none" && (pastLimit(c.inputTokens, MODEL_LIMITS.contextTokens) || pastLimit(c.outputTokens, MODEL_LIMITS.maxOutputTokens));
 
 /**
  * Whether a call stayed inside what its request was priced at: a call that reached no model, or one naming Claude

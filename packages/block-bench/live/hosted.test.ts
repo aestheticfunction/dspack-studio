@@ -10,7 +10,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { createCallRecorder, type ModelCallRecord } from "@dspack-studio/composer-core";
+import { createCallRecorder, normalizeUsage, type ModelCallRecord } from "@dspack-studio/composer-core";
 import { GatewayError, gatewayAdapter } from "../../../apps/composer/app/hosted-build";
 import { handlePropose } from "../../../apps/composer/worker/propose.mjs";
 import { exampleFor, runCell } from "./arms";
@@ -640,11 +640,11 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
   });
 
   it("knows every spelling of a figure the app reads, so none of them goes unseen", () => {
-    // Every key composer-core's normalizeUsage reads for each figure, in its order: a new one fails here until the
-    // harness knows it.
-    const source = readFileSync(new URL("../../composer-core/src/usage.ts", import.meta.url), "utf8");
-    const read = (figure: string) => [...(source.match(new RegExp(`const ${figure} = (.+);`))?.[1] ?? "").matchAll(/r\.(\w+)/g)].map((m) => m[1]);
-    expect({ inputTokens: read("inputTokens"), outputTokens: read("outputTokens") }).toEqual(USAGE_SPELLINGS);
+    // Every key composer-core's normalizeUsage reads, in its order, however its source spells the read: a new one fails
+    // here until the harness knows it.
+    const read: string[] = [];
+    normalizeUsage(new Proxy({}, { get: (_target, key) => (read.push(String(key)), undefined) }));
+    expect(read).toEqual([...USAGE_SPELLINGS.inputTokens, ...USAGE_SPELLINGS.outputTokens]);
   });
 
   it("releases every refusal the Worker makes before any provider call, and nothing else that reports no call", async () => {
@@ -720,10 +720,15 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       // A call that names its own model, which a Worker naming the model on every call would send.
       { json: { a: 1 }, raw: "{}", model: HAIKU_ID, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1, model: "claude-opus-4-1-20250805" }] },
     ]) {
+      const lines: Array<[string, number]> = [];
       const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
-      pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record() { this.sent += 1; }, adjust() {} };
+      pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record(usd = 0) { lines.push(["request", usd]); this.sent += 1; }, adjust(usd: number, reason: string) { lines.push([reason, usd]); } };
       const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(200, body)) as typeof fetch, pacer });
       await expect(provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request), JSON.stringify(body.calls)).rejects.toBeInstanceOf(UnpricedModel);
+      // Raised, never settled: a call another model served is not priced by Haiku 4.5's prices, whatever model the
+      // reply names at its top.
+      expect(lines.map(([reason]) => reason), JSON.stringify(body.calls)).toEqual(["request", "usage not verified"]);
+      expect(lines[1]![1], JSON.stringify(body.calls)).toBeCloseTo(absoluteUsd(2) - worstCaseUsd(request, 2), 12);
     }
     for (const model of ["claude-opus-4-1-20250805", "evil/claude-haiku-4-5/other"]) {
       const lines: Array<[string, number]> = [];
@@ -762,21 +767,29 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
       ["a call past the output limit, and one unseen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [past, unseen] }, pastCost + absoluteUsd(1)],
       ["a call past the context window", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, calls: [{ inputTokens: MODEL_LIMITS.contextTokens + 1, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, Math.max(absoluteUsd(2), ((MODEL_LIMITS.contextTokens + 1) * 1e-6 + 2 * 5e-6) * 1.05)],
       ["more calls than the request allows, none seen", { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [unseen, unseen, unseen] }, 3 * absoluteUsd(1)],
-      // A total past what its calls could reach, each at the model's limits, counts when it shows more than the calls.
-      ["a total past what its one call could reach", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 4 * MODEL_LIMITS.maxOutputTokens }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, (10 * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
+      // A total past what its calls could reach, each at the model's limits, counts where it shows more than the calls;
+      // the second call the request allowed, which the reply does not list, counts as unseen.
+      ["a total past what its one call could reach", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 4 * MODEL_LIMITS.maxOutputTokens }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, ((10 + MODEL_LIMITS.contextTokens) * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
       // A figure past the limits under a spelling the app does not read first still shows what was reported.
-      // Such a call proves nothing, so its input counts at the most one call can read.
-      ["a call past the output limit under its second spelling", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, output_tokens: 4 * MODEL_LIMITS.maxOutputTokens, outcome: "ok", durationMs: 1 }] }, (MODEL_LIMITS.contextTokens * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
+      // Such a call proves nothing, so its input counts at the most one call can read, beside the unlisted call unseen.
+      ["a call past the output limit under its second spelling", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2 }, calls: [{ inputTokens: 10, outputTokens: 2, output_tokens: 4 * MODEL_LIMITS.maxOutputTokens, outcome: "ok", durationMs: 1 }] }, (2 * MODEL_LIMITS.contextTokens * 1e-6 + 5 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
       // Each figure counts on its own: the calls' input beside a total's larger output can each be what was billed.
       ["more calls than allowed, beside a total showing more output than they do", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 3, outputTokens: 3 * MODEL_LIMITS.maxOutputTokens }, calls: Array.from({ length: 3 }, () => ({ inputTokens: MODEL_LIMITS.contextTokens, outputTokens: 1, outcome: "ok", durationMs: 1 })) }, (3 * MODEL_LIMITS.contextTokens * 1e-6 + 3 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
-      ["a total past what its one call could reach, under its second spelling", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2, completion_tokens: 4 * MODEL_LIMITS.maxOutputTokens }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, (10 * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
+      // A figure past every count (JSON's 1e400 reads as Infinity) is past the model's limits too.
+      ["a call reporting a figure past every count", '{"json":{"a":1},"raw":"{}","model":"claude-haiku-4-5-20251001","calls":[{"inputTokens":1e400,"outputTokens":2,"outcome":"ok","durationMs":1}]}', absoluteUsd(2)],
+      ["a total reporting a figure past every count", '{"json":{"a":1},"raw":"{}","model":"claude-haiku-4-5-20251001","usage":{"inputTokens":10,"outputTokens":1e400},"calls":[{"inputTokens":10,"outputTokens":2,"outcome":"ok","durationMs":1}]}', absoluteUsd(2)],
+      // A reply is held to the calls its request was priced for, figure by figure: a total showing input past the limits
+      // beside one unseen call still counts the output of the second call it does not list.
+      ["a total past the limits beside an unseen call", { error: "provider-unavailable", cause: "provider", message: "down", usage: { inputTokens: 3 * MODEL_LIMITS.contextTokens }, calls: [unseen] }, (3 * MODEL_LIMITS.contextTokens * 1e-6 + 2 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
+      ["a total past what its one call could reach, under its second spelling", { json: { a: 1 }, raw: "{}", model: HAIKU_ID, usage: { inputTokens: 10, outputTokens: 2, completion_tokens: 4 * MODEL_LIMITS.maxOutputTokens }, calls: [{ inputTokens: 10, outputTokens: 2, outcome: "ok", durationMs: 1 }] }, ((10 + MODEL_LIMITS.contextTokens) * 1e-6 + 4 * MODEL_LIMITS.maxOutputTokens * 5e-6) * 1.05],
     ];
     for (const [name, body, charged] of cases) {
       const lines: Array<[string, number]> = [];
       const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs: [0], now: () => 0, sleep: async () => undefined });
       pacer.ledger = { cap: 100, sent: 0, capUsd: USD, usd: 0, record(usd = 0) { lines.push(["request", usd]); this.sent += 1; }, adjust(usd: number, reason: string) { lines.push([reason, usd]); } };
-      const status = "error" in (body as object) ? 502 : 200;
-      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(status, body)) as typeof fetch, pacer });
+      const text = typeof body === "string";
+      const status = !text && "error" in (body as object) ? 502 : 200;
+      const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: (async () => reply(status, body, text)) as typeof fetch, pacer });
       const failure = await provider.surfaceAdapter({ recorder: createCallRecorder(), meter: createMeter(), refinement: false }).generate(request).then(() => undefined, (error: unknown) => error);
       expect(lines.map(([reason]) => reason), name).toEqual(["request", "usage not verified"]);
       expect(lines[0]![1] + lines[1]![1], name).toBeCloseTo(charged, 12);
