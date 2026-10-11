@@ -32,10 +32,11 @@ import { guidedSystem } from "../../../apps/composer/worker/propose.mjs";
 export const PRICED_MODEL = "anthropic/claude-haiku-4.5";
 /**
  * Claude Haiku 4.5 by the whole ids this deployment can return: the configured id (PRICED_MODEL, which the Worker also
- * returns when the provider names no model), Anthropic's alias (`claude-haiku-4-5`) and its dated snapshots
- * (`claude-haiku-4-5-20251001`). A call naming anything else is not priced by these prices.
+ * returns when the provider names no model) and that id without its vendor prefix (`claude-haiku-4.5`), Anthropic's
+ * alias (`claude-haiku-4-5`) and its dated snapshots (`claude-haiku-4-5-20251001`). A call naming anything else is not
+ * priced by these prices.
  */
-export const PRICED_FAMILY = /^(?:anthropic\/claude-haiku-4\.5|claude-haiku-4-5(?:-\d{8})?)$/;
+export const PRICED_FAMILY = /^(?:(?:anthropic\/)?claude-haiku-4\.5|claude-haiku-4-5(?:-\d{8})?)$/;
 /** Claude Haiku 4.5's prices per token, and Cloudflare's 5% on the credits they are paid from. */
 export const PRICE: Readonly<{ inputPerToken: number; outputPerToken: number; creditFee: number }> = Object.freeze({ inputPerToken: 1e-6, outputPerToken: 5e-6, creditFee: 1.05 });
 /** The max_tokens the Worker sets on every provider call (propose.mjs MAX_OUTPUT_TOKENS). */

@@ -108,6 +108,9 @@ export const PRE_CALL_REFUSALS: Readonly<Record<string, number>> = Object.freeze
   "invalid-request": 400,
 });
 
+/** Every spelling of usage the app reads (composer-core normalizeUsage), and the model: a call turned away reports none. */
+const UNSPENT_CALL_KEYS = ["inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens", "in", "out", "usage", "model"] as const;
+
 /** A refusal in the Worker's own shape: no usage and no model, which a refusal that reached no model cannot report. */
 const unspent = (body: Record<string, unknown> | undefined): boolean => body?.usage == null && body?.model == null;
 
@@ -125,8 +128,8 @@ export const retryableRefusal = (status: number, body: Record<string, unknown> |
   if (refusedBeforeAnyCall(status, body)) return true;
   if (status !== 503 || body?.error !== "busy" || !Array.isArray(body.calls) || body.calls.length !== 1 || !unspent(body)) return false;
   const call = (body.calls[0] ?? {}) as Record<string, unknown>;
-  // The one call the gateway turned away reports no usage, under either spelling the app reads, and no model.
-  return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null && call.input_tokens == null && call.output_tokens == null && call.model == null;
+  // The one call the gateway turned away reports no usage, under any spelling the app reads, and no model.
+  return call.outcome === "provider-error" && UNSPENT_CALL_KEYS.every((key) => call[key] == null);
 };
 
 export { CELL_REQUESTS };

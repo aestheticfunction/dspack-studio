@@ -164,6 +164,8 @@ describe("the hosted client agrees with the app's gateway adapter on every reply
     // Nor a rejected call that names a model, or reports usage under either spelling the app reads.
     expect(retryableRefusal(503, { error: "busy", calls: [{ ...rejected, model: "claude-opus-4-1-20250805" }] })).toBe(false);
     expect(retryableRefusal(503, { error: "busy", calls: [{ ...rejected, input_tokens: 5, output_tokens: 1 }] })).toBe(false);
+    expect(retryableRefusal(503, { error: "busy", calls: [{ ...rejected, prompt_tokens: 50_000, completion_tokens: 8_000 }] })).toBe(false);
+    expect(retryableRefusal(503, { error: "busy", calls: [{ ...rejected, in: 50_000, out: 8_000 }] })).toBe(false);
   });
 });
 

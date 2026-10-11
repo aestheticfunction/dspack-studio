@@ -75,6 +75,8 @@ describe("a request's worst case", () => {
     expect(withinReservation(request, call({ inputTokens: bound, outputTokens: MAX_OUTPUT_TOKENS }))).toBe(true);
     expect(withinReservation(request, call({ inputTokens: 1, outputTokens: 1, model: PRICED_MODEL }))).toBe(true);
     expect(withinReservation(request, call({ inputTokens: 1, outputTokens: 1, model: "claude-haiku-4-5" }))).toBe(true);
+    // The catalog's name without its vendor prefix names the same model.
+    expect(withinReservation(request, call({ inputTokens: 1, outputTokens: 1, model: "claude-haiku-4.5" }))).toBe(true);
     // An answer took at least one output token; an unusable output may have taken none.
     expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 0 }))).toBe(false);
     expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 0, outcome: "unusable-output" }))).toBe(true);
