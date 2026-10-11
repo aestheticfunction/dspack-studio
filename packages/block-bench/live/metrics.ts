@@ -63,6 +63,8 @@ export interface ArmStats {
   /** The cohort: evaluated runs whose every provider call reported its usage, failures included. */
   meteredRuns: number;
   meteredSuccesses: number;
+  /** The cohort's provider-reported input plus output tokens: the numerator of tokensPerSuccess (over meteredSuccesses). */
+  meteredTokens: number;
   unmeteredRuns: number;
   unmeteredSuccesses: number;
   /** ADR-B3: the cohort's tokens over its successes. Null when the cohort reports no provider usage at all (scripted). */
@@ -130,11 +132,13 @@ export interface EncodingComparison {
 /** The addendum's uncertainty: a paired cluster bootstrap over prompts, fixed before any hosted result. */
 export const BOOTSTRAP: Readonly<{ resamples: number; level: number }> = Object.freeze({ resamples: 2000, level: 0.95 });
 
-/** A percentile interval and the resamples it rests on (a resample with no success in an arm has no token figure). */
+/** A percentile interval and what it rests on: its resamples (a resample with no success in an arm has no token figure) and the prompts they draw from. */
 export interface Interval {
   low: number;
   high: number;
   resamples: number;
+  /** The paired cohort: the prompts every compared arm evaluated, the only prompts a resample draws. */
+  prompts: number;
 }
 
 /** Whether a criterion's whole interval sits on one side of its unchanged threshold. */
@@ -168,6 +172,8 @@ export interface Decision {
   meteredThreads: Trio<number>;
   /** The raw counts behind every rate: passed of evaluated, metered tokens over metered successes. */
   counts: { passed: Trio<number>; meteredTokens: Trio<number>; meteredSuccesses: Trio<number> };
+  /** The paired cohort: prompts every decision arm evaluated. The intervals resample these alone, and a decision is clear only when there are at least the minimum's. */
+  cohort: number;
   /** 95% paired cluster-bootstrap intervals (prompts resampled, the same resample in every arm). Pass differences are the block arm's rate minus the other's. */
   intervals: { reductionVsProduction: Interval | null; reductionVsCapped: Interval | null; passDiffVsProduction: Interval | null; passDiffVsCapped: Interval | null };
   clarity: { tokens: Clarity; vsProduction: Clarity; vsCapped: Clarity; overall: "clear" | "uncertain" };
@@ -256,6 +262,7 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
       repairsPerSuccess: passed.length === 0 ? null : passed.reduce((a, r) => a + Math.max(0, r.attempts - 1), 0) / passed.length,
       meteredRuns: metered.length,
       meteredSuccesses: meteredSuccesses.length,
+      meteredTokens: metered.reduce((a, r) => a + r.tokens.input + r.tokens.output, 0),
       unmeteredRuns: evaluated.length - metered.length,
       unmeteredSuccesses: passed.length - meteredSuccesses.length,
       tokensPerSuccess: perSuccess((r) => r.tokens.input + r.tokens.output),
@@ -388,7 +395,7 @@ function seeded(label: string): () => number {
 }
 
 /** The percentile interval of the values a statistic took across resamples; null when it never had one. */
-function interval(values: number[], level: number): Interval | null {
+function interval(values: number[], level: number, prompts: number): Interval | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
   const at = (q: number) => {
@@ -397,12 +404,20 @@ function interval(values: number[], level: number): Interval | null {
     const hi = Math.ceil(i);
     return lo === hi ? sorted[lo]! : sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (i - lo);
   };
-  return { low: at((1 - level) / 2), high: at(1 - (1 - level) / 2), resamples: values.length };
+  return { low: at((1 - level) / 2), high: at(1 - (1 - level) / 2), resamples: values.length, prompts };
+}
+
+/** The prompts every arm evaluated (a thread exists only where an arm has an evaluated cell), in a stable order. */
+export function sharedPrompts(sums: Readonly<Record<string, Map<string, ThreadSums>>>): string[] {
+  const [first, ...rest] = Object.values(sums);
+  if (!first) return [];
+  return [...first.keys()].filter((p) => rest.every((m) => m.has(p))).sort();
 }
 
 /**
  * A paired cluster bootstrap: resample the prompts with replacement and compute every arm's pooled figures on the
- * same resample, so each interval carries the between-prompt variation and the pairing. Cells inside a thread are
+ * same resample, so each interval carries the between-prompt variation and the pairing. Only the prompts every arm
+ * evaluated are drawn, so a prompt one arm lacks (a partial run) cannot pass for a pair. Cells inside a thread are
  * never resampled on their own, so repeating them cannot narrow an interval.
  */
 export function pairedBootstrap(
@@ -411,7 +426,7 @@ export function pairedBootstrap(
   label: string,
   options: { resamples: number; level: number } = BOOTSTRAP,
 ): Record<string, Interval | null> {
-  const prompts = [...new Set(Object.values(sums).flatMap((m) => [...m.keys()]))].sort();
+  const prompts = sharedPrompts(sums);
   const values: Record<string, number[]> = Object.fromEntries(Object.keys(statistics).map((k) => [k, []]));
   if (prompts.length > 0) {
     const random = seeded(label);
@@ -425,7 +440,7 @@ export function pairedBootstrap(
       }
     }
   }
-  return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, interval(v, options.level)]));
+  return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, interval(v, options.level, prompts.length)]));
 }
 
 /** One arm against another, prompt by prompt. */
@@ -487,6 +502,7 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     const iv = pairedBootstrap(sums, { reductionVsProduction: reduction("production"), reductionVsCapped: reduction("capped"), passDiffVsProduction: passDiff("production"), passDiffVsCapped: passDiff("capped") }, `${reference}|${provider}`);
     const intervals = { reductionVsProduction: iv.reductionVsProduction ?? null, reductionVsCapped: iv.reductionVsCapped ?? null, passDiffVsProduction: iv.passDiffVsProduction ?? null, passDiffVsCapped: iv.passDiffVsCapped ?? null };
     const paired = { vsProduction: pairedCounts(sums.block, sums.production), vsCapped: pairedCounts(sums.block, sums.capped) };
+    const cohort = sharedPrompts(sums).length;
     const tokens = {
       block: block?.tokensPerSuccess ?? null,
       capped: capped?.tokensPerSuccess ?? null,
@@ -533,9 +549,11 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
       vsCapped: clarityOf(intervals.passDiffVsCapped, -options.margin),
     };
     const criteria = [clarity.tokens, clarity.vsProduction, clarity.vsCapped];
-    // Clear: the outcome cannot flip inside the intervals (every criterion clearly passes, or one clearly fails).
-    const overall: Decision["clarity"]["overall"] = verdict !== "insufficient" && (criteria.every((c) => c === "clear-pass") || criteria.includes("clear-fail")) ? "clear" : "uncertain";
-    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, threads, meteredThreads, counts, intervals, clarity: { ...clarity, overall }, paired, options });
+    // Clear: the outcome cannot flip inside the intervals (every criterion clearly passes, or one clearly fails), and
+    // the intervals rest on at least the minimum's prompts in common, not on a few prompts the arms happen to share.
+    const overall: Decision["clarity"]["overall"] =
+      verdict !== "insufficient" && cohort >= options.minimum && (criteria.every((c) => c === "clear-pass") || criteria.includes("clear-fail")) ? "clear" : "uncertain";
+    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, threads, meteredThreads, counts, cohort, intervals, clarity: { ...clarity, overall }, paired, options });
   }
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
 }

@@ -40,14 +40,14 @@ The point estimates the rule reads are unchanged: pooled over every evaluated ce
 Every arm runs the same prompts on the same reference, so arms are compared **paired by prompt**:
 
 - **Counts, prompt by prompt.** For each prompt both arms evaluated: whether the block thread's pass rate was higher, the same, or lower. And, where both threads have a metered success, whether its tokens per success were lower, the same, or higher.
-- **Intervals from the same resample in every arm** (below). Each interval therefore carries the pairing, not two independent noises.
+- **Intervals from the same resample in every arm** (below), drawn only from the prompts every compared arm evaluated. Each interval therefore carries the pairing, not two independent noises.
 
 Named against positional encoding (ADR-B2) is compared the same way. It informs ADR-B2 and decides nothing.
 
 ## Uncertainty
 
 **Method: a paired cluster bootstrap over prompts.**
-- 2,000 resamples of the decision's prompts, with replacement.
+- 2,000 resamples, with replacement, of the **paired cohort**: the prompts every compared arm evaluated. A prompt one arm lacks, as in a partial run, joins no interval, and each interval states the cohort it rests on.
 - Each resample recomputes every arm's pooled pass rate and tokens per success from all the cells of the prompts drawn.
 - A thread's cells are never resampled on their own. Repeating them cannot narrow an interval; a test pins this.
 - The generator is seeded per reference and provider, so the same records always give the same report.
@@ -56,7 +56,7 @@ Named against positional encoding (ADR-B2) is compared the same way. It informs 
 - the token reduction against production and against capped;
 - the pass-rate difference, block minus production and block minus capped, in points.
 
-**Clarity.** A criterion is **clearly met** or **clearly missed** only when its whole interval lies on one side of its unchanged threshold. Otherwise it is **uncertain**. The decision as a whole is **clear** when the outcome cannot flip inside the intervals: every criterion clearly met, or one clearly missed. The verdict still reads the point estimates.
+**Clarity.** A criterion is **clearly met** or **clearly missed** only when its whole interval lies on one side of its unchanged threshold. Otherwise it is **uncertain**. The decision as a whole is **clear** when the outcome cannot flip inside the intervals (every criterion clearly met, or one clearly missed) and the intervals rest on at least the minimum's 20 prompts that every decision arm evaluated. The verdict still reads the point estimates.
 
 **Limitations.** These hold however many cells are run:
 
@@ -75,7 +75,7 @@ Every rate in the report is printed with its numerator and denominator. This cov
 - first-attempt rates;
 - selection and intent accuracy;
 - changed and retention rates;
-- tokens per success, as metered tokens over metered successes.
+- tokens per success, as metered tokens over metered successes, in every table.
 
 The decision table puts prompt threads beside cells.
 

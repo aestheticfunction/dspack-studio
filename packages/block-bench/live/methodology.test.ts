@@ -105,24 +105,66 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
     expect(n!.intervals.reductionVsProduction!.low).toBeLessThan(0.3);
     expect(n!.intervals.reductionVsProduction!.high).toBeGreaterThan(0.3);
   });
+
+  it("resamples only the prompts every compared arm evaluated, so a prompt one arm lacks (a partial run) joins no interval", () => {
+    const shared = prompts(24).flatMap((p, i) => [
+      ...thread("block", p, (c) => (i + CONDITIONS.indexOf(c)) % 4 !== 0, [40 + (i % 6) * 5, 5]),
+      ...thread("capped", p, (c) => (i + CONDITIONS.indexOf(c)) % 5 !== 0, [100, 10]),
+      ...thread("production", p, (c) => (i + CONDITIONS.indexOf(c)) % 5 !== 0, [110, 10]),
+    ]);
+    const extra = [...thread("block", "x-01", () => true, [10, 0]), ...thread("block", "x-02", () => true, [10, 0]), ...thread("production", "x-03", () => false, [500, 0])];
+    const [alone] = decide(shared);
+    const [partial] = decide([...shared, ...extra]);
+    // The point estimates still pool every evaluated cell, as ADR-B3 does; the intervals rest on the shared prompts alone.
+    expect(partial!.tokens.block).not.toBe(alone!.tokens.block);
+    expect(partial!.intervals).toEqual(alone!.intervals);
+    expect(partial!.intervals.reductionVsProduction).toMatchObject({ prompts: 24 });
+    expect(partial!.cohort).toBe(24);
+    // No prompt in common: no paired interval at all, as the paired counts already say.
+    const [apart] = decide([...thread("block", "a", () => true, [50, 0]), ...thread("capped", "b", () => true, [100, 0]), ...thread("production", "b", () => true, [100, 0])]);
+    expect(apart!.paired.vsProduction.prompts).toBe(0);
+    expect(apart!.cohort).toBe(0);
+    expect(apart!.intervals).toEqual({ reductionVsProduction: null, reductionVsCapped: null, passDiffVsProduction: null, passDiffVsCapped: null });
+  });
+
+  it("calls a decision clear only when its intervals rest on at least the minimum's prompts in common", () => {
+    // Every arm has its 20 threads, but the arms share only 10 prompts.
+    const records = [
+      ...prompts(30).slice(0, 20).flatMap((p) => thread("block", p, () => true, [50, 0])),
+      ...prompts(30).slice(10).flatMap((p) => [...thread("capped", p, () => true, [100, 0]), ...thread("production", p, () => true, [100, 0])]),
+    ];
+    const [d] = decide(records);
+    expect(d!.threads).toEqual({ block: 20, capped: 20, production: 20 });
+    expect(d!.verdict).toBe("pass");
+    expect(d!.cohort).toBe(10);
+    expect(d!.intervals.reductionVsProduction).toMatchObject({ low: 0.5, high: 0.5, prompts: 10 });
+    expect(d!.clarity.tokens).toBe("clear-pass");
+    expect(d!.clarity.overall).toBe("uncertain");
+  });
 });
 
 describe("the report prints counts beside every rate and labels the rule for what it is", () => {
   it("shows numerators and denominators, prompt threads, intervals and the descriptive label", () => {
     const records = prompts(24).flatMap((p, i) => [
       ...thread("block", p, (c) => !(i === 0 && c === "fresh"), [50, 0]),
+      ...thread("block-positional", p, () => true, [45, 0]),
       ...thread("capped", p, () => true, [100, 0]),
       ...thread("production", p, () => true, [100, 0]),
     ]);
     const summary = summarize(records);
     const preflight: Preflight = { at: "2026-10-11T00:00:00.000Z", sidecars: [], drafts: false };
-    const result: EvaluationResult = { runId: "r", records, summary, preflight, invocations: [], superseded: { records: 0, providerCalls: 0, inputTokens: 0, outputTokens: 0, requestBytes: 0 }, arms: ["block", "capped", "production"], cells: { total: records.length, done: records.length, reused: 0 } };
+    const result: EvaluationResult = { runId: "r", records, summary, preflight, invocations: [], superseded: { records: 0, providerCalls: 0, inputTokens: 0, outputTokens: 0, requestBytes: 0 }, arms: ["block", "block-positional", "capped", "production"], cells: { total: records.length, done: records.length, reused: 0 } };
     const report = renderReport(result, { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
     expect(report).toContain("descriptive product decision rule");
     expect(report).toMatch(/\| block \| 24 \| 120 \|/);
     expect(report).toContain("99.2% (119/120)");
     expect(report).toContain("100.0% (120/120)");
     expect(report).toMatch(/95% interval/);
+    expect(report).toMatch(/2000 resamples over 24 prompts/);
     expect(report).toMatch(/paired by prompt: 24 prompts/);
+    // Tokens per success beside its own numerator and denominator in every table: metered tokens over metered successes.
+    expect(report).toContain("52 (1200/23)"); // the block arm's fresh builds: 24 x 50 tokens over 23 successes
+    expect(report).toContain("45 (5400/120)"); // the positional arm, every condition pooled
+    expect(report).not.toMatch(/metered runs \/ successes/);
   });
 });
