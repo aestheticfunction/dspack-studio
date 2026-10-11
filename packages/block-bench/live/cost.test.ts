@@ -68,16 +68,21 @@ describe("a request's worst case", () => {
     expect(CELL_USD_BOUND).toBeCloseTo(CELL_REQUESTS * REQUEST_USD_BOUND, 12);
   });
 
-  it("holds only for a call whose reported usage is within what it was priced at: a refused call, or one that reports both figures inside the bounds", () => {
+  it("holds only for a call whose reported usage is within what it was priced at: a refused call, or one served by Claude Haiku 4.5 that reports both figures inside the bounds", () => {
     const request = { system: "s", messages: [{ role: "user" as const, content: "u" }], jsonSchema: {} };
     const bound = inputTokenBound(request);
-    const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, ...fields });
+    const call = (fields: Record<string, unknown>) => ({ operation: "generate" as const, durationMs: 1, outcome: "ok" as const, source: "provider" as const, model: "claude-haiku-4-5-20251001", ...fields });
     expect(withinReservation(request, call({ inputTokens: bound, outputTokens: MAX_OUTPUT_TOKENS }))).toBe(true);
-    expect(withinReservation(request, call({ source: "none", outcome: "refused" }))).toBe(true);
+    expect(withinReservation(request, call({ inputTokens: 1, outputTokens: 0, model: PRICED_MODEL }))).toBe(true);
+    expect(withinReservation(request, call({ source: "none", outcome: "refused", model: undefined }))).toBe(true);
     expect(withinReservation(request, call({ inputTokens: bound + 1, outputTokens: 1 }))).toBe(false);
     expect(withinReservation(request, call({ inputTokens: 1, outputTokens: MAX_OUTPUT_TOKENS + 1 }))).toBe(false);
     expect(withinReservation(request, call({ inputTokens: 1 }))).toBe(false);
     expect(withinReservation(request, call({ outcome: "provider-error" }))).toBe(false);
+    // A call that reached the model read at least one token, and these prices are Claude Haiku 4.5's.
+    expect(withinReservation(request, call({ inputTokens: 0, outputTokens: 0 }))).toBe(false);
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 2, model: "claude-opus-4-1-20250805" }))).toBe(false);
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 2, model: undefined }))).toBe(false);
   });
 
   it("settles a verified reply at what it reported: each call's usage at the prices, the credit fee included, and a call that reached no model at nothing", () => {

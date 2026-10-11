@@ -187,6 +187,7 @@ describe("a call that reached the provider stops the run unless it can be truste
       ["a refusal that is not the Worker's, which cannot show no model ran", () => new Response("<html>forbidden</html>", { status: 403 }), "usage-missing"],
       ["a provider failure that reports nothing", () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }), "usage-missing"],
       ["an answer that reports no provider call", () => served([]), "usage-missing"],
+      ["a 502 that reports no call, which only the Worker's own refusals made before any call may", () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [] }), "usage-missing"],
       ["an answer that reports no calls at all", () => served(undefined as never, { model: HAIKU, usage: null }), "usage-missing"],
       ["no model named", () => served([call({})], {}), "model-missing"],
       // The Worker names one model per reply, the one its final, successful call reported: the first call of its parse
