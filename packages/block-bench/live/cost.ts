@@ -127,7 +127,7 @@ export function withinReservation(request: Priced, call: ModelCallRecord): boole
     Number.isSafeInteger(call.inputTokens) &&
     Number.isSafeInteger(call.outputTokens) &&
     call.inputTokens >= 1 &&
-    (call.outcome !== "ok" || call.outputTokens >= 1) &&
+    call.outputTokens >= (call.outcome === "ok" ? 1 : 0) &&
     call.inputTokens <= inputTokenBound(request) &&
     call.outputTokens <= MAX_OUTPUT_TOKENS
   );

@@ -85,6 +85,8 @@ describe("a request's worst case", () => {
     expect(withinReservation(request, call({ outcome: "provider-error" }))).toBe(false);
     // A call that reached the model read at least one token, and these prices are Claude Haiku 4.5's, by its whole id.
     expect(withinReservation(request, call({ inputTokens: 0, outputTokens: 0 }))).toBe(false);
+    // Tokens are counted, never negative, an unusable output's included.
+    expect(withinReservation(request, call({ inputTokens: 10, outputTokens: -1, outcome: "unusable-output" }))).toBe(false);
     // Tokens are whole: a fractional count proves nothing.
     expect(withinReservation(request, call({ inputTokens: 10.5, outputTokens: 2 }))).toBe(false);
     expect(withinReservation(request, call({ inputTokens: 10, outputTokens: 1.5 }))).toBe(false);

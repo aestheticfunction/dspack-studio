@@ -114,22 +114,15 @@ const refusedBeforeAnyCall = (status: number, body: Record<string, unknown> | un
 /**
  * Whether a refused reply reached no model, so a retry after a backoff costs nothing: the zone limiter's 429 or the
  * unavailable Worker's 503, each a refusal made before any provider call, or the gateway's busy 503, which reports the
- * one call the gateway rejected, with no usage (propose.mjs callModel). A reply that reports any usage, or any other
- * outcome, spent something and is never retried.
+ * one call the gateway rejected, with no usage (propose.mjs callModel). A reply that reports any usage, more than that
+ * one call, or any other outcome, may have spent something and is never retried.
  */
 export const retryableRefusal = (status: number, body: Record<string, unknown> | undefined): boolean => {
   if (status !== 429 && status !== 503) return false;
   if (refusedBeforeAnyCall(status, body)) return true;
-  return (
-    status === 503 &&
-    body?.error === "busy" &&
-    Array.isArray(body.calls) &&
-    body.calls.length > 0 &&
-    body.calls.every((raw) => {
-      const call = (raw ?? {}) as Record<string, unknown>;
-      return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
-    })
-  );
+  if (status !== 503 || body?.error !== "busy" || !Array.isArray(body.calls) || body.calls.length !== 1) return false;
+  const call = (body.calls[0] ?? {}) as Record<string, unknown>;
+  return call.outcome === "provider-error" && call.inputTokens == null && call.outputTokens == null;
 };
 
 export { CELL_REQUESTS };

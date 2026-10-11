@@ -149,6 +149,11 @@ describe("the hosted client agrees with the app's gateway adapter on every reply
     expect(retryableRefusal(502, { calls: [] })).toBe(false);
     expect(retryableRefusal(429, { calls: [{}] })).toBe(false);
     expect(retryableRefusal(503, { calls: [{ inputTokens: 10, outputTokens: null, outcome: "provider-error" }] })).toBe(false);
+    // The busy gateway turns away the one call the Worker made: a busy reply reporting more is not the Worker's, and is
+    // never taken for free.
+    const rejected = { inputTokens: null, outputTokens: null, outcome: "provider-error" };
+    expect(retryableRefusal(503, { error: "busy", calls: [rejected] })).toBe(true);
+    expect(retryableRefusal(503, { error: "busy", calls: [rejected, rejected] })).toBe(false);
   });
 });
 
