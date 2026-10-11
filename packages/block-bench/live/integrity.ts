@@ -50,10 +50,11 @@ export interface ServedModel {
 /**
  * Holds one reply's calls to the run's integrity conditions, in order, and throws RunHalted at the first that breaks
  * one. The runner holds every reply but a refusal that showed it reached no model, so the reply must report a call that
- * reached the provider, and itemize its calls (`itemized`, the Worker's calls[]) so that its usage covers every call it
- * made. The run's model is recorded only from a reply that holds.
+ * reached the provider, itemize its calls (`itemized`, the Worker's calls[]) so that its usage covers every call it
+ * made, and state that usage once (`statedOnce`: every spelling of a figure agreeing, and its total its calls' sum).
+ * The run's model is recorded only from a reply that holds.
  */
-export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, reply: { itemized: boolean }): void {
+export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, reply: { itemized: boolean; statedOnce: boolean }): void {
   const reached = calls.filter((call) => call.source !== "none");
   if (reached.length === 0) throw new RunHalted("usage-missing", "a reply that is not a refusal made before any provider call reported no call that reached the provider, so the run cannot show whether a model ran, or meter it");
   for (const call of reached) {
@@ -67,5 +68,6 @@ export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel
     if (call.model !== measured) throw new RunHalted("model-changed", `${where} was served by ${call.model}, but the run measures ${measured}${served.id === undefined ? "" : " (manifest.json)"}`);
   }
   if (!reply.itemized) throw new RunHalted("usage-missing", "a reply did not itemize its calls (calls[]), so the run cannot show that its usage covers every call it made");
+  if (!reply.statedOnce) throw new RunHalted("usage-missing", "a reply stated its usage two ways that disagree (a figure under two spellings, or a total that is not its calls' sum), so the run cannot meter it");
   if (served.id === undefined) served.record(reached[0]!.model!);
 }

@@ -252,10 +252,10 @@ export function createHostedProvider(options: HostedOptions): Provider {
         const foreign = [...records.map((call) => call.model), reply?.model, ...listed].find((model): model is string => typeof model === "string" && !PRICED_FAMILY.test(model));
         verified = foreign === undefined && totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
         // Then held to the run's integrity conditions (live/integrity.ts), on every path but a release: a call that
-        // reached the provider must report its usage and the model the run measures, or the run stops (RunHalted)
-        // with this request settled on the way out like any other.
+        // reached the provider must report its usage, stated once, and the model the run measures, or the run stops
+        // (RunHalted) with this request settled on the way out like any other.
         const served = options.pacer?.served;
-        if (served && !released) holdCalls(ownModels(records), served, PRICED_MODEL, { itemized });
+        if (served && !released) holdCalls(ownModels(records), served, PRICED_MODEL, { itemized, statedOnce: totalOnce && stated.every((s) => s.once) && agrees });
         if (options.pacer && !released && foreign !== undefined) throw new UnpricedModel(foreign);
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.

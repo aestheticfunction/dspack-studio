@@ -197,6 +197,10 @@ describe("a call that reached the provider stops the run unless it can be truste
       // one of its refusals made before any call.
       ["a 502 that reports no call", () => reply(502, { error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [] }), "usage-missing"],
       ["an answer that reports no calls at all", () => served(undefined as never, { model: HAIKU, usage: null }), "usage-missing"],
+      // Usage stated two ways cannot be metered: the app reads a figure's first spelling, and the Worker's total is the
+      // sum of its calls.
+      ["a figure stated under two spellings that disagree", () => served([call({ input_tokens: 1000 })]), "usage-missing"],
+      ["a total that is not its calls' sum", () => served([call({})], { model: HAIKU, usage: { inputTokens: 1000, outputTokens: 2 } }), "usage-missing"],
       ["no model named", () => served([call({})], {}), "model-missing"],
       // The Worker names one model per reply, the one its final, successful call reported: the first call of its parse
       // retry names none of its own, and is not given the reply's.
