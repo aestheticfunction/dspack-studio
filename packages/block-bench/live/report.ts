@@ -66,9 +66,10 @@ function sensitivityReadings(s: OperationSensitivity, d: Decision): string[] {
       : clarityOnly.length > 0
         ? `The verdict holds in every reading, but its clarity changes in ${named(clarityOnly)}.`
         : "Neither the verdict nor its clarity changes in any reading.";
-  // An unchanged surface is the right answer where a template does not apply to it, which is why those readings exist.
+  // An unchanged surface is the right answer where a template does not apply to it, which is why those readings exist,
+  // but it is also what an ignored instruction leaves, so they can excuse real misses.
   const unchanged = s.readings.some((r) => r.failing === "changed-missed" || r.failing === "changed-missed-and-mixed")
-    ? " Leaving out the misses that left their surface unchanged matters where a template does not apply to a prompt's surface, since an unchanged surface is the right answer there; the add and remove table by block shows where they fall."
+    ? " Leaving out the misses that left their surface unchanged matters where a template does not apply to a prompt's surface, since an unchanged surface is the right answer there. It is also what a refinement that ignored its instruction leaves (a block refinement that re-sends its prior call expands to exactly the same surface), so the readings that leave those misses out can excuse real ones too; the add and remove table by block shows which templates they come from."
     : "";
   return [
     row(["Counted as failures", "Verdict", "Clarity", "Pass rate, block", "Pass rate, capped", "Pass rate, production", "Token reduction vs production"]),
@@ -267,7 +268,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), operation(s.operation), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
       out.push(
         "",
-        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. A node is matched by its id where that id occurs exactly once in both surfaces, otherwise by its place among its unmatched siblings of the same component, so a node matched by place that moves can read as lists changed both ways. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; under each decision, its add and remove readings show whether the verdict or its clarity changes when these count as failures.",
+        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. A node in a list is matched by its id where that id occurs exactly once in both surfaces, otherwise by its place among its unmatched siblings of the same component, so a node matched by place that moves can read as lists changed both ways. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; under each decision, its add and remove readings show whether the verdict or its clarity changes when these count as failures.",
         "",
       );
       // By block, per arm: a template that fits some prompts' surfaces and not others shows where its misses fall.
@@ -286,7 +287,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
         }
         out.push(
           "",
-          "Performed of checked, per arm. A template that does not apply to a prompt's surface (an add of an item already there, a remove of one that is absent) shows here as misses, often unchanged, in the arms whose surfaces it does not fit.",
+          "Performed of checked, per arm. A template that does not apply to a prompt's surface (an add of an item already there, a remove of one that is absent) shows here as misses, often unchanged, in the arms whose surfaces it does not fit. An unchanged miss is also what a refinement that ignored its instruction leaves, so unchanged misses on a template that applies to every surface, such as an added row or step, are real ones.",
           "",
         );
       }

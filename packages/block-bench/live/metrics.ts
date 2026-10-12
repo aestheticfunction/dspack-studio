@@ -45,7 +45,8 @@ export const DEFAULT_DECISION: Readonly<DecisionOptions> = Object.freeze({ reduc
  * Passing add and remove refinements, by what their surfaces did (live/operation.ts): performed (the requested direction
  * only), mixed (lists changed both ways), missed (no list changed, or only the other way), and among the missed, those
  * that left the surface exactly as it was (unchanged). An unchanged surface is the right answer where a template does not
- * apply to the surface, so those misses are counted apart. A measurement beside the pass rate, never in it.
+ * apply to the surface, but also what a refinement that ignored its instruction leaves, so those misses are counted apart.
+ * A measurement beside the pass rate, never in it.
  */
 export interface OperationCounts {
   checked: number;
@@ -226,8 +227,10 @@ export interface SensitivityReading {
 
 /**
  * The ways of counting the passing add and remove refinements that did not do what they asked as failures, one reading
- * each: the missed ones; the missed and the mixed ones; and, since an unchanged surface is the right answer where a
- * template does not apply to it, the same two with only the misses that changed their surface.
+ * each: the missed ones; the missed and the mixed ones; and the same two with only the misses that changed their surface.
+ * An unchanged surface is the right answer where a template does not apply to it, but also what a refinement that ignored
+ * its instruction leaves (a block refinement that re-sends its prior call expands to the same surface), so the readings
+ * that leave unchanged misses out can excuse real ones, and the readings that count them can count correct no-ops.
  */
 export type SensitivityFailing = "missed" | "missed-and-mixed" | "changed-missed" | "changed-missed-and-mixed";
 

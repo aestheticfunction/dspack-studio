@@ -5,12 +5,13 @@
  * refinement that rewrote a title passes an add as readily as one that added the row.
  *
  * The check compares the passing refined surface with the prior one the same arm built, list by list: every node's
- * children and every array in its props, each keyed by the node that owns it. A node whose id is in both surfaces exactly
- * once is matched by its component and id (`table(tickets)`) wherever it sits, so an item put first, a table moved into a
- * new container, or siblings reordered leave its lists alone. Any other node (no id, an id one surface lacks, a repeated
- * id) is placed under its parent by its component and its rank among same-component siblings not matched by id
- * (`table#1` is the second), so a renamed id never reads as lists removed and added again; an element of a plain array is
- * placed by its index. A shadcn table's rows are its `table-body`'s children, an Astryx table's are its `props.data`. An
+ * children and every array in its props, each keyed by the node that owns it. A node in a list (or the root) whose id is
+ * in both surfaces exactly once is matched by its component and id (`table(tickets)`) in whichever list it sits, so an
+ * item put first, a table moved into a new container, or siblings reordered leave its lists alone. Any other node in a
+ * list (no id, an id one surface lacks, a repeated id) is placed under its parent by its component and its rank among
+ * same-component siblings not matched by id (`table#1` is the second), so a renamed id never reads as lists removed and
+ * added again. A node held in a prop of its own, rather than in a list, is placed by its path, and an element of a plain
+ * array by its index. A shadcn table's rows are its `table-body`'s children, an Astryx table's are its `props.data`. An
  * add must lengthen a list and shorten none; a remove, the reverse. Each list is judged on its own, so a row added to one
  * table never hides a row dropped from another. The check judges the direction of the change, not its content or its
  * size, from the two surfaces alone, so it scores every arm identically.
