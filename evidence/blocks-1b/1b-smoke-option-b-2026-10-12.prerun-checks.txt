@@ -1,0 +1,8 @@
+checks at 2026-10-12T03:38:20Z
+HEAD 03c9465aef21dc57cdee7d5c3fd03017f0888c52
+?? docs/blocks/baseline.json
+fresh directory absent: ok
+old evidence non-OK checksums: 0
+baseline exit=0
+probe at 2026-10-12T03:38:25.098Z | equals the post-deploy baseline: true | build xyE6-W1k_Lck1rWQf4dEu | worker per-call-model ["per-call-model"] | models scripted,hosted-ai | sidecars shadcn-v3=approved/ok/3 usable/0 disabled astryx=approved/ok/3 usable/0 disabled | drafts false
+plan: cells 32 | frozen ok | perArm {"block":8,"block-positional":8,"capped":8,"production":8} | usd 7 | total 160 | per-invocation 160 | spacing 12000 | out live/runs/1b-smoke-option-b-2026-10-12 | drafts/force/rerun false false false | code 2d874a15eb36
