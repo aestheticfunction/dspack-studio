@@ -227,3 +227,33 @@ describe("the ADR-B3 decision reads production, capped and the named block arm o
   });
 });
 
+describe("what each figure measures (pacing, parity, add and remove)", () => {
+  it("latency is read from the execution clock, with the pacer's waits apart; a record that kept no execution figures has no latency, never its wall clock", () => {
+    const paced: RunRecord = { ...record({ arm: "production", passed: true }), timings: { totalMs: 15_000, firstGatedAttemptMs: 14_000, emitMs: 4, pacingMs: 12_000, execution: { totalMs: 3_000, firstGatedAttemptMs: 2_000, emitMs: 4 } } };
+    const [stats] = armStats([paced]);
+    expect(stats!.latency).toMatchObject({ totalMs: 3_000, firstGatedAttemptMs: 2_000, emitMs: 4, pacingMs: 12_000, wallTotalMs: 15_000 });
+    const [unseparated] = armStats([record({ arm: "production", passed: true })]);
+    expect(unseparated!.latency).toMatchObject({ totalMs: null, firstGatedAttemptMs: null, emitMs: null, pacingMs: null, wallTotalMs: 10 });
+  });
+
+  it("parity is scored only where the checklist checks something: an empty checklist is counted apart, never as a full score", () => {
+    const scored: RunRecord = { ...record({ arm: "block", passed: true }), parity: { score: 0.5, satisfied: ["label:status"], missing: ["label:priority"] } };
+    const empty: RunRecord = { ...record({ arm: "block", passed: true }), parity: { score: 1, satisfied: [], missing: [] } };
+    const [stats] = armStats([scored, empty]);
+    expect(stats!.parity).toEqual({ meanScore: 0.5, scored: 1, fullyParityPassed: 0, noChecks: 1 });
+  });
+
+  it("counts passing add and remove refinements by what they did, per condition and pooled", () => {
+    const op = (requested: "add" | "remove", observed: "add" | "remove" | "mixed" | "none") => ({ requested, observed, deltas: {} });
+    const records: RunRecord[] = [
+      { ...record({ arm: "block", passed: true, condition: "refine-add" }), operation: { requested: "add", observed: "add", deltas: { "table.props.data": 1 } } },
+      { ...record({ arm: "block", passed: true, condition: "refine-add" }), operation: op("add", "none") },
+      { ...record({ arm: "block", passed: true, condition: "refine-add" }), operation: op("add", "mixed") },
+      { ...record({ arm: "block", passed: true, condition: "refine-remove" }), operation: op("remove", "add") },
+      record({ arm: "block", passed: false, condition: "refine-remove" }),
+    ];
+    expect(armStats(records).find((s) => s.condition === "refine-add")!.operation).toEqual({ checked: 3, performed: 1, mixed: 1, missed: 1 });
+    expect(armStats(records).find((s) => s.condition === "refine-remove")!.operation).toEqual({ checked: 1, performed: 0, mixed: 0, missed: 1 });
+    expect(armStats(records, { pooled: true })[0]!.operation).toEqual({ checked: 4, performed: 1, mixed: 1, missed: 2 });
+  });
+});

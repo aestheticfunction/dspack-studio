@@ -98,6 +98,13 @@ describe("dry run", () => {
     expect(report).not.toContain("**Provisional.**");
     expect(report).toContain("### Selection accuracy (block arm, fresh)");
     expect(report).toContain("| refine-content | block |");
+    // The scripted twin answers an add or a remove by rewriting a text node: every one passes the gates without adding or
+    // removing anything, the defect the add and remove check exists to show (live/operation.ts).
+    const operations = result.records.filter((r) => (r.condition === "refine-add" || r.condition === "refine-remove") && r.passed);
+    expect(operations.length).toBeGreaterThan(0);
+    for (const r of operations) expect(r.operation, `${r.reference} ${r.arm} ${r.prompt} ${r.condition}`).toMatchObject({ requested: r.condition === "refine-add" ? "add" : "remove", observed: "none" });
+    expect(result.records.filter((r) => r.operation !== undefined && !operations.includes(r))).toEqual([]);
+    expect(report).toMatch(/\| refine-add \| block \| [^\n]*\| 0\.0% \(0\/\d+\); 0 mixed, \d+ missed \|/);
     expect(fetch).not.toHaveBeenCalled();
 
     // Resume: every cell is reused from the log, and refinements still find their priors there.

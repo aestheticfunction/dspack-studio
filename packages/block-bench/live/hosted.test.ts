@@ -17,7 +17,7 @@ import { GatewayError, gatewayAdapter } from "../../../apps/composer/app/hosted-
 import { handlePropose } from "../../../apps/composer/worker/propose.mjs";
 import { exampleFor, runCell } from "./arms";
 import { promptsFor, readCorpus, type Corpus } from "./corpus";
-import { selectionStats } from "./metrics";
+import { armStats, selectionStats } from "./metrics";
 import { runEvaluation } from "./evaluate";
 import { PacingCapReached, RunStop, UnboundedReply, UnpricedModel, createPacer } from "./pacing";
 import { preflight } from "./preflight";
@@ -484,6 +484,31 @@ describe("the gateway's busy reply and a planning outage, through the real Worke
     expect(strip(recorder.calls).map((c) => [c.source, c.outcome])).toEqual([["none", "refused"], ["provider", "ok"]]);
     expect(meter.requests).toBe(1);
     expect(meter.bytes).toBe(new TextEncoder().encode(JSON.stringify(request)).length);
+  });
+
+  it("a cell's latency is its own work: the pacer's spacing and backoff waits are measured apart and never inside a latency figure", async () => {
+    // A clock that moves only while the pacer sleeps, so everything the cell itself does takes no time at all.
+    let clock = 0;
+    let refuse = true;
+    const w = workerFetch((kind) => {
+      // The surface request is refused once by the gateway before it is served.
+      if (kind === "surface" && refuse) {
+        refuse = false;
+        throw new Error("AiError: 429 Too Many Requests");
+      }
+      return ok(kind === "plan" ? plan : exampleFor(astryx, "record-collection"));
+    });
+    const pacer = createPacer({ maxRequests: 10, spacingMs: 12_000, backoffMs: [30_000], now: () => clock, sleep: async (ms) => void (clock += ms) });
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl: w.fetchImpl, pacer });
+    const { record } = await runCell({ reference: astryx, provider, arm: "production", condition: "fresh", prompt: prompt(), corpus, now: () => clock });
+    expect(record.passed).toBe(true);
+    // The plan went at once; the surface request waited out the spacing, was refused, and was re-sent after the backoff.
+    expect(pacer.waits.map((x) => [x.reason, x.ms])).toEqual([["spacing", 12_000], ["503 busy", 30_000]]);
+    expect(pacer.waitedMs).toBe(42_000);
+    // The wall clock keeps the waits, as it always did; the execution figures and the pacing beside them separate them.
+    expect(record.timings).toMatchObject({ totalMs: 42_000, firstGatedAttemptMs: 42_000, pacingMs: 42_000, execution: { totalMs: 0, planMs: 0, firstGatedAttemptMs: 0, emitMs: 0 } });
+    const [stats] = armStats([record]);
+    expect(stats!.latency).toMatchObject({ totalMs: 0, firstGatedAttemptMs: 0, emitMs: 0, pacingMs: 42_000, wallTotalMs: 42_000 });
   });
 
   it("holds the run's dollar ceiling across resumes: each request reserves its own priced worst case before it is sent, a cell is admitted only when its worst case fits, and a resume holds to the recorded ceiling until a new one is named", async () => {

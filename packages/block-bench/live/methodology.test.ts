@@ -11,7 +11,7 @@ import { CONDITIONS, type Arm, type Condition, type RunRecord } from "./types";
 import type { EvaluationResult } from "./evaluate";
 import type { Preflight } from "./preflight";
 
-type Cell = { arm: Arm; prompt: string; condition?: Condition; passed: boolean; tokens?: [number, number]; reference?: string };
+type Cell = { arm: Arm; prompt: string; condition?: Condition; passed: boolean; tokens?: [number, number]; reference?: string; extra?: Partial<RunRecord> };
 
 function cell(c: Cell): RunRecord {
   const [input, output] = c.tokens ?? [100, 0];
@@ -33,6 +33,7 @@ function cell(c: Cell): RunRecord {
     requestBytes: 100,
     timings: { totalMs: 10 },
     plan: { intent: "record-collection", source: "model", calls: [], bytes: 0, durationMs: 0 },
+    ...c.extra,
   };
 }
 
@@ -152,10 +153,26 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
     expect(d!.verdict).toBe("pass");
     expect(d!.cohort).toBe(10);
     expect(d!.intervals.reductionVsProduction).toMatchObject({ low: 0.5, high: 0.5, prompts: 10 });
-    expect(d!.clarity.tokens).toBe("clear-pass");
-    expect(d!.clarity.overall).toBe("uncertain");
+    // An interval over fewer prompts than the minimum is not interpretable (the addendum), however tight it looks.
+    expect(d!.clarity).toEqual({ tokens: "insufficient", vsProduction: "insufficient", vsCapped: "insufficient", overall: "insufficient" });
+  });
+
+  it("calls no criterion clear below the minimum: four prompts are insufficient, and the report never says clearly met", () => {
+    const records = prompts(4).flatMap((p) => [...thread("block", p, () => true, [50, 0]), ...thread("capped", p, () => true, [100, 0]), ...thread("production", p, () => true, [100, 0])]);
+    const summary = summarize(records);
+    const [d] = summary.decisions;
+    expect(d!.intervals.reductionVsProduction).toMatchObject({ low: 0.5, high: 0.5, prompts: 4 });
+    expect(d!.clarity).toEqual({ tokens: "insufficient", vsProduction: "insufficient", vsCapped: "insufficient", overall: "insufficient" });
+    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
+    expect(report).not.toMatch(/clearly met|clearly missed/);
+    expect(report).toContain("insufficient: the interval rests on fewer prompts than the rule's minimum of 20, so it is not interpretable");
   });
 });
+
+function resultOf(records: RunRecord[], summary = summarize(records)): EvaluationResult {
+  const preflight: Preflight = { at: "2026-10-11T00:00:00.000Z", sidecars: [], drafts: false };
+  return { runId: "r", records, summary, preflight, invocations: [], superseded: { records: 0, providerCalls: 0, inputTokens: 0, outputTokens: 0, requestBytes: 0 }, arms: ["block", "block-positional", "capped", "production"], cells: { total: records.length, done: records.length, reused: 0 } };
+}
 
 describe("the report prints counts beside every rate and labels the rule for what it is", () => {
   it("shows numerators and denominators, prompt threads, intervals and the descriptive label", () => {
@@ -180,5 +197,82 @@ describe("the report prints counts beside every rate and labels the rule for wha
     expect(report).toContain("52 (1200/23)"); // the block arm's fresh builds: 24 x 50 tokens over 23 successes
     expect(report).toContain("45 (5400/120)"); // the positional arm, every condition pooled
     expect(report).not.toMatch(/metered runs \/ successes/);
+  });
+});
+
+/** A passing add or remove refinement's check, as live/operation.ts records it. */
+const operation = (condition: Condition, observed: "add" | "remove" | "mixed" | "none") =>
+  condition === "refine-add" || condition === "refine-remove" ? { operation: { requested: condition === "refine-add" ? ("add" as const) : ("remove" as const), observed, deltas: {} } } : {};
+/** Every arm passes everything; the block arm is half as costly; `observed` says what each add and remove did. */
+const checked = (observed: (arm: Arm, condition: Condition) => "add" | "remove" | "mixed" | "none") =>
+  prompts(24).flatMap((p) =>
+    (["block", "capped", "production"] as Arm[]).flatMap((arm) =>
+      CONDITIONS.map((condition) => cell({ arm, prompt: p, condition, passed: true, tokens: arm === "block" ? [50, 0] : [100, 0], extra: operation(condition, observed(arm, condition)) })),
+    ),
+  );
+const done = (_arm: Arm, condition: Condition) => (condition === "refine-add" ? "add" : "remove");
+
+describe("the add and remove check sits beside the rule: it never changes the verdict, and says when the verdict rests on it", () => {
+  it("a verdict that holds only because add refinements passed without adding anything is flagged, and stays the verdict", () => {
+    const records = checked((arm, condition) => (arm === "block" && condition === "refine-add" ? "none" : done(arm, condition)));
+    const summary = summarize(records);
+    const [d] = summary.decisions;
+    expect(d).toMatchObject({ verdict: "pass", clarity: { overall: "clear" }, passRates: { block: 1 } });
+    const [s] = summary.sensitivity;
+    expect(s).toMatchObject({
+      reference: "astryx",
+      operation: { block: { checked: 48, performed: 24, mixed: 0, missed: 24 }, capped: { checked: 48, performed: 48 }, production: { checked: 48, performed: 48 } },
+      missedAsFailures: { verdict: "fail" },
+      notPerformedAsFailures: { verdict: "fail" },
+      robust: false,
+    });
+    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
+    expect(report).toContain("- Add and remove refinements (live/operation.ts; beside the rule, never in it): block performed 24 of the 48 that passed (0 mixed, 24 missed); capped 48 of 48 (0 mixed, 0 missed); production 48 of 48 (0 mixed, 0 missed). With the missed ones counted as failures, the decision would be fail (clear); with the mixed ones too, fail (clear). The verdict rests on refinements that did not do what they asked.");
+  });
+
+  it("mixed changes are bounded both ways, and a verdict that survives both readings is said to", () => {
+    const records = checked((arm, condition) => (arm === "production" && condition === "refine-remove" ? "mixed" : done(arm, condition)));
+    const summary = summarize(records);
+    expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
+    expect(summary.sensitivity[0]).toMatchObject({ operation: { production: { checked: 48, performed: 24, mixed: 24, missed: 0 } }, missedAsFailures: { verdict: "pass", overall: "clear" }, notPerformedAsFailures: { verdict: "pass", overall: "clear" }, robust: true });
+    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
+    expect(report).toContain("The verdict does not rest on refinements that did not do what they asked.");
+  });
+});
+
+describe("the report says what each figure is", () => {
+  it("per success for input and output, execution latency with pacing and emit apart, every condition's paths, fallbacks and invariant failures, the add and remove check, and parity's limits", () => {
+    const timings = { totalMs: 12_500, firstGatedAttemptMs: 12_300, emitMs: 3, pacingMs: 12_000, execution: { totalMs: 500, firstGatedAttemptMs: 300, emitMs: 3 } };
+    const records = prompts(4).flatMap((p, i) =>
+      (["block", "capped", "production"] as Arm[]).flatMap((arm) =>
+        CONDITIONS.map((condition) => {
+          const extra: Partial<RunRecord> = { timings, ...operation(condition, condition === "refine-add" ? "add" : "none"), ...(condition !== "fresh" ? { changed: true } : {}), parity: i === 0 ? { score: 1, satisfied: [], missing: [] } : { score: 1, satisfied: ["label:status"], missing: [] } };
+          if (arm === "block" && condition === "refine-structural") Object.assign(extra, { path: "fallback", budgetRemainingAtFallback: 2, trace: { outcome: "fallback", fallback: { reason: "unsupported", classification: "unsupported-refinement" } } });
+          if (arm === "block" && condition === "refine-content" && i === 1) Object.assign(extra, { path: "invariant", outcome: "invariant-failure", parity: undefined, operation: undefined });
+          return cell({ arm, prompt: p, condition, passed: !(arm === "block" && condition === "refine-content" && i === 1), extra });
+        }),
+      ),
+    );
+    const report = renderReport(resultOf(records), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
+    // Input and output are per success, like the figure they split.
+    expect(report).toContain("| Input/success | Output/success |");
+    expect(report).not.toMatch(/\| Input \| Output \|/);
+    // Latency is execution time; the pacer's waits and the emit time have their own columns.
+    expect(report).toContain("| p50 total | p50 first gated | p50 block phase | p50 emit | p50 pacing |");
+    expect(report).toMatch(/\| 500 ms \| 300 ms \| n\/a \| 3 ms \| 12000 ms \|/);
+    expect(report).toContain("Latencies are execution time: the harness's own pacing and backoff waits are taken out and shown apart (p50 pacing, per cell).");
+    // Paths, fallbacks and invariant failures for every arm and condition, and the pooled rows the decision reads.
+    expect(report).toContain("### Paths, fallbacks and invariant failures (every arm and condition)");
+    expect(report).toContain("| refine-structural | block | 4 | fallback 4/4 | unsupported-refinement 4 | 2 left: 4 | 0 | 0 |");
+    expect(report).toContain("| refine-content | block | 4 | primitive 3/3, invariant 0/1 | none | none | 1 | 0 |");
+    expect(report).toContain("| all conditions | block | 20 | fallback 4/4, primitive 15/15, invariant 0/1 | unsupported-refinement 4 | 2 left: 4 | 1 | 0 |");
+    // The add and remove check, per condition.
+    expect(report).toContain("| Condition | Arm | Cells | Skipped | Evaluated | Pass rate | Changed | Operation performed | Retention |");
+    expect(report).toContain("| refine-add | block | 4 | 0 | 4 | 100.0% (4/4) | 100.0% (4/4) | 100.0% (4/4); 0 mixed, 0 missed |");
+    expect(report).toContain("| refine-remove | block | 4 | 0 | 4 | 100.0% (4/4) | 100.0% (4/4) | 0.0% (0/4); 0 mixed, 4 missed |");
+    expect(report).toContain("| refine-content | block | 4 | 0 | 4 | 75.0% (3/4) | 100.0% (3/3) | n/a |");
+    // Parity: an empty checklist is not scored, and action names are not in the frozen checklist.
+    expect(report).toContain("100.0% (3 scored, 1 with no checks)");
+    expect(report).toContain("- Action names in parity: Plan v5's checklist lists them, but the frozen corpus (blocks-1b v1) names none, so parity scores labels and components only and cannot show whether an expected action exists. A checklist with nothing to check is not scored.");
   });
 });

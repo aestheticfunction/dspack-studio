@@ -99,4 +99,21 @@ describe("pacing for the shared gateway", () => {
     expect(slept).toEqual([10, 20]);
     expect(pacer.waits.map((w) => w.ms)).toEqual([10, 20]);
   });
+
+  it("measures the time it spent waiting, spacing and backoff alike, so a cell's latency can leave it out", async () => {
+    let clock = 0;
+    const pacer = createPacer({ maxRequests: 5, spacingMs: 1000, backoffMs: [30], now: () => clock, sleep: async (ms) => void (clock += ms) });
+    expect(pacer.waitedMs).toBe(0);
+    await pacer.before();
+    clock += 250; // the request itself
+    await pacer.before(); // waits the other 750
+    await pacer.backoff(0, "503 busy");
+    expect(pacer.waitedMs).toBe(780);
+    // Measured, not assumed: a sleep that takes no time is no wait, whatever it was asked for.
+    const instant = createPacer({ maxRequests: 5, spacingMs: 1000, now: () => 0, sleep: async () => undefined });
+    await instant.before();
+    await instant.before();
+    expect(instant.waits).toHaveLength(1);
+    expect(instant.waitedMs).toBe(0);
+  });
 });
