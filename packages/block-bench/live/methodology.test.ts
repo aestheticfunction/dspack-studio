@@ -259,6 +259,13 @@ describe("the report prints counts beside every rate and labels the rule for wha
   });
 });
 
+/**
+ * What the report says of the readings that leave out the misses that left their surface unchanged: an unchanged surface
+ * is the right answer where a template does not apply, and also what an ignored instruction leaves.
+ */
+const UNCHANGED_NOTE =
+  "Leaving out the misses that left their surface unchanged matters where a template does not apply to a prompt's surface, since an unchanged surface is the right answer there. It is also what a refinement that ignored its instruction leaves (a block refinement that re-sends its prior call expands to exactly the same surface), so the readings that leave those misses out can excuse real ones too; the add and remove table by block shows which templates they come from.";
+
 /** A passing add or remove refinement's check, as live/operation.ts records it. */
 const operation = (condition: Condition, observed: "add" | "remove" | "mixed" | "none") =>
   condition === "refine-add" || condition === "refine-remove" ? { operation: { requested: condition === "refine-add" ? ("add" as const) : ("remove" as const), observed, deltas: {} } } : {};
@@ -339,7 +346,28 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     });
     const text = report(records, summary);
     expect(text).toContain("| the missed ones that changed their surface | pass | clear | 100.0% (120/120) | 100.0% (120/120) | 100.0% (120/120) | 50.0% |");
-    expect(text).toContain("The verdict changes in one reading: the missed ones. Leaving out the misses that left their surface unchanged matters where a template does not apply to a prompt's surface, since an unchanged surface is the right answer there; the add and remove table by block shows where they fall.");
+    expect(text).toContain(`The verdict changes in one reading: the missed ones. ${UNCHANGED_NOTE}`);
+  });
+
+  it("never calls an unchanged surface a correct no-op outright: a block add that ignored its instruction re-sends its prior call, and leaves its surface exactly as it was", () => {
+    // Seven block adds re-sent their prior call, so each expanded to the same surface: unchanged misses, although adding a
+    // row applies to every table. The reading that leaves them out excuses them, and the report says it can.
+    const records = checked((arm, condition, i) => (arm === "block" && condition === "refine-add" && i < 7 ? "none" : done(arm, condition))).map((r) =>
+      r.arm === "block" && r.condition === "refine-add" && r.operation?.observed === "none" ? { ...r, changed: false } : r,
+    );
+    const summary = summarize(records);
+    expect(summary.sensitivity[0]).toMatchObject({
+      operation: { block: { checked: 48, performed: 41, missed: 7, unchanged: 7 } },
+      readings: [
+        { failing: "missed", reading: { verdict: "fail" } },
+        { failing: "changed-missed", reading: { verdict: "pass", overall: "clear" } },
+      ],
+      verdictHolds: false,
+    });
+    const text = report(records, summary);
+    expect(text).toContain(`The verdict changes in one reading: the missed ones. ${UNCHANGED_NOTE}`);
+    expect(text).toContain("| refine-add | records-table | 17/24; 0 mixed, 7 missed, 7 of them unchanged | 24/24 | 24/24 |");
+    expect(text).toContain("An unchanged miss is also what a refinement that ignored its instruction leaves, so unchanged misses on a template that applies to every surface, such as an added row or step, are real ones.");
   });
 
   it("never says the verdict is safe while a reading without the unchanged misses moves it: correct no-ops in the primitive arms cannot mask the block arm's real misses", () => {
@@ -402,7 +430,7 @@ describe("the report says what each figure is", () => {
     expect(report).toContain("| refine-add | records-table | 4/4 | 4/4 | 4/4 |");
     expect(report).toContain("| refine-remove | records-table | 0/4; 0 mixed, 4 missed, 1 of them unchanged | 0/4; 0 mixed, 4 missed, 1 of them unchanged | 0/4; 0 mixed, 4 missed, 1 of them unchanged |");
     expect(report).toContain("| the missed ones that changed their surface | insufficient |");
-    expect(report).toContain("Leaving out the misses that left their surface unchanged matters where a template does not apply to a prompt's surface, since an unchanged surface is the right answer there; the add and remove table by block shows where they fall.");
+    expect(report).toContain(UNCHANGED_NOTE);
     expect(report).toContain("| refine-content | block | 4 | 0 | 4 | 75.0% (3/4) | 100.0% (3/3) | n/a |");
     // Parity: an empty checklist is not scored, and action names are not in the frozen checklist.
     expect(report).toContain("100.0% (3 scored, 1 with no checks)");
