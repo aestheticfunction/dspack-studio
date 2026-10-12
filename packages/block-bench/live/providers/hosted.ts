@@ -4,7 +4,9 @@
  * the SAME classification the app's gateway adapter applies. The parity
  * test (hosted.test.ts) runs this client and the app's adapter over the
  * same replies and requires identical kinds, outcomes and records, so the
- * two cannot drift apart silently.
+ * two cannot drift apart silently. The one deliberate difference is each
+ * record's model (Option B): the app gives the reply's top-level model to
+ * every call, and this client only the model the call's own entry names.
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";
@@ -33,7 +35,11 @@ export function errorKind(status: number, body: Record<string, unknown> | undefi
   return "provider";
 }
 
-/** One record per provider call the Worker reports; the app's rule, verbatim (hosted-build.ts callRecords). */
+/**
+ * One record per provider call the Worker reports: the app's rule (hosted-build.ts callRecords) but for the model.
+ * Each record carries only the model its own calls[] entry names (Option B, per-call model attribution), never the
+ * reply's top-level model, which the app gives to every call: a call that names none of its own has none here.
+ */
 export function callRecords(
   body: Record<string, unknown> | undefined,
   at: { operation: CallOperation; attempt?: number; reissue?: true },
@@ -44,7 +50,6 @@ export function callRecords(
     ...(at.attempt !== undefined ? { attempt: at.attempt } : {}),
     ...(at.reissue ? { reissue: true as const } : {}),
   };
-  const model = typeof body?.model === "string" ? { model: body.model } : {};
   if (Array.isArray(body?.calls)) {
     if (body.calls.length === 0) return [{ ...where, source: "none", outcome: "refused", durationMs: fallback.durationMs }];
     return body.calls.map((raw, subCall): ModelCallRecord => {
@@ -55,36 +60,24 @@ export function callRecords(
         subCall,
         source: "provider",
         ...normalizeUsage(call),
-        ...model,
+        ...(typeof call.model === "string" && call.model ? { model: call.model } : {}),
         ...(typeof call.durationMs === "number" ? { durationMs: call.durationMs } : {}),
         outcome,
       };
     });
   }
+  // A reply that does not itemize its calls names no call's model.
   const refused = fallback.outcome === "refused" || body?.error === "unavailable";
   return [
     {
       ...where,
       source: refused ? "none" : "provider",
       ...normalizeUsage(body?.usage),
-      ...model,
       durationMs: fallback.durationMs,
       outcome: refused ? "refused" : fallback.outcome,
     },
   ];
 }
-
-/**
- * Each call with the model the Worker named for it. The Worker names one model per reply, the one its final, successful
- * call reported (propose.mjs parseProposal), and callRecords gives it to every call as the app records it; the first
- * call of a parse retry, and every call of an error reply, names none of its own.
- */
-export const ownModels = (records: readonly ModelCallRecord[]): ModelCallRecord[] =>
-  records.map((call, index) => {
-    if (call.outcome === "ok" && index === records.length - 1) return call;
-    const { model: _replyModel, ...own } = call;
-    return own;
-  });
 
 const FAILURE_OUTCOME: Record<FailureKind, ModelCallRecord["outcome"]> = {
   provider: "provider-error",
@@ -96,8 +89,9 @@ const FAILURE_OUTCOME: Record<FailureKind, ModelCallRecord["outcome"]> = {
 
 /**
  * The Worker's refusals made before any provider call (propose.mjs refuse), each code with its status: the only replies
- * whose `calls: []` shows that no model ran. The Worker also answers `calls: []` when its own reply fails after a billed
- * call (a 502), so any other reply that reports no call proves nothing. Pinned to the Worker's source by a test.
+ * whose `calls: []` shows that no model ran. A Worker before Option B also answered `calls: []` when its own reply failed
+ * after a billed call (a 502), so any other reply that reports no call proves nothing. Pinned to the Worker's source by
+ * a test.
  */
 export const PRE_CALL_REFUSALS: Readonly<Record<string, number>> = Object.freeze({
   "method-not-allowed": 405,
@@ -250,18 +244,23 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // run, which sends nothing more.
         const listed = Array.isArray(reply?.calls) ? reply.calls.map((raw) => ((raw ?? {}) as Record<string, unknown>).model) : [];
         const foreign = [...records.map((call) => call.model), reply?.model, ...listed].find((model): model is string => typeof model === "string" && !PRICED_FAMILY.test(model));
-        verified = foreign === undefined && totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && ownModels(records).every((call) => withinReservation(request, call));
+        // A model the reply names at its top that is no id at all (a number, an object, null) names nothing these prices cover.
+        const named = reply?.model === undefined || typeof reply.model === "string";
+        verified = named && foreign === undefined && totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
         // Then held to the run's integrity conditions (live/integrity.ts), on every path but a release: a call that
-        // reached the provider must report its usage, stated once, and the model the run measures, or the run stops
-        // (RunHalted) with this request settled on the way out like any other.
+        // reached the provider must report its usage, stated once, and name on its own entry the model the run
+        // measures, or the run stops (RunHalted) with this request settled on the way out like any other.
         const served = options.pacer?.served;
-        if (served && !released) holdCalls(ownModels(records), served, PRICED_MODEL, { itemized, statedOnce: totalOnce && stated.every((s) => s.once) && agrees });
+        const replyModel = reply?.model !== undefined ? { model: reply.model } : {};
+        const first = served && !released ? holdCalls(records, served, PRICED_MODEL, { itemized, statedOnce: totalOnce && stated.every((s) => s.once) && agrees, ...replyModel }) : undefined;
         if (options.pacer && !released && foreign !== undefined) throw new UnpricedModel(foreign);
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.
         if (options.pacer && !released && charged > calls) throw new UnboundedReply(`${charged} provider calls, more than the ${calls} its request allows`);
         const pastEveryCount = totalInfinite || stated.some((s, i) => s.infinite && records[i]!.source !== "none");
         if (options.pacer && !released && (pastEveryCount || largest.some(pastModelLimits) || totalPastModelLimits(total, charged))) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
+        // The run's first model is recorded only from a reply that passed every check above: integrity, price and bounds.
+        if (served && first !== undefined) served.record(first);
         return { calls: records, durationMs };
       };
       try {

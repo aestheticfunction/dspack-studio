@@ -32,7 +32,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     "",
     ...(result.servedModel
       ? [
-          `Served model: \`${result.servedModel.id}\`, recorded ${result.servedModel.at} from the run's first metered call (manifest.json); every later call is held to it.${result.servedModel.id === PRICED_MODEL ? " It is the configured id, which the Worker returns when the provider names no model, so it confirms no snapshot." : ""}`,
+          `Served model: \`${result.servedModel.id}\`, recorded ${result.servedModel.at} from the run's first metered call (manifest.json); every later call is held to it.${result.servedModel.id === PRICED_MODEL ? " It is the configured id, named by the provider itself rather than a dated snapshot, so it confirms no snapshot." : ""}`,
           "",
         ]
       : []),

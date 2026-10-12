@@ -33,11 +33,18 @@ const HEADERS = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
 };
-const json = (status, body) => new Response(JSON.stringify(body) + "\n", { status, headers: HEADERS });
+const reply = (status, text) => new Response(text + "\n", { status, headers: HEADERS });
+const json = (status, body) => reply(status, JSON.stringify(body));
+/* What this Worker reports beyond its Phase 0.5 shape, advertised on every
+   refusal made before a provider call, so a probe that costs no model call
+   (an empty body, refused 400) can tell it from an older Worker.
+   "per-call-model": every calls[] entry for a call whose response arrived
+   names the model the provider said served it (callModel). */
+export const CAPABILITIES = Object.freeze(["per-call-model"]);
 /* A /api/propose reply sent BEFORE any provider call. `calls: []` says so
    explicitly, so the browser can tell "no model was reached" from an older
    Worker that reported nothing. */
-const refuse = (status, body) => json(status, { ...body, calls: [] });
+const refuse = (status, body) => json(status, { ...body, calls: [], capabilities: CAPABILITIES });
 
 /** hosted-ai is offered only when the account binding is present AND not killed. */
 export function hostedModelsFor(env) {
@@ -109,16 +116,34 @@ function parseProposal(raw, model) {
   return { json: parsed, raw: cleaned, model: raw?.model ?? model };
 }
 
+/* The model the provider says served ONE call, as `{ model }`, or nothing
+   when it names none: never the configured id, never guessed. Never throws, so
+   a response whose model cannot be read still keeps its call record. */
+function servedModel(raw) {
+  try {
+    const model = raw?.model;
+    return typeof model === "string" && model.length > 0 ? { model } : {};
+  } catch {
+    return {};
+  }
+}
+
 /* Provider-reported token counts for ONE call, in the canonical shape
    dspack-gen's audit report reads ({inputTokens, outputTokens}). null means
    the provider did not report it; it is never guessed. */
 const tokenCount = (value) => (typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null);
+/* Never throws, like servedModel: a response whose usage cannot be read keeps
+   its call record, with no usage. */
 function usageOf(raw) {
-  const u = raw?.usage ?? {};
-  return {
-    inputTokens: tokenCount(u.input_tokens ?? u.prompt_tokens),
-    outputTokens: tokenCount(u.output_tokens ?? u.completion_tokens),
-  };
+  try {
+    const u = raw?.usage ?? {};
+    return {
+      inputTokens: tokenCount(u.input_tokens ?? u.prompt_tokens),
+      outputTokens: tokenCount(u.output_tokens ?? u.completion_tokens),
+    };
+  } catch {
+    return { inputTokens: null, outputTokens: null };
+  }
 }
 
 /** The request's total: each key summed over the calls that reported it;
@@ -132,8 +157,6 @@ function sumUsage(calls) {
   return usage.inputTokens === null && usage.outputTokens === null ? null : usage;
 }
 
-/** A failed request, carrying every provider call it made. `failure` is
-    "provider" (a call was rejected) or "unusable-output". */
 /** The shape the busy classifier reads. Never throws: a rejection value
     String() cannot convert must not cost the request its call records. */
 function describe(error) {
@@ -144,6 +167,9 @@ function describe(error) {
   }
 }
 
+/** A failed request, carrying every provider call it made. `failure` is
+    "provider" (a call was rejected, or its answer could not be serialized)
+    or "unusable-output". */
 class CallFailure extends Error {
   constructor(error, calls, failure) {
     super(describe(error));
@@ -163,10 +189,14 @@ class CallFailure extends Error {
    limit must not be hammered by this Worker. A second unusable output rides
    the existing 502 provider-unavailable path.
 
-   Every call is recorded ({inputTokens, outputTokens, outcome, durationMs})
-   whether it succeeded, was rejected, or returned unusable output, so the
-   browser accounts for all of them. `maxCalls` (1 or 2) caps the calls this
-   request may make; 1 disables the retry. Exported for unit tests. */
+   Every call is recorded ({inputTokens, outputTokens, model, outcome,
+   durationMs}) whether it succeeded, was rejected, or returned unusable
+   output, so the browser accounts for all of them. A call's usage and the
+   model that served it are read the moment its response arrives, before the
+   output is parsed or a retry is decided, so every reply sent after the call
+   carries them; a rejected call returned no response and names no model.
+   `maxCalls` (1 or 2) caps the calls this request may make; 1 disables the
+   retry. Exported for unit tests. */
 export async function callModel(env, model, request, maxCalls = 2) {
   const calls = [];
   let unusable;
@@ -180,12 +210,13 @@ export async function callModel(env, model, request, maxCalls = 2) {
       throw new CallFailure(error, calls, "provider");
     }
     const durationMs = Date.now() - started;
+    const served = { ...usageOf(raw), ...servedModel(raw) };
     try {
       const proposal = parseProposal(raw, model);
-      calls.push({ ...usageOf(raw), outcome: "ok", durationMs });
+      calls.push({ ...served, outcome: "ok", durationMs });
       return { ...proposal, usage: sumUsage(calls), calls };
     } catch (error) {
-      calls.push({ ...usageOf(raw), outcome: "unusable-output", durationMs });
+      calls.push({ ...served, outcome: "unusable-output", durationMs });
       unusable = error;
     }
   }
@@ -286,33 +317,50 @@ export async function handlePropose(request, env) {
     return refuse(400, { error: "invalid-request", message: "maxCalls must be 1 or 2." });
   }
 
+  let result;
   try {
-    return json(200, await callModel(env, PRIMARY, { system, messages, jsonSchema }, maxCalls));
+    result = await callModel(env, PRIMARY, { system, messages, jsonSchema }, maxCalls);
   } catch (error) {
-    // Every provider call this request made is reported, on every reply, so
-    // a failed request is never free in the browser's accounting.
-    const calls = Array.isArray(error?.calls) ? error.calls : [];
-    const accounted = { usage: sumUsage(calls), calls };
-    // Classified by SHAPE only — never inspected for content, never echoed: a
-    // provider error can quote the request that caused it, and the prompt must
-    // not reach a log or a response. The zone-wide gateway rate limit fires
-    // because SOMEONE ELSE is generating, which is a different, actionable fact.
-    const shape = String(error?.message ?? "");
-    const busy = error?.failure !== "unusable-output" && /\b429\b|too many requests|rate.?limit|capacity/i.test(shape);
-    if (busy) {
-      return json(503, {
-        error: "busy",
-        message: "The shared generation gateway is busy right now. Try again in a moment, or use scripted mode.",
-        ...accounted,
-      });
-    }
-    return json(502, {
-      error: "provider-unavailable",
-      // "unusable-output": the model answered but not with a usable proposal;
-      // "provider": the call itself failed (timeout, transport, provider error).
-      cause: error?.failure === "unusable-output" ? "unusable-output" : "provider",
-      message: "Hosted generation did not return a usable proposal. Use scripted mode, or connect the local agent.",
+    return failed(error);
+  }
+  // Serialized here rather than inside json(): an answer that parsed but
+  // cannot be written back (nesting past the serializer's depth) still reports
+  // the call it cost, its usage and its model, as a provider failure.
+  let text;
+  try {
+    text = JSON.stringify(result);
+  } catch (error) {
+    return failed(new CallFailure(error, result.calls, "provider"));
+  }
+  return reply(200, text);
+}
+
+/** The error reply for a request that made provider calls, carrying them. */
+function failed(error) {
+  // Every provider call this request made is reported, on every reply, so
+  // a failed request is never free in the browser's accounting.
+  const calls = Array.isArray(error?.calls) ? error.calls : [];
+  const accounted = { usage: sumUsage(calls), calls };
+  // Classified by SHAPE only — never inspected for content, never echoed: a
+  // provider error can quote the request that caused it, and the prompt must
+  // not reach a log or a response. The zone-wide gateway rate limit fires
+  // because SOMEONE ELSE is generating, which is a different, actionable fact.
+  const shape = String(error?.message ?? "");
+  const busy = error?.failure !== "unusable-output" && /\b429\b|too many requests|rate.?limit|capacity/i.test(shape);
+  if (busy) {
+    return json(503, {
+      error: "busy",
+      message: "The shared generation gateway is busy right now. Try again in a moment, or use scripted mode.",
       ...accounted,
     });
   }
+  return json(502, {
+    error: "provider-unavailable",
+    // "unusable-output": the model answered but not with a usable proposal;
+    // "provider": the call itself failed (timeout, transport, provider error),
+    // or its answer could not be written into the reply.
+    cause: error?.failure === "unusable-output" ? "unusable-output" : "provider",
+    message: "Hosted generation did not return a usable proposal. Use scripted mode, or connect the local agent.",
+    ...accounted,
+  });
 }

@@ -9,9 +9,9 @@
  * provider call is made: every request is a static asset, the Worker's
  * refusal of an empty body, or the model list. --out is resolved against the
  * directory the command was typed in (pnpm runs the script in the package
- * directory), and the record is written only when it is whole: a Phase 0.5
- * Worker, a confirmed build id and the model list. docs/blocks/BASELINE.md
- * cites it.
+ * directory), and the record is written only when it is whole: a Worker that
+ * names the model of every call (per-call-model), a confirmed build id and the
+ * model list. docs/blocks/BASELINE.md cites it.
  */
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -48,7 +48,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   console.log(text);
   // Recorded only as observed: an incomplete record is never written as the baseline.
   const missing = [
-    ...(result.worker?.shape === "phase-0.5" ? [] : [`the Worker at ${baseUrl} is ${result.worker?.shape ?? "not probed"}${result.worker?.detail ? ` (${result.worker.detail})` : ""}, and Phase 1B needs the Phase 0.5 Worker (calls[] on every reply)`]),
+    ...(result.worker?.shape === "per-call-model" ? [] : [`the Worker at ${baseUrl} is ${result.worker?.shape ?? "not probed"}${result.worker?.detail ? ` (${result.worker.detail})` : ""}, and Phase 1B needs the Worker that names the model of every call (per-call-model)`]),
     ...(result.buildId ? [] : [`no build id could be read and confirmed at ${baseUrl}`]),
     ...(result.models ? [] : [`the hosted model list could not be read at ${baseUrl}`]),
   ];

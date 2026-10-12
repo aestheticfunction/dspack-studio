@@ -3,8 +3,10 @@
  * before it spends anything, and records what it found with the run.
  *
  * The Worker probe costs no provider call: an empty body is refused with 400
- * by every Worker version, and only the Phase 0.5 Worker reports `calls: []`
- * on that refusal. The build id identifies the deployed artifact (Next
+ * by every Worker version, only the Phase 0.5 Worker reports `calls: []` on
+ * that refusal, and only the Worker that names the model of every call
+ * (Option B) advertises `per-call-model` among its `capabilities` there, which
+ * a hosted run requires. The build id identifies the deployed artifact (Next
  * mints one per build and serves the build's manifest under it). Canonical usage and `cause`
  * can only be seen on real replies; the first metered call checks usage,
  * and a 502 is checked for `cause` when one arrives. A local model is
@@ -13,11 +15,16 @@
  */
 import type { LoadedReference } from "./references";
 
+/** The capability a hosted run requires: every calls[] entry names the model that served it (propose.mjs CAPABILITIES). */
+export const PER_CALL_MODEL = "per-call-model";
+
 export interface WorkerProbe {
-  shape: "phase-0.5" | "pre-0.5" | "unexpected" | "unreachable";
+  shape: "per-call-model" | "phase-0.5" | "pre-0.5" | "unexpected" | "unreachable";
   status?: number;
   error?: string;
   calls?: unknown;
+  /** What the Worker advertised on its refusal, beyond its Phase 0.5 shape. */
+  capabilities?: string[];
   detail?: string;
 }
 
@@ -49,7 +56,11 @@ export async function probeWorker(baseUrl: string, fetchImpl: typeof fetch = fet
     return { shape: "unexpected", status: res.status, detail: "the refusal was not JSON" };
   }
   if (res.status !== 400 || body?.error !== "invalid-request") return { shape: "unexpected", status: res.status, error: String(body?.error ?? ""), detail: String(body?.message ?? "") };
-  if (Array.isArray(body.calls) && body.calls.length === 0) return { shape: "phase-0.5", status: res.status, error: "invalid-request", calls: body.calls };
+  if (Array.isArray(body.calls) && body.calls.length === 0) {
+    const capabilities = Array.isArray(body.capabilities) ? body.capabilities.filter((c): c is string => typeof c === "string") : undefined;
+    const shape = capabilities?.includes(PER_CALL_MODEL) ? "per-call-model" : "phase-0.5";
+    return { shape, status: res.status, error: "invalid-request", calls: body.calls, ...(capabilities ? { capabilities } : {}) };
+  }
   return { shape: "pre-0.5", status: res.status, error: "invalid-request", detail: "the refusal carries no calls list: the Worker predates Phase 0.5 accounting" };
 }
 
