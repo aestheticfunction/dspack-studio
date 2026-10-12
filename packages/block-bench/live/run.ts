@@ -45,7 +45,7 @@
  * selection that plans no cells are each refused by name.
  */
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { frozenMismatches, readCorpus, type Corpus } from "./corpus";
+import { CORPUS_VERSIONS, CURRENT_CORPUS_VERSION, frozenMismatches, frozenPinName, frozenPinPath, isCorpusVersion, readCorpusVersion, readFrozenPin, type Corpus, type CorpusVersion } from "./corpus";
 import { planCells, runEvaluation, type EvaluationResult } from "./evaluate";
 import { DEFAULT_BACKOFF_MS, createPacer } from "./pacing";
 import { preflight } from "./preflight";
@@ -59,6 +59,8 @@ import { ARMS, CONDITIONS, type Arm, type Condition } from "./types";
 
 export interface CliOptions {
   provider: "hosted" | "scripted" | "scripted:faults" | { ollama: string };
+  /** The corpus version the run measures (ADR-B3 amendment 2): the current one unless named. */
+  corpusVersion: CorpusVersion;
   baseUrl: string;
   ollamaHost?: string;
   references: string[];
@@ -80,7 +82,7 @@ export interface CliOptions {
   force: boolean;
 }
 
-const VALUE_FLAGS = ["--provider", "--base-url", "--ollama-host", "--reference", "--arms", "--conditions", "--prompts", "--blocks", "--limit", "--max-requests", "--max-total-requests", "--max-total-usd", "--spacing-ms", "--out", "--resume"] as const;
+const VALUE_FLAGS = ["--provider", "--corpus", "--base-url", "--ollama-host", "--reference", "--arms", "--conditions", "--prompts", "--blocks", "--limit", "--max-requests", "--max-total-requests", "--max-total-usd", "--spacing-ms", "--out", "--resume"] as const;
 const SWITCHES = ["--allow-drafts", "--rerun-failed", "--force"] as const;
 
 export function parseOptions(argv: readonly string[]): CliOptions {
@@ -130,6 +132,10 @@ export function parseOptions(argv: readonly string[]): CliOptions {
   else if (providerArg.startsWith("ollama:") && providerArg.length > "ollama:".length) provider = { ollama: providerArg.slice("ollama:".length) };
   else throw new Error(`unknown provider '${providerArg}'; use hosted, ollama:<model>, scripted or scripted:faults`);
 
+  const corpusArg = values.get("--corpus");
+  const corpusVersion = corpusArg === undefined ? CURRENT_CORPUS_VERSION : Number(corpusArg);
+  if (corpusArg !== undefined && (!/^[0-9]+$/.test(corpusArg) || !isCorpusVersion(corpusVersion))) throw new Error(`unknown corpus version '${corpusArg}'; use ${CORPUS_VERSIONS.join(" or ")}`);
+
   const arms = list("--arms") as Arm[] | undefined;
   for (const arm of arms ?? []) if (!ARMS.includes(arm)) throw new Error(`unknown arm '${arm}'; use ${ARMS.join(", ")}`);
   const conditions = list("--conditions") as Condition[] | undefined;
@@ -173,6 +179,7 @@ export function parseOptions(argv: readonly string[]): CliOptions {
 
   return {
     provider,
+    corpusVersion: corpusVersion as CorpusVersion,
     baseUrl: values.get("--base-url") ?? process.env.COMPOSER_PROD_URL ?? "https://composer.aesthetic-function.com",
     ...(values.has("--ollama-host") ? { ollamaHost: values.get("--ollama-host")! } : {}),
     references,
@@ -221,18 +228,20 @@ export function stopNotice(stopped: NonNullable<EvaluationResult["stopped"]>, ou
 
 export async function main(argv: readonly string[], io: { corpus?: Corpus } = {}): Promise<number> {
   let o: CliOptions;
-  const corpus = io.corpus ?? readCorpus();
+  let corpus: Corpus;
   try {
     o = parseOptions(argv);
+    corpus = io.corpus ?? readCorpusVersion(o.corpusVersion);
+    if (corpus.version !== o.corpusVersion) throw new Error(`--corpus ${o.corpusVersion} names corpus v${o.corpusVersion}, but the corpus given is v${corpus.version}`);
     validateSelection(o, corpus);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return 2;
   }
-  // ADR-B3: the corpus is frozen before any run. An edit re-freezes it deliberately (corpora/frozen.json).
-  const unfrozen = await frozenMismatches(corpus);
+  // ADR-B3: the corpus is frozen before any run, each version under its own pin. An edit re-freezes it deliberately.
+  const unfrozen = await frozenMismatches(corpus, readFrozenPin(frozenPinPath(o.corpusVersion)));
   if (unfrozen.length > 0) {
-    console.error(`the corpus is not the frozen corpus pinned in live/corpora/frozen.json:\n- ${unfrozen.join("\n- ")}\nRe-freeze a deliberate edit (a new frozenAt and digest in the pin, in the same commit) before running.`);
+    console.error(`the corpus is not the frozen corpus pinned in ${frozenPinName(o.corpusVersion)}:\n- ${unfrozen.join("\n- ")}\nRe-freeze a deliberate edit (a new frozenAt and digest in the pin, in the same commit) before running.`);
     return 2;
   }
   const references = await Promise.all(o.references.map((id) => loadReference(id)));

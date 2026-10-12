@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readCorpus } from "./corpus";
+import { readCorpus, readCorpusVersion } from "./corpus";
 import { CELL_USD_BOUND } from "./cost";
 import { main, parseOptions, stopNotice, validateSelection } from "./run";
 
@@ -123,6 +123,32 @@ describe("a run measures the frozen corpus only", () => {
     const edited = { ...corpus, prompts: corpus.prompts.map((p) => (p.id === "rt-05" ? { ...p, goal: `${p.goal} today` } : p)) };
     expect(await main(["--provider", "scripted", "--allow-drafts", "--limit", "1"], { corpus: edited })).toBe(2);
     expect(errors.mock.calls.flat().join("\n")).toMatch(/not the frozen corpus/);
+    expect(fetch).not.toHaveBeenCalled();
+  }, 60_000);
+});
+
+describe("a run names the corpus version it measures (ADR-B3 amendment 2)", () => {
+  it("runs the current corpus, v2, unless asked for v1, and refuses any other version", () => {
+    expect(parseOptions([]).corpusVersion).toBe(2);
+    expect(parseOptions(["--corpus", "1"]).corpusVersion).toBe(1);
+    expect(parseOptions(["--corpus", "2"]).corpusVersion).toBe(2);
+    expect(() => parseOptions(["--corpus", "3"])).toThrow(/unknown corpus version '3'; use 1 or 2/);
+    expect(() => parseOptions(["--corpus", "v2"])).toThrow(/unknown corpus version 'v2'; use 1 or 2/);
+  });
+
+  it("holds each version to its own pin before any network call", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("no network"))));
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    for (const version of [1, 2] as const) {
+      const corpus = readCorpusVersion(version);
+      const edited = { ...corpus, prompts: corpus.prompts.map((p) => (p.id === "rt-05" ? { ...p, goal: `${p.goal} today` } : p)) };
+      expect(await main(["--provider", "scripted", "--allow-drafts", "--limit", "1", "--corpus", String(version)], { corpus: edited })).toBe(2);
+      expect(errors.mock.calls.flat().join("\n")).toContain(version === 1 ? "live/corpora/frozen.json" : "live/corpora/frozen.v2.json");
+    }
+    // A corpus of one version is never run under the other's flag.
+    expect(await main(["--provider", "scripted", "--allow-drafts", "--limit", "1", "--corpus", "1"], { corpus: readCorpusVersion(2) })).toBe(2);
+    expect(errors.mock.calls.flat().join("\n")).toMatch(/--corpus 1 names corpus v1, but the corpus given is v2/);
     expect(fetch).not.toHaveBeenCalled();
   }, 60_000);
 });

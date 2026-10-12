@@ -6,15 +6,21 @@
  * component must be in the contract's vocabulary. A corpus error is a test
  * failure, never a silent skip at run time.
  *
- * Frozen means pinned: corpora/frozen.json holds the corpus's name, version,
- * freeze date and content digest. A test holds the corpus to it and the CLI
+ * Frozen means pinned: each version's pin (corpora/frozen.json for v1,
+ * corpora/frozen.v2.json for v2) holds the corpus's name, version, freeze date
+ * and content digest. A test holds each version to its own pin and the CLI
  * refuses to run on anything else, so an edit cannot slip into a run; a
  * deliberate edit re-freezes it, changing the date and the digest together.
+ *
+ * Versions sit side by side and never replace each other. v1 is the corpus the
+ * two smokes measured, kept byte for byte; v2 (ADR-B3 amendment 2) corrects the
+ * refinement templates that cannot apply everywhere and makes the add and
+ * remove check binding. A run names its version, and its manifest pins it.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { sha256Hex, type BlockDefinition } from "@dspack-studio/composer-core/blocks";
-import type { RefinementKind } from "./types";
+import type { OperationScoring, RefinementKind } from "./types";
 
 type Json = Record<string, any>;
 
@@ -38,16 +44,39 @@ export interface Corpus {
   corpus: string;
   version: number;
   frozenAt: string;
+  /** v2 on: how add and remove refinements are scored. Absent (v1): the operation check is reported beside the pass. */
+  scoring?: { operation: "binding" };
   refinements: Record<string, Record<RefinementKind, RefinementTemplate>>;
   prompts: CorpusPrompt[];
 }
 
-export const CORPUS_PATH = fileURLToPath(new URL("./corpora/blocks.json", import.meta.url));
-export const FROZEN_PATH = fileURLToPath(new URL("./corpora/frozen.json", import.meta.url));
+/** The corpus versions the harness can run, oldest first. */
+export const CORPUS_VERSIONS = [1, 2] as const;
+export type CorpusVersion = (typeof CORPUS_VERSIONS)[number];
+/** The version a run measures unless it names another. */
+export const CURRENT_CORPUS_VERSION: CorpusVersion = 2;
+
+const FILES: Record<CorpusVersion, { corpus: string; pin: string }> = {
+  1: { corpus: "./corpora/blocks.json", pin: "./corpora/frozen.json" },
+  2: { corpus: "./corpora/blocks.v2.json", pin: "./corpora/frozen.v2.json" },
+};
+export const isCorpusVersion = (version: unknown): version is CorpusVersion => (CORPUS_VERSIONS as readonly unknown[]).includes(version);
+export const corpusPath = (version: CorpusVersion): string => fileURLToPath(new URL(FILES[version].corpus, import.meta.url));
+export const frozenPinPath = (version: CorpusVersion): string => fileURLToPath(new URL(FILES[version].pin, import.meta.url));
+/** The pin's path as the repository names it, for messages. */
+export const frozenPinName = (version: CorpusVersion): string => `live/corpora/${FILES[version].pin.slice("./corpora/".length)}`;
+
+export const CORPUS_PATH = corpusPath(CURRENT_CORPUS_VERSION);
+export const FROZEN_PATH = frozenPinPath(CURRENT_CORPUS_VERSION);
 
 export function readCorpus(path = CORPUS_PATH): Corpus {
   return JSON.parse(readFileSync(path, "utf8")) as Corpus;
 }
+
+export const readCorpusVersion = (version: CorpusVersion): Corpus => readCorpus(corpusPath(version));
+
+/** How the corpus scores add and remove refinements: the scoring every summary of a run on it applies. */
+export const scoringOf = (corpus: Corpus): OperationScoring => (corpus.scoring?.operation === "binding" ? "binding" : "beside");
 
 /** The committed pin of the frozen corpus. */
 export interface FrozenPin {
@@ -62,8 +91,8 @@ export const readFrozenPin = (path = FROZEN_PATH): FrozenPin => JSON.parse(readF
 /** The corpus's content digest: the one the pin holds and every run manifest records. */
 export const corpusDigest = (corpus: Corpus): Promise<string> => sha256Hex(JSON.stringify(corpus));
 
-/** How the corpus differs from its pin; empty when it is the frozen corpus. */
-export async function frozenMismatches(corpus: Corpus, pin: FrozenPin = readFrozenPin()): Promise<string[]> {
+/** How the corpus differs from its pin, by default the pin of the version it claims; empty when it is that frozen corpus. */
+export async function frozenMismatches(corpus: Corpus, pin: FrozenPin = readFrozenPin(frozenPinPath(isCorpusVersion(corpus.version) ? corpus.version : CURRENT_CORPUS_VERSION))): Promise<string[]> {
   const out: string[] = [];
   for (const key of ["corpus", "version", "frozenAt"] as const) {
     if (corpus[key] !== pin[key]) out.push(`${key}: the corpus says ${JSON.stringify(corpus[key])}, the pin ${JSON.stringify(pin[key])}`);

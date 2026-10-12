@@ -107,7 +107,7 @@ describe("the decision covers every result and judges its boundaries exactly (AD
       ...many(20, { arm: "capped", passed: true, tokens: [900, 60] }),
       ...many(20, { arm: "production", passed: true, tokens: [1000, 80] }),
     ];
-    const [d] = summarize(records).decisions;
+    const [d] = summarize(records, DEFAULT_DECISION, "beside").decisions;
     expect(d!.evaluated.block).toBe(40);
     expect(d!.tokens.block).toBeCloseTo((20 * 650 + 20 * 55_000) / 20);
     expect(d!.verdict).toBe("fail");
@@ -120,7 +120,7 @@ describe("the decision covers every result and judges its boundaries exactly (AD
       ...many(20, { arm: "capped", passed: true, tokens: [900, 60] }),
       ...many(20, { arm: "production", passed: true, tokens: [1000, 80] }),
     ];
-    const [d] = summarize(records).decisions;
+    const [d] = summarize(records, DEFAULT_DECISION, "beside").decisions;
     expect(d!.verdict).toBe("insufficient");
     expect(d!.reasons.join(" ")).toMatch(/block: 1 metered prompt thread \(1 metered cell\) in the token cohort/);
   });
@@ -131,7 +131,7 @@ describe("the decision covers every result and judges its boundaries exactly (AD
       ...many(20, { arm: "capped", passed: true, tokens: [102, 0] }),
       ...many(20, { arm: "production", passed: true, tokens: [102, 0] }),
     ];
-    expect(summarize(exact30).decisions[0]!.verdict).toBe("pass");
+    expect(summarize(exact30, DEFAULT_DECISION, "beside").decisions[0]!.verdict).toBe("pass");
     const gap5 = [
       ...many(3, { arm: "block", passed: true, tokens: [10, 0] }),
       ...many(17, { arm: "block", passed: false, tokens: [10, 0] }),
@@ -140,7 +140,7 @@ describe("the decision covers every result and judges its boundaries exactly (AD
       ...many(4, { arm: "production", passed: true, tokens: [100, 0] }),
       ...many(16, { arm: "production", passed: false, tokens: [100, 0] }),
     ];
-    const g = summarize(gap5).decisions[0]!;
+    const g = summarize(gap5, DEFAULT_DECISION, "beside").decisions[0]!;
     expect(g.reasons.filter((r) => /within 5 points/.test(r))).toHaveLength(2);
     expect(g.verdict).toBe("pass");
   });
@@ -198,7 +198,7 @@ describe("the decision rule (ADR-B3)", () => {
       ...many(20, { arm: "capped", passed: true, tokens: [900, 60] }),
       ...many(20, { arm: "production", passed: true, tokens: [1000, 80] }),
     ];
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     expect(summary.decisions[0]!.verdict).toBe("pass");
     expect(summary.arms.find((a) => a.arm === "block")!.rerunEligible).toBe(5);
   });
@@ -218,7 +218,7 @@ describe("the ADR-B3 decision reads production, capped and the named block arm o
   it("a positional-only run has no decision, and positional records never add, remove or change one", () => {
     const positional = [...many(25, { arm: "block-positional", passed: true, tokens: [50, 5] }), ...many(5, { arm: "block-positional", passed: false, tokens: [50, 5] })];
     expect(decide(positional)).toEqual([]);
-    expect(summarize(positional).decisions).toEqual([]);
+    expect(summarize(positional, DEFAULT_DECISION, "beside").decisions).toEqual([]);
     const named = [...many(20, { arm: "block", passed: true, tokens: [60, 6] }), ...many(20, { arm: "capped", passed: true, tokens: [100, 10] }), ...many(20, { arm: "production", passed: true, tokens: [100, 10] })];
     expect(decide([...named, ...positional])).toEqual(decide(named));
     // Positional records on another reference or provider open no decision of their own.
@@ -252,10 +252,10 @@ describe("what each figure measures (pacing, parity, add and remove)", () => {
       { ...record({ arm: "block", passed: true, condition: "refine-remove", changed: true, expectedBlock: "auth-form" }), operation: op("remove", "add") },
       record({ arm: "block", passed: false, condition: "refine-remove" }),
     ];
-    expect(armStats(records).find((s) => s.condition === "refine-add")!.operation).toEqual({ checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1 });
-    expect(armStats(records).find((s) => s.condition === "refine-remove")!.operation).toEqual({ checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0 });
+    expect(armStats(records).find((s) => s.condition === "refine-add")!.operation).toEqual({ checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1, unchecked: 0 });
+    expect(armStats(records).find((s) => s.condition === "refine-remove")!.operation).toEqual({ checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0, unchecked: 0 });
     const [pooled] = armStats(records, { pooled: true });
-    expect(pooled!.operation).toEqual({ checked: 4, performed: 1, mixed: 1, missed: 2, unchanged: 1 });
-    expect(pooled!.operationByBlock).toEqual({ "records-table": { checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1 }, "auth-form": { checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0 } });
+    expect(pooled!.operation).toEqual({ checked: 4, performed: 1, mixed: 1, missed: 2, unchanged: 1, unchecked: 0 });
+    expect(pooled!.operationByBlock).toEqual({ "records-table": { checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1, unchecked: 0 }, "auth-form": { checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0, unchecked: 0 } });
   });
 });
