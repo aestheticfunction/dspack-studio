@@ -308,10 +308,13 @@ const ADD_REMOVE: ReadonlySet<Condition> = new Set<Condition>(["refine-add", "re
  * "binding" (corpus v2, ADR-B3 amendment 2) fails a passing add or remove refinement whose operation was missed: no list
  * changed, or lists changed only the other way. A mixed change still passes, since matching nodes by place can read a
  * clean add or remove as mixed (live/operation.ts) but never as missed: the changes summed over every list are the
- * elements gained or lost, so a refinement that gained one shows a list that grew. A passing add or remove the check
- * never read fails too, so the binding rule cannot be skipped. Every call's tokens still count.
+ * elements gained or lost on net, so a refinement that gained elements on net shows a list that grew. A passing add or
+ * remove the check never read fails too, so the binding rule cannot be skipped. Every call's tokens still count.
+ *
+ * There is no default: a run is scored as its corpus declares (corpus.ts, scoringOf), never as v1 by omission.
  */
 export function scoreRecords(records: readonly RunRecord[], scoring: OperationScoring): RunRecord[] {
+  if (scoring !== "beside" && scoring !== "binding") throw new Error(`scoring must be the corpus's, "beside" or "binding", not ${String(scoring)}`);
   if (scoring === "beside") return [...records];
   return records.map((r) => (r.passed && ADD_REMOVE.has(r.condition) && (!r.operation || missed(r.operation)) ? { ...r, passed: false } : r));
 }
@@ -716,12 +719,7 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
  * Under binding scoring the readings bracket the verdict: the pipeline's pass alone below it, the mixed ones failing too
  * above it.
  */
-export function operationSensitivity(
-  records: readonly RunRecord[],
-  options: DecisionOptions = DEFAULT_DECISION,
-  decisions: readonly Decision[] = decide(scoreRecords(records, "beside"), options),
-  scoring: OperationScoring = "beside",
-): OperationSensitivity[] {
+export function operationSensitivity(records: readonly RunRecord[], options: DecisionOptions, decisions: readonly Decision[], scoring: OperationScoring): OperationSensitivity[] {
   const decisionRecords = records.filter((r) => DECISION_ARMS.includes(r.arm));
   // The records the verdict reads; each reading fails more of them, or (none) reads the pipeline's pass alone.
   const scored = scoreRecords(decisionRecords, scoring);
@@ -789,7 +787,8 @@ export function compareEncodings(records: readonly RunRecord[]): EncodingCompari
   return out;
 }
 
-export function summarize(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION, scoring: OperationScoring = "beside"): Summary {
+/** Everything the report reads, scored as the corpus declares: the scoring has no default (scoreRecords). */
+export function summarize(records: readonly RunRecord[], options: DecisionOptions, scoring: OperationScoring): Summary {
   const scored = scoreRecords(records, scoring);
   const arms = armStats(scored);
   const completed = records.filter((r) => r.status === "completed");

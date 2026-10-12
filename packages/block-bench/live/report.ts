@@ -38,17 +38,20 @@ const missText = (o: OperationCounts) => `${o.missed} missed${o.unchanged ? `, $
 /** How the corpus scores add and remove refinements, said once per decision. */
 const scoringText = (scoring: OperationScoring, corpus: Corpus) =>
   scoring === "binding"
-    ? `- Scoring: corpus ${corpus.corpus} v${corpus.version} makes the add and remove check binding (ADR-B3 amendment 2): a passing add or remove refinement that missed its operation, changing no list or only the other way, counts as a failure in every arm; a mixed change passes.`
+    ? `- Scoring: corpus ${corpus.corpus} v${corpus.version} makes the add and remove check binding (ADR-B3 amendment 2): a passing add or remove refinement that missed its operation, changing no list or only the other way, counts as a failure in every arm, and so does one the check never read (unchecked); a mixed change passes.`
     : `- Scoring: corpus ${corpus.corpus} v${corpus.version} reports the add and remove check beside the pass, never in it.`;
 /** The add and remove refinements behind a decision, by what they did (live/operation.ts): the decision's bullet. */
 function sensitivityText(s: OperationSensitivity, scoring: OperationScoring): string {
   const binding = scoring === "binding";
-  const head = binding ? "- Add and remove refinements (live/operation.ts; binding, so the missed ones are failures): " : "- Add and remove refinements (live/operation.ts; beside the rule, never in it): ";
+  const head = binding ? "- Add and remove refinements (live/operation.ts; binding, so the missed and unchecked ones are failures): " : "- Add and remove refinements (live/operation.ts; beside the rule, never in it): ";
   const arms = [s.operation.block, s.operation.capped, s.operation.production];
   if (arms.every((o) => passedOf(o) === 0)) return binding ? `${head}no add or remove refinement the pipeline passed in the decision arms, so the binding check failed none.` : `${head}no passing add or remove refinement in the decision arms, so the verdict does not rest on one.`;
   const counts = (o: OperationCounts) => `(${o.mixed} mixed, ${missText(o)}${o.unchecked ? `, ${o.unchecked} unchecked` : ""})`;
   const { block, capped, production } = s.operation;
   const done = `${head}block performed ${block.performed} of the ${passedOf(block)} ${binding ? "the pipeline passed" : "that passed"} ${counts(block)}; capped ${capped.performed} of ${passedOf(capped)} ${counts(capped)}; production ${production.performed} of ${passedOf(production)} ${counts(production)}.`;
+  // Under binding an unchecked one always fails, so it always yields a reading; under v1 it passes unread.
+  const unread = arms.reduce((a, o) => a + o.unchecked, 0);
+  if (s.readings.length === 0 && unread > 0) return `${done} Every one the check read changed its lists the way its template asked; the ${unread} it never read count as the pipeline passed them, so the verdict does not rest on the check.`;
   if (s.readings.length === 0) return `${done} Every one changed its lists the way its template asked, so ${binding ? "the binding check failed none" : "the verdict does not rest on the check"}.`;
   if (!binding) return `${done} The decision recomputed with some of them counted as failures is below; the verdict above stands.`;
   const without = s.readings.some((r) => r.failing === "none");
@@ -287,7 +290,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), operation(s.operation), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
       out.push(
         "",
-        `Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. A node in a list is matched by its id where that id occurs exactly once in both surfaces, otherwise by its place among its unmatched siblings of the same component, so a node matched by place that moves can read as lists changed both ways. ${summary.scoring === "binding" ? `Under corpus v${context.corpus.version} the pass rate counts a missed add or remove as a failure (the check is binding); Changed and Operation performed are of the refinements the pipeline passed. Under each decision, its add and remove readings show the verdict without the check, and with the mixed ones failing too.` : "The pass rate still counts every passing refinement, as ADR-B3 froze the pass; under each decision, its add and remove readings show whether the verdict or its clarity changes when these count as failures."}`,
+        `Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. A node in a list is matched by its id where that id occurs exactly once in both surfaces, otherwise by its place among its unmatched siblings of the same component, so a node matched by place that moves can read as lists changed both ways. ${summary.scoring === "binding" ? `Under corpus v${context.corpus.version} the pass rate counts a missed or unchecked add or remove as a failure (the check is binding); Changed and Operation performed are of the refinements the pipeline passed. Under each decision, its add and remove readings show the verdict without the check, and with the mixed ones failing too.` : "The pass rate still counts every passing refinement, as ADR-B3 froze the pass; under each decision, its add and remove readings show whether the verdict or its clarity changes when these count as failures."}`,
         "",
       );
       // By block, per arm: a template that fits some prompts' surfaces and not others shows where its misses fall.
@@ -306,7 +309,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
         }
         out.push(
           "",
-          "Performed of those the pipeline passed, per arm. A template that does not apply to a prompt's surface (an add of an item already there, a remove of one that is absent) shows here as misses, often unchanged, in the arms whose surfaces it does not fit. An unchanged miss is also what a refinement that ignored its instruction leaves, so unchanged misses on a template that applies to every surface, such as an added row or step, are real ones.",
+          `Performed of those the pipeline passed, per arm.${summary.scoring === "binding" ? ` Under corpus v${context.corpus.version} the missed and unchecked ones are failures (the check is binding).` : ""} A template that does not apply to a prompt's surface (an add of an item already there, a remove of one that is absent) shows here as misses, often unchanged, in the arms whose surfaces it does not fit. An unchanged miss is also what a refinement that ignored its instruction leaves, so unchanged misses on a template that applies to every surface, such as an added row or step, are real ones.`,
           "",
         );
       }
