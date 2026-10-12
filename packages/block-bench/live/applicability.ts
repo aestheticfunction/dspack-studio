@@ -82,7 +82,8 @@ const always: Needs = () => undefined;
 
 /**
  * Every template the audit has read, by its exact instruction, with what it needs from a prompt (undefined: it applies
- * to every prompt of its block). Corpus v1's templates come first; v2's changes follow.
+ * to every prompt of its block). Corpus v1's templates come first, then v2's changes, then D1 to D3, which v2 leaves
+ * out unless the owner adopts them.
  */
 export const AUDITED_TEMPLATES: Readonly<Record<string, Needs>> = {
   // v1: records-table
@@ -107,15 +108,16 @@ export const AUDITED_TEMPLATES: Readonly<Record<string, Needs>> = {
   "Add one more item.": always,
   "Remove the last item.": always,
   "Turn it into a two-column layout with a sidebar of related links.": always,
-  // v2: C1, C2, C3
+  // v2: C1 to C4
   "Add one more row at the end, with a plausible value in every column.": always,
   // Every auth-form prompt has a field. That the first is never the password the block keeps for sign-in and sign-up
   // is a premise, not a guarantee: a surface may put the password first, and then the block cannot remove it.
   "Remove the sign-in provider buttons; if there are none, remove the first field.": always,
   "Show each step as its own card with a numbered badge, and add a comments section with a text field and a Post button below the steps.": always,
-  // v2: the same rules' other findings, outside the three named corrections
+  // C4: the add-side twin of C2, which the binding check needs (af-12 offers Microsoft already).
   "Add Microsoft as a sign-in provider; if it is there already, add Apple.": (p) =>
     providersIn(p).includes("microsoft") && providersIn(p).includes("apple") ? "offers Microsoft and Apple already, so neither can be added" : undefined,
+  // D1 to D3: the same rules' structural findings outside C3, left to the owner.
   "Split the rows into two tables, each in its own card with a heading, and add a search field and a filter button above them.": always,
   'Turn it into a two-step wizard of two cards, each with a step badge ("Step 1 of 2", "Step 2 of 2"), and a terms-of-service notice with an "I agree" button on the second card.': always,
   "Move the main content into a card, and add a second card below it with three related links as buttons.": always,

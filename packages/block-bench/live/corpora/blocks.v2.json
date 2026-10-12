@@ -2,7 +2,7 @@
   "corpus": "blocks-1b",
   "version": 2,
   "frozenAt": "2026-10-12",
-  "note": "Corpus v2 (ADR-B3 amendment 2, docs/blocks/ADR-B3-AMENDMENT-2.md), frozen before any refinement had run live. It keeps every v1 prompt, intent, label and checklist, and every v1 template that applies everywhere; it corrects the templates a static audit (live/applicability.ts) found cannot apply to every prompt or design system they are used on, and it makes the add and remove check binding (scoring.operation): a passing add or remove refinement that missed its operation counts as a failure. v1 stays as it was, under its own pin. Each prompt carries the block it is an instance of (or null) and the governed intent per reference; a reference the goal does not apply to is omitted. Parity is a structural checklist scored identically for every arm: labels are case-insensitive substrings that must appear in the surface's text; components are contract component names that must appear.",
+  "note": "Corpus v2 (ADR-B3 amendment 2, docs/blocks/ADR-B3-AMENDMENT-2.md), frozen before any refinement had run live. It keeps every v1 prompt, intent, label and checklist, and corrects refinement templates a static audit (live/applicability.ts) found cannot apply to every prompt or design system they are used on; the amendment lists each one and why. It makes the add and remove check binding (scoring.operation): a passing add or remove refinement that missed its operation counts as a failure. v1 stays as it was, under its own pin. Each prompt carries the block it is an instance of (or null) and the governed intent per reference; a reference the goal does not apply to is omitted. Parity is a structural checklist scored identically for every arm: labels are case-insensitive substrings that must appear in the surface's text; components are contract component names that must appear.",
   "scoring": {
     "operation": "binding"
   },
@@ -19,7 +19,7 @@
         "instruction": "Remove the last row."
       },
       "structural": {
-        "instruction": "Split the rows into two tables, each in its own card with a heading, and add a search field and a filter button above them."
+        "instruction": "Split the table into two tabs, Open and Closed, with a search field and a filter bar above them."
       }
     },
     "auth-form": {
@@ -34,7 +34,7 @@
         "instruction": "Remove the sign-in provider buttons; if there are none, remove the first field."
       },
       "structural": {
-        "instruction": "Turn it into a two-step wizard of two cards, each with a step badge (\"Step 1 of 2\", \"Step 2 of 2\"), and a terms-of-service notice with an \"I agree\" button on the second card."
+        "instruction": "Turn it into a two-step wizard with a progress indicator and a terms-of-service checkbox on the second step."
       }
     },
     "guide-steps": {
@@ -63,7 +63,7 @@
         "instruction": "Remove the last item."
       },
       "structural": {
-        "instruction": "Move the main content into a card, and add a second card below it with three related links as buttons."
+        "instruction": "Turn it into a two-column layout with a sidebar of related links."
       }
     }
   },
