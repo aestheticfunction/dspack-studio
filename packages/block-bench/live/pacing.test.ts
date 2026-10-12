@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PacingCapReached, createPacer } from "./pacing";
 
 describe("pacing for the shared gateway", () => {
@@ -115,5 +115,22 @@ describe("pacing for the shared gateway", () => {
     await instant.before();
     expect(instant.waits).toHaveLength(1);
     expect(instant.waitedMs).toBe(0);
+  });
+
+  it("measures its waits on a monotonic clock unless one is injected, so a wall clock that jumps during a wait never counts as waiting", async () => {
+    let wall = 1_000_000;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => wall);
+    try {
+      // The spacing still reads the wall clock; the sleep returns at once while the wall clock jumps ten minutes (a
+      // suspend or a clock step). A cell's latency runs on the monotonic clock, so its waits must too.
+      const pacer = createPacer({ maxRequests: 5, spacingMs: 3000, sleep: async () => void (wall += 600_000) });
+      await pacer.before();
+      await pacer.before();
+      expect(pacer.waits.map((w) => w.ms)).toEqual([3000]);
+      expect(pacer.waitedMs).toBeGreaterThanOrEqual(0);
+      expect(pacer.waitedMs).toBeLessThan(1000);
+    } finally {
+      clock.mockRestore();
+    }
   });
 });
