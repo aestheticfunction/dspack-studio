@@ -3,16 +3,17 @@
  * from the corpus text and the references' generation views alone, never from a model's output, so it reads every arm
  * the same way (ADR-B3 amendment 2, docs/blocks/ADR-B3-AMENDMENT-2.md).
  *
- * Two rules, each objective:
+ * Two rules, applied mechanically to judgments recorded here:
  *
  * - Target: a template that acts on something specific must find it. A remove needs the thing it removes in the
  *   prompt; an add of a named thing must not find it there already; a row with named values needs the columns that
- *   hold them. What a template needs is written down below, per template, from its exact text: a template the audit
- *   has not read is an issue until it is added, so an edit cannot slip past it.
+ *   hold them. What a template needs is a judgment, written down below per template from its exact text and read
+ *   from each prompt's goal, not from a surface: a template the audit has not read is an issue until it is added, so
+ *   an edit cannot slip past it.
  * - Element: a UI element a template names must have a component in the generation view of every reference the
  *   template is used on: the casualty-free vocabulary every arm generates against. A casualty is unavailable even where
- *   the contract defines it (shadcn-v3's accordion), and so is an element no component renders (a timer, a photo, a
- *   column layout).
+ *   the contract defines it (shadcn-v3's accordion). Which components render an element is a judgment too, recorded
+ *   in ELEMENTS: a timer, a photo and a column layout are judged to have none.
  *
  * The add and remove templates matter most once the operation check is binding (metrics.ts, scoreRecords): a template
  * that cannot apply would fail a correct no-op.
@@ -73,6 +74,8 @@ const PROVIDERS = ["google", "github", "microsoft", "apple"] as const;
 export const providersIn = (prompt: CorpusPrompt): string[] => PROVIDERS.filter((provider) => new RegExp(`\\b${provider}\\b`, "i").test(prompt.goal));
 /** A table of tickets: the only kind whose rows have a ticket's number, subject, status and priority. */
 const ticketTable = (prompt: CorpusPrompt): boolean => /\btickets?\b/i.test(prompt.goal);
+/** A table of items that open and close: tickets, bugs and incidents, the only kinds a split into Open and Closed fits. */
+const openAndClosed = (prompt: CorpusPrompt): boolean => /\b(tickets?|bugs?|incidents?)\b/i.test(prompt.goal);
 
 type Needs = (prompt: CorpusPrompt) => string | undefined;
 const always: Needs = () => undefined;
@@ -88,7 +91,7 @@ export const AUDITED_TEMPLATES: Readonly<Record<string, Needs>> = {
     ticketTable(p) ? undefined : "names a ticket's values (#9001, subject, status Open, priority P2), which only a table of tickets has columns for",
   "Remove the last row.": always,
   "Split the table into two tabs, Open and Closed, with a search field and a filter bar above them.": (p) =>
-    ticketTable(p) ? undefined : "splits the rows by a ticket's status (Open, Closed), which only a table of tickets has",
+    openAndClosed(p) ? undefined : "splits the rows into Open and Closed, which only a table of items that open and close has",
   // v1: auth-form
   'Change the title to "Welcome back" and the intro to "Good to see you again."': always,
   "Add Microsoft as a sign-in provider.": (p) => (providersIn(p).includes("microsoft") ? "adds Microsoft, which the form already offers" : undefined),
@@ -106,7 +109,8 @@ export const AUDITED_TEMPLATES: Readonly<Record<string, Needs>> = {
   "Turn it into a two-column layout with a sidebar of related links.": always,
   // v2: C1, C2, C3
   "Add one more row at the end, with a plausible value in every column.": always,
-  // Every auth-form prompt has a field, and the first is never the password the block keeps for sign-in and sign-up.
+  // Every auth-form prompt has a field. That the first is never the password the block keeps for sign-in and sign-up
+  // is a premise, not a guarantee: a surface may put the password first, and then the block cannot remove it.
   "Remove the sign-in provider buttons; if there are none, remove the first field.": always,
   "Show each step as its own card with a numbered badge, and add a comments section with a text field and a Post button below the steps.": always,
   // v2: the same rules' other findings, outside the three named corrections

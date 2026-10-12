@@ -46,14 +46,18 @@ export const DEFAULT_DECISION: Readonly<DecisionOptions> = Object.freeze({ reduc
  * only), mixed (lists changed both ways), missed (no list changed, or only the other way), and among the missed, those
  * that left the surface exactly as it was (unchanged). An unchanged surface is the right answer where a template does not
  * apply to the surface, but also what a refinement that ignored its instruction leaves, so those misses are counted apart.
- * A measurement beside the pass rate, never in it.
+ * Under corpus v1 a measurement beside the pass rate, never in it; under corpus v2 the missed and unchecked ones fail
+ * (scoreRecords).
  */
 export interface OperationCounts {
+  /** Those the check read: every one the pipeline passed that carries an operation record. */
   checked: number;
   performed: number;
   mixed: number;
   missed: number;
   unchanged: number;
+  /** Those the pipeline passed with no operation record: never read, so binding scoring fails them closed. */
+  unchecked: number;
 }
 
 export interface ArmStats {
@@ -246,10 +250,13 @@ const FAILING: Record<SensitivityFailing, (check: OperationCheck, r: RunRecord) 
 
 /**
  * Whether a decision rests on add and remove refinements that did not do what they asked (live/operation.ts). The
- * verdict counts them as ADR-B3 froze the pass, whatever they did; this recomputes the decision with some of them
- * failing, as a sensitivity check that never replaces the verdict. There is a reading for each way of counting them that
- * fails something the others do not: the missed ones where a decision arm has a miss, the missed and mixed ones where
- * one has a mixed change, and the same with only the misses that changed their surface where one has an unchanged miss.
+ * verdict counts them as the corpus's scoring does (corpus v1: as ADR-B3 froze the pass, whatever they did; corpus v2:
+ * the missed and unchecked ones fail); this recomputes the decision with other countings, as a sensitivity check that
+ * never replaces the verdict. Under v1 there is a reading for each way of counting them that fails something the others
+ * do not: the missed ones where a decision arm has a miss, the missed and mixed ones where one has a mixed change, and
+ * the same with only the misses that changed their surface where one has an unchanged miss. Under v2 the readings
+ * bracket the verdict: the pipeline's pass alone where the check failed any, and the mixed ones failing too where one has
+ * a mixed change.
  */
 export interface OperationSensitivity {
   reference: string;
@@ -362,11 +369,13 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
         mixed: checkedRuns.filter((r) => r.operation.observed === "mixed").length,
         missed: checkedRuns.filter((r) => missed(r.operation)).length,
         unchanged: checkedRuns.filter((r) => missed(r.operation) && r.changed === false).length,
+        unchecked: runs.filter((r) => gatePassed(r) && ADD_REMOVE.has(r.condition) && r.operation === undefined).length,
       };
     };
     const blockOf = (r: RunRecord) => r.expected.block ?? "null";
-    const checked = evaluated.filter((r) => gatePassed(r) && r.operation);
-    const operationByBlock = Object.fromEntries([...new Set(checked.map(blockOf))].map((b) => [b, operationsOf(checked.filter((r) => blockOf(r) === b))]));
+    // Every add and remove the pipeline passed, read by the check or not.
+    const addsAndRemoves = evaluated.filter((r) => gatePassed(r) && ADD_REMOVE.has(r.condition));
+    const operationByBlock = Object.fromEntries([...new Set(addsAndRemoves.map(blockOf))].map((b) => [b, operationsOf(addsAndRemoves.filter((r) => blockOf(r) === b))]));
     const execution = (pick: (t: NonNullable<RunRecord["timings"]["execution"]>) => number | undefined) =>
       median(completed.map((r) => (r.timings.execution ? pick(r.timings.execution) : undefined)).filter((v): v is number => typeof v === "number"));
     out.push({
@@ -731,7 +740,7 @@ export function operationSensitivity(
     return result;
   };
   const pooled = armStats(decisionRecords, { pooled: true });
-  const none: OperationCounts = { checked: 0, performed: 0, mixed: 0, missed: 0, unchanged: 0 };
+  const none: OperationCounts = { checked: 0, performed: 0, mixed: 0, missed: 0, unchanged: 0, unchecked: 0 };
   return decisions.map((d) => {
     const operation = (arm: Arm) => pooled.find((s) => s.reference === d.reference && s.provider === d.provider && s.arm === arm)?.operation ?? none;
     const ops = { block: operation("block"), capped: operation("capped"), production: operation("production") };

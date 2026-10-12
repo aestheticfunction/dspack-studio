@@ -16,10 +16,11 @@
  * table never hides a row dropped from another. The check judges the direction of the change, not its content or its
  * size, from the two surfaces alone, so it scores every arm identically.
  *
- * It is a measurement beside the pass rate, never inside it. ADR-B3's pass is the pipeline's audit outcome, frozen
- * with the corpus and its scoring, so counting a refinement that missed its operation as a failure would be a re-freeze,
- * not a fix. The summary instead recomputes the decision with those refinements failing, as a sensitivity check
- * (metrics.ts, operationSensitivity).
+ * Under corpus v1 it is a measurement beside the pass rate, never inside it: ADR-B3's pass is the pipeline's audit
+ * outcome, frozen with that corpus and its scoring. Corpus v2 re-freezes the scoring before any refinement has run
+ * (ADR-B3 amendment 2): a passing add or remove that missed its operation fails (metrics.ts, scoreRecords). Under
+ * either, the summary also recomputes the decision with other countings, as a sensitivity check (metrics.ts,
+ * operationSensitivity).
  */
 import type { OperationCheck } from "./types";
 

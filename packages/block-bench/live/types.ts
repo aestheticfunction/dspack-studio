@@ -128,7 +128,7 @@ export interface RunRecord extends RunKey {
   parity?: ParityResult;
   /** Whether a refinement changed the surface at all (non-vacuity). */
   changed?: boolean;
-  /** A passing add or remove refinement: whether its surface changed the way it asked. A measurement, never the pass. */
+  /** A passing add or remove refinement: whether its surface changed the way it asked. Beside the pass under corpus v1; binding under v2 (metrics.ts, scoreRecords). */
   operation?: OperationCheck;
   failure?: { kind: FailureKind; message: string; rerunEligible: boolean };
   refinement?: { mode: "compact" | "switch" | "primitive"; retained: boolean; reason?: string };

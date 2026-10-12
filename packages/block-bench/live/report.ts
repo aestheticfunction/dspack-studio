@@ -1,5 +1,5 @@
 /** REPORT.md: a derived view of runs.jsonl and summary.json, regenerated, never edited. */
-import type { Corpus } from "./corpus";
+import { scoringOf, type Corpus } from "./corpus";
 import { PRICED_MODEL } from "./cost";
 import type { EvaluationResult } from "./evaluate";
 import type { ArmStats, Clarity, Decision, Interval, OperationCounts, OperationSensitivity, PairedCounts, SensitivityFailing, SensitivityReading } from "./metrics";
@@ -31,6 +31,8 @@ const clarityText = (c: Clarity, minimum: number): string =>
           : "not measurable";
 const overallText = (o: Decision["clarity"]["overall"]) => (o === "insufficient" ? "too few prompts behind it to call" : o);
 const ratioOf = (r: SensitivityReading, arm: "block" | "capped" | "production") => (r.evaluated[arm] === 0 ? null : r.passed[arm] / r.evaluated[arm]);
+/** Every add or remove the pipeline passed: those the check read and those it never did. */
+const passedOf = (o: OperationCounts) => o.checked + o.unchecked;
 /** The missed count, with the misses that left the surface unchanged among them. */
 const missText = (o: OperationCounts) => `${o.missed} missed${o.unchanged ? `, ${o.unchanged} of them unchanged` : ""}`;
 /** How the corpus scores add and remove refinements, said once per decision. */
@@ -43,10 +45,10 @@ function sensitivityText(s: OperationSensitivity, scoring: OperationScoring): st
   const binding = scoring === "binding";
   const head = binding ? "- Add and remove refinements (live/operation.ts; binding, so the missed ones are failures): " : "- Add and remove refinements (live/operation.ts; beside the rule, never in it): ";
   const arms = [s.operation.block, s.operation.capped, s.operation.production];
-  if (arms.every((o) => o.checked === 0)) return binding ? `${head}no add or remove refinement the pipeline passed in the decision arms, so the binding check failed none.` : `${head}no passing add or remove refinement in the decision arms, so the verdict does not rest on one.`;
-  const counts = (o: OperationCounts) => `(${o.mixed} mixed, ${missText(o)})`;
+  if (arms.every((o) => passedOf(o) === 0)) return binding ? `${head}no add or remove refinement the pipeline passed in the decision arms, so the binding check failed none.` : `${head}no passing add or remove refinement in the decision arms, so the verdict does not rest on one.`;
+  const counts = (o: OperationCounts) => `(${o.mixed} mixed, ${missText(o)}${o.unchecked ? `, ${o.unchecked} unchecked` : ""})`;
   const { block, capped, production } = s.operation;
-  const done = `${head}block performed ${block.performed} of the ${block.checked} ${binding ? "the pipeline passed" : "that passed"} ${counts(block)}; capped ${capped.performed} of ${capped.checked} ${counts(capped)}; production ${production.performed} of ${production.checked} ${counts(production)}.`;
+  const done = `${head}block performed ${block.performed} of the ${passedOf(block)} ${binding ? "the pipeline passed" : "that passed"} ${counts(block)}; capped ${capped.performed} of ${passedOf(capped)} ${counts(capped)}; production ${production.performed} of ${passedOf(production)} ${counts(production)}.`;
   if (s.readings.length === 0) return `${done} Every one changed its lists the way its template asked, so ${binding ? "the binding check failed none" : "the verdict does not rest on the check"}.`;
   if (!binding) return `${done} The decision recomputed with some of them counted as failures is below; the verdict above stands.`;
   const without = s.readings.some((r) => r.failing === "none");
@@ -103,6 +105,10 @@ const pairedText = (p: PairedCounts, first: string, second: string) =>
 
 export function renderReport(result: EvaluationResult, context: { providerId: string; corpus: Corpus }): string {
   const { summary, preflight } = result;
+  // A run's scoring is its corpus's: a summary scored otherwise (a v2 run summarized without its rule) is never shown.
+  if (summary.scoring !== scoringOf(context.corpus)) {
+    throw new Error(`the summary was scored "${summary.scoring}", but corpus ${context.corpus.corpus} v${context.corpus.version} scores "${scoringOf(context.corpus)}"`);
+  }
   const out: string[] = [
     `# Interface-blocks live evaluation (Phase 1B): run ${result.runId}`,
     "",
@@ -277,7 +283,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       out.push("### Refinements (on each arm's own fresh result)", "");
       out.push(row(["Condition", "Arm", "Cells", "Skipped", "Evaluated", "Pass rate", "Changed", "Operation performed", "Retention", "Tokens/success (metered tokens/successes)", "Re-run eligible"]));
       out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
-      const operation = (o: OperationCounts) => (o.checked === 0 ? "n/a" : `${rate(o.performed / o.checked, o.performed, o.checked)}; ${o.mixed} mixed, ${missText(o)}`);
+      const operation = (o: OperationCounts) => (passedOf(o) === 0 ? "n/a" : `${rate(o.performed / passedOf(o), o.performed, passedOf(o))}; ${o.mixed} mixed, ${missText(o)}${o.unchecked ? `, ${o.unchecked} unchecked` : ""}`);
       for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), operation(s.operation), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
       out.push(
         "",
@@ -285,11 +291,11 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
         "",
       );
       // By block, per arm: a template that fits some prompts' surfaces and not others shows where its misses fall.
-      const adds = refinements.filter((x) => (x.condition === "refine-add" || x.condition === "refine-remove") && x.operation.checked > 0);
+      const adds = refinements.filter((x) => (x.condition === "refine-add" || x.condition === "refine-remove") && passedOf(x.operation) > 0);
       if (adds.length > 0) {
         const arms = ARMS.filter((arm) => adds.some((x) => x.arm === arm));
         const blocks = [...new Set(adds.flatMap((x) => Object.keys(x.operationByBlock)))].sort((a, b) => (a === "null" ? 1 : b === "null" ? -1 : a.localeCompare(b)));
-        const cell = (o: OperationCounts | undefined) => (!o || o.checked === 0 ? "n/a" : `${o.performed}/${o.checked}${o.mixed || o.missed ? `; ${o.mixed} mixed, ${missText(o)}` : ""}`);
+        const cell = (o: OperationCounts | undefined) => (!o || passedOf(o) === 0 ? "n/a" : `${o.performed}/${passedOf(o)}${o.mixed || o.missed || o.unchecked ? `; ${o.mixed} mixed, ${missText(o)}${o.unchecked ? `, ${o.unchecked} unchecked` : ""}` : ""}`);
         out.push("### Add and remove refinements, by block", "");
         out.push(row(["Condition", "Block", ...arms]), row(["---", "---", ...arms.map(() => "---:")]));
         for (const condition of ["refine-add", "refine-remove"] as const) {
@@ -300,7 +306,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
         }
         out.push(
           "",
-          "Performed of checked, per arm. A template that does not apply to a prompt's surface (an add of an item already there, a remove of one that is absent) shows here as misses, often unchanged, in the arms whose surfaces it does not fit. An unchanged miss is also what a refinement that ignored its instruction leaves, so unchanged misses on a template that applies to every surface, such as an added row or step, are real ones.",
+          "Performed of those the pipeline passed, per arm. A template that does not apply to a prompt's surface (an add of an item already there, a remove of one that is absent) shows here as misses, often unchanged, in the arms whose surfaces it does not fit. An unchanged miss is also what a refinement that ignored its instruction leaves, so unchanged misses on a template that applies to every surface, such as an added row or step, are real ones.",
           "",
         );
       }
