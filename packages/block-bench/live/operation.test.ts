@@ -53,23 +53,25 @@ const rows = [
   ["#3", "Three"],
 ];
 
-/** Where the shadcn fixture keeps its table rows and its footer buttons. */
-const BODY = "card.children>card-content.children>table.children>table-body.children";
-const FOOTER = "card.children>card-footer.children";
+/** Where the shadcn fixture keeps its table rows and its footer buttons: every node there has an id. */
+const BODY = "table-body(tb).children";
+const FOOTER = "card-footer(f).children";
 
 describe("the lists of a surface", () => {
-  it("are each keyed by where they sit: a node by its component and rank among same-component siblings, an array element by its index", () => {
-    expect(Object.fromEntries(listLengths(shadcn(rows)))).toMatchObject({ "card.children": 3, [BODY]: 3, [`${BODY}>table-row.children`]: 2, [`${BODY}>table-row#2.children`]: 2, [FOOTER]: 2 });
-    expect(Object.fromEntries(listLengths(astryx(rows)))).toMatchObject({ "card.children": 3, "card.children>table.props.columns": 2, "card.children>table.props.data": 3, "card.children>table.props.data[2].cells": 2 });
+  it("are each keyed by the node that owns them: by its id where it has one, otherwise by its place among same-component siblings, and an array element by its index", () => {
+    expect(Object.fromEntries(listLengths(shadcn(rows)))).toMatchObject({ "card(c).children": 3, [BODY]: 3, "table-row(r0).children": 2, "table-row(r2).children": 2, [FOOTER]: 2 });
+    expect(Object.fromEntries(listLengths(astryx(rows)))).toMatchObject({ "card(c).children": 3, "table(tbl).props.columns": 2, "table(tbl).props.data": 3, "table(tbl).props.data[2].cells": 2 });
+    const anonymous = { root: { component: "card", children: [{ component: "table", props: { data: [{ cells: ["a"] }] } }, { component: "table", props: { data: [] } }] } };
+    expect(Object.fromEntries(listLengths(anonymous))).toEqual({ "card.children": 2, "card.children>table.props.data": 1, "card.children>table.props.data[0].cells": 1, "card.children>table#1.props.data": 0 });
   });
 });
 
 describe("an add or a remove, judged by the direction of the change", () => {
   it("an added row is an add on either design system, and a removed row a remove", () => {
     const four = [...rows, ["#9001", "Password reset loop"]];
-    expect(checkOperation("add", shadcn(rows), shadcn(four))).toEqual({ requested: "add", observed: "add", deltas: { [BODY]: 1, [`${BODY}>table-row#3.children`]: 2 } });
-    expect(checkOperation("add", astryx(rows), astryx(four))).toEqual({ requested: "add", observed: "add", deltas: { "card.children>table.props.data": 1, "card.children>table.props.data[3].cells": 2 } });
-    expect(checkOperation("remove", astryx(rows), astryx(rows.slice(0, 2)))).toEqual({ requested: "remove", observed: "remove", deltas: { "card.children>table.props.data": -1, "card.children>table.props.data[2].cells": -2 } });
+    expect(checkOperation("add", shadcn(rows), shadcn(four))).toEqual({ requested: "add", observed: "add", deltas: { [BODY]: 1, "table-row(r3).children": 2 } });
+    expect(checkOperation("add", astryx(rows), astryx(four))).toEqual({ requested: "add", observed: "add", deltas: { "table(tbl).props.data": 1, "table(tbl).props.data[3].cells": 2 } });
+    expect(checkOperation("remove", astryx(rows), astryx(rows.slice(0, 2)))).toEqual({ requested: "remove", observed: "remove", deltas: { "table(tbl).props.data": -1, "table(tbl).props.data[2].cells": -2 } });
     expect(performed(checkOperation("remove", shadcn(rows), shadcn(rows.slice(0, 2))))).toBe(true);
   });
 
@@ -109,11 +111,23 @@ describe("an add or a remove, judged by the direction of the change", () => {
     const before = guide(["pasta", "tomatoes"], [["1", "Boil"], ["2", "Toss"]]);
     const check = checkOperation("add", before, guide(["pasta"], [["1", "Boil"], ["2", "Toss"], ["3", "Serve"]]));
     expect(check.observed).toBe("mixed");
-    expect(check.deltas).toMatchObject({ "card.children>table.props.data": -1, "card.children>table#1.props.data": 1 });
+    expect(check.deltas).toMatchObject({ "table(i).props.data": -1, "table(s).props.data": 1 });
     // Equal and opposite changes in two lists are mixed too, never "none".
     expect(checkOperation("remove", before, guide(["pasta", "tomatoes", "basil"], [["1", "Boil"]])).observed).toBe("mixed");
     // A badge added before the table moves no list of the table's: only the card's own children grew.
-    expect(checkOperation("add", astryx(rows), { root: { ...astryx(rows).root, children: [{ component: "badge", id: "new", props: { label: "New" } }, ...astryx(rows).root.children] } })).toEqual({ requested: "add", observed: "add", deltas: { "card.children": 1 } });
+    expect(checkOperation("add", astryx(rows), { root: { ...astryx(rows).root, children: [{ component: "badge", id: "new", props: { label: "New" } }, ...astryx(rows).root.children] } })).toEqual({ requested: "add", observed: "add", deltas: { "card(c).children": 1 } });
+  });
+
+  it("follows a node with an id wherever it moves: an item put first, a table wrapped in a new container, or siblings reordered change no list of theirs", () => {
+    const cards = (titles: string[]): Json => ({ root: { component: "stack", id: "s", children: titles.map((t) => ({ component: "card", id: t, children: [{ component: "text", id: `${t}-a`, text: t }, { component: "text", id: `${t}-b`, text: t }] })) } });
+    // A new card put first, ahead of three cards of the same component, is an add: the others keep their lists.
+    expect(checkOperation("add", cards(["a", "b", "c"]), cards(["new", "a", "b", "c"]))).toEqual({ requested: "add", observed: "add", deltas: { "stack(s).children": 1, "card(new).children": 2 } });
+    // Reordered siblings, each with its own lists, change nothing.
+    expect(checkOperation("remove", cards(["a", "b", "c"]), cards(["c", "a", "b"])).observed).toBe("none");
+    // A row appended while the table moves into a new container is still an add.
+    const wrapped = astryx([...rows, ["#4", "Four"]]);
+    wrapped.root.children = wrapped.root.children.map((child: Json) => (child.component === "table" ? { component: "card", id: "frame", children: [child] } : child));
+    expect(checkOperation("add", astryx(rows), wrapped)).toEqual({ requested: "add", observed: "add", deltas: { "card(frame).children": 1, "table(tbl).props.data": 1, "table(tbl).props.data[3].cells": 2 } });
   });
 
   it("reads only the surface's root, so metadata beside it never counts", () => {

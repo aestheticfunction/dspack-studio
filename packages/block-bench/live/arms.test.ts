@@ -218,9 +218,11 @@ describe("add and remove refinements are checked for the operation they ask for 
       const fresh = await run(added, arm, "fresh");
       expect(fresh.record.passed, arm).toBe(true);
       const add = await run(added, arm, "refine-add", fresh.prior);
-      expect(add.record, `${arm} add`).toMatchObject({ passed: true, operation: { requested: "add", observed: "add", deltas: { "card.children>table.props.data": 1 } } });
+      expect(add.record, `${arm} add`).toMatchObject({ passed: true, operation: { requested: "add", observed: "add" } });
+      expect(Object.entries(add.record.operation!.deltas), `${arm} add`).toContainEqual([expect.stringMatching(/^table\(.+\)\.props\.data$/), 1]);
       const remove = await run(dropped, arm, "refine-remove", fresh.prior);
-      expect(remove.record, `${arm} remove`).toMatchObject({ passed: true, operation: { requested: "remove", observed: "remove", deltas: { "card.children>table.props.data": -1 } } });
+      expect(remove.record, `${arm} remove`).toMatchObject({ passed: true, operation: { requested: "remove", observed: "remove" } });
+      expect(Object.entries(remove.record.operation!.deltas), `${arm} remove`).toContainEqual([expect.stringMatching(/^table\(.+\)\.props\.data$/), -1]);
       if (arm === "block") expect([add.record.path, remove.record.path]).toEqual(["fallback", "fallback"]);
     }
   });

@@ -192,6 +192,26 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
     const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
     expect(report).not.toMatch(/Token reduction vs production: [^\n]*clearly met/);
   });
+
+  it("counts the token figure's minimum over the prompts every decision arm evaluated that are metered in both the block and production arms", () => {
+    // 20 prompts every arm evaluated; the block arm's usage went unreported on 4 of them, and it ran 4 more prompts alone,
+    // all metered: 20 metered block threads, but only 16 shared prompts with a metered block figure.
+    const records = [
+      ...prompts(24).slice(0, 20).flatMap((p, i) => [
+        ...thread("block", p, () => true, [50, 0]).map((r) => (i < 4 ? { ...r, tokens: { ...r.tokens, unreportedCalls: 1 } } : r)),
+        ...thread("capped", p, () => true, [100, 0]),
+        ...thread("production", p, () => true, [100, 0]),
+      ]),
+      ...prompts(24).slice(20).flatMap((p) => thread("block", p, () => true, [50, 0])),
+    ];
+    const summary = summarize(records);
+    const [d] = summary.decisions;
+    expect(d).toMatchObject({ cohort: 20, meteredCohort: 16, meteredThreads: { block: 20, capped: 20, production: 20 } });
+    expect(d!.clarity).toMatchObject({ tokens: "insufficient", overall: "insufficient" });
+    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
+    expect(report).toContain("The token figure rests on the 16 of them metered in both the block and production arms, fewer than the 20 the rule needs.");
+    expect(report).not.toMatch(/Token reduction vs production: [^\n]*clearly met/);
+  });
 });
 
 function resultOf(records: RunRecord[], summary = summarize(records)): EvaluationResult {
@@ -279,6 +299,26 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     expect(report).toContain("The verdict holds, but its clarity rests on refinements that did not change their lists the way their template asked.");
     expect(report).not.toContain("The verdict rests on");
   });
+
+  it("says whether its conclusion survives without the misses that left the surface unchanged, the right answer where a template does not apply", () => {
+    // Seven block removes left their surface exactly as it was (an auth form with no provider buttons to remove, say).
+    const records = checked((arm, condition, i) => (arm === "block" && condition === "refine-remove" && i < 7 ? "none" : done(arm, condition))).map((r) =>
+      r.arm === "block" && r.condition === "refine-remove" && r.operation?.observed === "none" ? { ...r, changed: false } : r,
+    );
+    const summary = summarize(records);
+    expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
+    expect(summary.sensitivity[0]).toMatchObject({
+      operation: { block: { checked: 48, performed: 41, missed: 7, unchanged: 7 } },
+      missedAsFailures: { verdict: "fail" },
+      verdictHolds: false,
+      changedMissesAsFailures: { verdict: "pass", overall: "clear" },
+      holdsWithoutUnchanged: { verdict: true, clarity: true },
+    });
+    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
+    expect(report).toContain(
+      "The verdict rests on refinements that did not change their lists the way their template asked. Leaving out the 7 that left their surface unchanged, the right answer where a template does not apply to it (the add and remove table by block shows where they fall), the decision would read pass (clear; pass rate block 100.0% (120/120), capped 100.0% (120/120), production 100.0% (120/120); token reduction vs production 50.0%): without them, neither the verdict nor its clarity rests on the check.",
+    );
+  });
 });
 
 describe("the report says what each figure is", () => {
@@ -318,10 +358,10 @@ describe("the report says what each figure is", () => {
     expect(report).toContain("| Condition | Block | block | capped | production |");
     expect(report).toContain("| refine-add | records-table | 4/4 | 4/4 | 4/4 |");
     expect(report).toContain("| refine-remove | records-table | 0/4; 0 mixed, 4 missed, 1 of them unchanged | 0/4; 0 mixed, 4 missed, 1 of them unchanged | 0/4; 0 mixed, 4 missed, 1 of them unchanged |");
-    expect(report).toContain("An unchanged surface counts as missed, though it is the right answer where a template does not apply to the surface; the add and remove table by block shows where they fall.");
+    expect(report).toContain("Leaving out the 3 that left their surface unchanged, the right answer where a template does not apply to it (the add and remove table by block shows where they fall), the decision would read insufficient");
     expect(report).toContain("| refine-content | block | 4 | 0 | 4 | 75.0% (3/4) | 100.0% (3/3) | n/a |");
     // Parity: an empty checklist is not scored, and action names are not in the frozen checklist.
     expect(report).toContain("100.0% (3 scored, 1 with no checks)");
-    expect(report).toContain("- Action names in parity: Plan v5's checklist lists them, but the frozen corpus (blocks-1b v1) names none, so parity scores labels and components only and cannot show whether an expected action exists. A checklist with nothing to check is not scored.");
+    expect(report).toContain("- Action names in parity: the plan behind ADR-B3 lists them in the parity checklist, but the frozen corpus (blocks-1b v1) names none, so parity scores labels and components only and cannot show whether an expected action exists. A checklist with nothing to check is not scored.");
   });
 });
