@@ -10,7 +10,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { planDeterministic, proposeBody } from "@dspack-studio/composer-core";
 import { selectBlockDeterministic, type StructuralAdapter } from "@dspack-studio/composer-core/blocks";
 import { exampleFor } from "./arms";
-import { promptsFor, readCorpus, type Corpus } from "./corpus";
+import { corpusDigest, promptsFor, readCorpusVersion, type Corpus } from "./corpus";
 import { SCRIPTED_ID, faultFor } from "./providers/scripted";
 import { manifestFor, manifestMismatches, planCells, readRecords, runEvaluation } from "./evaluate";
 import { codeIdentity, sourceDigest } from "./identity";
@@ -28,7 +28,8 @@ let references: LoadedReference[];
 let pre: Preflight;
 let dir: string;
 beforeAll(async () => {
-  corpus = readCorpus();
+  // The harness's mechanics, as written against corpus v1; corpus v2's binding scoring has its own run below.
+  corpus = readCorpusVersion(1);
   references = await Promise.all(["astryx", "shadcn-v3"].map((id) => loadReference(id)));
   pre = await preflight({ references });
   dir = mkdtempSync(join(tmpdir(), "block-bench-dry-"));
@@ -356,3 +357,27 @@ describe("the run log keeps no raw model output", () => {
   }, 120_000);
 });
 
+
+describe("a dry run on corpus v2 (ADR-B3 amendment 2)", () => {
+  it("records v2 in its manifest, scores the add and remove check as binding in every arm alike, and never resumes a run made on v1", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new Error("no network in the dry run"))));
+    const v2 = readCorpusVersion(2);
+    const out = join(dir, "run-v2");
+    const promptIds = ["rt-02", "af-01", "gs-01", "nb-01"];
+    const result = await runEvaluation({ runId: "dry-v2", provider: createScriptedProvider(), references, corpus: v2, preflight: pre, allowDrafts: true, promptIds, outDir: out });
+    expect(JSON.parse(readFileSync(join(out, "manifest.json"), "utf8")).corpus).toEqual({ id: "blocks-1b", version: 2, frozenAt: "2026-10-12", sha256: await corpusDigest(v2) });
+    expect(result.summary.scoring).toBe("binding");
+    // The scripted twins rewrite text and never change a list, so every add and remove the pipeline passed missed its
+    // operation, and binding counts each as a failure, whatever the arm.
+    for (const s of result.summary.arms.filter((x) => x.condition === "refine-add" || x.condition === "refine-remove")) {
+      expect(s.operation.missed, `${s.reference} ${s.arm} ${s.condition}`).toBe(s.operation.checked);
+      expect(s.passed, `${s.reference} ${s.arm} ${s.condition}`).toBe(0);
+    }
+    expect(result.summary.arms.some((x) => (x.condition === "refine-add" || x.condition === "refine-remove") && x.operation.checked > 0)).toBe(true);
+    expect(readFileSync(join(out, "REPORT.md"), "utf8")).toContain("- Scoring: corpus blocks-1b v2 makes the add and remove check binding");
+    // A run measured on v1 is held to v1: resuming it on v2 is refused.
+    const v1out = join(dir, "run-v1-then-v2");
+    await runEvaluation({ runId: "dry-v1", provider: createScriptedProvider(), references: [references[0]!], corpus, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: v1out });
+    await expect(runEvaluation({ runId: "x", provider: createScriptedProvider(), references: [references[0]!], corpus: v2, preflight: pre, allowDrafts: true, promptIds: ["rt-01"], conditions: ["fresh"], outDir: v1out, resume: true })).rejects.toThrow(/corpus: the run used blocks-1b v1/);
+  }, 300_000);
+});
