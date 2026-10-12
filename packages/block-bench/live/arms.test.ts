@@ -8,8 +8,11 @@ import { planDeterministic } from "@dspack-studio/composer-core";
 import { runCell, type CellInput } from "./arms";
 import { promptsFor, readCorpus, type Corpus } from "./corpus";
 import { createScriptedProvider, faultFor, type Fault } from "./providers/scripted";
+import type { Provider } from "./providers/types";
 import { loadReference, type LoadedReference } from "./references";
 import type { Arm, Condition, PriorResult } from "./types";
+
+type Json = Record<string, any>;
 
 let corpus: Corpus;
 let astryx: LoadedReference;
@@ -172,3 +175,68 @@ describe("the block-positional arm (ADR-B2: named against positional)", () => {
   });
 });
 
+describe("add and remove refinements are checked for the operation they ask for (live/operation.ts)", () => {
+  const run = (provider: Provider, arm: Arm, condition: Condition, prior?: PriorResult) =>
+    runCell({ reference: astryx, provider, arm, condition, prompt: promptById("rt-01"), corpus, ...(prior ? { prior } : {}), clock: () => "2026-10-10T00:00:00.000Z" });
+  /** The scripted provider, except that a primitive refinement's answer is edited the way a model that did the operation would edit it. */
+  const editing = (edit: (surface: Json) => void): Provider => {
+    const base = createScriptedProvider();
+    return {
+      ...base,
+      surfaceAdapter(options) {
+        const inner = base.surfaceAdapter(options);
+        if (!options.refinement) return inner;
+        return {
+          id: inner.id,
+          async generate(request, context) {
+            const result = await inner.generate(request, context);
+            const json = structuredClone(result.json) as Json;
+            edit(json);
+            return { ...result, json, raw: JSON.stringify(json) };
+          },
+        };
+      },
+    };
+  };
+  /** The rows of the surface's table (Astryx keeps them in the table's data prop). */
+  const rows = (surface: Json) => (surface.root.children as Json[]).find((c) => c.component === "table")!.props.data as Json[];
+
+  it("the scripted twin answers an add and a remove by rewriting text alone: the gates pass and the surface changed, but the record says no list changed", async () => {
+    for (const arm of ["production", "capped", "block"] as const) {
+      const fresh = await cell({ arm });
+      for (const [condition, requested] of [["refine-add", "add"], ["refine-remove", "remove"]] as const) {
+        const { record } = await cell({ arm, condition, prior: fresh.prior });
+        expect(record, `${arm} ${condition}`).toMatchObject({ passed: true, changed: true, operation: { requested, observed: "none", deltas: {} } });
+      }
+    }
+  });
+
+  it("a refinement that adds a row, or removes one, is recorded as doing so, on a primitive refinement and on the block arm's fallback alike", async () => {
+    const added = editing((s) => void rows(s).push(structuredClone(rows(s).at(-1)!)));
+    const dropped = editing((s) => void rows(s).pop());
+    for (const arm of ["production", "block"] as const) {
+      const fresh = await run(added, arm, "fresh");
+      expect(fresh.record.passed, arm).toBe(true);
+      const add = await run(added, arm, "refine-add", fresh.prior);
+      expect(add.record, `${arm} add`).toMatchObject({ passed: true, operation: { requested: "add", observed: "add" } });
+      expect(Object.entries(add.record.operation!.deltas), `${arm} add`).toContainEqual([expect.stringMatching(/^table\(.+\)\.props\.data$/), 1]);
+      const remove = await run(dropped, arm, "refine-remove", fresh.prior);
+      expect(remove.record, `${arm} remove`).toMatchObject({ passed: true, operation: { requested: "remove", observed: "remove" } });
+      expect(Object.entries(remove.record.operation!.deltas), `${arm} remove`).toContainEqual([expect.stringMatching(/^table\(.+\)\.props\.data$/), -1]);
+      if (arm === "block") expect([add.record.path, remove.record.path]).toEqual(["fallback", "fallback"]);
+    }
+  });
+
+  it("checks only add and remove refinements that passed: a content or structural change, and a failed refinement, carry no check", async () => {
+    const fresh = await cell({ arm: "production" });
+    for (const condition of ["refine-content", "refine-structural"] as const) {
+      const { record } = await cell({ arm: "production", condition, prior: fresh.prior });
+      expect(record.passed, condition).toBe(true);
+      expect(record.operation, condition).toBeUndefined();
+    }
+    const broken = editing((s) => void (s.root = { component: "no-such-component", id: "x" }));
+    const { record } = await run(broken, "production", "refine-add", fresh.prior);
+    expect(record.passed).toBe(false);
+    expect(record.operation).toBeUndefined();
+  });
+});
