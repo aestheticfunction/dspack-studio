@@ -48,8 +48,14 @@ function sensitivityText(s: OperationSensitivity): string {
     : `Counting them as failures, the decision would read ${reading(s.missedAsFailures)}.`;
   const those = "refinements that did not change their lists the way their template asked";
   const conclusion = !s.verdictHolds ? `The verdict rests on ${those}.` : !s.clarityHolds ? `The verdict holds, but its clarity rests on ${those}.` : `Neither the verdict nor its clarity rests on ${those}.`;
-  const caveat = arms.some((o) => o.unchanged > 0) ? " An unchanged surface counts as missed, though it is the right answer where a template does not apply to the surface; the add and remove table by block shows where they fall." : "";
-  return `${done} ${readings} ${conclusion}${caveat}`;
+  // An unchanged surface is the right answer where a template does not apply to it: say whether the conclusion survives without those.
+  const unchanged = arms.reduce((a, o) => a + o.unchanged, 0);
+  const without = s.changedMissesAsFailures && s.holdsWithoutUnchanged
+    ? ` Leaving out the ${unchanged} that left their surface unchanged, the right answer where a template does not apply to it (the add and remove table by block shows where they fall), the decision would read ${reading(s.changedMissesAsFailures)}: ${
+        !s.holdsWithoutUnchanged.verdict ? "even without them, the verdict rests on the check." : !s.holdsWithoutUnchanged.clarity ? "without them, the verdict holds but its clarity does not." : "without them, neither the verdict nor its clarity rests on the check."
+      }`
+    : "";
+  return `${done} ${readings} ${conclusion}${without}`;
 }
 /** Checklists with nothing to check are counted apart, never scored. */
 const parityText = (p: ArmStats["parity"]) =>
@@ -150,7 +156,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       `- Token reduction vs production: ${pct(d.tokens.reductionVsProduction)} (${span(d.intervals.reductionVsProduction, "%")}): ${clarityText(d.clarity.tokens, d.options.minimum)}. Vs capped: ${pct(d.tokens.reductionVsCapped)} (${span(d.intervals.reductionVsCapped, "%")}).`,
       `- Pass rate, block minus production: ${d.passRates.block === null || d.passRates.production === null ? "n/a" : `${signed(d.passRates.block - d.passRates.production)} points`} (${span(d.intervals.passDiffVsProduction, " points")}): ${clarityText(d.clarity.vsProduction, d.options.minimum)}. Block minus capped: ${d.passRates.block === null || d.passRates.capped === null ? "n/a" : `${signed(d.passRates.block - d.passRates.capped)} points`} (${span(d.intervals.passDiffVsCapped, " points")}): ${clarityText(d.clarity.vsCapped, d.options.minimum)}.`,
       `- Compared paired by prompt: ${pairedText(d.paired.vsProduction, "block", "production")}; ${pairedText(d.paired.vsCapped, "block", "capped")}.`,
-      `- The intervals resample the ${d.cohort} prompts every decision arm evaluated${d.cohort < d.options.minimum ? `, fewer than the ${d.options.minimum} the rule needs, so neither a criterion nor the decision can be called clear` : ""}.`,
+      `- The intervals resample the ${d.cohort} prompts every decision arm evaluated${d.cohort < d.options.minimum ? `, fewer than the ${d.options.minimum} the rule needs, so neither a criterion nor the decision can be called clear` : ""}.${d.meteredCohort < d.cohort ? ` The token figure rests on the ${d.meteredCohort} of them metered in both the block and production arms${d.meteredCohort < d.options.minimum ? `, fewer than the ${d.options.minimum} the rule needs` : ""}.` : ""}`,
       ...summary.sensitivity.filter((x) => x.reference === d.reference && x.provider === d.provider).map(sensitivityText),
       "",
       `The decision pools every evaluated result of every condition, fresh builds and refinements alike, because ADR-B3 counts every call, refinements included. Rule: at least ${100 * d.options.reduction}% fewer tokens per success and a pass rate within ${100 * d.options.margin} points of both primitive arms, both boundaries inclusive, with at least ${d.options.minimum} evaluated and ${d.options.minimum} metered prompt threads per arm. The verdict reads the point estimates; a criterion is clear only when its whole interval sits on one side of its threshold, and the decision is clear only when its intervals agree with the verdict and rest on at least ${d.options.minimum} prompts every decision arm evaluated.`,
@@ -237,7 +243,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), operation(s.operation), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
       out.push(
         "",
-        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; each decision's add and remove line says whether its verdict rests on these.",
+        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. Nodes are matched by id where they have one, otherwise by place, so a node without an id that moves reads as lists changed both ways. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; each decision's add and remove line says whether its verdict rests on these.",
         "",
       );
       // By block, per arm: a template that fits some prompts' surfaces and not others shows where its misses fall.
@@ -302,7 +308,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     "",
     ...(positional ? [`- Named vs positional encoding: ${positional}`] : []),
     "- Time to first valid preview equals completion today (ADR-B3) and is the p50 total above, which, like every latency here, leaves out the harness's pacing waits.",
-    `- Action names in parity: Plan v5's checklist lists them, but the frozen corpus (${context.corpus.corpus} v${context.corpus.version}) names none, so parity scores labels and components only and cannot show whether an expected action exists. A checklist with nothing to check is not scored.`,
+    `- Action names in parity: the plan behind ADR-B3 lists them in the parity checklist, but the frozen corpus (${context.corpus.corpus} v${context.corpus.version}) names none, so parity scores labels and components only and cannot show whether an expected action exists. A checklist with nothing to check is not scored.`,
     "",
   );
   out.push(`Totals: ${summary.totals.records} records, ${summary.totals.completed} completed, ${summary.totals.providerCalls} provider calls, ${summary.totals.inputTokens} input and ${summary.totals.outputTokens} output tokens reported, ${summary.totals.requestBytes} request bytes.`, "");

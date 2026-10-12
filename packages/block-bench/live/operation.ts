@@ -5,12 +5,14 @@
  * refinement that rewrote a title passes an add as readily as one that added the row.
  *
  * The check compares the passing refined surface with the prior one the same arm built, list by list: every node's
- * children and every array in its props, each keyed by where it sits. A node is placed by its component and its rank
- * among siblings of the same component (`table#1` is a node's second table), so adding a badge does not move the table
- * beside it; an element of a plain array is placed by its index. A shadcn table's rows are its `table-body`'s children,
- * an Astryx table's are its `props.data`. An add must lengthen a list and shorten none; a remove, the reverse. Each list
- * is judged on its own, so a row added to one table never hides a row dropped from another. The check judges the
- * direction of the change, not its content or its size, from the two surfaces alone, so it scores every arm identically.
+ * children and every array in its props, each keyed by the node that owns it. A node with an id is matched by its
+ * component and id (`table(tickets)`) wherever it sits, so an item put first, a table moved into a new container, or
+ * siblings reordered leave its lists alone. A node without one is placed under its parent by its component and its rank
+ * among id-less siblings of the same component (`table#1` is the second); an element of a plain array by its index. A
+ * shadcn table's rows are its `table-body`'s children, an Astryx table's are its `props.data`. An add must lengthen a list
+ * and shorten none; a remove, the reverse. Each list is judged on its own, so a row added to one table never hides a row
+ * dropped from another. The check judges the direction of the change, not its content or its size, from the two
+ * surfaces alone, so it scores every arm identically.
  *
  * It is a measurement beside the pass rate, never inside it. ADR-B3's pass is the pipeline's audit outcome, frozen
  * with the corpus and its scoring, so counting a refinement that missed its operation as a failure would be a re-freeze,
@@ -23,18 +25,28 @@ type Json = Record<string, unknown>;
 
 const isNode = (value: unknown): value is Json & { component: string } => !!value && typeof value === "object" && typeof (value as Json).component === "string";
 
-/** Every list in a surface's root, by where it sits, with its length. */
+/** Every list in a surface's root, keyed by the node that owns it, with its length. */
 export function listLengths(surface: unknown): Map<string, number> {
   const out = new Map<string, number>();
+  const anchored = new Set<string>();
+  /** A node's key: its component and id where it has one (once: a repeated id falls back to its place), otherwise its place. */
+  const keyOf = (node: Json & { component: string }, place: string): string => {
+    const anchor = typeof node.id === "string" && node.id ? `${node.component}(${node.id})` : undefined;
+    if (!anchor || anchored.has(anchor)) return place;
+    anchored.add(anchor);
+    return anchor;
+  };
   const walk = (value: unknown, at: string): void => {
     if (Array.isArray(value)) {
-      out.set(at, value.length);
+      out.set(at, (out.get(at) ?? 0) + value.length);
       const ranks = new Map<string, number>();
       value.forEach((item, i) => {
         if (isNode(item)) {
-          const rank = ranks.get(item.component) ?? 0;
-          ranks.set(item.component, rank + 1);
-          walk(item, `${at}>${item.component}${rank > 0 ? `#${rank}` : ""}`);
+          // Ranks count id-less siblings only, so a node with an id put among them moves none of them.
+          const hasId = typeof item.id === "string" && item.id !== "";
+          const rank = hasId ? 0 : (ranks.get(item.component) ?? 0);
+          if (!hasId) ranks.set(item.component, rank + 1);
+          walk(item, keyOf(item, `${at}>${item.component}${rank > 0 ? `#${rank}` : ""}`));
         } else walk(item, `${at}[${i}]`);
       });
       return;
@@ -43,7 +55,7 @@ export function listLengths(surface: unknown): Map<string, number> {
     for (const [key, child] of Object.entries(value as Json)) walk(child, `${at}.${key}`);
   };
   const root = (surface as Json | null | undefined)?.root ?? surface;
-  walk(root, isNode(root) ? root.component : "root");
+  walk(root, isNode(root) ? keyOf(root, root.component) : "root");
   return out;
 }
 

@@ -206,6 +206,8 @@ export interface Decision {
   counts: { passed: Trio<number>; meteredTokens: Trio<number>; meteredSuccesses: Trio<number> };
   /** The paired cohort: prompts every decision arm evaluated. The intervals resample these alone, and a decision is clear only when there are at least the minimum's. */
   cohort: number;
+  /** The cohort's prompts metered in both the block and the production arm: the prompts the token figure's interval rests on. */
+  meteredCohort: number;
   /** 95% paired cluster-bootstrap intervals (prompts resampled, the same resample in every arm). Pass differences are the block arm's rate minus the other's. */
   intervals: { reductionVsProduction: Interval | null; reductionVsCapped: Interval | null; passDiffVsProduction: Interval | null; passDiffVsCapped: Interval | null };
   clarity: { tokens: Clarity; vsProduction: Clarity; vsCapped: Clarity; overall: "clear" | "uncertain" | "insufficient" };
@@ -242,6 +244,13 @@ export interface OperationSensitivity {
   clarityHolds: boolean;
   /** Both hold: the decision does not rest on what the check found. */
   robust: boolean;
+  /**
+   * When some miss left its surface unchanged (the right answer where a template does not apply to the surface): the
+   * decision again with only the misses that changed their surface counted as failures, and whether it gives the verdict
+   * and its clarity.
+   */
+  changedMissesAsFailures?: SensitivityReading;
+  holdsWithoutUnchanged?: { verdict: boolean; clarity: boolean };
 }
 
 export interface Summary {
@@ -589,7 +598,9 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     const iv = pairedBootstrap(sums, { reductionVsProduction: reduction("production"), reductionVsCapped: reduction("capped"), passDiffVsProduction: passDiff("production"), passDiffVsCapped: passDiff("capped") }, `${reference}|${provider}`);
     const intervals = { reductionVsProduction: iv.reductionVsProduction ?? null, reductionVsCapped: iv.reductionVsCapped ?? null, passDiffVsProduction: iv.passDiffVsProduction ?? null, passDiffVsCapped: iv.passDiffVsCapped ?? null };
     const paired = { vsProduction: pairedCounts(sums.block, sums.production), vsCapped: pairedCounts(sums.block, sums.capped) };
-    const cohort = sharedPrompts(sums).length;
+    const shared = sharedPrompts(sums);
+    const cohort = shared.length;
+    const meteredCohort = shared.filter((p) => (sums.block.get(p)?.metered ?? 0) > 0 && (sums.production.get(p)?.metered ?? 0) > 0).length;
     const tokens = {
       block: block?.tokensPerSuccess ?? null,
       capped: capped?.tokensPerSuccess ?? null,
@@ -633,10 +644,10 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     }
     // Below the minimum an interval is indicative at most (the addendum: indicative only below about 20 prompts, not
     // interpretable at 4), so no criterion is called clear there: each one with an interval is insufficient, and so is
-    // the decision. The pass-rate criteria rest on the prompts every decision arm evaluated; the token figure also on
-    // the metered threads, as the verdict's own minimum does. A criterion with no interval stays not measurable.
+    // the decision. The pass-rate criteria rest on the prompts every decision arm evaluated; the token figure on those
+    // of them metered in both the block and the production arm. A criterion with no interval stays not measurable.
     const enough = cohort >= options.minimum;
-    const tokensEnough = enough && meteredThreads.block >= options.minimum && meteredThreads.production >= options.minimum;
+    const tokensEnough = enough && meteredCohort >= options.minimum;
     const clarity = {
       tokens: clarityOf(intervals.reductionVsProduction, options.reduction, tokensEnough),
       vsProduction: clarityOf(intervals.passDiffVsProduction, -options.margin, enough),
@@ -647,8 +658,8 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     // outcome is the verdict's (the verdict pools prompts an arm alone reached; the intervals draw from the shared ones),
     // and the intervals rest on at least the minimum's prompts in common, not on a few the arms happen to share.
     const agrees = (verdict === "pass" && criteria.every((c) => c === "clear-pass")) || (verdict === "fail" && criteria.includes("clear-fail"));
-    const overall: Decision["clarity"]["overall"] = !enough || belowMinimum ? "insufficient" : agrees ? "clear" : "uncertain";
-    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, threads, meteredThreads, counts, cohort, intervals, clarity: { ...clarity, overall }, paired, options });
+    const overall: Decision["clarity"]["overall"] = !enough || !tokensEnough || belowMinimum ? "insufficient" : agrees ? "clear" : "uncertain";
+    out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, threads, meteredThreads, counts, cohort, meteredCohort, intervals, clarity: { ...clarity, overall }, paired, options });
   }
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
 }
@@ -659,13 +670,15 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
  */
 export function operationSensitivity(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION, decisions: readonly Decision[] = decide(records, options)): OperationSensitivity[] {
   const decisionRecords = records.filter((r) => DECISION_ARMS.includes(r.arm));
-  const failing = (miss: (check: OperationCheck) => boolean): Decision[] => {
+  const failing = (miss: (check: OperationCheck, r: RunRecord) => boolean): Decision[] => {
     let flipped = 0;
-    const counted = decisionRecords.map((r) => (r.passed && r.operation && miss(r.operation) ? (flipped++, { ...r, passed: false }) : r));
+    const counted = decisionRecords.map((r) => (r.passed && r.operation && miss(r.operation, r) ? (flipped++, { ...r, passed: false }) : r));
     return flipped === 0 ? [...decisions] : decide(counted, options);
   };
   const lenient = failing(missed);
   const strict = failing((check) => !performed(check));
+  const unchanged = decisionRecords.some((r) => r.passed && r.operation && missed(r.operation) && r.changed === false);
+  const changedOnly = unchanged ? failing((check, r) => missed(check) && r.changed !== false) : undefined;
   const pooled = armStats(decisionRecords, { pooled: true });
   const none: OperationCounts = { checked: 0, performed: 0, mixed: 0, missed: 0, unchanged: 0 };
   return decisions.map((d) => {
@@ -675,15 +688,18 @@ export function operationSensitivity(records: readonly RunRecord[], options: Dec
     const readings = [find(lenient), find(strict)];
     const verdictHolds = readings.every((x) => x.verdict === d.verdict);
     const clarityHolds = readings.every((x) => x.clarity.overall === d.clarity.overall);
+    const ops = { block: operation("block"), capped: operation("capped"), production: operation("production") };
+    const without = changedOnly && Object.values(ops).some((o) => o.unchanged > 0) ? find(changedOnly) : undefined;
     return {
       reference: d.reference,
       provider: d.provider,
-      operation: { block: operation("block"), capped: operation("capped"), production: operation("production") },
+      operation: ops,
       missedAsFailures: reading(readings[0]!),
       notPerformedAsFailures: reading(readings[1]!),
       verdictHolds,
       clarityHolds,
       robust: verdictHolds && clarityHolds,
+      ...(without ? { changedMissesAsFailures: reading(without), holdsWithoutUnchanged: { verdict: without.verdict === d.verdict, clarity: without.clarity.overall === d.clarity.overall } } : {}),
     };
   });
 }
