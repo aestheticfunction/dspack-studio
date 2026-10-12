@@ -19,7 +19,7 @@
         "instruction": "Remove the last row."
       },
       "structural": {
-        "instruction": "Split the table into two tabs, Open and Closed, with a search field and a filter bar above them."
+        "instruction": "Split the rows into two tables, each in its own card with a heading, and add a search field and a filter button above them."
       }
     },
     "auth-form": {
@@ -28,13 +28,13 @@
         "expectText": "Welcome back"
       },
       "add": {
-        "instruction": "Add Microsoft as a sign-in provider."
+        "instruction": "Add Microsoft as a sign-in provider; if it is there already, add Apple."
       },
       "remove": {
         "instruction": "Remove the sign-in provider buttons; if there are none, remove the first field."
       },
       "structural": {
-        "instruction": "Turn it into a two-step wizard with a progress indicator and a terms-of-service checkbox on the second step."
+        "instruction": "Turn it into a two-step wizard of two cards, each with a step badge (\"Step 1 of 2\", \"Step 2 of 2\"), and a terms-of-service notice with an \"I agree\" button on the second card."
       }
     },
     "guide-steps": {
@@ -63,7 +63,7 @@
         "instruction": "Remove the last item."
       },
       "structural": {
-        "instruction": "Turn it into a two-column layout with a sidebar of related links."
+        "instruction": "Move the main content into a card, and add a second card below it with three related links as buttons."
       }
     }
   },

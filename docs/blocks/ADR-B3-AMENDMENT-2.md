@@ -19,7 +19,7 @@
 ### Corpus v2
 
 - **Version:** `blocks-1b` v2, frozen 2026-10-12 (`live/corpora/blocks.v2.json`).
-- **Pin:** its own, `live/corpora/frozen.v2.json`, with sha256 `590ecb75bb53d98ae7b8a7f2d810ae4f5c9dc41d046f41554db8d991c20a9935`.
+- **Pin:** its own, `live/corpora/frozen.v2.json`, with sha256 `0824a48558f882ca9d5d4593fade77b356c8e93ed100847434c0a06ac0d4bb77`. With C1 to C3 alone, without the extension below, the digest would be `590ecb75bb53d98ae7b8a7f2d810ae4f5c9dc41d046f41554db8d991c20a9935`.
 - **Runs:** a run measures v2 unless it passes `--corpus 1`. The run manifest pins the version and digest it measured, as before.
 
 Each corrected template must:
@@ -32,6 +32,19 @@ Each corrected template must:
 | C1 | records-table, add | Add one more row at the end for item #9001, subject "Password reset loop", status Open, priority P2. | Add one more row at the end, with a plausible value in every column. | It names a ticket's values. Only rt-01 is a table of tickets; rt-02 to rt-22 have no columns for them. |
 | C2 | auth-form, remove | Remove the provider buttons. | Remove the sign-in provider buttons; if there are none, remove the first field. | 15 of the 22 auth-form prompts name no provider, so v1 had nothing to remove. The fallback target is the first field, never the last: the block keeps the password in sign-in and sign-up, so removing the last field would ask the block for what it cannot do. |
 | C3 | guide-steps, structural | Turn the steps into an accordion with a timer and a photo for each step, and a comments section below. | Show each step as its own card with a numbered badge, and add a comments section with a text field and a Post button below the steps. | The accordion is a shadcn-v3 casualty and absent from Astryx. No component in either renders a timer or a photo. The block draws its steps as a table, so cards per step and a comments field remain changes it cannot express. |
+
+### The extension: the same rules' other findings
+
+These four were not among the three named for correction. The same two audit rules find them, and they are corrected the same way. They are kept separable: dropping them leaves v2 with C1 to C3 only, under the digest given above.
+
+| | Template | v1 | v2 | Why (static audit) |
+|---|---|---|---|---|
+| C4 | auth-form, add | Add Microsoft as a sign-in provider. | Add Microsoft as a sign-in provider; if it is there already, add Apple. | af-12 already offers Microsoft. Once the check is binding, a correct no-op there would fail. It is outside Stage 3. |
+| D1 | records-table, structural | Split the table into two tabs, Open and Closed, with a search field and a filter bar above them. | Split the rows into two tables, each in its own card with a heading, and add a search field and a filter button above them. | Astryx has no tabs. A split by ticket status fits only rt-01. |
+| D2 | auth-form, structural | Turn it into a two-step wizard with a progress indicator and a terms-of-service checkbox on the second step. | Turn it into a two-step wizard of two cards, each with a step badge ("Step 1 of 2", "Step 2 of 2"), and a terms-of-service notice with an "I agree" button on the second card. | Astryx has neither a progress indicator nor a checkbox. |
+| D3 | null, structural | Turn it into a two-column layout with a sidebar of related links. | Move the main content into a card, and add a second card below it with three related links as buttons. | Neither design system lays content out in columns, and Astryx has no sidebar. |
+
+**Direction.** An impossible structural request can only lower pass rates through gate failures it provokes. The block arm's fallback has one attempt fewer than the capped arm's, so those failures weigh on it most. Making the structural templates possible (C3, D1 to D3) can therefore only help the block arm, if it changes anything. That is why these were decided from the static audit alone, before any refinement result existed.
 
 ### M: the add and remove check is binding
 

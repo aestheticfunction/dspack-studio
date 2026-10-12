@@ -109,6 +109,12 @@ export const AUDITED_TEMPLATES: Readonly<Record<string, Needs>> = {
   // Every auth-form prompt has a field, and the first is never the password the block keeps for sign-in and sign-up.
   "Remove the sign-in provider buttons; if there are none, remove the first field.": always,
   "Show each step as its own card with a numbered badge, and add a comments section with a text field and a Post button below the steps.": always,
+  // v2: the same rules' other findings, outside the three named corrections
+  "Add Microsoft as a sign-in provider; if it is there already, add Apple.": (p) =>
+    providersIn(p).includes("microsoft") && providersIn(p).includes("apple") ? "offers Microsoft and Apple already, so neither can be added" : undefined,
+  "Split the rows into two tables, each in its own card with a heading, and add a search field and a filter button above them.": always,
+  'Turn it into a two-step wizard of two cards, each with a step badge ("Step 1 of 2", "Step 2 of 2"), and a terms-of-service notice with an "I agree" button on the second card.': always,
+  "Move the main content into a card, and add a second card below it with three related links as buttons.": always,
 };
 
 /** Which references a template set is used on: those its prompts apply to. */
