@@ -42,7 +42,7 @@ Each corrected template must:
 | C1 | records-table, add | Add one more row at the end for item #9001, subject "Password reset loop", status Open, priority P2. | Add one more row at the end, with a plausible value in every column. | It names a ticket's values. Only rt-01 is a table of tickets; rt-02 to rt-22 have no columns for them. |
 | C2 | auth-form, remove | Remove the provider buttons. | Remove the sign-in provider buttons; if there are none, remove the first field. | 15 of the 22 auth-form prompts name no provider, so v1 had nothing to remove. |
 | C3 | guide-steps, structural | Turn the steps into an accordion with a timer and a photo for each step, and a comments section below. | Show each step as its own card with a numbered badge, and add a comments section with a text field and a Post button below the steps. | The accordion is a shadcn-v3 casualty and absent from Astryx, and no component in either is judged to render a timer or a photo. The block draws its steps as a table, so a card per step and a comments field stay changes it cannot express. |
-| C4 | auth-form, add | Add Microsoft as a sign-in provider. | Add Microsoft as a sign-in provider; if it is there already, add Apple. | af-12 already offers Microsoft. Under binding, the block's compact refinement cannot add it twice (its providers are unique), so its correct no-op would fail, while a surface regenerated in full, the block arm's fallback included, could add a second button and pass. C4 is part of M: without it, M sets a trap only the block's compact path falls into. af-12 is outside Stage 3. |
+| C4 | auth-form, add | Add Microsoft as a sign-in provider. | Add Microsoft as a sign-in provider; if it is there already, add Apple. | af-12 already offers Microsoft. Under binding, the block's compact refinement cannot add it twice (its providers are unique), so its correct no-op would fail, while a surface regenerated in full, the block arm's fallback included, could add a second button and pass. C4 is part of M: without it, M fails af-12's correct no-op in every arm, and only the block's compact path has no compliant way to pass. af-12 is outside Stage 3. |
 
 **C2's fallback.**
 - It removes the first field on the 15 prompts without providers, 5 of the 6 in Stage 3: a sign-in form's email, for example.
@@ -107,7 +107,7 @@ The same two rules find three more templates that cannot apply everywhere: struc
 **Which way the remaining error runs.**
 - The check reads direction, not content or place. So under lenient binding two kinds of refinement pass without proving their operation: a mixed one, and one that changed something other than what was asked, in the requested direction.
 - **The second is open to every path.** A block's compact refinement can drop af-05's recovery link instead of its first field, or add an action instead of a row, and pass.
-- **One case is open only to a surface regenerated in full:** an instruction ignored outright, passing on an incidental change elsewhere. The block's compact re-send of an ignored instruction expands to the same surface and always reads as missed. The block arm's fallback, switch and null-prompt paths regenerate in full, like the other arms, and share that case.
+- **One case is open mostly to surfaces regenerated in full:** an instruction ignored outright, passing on an incidental change elsewhere. A compact block refinement re-emits its whole call, so it can pass this way too, but only by drifting from the prior call in the requested direction (a dropped intro, action or row, or an added action); a call re-sent unchanged expands to the same surface and always reads as missed. The block arm's fallback, switch and null-prompt paths regenerate in full, like the other arms.
 - So against a perfect check, the remaining error leans toward regenerated surfaces, which makes the block arm's case harder, but it does not run only one way.
 - Against v1's scoring, binding moves the decision whichever way the detected misses fall: it helps the block arm where the other arms miss more, and hurts it where it misses more.
 
@@ -120,7 +120,7 @@ The same two rules find three more templates that cannot apply everywhere: struc
 - **Elsewhere:**
   - the pass rate columns count the binding failures;
   - Changed and Operation performed are of the refinements the pipeline passed, and the by-block table says the missed and unchecked ones fail.
-- **A run is scored only as its corpus declares.** Summarizing takes the scoring with no default, the summary records it, and the report refuses one scored otherwise than its corpus declares.
+- **A run's summary and report are scored only as its corpus declares.** Summarizing takes the scoring with no default, the summary records it, and the report refuses one scored otherwise than its corpus declares. The lower-level helpers (`decide`, `armStats`) read the records they are given, so a caller using them directly scores the records first (`scoreRecords`).
 
 ### How far the static audit reaches
 

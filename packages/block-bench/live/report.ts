@@ -51,7 +51,7 @@ function sensitivityText(s: OperationSensitivity, scoring: OperationScoring): st
   const done = `${head}block performed ${block.performed} of the ${passedOf(block)} ${binding ? "the pipeline passed" : "that passed"} ${counts(block)}; capped ${capped.performed} of ${passedOf(capped)} ${counts(capped)}; production ${production.performed} of ${passedOf(production)} ${counts(production)}.`;
   // Under binding an unchecked one always fails, so it always yields a reading; under v1 it passes unread.
   const unread = arms.reduce((a, o) => a + o.unchecked, 0);
-  if (s.readings.length === 0 && unread > 0) return `${done} Every one the check read changed its lists the way its template asked; the ${unread} it never read count as the pipeline passed them, so the verdict does not rest on the check.`;
+  if (s.readings.length === 0 && unread > 0) return `${done} Every one the check read changed its lists the way its template asked; the ${unread} it never read count as the pipeline passed them, which the check cannot confirm.`;
   if (s.readings.length === 0) return `${done} Every one changed its lists the way its template asked, so ${binding ? "the binding check failed none" : "the verdict does not rest on the check"}.`;
   if (!binding) return `${done} The decision recomputed with some of them counted as failures is below; the verdict above stands.`;
   const without = s.readings.some((r) => r.failing === "none");
