@@ -4,12 +4,13 @@
  * surface is valid, and `changed` says it differs from the prior one, but neither says an item was added or removed: a
  * refinement that rewrote a title passes an add as readily as one that added the row.
  *
- * The check compares the passing refined surface with the prior one the same arm built, by the length of every list
- * in each: a node's children and every array in its props, keyed by the owning node's component and the path to the
- * list, and summed over the nodes that share the key. The same check reads a shadcn table's rows
- * (`table-body.children`) and an Astryx table's data (`table.props.data`). An add must lengthen a list and shorten
- * none; a remove, the reverse. It judges the direction of the change, not its content or its size, from the two
- * surfaces alone, so it scores every arm identically.
+ * The check compares the passing refined surface with the prior one the same arm built, list by list: every node's
+ * children and every array in its props, each keyed by where it sits. A node is placed by its component and its rank
+ * among siblings of the same component (`table#1` is a node's second table), so adding a badge does not move the table
+ * beside it; an element of a plain array is placed by its index. A shadcn table's rows are its `table-body`'s children,
+ * an Astryx table's are its `props.data`. An add must lengthen a list and shorten none; a remove, the reverse. Each list
+ * is judged on its own, so a row added to one table never hides a row dropped from another. The check judges the
+ * direction of the change, not its content or its size, from the two surfaces alone, so it scores every arm identically.
  *
  * It is a measurement beside the pass rate, never inside it. ADR-B3's pass is the pipeline's audit outcome, frozen
  * with the corpus and its scoring, so counting a refinement that missed its operation as a failure would be a re-freeze,
@@ -20,25 +21,29 @@ import type { OperationCheck } from "./types";
 
 type Json = Record<string, unknown>;
 
-/** Every list in a surface's root, by where it sits: the owning node's component and the key path to the list, lengths summed over nodes. */
+const isNode = (value: unknown): value is Json & { component: string } => !!value && typeof value === "object" && typeof (value as Json).component === "string";
+
+/** Every list in a surface's root, by where it sits, with its length. */
 export function listLengths(surface: unknown): Map<string, number> {
   const out = new Map<string, number>();
-  const walk = (value: unknown, owner: string, path: string): void => {
+  const walk = (value: unknown, at: string): void => {
     if (Array.isArray(value)) {
-      out.set(`${owner}${path}`, (out.get(`${owner}${path}`) ?? 0) + value.length);
-      for (const item of value) walk(item, owner, Array.isArray(item) ? `${path}[]` : path);
+      out.set(at, value.length);
+      const ranks = new Map<string, number>();
+      value.forEach((item, i) => {
+        if (isNode(item)) {
+          const rank = ranks.get(item.component) ?? 0;
+          ranks.set(item.component, rank + 1);
+          walk(item, `${at}>${item.component}${rank > 0 ? `#${rank}` : ""}`);
+        } else walk(item, `${at}[${i}]`);
+      });
       return;
     }
     if (!value || typeof value !== "object") return;
-    const node = value as Json;
-    const component = typeof node.component === "string" ? node.component : undefined;
-    for (const [key, child] of Object.entries(node)) {
-      if (component) walk(child, component, `.${key}`);
-      else walk(child, owner, `${path}.${key}`);
-    }
+    for (const [key, child] of Object.entries(value as Json)) walk(child, `${at}.${key}`);
   };
   const root = (surface as Json | null | undefined)?.root ?? surface;
-  walk(root, "surface", "");
+  walk(root, isNode(root) ? root.component : "root");
   return out;
 }
 

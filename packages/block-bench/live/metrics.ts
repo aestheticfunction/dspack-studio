@@ -41,6 +41,20 @@ export interface DecisionOptions {
 /** ADR-B3's rule, fixed before any run: frozen here and pinned by a test, and recorded in every run manifest. */
 export const DEFAULT_DECISION: Readonly<DecisionOptions> = Object.freeze({ reduction: 0.3, margin: 0.05, minimum: 20 });
 
+/**
+ * Passing add and remove refinements, by what their surfaces did (live/operation.ts): performed (the requested direction
+ * only), mixed (lists changed both ways), missed (no list changed, or only the other way), and among the missed, those
+ * that left the surface exactly as it was (unchanged). An unchanged surface is the right answer where a template does not
+ * apply to the surface, so those misses are counted apart. A measurement beside the pass rate, never in it.
+ */
+export interface OperationCounts {
+  checked: number;
+  performed: number;
+  mixed: number;
+  missed: number;
+  unchanged: number;
+}
+
 export interface ArmStats {
   reference: string;
   provider: string;
@@ -87,12 +101,10 @@ export interface ArmStats {
    * nothing to check scores no one: those runs are counted apart (noChecks), never as a full score.
    */
   parity: { meanScore: number | null; scored: number; fullyParityPassed: number; noChecks: number };
-  /**
-   * Passing add and remove refinements, by what their surfaces did (live/operation.ts): performed (the requested
-   * direction only), mixed (lists changed both ways), missed (no list changed, or only the other way). A measurement
-   * beside the pass rate, never in it.
-   */
-  operation: { checked: number; performed: number; mixed: number; missed: number };
+  /** Passing add and remove refinements, by what their surfaces did (OperationCounts). */
+  operation: OperationCounts;
+  /** The same, by the block each prompt is an instance of ("null" for a null prompt): where a template fits some surfaces and not others. */
+  operationByBlock: Record<string, OperationCounts>;
   paths: Partial<Record<Path, { n: number; passed: number }>>;
   budgetRemainingAtFallback: Record<string, number>;
   fallbackByClassification: Record<string, number>;
@@ -158,7 +170,9 @@ export interface Interval {
 
 /**
  * Whether a criterion's whole interval sits on one side of its unchanged threshold. Below the rule's minimum of prompts
- * in common the interval is not interpretable (the addendum), so the criterion is insufficient however it lies.
+ * behind it (prompts every decision arm evaluated, and for the token figure the metered prompt threads too) an interval
+ * is indicative at most (the addendum), so the criterion is insufficient however it lies, never clear. A criterion with no
+ * interval at all is not measurable (n/a) at any size: there is nothing to call insufficient.
  */
 export type Clarity = "clear-pass" | "clear-fail" | "uncertain" | "insufficient" | "n/a";
 
@@ -219,10 +233,14 @@ export interface OperationSensitivity {
   reference: string;
   provider: string;
   /** Per decision arm, its passing add and remove refinements by what they did. */
-  operation: Trio<ArmStats["operation"]>;
+  operation: Trio<OperationCounts>;
   missedAsFailures: SensitivityReading;
   notPerformedAsFailures: SensitivityReading;
-  /** Both readings give the verdict and its clarity: the decision does not rest on what the check found. */
+  /** Both readings give the verdict. */
+  verdictHolds: boolean;
+  /** Both readings give the decision's clarity too. */
+  clarityHolds: boolean;
+  /** Both hold: the decision does not rest on what the check found. */
   robust: boolean;
 }
 
@@ -294,7 +312,18 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
     const checks = (r: RunRecord) => (r.parity ? r.parity.satisfied.length + r.parity.missing.length : 0);
     const parityScored = passed.filter((r) => typeof r.parity?.score === "number" && checks(r) > 0);
     const scored = parityScored.map((r) => r.parity!.score);
-    const operations = passed.map((r) => r.operation).filter((o): o is OperationCheck => o !== undefined);
+    const operationsOf = (runs: readonly RunRecord[]): OperationCounts => {
+      const checkedRuns = runs.filter((r): r is RunRecord & { operation: OperationCheck } => r.passed && r.operation !== undefined);
+      return {
+        checked: checkedRuns.length,
+        performed: checkedRuns.filter((r) => performed(r.operation)).length,
+        mixed: checkedRuns.filter((r) => r.operation.observed === "mixed").length,
+        missed: checkedRuns.filter((r) => missed(r.operation)).length,
+        unchanged: checkedRuns.filter((r) => missed(r.operation) && r.changed === false).length,
+      };
+    };
+    const blockOf = (r: RunRecord) => r.expected.block ?? "null";
+    const operationByBlock = Object.fromEntries([...new Set(passed.filter((r) => r.operation).map(blockOf))].map((b) => [b, operationsOf(passed.filter((r) => blockOf(r) === b))]));
     const execution = (pick: (t: NonNullable<RunRecord["timings"]["execution"]>) => number | undefined) =>
       median(completed.map((r) => (r.timings.execution ? pick(r.timings.execution) : undefined)).filter((v): v is number => typeof v === "number"));
     out.push({
@@ -334,7 +363,8 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
         wallTotalMs: median(completed.map((r) => r.timings.totalMs)),
       },
       parity: { meanScore: mean(scored), scored: scored.length, fullyParityPassed: parityScored.filter((r) => r.parity!.score === 1).length, noChecks: passed.filter((r) => r.parity && checks(r) === 0).length },
-      operation: { checked: operations.length, performed: operations.filter(performed).length, mixed: operations.filter((o) => o.observed === "mixed").length, missed: operations.filter(missed).length },
+      operation: operationsOf(passed),
+      operationByBlock,
       paths,
       budgetRemainingAtFallback,
       fallbackByClassification,
@@ -581,7 +611,8 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     for (const [name, n] of Object.entries(meteredThreads) as Array<[keyof typeof threads, number]>) {
       if (n < options.minimum && n < threads[name]) reasons.push(`${name}: ${n} metered prompt ${n === 1 ? "thread" : "threads"} (${metered[name]} metered ${metered[name] === 1 ? "cell" : "cells"}) in the token cohort, fewer than the ${options.minimum} the rule needs`);
     }
-    if (reasons.length > 0) verdict = "insufficient";
+    const belowMinimum = reasons.length > 0;
+    if (belowMinimum) verdict = "insufficient";
     else {
       if (tokens.reductionVsProduction === null) {
         verdict = "insufficient";
@@ -600,11 +631,14 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
         } else reasons.push(`pass rate ${(100 * passRates.block).toFixed(1)}% is within ${100 * options.margin} points of ${name} (${(100 * rate).toFixed(1)}%)`);
       }
     }
-    // Intervals over fewer prompts in common than the minimum are not interpretable (the addendum): every criterion and
-    // the decision are then insufficient, however the intervals lie.
+    // Below the minimum an interval is indicative at most (the addendum: indicative only below about 20 prompts, not
+    // interpretable at 4), so no criterion is called clear there: each one with an interval is insufficient, and so is
+    // the decision. The pass-rate criteria rest on the prompts every decision arm evaluated; the token figure also on
+    // the metered threads, as the verdict's own minimum does. A criterion with no interval stays not measurable.
     const enough = cohort >= options.minimum;
+    const tokensEnough = enough && meteredThreads.block >= options.minimum && meteredThreads.production >= options.minimum;
     const clarity = {
-      tokens: clarityOf(intervals.reductionVsProduction, options.reduction, enough),
+      tokens: clarityOf(intervals.reductionVsProduction, options.reduction, tokensEnough),
       vsProduction: clarityOf(intervals.passDiffVsProduction, -options.margin, enough),
       vsCapped: clarityOf(intervals.passDiffVsCapped, -options.margin, enough),
     };
@@ -613,7 +647,7 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
     // outcome is the verdict's (the verdict pools prompts an arm alone reached; the intervals draw from the shared ones),
     // and the intervals rest on at least the minimum's prompts in common, not on a few the arms happen to share.
     const agrees = (verdict === "pass" && criteria.every((c) => c === "clear-pass")) || (verdict === "fail" && criteria.includes("clear-fail"));
-    const overall: Decision["clarity"]["overall"] = !enough ? "insufficient" : agrees ? "clear" : "uncertain";
+    const overall: Decision["clarity"]["overall"] = !enough || belowMinimum ? "insufficient" : agrees ? "clear" : "uncertain";
     out.push({ reference, provider, verdict, reasons, tokens, passRates, evaluated, metered, threads, meteredThreads, counts, cohort, intervals, clarity: { ...clarity, overall }, paired, options });
   }
   return out.sort((a, b) => `${a.reference}|${a.provider}`.localeCompare(`${b.reference}|${b.provider}`));
@@ -633,19 +667,23 @@ export function operationSensitivity(records: readonly RunRecord[], options: Dec
   const lenient = failing(missed);
   const strict = failing((check) => !performed(check));
   const pooled = armStats(decisionRecords, { pooled: true });
-  const none = { checked: 0, performed: 0, mixed: 0, missed: 0 };
+  const none: OperationCounts = { checked: 0, performed: 0, mixed: 0, missed: 0, unchanged: 0 };
   return decisions.map((d) => {
     const find = (list: readonly Decision[]) => list.find((x) => x.reference === d.reference && x.provider === d.provider)!;
     const reading = (x: Decision): SensitivityReading => ({ verdict: x.verdict, overall: x.clarity.overall, passed: x.counts.passed, evaluated: x.evaluated, reductionVsProduction: x.tokens.reductionVsProduction });
     const operation = (arm: Arm) => pooled.find((s) => s.reference === d.reference && s.provider === d.provider && s.arm === arm)?.operation ?? none;
     const readings = [find(lenient), find(strict)];
+    const verdictHolds = readings.every((x) => x.verdict === d.verdict);
+    const clarityHolds = readings.every((x) => x.clarity.overall === d.clarity.overall);
     return {
       reference: d.reference,
       provider: d.provider,
       operation: { block: operation("block"), capped: operation("capped"), production: operation("production") },
       missedAsFailures: reading(readings[0]!),
       notPerformedAsFailures: reading(readings[1]!),
-      robust: readings.every((x) => x.verdict === d.verdict && x.clarity.overall === d.clarity.overall),
+      verdictHolds,
+      clarityHolds,
+      robust: verdictHolds && clarityHolds,
     };
   });
 }

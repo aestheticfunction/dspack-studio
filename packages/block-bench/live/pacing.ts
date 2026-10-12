@@ -129,7 +129,7 @@ export interface Pacer {
   /** The model the run measures (manifest.json), bound by the runner: every call that reaches the provider is held to it (live/integrity.ts). */
   served?: ServedModel;
   readonly waits: Array<{ atMs: number; ms: number; reason: string }>;
-  /** Milliseconds this invocation has spent in those waits, measured on its clock: what a cell's latency leaves out. */
+  /** Milliseconds this invocation has spent in those waits, measured on the clock a cell's latency uses: what that latency leaves out. */
   waitedMs: number;
   /**
    * Throws PacingCapReached unless n more requests fit under both request caps and `usd` more fits under the run's
@@ -155,11 +155,14 @@ export function createPacer(options: PacingOptions): Pacer {
   const schedule = options.backoffMs ?? DEFAULT_BACKOFF_MS;
   const started = now();
   let last: number | null = null;
+  // Waits are measured on the clock a cell's latency is measured on: an injected one in a test, otherwise the monotonic
+  // clock, so a wall clock stepped or suspended during a wait never counts as waiting (arms.ts takes these out).
+  const elapsed = options.now ?? (() => performance.now());
   /** Sleeps, and counts the time it actually took: a sleep that takes no time is no wait, whatever it was asked for. */
   const waited = async (ms: number) => {
-    const from = now();
+    const from = elapsed();
     await sleep(ms);
-    pacer.waitedMs += now() - from;
+    pacer.waitedMs += elapsed() - from;
   };
   /** Whether `usd` more fits under the run's dollar ceiling, in whole nanodollars; a run without one has nothing to exceed. */
   const fitsUsd = (usd: number) => pacer.ledger?.capUsd === undefined || (pacer.ledger.nanos ?? toNanos(pacer.ledger.usd ?? 0)) + toNanos(usd) <= toNanos(pacer.ledger.capUsd);

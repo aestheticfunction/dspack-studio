@@ -2,7 +2,7 @@
 import type { Corpus } from "./corpus";
 import { PRICED_MODEL } from "./cost";
 import type { EvaluationResult } from "./evaluate";
-import type { ArmStats, Clarity, Decision, Interval, OperationSensitivity, PairedCounts, SensitivityReading } from "./metrics";
+import type { ArmStats, Clarity, Decision, Interval, OperationCounts, OperationSensitivity, PairedCounts, SensitivityReading } from "./metrics";
 import { ARMS, CONDITIONS, type Path } from "./types";
 
 const row = (cells: Array<string | number | null | undefined>) => `| ${cells.map((c) => (c === null || c === undefined ? "n/a" : String(c))).join(" | ")} |`;
@@ -17,7 +17,7 @@ const span = (iv: Interval | null, unit: "%" | " points") =>
   iv ? `95% interval ${unit === "%" ? `${(100 * iv.low).toFixed(1)}% to ${(100 * iv.high).toFixed(1)}%` : `${signed(iv.low)} to ${signed(iv.high)} points`}, ${iv.resamples} resamples over ${iv.prompts} prompts` : "no interval";
 /** Tokens per success beside its numerator and denominator: metered tokens over metered successes. */
 const perSuccess = (s: Pick<ArmStats, "tokensPerSuccess" | "meteredTokens" | "meteredSuccesses">) => (s.tokensPerSuccess === null ? "n/a" : `${num(s.tokensPerSuccess)} (${s.meteredTokens}/${s.meteredSuccesses})`);
-/** A criterion's clarity; below the rule's minimum of prompts in common it is never called clear (the addendum). */
+/** A criterion's clarity; below the rule's minimum of prompts behind it, it is never called clear (the addendum). */
 const clarityText = (c: Clarity, minimum: number): string =>
   c === "clear-pass"
     ? "clearly met"
@@ -26,25 +26,30 @@ const clarityText = (c: Clarity, minimum: number): string =>
       : c === "uncertain"
         ? "uncertain: the interval straddles the threshold"
         : c === "insufficient"
-          ? `insufficient: the interval rests on fewer prompts than the rule's minimum of ${minimum}, so it is not interpretable`
+          ? `insufficient: fewer prompts than the rule's minimum of ${minimum} stand behind it, so it is indicative at most and never called clear`
           : "not measurable";
-const overallText = (o: Decision["clarity"]["overall"]) => (o === "insufficient" ? "too few prompts in common to call" : o);
+const overallText = (o: Decision["clarity"]["overall"]) => (o === "insufficient" ? "too few prompts behind it to call" : o);
 const ratioOf = (r: SensitivityReading, arm: "block" | "capped" | "production") => (r.evaluated[arm] === 0 ? null : r.passed[arm] / r.evaluated[arm]);
-/** Whether the decision rests on add and remove refinements that did not do what they asked (live/operation.ts). */
+/** The missed count, with the misses that left the surface unchanged among them. */
+const missText = (o: OperationCounts) => `${o.missed} missed${o.unchanged ? `, ${o.unchanged} of them unchanged` : ""}`;
+/** Whether the decision rests on add and remove refinements that did not change their lists as asked (live/operation.ts). */
 function sensitivityText(s: OperationSensitivity): string {
   const head = "- Add and remove refinements (live/operation.ts; beside the rule, never in it): ";
   const arms = [s.operation.block, s.operation.capped, s.operation.production];
   if (arms.every((o) => o.checked === 0)) return `${head}no passing add or remove refinement in the decision arms, so the verdict does not rest on one.`;
-  const counts = (o: ArmStats["operation"]) => `(${o.mixed} mixed, ${o.missed} missed)`;
+  const counts = (o: OperationCounts) => `(${o.mixed} mixed, ${missText(o)})`;
   const { block, capped, production } = s.operation;
   const done = `${head}block performed ${block.performed} of the ${block.checked} that passed ${counts(block)}; capped ${capped.performed} of ${capped.checked} ${counts(capped)}; production ${production.performed} of ${production.checked} ${counts(production)}.`;
-  if (arms.every((o) => o.mixed === 0 && o.missed === 0)) return `${done} Every one did what it asked, so the verdict does not rest on the check.`;
+  if (arms.every((o) => o.mixed === 0 && o.missed === 0)) return `${done} Every one changed its lists the way its template asked, so the verdict does not rest on the check.`;
   const reading = (r: SensitivityReading) =>
     `${r.verdict} (${overallText(r.overall)}; pass rate block ${rate(ratioOf(r, "block"), r.passed.block, r.evaluated.block)}, capped ${rate(ratioOf(r, "capped"), r.passed.capped, r.evaluated.capped)}, production ${rate(ratioOf(r, "production"), r.passed.production, r.evaluated.production)}; token reduction vs production ${pct(r.reductionVsProduction)})`;
   const readings = arms.some((o) => o.mixed > 0)
     ? `Counting the missed ones as failures, the decision would read ${reading(s.missedAsFailures)}; counting the mixed ones too, ${reading(s.notPerformedAsFailures)}.`
     : `Counting them as failures, the decision would read ${reading(s.missedAsFailures)}.`;
-  return `${done} ${readings} The verdict ${s.robust ? "does not rest" : "rests"} on refinements that did not do what they asked.`;
+  const those = "refinements that did not change their lists the way their template asked";
+  const conclusion = !s.verdictHolds ? `The verdict rests on ${those}.` : !s.clarityHolds ? `The verdict holds, but its clarity rests on ${those}.` : `Neither the verdict nor its clarity rests on ${those}.`;
+  const caveat = arms.some((o) => o.unchanged > 0) ? " An unchanged surface counts as missed, though it is the right answer where a template does not apply to the surface; the add and remove table by block shows where they fall." : "";
+  return `${done} ${readings} ${conclusion}${caveat}`;
 }
 /** Checklists with nothing to check are counted apart, never scored. */
 const parityText = (p: ArmStats["parity"]) =>
@@ -213,7 +218,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     }
     out.push(
       "",
-      "Fallbacks, switches and invariant failures are arm results in every condition (ADR-B3): each counts in its arm's pass rate and tokens per success, and the all-conditions rows are the pooled totals the decision reads.",
+      "Fallbacks, switches and invariant failures are arm results in every condition (ADR-B3): each counts in its arm's pass rate and tokens per success. The all-conditions rows pool every condition, as the decision does for the block, capped and production arms. Completed also counts provider and policy failures, which the pass rate leaves out for re-running.",
       "",
     );
     const sel = summary.selection.find((x) => `${x.reference} on ${x.provider}` === title);
@@ -228,13 +233,33 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       out.push("### Refinements (on each arm's own fresh result)", "");
       out.push(row(["Condition", "Arm", "Cells", "Skipped", "Evaluated", "Pass rate", "Changed", "Operation performed", "Retention", "Tokens/success (metered tokens/successes)", "Re-run eligible"]));
       out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
-      const operation = (o: ArmStats["operation"]) => (o.checked === 0 ? "n/a" : `${rate(o.performed / o.checked, o.performed, o.checked)}; ${o.mixed} mixed, ${o.missed} missed`);
+      const operation = (o: OperationCounts) => (o.checked === 0 ? "n/a" : `${rate(o.performed / o.checked, o.performed, o.checked)}; ${o.mixed} mixed, ${missText(o)}`);
       for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), operation(s.operation), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
       out.push(
         "",
-        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; each decision's add and remove line says whether its verdict rests on these.",
+        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; each decision's add and remove line says whether its verdict rests on these.",
         "",
       );
+      // By block, per arm: a template that fits some prompts' surfaces and not others shows where its misses fall.
+      const adds = refinements.filter((x) => (x.condition === "refine-add" || x.condition === "refine-remove") && x.operation.checked > 0);
+      if (adds.length > 0) {
+        const arms = ARMS.filter((arm) => adds.some((x) => x.arm === arm));
+        const blocks = [...new Set(adds.flatMap((x) => Object.keys(x.operationByBlock)))].sort((a, b) => (a === "null" ? 1 : b === "null" ? -1 : a.localeCompare(b)));
+        const cell = (o: OperationCounts | undefined) => (!o || o.checked === 0 ? "n/a" : `${o.performed}/${o.checked}${o.mixed || o.missed ? `; ${o.mixed} mixed, ${missText(o)}` : ""}`);
+        out.push("### Add and remove refinements, by block", "");
+        out.push(row(["Condition", "Block", ...arms]), row(["---", "---", ...arms.map(() => "---:")]));
+        for (const condition of ["refine-add", "refine-remove"] as const) {
+          for (const block of blocks) {
+            const cells = arms.map((arm) => cell(adds.find((x) => x.condition === condition && x.arm === arm)?.operationByBlock[block]));
+            if (cells.some((c) => c !== "n/a")) out.push(row([condition, block, ...cells]));
+          }
+        }
+        out.push(
+          "",
+          "Performed of checked, per arm. A template that does not apply to a prompt's surface (an add of an item already there, a remove of one that is absent) shows here as misses, often unchanged, in the arms whose surfaces it does not fit.",
+          "",
+        );
+      }
     }
     if (stats.some((x) => x.arm === "block-positional")) {
       const pooled = summary.pooled.filter((x) => `${x.reference} on ${x.provider}` === title);

@@ -59,8 +59,9 @@ export interface LatencyFigures {
 
 /**
  * The figures above are wall-clock time, which includes the harness's own pacing: the spacing and backoff waits the
- * hosted pacer sleeps through between requests. `pacingMs` is that wait inside the cell, measured by the pacer (0 where
- * nothing paces), and `execution` holds the same figures with it taken out: what the cell's work and the provider took.
+ * hosted pacer sleeps through between requests. `pacingMs` is that wait inside the cell, measured by the pacer on the
+ * cell's clock (0 where nothing paces), and `execution` holds the same figures with it taken out: the cell's own work,
+ * the provider's time, and the harness's bookkeeping around each request (its ledger line and lock check).
  */
 export interface RunTimings extends LatencyFigures {
   pacingMs?: number;
@@ -68,9 +69,9 @@ export interface RunTimings extends LatencyFigures {
 }
 
 /**
- * What a passing add or remove refinement did to the surface's lists (live/operation.ts): `add` when a list grew and
- * none shrank, `remove` the reverse, `mixed` both ways, `none` when no list changed length. `deltas` holds each list
- * that changed, by where it sits, and by how much.
+ * What a passing add or remove refinement did to the surface's lists (live/operation.ts), each judged on its own: `add`
+ * when a list grew and none shrank, `remove` the reverse, `mixed` both ways, `none` when no list changed length. `deltas`
+ * holds each list that changed, by where it sits, and by how much.
  */
 export interface OperationCheck {
   requested: "add" | "remove";
