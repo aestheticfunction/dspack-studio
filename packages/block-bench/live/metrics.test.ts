@@ -252,10 +252,10 @@ describe("what each figure measures (pacing, parity, add and remove)", () => {
       { ...record({ arm: "block", passed: true, condition: "refine-remove", changed: true, expectedBlock: "auth-form" }), operation: op("remove", "add") },
       record({ arm: "block", passed: false, condition: "refine-remove" }),
     ];
-    expect(armStats(records).find((s) => s.condition === "refine-add")!.operation).toEqual({ checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1 });
-    expect(armStats(records).find((s) => s.condition === "refine-remove")!.operation).toEqual({ checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0 });
+    expect(armStats(records).find((s) => s.condition === "refine-add")!.operation).toEqual({ checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1, unchecked: 0 });
+    expect(armStats(records).find((s) => s.condition === "refine-remove")!.operation).toEqual({ checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0, unchecked: 0 });
     const [pooled] = armStats(records, { pooled: true });
-    expect(pooled!.operation).toEqual({ checked: 4, performed: 1, mixed: 1, missed: 2, unchanged: 1 });
-    expect(pooled!.operationByBlock).toEqual({ "records-table": { checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1 }, "auth-form": { checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0 } });
+    expect(pooled!.operation).toEqual({ checked: 4, performed: 1, mixed: 1, missed: 2, unchanged: 1, unchecked: 0 });
+    expect(pooled!.operationByBlock).toEqual({ "records-table": { checked: 3, performed: 1, mixed: 1, missed: 1, unchanged: 1, unchecked: 0 }, "auth-form": { checked: 1, performed: 0, mixed: 0, missed: 1, unchanged: 0, unchecked: 0 } });
   });
 });

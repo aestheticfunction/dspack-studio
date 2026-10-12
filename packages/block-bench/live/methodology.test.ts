@@ -484,7 +484,30 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
   it("fails closed: a passing add or remove the check never read is no success under binding", () => {
     const records = everyArm((arm, condition) => done(arm, condition), (arm, condition, i) => (arm === "capped" && condition === "refine-remove" && i === 0 ? { operation: undefined } : {}));
     const capped = summarize(records, DEFAULT_DECISION, "binding").arms.find((s) => s.arm === "capped" && s.condition === "refine-remove")!;
-    expect(capped).toMatchObject({ passed: 23, operation: { checked: 23 } });
+    expect(capped).toMatchObject({ passed: 23, operation: { checked: 23, performed: 23, unchecked: 1 } });
+  });
+
+  it("names the adds and removes it failed closed, in the bullet and the tables, and never calls them none", () => {
+    // Twelve production adds and removes passed the pipeline with no check record.
+    const some = everyArm(done, (arm, condition, i) => (arm === "production" && (condition === "refine-add" || condition === "refine-remove") && i < 6 ? { operation: undefined } : {}));
+    const summary = summarize(some, DEFAULT_DECISION, "binding");
+    expect(summary.decisions[0]).toMatchObject({ counts: { passed: { block: 120, capped: 120, production: 108 } } });
+    const text = renderReport(resultOf(some, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) });
+    expect(text).toContain("block performed 48 of the 48 the pipeline passed (0 mixed, 0 missed); capped 48 of 48 (0 mixed, 0 missed); production 36 of 48 (0 mixed, 0 missed, 12 unchecked).");
+    expect(text).toContain("| refine-add | production | 24 | 0 | 24 | 75.0% (18/24) | 0.0% (0/24) | 75.0% (18/24); 0 mixed, 0 missed, 6 unchecked |");
+    // None checked at all: every add and remove failed closed, and the report says so.
+    const all = everyArm(done, (_arm, condition) => (condition === "refine-add" || condition === "refine-remove" ? { operation: undefined } : {}));
+    const none = summarize(all, DEFAULT_DECISION, "binding");
+    expect(none.decisions[0]).toMatchObject({ counts: { passed: { block: 72, capped: 72, production: 72 } } });
+    const noneText = renderReport(resultOf(all, none), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) });
+    expect(noneText).toContain("block performed 0 of the 48 the pipeline passed (0 mixed, 0 missed, 48 unchecked); capped 0 of 48 (0 mixed, 0 missed, 48 unchecked); production 0 of 48 (0 mixed, 0 missed, 48 unchecked).");
+    expect(noneText).not.toContain("failed none");
+  });
+
+  it("refuses to report a summary scored otherwise than its corpus says, so a v2 run is never shown with v1's scoring", () => {
+    const records = everyArm((arm, condition, i) => (condition === "refine-add" && i < 2 ? "none" : done(arm, condition)));
+    expect(() => renderReport(resultOf(records, summarize(records)), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) })).toThrow(/the summary was scored "beside", but corpus blocks-1b v2 scores "binding"/);
+    expect(() => renderReport(resultOf(records, summarize(records, DEFAULT_DECISION, "binding")), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) })).toThrow(/the summary was scored "binding", but corpus blocks-1b v1 scores "beside"/);
   });
 
   it("brackets the verdict in the sensitivity table: the pipeline's pass alone below it, the mixed ones failing too above it", () => {

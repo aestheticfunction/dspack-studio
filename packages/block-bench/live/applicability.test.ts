@@ -41,7 +41,8 @@ describe("the static audit of corpus v1's refinement templates", () => {
       "guide-steps.structural element photo": ["shadcn-v3", "astryx"],
       // The same rules, outside the owner's list.
       "auth-form.add target": ["af-12"],
-      "records-table.structural target": range("rt", 2, 22),
+      // A split into Open and Closed fits the tables whose items open and close: tickets, bugs (rt-07), incidents (rt-21).
+      "records-table.structural target": range("rt", 2, 22).filter((id) => id !== "rt-07" && id !== "rt-21"),
       "records-table.structural element tabs": ["astryx"],
       "auth-form.structural element checkbox": ["astryx"],
       "auth-form.structural element progress indicator": ["astryx"],
