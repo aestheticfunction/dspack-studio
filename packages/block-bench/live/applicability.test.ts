@@ -58,16 +58,8 @@ describe("the static audit of corpus v1's refinement templates", () => {
 });
 
 describe("corpus v2's refinement templates", () => {
-  it("apply everywhere except where the extension outside the owner's list is still to come", () => {
-    expect(grouped(applicabilityIssues(readCorpusVersion(2), views))).toEqual({
-      "auth-form.add target": ["af-12"],
-      "records-table.structural target": range("rt", 2, 22),
-      "records-table.structural element tabs": ["astryx"],
-      "auth-form.structural element checkbox": ["astryx"],
-      "auth-form.structural element progress indicator": ["astryx"],
-      "null.structural element column layout": ["shadcn-v3", "astryx"],
-      "null.structural element sidebar": ["astryx"],
-    });
+  it("apply to every prompt and design system they are used on: every template audited, no target or element missing", () => {
+    expect(applicabilityIssues(readCorpusVersion(2), views)).toEqual([]);
   });
 
   it("refuses a template the audit has not read, so an edit cannot slip past it", () => {

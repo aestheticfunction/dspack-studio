@@ -67,8 +67,8 @@ describe("the frozen 1B corpus", () => {
   });
 });
 
-/** The templates amendment 2 corrects in v2, by template set and kind. */
-const AMENDED: Record<string, string[]> = { "records-table": ["add"], "auth-form": ["remove"], "guide-steps": ["structural"] };
+/** The templates amendment 2 corrects in v2, by template set and kind: C1 to C3, then the same rules' other findings. */
+const AMENDED: Record<string, string[]> = { "records-table": ["add", "structural"], "auth-form": ["add", "remove", "structural"], "guide-steps": ["structural"], null: ["structural"] };
 const KINDS = ["content", "add", "remove", "structural"] as const;
 
 describe("corpus v1 is preserved and v2 is a separate, separately pinned version (ADR-B3 amendment 2)", () => {
