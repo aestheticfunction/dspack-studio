@@ -4,7 +4,7 @@
  * prompts, and every rate is printed with its counts. The thresholds themselves do not move.
  */
 import { describe, expect, it } from "vitest";
-import { DEFAULT_DECISION, decide, summarize } from "./metrics";
+import { DEFAULT_DECISION, decide, operationSensitivity, summarize } from "./metrics";
 import { renderReport } from "./report";
 import { readCorpusVersion } from "./corpus";
 import { CONDITIONS, type Arm, type Condition, type RunRecord } from "./types";
@@ -159,7 +159,7 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
 
   it("calls no criterion clear below the minimum: four prompts are insufficient, and the report never says clearly met", () => {
     const records = prompts(4).flatMap((p) => [...thread("block", p, () => true, [50, 0]), ...thread("capped", p, () => true, [100, 0]), ...thread("production", p, () => true, [100, 0])]);
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     const [d] = summary.decisions;
     expect(d!.intervals.reductionVsProduction).toMatchObject({ low: 0.5, high: 0.5, prompts: 4 });
     expect(d!.clarity).toEqual({ tokens: "insufficient", vsProduction: "insufficient", vsCapped: "insufficient", overall: "insufficient" });
@@ -184,7 +184,7 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
       ...thread("capped", p, () => true, [100, 0]),
       ...thread("production", p, () => true, [100, 0]),
     ]);
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     const [d] = summary.decisions;
     expect(d).toMatchObject({ verdict: "insufficient", cohort: 24, meteredThreads: { block: 18 } });
     expect(d!.intervals.reductionVsProduction).not.toBeNull();
@@ -204,7 +204,7 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
       ]),
       ...prompts(24).slice(20).flatMap((p) => thread("block", p, () => true, [50, 0])),
     ];
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     const [d] = summary.decisions;
     expect(d).toMatchObject({ verdict: "pass", cohort: 20, meteredCohort: 16, meteredThreads: { block: 20, capped: 20, production: 20 } });
     // The token criterion cannot be called, so neither can the pass: uncertain, as the addendum has it.
@@ -228,7 +228,7 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
   });
 });
 
-function resultOf(records: RunRecord[], summary = summarize(records)): EvaluationResult {
+function resultOf(records: RunRecord[], summary = summarize(records, DEFAULT_DECISION, "beside")): EvaluationResult {
   const preflight: Preflight = { at: "2026-10-11T00:00:00.000Z", sidecars: [], drafts: false };
   return { runId: "r", records, summary, preflight, invocations: [], superseded: { records: 0, providerCalls: 0, inputTokens: 0, outputTokens: 0, requestBytes: 0 }, arms: ["block", "block-positional", "capped", "production"], cells: { total: records.length, done: records.length, reused: 0 } };
 }
@@ -241,7 +241,7 @@ describe("the report prints counts beside every rate and labels the rule for wha
       ...thread("capped", p, () => true, [100, 0]),
       ...thread("production", p, () => true, [100, 0]),
     ]);
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     const preflight: Preflight = { at: "2026-10-11T00:00:00.000Z", sidecars: [], drafts: false };
     const result: EvaluationResult = { runId: "r", records, summary, preflight, invocations: [], superseded: { records: 0, providerCalls: 0, inputTokens: 0, outputTokens: 0, requestBytes: 0 }, arms: ["block", "block-positional", "capped", "production"], cells: { total: records.length, done: records.length, reused: 0 } };
     const report = renderReport(result, { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) });
@@ -280,11 +280,11 @@ const done = (_arm: Arm, condition: Condition) => (condition === "refine-add" ? 
 
 describe("the add and remove check sits beside the rule: it never changes the verdict, and says when the verdict rests on it", () => {
   const TABLE = "| Counted as failures | Verdict | Clarity | Pass rate, block | Pass rate, capped | Pass rate, production | Token reduction vs production |";
-  const report = (records: RunRecord[], summary = summarize(records)) => renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) });
+  const report = (records: RunRecord[], summary = summarize(records, DEFAULT_DECISION, "beside")) => renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) });
 
   it("a verdict that holds only because add refinements passed without adding anything is flagged, and stays the verdict", () => {
     const records = checked((arm, condition) => (arm === "block" && condition === "refine-add" ? "none" : done(arm, condition)));
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     const [d] = summary.decisions;
     expect(d).toMatchObject({ verdict: "pass", clarity: { overall: "clear" }, passRates: { block: 1 } });
     const [s] = summary.sensitivity;
@@ -304,14 +304,14 @@ describe("the add and remove check sits beside the rule: it never changes the ve
 
   it("mixed changes are read apart, and a verdict that survives every reading is said to", () => {
     const records = checked((arm, condition) => (arm === "production" && condition === "refine-remove" ? "mixed" : done(arm, condition)));
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
     expect(summary.sensitivity[0]).toMatchObject({ operation: { production: { checked: 48, performed: 24, mixed: 24, missed: 0 } }, readings: [{ failing: "missed-and-mixed", reading: { verdict: "pass", overall: "clear" } }], verdictHolds: true, clarityHolds: true, robust: true });
     const text = report(records, summary);
     expect(text).toContain("| the missed and mixed ones | pass | clear | 100.0% (120/120) | 100.0% (120/120) | 80.0% (96/120) | 60.0% |");
     expect(text).toContain("Neither the verdict nor its clarity changes in any reading.");
     // Every one performed: nothing to recompute.
-    const clean = summarize(checked(done));
+    const clean = summarize(checked(done), DEFAULT_DECISION, "beside");
     expect(clean.sensitivity[0]).toMatchObject({ readings: [], robust: true, operation: { block: { checked: 48, performed: 48 } } });
     const cleanText = report(checked(done), clean);
     expect(cleanText).toContain("Every one changed its lists the way its template asked, so the verdict does not rest on the check.");
@@ -321,7 +321,7 @@ describe("the add and remove check sits beside the rule: it never changes the ve
   it("a verdict that holds while its clarity changes says exactly that, never that the verdict changes", () => {
     // The block arm's add missed its operation on 4 of 24 prompts: still a pass on the point estimates, no longer clear.
     const records = checked((arm, condition, i) => (arm === "block" && condition === "refine-add" && i < 4 ? "none" : done(arm, condition)));
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
     expect(summary.sensitivity[0]).toMatchObject({ readings: [{ failing: "missed", reading: { verdict: "pass", overall: "uncertain" } }], verdictHolds: true, clarityHolds: false, robust: false });
     const text = report(records, summary);
@@ -334,7 +334,7 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     const records = checked((arm, condition, i) => (arm === "block" && condition === "refine-remove" && i < 7 ? "none" : done(arm, condition))).map((r) =>
       r.arm === "block" && r.condition === "refine-remove" && r.operation?.observed === "none" ? { ...r, changed: false } : r,
     );
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
     expect(summary.sensitivity[0]).toMatchObject({
       operation: { block: { checked: 48, performed: 41, missed: 7, unchanged: 7 } },
@@ -355,7 +355,7 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     const records = checked((arm, condition, i) => (arm === "block" && condition === "refine-add" && i < 7 ? "none" : done(arm, condition))).map((r) =>
       r.arm === "block" && r.condition === "refine-add" && r.operation?.observed === "none" ? { ...r, changed: false } : r,
     );
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     expect(summary.sensitivity[0]).toMatchObject({
       operation: { block: { checked: 48, performed: 41, missed: 7, unchanged: 7 } },
       readings: [
@@ -377,7 +377,7 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     const records = checked((arm, condition, i) => (condition === "refine-remove" && i < 7 ? "none" : done(arm, condition))).map((r) =>
       r.arm !== "block" && r.condition === "refine-remove" && r.operation?.observed === "none" ? { ...r, changed: false } : r,
     );
-    const summary = summarize(records);
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
     expect(summary.sensitivity[0]).toMatchObject({
       readings: [
         { failing: "missed", reading: { verdict: "pass" } },
@@ -452,7 +452,7 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
   it("fails a passing add or remove that missed its operation, in every arm alike, and leaves every other cell as the pipeline scored it", () => {
     // In every arm, three adds changed no list and one remove only grew a list; one more remove was mixed.
     const records = everyArm((arm, condition, i) => (condition === "refine-add" && i < 3 ? "none" : condition === "refine-remove" && i === 3 ? "add" : condition === "refine-remove" && i === 4 ? "mixed" : done(arm, condition)));
-    const beside = summarize(records);
+    const beside = summarize(records, DEFAULT_DECISION, "beside");
     const binding = summarize(records, DEFAULT_DECISION, "binding");
     expect(beside.scoring).toBe("beside");
     expect(binding.scoring).toBe("binding");
@@ -472,7 +472,7 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
   it("feeds both inputs of the rule: a missed operation lowers the pass rate and is no success in tokens per success", () => {
     // Only the block arm misses: 8 of its 24 adds changed no list.
     const records = everyArm((arm, condition, i) => (arm === "block" && condition === "refine-add" && i < 8 ? "none" : done(arm, condition)));
-    const [beside] = summarize(records).decisions;
+    const [beside] = summarize(records, DEFAULT_DECISION, "beside").decisions;
     const [binding] = summarize(records, DEFAULT_DECISION, "binding").decisions;
     expect(beside).toMatchObject({ verdict: "pass", counts: { passed: { block: 120, capped: 120, production: 120 }, meteredSuccesses: { block: 120 } } });
     expect(binding).toMatchObject({ verdict: "fail", counts: { passed: { block: 112, capped: 120, production: 120 }, meteredSuccesses: { block: 112 } } });
@@ -495,6 +495,7 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
     const text = renderReport(resultOf(some, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) });
     expect(text).toContain("block performed 48 of the 48 the pipeline passed (0 mixed, 0 missed); capped 48 of 48 (0 mixed, 0 missed); production 36 of 48 (0 mixed, 0 missed, 12 unchecked).");
     expect(text).toContain("| refine-add | production | 24 | 0 | 24 | 75.0% (18/24) | 0.0% (0/24) | 75.0% (18/24); 0 mixed, 0 missed, 6 unchecked |");
+    expect(text).toContain("Performed of those the pipeline passed, per arm. Under corpus v2 the missed and unchecked ones are failures (the check is binding).");
     // None checked at all: every add and remove failed closed, and the report says so.
     const all = everyArm(done, (_arm, condition) => (condition === "refine-add" || condition === "refine-remove" ? { operation: undefined } : {}));
     const none = summarize(all, DEFAULT_DECISION, "binding");
@@ -506,7 +507,7 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
 
   it("refuses to report a summary scored otherwise than its corpus says, so a v2 run is never shown with v1's scoring", () => {
     const records = everyArm((arm, condition, i) => (condition === "refine-add" && i < 2 ? "none" : done(arm, condition)));
-    expect(() => renderReport(resultOf(records, summarize(records)), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) })).toThrow(/the summary was scored "beside", but corpus blocks-1b v2 scores "binding"/);
+    expect(() => renderReport(resultOf(records, summarize(records, DEFAULT_DECISION, "beside")), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) })).toThrow(/the summary was scored "beside", but corpus blocks-1b v2 scores "binding"/);
     expect(() => renderReport(resultOf(records, summarize(records, DEFAULT_DECISION, "binding")), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) })).toThrow(/the summary was scored "binding", but corpus blocks-1b v1 scores "beside"/);
   });
 
@@ -522,12 +523,12 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
       verdictHolds: false,
     });
     const text = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) });
-    expect(text).toContain("- Scoring: corpus blocks-1b v2 makes the add and remove check binding (ADR-B3 amendment 2): a passing add or remove refinement that missed its operation, changing no list or only the other way, counts as a failure in every arm; a mixed change passes.");
-    expect(text).toContain("- Add and remove refinements (live/operation.ts; binding, so the missed ones are failures): block performed 40 of the 48 the pipeline passed (0 mixed, 8 missed); capped 48 of 48 (0 mixed, 0 missed); production 44 of 48 (4 mixed, 0 missed). The decision read without the check, and with the mixed ones failing too, is below; the verdict above stands.");
+    expect(text).toContain("- Scoring: corpus blocks-1b v2 makes the add and remove check binding (ADR-B3 amendment 2): a passing add or remove refinement that missed its operation, changing no list or only the other way, counts as a failure in every arm, and so does one the check never read (unchecked); a mixed change passes.");
+    expect(text).toContain("- Add and remove refinements (live/operation.ts; binding, so the missed and unchecked ones are failures): block performed 40 of the 48 the pipeline passed (0 mixed, 8 missed); capped 48 of 48 (0 mixed, 0 missed); production 44 of 48 (4 mixed, 0 missed). The decision read without the check, and with the mixed ones failing too, is below; the verdict above stands.");
     expect(text).toContain("| no refinement (the pipeline's pass alone) | pass | clear | 100.0% (120/120) | 100.0% (120/120) | 100.0% (120/120) | 50.0% |");
     expect(text).toContain("| the missed and mixed ones | fail |");
     expect(text).toContain("The verdict changes in one reading: no refinement (the pipeline's pass alone).");
-    expect(text).toContain("Under corpus v2 the pass rate counts a missed add or remove as a failure (the check is binding); Changed and Operation performed are of the refinements the pipeline passed.");
+    expect(text).toContain("Under corpus v2 the pass rate counts a missed or unchecked add or remove as a failure (the check is binding); Changed and Operation performed are of the refinements the pipeline passed.");
   });
 
   it("says so when the binding check failed nothing, and leaves corpus v1's scoring exactly as it was", () => {
@@ -536,7 +537,22 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
     expect(binding.sensitivity[0]).toMatchObject({ readings: [], robust: true });
     expect(renderReport(resultOf(records, binding), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) })).toContain("Every one changed its lists the way its template asked, so the binding check failed none.");
     const mixed = everyArm((arm, condition, i) => (condition === "refine-add" && i < 2 ? "none" : done(arm, condition)));
-    expect(summarize(mixed)).toEqual(summarize(mixed, DEFAULT_DECISION, "beside"));
     expect(renderReport(resultOf(mixed), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) })).toContain("- Scoring: corpus blocks-1b v1 reports the add and remove check beside the pass, never in it.");
+  });
+
+  it("has no default scoring: summarizing without the corpus's rule is refused, so a v2 run is never summarized as v1", () => {
+    const records = everyArm((arm, condition, i) => (condition === "refine-add" && i < 2 ? "none" : done(arm, condition)));
+    expect(() => summarize(records, DEFAULT_DECISION, undefined as never)).toThrow(/scoring/);
+    expect(() => operationSensitivity(records, DEFAULT_DECISION, [], undefined as never)).toThrow(/scoring/);
+  });
+
+  it("under corpus v1, never says every add and remove changed its lists while some were never read", () => {
+    const records = everyArm(done, (arm, condition, i) => (arm === "production" && condition === "refine-add" && i < 6 ? { operation: undefined } : {}));
+    const summary = summarize(records, DEFAULT_DECISION, "beside");
+    expect(summary.sensitivity[0]).toMatchObject({ readings: [] });
+    const text = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) });
+    expect(text).not.toContain("Every one changed its lists the way its template asked");
+    expect(text).toContain("Every one the check read changed its lists the way its template asked; the 6 it never read count as the pipeline passed them, so the verdict does not rest on the check.");
+    expect(text).not.toContain("(the check is binding)");
   });
 });
