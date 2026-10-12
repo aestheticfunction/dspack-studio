@@ -3,6 +3,7 @@ import type { Corpus } from "./corpus";
 import { PRICED_MODEL } from "./cost";
 import type { EvaluationResult } from "./evaluate";
 import type { ArmStats, Clarity, Decision, Interval, OperationCounts, OperationSensitivity, PairedCounts, SensitivityFailing, SensitivityReading } from "./metrics";
+import type { OperationScoring } from "./types";
 import { ARMS, CONDITIONS, type Path } from "./types";
 
 const row = (cells: Array<string | number | null | undefined>) => `| ${cells.map((c) => (c === null || c === undefined ? "n/a" : String(c))).join(" | ")} |`;
@@ -32,18 +33,29 @@ const overallText = (o: Decision["clarity"]["overall"]) => (o === "insufficient"
 const ratioOf = (r: SensitivityReading, arm: "block" | "capped" | "production") => (r.evaluated[arm] === 0 ? null : r.passed[arm] / r.evaluated[arm]);
 /** The missed count, with the misses that left the surface unchanged among them. */
 const missText = (o: OperationCounts) => `${o.missed} missed${o.unchanged ? `, ${o.unchanged} of them unchanged` : ""}`;
+/** How the corpus scores add and remove refinements, said once per decision. */
+const scoringText = (scoring: OperationScoring, corpus: Corpus) =>
+  scoring === "binding"
+    ? `- Scoring: corpus ${corpus.corpus} v${corpus.version} makes the add and remove check binding (ADR-B3 amendment 2): a passing add or remove refinement that missed its operation, changing no list or only the other way, counts as a failure in every arm; a mixed change passes.`
+    : `- Scoring: corpus ${corpus.corpus} v${corpus.version} reports the add and remove check beside the pass, never in it.`;
 /** The add and remove refinements behind a decision, by what they did (live/operation.ts): the decision's bullet. */
-function sensitivityText(s: OperationSensitivity): string {
-  const head = "- Add and remove refinements (live/operation.ts; beside the rule, never in it): ";
+function sensitivityText(s: OperationSensitivity, scoring: OperationScoring): string {
+  const binding = scoring === "binding";
+  const head = binding ? "- Add and remove refinements (live/operation.ts; binding, so the missed ones are failures): " : "- Add and remove refinements (live/operation.ts; beside the rule, never in it): ";
   const arms = [s.operation.block, s.operation.capped, s.operation.production];
-  if (arms.every((o) => o.checked === 0)) return `${head}no passing add or remove refinement in the decision arms, so the verdict does not rest on one.`;
+  if (arms.every((o) => o.checked === 0)) return binding ? `${head}no add or remove refinement the pipeline passed in the decision arms, so the binding check failed none.` : `${head}no passing add or remove refinement in the decision arms, so the verdict does not rest on one.`;
   const counts = (o: OperationCounts) => `(${o.mixed} mixed, ${missText(o)})`;
   const { block, capped, production } = s.operation;
-  const done = `${head}block performed ${block.performed} of the ${block.checked} that passed ${counts(block)}; capped ${capped.performed} of ${capped.checked} ${counts(capped)}; production ${production.performed} of ${production.checked} ${counts(production)}.`;
-  if (s.readings.length === 0) return `${done} Every one changed its lists the way its template asked, so the verdict does not rest on the check.`;
-  return `${done} The decision recomputed with some of them counted as failures is below; the verdict above stands.`;
+  const done = `${head}block performed ${block.performed} of the ${block.checked} ${binding ? "the pipeline passed" : "that passed"} ${counts(block)}; capped ${capped.performed} of ${capped.checked} ${counts(capped)}; production ${production.performed} of ${production.checked} ${counts(production)}.`;
+  if (s.readings.length === 0) return `${done} Every one changed its lists the way its template asked, so ${binding ? "the binding check failed none" : "the verdict does not rest on the check"}.`;
+  if (!binding) return `${done} The decision recomputed with some of them counted as failures is below; the verdict above stands.`;
+  const without = s.readings.some((r) => r.failing === "none");
+  const strict = s.readings.some((r) => r.failing === "missed-and-mixed");
+  const below = without && strict ? "read without the check, and with the mixed ones failing too," : without ? "read without the check" : "with the mixed ones failing too";
+  return `${done} The decision ${below} is below; the verdict above stands.`;
 }
 const FAILING_TEXT: Record<SensitivityFailing, string> = {
+  none: "no refinement (the pipeline's pass alone)",
   missed: "the missed ones",
   "missed-and-mixed": "the missed and mixed ones",
   "changed-missed": "the missed ones that changed their surface",
@@ -181,7 +193,8 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       `- Pass rate, block minus production: ${d.passRates.block === null || d.passRates.production === null ? "n/a" : `${signed(d.passRates.block - d.passRates.production)} points`} (${span(d.intervals.passDiffVsProduction, " points")}): ${clarityText(d.clarity.vsProduction, d.options.minimum)}. Block minus capped: ${d.passRates.block === null || d.passRates.capped === null ? "n/a" : `${signed(d.passRates.block - d.passRates.capped)} points`} (${span(d.intervals.passDiffVsCapped, " points")}): ${clarityText(d.clarity.vsCapped, d.options.minimum)}.`,
       `- Compared paired by prompt: ${pairedText(d.paired.vsProduction, "block", "production")}; ${pairedText(d.paired.vsCapped, "block", "capped")}.`,
       `- The intervals resample the ${d.cohort} prompts every decision arm evaluated${d.cohort < d.options.minimum ? `, fewer than the ${d.options.minimum} the rule needs, so neither a criterion nor the decision can be called clear` : ""}.${d.meteredCohort < d.cohort ? ` The token figure rests on the ${d.meteredCohort} of them metered in both the block and production arms${d.meteredCohort < d.options.minimum ? `, fewer than the ${d.options.minimum} the rule needs` : ""}.` : ""}`,
-      ...sensitivity.map(sensitivityText),
+      scoringText(summary.scoring, context.corpus),
+      ...sensitivity.map((x) => sensitivityText(x, summary.scoring)),
       "",
       ...sensitivity.flatMap((x) => sensitivityReadings(x, d)),
       `The decision pools every evaluated result of every condition, fresh builds and refinements alike, because ADR-B3 counts every call, refinements included. Rule: at least ${100 * d.options.reduction}% fewer tokens per success and a pass rate within ${100 * d.options.margin} points of both primitive arms, both boundaries inclusive, with at least ${d.options.minimum} evaluated and ${d.options.minimum} metered prompt threads per arm. The verdict reads the point estimates; a criterion is clear only when its whole interval sits on one side of its threshold, and the decision is clear only when its intervals agree with the verdict and rest on at least ${d.options.minimum} prompts every decision arm evaluated.`,
@@ -268,7 +281,7 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
       for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), operation(s.operation), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
       out.push(
         "",
-        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. A node in a list is matched by its id where that id occurs exactly once in both surfaces, otherwise by its place among its unmatched siblings of the same component, so a node matched by place that moves can read as lists changed both ways. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; under each decision, its add and remove readings show whether the verdict or its clarity changes when these count as failures.",
+        `Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way, and an unchanged one left the surface exactly as it was. A node in a list is matched by its id where that id occurs exactly once in both surfaces, otherwise by its place among its unmatched siblings of the same component, so a node matched by place that moves can read as lists changed both ways. ${summary.scoring === "binding" ? `Under corpus v${context.corpus.version} the pass rate counts a missed add or remove as a failure (the check is binding); Changed and Operation performed are of the refinements the pipeline passed. Under each decision, its add and remove readings show the verdict without the check, and with the mixed ones failing too.` : "The pass rate still counts every passing refinement, as ADR-B3 froze the pass; under each decision, its add and remove readings show whether the verdict or its clarity changes when these count as failures."}`,
         "",
       );
       // By block, per arm: a template that fits some prompts' surfaces and not others shows where its misses fall.

@@ -1,0 +1,1526 @@
+{
+  "corpus": "blocks-1b",
+  "version": 2,
+  "frozenAt": "2026-10-12",
+  "note": "Corpus v2 (ADR-B3 amendment 2, docs/blocks/ADR-B3-AMENDMENT-2.md), frozen before any refinement had run live. It keeps every v1 prompt, intent, label and checklist, and every v1 template that applies everywhere; it corrects the templates a static audit (live/applicability.ts) found cannot apply to every prompt or design system they are used on, and it makes the add and remove check binding (scoring.operation): a passing add or remove refinement that missed its operation counts as a failure. v1 stays as it was, under its own pin. Each prompt carries the block it is an instance of (or null) and the governed intent per reference; a reference the goal does not apply to is omitted. Parity is a structural checklist scored identically for every arm: labels are case-insensitive substrings that must appear in the surface's text; components are contract component names that must appear.",
+  "scoring": {
+    "operation": "binding"
+  },
+  "refinements": {
+    "records-table": {
+      "content": {
+        "instruction": "Change the title to \"Open items\" and the caption to \"Oldest first\".",
+        "expectText": "Open items"
+      },
+      "add": {
+        "instruction": "Add one more row at the end, with a plausible value in every column."
+      },
+      "remove": {
+        "instruction": "Remove the last row."
+      },
+      "structural": {
+        "instruction": "Split the table into two tabs, Open and Closed, with a search field and a filter bar above them."
+      }
+    },
+    "auth-form": {
+      "content": {
+        "instruction": "Change the title to \"Welcome back\" and the intro to \"Good to see you again.\"",
+        "expectText": "Welcome back"
+      },
+      "add": {
+        "instruction": "Add Microsoft as a sign-in provider."
+      },
+      "remove": {
+        "instruction": "Remove the sign-in provider buttons; if there are none, remove the first field."
+      },
+      "structural": {
+        "instruction": "Turn it into a two-step wizard with a progress indicator and a terms-of-service checkbox on the second step."
+      }
+    },
+    "guide-steps": {
+      "content": {
+        "instruction": "Change the title to \"Before you start\" and the summary to \"About twenty minutes, no special tools.\"",
+        "expectText": "Before you start"
+      },
+      "add": {
+        "instruction": "Add a final step: \"Check everything once more before you finish.\""
+      },
+      "remove": {
+        "instruction": "Remove the last step."
+      },
+      "structural": {
+        "instruction": "Show each step as its own card with a numbered badge, and add a comments section with a text field and a Post button below the steps."
+      }
+    },
+    "null": {
+      "content": {
+        "instruction": "Make the title clearer."
+      },
+      "add": {
+        "instruction": "Add one more item."
+      },
+      "remove": {
+        "instruction": "Remove the last item."
+      },
+      "structural": {
+        "instruction": "Turn it into a two-column layout with a sidebar of related links."
+      }
+    }
+  },
+  "prompts": [
+    {
+      "id": "rt-01",
+      "goal": "a queue of open support tickets with status and priority",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "status",
+          "priority"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-02",
+      "goal": "a table of recent orders with order number, customer, total and status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "customer",
+          "total"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-03",
+      "goal": "an inventory list showing SKU, product name, quantity on hand and reorder status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "sku",
+          "quantity"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-04",
+      "goal": "a directory of workspace members with name, role and last active date",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "name",
+          "role"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-05",
+      "goal": "a list of unpaid invoices with invoice number, client, amount due and days overdue",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "invoice",
+          "amount"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-06",
+      "goal": "a sales leads table with company, contact, stage and owner",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "company",
+          "stage"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-07",
+      "goal": "a bug tracker view listing open bugs with title, severity, assignee and age",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "severity",
+          "assignee"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-08",
+      "goal": "a shipments table with tracking number, carrier, destination and delivery status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "carrier",
+          "status"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-09",
+      "goal": "a list of active subscriptions showing plan, renewal date, seats and billing status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "plan",
+          "renewal"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-10",
+      "goal": "job applications for an open role with candidate, stage, source and applied date",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "candidate",
+          "stage"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-11",
+      "goal": "a table of recent deployments with service, version, environment and result",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "service",
+          "version"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-12",
+      "goal": "an audit log of admin actions with time, actor, action and target",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "actor",
+          "action"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-13",
+      "goal": "a vendor list with vendor name, category, contract end date and risk rating",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "vendor",
+          "category"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-14",
+      "goal": "all projects in the workspace with project name, owner, due date and health",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "owner",
+          "due"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-15",
+      "goal": "a table of submitted expense claims with employee, amount, category and approval status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "employee",
+          "amount"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-16",
+      "goal": "a list of API keys with key name, created by, last used and status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "last used",
+          "status"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-17",
+      "goal": "a table of registered devices with device name, owner, OS version and compliance state",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "device",
+          "owner"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-18",
+      "goal": "a class roster listing students with name, year, attendance and grade",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "name",
+          "attendance"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-19",
+      "goal": "upcoming bookings in a table with guest, room, check-in, check-out and status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "guest",
+          "room"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-20",
+      "goal": "a returns queue with RMA number, product, reason and refund status",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "product",
+          "reason"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-21",
+      "goal": "a table of open incidents with severity, service affected, opened at and commander",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "severity",
+          "service"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "rt-22",
+      "goal": "software licenses in use with product, seats used, seats purchased and renewal date",
+      "block": "records-table",
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "seats",
+          "renewal"
+        ],
+        "components": [
+          "table"
+        ]
+      }
+    },
+    {
+      "id": "af-01",
+      "goal": "a sign-in form with email and password",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-02",
+      "goal": "a sign-up form with name, email and password",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "name",
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-03",
+      "goal": "a login screen for Acme with Google and GitHub sign-in buttons",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "google",
+          "github"
+        ]
+      }
+    },
+    {
+      "id": "af-04",
+      "goal": "a registration page with email, password and a link to sign in instead",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-05",
+      "goal": "a sign-in form with a forgot password link",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "password",
+          "forgot"
+        ]
+      }
+    },
+    {
+      "id": "af-06",
+      "goal": "let a user log in to their account with their work email and password",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-07",
+      "goal": "a create account form for a photo sharing app",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-08",
+      "goal": "a login form that also offers sign in with Apple",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "apple",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-09",
+      "goal": "an authentication screen: email, password, remember my device",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-10",
+      "goal": "a sign in page for the admin console",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "sign in",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-11",
+      "goal": "a signup form with full name, email and password and a short welcome line",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "name",
+          "email"
+        ]
+      }
+    },
+    {
+      "id": "af-12",
+      "goal": "a login box with Microsoft single sign-on and a password fallback",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "microsoft",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-13",
+      "goal": "a member sign-in form for a gym booking site",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-14",
+      "goal": "a register form asking for email and a password, with Google as an alternative",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "google",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-15",
+      "goal": "a sign-in form with password recovery for a banking portal",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "password",
+          "forgot"
+        ]
+      }
+    },
+    {
+      "id": "af-16",
+      "goal": "a log in screen titled Welcome back with email and password",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "welcome back",
+          "email"
+        ]
+      }
+    },
+    {
+      "id": "af-17",
+      "goal": "a sign up form for a newsletter app: name, email, password",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "name",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-18",
+      "goal": "account login with email and password, GitHub as an alternative",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "github",
+          "email"
+        ]
+      }
+    },
+    {
+      "id": "af-19",
+      "goal": "a sign-in card for a support portal, email and password only",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-20",
+      "goal": "create an account: name, email, password, and sign up with Google",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "google",
+          "name"
+        ]
+      }
+    },
+    {
+      "id": "af-21",
+      "goal": "a login form for returning customers of an online store",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "af-22",
+      "goal": "a sign-in screen with email, password and an Apple sign-in option",
+      "block": "auth-form",
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "apple",
+          "email"
+        ]
+      }
+    },
+    {
+      "id": "gs-01",
+      "goal": "a recipe for tomato pasta for two with ingredients and steps",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "tomato",
+          "pasta"
+        ]
+      }
+    },
+    {
+      "id": "gs-02",
+      "goal": "step-by-step instructions for setting up a home wifi router",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "router"
+        ]
+      }
+    },
+    {
+      "id": "gs-03",
+      "goal": "a how-to guide for assembling a flat-pack bookshelf, with the parts list",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "bookshelf"
+        ]
+      }
+    },
+    {
+      "id": "gs-04",
+      "goal": "a tutorial for deploying the app to staging in five steps",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "staging"
+        ]
+      }
+    },
+    {
+      "id": "gs-05",
+      "goal": "instructions for changing a flat tire, with the tools needed",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "tire"
+        ]
+      }
+    },
+    {
+      "id": "gs-06",
+      "goal": "a step by step walkthrough for filing a product return",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "return"
+        ]
+      }
+    },
+    {
+      "id": "gs-07",
+      "goal": "a 20-minute workout routine as numbered steps",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "workout"
+        ]
+      }
+    },
+    {
+      "id": "gs-08",
+      "goal": "a guide to brewing pour-over coffee, with what you need and the steps",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "coffee"
+        ]
+      }
+    },
+    {
+      "id": "gs-09",
+      "goal": "how to plant tomatoes from seed, step by step",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "tomato"
+        ]
+      }
+    },
+    {
+      "id": "gs-10",
+      "goal": "a runbook for migrating the database to the new cluster",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "database"
+        ]
+      }
+    },
+    {
+      "id": "gs-11",
+      "goal": "installation steps for a smart door lock, including the parts in the box",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "lock"
+        ]
+      }
+    },
+    {
+      "id": "gs-12",
+      "goal": "a checklist-style guide for preparing a conference talk",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "talk"
+        ]
+      }
+    },
+    {
+      "id": "gs-13",
+      "goal": "a beginner meditation guide in six short steps",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "meditation"
+        ]
+      }
+    },
+    {
+      "id": "gs-14",
+      "goal": "how to clean a camera lens safely, with the supplies list",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "lens"
+        ]
+      }
+    },
+    {
+      "id": "gs-15",
+      "goal": "a guide for turning on two-factor authentication, step by step",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "two-factor"
+        ]
+      }
+    },
+    {
+      "id": "gs-16",
+      "goal": "steps for onboarding a new hire in their first week",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "week"
+        ]
+      }
+    },
+    {
+      "id": "gs-17",
+      "goal": "a home fire evacuation plan as a numbered guide",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "fire"
+        ]
+      }
+    },
+    {
+      "id": "gs-18",
+      "goal": "a sourdough bread recipe with ingredients, timing and steps",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "sourdough"
+        ]
+      }
+    },
+    {
+      "id": "gs-19",
+      "goal": "a walkthrough for connecting a printer to the office network",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "printer"
+        ]
+      }
+    },
+    {
+      "id": "gs-20",
+      "goal": "a guide to packing for a three-day hike, with a gear list and the steps the night before",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "hike"
+        ]
+      }
+    },
+    {
+      "id": "gs-21",
+      "goal": "a how-to for resetting a forgotten password on the company portal",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "password"
+        ]
+      }
+    },
+    {
+      "id": "gs-22",
+      "goal": "a step-by-step guide to rotating an API key without downtime",
+      "block": "guide-steps",
+      "intent": {
+        "shadcn-v3": "record-detail",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "key"
+        ]
+      }
+    },
+    {
+      "id": "nb-01",
+      "goal": "a confirmation dialog before deleting a project and all its data",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "destructive-action",
+        "astryx": "destructive-action"
+      },
+      "parity": {
+        "labels": [
+          "delete"
+        ]
+      }
+    },
+    {
+      "id": "nb-02",
+      "goal": "ask the user to confirm they want to remove a teammate from the workspace",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "destructive-action",
+        "astryx": "destructive-action"
+      },
+      "parity": {
+        "labels": [
+          "remove"
+        ]
+      }
+    },
+    {
+      "id": "nb-03",
+      "goal": "a warning before permanently deleting an account",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "destructive-action",
+        "astryx": "destructive-action"
+      },
+      "parity": {
+        "labels": [
+          "delete"
+        ]
+      }
+    },
+    {
+      "id": "nb-04",
+      "goal": "a board of selectable project cards to pick one to open",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "project"
+        ]
+      }
+    },
+    {
+      "id": "nb-05",
+      "goal": "a kanban view of tasks grouped by column",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "task"
+        ]
+      }
+    },
+    {
+      "id": "nb-06",
+      "goal": "a gallery of team photos with names underneath",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "name"
+        ]
+      }
+    },
+    {
+      "id": "nb-07",
+      "goal": "an expense report form with amount, category, date and a receipt note",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "amount",
+          "category"
+        ]
+      }
+    },
+    {
+      "id": "nb-08",
+      "goal": "a form to request time off with start date, end date and a reason",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "reason"
+        ]
+      }
+    },
+    {
+      "id": "nb-09",
+      "goal": "a feedback form with a rating and a free-text comment",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "comment"
+        ]
+      }
+    },
+    {
+      "id": "nb-10",
+      "goal": "a shipping address form for checkout",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "nb-11",
+      "goal": "an order detail summary with the items, totals and shipping status",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "record-detail"
+      },
+      "parity": {
+        "labels": [
+          "total"
+        ]
+      }
+    },
+    {
+      "id": "nb-12",
+      "goal": "a customer profile page showing contact details and recent activity",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "record-detail"
+      },
+      "parity": {
+        "labels": [
+          "contact"
+        ]
+      }
+    },
+    {
+      "id": "nb-13",
+      "goal": "notification preferences with toggles for email, push and weekly digest",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "preference-settings"
+      },
+      "parity": {
+        "labels": [
+          "email",
+          "digest"
+        ]
+      }
+    },
+    {
+      "id": "nb-14",
+      "goal": "a dialog to invite teammates by email with a role picker",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "overlay-task"
+      },
+      "parity": {
+        "labels": [
+          "invite"
+        ]
+      }
+    },
+    {
+      "id": "nb-15",
+      "goal": "a workspace with tabs for overview, activity and settings",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "panel-navigation"
+      },
+      "parity": {
+        "labels": [
+          "overview"
+        ]
+      }
+    },
+    {
+      "id": "nb-16",
+      "goal": "a breadcrumb trail for a documentation article",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "wayfinding"
+      },
+      "parity": {
+        "labels": []
+      }
+    },
+    {
+      "id": "nb-17",
+      "goal": "an import progress status with a progress bar and the current step",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "status-feedback"
+      },
+      "parity": {
+        "labels": [
+          "import"
+        ]
+      }
+    },
+    {
+      "id": "nb-18",
+      "goal": "a loading placeholder for an orders table",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "loading-state"
+      },
+      "parity": {
+        "labels": []
+      }
+    },
+    {
+      "id": "nb-19",
+      "goal": "a side sheet with extra context about the selected customer",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "supplementary-detail"
+      },
+      "parity": {
+        "labels": [
+          "customer"
+        ]
+      }
+    },
+    {
+      "id": "nb-20",
+      "goal": "book a 30-minute consultation by picking a date and a time slot",
+      "block": null,
+      "intent": {
+        "astryx": "scheduling"
+      },
+      "parity": {
+        "labels": [
+          "consultation"
+        ]
+      }
+    },
+    {
+      "id": "nb-21",
+      "goal": "compare two subscription plans side by side before confirming an upgrade",
+      "block": null,
+      "intent": {
+        "astryx": "transactional-review"
+      },
+      "parity": {
+        "labels": [
+          "plan"
+        ]
+      }
+    },
+    {
+      "id": "nb-22",
+      "goal": "a recipe editor where the user can rename ingredients and change servings",
+      "block": null,
+      "intent": {
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "servings"
+        ]
+      }
+    },
+    {
+      "id": "nb-23",
+      "goal": "an appointment picker with available morning and afternoon slots",
+      "block": null,
+      "intent": {
+        "astryx": "scheduling"
+      },
+      "parity": {
+        "labels": [
+          "slot"
+        ]
+      }
+    },
+    {
+      "id": "nb-24",
+      "goal": "review the order before paying: items, totals and a confirm button",
+      "block": null,
+      "intent": {
+        "astryx": "transactional-review"
+      },
+      "parity": {
+        "labels": [
+          "confirm"
+        ]
+      }
+    },
+    {
+      "id": "nb-25",
+      "goal": "a settings page where the user edits the fields of their profile in place",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "preference-settings",
+        "astryx": "structured-editing"
+      },
+      "parity": {
+        "labels": [
+          "profile"
+        ]
+      }
+    },
+    {
+      "id": "nb-26",
+      "goal": "a confirm dialog for cancelling a running export",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "destructive-action",
+        "astryx": "destructive-action"
+      },
+      "parity": {
+        "labels": [
+          "cancel"
+        ]
+      }
+    },
+    {
+      "id": "nb-27",
+      "goal": "a dialog to confirm archiving a workspace, saying what archiving means",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "destructive-action",
+        "astryx": "destructive-action"
+      },
+      "parity": {
+        "labels": [
+          "archive"
+        ]
+      }
+    },
+    {
+      "id": "nb-28",
+      "goal": "a contact form with name, email and a message box",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "message"
+        ]
+      }
+    },
+    {
+      "id": "nb-29",
+      "goal": "a short survey asking which features the user wants next",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "structured-input",
+        "astryx": "data-collection"
+      },
+      "parity": {
+        "labels": [
+          "feature"
+        ]
+      }
+    },
+    {
+      "id": "nb-30",
+      "goal": "a triage board where tickets are grouped by assignee",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "record-collection",
+        "astryx": "record-collection"
+      },
+      "parity": {
+        "labels": [
+          "assignee"
+        ]
+      }
+    },
+    {
+      "id": "nb-31",
+      "goal": "a confirmation before revoking all active sessions for an account",
+      "block": null,
+      "intent": {
+        "shadcn-v3": "destructive-action",
+        "astryx": "destructive-action"
+      },
+      "parity": {
+        "labels": [
+          "revoke"
+        ]
+      }
+    }
+  ]
+}

@@ -28,7 +28,7 @@
  * threshold.
  */
 import { missed, performed } from "./operation";
-import type { Arm, Condition, FailureKind, OperationCheck, Path, RunRecord } from "./types";
+import type { Arm, Condition, FailureKind, OperationCheck, OperationScoring, Path, RunRecord } from "./types";
 
 export interface DecisionOptions {
   /** The required drop in tokens per success against today's production configuration. */
@@ -228,13 +228,16 @@ export interface SensitivityReading {
 /**
  * The ways of counting the passing add and remove refinements that did not do what they asked as failures, one reading
  * each: the missed ones; the missed and the mixed ones; and the same two with only the misses that changed their surface.
+ * Under binding scoring the verdict already fails the missed ones, so its readings are "none" (the pipeline's pass alone,
+ * as corpus v1 scored it) and the missed and mixed ones.
  * An unchanged surface is the right answer where a template does not apply to it, but also what a refinement that ignored
  * its instruction leaves (a block refinement that re-sends its prior call expands to the same surface), so the readings
  * that leave unchanged misses out can excuse real ones, and the readings that count them can count correct no-ops.
  */
-export type SensitivityFailing = "missed" | "missed-and-mixed" | "changed-missed" | "changed-missed-and-mixed";
+export type SensitivityFailing = "none" | "missed" | "missed-and-mixed" | "changed-missed" | "changed-missed-and-mixed";
 
 const FAILING: Record<SensitivityFailing, (check: OperationCheck, r: RunRecord) => boolean> = {
+  none: () => false,
   missed: (check) => missed(check),
   "missed-and-mixed": (check) => !performed(check),
   "changed-missed": (check, r) => missed(check) && r.changed !== false,
@@ -263,6 +266,8 @@ export interface OperationSensitivity {
 }
 
 export interface Summary {
+  /** How the add and remove refinements were scored: the corpus's rule (scoreRecords). */
+  scoring: OperationScoring;
   /** Per condition. */
   arms: ArmStats[];
   /** Per arm, every condition pooled: what the decision reads. */
@@ -285,6 +290,24 @@ export function median(values: number[]): number | null {
 }
 /** Boundaries are inclusive and judged exactly: floating point must not turn an exact 30% cut or a 5-point gap into a failure. */
 const EPSILON = 1e-9;
+
+/** The pipeline passed it: its gates and audit, whatever the add and remove scoring made of it. */
+const gatePassed = (r: RunRecord): boolean => r.passed || r.outcome === "passed";
+
+const ADD_REMOVE: ReadonlySet<Condition> = new Set<Condition>(["refine-add", "refine-remove"]);
+
+/**
+ * The records as the corpus's scoring counts them, for every arm alike. "beside" (corpus v1) keeps the pipeline's pass.
+ * "binding" (corpus v2, ADR-B3 amendment 2) fails a passing add or remove refinement whose operation was missed: no list
+ * changed, or lists changed only the other way. A mixed change still passes, since matching nodes by place can read a
+ * clean add or remove as mixed (live/operation.ts) but never as missed: the changes summed over every list are the
+ * elements gained or lost, so a refinement that gained one shows a list that grew. A passing add or remove the check
+ * never read fails too, so the binding rule cannot be skipped. Every call's tokens still count.
+ */
+export function scoreRecords(records: readonly RunRecord[], scoring: OperationScoring): RunRecord[] {
+  if (scoring === "beside") return [...records];
+  return records.map((r) => (r.passed && ADD_REMOVE.has(r.condition) && (!r.operation || missed(r.operation)) ? { ...r, passed: false } : r));
+}
 
 export function armStats(records: readonly RunRecord[], options: { pooled?: boolean } = {}): ArmStats[] {
   const groupKey = (r: RunRecord) => `${r.reference}|${r.provider}|${r.arm}|${options.pooled ? "all" : r.condition}`;
@@ -325,13 +348,14 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
     }
     const refinements = completed.filter((r) => r.condition !== "fresh");
     const withBlockPrior = refinements.filter((r) => r.refinement && r.refinement.mode !== "primitive");
-    const refinedPassed = refinements.filter((r) => r.passed);
+    // Changed and the operation check describe the refinements the pipeline passed, so binding scoring leaves them as they are.
+    const refinedPassed = refinements.filter(gatePassed);
     // A checklist with nothing to check (no label, no component) scores no one; it is counted apart, never as a full score.
     const checks = (r: RunRecord) => (r.parity ? r.parity.satisfied.length + r.parity.missing.length : 0);
     const parityScored = passed.filter((r) => typeof r.parity?.score === "number" && checks(r) > 0);
     const scored = parityScored.map((r) => r.parity!.score);
     const operationsOf = (runs: readonly RunRecord[]): OperationCounts => {
-      const checkedRuns = runs.filter((r): r is RunRecord & { operation: OperationCheck } => r.passed && r.operation !== undefined);
+      const checkedRuns = runs.filter((r): r is RunRecord & { operation: OperationCheck } => gatePassed(r) && r.operation !== undefined);
       return {
         checked: checkedRuns.length,
         performed: checkedRuns.filter((r) => performed(r.operation)).length,
@@ -341,7 +365,8 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
       };
     };
     const blockOf = (r: RunRecord) => r.expected.block ?? "null";
-    const operationByBlock = Object.fromEntries([...new Set(passed.filter((r) => r.operation).map(blockOf))].map((b) => [b, operationsOf(passed.filter((r) => blockOf(r) === b))]));
+    const checked = evaluated.filter((r) => gatePassed(r) && r.operation);
+    const operationByBlock = Object.fromEntries([...new Set(checked.map(blockOf))].map((b) => [b, operationsOf(checked.filter((r) => blockOf(r) === b))]));
     const execution = (pick: (t: NonNullable<RunRecord["timings"]["execution"]>) => number | undefined) =>
       median(completed.map((r) => (r.timings.execution ? pick(r.timings.execution) : undefined)).filter((v): v is number => typeof v === "number"));
     out.push({
@@ -381,7 +406,7 @@ export function armStats(records: readonly RunRecord[], options: { pooled?: bool
         wallTotalMs: median(completed.map((r) => r.timings.totalMs)),
       },
       parity: { meanScore: mean(scored), scored: scored.length, fullyParityPassed: parityScored.filter((r) => r.parity!.score === 1).length, noChecks: passed.filter((r) => r.parity && checks(r) === 0).length },
-      operation: operationsOf(passed),
+      operation: operationsOf(evaluated),
       operationByBlock,
       paths,
       budgetRemainingAtFallback,
@@ -678,17 +703,30 @@ export function decide(records: readonly RunRecord[], options: DecisionOptions =
 
 /**
  * The decision again with the passing add and remove refinements that did not do what they asked counted as failures,
- * in each way that applies (OperationSensitivity): never the verdict, which counts them as ADR-B3 froze the pass.
+ * in each way that applies (OperationSensitivity): never the verdict, which counts them as the corpus's scoring does.
+ * Under binding scoring the readings bracket the verdict: the pipeline's pass alone below it, the mixed ones failing too
+ * above it.
  */
-export function operationSensitivity(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION, decisions: readonly Decision[] = decide(records, options)): OperationSensitivity[] {
+export function operationSensitivity(
+  records: readonly RunRecord[],
+  options: DecisionOptions = DEFAULT_DECISION,
+  decisions: readonly Decision[] = decide(scoreRecords(records, "beside"), options),
+  scoring: OperationScoring = "beside",
+): OperationSensitivity[] {
   const decisionRecords = records.filter((r) => DECISION_ARMS.includes(r.arm));
+  // The records the verdict reads; each reading fails more of them, or (none) reads the pipeline's pass alone.
+  const scored = scoreRecords(decisionRecords, scoring);
   const recomputed = new Map<SensitivityFailing, Decision[]>();
   const failing = (way: SensitivityFailing): Decision[] => {
     const known = recomputed.get(way);
     if (known) return known;
-    let flipped = 0;
-    const counted = decisionRecords.map((r) => (r.passed && r.operation && FAILING[way](r.operation, r) ? (flipped++, { ...r, passed: false }) : r));
-    const result = flipped === 0 ? [...decisions] : decide(counted, options);
+    let result: Decision[];
+    if (way === "none") result = decide(decisionRecords, options);
+    else {
+      let flipped = 0;
+      const counted = scored.map((r) => (r.passed && r.operation && FAILING[way](r.operation, r) ? (flipped++, { ...r, passed: false }) : r));
+      result = flipped === 0 ? [...decisions] : decide(counted, options);
+    }
     recomputed.set(way, result);
     return result;
   };
@@ -698,12 +736,17 @@ export function operationSensitivity(records: readonly RunRecord[], options: Dec
     const operation = (arm: Arm) => pooled.find((s) => s.reference === d.reference && s.provider === d.provider && s.arm === arm)?.operation ?? none;
     const ops = { block: operation("block"), capped: operation("capped"), production: operation("production") };
     const any = (pick: (o: OperationCounts) => number) => Object.values(ops).some((o) => pick(o) > 0);
-    const ways: SensitivityFailing[] = [
-      ...(any((o) => o.missed) ? (["missed"] as const) : []),
-      ...(any((o) => o.mixed) ? (["missed-and-mixed"] as const) : []),
-      ...(any((o) => o.unchanged) ? (["changed-missed"] as const) : []),
-      ...(any((o) => o.unchanged) && any((o) => o.mixed) ? (["changed-missed-and-mixed"] as const) : []),
-    ];
+    const inScope = (r: RunRecord) => r.reference === d.reference && r.provider === d.provider;
+    const scoredOut = scored.some((r, i) => inScope(r) && r.passed !== decisionRecords[i]!.passed);
+    const ways: SensitivityFailing[] =
+      scoring === "binding"
+        ? [...(scoredOut ? (["none"] as const) : []), ...(any((o) => o.mixed) ? (["missed-and-mixed"] as const) : [])]
+        : [
+            ...(any((o) => o.missed) ? (["missed"] as const) : []),
+            ...(any((o) => o.mixed) ? (["missed-and-mixed"] as const) : []),
+            ...(any((o) => o.unchanged) ? (["changed-missed"] as const) : []),
+            ...(any((o) => o.unchanged) && any((o) => o.mixed) ? (["changed-missed-and-mixed"] as const) : []),
+          ];
     const readings = ways.map((way) => {
       const x = failing(way).find((y) => y.reference === d.reference && y.provider === d.provider)!;
       const reading: SensitivityReading = { verdict: x.verdict, overall: x.clarity.overall, passed: x.counts.passed, evaluated: x.evaluated, reductionVsProduction: x.tokens.reductionVsProduction };
@@ -737,17 +780,19 @@ export function compareEncodings(records: readonly RunRecord[]): EncodingCompari
   return out;
 }
 
-export function summarize(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION): Summary {
-  const arms = armStats(records);
+export function summarize(records: readonly RunRecord[], options: DecisionOptions = DEFAULT_DECISION, scoring: OperationScoring = "beside"): Summary {
+  const scored = scoreRecords(records, scoring);
+  const arms = armStats(scored);
   const completed = records.filter((r) => r.status === "completed");
-  const decisions = decide(records, options);
+  const decisions = decide(scored, options);
   return {
+    scoring,
     arms,
-    pooled: armStats(records, { pooled: true }),
+    pooled: armStats(scored, { pooled: true }),
     selection: selectionStats(records),
     decisions,
-    sensitivity: operationSensitivity(records, options, decisions),
-    encodings: compareEncodings(records),
+    sensitivity: operationSensitivity(records, options, decisions, scoring),
+    encodings: compareEncodings(scored),
     totals: {
       records: records.length,
       completed: completed.length,

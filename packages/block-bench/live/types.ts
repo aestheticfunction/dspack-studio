@@ -26,6 +26,13 @@ export const CONDITIONS: readonly Condition[] = ["fresh", "refine-content", "ref
 export const REFINEMENTS = ["refine-content", "refine-add", "refine-remove", "refine-structural"] as const satisfies readonly Condition[];
 
 export type RefinementKind = "content" | "add" | "remove" | "structural";
+
+/**
+ * How a corpus scores its add and remove refinements (live/operation.ts). "beside" (corpus v1): the pass is the
+ * pipeline's, and the operation check is reported beside it. "binding" (corpus v2, ADR-B3 amendment 2): a passing add
+ * or remove whose operation was missed is a failure.
+ */
+export type OperationScoring = "beside" | "binding";
 export const REFINEMENT_KIND: Record<(typeof REFINEMENTS)[number], RefinementKind> = {
   "refine-content": "content",
   "refine-add": "add",

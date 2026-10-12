@@ -34,7 +34,7 @@ import { hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { sha256Hex } from "@dspack-studio/composer-core/blocks";
 import { runCell } from "./arms";
-import { corpusDigest, promptsFor, type Corpus, type CorpusPrompt } from "./corpus";
+import { corpusDigest, promptsFor, scoringOf, type Corpus, type CorpusPrompt } from "./corpus";
 import { REQUEST_USD_BOUND, toNanos } from "./cost";
 import { codeIdentity, type CodeIdentity } from "./identity";
 import { MODEL_FAMILY, RunHalted } from "./integrity";
@@ -995,7 +995,8 @@ async function evaluate(options: EvaluationOptions, lock?: RunLock): Promise<Eva
     }
   }
 
-  const summary = summarize(records, options.decision ?? DEFAULT_DECISION);
+  // The corpus says how its add and remove refinements are scored (corpus v2 makes the operation check binding).
+  const summary = summarize(records, options.decision ?? DEFAULT_DECISION, scoringOf(options.corpus));
   const telemetry = options.provider.telemetry?.();
   // Every invocation's pacing is kept: a resume must not erase the waits an earlier invocation sat through.
   const invocation = telemetry ? { at: options.preflight.at, id: invocationId, telemetry, ...(stopped ? { stopped } : {}) } : undefined;
