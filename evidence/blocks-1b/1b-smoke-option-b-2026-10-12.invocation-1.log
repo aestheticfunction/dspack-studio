@@ -1,0 +1,89 @@
+
+> @dspack-studio/block-bench@0.1.0 eval:live /home/user/dspack-studio/packages/block-bench
+> tsx live/run.ts -- --provider hosted --prompts rt-01,af-01,gs-01,nb-01 --conditions fresh --max-total-usd 7 --max-total-requests 160 --max-requests 160 --spacing-ms 12000 --out live/runs/1b-smoke-option-b-2026-10-12
+
+{
+  "at": "2026-10-12T03:39:06.090Z",
+  "sidecars": [
+    {
+      "reference": "shadcn-v3",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    },
+    {
+      "reference": "astryx",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    }
+  ],
+  "drafts": false,
+  "baseUrl": "https://composer.aesthetic-function.com",
+  "buildId": "xyE6-W1k_Lck1rWQf4dEu",
+  "worker": {
+    "shape": "per-call-model",
+    "status": 400,
+    "error": "invalid-request",
+    "calls": [],
+    "capabilities": [
+      "per-call-model"
+    ]
+  },
+  "models": [
+    "scripted",
+    "hosted-ai"
+  ]
+}
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|rt-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|rt-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|rt-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|rt-01|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|af-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|af-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|af-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|af-01|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|gs-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|gs-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|gs-01|fresh: failed-gate via primitive in 3 attempt(s), 4 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|gs-01|fresh: passed via primitive in 3 attempt(s), 4 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-01|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|rt-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|rt-01|fresh: failed-adapter via provider-failure in 1 attempt(s), 4 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|rt-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|rt-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|af-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|af-01|fresh: passed via block in 1 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|af-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|af-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|gs-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|gs-01|fresh: passed via block in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|gs-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|gs-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+
+run 2026-10-12T03-39-07-159Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 32 of 32 cells (0 reused); report at live/runs/1b-smoke-option-b-2026-10-12/REPORT.md
+astryx on hosted-ai:claude-haiku-4.5: insufficient
+  block: 4 prompt threads (4 cells), fewer than the 20 the rule needs
+  capped: 4 prompt threads (4 cells), fewer than the 20 the rule needs
+  production: 4 prompt threads (4 cells), fewer than the 20 the rule needs
+shadcn-v3 on hosted-ai:claude-haiku-4.5: insufficient
+  block: 4 prompt threads (4 cells), fewer than the 20 the rule needs
+  capped: 4 prompt threads (4 cells), fewer than the 20 the rule needs
+  production: 4 prompt threads (4 cells), fewer than the 20 the rule needs
