@@ -2,8 +2,8 @@
 import type { Corpus } from "./corpus";
 import { PRICED_MODEL } from "./cost";
 import type { EvaluationResult } from "./evaluate";
-import type { ArmStats, Clarity, Interval, PairedCounts } from "./metrics";
-import { CONDITIONS } from "./types";
+import type { ArmStats, Clarity, Decision, Interval, OperationSensitivity, PairedCounts, SensitivityReading } from "./metrics";
+import { ARMS, CONDITIONS, type Path } from "./types";
 
 const row = (cells: Array<string | number | null | undefined>) => `| ${cells.map((c) => (c === null || c === undefined ? "n/a" : String(c))).join(" | ")} |`;
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? "n/a" : `${(100 * v).toFixed(1)}%`);
@@ -17,7 +17,41 @@ const span = (iv: Interval | null, unit: "%" | " points") =>
   iv ? `95% interval ${unit === "%" ? `${(100 * iv.low).toFixed(1)}% to ${(100 * iv.high).toFixed(1)}%` : `${signed(iv.low)} to ${signed(iv.high)} points`}, ${iv.resamples} resamples over ${iv.prompts} prompts` : "no interval";
 /** Tokens per success beside its numerator and denominator: metered tokens over metered successes. */
 const perSuccess = (s: Pick<ArmStats, "tokensPerSuccess" | "meteredTokens" | "meteredSuccesses">) => (s.tokensPerSuccess === null ? "n/a" : `${num(s.tokensPerSuccess)} (${s.meteredTokens}/${s.meteredSuccesses})`);
-const CLARITY: Record<Clarity, string> = { "clear-pass": "clearly met", "clear-fail": "clearly missed", uncertain: "uncertain: the interval straddles the threshold", "n/a": "not measurable" };
+/** A criterion's clarity; below the rule's minimum of prompts in common it is never called clear (the addendum). */
+const clarityText = (c: Clarity, minimum: number): string =>
+  c === "clear-pass"
+    ? "clearly met"
+    : c === "clear-fail"
+      ? "clearly missed"
+      : c === "uncertain"
+        ? "uncertain: the interval straddles the threshold"
+        : c === "insufficient"
+          ? `insufficient: the interval rests on fewer prompts than the rule's minimum of ${minimum}, so it is not interpretable`
+          : "not measurable";
+const overallText = (o: Decision["clarity"]["overall"]) => (o === "insufficient" ? "too few prompts in common to call" : o);
+const ratioOf = (r: SensitivityReading, arm: "block" | "capped" | "production") => (r.evaluated[arm] === 0 ? null : r.passed[arm] / r.evaluated[arm]);
+/** Whether the decision rests on add and remove refinements that did not do what they asked (live/operation.ts). */
+function sensitivityText(s: OperationSensitivity): string {
+  const head = "- Add and remove refinements (live/operation.ts; beside the rule, never in it): ";
+  const arms = [s.operation.block, s.operation.capped, s.operation.production];
+  if (arms.every((o) => o.checked === 0)) return `${head}no passing add or remove refinement in the decision arms, so the verdict does not rest on one.`;
+  const counts = (o: ArmStats["operation"]) => `(${o.mixed} mixed, ${o.missed} missed)`;
+  const { block, capped, production } = s.operation;
+  const done = `${head}block performed ${block.performed} of the ${block.checked} that passed ${counts(block)}; capped ${capped.performed} of ${capped.checked} ${counts(capped)}; production ${production.performed} of ${production.checked} ${counts(production)}.`;
+  if (arms.every((o) => o.mixed === 0 && o.missed === 0)) return `${done} Every one did what it asked, so the verdict does not rest on the check.`;
+  const reading = (r: SensitivityReading) =>
+    `${r.verdict} (${overallText(r.overall)}; pass rate block ${rate(ratioOf(r, "block"), r.passed.block, r.evaluated.block)}, capped ${rate(ratioOf(r, "capped"), r.passed.capped, r.evaluated.capped)}, production ${rate(ratioOf(r, "production"), r.passed.production, r.evaluated.production)}; token reduction vs production ${pct(r.reductionVsProduction)})`;
+  const readings = arms.some((o) => o.mixed > 0)
+    ? `Counting the missed ones as failures, the decision would read ${reading(s.missedAsFailures)}; counting the mixed ones too, ${reading(s.notPerformedAsFailures)}.`
+    : `Counting them as failures, the decision would read ${reading(s.missedAsFailures)}.`;
+  return `${done} ${readings} The verdict ${s.robust ? "does not rest" : "rests"} on refinements that did not do what they asked.`;
+}
+/** Checklists with nothing to check are counted apart, never scored. */
+const parityText = (p: ArmStats["parity"]) =>
+  p.scored === 0 ? (p.noChecks ? `n/a (${p.noChecks} with no checks)` : "n/a") : `${pct(p.meanScore)} (${p.scored} scored${p.noChecks ? `, ${p.noChecks} with no checks` : ""})`;
+const PATHS: readonly Path[] = ["block", "block-repair", "fallback", "primitive", "switch", "provider-failure", "invariant", "planning-failure"];
+const pathsText = (s: ArmStats) => PATHS.filter((p) => s.paths[p]).map((p) => `${p} ${s.paths[p]!.passed}/${s.paths[p]!.n}`).join(", ") || "none";
+const tally = (counts: Record<string, number>, label: (key: string) => string = (k) => k) => Object.entries(counts).map(([k, v]) => `${label(k)} ${v}`).join(", ") || "none";
 const pairedText = (p: PairedCounts, first: string, second: string) =>
   `${p.prompts} prompts against ${second} (${first}'s thread pass rate higher on ${p.passRate.better}, the same on ${p.passRate.same}, lower on ${p.passRate.worse}; tokens per success lower on ${p.tokensPerSuccess.lower}, the same on ${p.tokensPerSuccess.same}, higher on ${p.tokensPerSuccess.higher}, of ${p.tokensPerSuccess.comparable} comparable)`;
 
@@ -101,17 +135,18 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
   );
   if (summary.decisions.length === 0) out.push("No fresh cells with all three arms yet.", "");
   for (const d of summary.decisions) {
-    out.push(`### ${d.reference} on ${d.provider}: **${d.verdict}** (${d.clarity.overall})`, "");
+    out.push(`### ${d.reference} on ${d.provider}: **${d.verdict}** (${overallText(d.clarity.overall)})`, "");
     out.push(row(["Arm", "Prompt threads", "Evaluated cells", "Metered threads / cells", "Pass rate (passed/evaluated)", "Tokens per success (metered tokens/successes)"]), row(["---", "---:", "---:", "---:", "---:", "---:"]));
     for (const arm of ["block", "capped", "production"] as const) {
       out.push(row([arm, d.threads[arm], d.evaluated[arm], `${d.meteredThreads[arm]} / ${d.metered[arm]}`, rate(d.passRates[arm], d.counts.passed[arm], d.evaluated[arm]), d.tokens[arm] === null ? "n/a" : `${num(d.tokens[arm])} (${d.counts.meteredTokens[arm]}/${d.counts.meteredSuccesses[arm]})`]));
     }
     out.push(
       "",
-      `- Token reduction vs production: ${pct(d.tokens.reductionVsProduction)} (${span(d.intervals.reductionVsProduction, "%")}): ${CLARITY[d.clarity.tokens]}. Vs capped: ${pct(d.tokens.reductionVsCapped)} (${span(d.intervals.reductionVsCapped, "%")}).`,
-      `- Pass rate, block minus production: ${d.passRates.block === null || d.passRates.production === null ? "n/a" : `${signed(d.passRates.block - d.passRates.production)} points`} (${span(d.intervals.passDiffVsProduction, " points")}): ${CLARITY[d.clarity.vsProduction]}. Block minus capped: ${d.passRates.block === null || d.passRates.capped === null ? "n/a" : `${signed(d.passRates.block - d.passRates.capped)} points`} (${span(d.intervals.passDiffVsCapped, " points")}): ${CLARITY[d.clarity.vsCapped]}.`,
+      `- Token reduction vs production: ${pct(d.tokens.reductionVsProduction)} (${span(d.intervals.reductionVsProduction, "%")}): ${clarityText(d.clarity.tokens, d.options.minimum)}. Vs capped: ${pct(d.tokens.reductionVsCapped)} (${span(d.intervals.reductionVsCapped, "%")}).`,
+      `- Pass rate, block minus production: ${d.passRates.block === null || d.passRates.production === null ? "n/a" : `${signed(d.passRates.block - d.passRates.production)} points`} (${span(d.intervals.passDiffVsProduction, " points")}): ${clarityText(d.clarity.vsProduction, d.options.minimum)}. Block minus capped: ${d.passRates.block === null || d.passRates.capped === null ? "n/a" : `${signed(d.passRates.block - d.passRates.capped)} points`} (${span(d.intervals.passDiffVsCapped, " points")}): ${clarityText(d.clarity.vsCapped, d.options.minimum)}.`,
       `- Compared paired by prompt: ${pairedText(d.paired.vsProduction, "block", "production")}; ${pairedText(d.paired.vsCapped, "block", "capped")}.`,
-      `- The intervals resample the ${d.cohort} prompts every decision arm evaluated${d.cohort < d.options.minimum ? `, fewer than the ${d.options.minimum} the rule needs, so the decision cannot be called clear` : ""}.`,
+      `- The intervals resample the ${d.cohort} prompts every decision arm evaluated${d.cohort < d.options.minimum ? `, fewer than the ${d.options.minimum} the rule needs, so neither a criterion nor the decision can be called clear` : ""}.`,
+      ...summary.sensitivity.filter((x) => x.reference === d.reference && x.provider === d.provider).map(sensitivityText),
       "",
       `The decision pools every evaluated result of every condition, fresh builds and refinements alike, because ADR-B3 counts every call, refinements included. Rule: at least ${100 * d.options.reduction}% fewer tokens per success and a pass rate within ${100 * d.options.margin} points of both primitive arms, both boundaries inclusive, with at least ${d.options.minimum} evaluated and ${d.options.minimum} metered prompt threads per arm. The verdict reads the point estimates; a criterion is clear only when its whole interval sits on one side of its threshold, and the decision is clear only when its intervals agree with the verdict and rest on at least ${d.options.minimum} prompts every decision arm evaluated.`,
       "",
@@ -125,8 +160,8 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
   for (const [title, stats] of byRef) {
     out.push(`## ${title}`, "");
     out.push("### Fresh builds", "");
-    out.push(row(["Arm", "Cells", "Evaluated", "Passed", "Pass rate", "First attempt", "Repairs/success", "Tokens/success (metered tokens/successes)", "Metered runs", "Input", "Output", "Per passing run", "Provider calls/run", "Request bytes/run", "p50 total", "p50 first gated", "p50 block phase", "Parity mean", "Re-run eligible"]));
-    out.push(row(["---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
+    out.push(row(["Arm", "Cells", "Evaluated", "Passed", "Pass rate", "First attempt", "Repairs/success", "Tokens/success (metered tokens/successes)", "Metered runs", "Input/success", "Output/success", "Per passing run", "Provider calls/run", "Request bytes/run", "p50 total", "p50 first gated", "p50 block phase", "p50 emit", "p50 pacing", "Parity mean", "Re-run eligible"]));
+    out.push(row(["---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
     for (const s of stats.filter((x) => x.condition === "fresh")) {
       out.push(
         row([
@@ -147,19 +182,40 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
           ms(s.latency.totalMs),
           ms(s.latency.firstGatedAttemptMs),
           ms(s.latency.blockPhaseMs),
-          s.parity.scored === 0 ? "n/a" : `${pct(s.parity.meanScore)} (${s.parity.scored} scored)`,
+          ms(s.latency.emitMs),
+          ms(s.latency.pacingMs),
+          parityText(s.parity),
           s.rerunEligible,
         ]),
       );
     }
-    out.push("");
-    const block = stats.find((x) => x.condition === "fresh" && x.arm === "block");
-    if (block) {
-      out.push("### Block arm, by path (ADR-B4 stratification)", "");
-      out.push(row(["Path", "Runs", "Passed"]), row(["---", "---:", "---:"]));
-      for (const [path, p] of Object.entries(block.paths)) out.push(row([path, p!.n, p!.passed]));
-      out.push("", `Fallbacks by classification: ${Object.entries(block.fallbackByClassification).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}. Budget remaining at fallback: ${Object.entries(block.budgetRemainingAtFallback).map(([k, v]) => `${k} left: ${v}`).join(", ") || "none"}. Invariant failures: ${block.invariantFailures}. Budget exhausted: ${block.budgetExhausted}.`, "");
+    out.push(
+      "",
+      "Latencies are execution time: the harness's own pacing and backoff waits are taken out and shown apart (p50 pacing, per cell). Input/success and Output/success split tokens per success: the cohort's input and output tokens over its successes.",
+      "",
+    );
+    // Every arm and every condition, so a refinement's fallback or invariant failure is never out of sight: each is an
+    // arm result in the totals the decision reads.
+    const pooledHere = summary.pooled.filter((x) => `${x.reference} on ${x.provider}` === title);
+    out.push("### Paths, fallbacks and invariant failures (every arm and condition)", "");
+    out.push(row(["Condition", "Arm", "Completed", "Paths (passed/runs)", "Fallbacks by classification", "Budget left at fallback", "Invariant failures", "Budget exhausted"]));
+    out.push(row(["---", "---", "---:", "---", "---", "---", "---:", "---:"]));
+    const pathRow = (label: string, s: ArmStats) => row([label, s.arm, s.completed, pathsText(s), tally(s.fallbackByClassification), tally(s.budgetRemainingAtFallback, (k) => `${k} left:`), s.invariantFailures, s.budgetExhausted]);
+    for (const condition of CONDITIONS) {
+      for (const arm of ARMS) {
+        const s = stats.find((x) => x.condition === condition && x.arm === arm);
+        if (s) out.push(pathRow(condition, s));
+      }
     }
+    for (const arm of ARMS) {
+      const s = pooledHere.find((x) => x.arm === arm);
+      if (s) out.push(pathRow("all conditions", s));
+    }
+    out.push(
+      "",
+      "Fallbacks, switches and invariant failures are arm results in every condition (ADR-B3): each counts in its arm's pass rate and tokens per success, and the all-conditions rows are the pooled totals the decision reads.",
+      "",
+    );
     const sel = summary.selection.find((x) => `${x.reference} on ${x.provider}` === title);
     if (sel) {
       out.push("### Selection accuracy (block arm, fresh)", "");
@@ -170,15 +226,20 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     const refinements = stats.filter((x) => x.condition !== "fresh");
     if (refinements.length > 0) {
       out.push("### Refinements (on each arm's own fresh result)", "");
-      out.push(row(["Condition", "Arm", "Cells", "Skipped", "Evaluated", "Pass rate", "Changed", "Retention", "Tokens/success (metered tokens/successes)", "Re-run eligible"]));
-      out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
-      for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
-      out.push("");
+      out.push(row(["Condition", "Arm", "Cells", "Skipped", "Evaluated", "Pass rate", "Changed", "Operation performed", "Retention", "Tokens/success (metered tokens/successes)", "Re-run eligible"]));
+      out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
+      const operation = (o: ArmStats["operation"]) => (o.checked === 0 ? "n/a" : `${rate(o.performed / o.checked, o.performed, o.checked)}; ${o.mixed} mixed, ${o.missed} missed`);
+      for (const s of refinements) out.push(row([s.condition, s.arm, s.n, s.skipped, s.evaluated, rate(s.passRate, s.passed, s.evaluated), rate(s.changedRate, s.changed, s.refinedPassed), operation(s.operation), rate(s.retention, s.retained, s.onBlockPrior), perSuccess(s), s.rerunEligible]));
+      out.push(
+        "",
+        "Operation performed: of the passing add and remove refinements, those whose surface changed its lists the way the refinement asked (live/operation.ts); mixed ones changed lists both ways, missed ones changed none or only the other way. The pass rate still counts every passing refinement, as ADR-B3 froze the pass; each decision's add and remove line says whether its verdict rests on these.",
+        "",
+      );
     }
     if (stats.some((x) => x.arm === "block-positional")) {
       const pooled = summary.pooled.filter((x) => `${x.reference} on ${x.provider}` === title);
       out.push("### Named vs positional encoding (ADR-B2)", "");
-      out.push(row(["Condition", "Encoding", "Cells", "Evaluated", "Pass rate", "Tokens/success (metered tokens/successes)", "Input", "Output", "Provider calls/run", "Request bytes/run", "p50 block phase"]));
+      out.push(row(["Condition", "Encoding", "Cells", "Evaluated", "Pass rate", "Tokens/success (metered tokens/successes)", "Input/success", "Output/success", "Provider calls/run", "Request bytes/run", "p50 block phase"]));
       out.push(row(["---", "---", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:", "---:"]));
       for (const condition of ["all", ...CONDITIONS]) {
         for (const [encoding, arm] of [["named", "block"], ["positional", "block-positional"]] as const) {
@@ -215,7 +276,8 @@ export function renderReport(result: EvaluationResult, context: { providerId: st
     "## Not measured in this run",
     "",
     ...(positional ? [`- Named vs positional encoding: ${positional}`] : []),
-    "- Time to first valid preview equals completion today (ADR-B3) and is the p50 total above.",
+    "- Time to first valid preview equals completion today (ADR-B3) and is the p50 total above, which, like every latency here, leaves out the harness's pacing waits.",
+    `- Action names in parity: Plan v5's checklist lists them, but the frozen corpus (${context.corpus.corpus} v${context.corpus.version}) names none, so parity scores labels and components only and cannot show whether an expected action exists. A checklist with nothing to check is not scored.`,
     "",
   );
   out.push(`Totals: ${summary.totals.records} records, ${summary.totals.completed} completed, ${summary.totals.providerCalls} provider calls, ${summary.totals.inputTokens} input and ${summary.totals.outputTokens} output tokens reported, ${summary.totals.requestBytes} request bytes.`, "");

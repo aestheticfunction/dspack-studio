@@ -52,13 +52,16 @@ import {
   type StructuralAdapter,
 } from "@dspack-studio/composer-core/blocks";
 import { parityComponents, refinementFor, type Corpus, type CorpusPrompt } from "./corpus";
+import { checkOperation } from "./operation";
 import { checkParity } from "./parity";
 import { RunStop } from "./pacing";
 import { createMeter, failureKindOf, type Provider } from "./providers/types";
 import type { LoadedReference } from "./references";
-import { REFINEMENT_KIND, type Arm, type Condition, type FailureKind, type Path, type PriorResult, type RunRecord } from "./types";
+import { REFINEMENT_KIND, type Arm, type Condition, type FailureKind, type LatencyFigures, type Path, type PriorResult, type RunRecord, type RunTimings } from "./types";
 
 type Json = Record<string, any>;
+/** A moment in the cell, on both clocks: the wall clock, and the execution clock, which leaves out the pacer's waits. */
+type Mark = { wall: number; exec: number };
 
 /** ADR-B4: at most three provider generation calls per run. */
 export const BUDGET = 3;
@@ -161,10 +164,34 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const eligible: readonly BlockDefinition[] = reference.blocks;
   const goal = prompt.goal;
   const t0 = now();
+  // The hosted pacer's spacing and backoff waits are the harness's, not the cell's: the pacer measures them, and every
+  // mark keeps the wall clock beside an execution clock that leaves them out (RunTimings).
+  const waitedMs = () => provider.pacer?.waitedMs ?? 0;
+  const waitedAtStart = waitedMs();
+  const mark = (): Mark => {
+    const wall = now() - t0;
+    return { wall, exec: wall - (waitedMs() - waitedAtStart) };
+  };
   const recorder = createCallRecorder();
   const meter = createMeter();
-  const stamped: Array<{ atMs: number; type: PipelineEvent["type"] }> = [];
+  const stamped: Array<{ at: Mark; type: PipelineEvent["type"] }> = [];
   let result: RunResult | undefined;
+  let planSpan: [Mark, Mark] | undefined;
+  let blockPhaseSpan: [Mark, Mark] | undefined;
+  /** Every latency figure on both clocks, and the pacing between them. */
+  const timingsOf = (end: Mark): RunTimings => {
+    const firstGated = stamped.find((x) => x.type === "attempt")?.at;
+    const lastGated = [...stamped].reverse().find((x) => x.type === "attempt")?.at;
+    const emitted = stamped.find((x) => x.type === "emitted")?.at;
+    const figures = (clock: keyof Mark): LatencyFigures => ({
+      ...(planSpan ? { planMs: planSpan[1][clock] - planSpan[0][clock] } : {}),
+      ...(blockPhaseSpan ? { blockPhaseMs: blockPhaseSpan[1][clock] - blockPhaseSpan[0][clock] } : {}),
+      ...(firstGated ? { firstGatedAttemptMs: firstGated[clock] } : {}),
+      ...(emitted && lastGated ? { emitMs: emitted[clock] - lastGated[clock] } : {}),
+      totalMs: end[clock],
+    });
+    return { ...figures("wall"), pacingMs: end.wall - end.exec, execution: figures("exec") };
+  };
 
   // --- PLAN (fresh); a refinement reuses the fresh plan and makes no plan call ---
   let plan: GoalPlan;
@@ -173,7 +200,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   let planBytes = 0;
   let planFailure: { kind: FailureKind; message: string } | undefined;
   if (condition === "fresh") {
-    const started = now();
+    const started = mark();
     const planRecorder = createCallRecorder();
     const planMeter = createMeter();
     if (!provider.plansWithModel) {
@@ -193,7 +220,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
         if (blockArm) plan = { ...plan, block: { id: null, reason: "planning-provider-failure", source: "deterministic" } };
       }
     }
-    planMs = now() - started;
+    planSpan = [started, mark()];
+    planMs = planSpan[1].wall - started.wall;
     planCalls = [...planRecorder.calls];
     for (const call of planCalls) recorder.record(call);
     planBytes = planMeter.bytes;
@@ -222,7 +250,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
         calls,
         tokens: tokensOf(calls),
         requestBytes: meter.bytes,
-        timings: { ...(planMs !== undefined ? { planMs } : {}), totalMs: now() - t0 },
+        timings: timingsOf(mark()),
         failure: { ...planFailure, rerunEligible: true },
       },
     };
@@ -254,13 +282,12 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
       maxRepairs: Math.max(0, maxRepairs),
       emitProfile: profile,
       ...(conversation ? { conversation } : {}),
-      onEvent: (event) => stamped.push({ atMs: now() - t0, type: event.type }),
+      onEvent: (event) => stamped.push({ at: mark(), type: event.type }),
     });
   };
 
   let path: Path = "primitive";
   let budgetRemainingAtFallback: number | undefined;
-  let blockPhaseMs: number | undefined;
   let refinement: RunRecord["refinement"];
   let providerFailure: unknown;
 
@@ -268,9 +295,9 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     const budget = createBudget(BUDGET);
     const surfaceInner = cappedAdapter(budget);
     const blockInner = budgetedInner(provider.blockAdapter({ recorder, meter, refinement: !!seed, maxCalls: 1, block, intent: runIntent, goal: runGoal, encoding, ...(seed ? { seed } : {}), ...scripted }), budget, deps);
-    const started = now();
+    const started = mark();
     const result = await runBlockPhase({ block, intent: runIntent, goal: runGoal, reference: { name: reference.name }, contract, profile, inner: blockInner, budget, deps, encoding, ...(seed ? { seed } : {}) });
-    blockPhaseMs = now() - started;
+    blockPhaseSpan = [started, mark()];
     // The block phase classifies every throw; the run's own stop signals are not provider failures.
     if (result.kind === "provider-failure" && result.error instanceof RunStop) throw result.error;
     trace = await durableTrace(result.trace);
@@ -330,17 +357,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const passed = outcome === "passed";
   const surface = passed ? (result?.surface as Json | undefined) : undefined;
   const attemptCount = Array.isArray(report?.attempts) ? report!.attempts.length : 0;
-  const totalMs = now() - t0;
-  const firstGated = stamped.find((s) => s.type === "attempt")?.atMs;
-  const lastGated = [...stamped].reverse().find((s) => s.type === "attempt")?.atMs;
-  const emitted = stamped.find((s) => s.type === "emitted")?.atMs;
-  const timings = {
-    ...(planMs !== undefined ? { planMs } : {}),
-    ...(blockPhaseMs !== undefined ? { blockPhaseMs } : {}),
-    ...(firstGated !== undefined ? { firstGatedAttemptMs: firstGated } : {}),
-    ...(emitted !== undefined && lastGated !== undefined ? { emitMs: emitted - lastGated } : {}),
-    totalMs,
-  };
+  const timings = timingsOf(mark());
   const progress: Json = { status: "finished", ...(trace ? { block: trace } : {}), ...(outcome ? { outcome } : {}), ...(report ? { report } : {}), ...(surface ? { surface } : {}) };
   const calls = [...recorder.calls];
   const failureError = providerFailure ?? seen.last;
@@ -354,6 +371,8 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
   const checklist = { labels: [...prompt.parity.labels, ...(template?.expectText ? [template.expectText] : [])], components: parityComponents(prompt, reference.id) };
   const parity = passed && surface ? checkParity(surface, checklist) : undefined;
   const surfaceDigest = passed && surface ? await expansionDigest(surface as never) : undefined;
+  // Whether a passing add or remove did what it asked, beside the pass and never in it (live/operation.ts).
+  const operation = refining && passed && surface && (refinementKind === "add" || refinementKind === "remove") ? checkOperation(refinementKind, input.prior!.surface, surface) : undefined;
   // Selection is scored on the planner's ANSWER: a block it named that reconciliation withdrew is still its answer.
   // An unusable planning output is no answer at all: neither a null nor a block, and never correct.
   const selection: RunRecord["selection"] =
@@ -382,6 +401,7 @@ export async function runCell(input: CellInput): Promise<CellOutput> {
     timings,
     ...(parity ? { parity } : {}),
     ...(refining && passed ? { changed: surfaceDigest !== input.prior!.record.surfaceDigest } : {}),
+    ...(operation ? { operation } : {}),
     ...(failure ? { failure } : {}),
     ...(refinement ? { refinement } : {}),
     ...(surfaceDigest ? { surfaceDigest } : {}),

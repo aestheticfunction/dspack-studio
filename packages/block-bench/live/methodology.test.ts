@@ -227,7 +227,7 @@ describe("the add and remove check sits beside the rule: it never changes the ve
       robust: false,
     });
     const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
-    expect(report).toContain("- Add and remove refinements (live/operation.ts; beside the rule, never in it): block performed 24 of the 48 that passed (0 mixed, 24 missed); capped 48 of 48 (0 mixed, 0 missed); production 48 of 48 (0 mixed, 0 missed). With the missed ones counted as failures, the decision would be fail (clear); with the mixed ones too, fail (clear). The verdict rests on refinements that did not do what they asked.");
+    expect(report).toContain("- Add and remove refinements (live/operation.ts; beside the rule, never in it): block performed 24 of the 48 that passed (0 mixed, 24 missed); capped 48 of 48 (0 mixed, 0 missed); production 48 of 48 (0 mixed, 0 missed). Counting them as failures, the decision would read fail (clear; pass rate block 80.0% (96/120), capped 100.0% (120/120), production 100.0% (120/120); token reduction vs production 37.5%). The verdict rests on refinements that did not do what they asked.");
   });
 
   it("mixed changes are bounded both ways, and a verdict that survives both readings is said to", () => {
@@ -236,7 +236,11 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
     expect(summary.sensitivity[0]).toMatchObject({ operation: { production: { checked: 48, performed: 24, mixed: 24, missed: 0 } }, missedAsFailures: { verdict: "pass", overall: "clear" }, notPerformedAsFailures: { verdict: "pass", overall: "clear" }, robust: true });
     const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
-    expect(report).toContain("The verdict does not rest on refinements that did not do what they asked.");
+    expect(report).toContain("Counting the missed ones as failures, the decision would read pass (clear; pass rate block 100.0% (120/120), capped 100.0% (120/120), production 100.0% (120/120); token reduction vs production 50.0%); counting the mixed ones too, pass (clear; pass rate block 100.0% (120/120), capped 100.0% (120/120), production 80.0% (96/120); token reduction vs production 60.0%). The verdict does not rest on refinements that did not do what they asked.");
+    // Every one performed: nothing to recompute.
+    const clean = summarize(checked(done));
+    expect(clean.sensitivity[0]).toMatchObject({ robust: true, operation: { block: { checked: 48, performed: 48 } } });
+    expect(renderReport(resultOf(checked(done), clean), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() })).toContain("Every one did what it asked, so the verdict does not rest on the check.");
   });
 });
 

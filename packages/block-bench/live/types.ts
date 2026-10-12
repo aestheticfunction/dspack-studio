@@ -48,12 +48,34 @@ export interface RunKey {
 
 export const cellId = (key: RunKey): string => `${key.reference}|${key.provider}|${key.arm}|${key.prompt}|${key.condition}`;
 
-export interface RunTimings {
+/** A cell's latency figures, in milliseconds. */
+export interface LatencyFigures {
   planMs?: number;
   blockPhaseMs?: number;
   firstGatedAttemptMs?: number;
   emitMs?: number;
   totalMs: number;
+}
+
+/**
+ * The figures above are wall-clock time, which includes the harness's own pacing: the spacing and backoff waits the
+ * hosted pacer sleeps through between requests. `pacingMs` is that wait inside the cell, measured by the pacer (0 where
+ * nothing paces), and `execution` holds the same figures with it taken out: what the cell's work and the provider took.
+ */
+export interface RunTimings extends LatencyFigures {
+  pacingMs?: number;
+  execution?: LatencyFigures;
+}
+
+/**
+ * What a passing add or remove refinement did to the surface's lists (live/operation.ts): `add` when a list grew and
+ * none shrank, `remove` the reverse, `mixed` both ways, `none` when no list changed length. `deltas` holds each list
+ * that changed, by where it sits, and by how much.
+ */
+export interface OperationCheck {
+  requested: "add" | "remove";
+  observed: "add" | "remove" | "mixed" | "none";
+  deltas: Record<string, number>;
 }
 
 export interface ParityResult {
@@ -98,6 +120,8 @@ export interface RunRecord extends RunKey {
   parity?: ParityResult;
   /** Whether a refinement changed the surface at all (non-vacuity). */
   changed?: boolean;
+  /** A passing add or remove refinement: whether its surface changed the way it asked. A measurement, never the pass. */
+  operation?: OperationCheck;
   failure?: { kind: FailureKind; message: string; rerunEligible: boolean };
   refinement?: { mode: "compact" | "switch" | "primitive"; retained: boolean; reason?: string };
   surfaceDigest?: string;

@@ -212,7 +212,7 @@ describe("add and remove refinements are checked for the operation they ask for 
   });
 
   it("a refinement that adds a row, or removes one, is recorded as doing so, on a primitive refinement and on the block arm's fallback alike", async () => {
-    const added = editing((s) => void rows(s).push(structuredClone(rows(s).at(-1))));
+    const added = editing((s) => void rows(s).push(structuredClone(rows(s).at(-1)!)));
     const dropped = editing((s) => void rows(s).pop());
     for (const arm of ["production", "block"] as const) {
       const fresh = await run(added, arm, "fresh");
