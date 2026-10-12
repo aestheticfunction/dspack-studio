@@ -50,15 +50,27 @@ export interface ServedModel {
   record(id: string): void;
 }
 
+/** What a reply names, for a stop's message: at most 200 characters, and never a throw, however deep a value nests. */
+function shown(value: unknown): string {
+  if (typeof value === "string") return value.slice(0, 200);
+  try {
+    return String(JSON.stringify(value)).slice(0, 200);
+  } catch {
+    return `a ${Array.isArray(value) ? "list" : typeof value} nested too deep to show`;
+  }
+}
+
 /**
  * Holds one reply's calls to the run's integrity conditions, in order, and throws RunHalted at the first that breaks
  * one. The runner holds every reply but a refusal that showed it reached no model, so the reply must report a call that
  * reached the provider, itemize its calls (`itemized`, the Worker's calls[]) so that its usage covers every call it
  * made, give each call its usage and its own model, and state that usage once (`statedOnce`: every spelling of a figure
  * agreeing, and its total its calls' sum). A model the reply names at its top (`model`), present at all, must be its
- * calls' model. The run's model is recorded only from a reply that holds.
+ * calls' model. Returns the model the run should record when it has none yet: the caller records it only once the
+ * reply has passed every other check it makes too (providers/hosted.ts: the price and the bounds), so a reply the run
+ * rejects never records one.
  */
-export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, reply: { itemized: boolean; statedOnce: boolean; model?: unknown }): void {
+export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, reply: { itemized: boolean; statedOnce: boolean; model?: unknown }): string | undefined {
   const reached = calls.filter((call) => call.source !== "none");
   if (reached.length === 0) throw new RunHalted("usage-missing", "a reply that is not a refusal made before any provider call reported no call that reached the provider, so the run cannot show whether a model ran, or meter it");
   if (!reply.itemized) throw new RunHalted("usage-missing", "a reply did not itemize its calls (calls[]), so the run cannot show that its usage covers every call it made");
@@ -76,10 +88,10 @@ export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel
   if (reply.model !== undefined) {
     // Present at all, it must be a whole Claude Haiku 4.5 id: a number, an object or null at the top is no model.
     if (typeof reply.model !== "string" || !MODEL_FAMILY.test(reply.model)) {
-      throw new RunHalted("model-family", `a reply names ${typeof reply.model === "string" ? reply.model : JSON.stringify(reply.model)} at its top, not Claude Haiku 4.5 (${configured})`);
+      throw new RunHalted("model-family", `a reply names ${shown(reply.model)} at its top, not Claude Haiku 4.5 (${configured})`);
     }
     if (reply.model !== measured) throw new RunHalted("model-changed", `a reply names ${reply.model} at its top, but its calls were served by ${measured}`);
   }
   if (!reply.statedOnce) throw new RunHalted("usage-missing", "a reply stated its usage two ways that disagree (a figure under two spellings, or a total that is not its calls' sum), so the run cannot meter it");
-  if (served.id === undefined) served.record(reached[0]!.model!);
+  return served.id === undefined ? reached[0]!.model! : undefined;
 }

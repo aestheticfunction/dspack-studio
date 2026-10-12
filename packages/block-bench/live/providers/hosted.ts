@@ -252,13 +252,15 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // measures, or the run stops (RunHalted) with this request settled on the way out like any other.
         const served = options.pacer?.served;
         const replyModel = reply?.model !== undefined ? { model: reply.model } : {};
-        if (served && !released) holdCalls(records, served, PRICED_MODEL, { itemized, statedOnce: totalOnce && stated.every((s) => s.once) && agrees, ...replyModel });
+        const first = served && !released ? holdCalls(records, served, PRICED_MODEL, { itemized, statedOnce: totalOnce && stated.every((s) => s.once) && agrees, ...replyModel }) : undefined;
         if (options.pacer && !released && foreign !== undefined) throw new UnpricedModel(foreign);
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the
         // model's documented limits.
         if (options.pacer && !released && charged > calls) throw new UnboundedReply(`${charged} provider calls, more than the ${calls} its request allows`);
         const pastEveryCount = totalInfinite || stated.some((s, i) => s.infinite && records[i]!.source !== "none");
         if (options.pacer && !released && (pastEveryCount || largest.some(pastModelLimits) || totalPastModelLimits(total, charged))) throw new UnboundedReply("usage past Claude Haiku 4.5's documented limits");
+        // The run's first model is recorded only from a reply that passed every check above: integrity, price and bounds.
+        if (served && first !== undefined) served.record(first);
         return { calls: records, durationMs };
       };
       try {

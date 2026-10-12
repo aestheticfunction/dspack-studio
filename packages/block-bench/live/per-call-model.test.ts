@@ -154,6 +154,35 @@ describe("each call is held to its own model", () => {
     }
   });
 
+  it("a top-level model nested past what a serializer can write still stops the run, and its request is raised", async () => {
+    // JSON.parse reads nesting this deep; JSON.stringify cannot write it back, so naming it must not throw.
+    const deep = "[".repeat(20_000) + "]".repeat(20_000);
+    const text = `{"json":{"a":1},"raw":"{}","model":${deep},"usage":{"inputTokens":10,"outputTokens":2},"calls":[{"inputTokens":10,"outputTokens":2,"model":"${HAIKU}","outcome":"ok","durationMs":1}]}`;
+    const { pacer, state, settlements } = bound();
+    await expect(generate(() => new Response(text, { status: 200, headers: { "content-type": "application/json" } }), pacer).result).rejects.toMatchObject({ name: "RunHalted", condition: "model-family" });
+    expect(state.recorded).toEqual([]);
+    expect(settlements).toEqual(["usage not verified"]);
+  });
+
+  it("records the run's model only from a reply that passes every check: more calls than the request allows, or usage past the model's limits, record none", async () => {
+    for (const [maxCalls, n] of [[undefined, 3], [1, 2]] as const) {
+      const { pacer, state, settlements } = bound();
+      const calls = Array.from({ length: n }, () => call());
+      await expect(generate(() => answered(calls), pacer, maxCalls).result, `maxCalls ${maxCalls}`).rejects.toMatchObject({ name: "UnboundedReply" });
+      expect(state.recorded, `maxCalls ${maxCalls}`).toEqual([]);
+      expect(settlements, `maxCalls ${maxCalls}`).toEqual(["usage not verified"]);
+    }
+    const { pacer, state } = bound();
+    await expect(generate(() => answered([call({ inputTokens: 204_801 })]), pacer).result).rejects.toMatchObject({ name: "UnboundedReply" });
+    expect(state.recorded).toEqual([]);
+  });
+
+  it("the calls of the run's first metered reply must name one model: a 502 whose two calls name two snapshots stops before any model is recorded", async () => {
+    const { pacer, state } = bound();
+    await expect(generate(() => unusable([call({ outcome: "unusable-output" }), call({ outcome: "unusable-output", model: LATER })]), pacer, 2).result).rejects.toMatchObject({ name: "RunHalted", condition: "model-changed" });
+    expect(state.recorded).toEqual([]);
+  });
+
   it("a reply whose top-level model is not its calls' stops the run, and every later reply is held to the recorded model call by call", async () => {
     const first = bound();
     await expect(generate(() => answered([call()], { model: LATER }), first.pacer).result).rejects.toMatchObject({ name: "RunHalted", condition: "model-changed" });
