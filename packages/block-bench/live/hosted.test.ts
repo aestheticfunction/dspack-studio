@@ -2,8 +2,10 @@
  * Parity with the app: the harness's hosted client and the app's own
  * gateway adapter (apps/composer/app/hosted-build.ts) are run over the same
  * Worker replies, with fetch stubbed, and must agree on the failure kind,
- * the HTTP status, the Worker's cause, and every call record. The app's
- * adapter posts to a relative URL, which the stub accepts.
+ * the HTTP status, the Worker's cause, and every call record but for its
+ * model, where they deliberately differ (Option B) and each side's
+ * attribution is asserted on its own. The app's adapter posts to a relative
+ * URL, which the stub accepts.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

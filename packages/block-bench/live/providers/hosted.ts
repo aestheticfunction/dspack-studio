@@ -4,7 +4,9 @@
  * the SAME classification the app's gateway adapter applies. The parity
  * test (hosted.test.ts) runs this client and the app's adapter over the
  * same replies and requires identical kinds, outcomes and records, so the
- * two cannot drift apart silently.
+ * two cannot drift apart silently. The one deliberate difference is each
+ * record's model (Option B): the app gives the reply's top-level model to
+ * every call, and this client only the model the call's own entry names.
  */
 import { normalizeUsage, proposeBody, type CallOperation, type CallRecorder, type ModelCallRecord, type Usage } from "@dspack-studio/composer-core";
 import type { ErrorKind, GenerateContext, GenerateRequest, StructuralAdapter } from "@dspack-studio/composer-core/blocks";

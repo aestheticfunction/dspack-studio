@@ -431,7 +431,7 @@ describe("a call that reached the provider stops the run unless it can be truste
       ["an unusable output in the Worker's shape before Option B, which names no model", () => reply(502, { error: "provider-unavailable", cause: "unusable-output", message: "no usable output", usage: { inputTokens: 10, outputTokens: 2 }, calls: [call({ outcome: "unusable-output", model: undefined })] }), "model-missing"],
       ["another model family on the call", () => served([call({ model: "claude-sonnet-4-5-20250929" })], { model: "claude-sonnet-4-5-20250929" }), "model-family"],
       ["another model family at the reply's top", () => served([call({})], { model: "claude-sonnet-4-5-20250929" }), "model-family"],
-      ["a later Haiku generation", () => served([call({})], { model: "claude-haiku-5-5" }), "model-family"],
+      ["a later Haiku generation on the call", () => served([call({ model: "claude-haiku-5-5" })], { model: "claude-haiku-5-5" }), "model-family"],
     ] as const) {
       const { pacer, served: record } = bound();
       await expect(generate(answer, pacer), name).rejects.toMatchObject({ name: "RunHalted", condition });
@@ -452,11 +452,15 @@ describe("a call that reached the provider stops the run unless it can be truste
     await generate(() => served([call({})]), pacer);
     await generate(() => served([call({})]), pacer);
     expect(record.recorded).toEqual([HAIKU]);
-    await expect(generate(() => served([call({})], { model: "claude-haiku-4-5-20260301" }), pacer)).rejects.toBeInstanceOf(RunHalted);
+    // A later call served by another snapshot stops the run, its reply naming that snapshot at its top as the Worker does.
+    await expect(generate(() => served([call({ model: "claude-haiku-4-5-20260301" })], { model: "claude-haiku-4-5-20260301" }), pacer)).rejects.toMatchObject({ name: "RunHalted", condition: "model-changed" });
     // Resumed with a model already recorded, a call must report that model.
     const resumed = bound(HAIKU);
     await generate(() => served([call({})]), resumed.pacer);
-    await expect(generate(() => served([call({})], { model: "anthropic/claude-haiku-4.5" }), resumed.pacer)).rejects.toMatchObject({ condition: "model-changed" });
+    await expect(generate(() => served([call({ model: "anthropic/claude-haiku-4.5" })], { model: "anthropic/claude-haiku-4.5" }), resumed.pacer)).rejects.toMatchObject({ condition: "model-changed" });
+    // So must every call of a parse retry: the first call another snapshot served stops the run, though the final call
+    // and the reply's top name the recorded model.
+    await expect(generate(() => served([call({ outcome: "unusable-output", model: "claude-haiku-4-5-20260301" }), call({})]), resumed.pacer)).rejects.toMatchObject({ condition: "model-changed" });
     expect(resumed.served.recorded).toEqual([]);
   });
 

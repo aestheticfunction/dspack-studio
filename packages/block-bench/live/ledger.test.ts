@@ -96,10 +96,20 @@ const BAD = JSON.stringify({ dspackSurface: "0.1", root: { component: "no-such-c
  * every request is unverified and raised to its absolute worst case: a production cell is its plan and three
  * generation requests.
  */
-function worker(script: string[], extra: Record<string, unknown> = {}) {
+function worker(script: string[], extra: Record<string, unknown> = {}, unnamed = 0) {
   let n = 0;
   let posted = 0;
-  const env = { HOSTED_AI: "on", AI: { run: async () => ({ content: [{ type: "text", text: script[Math.min(n++, script.length - 1)] }], usage: { input_tokens: 10, output_tokens: MAX_OUTPUT_TOKENS + 1 }, model: "claude-haiku-4-5-20251001" }) }, ...extra };
+  // The first `unnamed` provider responses name no model, which a call must, so each of them stops a hosted run.
+  const env = {
+    HOSTED_AI: "on",
+    AI: {
+      run: async () => {
+        const i = n++;
+        return { content: [{ type: "text", text: script[Math.min(i, script.length - 1)] }], usage: { input_tokens: 10, output_tokens: MAX_OUTPUT_TOKENS + 1 }, ...(i < unnamed ? {} : { model: "claude-haiku-4-5-20251001" }) };
+      },
+    },
+    ...extra,
+  };
   const fetchImpl = (async (url: string, init: RequestInit) => {
     posted += 1;
     hooks.send?.();
@@ -874,9 +884,9 @@ describe("a model none of the run's records shows measured", () => {
 describe("a stop whose own settlement cannot be written", () => {
   it("is reported as the write failure, never as the integrity stop, and the next resume raises its request to the most a request can cost", async () => {
     await withRun("integrity-unwritten", async (dir) => {
-      // The plan's first call is an unusable output, which names no model of its own: the reply fails the run's
-      // integrity check, and then its settlement line cannot be written. The record comes first, so the run stops on it.
-      const w = worker(["not json", ...cellScript()]);
+      // The plan's call is served by a provider that names no model: the reply fails the run's integrity check
+      // (model-missing), and then its settlement line cannot be written. The record comes first, so the run stops on it.
+      const w = worker(cellScript(), {}, 1);
       let failed = false;
       hooks.wrote = (file, data) => {
         if (!failed && file.endsWith("requests.jsonl") && data.includes('"adjust"')) {

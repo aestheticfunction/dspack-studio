@@ -190,8 +190,8 @@ Every model call Composer causes is recorded, and what it costs is shown on ever
 - **Turn ownership.** A turn records its own planning call; a refinement reuses the prior plan and reports none. Flow planning is one `flow-plan` record on the flow. Agent runs, which have no browser transport, derive their records from the audit report.
 - **Timings.** Planning, first gated attempt, valid preview (today this is completion), emit, and total, all measured from submit.
 
-**The `/api/propose` reply contract.** Usage is `{inputTokens, outputTokens}`, summed over the Worker's calls, with `calls: [{inputTokens, outputTokens, outcome, durationMs}]` listing each one.
-- **Every reply carries `calls`.** That includes errors sent after a provider call. A reply sent before any provider call has `calls: []`.
+**The `/api/propose` reply contract.** Usage is `{inputTokens, outputTokens}`, summed over the Worker's calls, with `calls: [{inputTokens, outputTokens, model, outcome, durationMs}]` listing each one. `model` (Option B) is the model the provider's response named, read when it arrived; a call the provider rejected, or whose response named none, has no `model`.
+- **Every reply carries `calls`.** That includes errors sent after a provider call. A reply sent before any provider call has `calls: []`, and `capabilities: ["per-call-model"]`, which the harness's zero-cost probe reads.
 - **The 502 keeps its error.** It stays `error: "provider-unavailable"` and adds `cause: "unusable-output" | "provider"`.
 - **`maxCalls` is optional.** An optional request field of `1` or `2` caps the Worker's parse retry. It is absent today, so request bytes are unchanged, and Phase 1A sends `1` so that one request is exactly one provider call.
 - **Deploy skew.** The browser still reads the legacy `{in, out}` usage.
