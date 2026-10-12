@@ -206,11 +206,25 @@ describe("the prompt thread is the unit (ADR-B3 addendum)", () => {
     ];
     const summary = summarize(records);
     const [d] = summary.decisions;
-    expect(d).toMatchObject({ cohort: 20, meteredCohort: 16, meteredThreads: { block: 20, capped: 20, production: 20 } });
-    expect(d!.clarity).toMatchObject({ tokens: "insufficient", overall: "insufficient" });
+    expect(d).toMatchObject({ verdict: "pass", cohort: 20, meteredCohort: 16, meteredThreads: { block: 20, capped: 20, production: 20 } });
+    // The token criterion cannot be called, so neither can the pass: uncertain, as the addendum has it.
+    expect(d!.clarity).toMatchObject({ tokens: "insufficient", overall: "uncertain" });
     const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
     expect(report).toContain("The token figure rests on the 16 of them metered in both the block and production arms, fewer than the 20 the rule needs.");
     expect(report).not.toMatch(/Token reduction vs production: [^\n]*clearly met/);
+  });
+
+  it("keeps a fail clear when a criterion is clearly missed over the minimum's prompts, whatever the token figure rests on (the addendum's clear decision)", () => {
+    // 24 prompts every arm evaluated; the block arm passes 2 of each thread's 5 cells, 60 points below both primitive
+    // arms. Its usage went unreported on 4 prompts and production's on 2 others: 18 prompts metered in both.
+    const records = prompts(24).flatMap((p, i) => [
+      ...thread("block", p, (c) => c === "fresh" || c === "refine-content", [50, 0]).map((r) => (i < 4 ? { ...r, tokens: { ...r.tokens, unreportedCalls: 1 } } : r)),
+      ...thread("capped", p, () => true, [100, 0]),
+      ...thread("production", p, () => true, [100, 0]).map((r) => (i >= 22 ? { ...r, tokens: { ...r.tokens, unreportedCalls: 1 } } : r)),
+    ]);
+    const [d] = decide(records);
+    expect(d).toMatchObject({ verdict: "fail", cohort: 24, meteredCohort: 18, meteredThreads: { block: 20, capped: 24, production: 22 } });
+    expect(d!.clarity).toEqual({ tokens: "insufficient", vsProduction: "clear-fail", vsCapped: "clear-fail", overall: "clear" });
   });
 });
 
@@ -258,6 +272,9 @@ const checked = (observed: (arm: Arm, condition: Condition, index: number) => "a
 const done = (_arm: Arm, condition: Condition) => (condition === "refine-add" ? "add" : "remove");
 
 describe("the add and remove check sits beside the rule: it never changes the verdict, and says when the verdict rests on it", () => {
+  const TABLE = "| Counted as failures | Verdict | Clarity | Pass rate, block | Pass rate, capped | Pass rate, production | Token reduction vs production |";
+  const report = (records: RunRecord[], summary = summarize(records)) => renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
+
   it("a verdict that holds only because add refinements passed without adding anything is flagged, and stays the verdict", () => {
     const records = checked((arm, condition) => (arm === "block" && condition === "refine-add" ? "none" : done(arm, condition)));
     const summary = summarize(records);
@@ -267,40 +284,45 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     expect(s).toMatchObject({
       reference: "astryx",
       operation: { block: { checked: 48, performed: 24, mixed: 0, missed: 24 }, capped: { checked: 48, performed: 48 }, production: { checked: 48, performed: 48 } },
-      missedAsFailures: { verdict: "fail" },
-      notPerformedAsFailures: { verdict: "fail" },
+      readings: [{ failing: "missed", reading: { verdict: "fail" } }],
       verdictHolds: false,
       robust: false,
     });
-    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
-    expect(report).toContain("- Add and remove refinements (live/operation.ts; beside the rule, never in it): block performed 24 of the 48 that passed (0 mixed, 24 missed); capped 48 of 48 (0 mixed, 0 missed); production 48 of 48 (0 mixed, 0 missed). Counting them as failures, the decision would read fail (clear; pass rate block 80.0% (96/120), capped 100.0% (120/120), production 100.0% (120/120); token reduction vs production 37.5%). The verdict rests on refinements that did not change their lists the way their template asked.");
+    const text = report(records, summary);
+    expect(text).toContain("- Add and remove refinements (live/operation.ts; beside the rule, never in it): block performed 24 of the 48 that passed (0 mixed, 24 missed); capped 48 of 48 (0 mixed, 0 missed); production 48 of 48 (0 mixed, 0 missed). The decision recomputed with some of them counted as failures is below; the verdict above stands.");
+    expect(text).toContain(TABLE);
+    expect(text).toContain("| the missed ones | fail | clear | 80.0% (96/120) | 100.0% (120/120) | 100.0% (120/120) | 37.5% |");
+    expect(text).toContain("The verdict changes in one reading: the missed ones.");
   });
 
-  it("mixed changes are bounded both ways, and a verdict that survives both readings is said to", () => {
+  it("mixed changes are read apart, and a verdict that survives every reading is said to", () => {
     const records = checked((arm, condition) => (arm === "production" && condition === "refine-remove" ? "mixed" : done(arm, condition)));
     const summary = summarize(records);
     expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
-    expect(summary.sensitivity[0]).toMatchObject({ operation: { production: { checked: 48, performed: 24, mixed: 24, missed: 0 } }, missedAsFailures: { verdict: "pass", overall: "clear" }, notPerformedAsFailures: { verdict: "pass", overall: "clear" }, verdictHolds: true, clarityHolds: true, robust: true });
-    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
-    expect(report).toContain("Counting the missed ones as failures, the decision would read pass (clear; pass rate block 100.0% (120/120), capped 100.0% (120/120), production 100.0% (120/120); token reduction vs production 50.0%); counting the mixed ones too, pass (clear; pass rate block 100.0% (120/120), capped 100.0% (120/120), production 80.0% (96/120); token reduction vs production 60.0%). Neither the verdict nor its clarity rests on refinements that did not change their lists the way their template asked.");
+    expect(summary.sensitivity[0]).toMatchObject({ operation: { production: { checked: 48, performed: 24, mixed: 24, missed: 0 } }, readings: [{ failing: "missed-and-mixed", reading: { verdict: "pass", overall: "clear" } }], verdictHolds: true, clarityHolds: true, robust: true });
+    const text = report(records, summary);
+    expect(text).toContain("| the missed and mixed ones | pass | clear | 100.0% (120/120) | 100.0% (120/120) | 80.0% (96/120) | 60.0% |");
+    expect(text).toContain("Neither the verdict nor its clarity changes in any reading.");
     // Every one performed: nothing to recompute.
     const clean = summarize(checked(done));
-    expect(clean.sensitivity[0]).toMatchObject({ robust: true, operation: { block: { checked: 48, performed: 48 } } });
-    expect(renderReport(resultOf(checked(done), clean), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() })).toContain("Every one changed its lists the way its template asked, so the verdict does not rest on the check.");
+    expect(clean.sensitivity[0]).toMatchObject({ readings: [], robust: true, operation: { block: { checked: 48, performed: 48 } } });
+    const cleanText = report(checked(done), clean);
+    expect(cleanText).toContain("Every one changed its lists the way its template asked, so the verdict does not rest on the check.");
+    expect(cleanText).not.toContain(TABLE);
   });
 
-  it("a verdict that holds while its clarity rests on the missed refinements says exactly that, never that the verdict rests on them", () => {
+  it("a verdict that holds while its clarity changes says exactly that, never that the verdict changes", () => {
     // The block arm's add missed its operation on 4 of 24 prompts: still a pass on the point estimates, no longer clear.
     const records = checked((arm, condition, i) => (arm === "block" && condition === "refine-add" && i < 4 ? "none" : done(arm, condition)));
     const summary = summarize(records);
     expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
-    expect(summary.sensitivity[0]).toMatchObject({ missedAsFailures: { verdict: "pass", overall: "uncertain" }, verdictHolds: true, clarityHolds: false, robust: false });
-    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
-    expect(report).toContain("The verdict holds, but its clarity rests on refinements that did not change their lists the way their template asked.");
-    expect(report).not.toContain("The verdict rests on");
+    expect(summary.sensitivity[0]).toMatchObject({ readings: [{ failing: "missed", reading: { verdict: "pass", overall: "uncertain" } }], verdictHolds: true, clarityHolds: false, robust: false });
+    const text = report(records, summary);
+    expect(text).toContain("The verdict holds in every reading, but its clarity changes in one reading: the missed ones.");
+    expect(text).not.toContain("The verdict changes");
   });
 
-  it("says whether its conclusion survives without the misses that left the surface unchanged, the right answer where a template does not apply", () => {
+  it("reads the decision again without the misses that left the surface unchanged, the right answer where a template does not apply", () => {
     // Seven block removes left their surface exactly as it was (an auth form with no provider buttons to remove, say).
     const records = checked((arm, condition, i) => (arm === "block" && condition === "refine-remove" && i < 7 ? "none" : done(arm, condition))).map((r) =>
       r.arm === "block" && r.condition === "refine-remove" && r.operation?.observed === "none" ? { ...r, changed: false } : r,
@@ -309,15 +331,36 @@ describe("the add and remove check sits beside the rule: it never changes the ve
     expect(summary.decisions[0]).toMatchObject({ verdict: "pass", clarity: { overall: "clear" } });
     expect(summary.sensitivity[0]).toMatchObject({
       operation: { block: { checked: 48, performed: 41, missed: 7, unchanged: 7 } },
-      missedAsFailures: { verdict: "fail" },
+      readings: [
+        { failing: "missed", reading: { verdict: "fail" } },
+        { failing: "changed-missed", reading: { verdict: "pass", overall: "clear" } },
+      ],
       verdictHolds: false,
-      changedMissesAsFailures: { verdict: "pass", overall: "clear" },
-      holdsWithoutUnchanged: { verdict: true, clarity: true },
     });
-    const report = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpus() });
-    expect(report).toContain(
-      "The verdict rests on refinements that did not change their lists the way their template asked. Leaving out the 7 that left their surface unchanged, the right answer where a template does not apply to it (the add and remove table by block shows where they fall), the decision would read pass (clear; pass rate block 100.0% (120/120), capped 100.0% (120/120), production 100.0% (120/120); token reduction vs production 50.0%): without them, neither the verdict nor its clarity rests on the check.",
+    const text = report(records, summary);
+    expect(text).toContain("| the missed ones that changed their surface | pass | clear | 100.0% (120/120) | 100.0% (120/120) | 100.0% (120/120) | 50.0% |");
+    expect(text).toContain("The verdict changes in one reading: the missed ones. Leaving out the misses that left their surface unchanged matters where a template does not apply to a prompt's surface, since an unchanged surface is the right answer there; the add and remove table by block shows where they fall.");
+  });
+
+  it("never says the verdict is safe while a reading without the unchanged misses moves it: correct no-ops in the primitive arms cannot mask the block arm's real misses", () => {
+    // Every arm misses 7 removes, but only the block arm's changed their surface: the primitive arms' left theirs as it
+    // was (a remove that did not apply). Counting all misses, every arm falls alike and the verdict holds; counting only
+    // the misses that changed their surface, the block arm falls alone and the verdict changes.
+    const records = checked((arm, condition, i) => (condition === "refine-remove" && i < 7 ? "none" : done(arm, condition))).map((r) =>
+      r.arm !== "block" && r.condition === "refine-remove" && r.operation?.observed === "none" ? { ...r, changed: false } : r,
     );
+    const summary = summarize(records);
+    expect(summary.sensitivity[0]).toMatchObject({
+      readings: [
+        { failing: "missed", reading: { verdict: "pass" } },
+        { failing: "changed-missed", reading: { verdict: "fail" } },
+      ],
+      verdictHolds: false,
+      robust: false,
+    });
+    const text = report(records, summary);
+    expect(text).toContain("The verdict changes in one reading: the missed ones that changed their surface.");
+    expect(text).not.toContain("Neither the verdict");
   });
 });
 
@@ -358,7 +401,8 @@ describe("the report says what each figure is", () => {
     expect(report).toContain("| Condition | Block | block | capped | production |");
     expect(report).toContain("| refine-add | records-table | 4/4 | 4/4 | 4/4 |");
     expect(report).toContain("| refine-remove | records-table | 0/4; 0 mixed, 4 missed, 1 of them unchanged | 0/4; 0 mixed, 4 missed, 1 of them unchanged | 0/4; 0 mixed, 4 missed, 1 of them unchanged |");
-    expect(report).toContain("Leaving out the 3 that left their surface unchanged, the right answer where a template does not apply to it (the add and remove table by block shows where they fall), the decision would read insufficient");
+    expect(report).toContain("| the missed ones that changed their surface | insufficient |");
+    expect(report).toContain("Leaving out the misses that left their surface unchanged matters where a template does not apply to a prompt's surface, since an unchanged surface is the right answer there; the add and remove table by block shows where they fall.");
     expect(report).toContain("| refine-content | block | 4 | 0 | 4 | 75.0% (3/4) | 100.0% (3/3) | n/a |");
     // Parity: an empty checklist is not scored, and action names are not in the frozen checklist.
     expect(report).toContain("100.0% (3 scored, 1 with no checks)");

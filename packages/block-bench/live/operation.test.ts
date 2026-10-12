@@ -58,7 +58,7 @@ const BODY = "table-body(tb).children";
 const FOOTER = "card-footer(f).children";
 
 describe("the lists of a surface", () => {
-  it("are each keyed by the node that owns them: by its id where it has one, otherwise by its place among same-component siblings, and an array element by its index", () => {
+  it("are each keyed by the node that owns them: by its id where that id is unique, otherwise by its place among same-component siblings, and an array element by its index", () => {
     expect(Object.fromEntries(listLengths(shadcn(rows)))).toMatchObject({ "card(c).children": 3, [BODY]: 3, "table-row(r0).children": 2, "table-row(r2).children": 2, [FOOTER]: 2 });
     expect(Object.fromEntries(listLengths(astryx(rows)))).toMatchObject({ "card(c).children": 3, "table(tbl).props.columns": 2, "table(tbl).props.data": 3, "table(tbl).props.data[2].cells": 2 });
     const anonymous = { root: { component: "card", children: [{ component: "table", props: { data: [{ cells: ["a"] }] } }, { component: "table", props: { data: [] } }] } };
@@ -69,7 +69,8 @@ describe("the lists of a surface", () => {
 describe("an add or a remove, judged by the direction of the change", () => {
   it("an added row is an add on either design system, and a removed row a remove", () => {
     const four = [...rows, ["#9001", "Password reset loop"]];
-    expect(checkOperation("add", shadcn(rows), shadcn(four))).toEqual({ requested: "add", observed: "add", deltas: { [BODY]: 1, "table-row(r3).children": 2 } });
+    // The new row's id is in the refined surface only, so it is placed by rank among the rows not matched by id.
+    expect(checkOperation("add", shadcn(rows), shadcn(four))).toEqual({ requested: "add", observed: "add", deltas: { [BODY]: 1, [`${BODY}>table-row.children`]: 2 } });
     expect(checkOperation("add", astryx(rows), astryx(four))).toEqual({ requested: "add", observed: "add", deltas: { "table(tbl).props.data": 1, "table(tbl).props.data[3].cells": 2 } });
     expect(checkOperation("remove", astryx(rows), astryx(rows.slice(0, 2)))).toEqual({ requested: "remove", observed: "remove", deltas: { "table(tbl).props.data": -1, "table(tbl).props.data[2].cells": -2 } });
     expect(performed(checkOperation("remove", shadcn(rows), shadcn(rows.slice(0, 2))))).toBe(true);
@@ -118,16 +119,41 @@ describe("an add or a remove, judged by the direction of the change", () => {
     expect(checkOperation("add", astryx(rows), { root: { ...astryx(rows).root, children: [{ component: "badge", id: "new", props: { label: "New" } }, ...astryx(rows).root.children] } })).toEqual({ requested: "add", observed: "add", deltas: { "card(c).children": 1 } });
   });
 
-  it("follows a node with an id wherever it moves: an item put first, a table wrapped in a new container, or siblings reordered change no list of theirs", () => {
+  it("follows a node whose id is in both surfaces wherever it moves: an item put first, a table wrapped in a new container, or siblings reordered change no list of theirs", () => {
     const cards = (titles: string[]): Json => ({ root: { component: "stack", id: "s", children: titles.map((t) => ({ component: "card", id: t, children: [{ component: "text", id: `${t}-a`, text: t }, { component: "text", id: `${t}-b`, text: t }] })) } });
     // A new card put first, ahead of three cards of the same component, is an add: the others keep their lists.
-    expect(checkOperation("add", cards(["a", "b", "c"]), cards(["new", "a", "b", "c"]))).toEqual({ requested: "add", observed: "add", deltas: { "stack(s).children": 1, "card(new).children": 2 } });
+    expect(checkOperation("add", cards(["a", "b", "c"]), cards(["new", "a", "b", "c"]))).toEqual({ requested: "add", observed: "add", deltas: { "stack(s).children": 1, "stack(s).children>card.children": 2 } });
     // Reordered siblings, each with its own lists, change nothing.
     expect(checkOperation("remove", cards(["a", "b", "c"]), cards(["c", "a", "b"])).observed).toBe("none");
     // A row appended while the table moves into a new container is still an add.
     const wrapped = astryx([...rows, ["#4", "Four"]]);
     wrapped.root.children = wrapped.root.children.map((child: Json) => (child.component === "table" ? { component: "card", id: "frame", children: [child] } : child));
-    expect(checkOperation("add", astryx(rows), wrapped)).toEqual({ requested: "add", observed: "add", deltas: { "card(frame).children": 1, "table(tbl).props.data": 1, "table(tbl).props.data[3].cells": 2 } });
+    expect(checkOperation("add", astryx(rows), wrapped)).toEqual({ requested: "add", observed: "add", deltas: { "card(c).children>card.children": 1, "table(tbl).props.data": 1, "table(tbl).props.data[3].cells": 2 } });
+  });
+
+  it("matches a node by place when its id changes, or is on one side only, so a renamed id never reads as its lists removed and added again", () => {
+    // The arms that write a whole surface choose their own ids; renaming the card and the table changes no list.
+    const renamed = (surface: Json): Json => {
+      const copy = structuredClone(surface);
+      copy.root.id = "card-1";
+      copy.root.children.find((child: Json) => child.component === "table").id = "tickets-table";
+      return copy;
+    };
+    expect(checkOperation("add", astryx(rows), renamed(astryx(rows)))).toEqual({ requested: "add", observed: "none", deltas: {} });
+    expect(checkOperation("add", astryx(rows), renamed(astryx([...rows, ["#4", "Four"]])))).toEqual({ requested: "add", observed: "add", deltas: { "card.children>table.props.data": 1, "card.children>table.props.data[3].cells": 2 } });
+    const unnamed = structuredClone(astryx(rows));
+    delete unnamed.root.id;
+    expect(checkOperation("remove", astryx(rows), unnamed).observed).toBe("none");
+  });
+
+  it("matches a repeated id by place, so two lists under it are never summed into one", () => {
+    // Two cards share the id "x" beside a card without one: one grows while another shrinks, which is mixed, not none.
+    const stack = (sizes: number[], ids: Array<string | undefined>): Json => ({
+      root: { component: "stack", id: "s", children: sizes.map((n, i) => ({ component: "card", ...(ids[i] ? { id: ids[i] } : {}), children: Array.from({ length: n }, (_, k) => ({ component: "text", id: `t${i}-${k}`, text: "x" })) })) },
+    });
+    const ids = ["x", "x", undefined];
+    const check = checkOperation("add", stack([2, 1, 3], ids), stack([2, 2, 2], ids));
+    expect(check.observed).toBe("mixed");
   });
 
   it("reads only the surface's root, so metadata beside it never counts", () => {
