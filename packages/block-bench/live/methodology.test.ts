@@ -537,6 +537,8 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
     expect(binding.sensitivity[0]).toMatchObject({ readings: [], robust: true });
     expect(renderReport(resultOf(records, binding), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(2) })).toContain("Every one changed its lists the way its template asked, so the binding check failed none.");
     const mixed = everyArm((arm, condition, i) => (condition === "refine-add" && i < 2 ? "none" : done(arm, condition)));
+    // Corpus v1 keeps the pipeline's pass: its decision is the one read on the records as they are.
+    expect(summarize(mixed, DEFAULT_DECISION, "beside").decisions).toEqual(decide(mixed, DEFAULT_DECISION));
     expect(renderReport(resultOf(mixed), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) })).toContain("- Scoring: corpus blocks-1b v1 reports the add and remove check beside the pass, never in it.");
   });
 
@@ -552,7 +554,7 @@ describe("corpus v2 makes the operation check binding (ADR-B3 amendment 2), the 
     expect(summary.sensitivity[0]).toMatchObject({ readings: [] });
     const text = renderReport(resultOf(records, summary), { providerId: "hosted-ai:claude-haiku-4.5", corpus: readCorpusVersion(1) });
     expect(text).not.toContain("Every one changed its lists the way its template asked");
-    expect(text).toContain("Every one the check read changed its lists the way its template asked; the 6 it never read count as the pipeline passed them, so the verdict does not rest on the check.");
+    expect(text).toContain("Every one the check read changed its lists the way its template asked; the 6 it never read count as the pipeline passed them, which the check cannot confirm.");
     expect(text).not.toContain("(the check is binding)");
   });
 });
