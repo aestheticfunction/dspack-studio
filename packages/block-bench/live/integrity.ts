@@ -55,10 +55,10 @@ export interface ServedModel {
  * one. The runner holds every reply but a refusal that showed it reached no model, so the reply must report a call that
  * reached the provider, itemize its calls (`itemized`, the Worker's calls[]) so that its usage covers every call it
  * made, give each call its usage and its own model, and state that usage once (`statedOnce`: every spelling of a figure
- * agreeing, and its total its calls' sum). A model the reply names at its top (`model`) must be its calls' model. The
- * run's model is recorded only from a reply that holds.
+ * agreeing, and its total its calls' sum). A model the reply names at its top (`model`), present at all, must be its
+ * calls' model. The run's model is recorded only from a reply that holds.
  */
-export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, reply: { itemized: boolean; statedOnce: boolean; model?: string }): void {
+export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel, configured: string, reply: { itemized: boolean; statedOnce: boolean; model?: unknown }): void {
   const reached = calls.filter((call) => call.source !== "none");
   if (reached.length === 0) throw new RunHalted("usage-missing", "a reply that is not a refusal made before any provider call reported no call that reached the provider, so the run cannot show whether a model ran, or meter it");
   if (!reply.itemized) throw new RunHalted("usage-missing", "a reply did not itemize its calls (calls[]), so the run cannot show that its usage covers every call it made");
@@ -74,7 +74,10 @@ export function holdCalls(calls: readonly ModelCallRecord[], served: ServedModel
     if (call.model !== measured) throw new RunHalted("model-changed", `${where} was served by ${call.model}, but the run measures ${measured}${served.id === undefined ? "" : " (manifest.json)"}`);
   }
   if (reply.model !== undefined) {
-    if (!MODEL_FAMILY.test(reply.model)) throw new RunHalted("model-family", `a reply names ${reply.model} at its top, not Claude Haiku 4.5 (${configured})`);
+    // Present at all, it must be a whole Claude Haiku 4.5 id: a number, an object or null at the top is no model.
+    if (typeof reply.model !== "string" || !MODEL_FAMILY.test(reply.model)) {
+      throw new RunHalted("model-family", `a reply names ${typeof reply.model === "string" ? reply.model : JSON.stringify(reply.model)} at its top, not Claude Haiku 4.5 (${configured})`);
+    }
     if (reply.model !== measured) throw new RunHalted("model-changed", `a reply names ${reply.model} at its top, but its calls were served by ${measured}`);
   }
   if (!reply.statedOnce) throw new RunHalted("usage-missing", "a reply stated its usage two ways that disagree (a figure under two spellings, or a total that is not its calls' sum), so the run cannot meter it");

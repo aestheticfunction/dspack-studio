@@ -9,9 +9,9 @@
  * provider call is made: every request is a static asset, the Worker's
  * refusal of an empty body, or the model list. --out is resolved against the
  * directory the command was typed in (pnpm runs the script in the package
- * directory), and the record is written only when it is whole: a Phase 0.5
- * Worker, a confirmed build id and the model list. docs/blocks/BASELINE.md
- * cites it.
+ * directory), and the record is written only when it is whole: a Worker that
+ * names the model of every call (per-call-model), a confirmed build id and the
+ * model list. docs/blocks/BASELINE.md cites it.
  */
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";

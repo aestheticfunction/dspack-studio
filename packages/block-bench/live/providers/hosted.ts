@@ -242,12 +242,14 @@ export function createHostedProvider(options: HostedOptions): Provider {
         // run, which sends nothing more.
         const listed = Array.isArray(reply?.calls) ? reply.calls.map((raw) => ((raw ?? {}) as Record<string, unknown>).model) : [];
         const foreign = [...records.map((call) => call.model), reply?.model, ...listed].find((model): model is string => typeof model === "string" && !PRICED_FAMILY.test(model));
-        verified = foreign === undefined && totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
+        // A model the reply names at its top that is no id at all (a number, an object, null) names nothing these prices cover.
+        const named = reply?.model === undefined || typeof reply.model === "string";
+        verified = named && foreign === undefined && totalOnce && stated.every((s) => s.once) && agrees && itemized && charged >= 1 && charged <= calls && records.every((call) => withinReservation(request, call));
         // Then held to the run's integrity conditions (live/integrity.ts), on every path but a release: a call that
         // reached the provider must report its usage, stated once, and name on its own entry the model the run
         // measures, or the run stops (RunHalted) with this request settled on the way out like any other.
         const served = options.pacer?.served;
-        const replyModel = typeof reply?.model === "string" ? { model: reply.model } : {};
+        const replyModel = reply?.model !== undefined ? { model: reply.model } : {};
         if (served && !released) holdCalls(records, served, PRICED_MODEL, { itemized, statedOnce: totalOnce && stated.every((s) => s.once) && agrees, ...replyModel });
         if (options.pacer && !released && foreign !== undefined) throw new UnpricedModel(foreign);
         // So does a reply past every bound the prices rest on: more calls than the request allows, or usage past the

@@ -145,6 +145,15 @@ describe("each call is held to its own model", () => {
     }
   });
 
+  it("a model the reply names at its top that is no model id stops the run, and its request is raised, whatever its calls name", async () => {
+    for (const top of [42, null, ["claude-opus-4-1-20250805"], { id: HAIKU }, ""]) {
+      const { pacer, state, settlements } = bound();
+      await expect(generate(() => answered([call()], { model: top }), pacer).result, JSON.stringify(top)).rejects.toMatchObject({ name: "RunHalted", condition: "model-family" });
+      expect(state.recorded, JSON.stringify(top)).toEqual([]);
+      expect(settlements, JSON.stringify(top)).toEqual(["usage not verified"]);
+    }
+  });
+
   it("a reply whose top-level model is not its calls' stops the run, and every later reply is held to the recorded model call by call", async () => {
     const first = bound();
     await expect(generate(() => answered([call()], { model: LATER }), first.pacer).result).rejects.toMatchObject({ name: "RunHalted", condition: "model-changed" });
