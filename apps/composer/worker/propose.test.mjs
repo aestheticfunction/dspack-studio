@@ -826,14 +826,17 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
     }
   });
 
-  it("a rejection holding what cannot be read in full fails closed, whatever its status says: a Response, a stream, a Map or a buffer", async () => {
-    // A Response's body, a stream or a map's entries are no plain data, so nothing shows they hold no model result.
+  it("a rejection holding what cannot be read in full fails closed, whatever its status says: a Response, a stream, a Map, a buffer or a function", async () => {
+    // A Response's body, a stream, a map's entries or a function's properties are no plain data, so nothing shows they hold
+    // no model result.
     const body = '{"usage":{"input_tokens":10}}';
     const cases = [
       ["a Response", upstream("request refused", { status: 429, response: new Response(null, { status: 429 }) })],
       ["a stream", upstream("request refused", { status: 429, body: new Blob([body]).stream() })],
       ["a Map", upstream("request refused", { status: 429, data: new Map([["usage", { input_tokens: 10 }]]) })],
       ["a buffer", upstream("request refused", { status: 429, body: new TextEncoder().encode(body) })],
+      ["a function carrying usage", upstream("request refused", { status: 429, data: Object.assign(() => {}, { usage: { input_tokens: 10 } }) })],
+      ["a function", upstream("request refused", { status: 429, data: () => {} })],
     ];
     for (const [name, error] of cases) {
       const { status, body: reply } = await classify({ run: vi.fn().mockRejectedValue(error) });
@@ -857,17 +860,79 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
   });
 
   it("a rejection too deep or too large to read in full fails closed, whatever its status says", async () => {
-    let nested = {};
-    for (let i = 0; i < 7; i++) nested = { data: nested };
+    const wrapped = (levels) => {
+      let nested = {};
+      for (let i = 0; i < levels; i++) nested = { data: nested };
+      return nested;
+    };
     const cases = [
-      ["deeper than the search reads", upstream("request refused", { status: 429, data: nested })],
+      ["one level deeper than the search reads", upstream("request refused", { status: 429, data: wrapped(6) })],
       ["more objects than the search reads", upstream("request refused", { status: 429, data: Array.from({ length: 300 }, () => ({})) })],
+      ["more values than the search reads", upstream("request refused", { status: 429, data: new Array(5000).fill(0) })],
+      ["a million values, refused unread", upstream("request refused", { status: 429, data: new Array(1_000_000).fill(0) })],
     ];
     for (const [name, error] of cases) {
       const { status, body } = await classify({ run: vi.fn().mockRejectedValue(error) });
       expect(status, name).toBe(502);
       expect(body.cause, name).toBe("provider");
     }
+    // The deepest level the search reads is still read, and plain data there shows nothing.
+    const { status } = await classify({ run: vi.fn().mockRejectedValue(upstream("request refused", { status: 429, data: wrapped(5) })) });
+    expect(status).toBe(503);
+  });
+
+  it("each usage, token or model key alone shows a model result, as a field, and each usage or token key quoted in the message", async () => {
+    const keys = ["usage", "model", "inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens"];
+    for (const key of keys) {
+      const { status } = await classify({ run: vi.fn().mockRejectedValue(upstream("request refused", { status: 429, [key]: 1 })) });
+      expect(status, `field ${key}`).toBe(502);
+    }
+    const empty = await classify({ run: vi.fn().mockRejectedValue(upstream("request refused", { status: 429, usage: {} })) });
+    expect(empty.status, "usage: {}").toBe(502);
+    for (const key of keys.filter((k) => k !== "model")) {
+      const { status } = await classify(refusingBinding(429, upstream(`{"${key}":1}`)));
+      expect(status, `quoted ${key}`).toBe(502);
+    }
+  });
+
+  it("a usage key in the message is found however it is written: spaced, escaped inside a JSON string, or capitalized", async () => {
+    for (const message of ['{"usage" : {"input_tokens": 5}}', '{"message":"{\\"usage\\":{\\"input_tokens\\":5}}"}', '{"Usage":{"Input_Tokens":5}}']) {
+      const { status } = await classify(refusingBinding(429, upstream(message)));
+      expect(status, message).toBe(502);
+    }
+  });
+
+  it("plain data that shows no model result is read through and stays busy: an array, a null-prototype object, null keys, a quoted word, a longer key", async () => {
+    const cases = [
+      ["an array", upstream("request refused", { status: 429, errors: [{ code: 2003, message: "Rate limited" }] })],
+      ["a null-prototype object", upstream("request refused", { status: 429, data: Object.assign(Object.create(null), { reason: "rate limited" }) })],
+      ["null result keys", upstream("request refused", { status: 429, usage: null, model: null })],
+      ["a quoted word", upstream('request refused: the "usage" budget is spent', { status: 429 })],
+      ["a longer key", upstream('{"error":"spend limit reached","daily_usage":"$10.00"}', { status: 429 })],
+    ];
+    for (const [name, error] of cases) {
+      const { status, body } = await classify({ run: vi.fn().mockRejectedValue(error) });
+      expect(status, name).toBe(503);
+      expect(body.error, name).toBe("busy");
+    }
+  });
+
+  it("a status the binding will not clear, because it ignores the write, is never read", async () => {
+    const ai = {
+      get lastRequestHttpStatusCode() {
+        return 429;
+      },
+      set lastRequestHttpStatusCode(value) {},
+      run: vi.fn().mockRejectedValue(upstream("request refused")),
+    };
+    const { status, body } = await classify(ai);
+    expect(status).toBe(502);
+    expect(body.cause).toBe("provider");
+  });
+
+  it("the message fallback keeps each busy word: a bare 429 is busy, a number that merely contains 429 is not", async () => {
+    expect((await classify({ run: vi.fn().mockRejectedValue(upstream("upstream answered 429")) })).status).toBe(503);
+    expect((await classify({ run: vi.fn().mockRejectedValue(upstream("upstream error 14290")) })).status).toBe(502);
   });
 
   it("a status the binding recorded that cannot be read back fails closed, whatever the message says", async () => {
