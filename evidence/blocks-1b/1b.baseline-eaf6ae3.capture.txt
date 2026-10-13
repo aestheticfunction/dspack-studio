@@ -1,0 +1,55 @@
+Command: NODE_USE_ENV_PROXY=1 pnpm --filter @dspack-studio/block-bench baseline --out <file>
+checkout: main eaf6ae359d8bda171daae6e072042ba24e514c7b, clean
+started: 2026-10-13T12:42:06Z
+ended: 2026-10-13T12:42:11Z
+exit: 0
+console output (Node's experimental-proxy warnings removed):
+
+
+> @dspack-studio/block-bench@0.1.0 baseline /home/user/dspack-studio/packages/block-bench
+> tsx live/baseline.ts --out /tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v2/c429/baseline/baseline-eaf6ae3.json
+
+{
+  "at": "2026-10-13T12:42:09.690Z",
+  "sidecars": [
+    {
+      "reference": "shadcn-v3",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    },
+    {
+      "reference": "astryx",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    }
+  ],
+  "drafts": false,
+  "baseUrl": "https://composer.aesthetic-function.com",
+  "buildId": "w6ajVrX5g8V0WhqowIBGN",
+  "worker": {
+    "shape": "per-call-model",
+    "status": 400,
+    "error": "invalid-request",
+    "calls": [],
+    "capabilities": [
+      "per-call-model"
+    ]
+  },
+  "models": [
+    "scripted",
+    "hosted-ai"
+  ]
+}
+baseline: wrote /tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v2/c429/baseline/baseline-eaf6ae3.json
