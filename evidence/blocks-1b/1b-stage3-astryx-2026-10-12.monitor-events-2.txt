@@ -1,0 +1,8 @@
+2026-10-13T01:59:15Z monitor up: run /home/user/dspack-studio/packages/block-bench/live/runs/1b-stage3-astryx-2026-10-12, harness process group 442, resuming at 0 cells
+2026-10-13T02:02:50Z a refusal released before any provider call: 2026-10-13T01:59:10.685Z~ccee3746-db1d-4ba3-8070-1607595a39de#19
+2026-10-13T02:05:56Z a refusal released before any provider call: 2026-10-13T01:59:10.685Z~ccee3746-db1d-4ba3-8070-1607595a39de#33
+2026-10-13T02:09:50Z a refusal released before any provider call: 2026-10-13T01:59:10.685Z~ccee3746-db1d-4ba3-8070-1607595a39de#51
+2026-10-13T02:12:36Z progress: 40 cells, 63 requests reserved, 3 refusals released, outcomes {'failed-adapter': 3, 'passed': 37}
+2026-10-13T02:13:57Z a refusal released before any provider call: 2026-10-13T01:59:10.685Z~ccee3746-db1d-4ba3-8070-1607595a39de#70
+2026-10-13T02:24:53Z progress: 80 cells, 123 requests reserved, 4 refusals released, outcomes {'failed-adapter': 4, 'passed': 74, 'failed-lint-exhausted': 2}
+2026-10-13T02:28:22Z the harness exited: 93 cells, 140 requests reserved, 136 settled, 4 released, outcomes {'failed-adapter': 4, 'passed': 87, 'failed-lint-exhausted': 2}

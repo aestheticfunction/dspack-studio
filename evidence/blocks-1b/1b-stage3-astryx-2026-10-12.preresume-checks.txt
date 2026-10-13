@@ -1,0 +1,13 @@
+checks at 2026-10-13T01:58:58Z
+HEAD 3aae0eac8495044e7a4de57b1c1bf3a3d59836fe | origin/main 3aae0eac8495044e7a4de57b1c1bf3a3d59836fe | evidence 17328e3abaa4abca14cc2c78351288e7dd5f457a
+working tree clean
+no harness process running
+run directory identical to evidence 17328e3abaa4abca14cc2c78351288e7dd5f457a
+manifest sha256 b4fd45cec960f28b0c66e96be3a1e8c8e59798cbbb98940ef5fb4e4d58fd03e9 | requests.jsonl 1078 lines | runs.jsonl 387 lines
+evidence checksums: 56 entries, 0 not OK
+run so far: 539 requests, 539 finalized, committed $5.86356015; caps {'maxTotalRequests': 1150, 'maxTotalUsd': 17}; remaining $11.13643985 ($10.6061 at list), 611 requests
+probe exit=0
+probe at 2026-10-13T01:59:04.519Z | build txDlHURTKv_S6yicLso97 | worker per-call-model ['per-call-model'] 400 calls [] | models scripted,hosted-ai | equals the committed baseline apart from 'at': True []
+code identity fe2b8e841d49778793efb9b640e2e2ae3a54048a5c4e540339aaa976ad2cc86d
+stage3-astryx v2  ok 480 cells {"corpus":"v2","digest":"0e4e4706e19e","pinned":true,"scoring":"binding","usd":17,"total":1150,"per":825,"spacing":12000}
+checks ended 2026-10-13T01:59:08Z

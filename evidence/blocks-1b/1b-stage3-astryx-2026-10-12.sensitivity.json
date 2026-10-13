@@ -1,0 +1,6380 @@
+{
+ "readings": {
+  "ordinary (the pipeline's pass alone)": {
+   "verdict": "pass",
+   "overall": "clear",
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 118,
+    "capped": 117,
+    "production": 113
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.9833333333333333,
+    "capped": 0.975,
+    "production": 0.9416666666666667
+   },
+   "perSuccess": {
+    "block": 7252.406779661017,
+    "capped": 14525.752136752137,
+    "production": 15338.132743362832
+   },
+   "reductionVsProduction": 0.5271649488886252,
+   "reductionVsCapped": 0.5007207398705753,
+   "passDiffVsProduction": 0.04166666666666663,
+   "passDiffVsCapped": 0.008333333333333304,
+   "intervals": {
+    "red": [
+     0.3909583108182533,
+     0.6504966291754046
+    ],
+    "redC": [
+     0.38265026862080304,
+     0.6134626788302694
+    ],
+    "dP": [
+     -0.008333333333333304,
+     0.09166666666666656
+    ],
+    "dC": [
+     -0.01666666666666672,
+     0.033333333333333326
+    ]
+   }
+  },
+  "binding (frozen v2 rule)": {
+   "verdict": "pass",
+   "overall": "clear",
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 113,
+    "capped": 114,
+    "production": 108
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.9416666666666667,
+    "capped": 0.95,
+    "production": 0.9
+   },
+   "perSuccess": {
+    "block": 7573.309734513275,
+    "capped": 14908.008771929824,
+    "production": 16048.231481481482
+   },
+   "reductionVsProduction": 0.5280906968937771,
+   "reductionVsCapped": 0.491997231127674,
+   "passDiffVsProduction": 0.04166666666666663,
+   "passDiffVsCapped": -0.008333333333333304,
+   "intervals": {
+    "red": [
+     0.3896235771410638,
+     0.6508886485963784
+    ],
+    "redC": [
+     0.3613160409977783,
+     0.6107344037496755
+    ],
+    "dP": [
+     0.0,
+     0.08333333333333337
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.01666666666666672
+    ]
+   }
+  },
+  "unchanged misses excused": {
+   "verdict": "pass",
+   "overall": "uncertain",
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "uncertain"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 114,
+    "capped": 115,
+    "production": 111
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.95,
+    "capped": 0.9583333333333334,
+    "production": 0.925
+   },
+   "perSuccess": {
+    "block": 7506.877192982456,
+    "capped": 14778.373913043479,
+    "production": 15614.495495495496
+   },
+   "reductionVsProduction": 0.5192366480781876,
+   "reductionVsCapped": 0.49203632029117605,
+   "passDiffVsProduction": 0.02499999999999991,
+   "passDiffVsCapped": -0.008333333333333415,
+   "intervals": {
+    "red": [
+     0.36059999817102545,
+     0.6497800563652188
+    ],
+    "redC": [
+     0.36122689831020505,
+     0.6107245390379257
+    ],
+    "dP": [
+     -0.033333333333333326,
+     0.07500000000000007
+    ],
+    "dC": [
+     -0.05833333333333324,
+     0.033333333333333326
+    ]
+   }
+  }
+ },
+ "subsets": {
+  "all cells (frozen)": {
+   "binding": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 113,
+     "capped": 114,
+     "production": 108
+    },
+    "evaluated": {
+     "block": 120,
+     "capped": 120,
+     "production": 120
+    },
+    "passRate": {
+     "block": 0.9416666666666667,
+     "capped": 0.95,
+     "production": 0.9
+    },
+    "perSuccess": {
+     "block": 7573.309734513275,
+     "capped": 14908.008771929824,
+     "production": 16048.231481481482
+    },
+    "reductionVsProduction": 0.5280906968937771,
+    "reductionVsCapped": 0.491997231127674,
+    "passDiffVsProduction": 0.04166666666666663,
+    "passDiffVsCapped": -0.008333333333333304,
+    "intervals": {
+     "red": [
+      0.3896235771410638,
+      0.6508886485963784
+     ],
+     "redC": [
+      0.3613160409977783,
+      0.6107344037496755
+     ],
+     "dP": [
+      0.0,
+      0.08333333333333337
+     ],
+     "dC": [
+      -0.033333333333333326,
+      0.01666666666666672
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 118,
+     "capped": 117,
+     "production": 113
+    },
+    "evaluated": {
+     "block": 120,
+     "capped": 120,
+     "production": 120
+    },
+    "passRate": {
+     "block": 0.9833333333333333,
+     "capped": 0.975,
+     "production": 0.9416666666666667
+    },
+    "perSuccess": {
+     "block": 7252.406779661017,
+     "capped": 14525.752136752137,
+     "production": 15338.132743362832
+    },
+    "reductionVsProduction": 0.5271649488886252,
+    "reductionVsCapped": 0.5007207398705753,
+    "passDiffVsProduction": 0.04166666666666663,
+    "passDiffVsCapped": 0.008333333333333304,
+    "intervals": {
+     "red": [
+      0.3909583108182533,
+      0.6504966291754046
+     ],
+     "redC": [
+      0.38265026862080304,
+      0.6134626788302694
+     ],
+     "dP": [
+      -0.008333333333333304,
+      0.09166666666666656
+     ],
+     "dC": [
+      -0.01666666666666672,
+      0.033333333333333326
+     ]
+    }
+   }
+  },
+  "without the 18 add/remove cells on nb-01..nb-03 (no list to act on)": {
+   "binding": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 112,
+     "capped": 112,
+     "production": 108
+    },
+    "evaluated": {
+     "block": 114,
+     "capped": 114,
+     "production": 114
+    },
+    "passRate": {
+     "block": 0.9824561403508771,
+     "capped": 0.9824561403508771,
+     "production": 0.9473684210526315
+    },
+    "perSuccess": {
+     "block": 6405.223214285715,
+     "capped": 13942.714285714286,
+     "production": 14880.768518518518
+    },
+    "reductionVsProduction": 0.5695636817201564,
+    "reductionVsCapped": 0.5406042838553673,
+    "passDiffVsProduction": 0.03508771929824561,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.44747191493859084,
+      0.6675505822538239
+     ],
+     "redC": [
+      0.4299712383987991,
+      0.6333659981890755
+     ],
+     "dP": [
+      -0.008928571428571397,
+      0.0803571428571429
+     ],
+     "dC": [
+      -0.02587341197822141,
+      0.02631578947368418
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 112,
+     "capped": 112,
+     "production": 108
+    },
+    "evaluated": {
+     "block": 114,
+     "capped": 114,
+     "production": 114
+    },
+    "passRate": {
+     "block": 0.9824561403508771,
+     "capped": 0.9824561403508771,
+     "production": 0.9473684210526315
+    },
+    "perSuccess": {
+     "block": 6405.223214285715,
+     "capped": 13942.714285714286,
+     "production": 14880.768518518518
+    },
+    "reductionVsProduction": 0.5695636817201564,
+    "reductionVsCapped": 0.5406042838553673,
+    "passDiffVsProduction": 0.03508771929824561,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.44747191493859084,
+      0.6675505822538239
+     ],
+     "redC": [
+      0.4299712383987991,
+      0.6333659981890755
+     ],
+     "dP": [
+      -0.008928571428571397,
+      0.0803571428571429
+     ],
+     "dC": [
+      -0.02587341197822141,
+      0.02631578947368418
+     ]
+    }
+   }
+  },
+  "without nb-01..nb-03 entirely": {
+   "binding": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 21,
+    "threads": {
+     "block": 21,
+     "capped": 21,
+     "production": 21
+    },
+    "passed": {
+     "block": 103,
+     "capped": 103,
+     "production": 99
+    },
+    "evaluated": {
+     "block": 105,
+     "capped": 105,
+     "production": 105
+    },
+    "passRate": {
+     "block": 0.9809523809523809,
+     "capped": 0.9809523809523809,
+     "production": 0.9428571428571428
+    },
+    "perSuccess": {
+     "block": 5926.0679611650485,
+     "capped": 14020.893203883496,
+     "production": 15164.424242424242
+    },
+    "reductionVsProduction": 0.6092124655424647,
+    "reductionVsCapped": 0.5773401968767831,
+    "passDiffVsProduction": 0.03809523809523807,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.4949870192275132,
+      0.7078997863714438
+     ],
+     "redC": [
+      0.4680809957155044,
+      0.673431655929464
+     ],
+     "dP": [
+      -0.009523809523809601,
+      0.08571428571428574
+     ],
+     "dC": [
+      -0.02857142857142858,
+      0.02857142857142858
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 21,
+    "threads": {
+     "block": 21,
+     "capped": 21,
+     "production": 21
+    },
+    "passed": {
+     "block": 103,
+     "capped": 103,
+     "production": 99
+    },
+    "evaluated": {
+     "block": 105,
+     "capped": 105,
+     "production": 105
+    },
+    "passRate": {
+     "block": 0.9809523809523809,
+     "capped": 0.9809523809523809,
+     "production": 0.9428571428571428
+    },
+    "perSuccess": {
+     "block": 5926.0679611650485,
+     "capped": 14020.893203883496,
+     "production": 15164.424242424242
+    },
+    "reductionVsProduction": 0.6092124655424647,
+    "reductionVsCapped": 0.5773401968767831,
+    "passDiffVsProduction": 0.03809523809523807,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.4949870192275132,
+      0.7078997863714438
+     ],
+     "redC": [
+      0.4680809957155044,
+      0.673431655929464
+     ],
+     "dP": [
+      -0.009523809523809601,
+      0.08571428571428574
+     ],
+     "dC": [
+      -0.02857142857142858,
+      0.02857142857142858
+     ]
+    }
+   }
+  },
+  "without the structural condition": {
+   "binding": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 91,
+     "capped": 92,
+     "production": 90
+    },
+    "evaluated": {
+     "block": 96,
+     "capped": 96,
+     "production": 96
+    },
+    "passRate": {
+     "block": 0.9479166666666666,
+     "capped": 0.9583333333333334,
+     "production": 0.9375
+    },
+    "perSuccess": {
+     "block": 5446.9010989010985,
+     "capped": 14236.391304347826,
+     "production": 14143.244444444445
+    },
+    "reductionVsProduction": 0.6148761254677546,
+    "reductionVsCapped": 0.6173959409757441,
+    "passDiffVsProduction": 0.01041666666666663,
+    "passDiffVsCapped": -0.01041666666666674,
+    "intervals": {
+     "red": [
+      0.4448104718629571,
+      0.7766581458580384
+     ],
+     "redC": [
+      0.44600393409844175,
+      0.7779974102926996
+     ],
+     "dP": [
+      0.0,
+      0.03125
+     ],
+     "dC": [
+      -0.03125,
+      0.0
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 96,
+     "capped": 95,
+     "production": 95
+    },
+    "evaluated": {
+     "block": 96,
+     "capped": 96,
+     "production": 96
+    },
+    "passRate": {
+     "block": 1.0,
+     "capped": 0.9895833333333334,
+     "production": 0.9895833333333334
+    },
+    "perSuccess": {
+     "block": 5163.208333333333,
+     "capped": 13786.82105263158,
+     "production": 13398.863157894737
+    },
+    "reductionVsProduction": 0.614653252855178,
+    "reductionVsCapped": 0.625496819489958,
+    "passDiffVsProduction": 0.01041666666666663,
+    "passDiffVsCapped": 0.01041666666666663,
+    "intervals": {
+     "red": [
+      0.447702496361743,
+      0.7747243631176852
+     ],
+     "redC": [
+      0.46766110137034117,
+      0.779112881724758
+     ],
+     "dP": [
+      0.0,
+      0.03125
+     ],
+     "dC": [
+      0.0,
+      0.03125
+     ]
+    }
+   }
+  },
+  "fresh builds only": {
+   "binding": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "evaluated": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passRate": {
+     "block": 1.0,
+     "capped": 1.0,
+     "production": 1.0
+    },
+    "perSuccess": {
+     "block": 5559.958333333333,
+     "capped": 15581.708333333334,
+     "production": 14571.125
+    },
+    "reductionVsProduction": 0.6184262825736975,
+    "reductionVsCapped": 0.6431740208203529,
+    "passDiffVsProduction": 0.0,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.45363449013726165,
+      0.7619930817225904
+     ],
+     "redC": [
+      0.5024442264561594,
+      0.7730142581769416
+     ],
+     "dP": [
+      0.0,
+      0.0
+     ],
+     "dC": [
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "evaluated": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passRate": {
+     "block": 1.0,
+     "capped": 1.0,
+     "production": 1.0
+    },
+    "perSuccess": {
+     "block": 5559.958333333333,
+     "capped": 15581.708333333334,
+     "production": 14571.125
+    },
+    "reductionVsProduction": 0.6184262825736975,
+    "reductionVsCapped": 0.6431740208203529,
+    "passDiffVsProduction": 0.0,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.45363449013726165,
+      0.7619930817225904
+     ],
+     "redC": [
+      0.5024442264561594,
+      0.7730142581769416
+     ],
+     "dP": [
+      0.0,
+      0.0
+     ],
+     "dC": [
+      0.0,
+      0.0
+     ]
+    }
+   }
+  },
+  "refinements only": {
+   "binding": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 89,
+     "capped": 90,
+     "production": 84
+    },
+    "evaluated": {
+     "block": 96,
+     "capped": 96,
+     "production": 96
+    },
+    "passRate": {
+     "block": 0.9270833333333334,
+     "capped": 0.9375,
+     "production": 0.875
+    },
+    "perSuccess": {
+     "block": 8116.23595505618,
+     "capped": 14728.355555555556,
+     "production": 16470.261904761905
+    },
+    "reductionVsProduction": 0.507218767862483,
+    "reductionVsCapped": 0.44893807564316135,
+    "passDiffVsProduction": 0.05208333333333337,
+    "passDiffVsCapped": -0.01041666666666663,
+    "intervals": {
+     "red": [
+      0.36000391284470884,
+      0.6322579649858773
+     ],
+     "redC": [
+      0.316825123322725,
+      0.5693347891629751
+     ],
+     "dP": [
+      0.0,
+      0.10416666666666674
+     ],
+     "dC": [
+      -0.04166666666666674,
+      0.02083333333333337
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "pass",
+    "overall": "clear",
+    "clarity": {
+     "tokens": "clear-pass",
+     "vsProduction": "clear-pass",
+     "vsCapped": "clear-pass"
+    },
+    "units": 24,
+    "threads": {
+     "block": 24,
+     "capped": 24,
+     "production": 24
+    },
+    "passed": {
+     "block": 94,
+     "capped": 93,
+     "production": 89
+    },
+    "evaluated": {
+     "block": 96,
+     "capped": 96,
+     "production": 96
+    },
+    "passRate": {
+     "block": 0.9791666666666666,
+     "capped": 0.96875,
+     "production": 0.9270833333333334
+    },
+    "perSuccess": {
+     "block": 7684.521276595745,
+     "capped": 14253.247311827958,
+     "production": 15544.966292134832
+    },
+    "reductionVsProduction": 0.5056585435965967,
+    "reductionVsCapped": 0.46085820946790146,
+    "passDiffVsProduction": 0.05208333333333326,
+    "passDiffVsCapped": 0.01041666666666663,
+    "intervals": {
+     "red": [
+      0.3597942418289514,
+      0.6291275814532277
+     ],
+     "redC": [
+      0.3468760583854743,
+      0.5711963642005383
+     ],
+     "dP": [
+      -0.01041666666666663,
+      0.11458333333333326
+     ],
+     "dC": [
+      -0.02083333333333337,
+      0.04166666666666674
+     ]
+    }
+   }
+  },
+  "block prompts only (18; blocks apply)": {
+   "binding": {
+    "verdict": "insufficient",
+    "overall": "insufficient",
+    "clarity": {
+     "tokens": "insufficient",
+     "vsProduction": "insufficient",
+     "vsCapped": "insufficient"
+    },
+    "units": 18,
+    "threads": {
+     "block": 18,
+     "capped": 18,
+     "production": 18
+    },
+    "passed": {
+     "block": 88,
+     "capped": 88,
+     "production": 85
+    },
+    "evaluated": {
+     "block": 90,
+     "capped": 90,
+     "production": 90
+    },
+    "passRate": {
+     "block": 0.9777777777777777,
+     "capped": 0.9777777777777777,
+     "production": 0.9444444444444444
+    },
+    "perSuccess": {
+     "block": 4476.238636363636,
+     "capped": 13681.727272727272,
+     "production": 14827.141176470588
+    },
+    "reductionVsProduction": 0.6981050775002369,
+    "reductionVsCapped": 0.6728308825972266,
+    "passDiffVsProduction": 0.033333333333333326,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.6338433889918971,
+      0.7486523637372303
+     ],
+     "redC": [
+      0.6282034755347385,
+      0.7024367086576042
+     ],
+     "dP": [
+      -0.022222222222222254,
+      0.0888888888888889
+     ],
+     "dC": [
+      -0.033333333333333326,
+      0.033333333333333326
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "insufficient",
+    "overall": "insufficient",
+    "clarity": {
+     "tokens": "insufficient",
+     "vsProduction": "insufficient",
+     "vsCapped": "insufficient"
+    },
+    "units": 18,
+    "threads": {
+     "block": 18,
+     "capped": 18,
+     "production": 18
+    },
+    "passed": {
+     "block": 88,
+     "capped": 88,
+     "production": 85
+    },
+    "evaluated": {
+     "block": 90,
+     "capped": 90,
+     "production": 90
+    },
+    "passRate": {
+     "block": 0.9777777777777777,
+     "capped": 0.9777777777777777,
+     "production": 0.9444444444444444
+    },
+    "perSuccess": {
+     "block": 4476.238636363636,
+     "capped": 13681.727272727272,
+     "production": 14827.141176470588
+    },
+    "reductionVsProduction": 0.6981050775002369,
+    "reductionVsCapped": 0.6728308825972266,
+    "passDiffVsProduction": 0.033333333333333326,
+    "passDiffVsCapped": 0.0,
+    "intervals": {
+     "red": [
+      0.6338433889918971,
+      0.7486523637372303
+     ],
+     "redC": [
+      0.6282034755347385,
+      0.7024367086576042
+     ],
+     "dP": [
+      -0.022222222222222254,
+      0.0888888888888889
+     ],
+     "dC": [
+      -0.033333333333333326,
+      0.033333333333333326
+     ]
+    }
+   }
+  },
+  "null prompts only (6; every arm primitive)": {
+   "binding": {
+    "verdict": "insufficient",
+    "overall": "insufficient",
+    "clarity": {
+     "tokens": "insufficient",
+     "vsProduction": "insufficient",
+     "vsCapped": "insufficient"
+    },
+    "units": 6,
+    "threads": {
+     "block": 6,
+     "capped": 6,
+     "production": 6
+    },
+    "passed": {
+     "block": 25,
+     "capped": 26,
+     "production": 23
+    },
+    "evaluated": {
+     "block": 30,
+     "capped": 30,
+     "production": 30
+    },
+    "passRate": {
+     "block": 0.8333333333333334,
+     "capped": 0.8666666666666667,
+     "production": 0.7666666666666667
+    },
+    "perSuccess": {
+     "block": 18475.0,
+     "capped": 19058.5,
+     "production": 20560.956521739132
+    },
+    "reductionVsProduction": 0.10145230935796434,
+    "reductionVsCapped": 0.030616260461211575,
+    "passDiffVsProduction": 0.06666666666666665,
+    "passDiffVsCapped": -0.033333333333333326,
+    "intervals": {
+     "red": [
+      -0.14043715460328476,
+      0.2928498696041415
+     ],
+     "redC": [
+      -0.12953071201494062,
+      0.15958590738335746
+     ],
+     "dP": [
+      0.0,
+      0.13333333333333341
+     ],
+     "dC": [
+      -0.10000000000000009,
+      0.0
+     ]
+    }
+   },
+   "ordinary": {
+    "verdict": "insufficient",
+    "overall": "insufficient",
+    "clarity": {
+     "tokens": "insufficient",
+     "vsProduction": "insufficient",
+     "vsCapped": "insufficient"
+    },
+    "units": 6,
+    "threads": {
+     "block": 6,
+     "capped": 6,
+     "production": 6
+    },
+    "passed": {
+     "block": 30,
+     "capped": 29,
+     "production": 28
+    },
+    "evaluated": {
+     "block": 30,
+     "capped": 30,
+     "production": 30
+    },
+    "passRate": {
+     "block": 1.0,
+     "capped": 0.9666666666666667,
+     "production": 0.9333333333333333
+    },
+    "perSuccess": {
+     "block": 15395.833333333334,
+     "capped": 17086.931034482757,
+     "production": 16889.35714285714
+    },
+    "reductionVsProduction": 0.08842987905880417,
+    "reductionVsCapped": 0.09897024209535676,
+    "passDiffVsProduction": 0.06666666666666665,
+    "passDiffVsCapped": 0.033333333333333326,
+    "intervals": {
+     "red": [
+      -0.06292906730709495,
+      0.22024064765166299
+     ],
+     "redC": [
+      0.029913099298989665,
+      0.17533936651583715
+     ],
+     "dP": [
+      0.0,
+      0.1333333333333333
+     ],
+     "dC": [
+      0.0,
+      0.09999999999999998
+     ]
+    }
+   }
+  }
+ },
+ "measures": {
+  "tokens (frozen)": {
+   "verdict": "pass",
+   "overall": "clear",
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 113,
+    "capped": 114,
+    "production": 108
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.9416666666666667,
+    "capped": 0.95,
+    "production": 0.9
+   },
+   "perSuccess": {
+    "block": 7573.309734513275,
+    "capped": 14908.008771929824,
+    "production": 16048.231481481482
+   },
+   "reductionVsProduction": 0.5280906968937771,
+   "reductionVsCapped": 0.491997231127674,
+   "passDiffVsProduction": 0.04166666666666663,
+   "passDiffVsCapped": -0.008333333333333304,
+   "intervals": {
+    "red": [
+     0.3896235771410638,
+     0.6508886485963784
+    ],
+    "redC": [
+     0.3613160409977783,
+     0.6107344037496755
+    ],
+    "dP": [
+     0.0,
+     0.08333333333333337
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.01666666666666672
+    ]
+   }
+  },
+  "list dollars": {
+   "verdict": "pass",
+   "overall": "clear",
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 113,
+    "capped": 114,
+    "production": 108
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.9416666666666667,
+    "capped": 0.95,
+    "production": 0.9
+   },
+   "perSuccess": {
+    "block": 0.009381628318584072,
+    "capped": 0.017010710526315788,
+    "production": 0.018432564814814815
+   },
+   "reductionVsProduction": 0.49102968507975786,
+   "reductionVsCapped": 0.44848698094823425,
+   "passDiffVsProduction": 0.04166666666666663,
+   "passDiffVsCapped": -0.008333333333333304,
+   "intervals": {
+    "red": [
+     0.36333502705825527,
+     0.6020172611875582
+    ],
+    "redC": [
+     0.3290065187068408,
+     0.5547788226136733
+    ],
+    "dP": [
+     0.0,
+     0.08333333333333337
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.01666666666666672
+    ]
+   }
+  },
+  "input tokens only": {
+   "verdict": "pass",
+   "overall": "clear",
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 113,
+    "capped": 114,
+    "production": 108
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.9416666666666667,
+    "capped": 0.95,
+    "production": 0.9
+   },
+   "perSuccess": {
+    "block": 7121.230088495575,
+    "capped": 14382.333333333334,
+    "production": 15452.148148148148
+   },
+   "reductionVsProduction": 0.5391430356335916,
+   "reductionVsCapped": 0.5048626725963167,
+   "passDiffVsProduction": 0.04166666666666663,
+   "passDiffVsCapped": -0.008333333333333304,
+   "intervals": {
+    "red": [
+     0.39634380552132337,
+     0.6665335614041323
+    ],
+    "redC": [
+     0.37132064846971874,
+     0.628660483366639
+    ],
+    "dP": [
+     0.0,
+     0.08333333333333337
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.01666666666666672
+    ]
+   }
+  },
+  "output tokens only": {
+   "verdict": "fail",
+   "overall": "uncertain",
+   "clarity": {
+    "tokens": "uncertain",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 113,
+    "capped": 114,
+    "production": 108
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.9416666666666667,
+    "capped": 0.95,
+    "production": 0.9
+   },
+   "perSuccess": {
+    "block": 452.07964601769913,
+    "capped": 525.6754385964912,
+    "production": 596.0833333333334
+   },
+   "reductionVsProduction": 0.24158314662206215,
+   "reductionVsCapped": 0.140002342082572,
+   "passDiffVsProduction": 0.04166666666666663,
+   "passDiffVsCapped": -0.008333333333333304,
+   "intervals": {
+    "red": [
+     0.1610445174625989,
+     0.3115909054268312
+    ],
+    "redC": [
+     0.05182046820769564,
+     0.2335111373980843
+    ],
+    "dP": [
+     0.0,
+     0.08333333333333337
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.01666666666666672
+    ]
+   }
+  },
+  "tokens without the planning call": {
+   "verdict": "pass",
+   "overall": "clear",
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "units": 24,
+   "threads": {
+    "block": 24,
+    "capped": 24,
+    "production": 24
+   },
+   "passed": {
+    "block": 113,
+    "capped": 114,
+    "production": 108
+   },
+   "evaluated": {
+    "block": 120,
+    "capped": 120,
+    "production": 120
+   },
+   "passRate": {
+    "block": 0.9416666666666667,
+    "capped": 0.95,
+    "production": 0.9
+   },
+   "perSuccess": {
+    "block": 7269.017699115044,
+    "capped": 14673.122807017544,
+    "production": 15801.231481481482
+   },
+   "reductionVsProduction": 0.5399714441476229,
+   "reductionVsCapped": 0.5046032262717398,
+   "passDiffVsProduction": 0.04166666666666663,
+   "passDiffVsCapped": -0.008333333333333304,
+   "intervals": {
+    "red": [
+     0.39980901372853633,
+     0.6636366055070848
+    ],
+    "redC": [
+     0.3724047614442543,
+     0.6262768720274947
+    ],
+    "dP": [
+     0.0,
+     0.08333333333333337
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.01666666666666672
+    ]
+   }
+  }
+ },
+ "leaveOnePromptOut": {
+  "rt-01": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5226135163900678,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3791671274976443,
+     0.6536295569801523
+    ],
+    "redC": [
+     0.34884597027961906,
+     0.6099393595426629
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "rt-02": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5105804749904637,
+   "passDiffVsProduction": 0.034782608695652195,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3649113075412097,
+     0.6405050515911292
+    ],
+    "redC": [
+     0.3499840251904995,
+     0.6106364674010761
+    ],
+    "dP": [
+     -0.008695652173913104,
+     0.07826086956521738
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "rt-03": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5225658369057626,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.37974108481381175,
+     0.6529698620314555
+    ],
+    "redC": [
+     0.3494143840157351,
+     0.6100609254572148
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "rt-04": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5228559906318133,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3801299327326831,
+     0.6532533797748421
+    ],
+    "redC": [
+     0.3501236810407577,
+     0.6112327751214445
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "rt-05": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5227122206658867,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3801294461013762,
+     0.6531854404895397
+    ],
+    "redC": [
+     0.34956301334484213,
+     0.6109483287184222
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "rt-06": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5226347736970103,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3801306687860839,
+     0.6531723851791712
+    ],
+    "redC": [
+     0.34973589583328296,
+     0.6109483287184222
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "af-01": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5182821987275372,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.37106781129804545,
+     0.6470340314932604
+    ],
+    "redC": [
+     0.3459047034366728,
+     0.6055565608543187
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.08695652173913049
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "af-02": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5216068269049603,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3765025890330097,
+     0.6501063679846653
+    ],
+    "redC": [
+     0.3479856642594005,
+     0.608327660692562
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.08695652173913049
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "af-03": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5137605654892813,
+   "passDiffVsProduction": 0.034782608695652195,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3661029192069126,
+     0.6424008761991198
+    ],
+    "redC": [
+     0.3479856642594005,
+     0.6088451733616523
+    ],
+    "dP": [
+     -0.008695652173913104,
+     0.07826086956521738
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "af-04": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5281364333284131,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3815965457199949,
+     0.6548514469521628
+    ],
+    "redC": [
+     0.35210135917562835,
+     0.6148534630837639
+    ],
+    "dP": [
+     -0.00021739130434781165,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "af-05": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5215972904248967,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3758353203989418,
+     0.6469035925537394
+    ],
+    "redC": [
+     0.34800012299767147,
+     0.609997977525085
+    ],
+    "dP": [
+     -0.00021739130434781165,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "af-06": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5217095581386066,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.37583890102165074,
+     0.6469941106967024
+    ],
+    "redC": [
+     0.34825940560631696,
+     0.6104060428556429
+    ],
+    "dP": [
+     -0.00021739130434781165,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "gs-01": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5232013027090259,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3769397621882001,
+     0.650748300904857
+    ],
+    "redC": [
+     0.34869516564442804,
+     0.6126589645884527
+    ],
+    "dP": [
+     -0.00021739130434781165,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "gs-02": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5183846554379854,
+   "passDiffVsProduction": 0.034782608695652195,
+   "passDiffVsCapped": -0.017391304347826098,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3690141745678191,
+     0.6473226031513537
+    ],
+    "redC": [
+     0.34393723970158774,
+     0.6108849401736957
+    ],
+    "dP": [
+     -0.008695652173913104,
+     0.07826086956521738
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.0
+    ]
+   }
+  },
+  "gs-03": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5351067722148983,
+   "passDiffVsProduction": 0.05217391304347818,
+   "passDiffVsCapped": 0.0,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3917455454366993,
+     0.6595161365804002
+    ],
+    "redC": [
+     0.3651032987762895,
+     0.6216808248065422
+    ],
+    "dP": [
+     0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.02608695652173909,
+     0.026086956521739094
+    ]
+   }
+  },
+  "gs-04": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5337969444117392,
+   "passDiffVsProduction": 0.05217391304347818,
+   "passDiffVsCapped": -0.008695652173913104,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3907695165197588,
+     0.6580637062502445
+    ],
+    "redC": [
+     0.34485396349961966,
+     0.6078842535042175
+    ],
+    "dP": [
+     0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "gs-05": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5065670134502112,
+   "passDiffVsProduction": 0.034782608695652195,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3657753261895296,
+     0.634050537868945
+    ],
+    "redC": [
+     0.3460147124210776,
+     0.6087949318297519
+    ],
+    "dP": [
+     -0.008695652173913104,
+     0.07826086956521738
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "gs-06": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5114610076258216,
+   "passDiffVsProduction": 0.034782608695652195,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.3675283615669076,
+     0.6396247191158144
+    ],
+    "redC": [
+     0.3500183386724549,
+     0.6096956095262799
+    ],
+    "dP": [
+     -0.008695652173913104,
+     0.07826086956521738
+    ],
+    "dC": [
+     -0.04347826086956519,
+     0.017391304347826098
+    ]
+   }
+  },
+  "nb-01": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5559397519783437,
+   "passDiffVsProduction": 0.0434782608695653,
+   "passDiffVsCapped": 0.0,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.42748708044152134,
+     0.6745913509035242
+    ],
+    "redC": [
+     0.3990986345663583,
+     0.6359482975147496
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.02608695652173909,
+     0.02608695652173909
+    ]
+   }
+  },
+  "nb-02": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5624671578309007,
+   "passDiffVsProduction": 0.0434782608695653,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.4413435216408892,
+     0.6747126868629871
+    ],
+    "redC": [
+     0.4016442742543471,
+     0.6359482975147496
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "nb-03": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5387495884697888,
+   "passDiffVsProduction": 0.034782608695652195,
+   "passDiffVsCapped": -0.008695652173913104,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.392769185516865,
+     0.6695965867086713
+    ],
+    "redC": [
+     0.3682661727481836,
+     0.6302426473408582
+    ],
+    "dP": [
+     -0.017391304347826098,
+     0.0782608695652175
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "nb-04": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5438063098041868,
+   "passDiffVsProduction": 0.034782608695652195,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.40070606774021866,
+     0.6713741666670449
+    ],
+    "redC": [
+     0.3864499358932799,
+     0.6334167193217892
+    ],
+    "dP": [
+     -0.017391304347826098,
+     0.07826086956521738
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "nb-05": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5519082342720799,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.4149151785170487,
+     0.6750113038292234
+    ],
+    "redC": [
+     0.37996833183320544,
+     0.632652506715755
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  },
+  "nb-06": {
+   "verdict": "pass",
+   "overall": "clear",
+   "reductionVsProduction": 0.5434701629125873,
+   "passDiffVsProduction": 0.04347826086956519,
+   "passDiffVsCapped": -0.008695652173912993,
+   "clarity": {
+    "tokens": "clear-pass",
+    "vsProduction": "clear-pass",
+    "vsCapped": "clear-pass"
+   },
+   "intervals": {
+    "red": [
+     0.4036676345061833,
+     0.6708384197202287
+    ],
+    "redC": [
+     0.37296731396100896,
+     0.630069164756
+    ],
+    "dP": [
+     -0.008695652173912993,
+     0.09565217391304348
+    ],
+    "dC": [
+     -0.034782608695652195,
+     0.017391304347826098
+    ]
+   }
+  }
+ },
+ "leaveOneFamilyOut": {
+  "records-table": {
+   "verdict": "insufficient",
+   "overall": "insufficient",
+   "units": 18,
+   "reductionVsProduction": 0.47289985906970855,
+   "passDiffVsProduction": 0.04444444444444451,
+   "passDiffVsCapped": -0.011111111111111072,
+   "clarity": {
+    "tokens": "insufficient",
+    "vsProduction": "insufficient",
+    "vsCapped": "insufficient"
+   },
+   "intervals": {
+    "red": [
+     0.3021223797827343,
+     0.6225938156709402
+    ],
+    "redC": [
+     0.2693500355796393,
+     0.589584710522155
+    ],
+    "dP": [
+     -0.011111111111111183,
+     0.09999999999999998
+    ],
+    "dC": [
+     -0.04444444444444451,
+     0.022222222222222254
+    ]
+   }
+  },
+  "auth-form": {
+   "verdict": "insufficient",
+   "overall": "insufficient",
+   "units": 18,
+   "reductionVsProduction": 0.47478798721292514,
+   "passDiffVsProduction": 0.04444444444444451,
+   "passDiffVsCapped": -0.011111111111111072,
+   "clarity": {
+    "tokens": "insufficient",
+    "vsProduction": "insufficient",
+    "vsCapped": "insufficient"
+   },
+   "intervals": {
+    "red": [
+     0.307440275732833,
+     0.6233700867817649
+    ],
+    "redC": [
+     0.26725127518316627,
+     0.5796298950553287
+    ],
+    "dP": [
+     -0.011111111111111183,
+     0.09999999999999998
+    ],
+    "dC": [
+     -0.04444444444444451,
+     0.022222222222222254
+    ]
+   }
+  },
+  "guide-steps": {
+   "verdict": "insufficient",
+   "overall": "insufficient",
+   "units": 18,
+   "reductionVsProduction": 0.47639832843788343,
+   "passDiffVsProduction": 0.0444444444444444,
+   "passDiffVsCapped": -0.011111111111111183,
+   "clarity": {
+    "tokens": "insufficient",
+    "vsProduction": "insufficient",
+    "vsCapped": "insufficient"
+   },
+   "intervals": {
+    "red": [
+     0.31447240112421726,
+     0.6322292707350248
+    ],
+    "redC": [
+     0.2696480108445672,
+     0.5968595884400582
+    ],
+    "dP": [
+     0.011111111111111072,
+     0.0888888888888889
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.0
+    ]
+   }
+  },
+  "null": {
+   "verdict": "insufficient",
+   "overall": "insufficient",
+   "units": 18,
+   "reductionVsProduction": 0.6981050775002369,
+   "passDiffVsProduction": 0.033333333333333326,
+   "passDiffVsCapped": 0.0,
+   "clarity": {
+    "tokens": "insufficient",
+    "vsProduction": "insufficient",
+    "vsCapped": "insufficient"
+   },
+   "intervals": {
+    "red": [
+     0.6338433889918971,
+     0.7486523637372303
+    ],
+    "redC": [
+     0.6282034755347385,
+     0.7024367086576042
+    ],
+    "dP": [
+     -0.022222222222222254,
+     0.0888888888888889
+    ],
+    "dC": [
+     -0.033333333333333326,
+     0.033333333333333326
+    ]
+   }
+  }
+ },
+ "nearDuplicates": [
+  [
+   "af-01",
+   "af-02",
+   0.5
+  ],
+  [
+   "af-01",
+   "af-05",
+   0.5
+  ]
+ ],
+ "clusters": [
+  [
+   "af-01",
+   "af-02",
+   "af-05"
+  ],
+  [
+   "rt-01"
+  ],
+  [
+   "rt-02"
+  ],
+  [
+   "rt-03"
+  ],
+  [
+   "rt-04"
+  ],
+  [
+   "rt-05"
+  ],
+  [
+   "rt-06"
+  ],
+  [
+   "af-03"
+  ],
+  [
+   "af-04"
+  ],
+  [
+   "af-06"
+  ],
+  [
+   "gs-01"
+  ],
+  [
+   "gs-02"
+  ],
+  [
+   "gs-03"
+  ],
+  [
+   "gs-04"
+  ],
+  [
+   "gs-05"
+  ],
+  [
+   "gs-06"
+  ],
+  [
+   "nb-01"
+  ],
+  [
+   "nb-02"
+  ],
+  [
+   "nb-03"
+  ],
+  [
+   "nb-04"
+  ],
+  [
+   "nb-05"
+  ],
+  [
+   "nb-06"
+  ]
+ ],
+ "clusterBootstrap": {
+  "units": 22,
+  "clarity": {
+   "tokens": "clear-pass",
+   "vsProduction": "clear-pass",
+   "vsCapped": "clear-pass"
+  },
+  "overall": "clear",
+  "intervals": {
+   "red": [
+    0.37772846718061914,
+    0.6563328101654102
+   ],
+   "redC": [
+    0.34423142074326846,
+    0.6214148044374112
+   ],
+   "dP": [
+    0.0,
+    0.08477272727272644
+   ],
+   "dC": [
+    -0.036363636363636376,
+    0.018181818181818188
+   ]
+  }
+ },
+ "familyBootstrap": {
+  "units": 4,
+  "clarity": {
+   "tokens": "insufficient",
+   "vsProduction": "insufficient",
+   "vsCapped": "insufficient"
+  },
+  "overall": "insufficient",
+  "intervals": {
+   "red": [
+    0.22841119506615815,
+    0.7190292951845632
+   ],
+   "redC": [
+    0.17124251924809064,
+    0.6946353568780288
+   ],
+   "dP": [
+    0.033333333333333326,
+    0.05833333333333335
+   ],
+   "dC": [
+    -0.025000000000000022,
+    0.0
+   ]
+  },
+  "note": "4 clusters: not interpretable (the addendum)"
+ },
+ "judgedClusterBootstrap": {
+  "clusters": [
+   [
+    "af-01",
+    "af-05",
+    "af-06"
+   ],
+   [
+    "af-02",
+    "af-04"
+   ],
+   [
+    "nb-01",
+    "nb-02",
+    "nb-03"
+   ]
+  ],
+  "units": 19,
+  "clarity": {
+   "tokens": "insufficient",
+   "vsProduction": "insufficient",
+   "vsCapped": "insufficient"
+  },
+  "overall": "insufficient",
+  "intervals": {
+   "red": [
+    0.3496666916241346,
+    0.6829589894806811
+   ],
+   "redC": [
+    0.31746761519983996,
+    0.652427357230421
+   ],
+   "dP": [
+    -0.008000000000000007,
+    0.08695652173913038
+   ],
+   "dC": [
+    -0.03480590062111803,
+    0.01904761904761909
+   ]
+  },
+  "note": "below the minimum's 20 units, so the rule would call it insufficient; read for the width of the intervals only"
+ },
+ "perPrompt": {
+  "rt-01": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3911.8,
+    "tokens": 19559
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4054.0,
+    "tokens": 20270
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12881.2,
+    "tokens": 64406
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12526.4,
+    "tokens": 62632
+   },
+   "reductionVsProduction": 0.687715544769447
+  },
+  "rt-02": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3917.8,
+    "tokens": 19589
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12719.2,
+    "tokens": 63596
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12307.6,
+    "tokens": 61538
+   },
+   "production": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 21986.0,
+    "tokens": 87944
+   },
+   "reductionVsProduction": 0.8218047848630947
+  },
+  "rt-03": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3816.2,
+    "tokens": 19081
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4225.2,
+    "tokens": 21126
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12432.8,
+    "tokens": 62164
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12368.8,
+    "tokens": 61844
+   },
+   "reductionVsProduction": 0.6914656231809069
+  },
+  "rt-04": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3919.8,
+    "tokens": 19599
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4110.6,
+    "tokens": 20553
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12191.8,
+    "tokens": 60959
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12372.6,
+    "tokens": 61863
+   },
+   "reductionVsProduction": 0.6831870423354832
+  },
+  "rt-05": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3968.8,
+    "tokens": 19844
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 13253.0,
+    "tokens": 66265
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12555.2,
+    "tokens": 62776
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12571.2,
+    "tokens": 62856
+   },
+   "reductionVsProduction": 0.6842942598956345
+  },
+  "rt-06": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3782.4,
+    "tokens": 18912
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12683.4,
+    "tokens": 63417
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12233.4,
+    "tokens": 61167
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12253.0,
+    "tokens": 61265
+   },
+   "reductionVsProduction": 0.6913082510405615
+  },
+  "af-01": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3286.4,
+    "tokens": 16432
+   },
+   "block-positional": {
+    "passed": 0,
+    "evaluated": 1,
+    "tps": null,
+    "tokens": 2663
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 14217.0,
+    "tokens": 71085
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 14292.4,
+    "tokens": 71462
+   },
+   "reductionVsProduction": 0.7700596121015365
+  },
+  "af-02": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3273.0,
+    "tokens": 16365
+   },
+   "block-positional": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 4242.75,
+    "tokens": 16971
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11943.6,
+    "tokens": 59718
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11956.0,
+    "tokens": 59780
+   },
+   "reductionVsProduction": 0.7262462361993978
+  },
+  "af-03": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3424.0,
+    "tokens": 17120
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3458.2,
+    "tokens": 17291
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12040.0,
+    "tokens": 60200
+   },
+   "production": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 18073.5,
+    "tokens": 72294
+   },
+   "reductionVsProduction": 0.810551359725565
+  },
+  "af-04": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 5569.4,
+    "tokens": 27847
+   },
+   "block-positional": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 4233.75,
+    "tokens": 16935
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11931.6,
+    "tokens": 59658
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11966.0,
+    "tokens": 59830
+   },
+   "reductionVsProduction": 0.5345645996991476
+  },
+  "af-05": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3253.2,
+    "tokens": 16266
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3427.8,
+    "tokens": 17139
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11984.4,
+    "tokens": 59922
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11923.2,
+    "tokens": 59616
+   },
+   "reductionVsProduction": 0.7271537842190017
+  },
+  "af-06": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3258.6,
+    "tokens": 16293
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3544.6,
+    "tokens": 17723
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11895.2,
+    "tokens": 59476
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 11855.4,
+    "tokens": 59277
+   },
+   "reductionVsProduction": 0.7251379118376435
+  },
+  "gs-01": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4314.0,
+    "tokens": 21570
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4333.2,
+    "tokens": 21666
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12759.2,
+    "tokens": 63796
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12919.0,
+    "tokens": 64595
+   },
+   "reductionVsProduction": 0.6660732254818484
+  },
+  "gs-02": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 6736.4,
+    "tokens": 33682
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4247.8,
+    "tokens": 21239
+   },
+   "capped": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 22321.25,
+    "tokens": 89285
+   },
+   "production": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 22365.5,
+    "tokens": 89462
+   },
+   "reductionVsProduction": 0.6988039614584964
+  },
+  "gs-03": {
+   "block": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 8980.0,
+    "tokens": 35920
+   },
+   "block-positional": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 8653.75,
+    "tokens": 34615
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 13451.4,
+    "tokens": 67257
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 13346.4,
+    "tokens": 66732
+   },
+   "reductionVsProduction": 0.3271593838038722
+  },
+  "gs-04": {
+   "block": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 7939.0,
+    "tokens": 31756
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 3874.8,
+    "tokens": 19374
+   },
+   "capped": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 25239.0,
+    "tokens": 100956
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12594.8,
+    "tokens": 62974
+   },
+   "reductionVsProduction": 0.36966049480738083
+  },
+  "gs-05": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4678.2,
+    "tokens": 23391
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4561.4,
+    "tokens": 22807
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 15664.8,
+    "tokens": 78324
+   },
+   "production": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 27186.5,
+    "tokens": 108746
+   },
+   "reductionVsProduction": 0.827921946554356
+  },
+  "gs-06": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 4136.6,
+    "tokens": 20683
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 7283.2,
+    "tokens": 36416
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12261.0,
+    "tokens": 61305
+   },
+   "production": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 21783.75,
+    "tokens": 87135
+   },
+   "reductionVsProduction": 0.8101061571125265
+  },
+  "nb-01": {
+   "block": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 27261.666666666668,
+    "tokens": 81785
+   },
+   "block-positional": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 27177.333333333332,
+    "tokens": 81532
+   },
+   "capped": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 20304.75,
+    "tokens": 81219
+   },
+   "production": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 23144.0,
+    "tokens": 69432
+   },
+   "reductionVsProduction": -0.1779150823827631
+  },
+  "nb-02": {
+   "block": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 31027.666666666668,
+    "tokens": 93083
+   },
+   "block-positional": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 27150.333333333332,
+    "tokens": 81451
+   },
+   "capped": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 27017.333333333332,
+    "tokens": 81052
+   },
+   "production": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 23086.333333333332,
+    "tokens": 69259
+   },
+   "reductionVsProduction": -0.3439841753418329
+  },
+  "nb-03": {
+   "block": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 17632.75,
+    "tokens": 70531
+   },
+   "block-positional": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 23378.5,
+    "tokens": 93514
+   },
+   "capped": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 23272.5,
+    "tokens": 93090
+   },
+   "production": {
+    "passed": 3,
+    "evaluated": 5,
+    "tps": 31080.0,
+    "tokens": 93240
+   },
+   "reductionVsProduction": 0.4326657014157014
+  },
+  "nb-04": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 15588.2,
+    "tokens": 77941
+   },
+   "block-positional": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 23011.25,
+    "tokens": 92045
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 15559.8,
+    "tokens": 77799
+   },
+   "production": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 22822.0,
+    "tokens": 91288
+   },
+   "reductionVsProduction": 0.31696608535623516
+  },
+  "nb-05": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 15459.4,
+    "tokens": 77297
+   },
+   "block-positional": {
+    "passed": 4,
+    "evaluated": 5,
+    "tps": 25266.25,
+    "tokens": 101065
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 17803.4,
+    "tokens": 89017
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 15260.6,
+    "tokens": 76303
+   },
+   "reductionVsProduction": -0.013027010733522859
+  },
+  "nb-06": {
+   "block": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12247.6,
+    "tokens": 61238
+   },
+   "block-positional": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 12246.2,
+    "tokens": 61231
+   },
+   "capped": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 14668.8,
+    "tokens": 73344
+   },
+   "production": {
+    "passed": 5,
+    "evaluated": 5,
+    "tps": 14676.0,
+    "tokens": 73380
+   },
+   "reductionVsProduction": 0.16546742981738893
+  }
+ },
+ "tokenConcentration": {
+  "block": {
+   "top3": [
+    "nb-02",
+    "nb-01",
+    "nb-04"
+   ],
+   "top3Share": 0.29541216007777665
+  },
+  "capped": {
+   "top3": [
+    "gs-04",
+    "nb-03",
+    "gs-02"
+   ],
+   "top3Share": 0.16671305250386434
+  },
+  "production": {
+   "top3": [
+    "gs-05",
+    "nb-03",
+    "nb-04"
+   ],
+   "top3Share": 0.16920867593002345
+  }
+ },
+ "byCondition": {
+  "block|fresh": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 133439,
+    "successes": 24,
+    "perSuccess": 5559.958333333333,
+    "firstAttempt": 23,
+    "repairs": 1
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 133439,
+    "successes": 24,
+    "perSuccess": 5559.958333333333,
+    "firstAttempt": 23,
+    "repairs": 1
+   }
+  },
+  "block|refine-content": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 101642,
+    "successes": 24,
+    "perSuccess": 4235.083333333333,
+    "firstAttempt": 24,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 101642,
+    "successes": 24,
+    "perSuccess": 4235.083333333333,
+    "firstAttempt": 24,
+    "repairs": 0
+   }
+  },
+  "block|refine-add": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 22,
+    "passRate": 0.9166666666666666,
+    "measure": 124334,
+    "successes": 22,
+    "perSuccess": 5651.545454545455,
+    "firstAttempt": 22,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 124334,
+    "successes": 24,
+    "perSuccess": 5180.583333333333,
+    "firstAttempt": 22,
+    "repairs": 2
+   }
+  },
+  "block|refine-remove": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 21,
+    "passRate": 0.875,
+    "measure": 136253,
+    "successes": 21,
+    "perSuccess": 6488.238095238095,
+    "firstAttempt": 21,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 136253,
+    "successes": 24,
+    "perSuccess": 5677.208333333333,
+    "firstAttempt": 21,
+    "repairs": 3
+   }
+  },
+  "block|refine-structural": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 22,
+    "passRate": 0.9166666666666666,
+    "measure": 360116,
+    "successes": 22,
+    "perSuccess": 16368.90909090909,
+    "firstAttempt": 21,
+    "repairs": 1
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 22,
+    "passRate": 0.9166666666666666,
+    "measure": 360116,
+    "successes": 22,
+    "perSuccess": 16368.90909090909,
+    "firstAttempt": 21,
+    "repairs": 1
+   }
+  },
+  "block-positional|fresh": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 23,
+    "passRate": 0.9583333333333334,
+    "measure": 174078,
+    "successes": 23,
+    "perSuccess": 7568.608695652174,
+    "firstAttempt": 22,
+    "repairs": 1
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 23,
+    "passRate": 0.9583333333333334,
+    "measure": 174078,
+    "successes": 23,
+    "perSuccess": 7568.608695652174,
+    "firstAttempt": 22,
+    "repairs": 1
+   }
+  },
+  "block-positional|refine-content": {
+   "binding": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 23,
+    "passRate": 1.0,
+    "measure": 123205,
+    "successes": 23,
+    "perSuccess": 5356.739130434783,
+    "firstAttempt": 23,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 23,
+    "passRate": 1.0,
+    "measure": 123205,
+    "successes": 23,
+    "perSuccess": 5356.739130434783,
+    "firstAttempt": 23,
+    "repairs": 0
+   }
+  },
+  "block-positional|refine-add": {
+   "binding": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 21,
+    "passRate": 0.9130434782608695,
+    "measure": 180864,
+    "successes": 21,
+    "perSuccess": 8612.57142857143,
+    "firstAttempt": 20,
+    "repairs": 1
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 22,
+    "passRate": 0.9565217391304348,
+    "measure": 180864,
+    "successes": 22,
+    "perSuccess": 8221.09090909091,
+    "firstAttempt": 20,
+    "repairs": 2
+   }
+  },
+  "block-positional|refine-remove": {
+   "binding": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 18,
+    "passRate": 0.782608695652174,
+    "measure": 146674,
+    "successes": 18,
+    "perSuccess": 8148.555555555556,
+    "firstAttempt": 18,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 23,
+    "passRate": 1.0,
+    "measure": 146674,
+    "successes": 23,
+    "perSuccess": 6377.130434782609,
+    "firstAttempt": 21,
+    "repairs": 2
+   }
+  },
+  "block-positional|refine-structural": {
+   "binding": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 20,
+    "passRate": 0.8695652173913043,
+    "measure": 386083,
+    "successes": 20,
+    "perSuccess": 19304.15,
+    "firstAttempt": 19,
+    "repairs": 1
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 23,
+    "passed": 20,
+    "passRate": 0.8695652173913043,
+    "measure": 386083,
+    "successes": 20,
+    "perSuccess": 19304.15,
+    "firstAttempt": 19,
+    "repairs": 1
+   }
+  },
+  "capped|fresh": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 373961,
+    "successes": 24,
+    "perSuccess": 15581.708333333334,
+    "firstAttempt": 20,
+    "repairs": 4
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 373961,
+    "successes": 24,
+    "perSuccess": 15581.708333333334,
+    "firstAttempt": 20,
+    "repairs": 4
+   }
+  },
+  "capped|refine-content": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 288715,
+    "successes": 24,
+    "perSuccess": 12029.791666666666,
+    "firstAttempt": 24,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 288715,
+    "successes": 24,
+    "perSuccess": 12029.791666666666,
+    "firstAttempt": 24,
+    "repairs": 0
+   }
+  },
+  "capped|refine-add": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 23,
+    "passRate": 0.9583333333333334,
+    "measure": 335599,
+    "successes": 23,
+    "perSuccess": 14591.260869565218,
+    "firstAttempt": 21,
+    "repairs": 2
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 23,
+    "passRate": 0.9583333333333334,
+    "measure": 335599,
+    "successes": 23,
+    "perSuccess": 14591.260869565218,
+    "firstAttempt": 21,
+    "repairs": 2
+   }
+  },
+  "capped|refine-remove": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 21,
+    "passRate": 0.875,
+    "measure": 311473,
+    "successes": 21,
+    "perSuccess": 14832.047619047618,
+    "firstAttempt": 21,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 311473,
+    "successes": 24,
+    "perSuccess": 12978.041666666666,
+    "firstAttempt": 22,
+    "repairs": 2
+   }
+  },
+  "capped|refine-structural": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 22,
+    "passRate": 0.9166666666666666,
+    "measure": 389765,
+    "successes": 22,
+    "perSuccess": 17716.590909090908,
+    "firstAttempt": 20,
+    "repairs": 2
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 22,
+    "passRate": 0.9166666666666666,
+    "measure": 389765,
+    "successes": 22,
+    "perSuccess": 17716.590909090908,
+    "firstAttempt": 20,
+    "repairs": 2
+   }
+  },
+  "production|fresh": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 349707,
+    "successes": 24,
+    "perSuccess": 14571.125,
+    "firstAttempt": 21,
+    "repairs": 3
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 349707,
+    "successes": 24,
+    "perSuccess": 14571.125,
+    "firstAttempt": 21,
+    "repairs": 3
+   }
+  },
+  "production|refine-content": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 288497,
+    "successes": 24,
+    "perSuccess": 12020.708333333334,
+    "firstAttempt": 24,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 288497,
+    "successes": 24,
+    "perSuccess": 12020.708333333334,
+    "firstAttempt": 24,
+    "repairs": 0
+   }
+  },
+  "production|refine-add": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 21,
+    "passRate": 0.875,
+    "measure": 335193,
+    "successes": 21,
+    "perSuccess": 15961.57142857143,
+    "firstAttempt": 21,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 23,
+    "passRate": 0.9583333333333334,
+    "measure": 335193,
+    "successes": 23,
+    "perSuccess": 14573.608695652174,
+    "firstAttempt": 21,
+    "repairs": 2
+   }
+  },
+  "production|refine-remove": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 21,
+    "passRate": 0.875,
+    "measure": 299495,
+    "successes": 21,
+    "perSuccess": 14261.666666666666,
+    "firstAttempt": 21,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 24,
+    "passRate": 1.0,
+    "measure": 299495,
+    "successes": 24,
+    "perSuccess": 12478.958333333334,
+    "firstAttempt": 23,
+    "repairs": 1
+   }
+  },
+  "production|refine-structural": {
+   "binding": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 18,
+    "passRate": 0.75,
+    "measure": 460317,
+    "successes": 18,
+    "perSuccess": 25573.166666666668,
+    "firstAttempt": 18,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 24,
+    "evaluated": 24,
+    "passed": 18,
+    "passRate": 0.75,
+    "measure": 460317,
+    "successes": 18,
+    "perSuccess": 25573.166666666668,
+    "firstAttempt": 18,
+    "repairs": 0
+   }
+  }
+ },
+ "byFamily": {
+  "block|records-table": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 116584,
+    "successes": 30,
+    "perSuccess": 3886.133333333333,
+    "firstAttempt": 30,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 116584,
+    "successes": 30,
+    "perSuccess": 3886.133333333333,
+    "firstAttempt": 30,
+    "repairs": 0
+   }
+  },
+  "block|auth-form": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 110323,
+    "successes": 30,
+    "perSuccess": 3677.4333333333334,
+    "firstAttempt": 30,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 110323,
+    "successes": 30,
+    "perSuccess": 3677.4333333333334,
+    "firstAttempt": 30,
+    "repairs": 0
+   }
+  },
+  "block|guide-steps": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 28,
+    "passRate": 0.9333333333333333,
+    "measure": 167002,
+    "successes": 28,
+    "perSuccess": 5964.357142857143,
+    "firstAttempt": 28,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 28,
+    "passRate": 0.9333333333333333,
+    "measure": 167002,
+    "successes": 28,
+    "perSuccess": 5964.357142857143,
+    "firstAttempt": 28,
+    "repairs": 0
+   }
+  },
+  "block|null": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 25,
+    "passRate": 0.8333333333333334,
+    "measure": 461875,
+    "successes": 25,
+    "perSuccess": 18475.0,
+    "firstAttempt": 23,
+    "repairs": 2
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 461875,
+    "successes": 30,
+    "perSuccess": 15395.833333333334,
+    "firstAttempt": 23,
+    "repairs": 7
+   }
+  },
+  "block-positional|records-table": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 255227,
+    "successes": 30,
+    "perSuccess": 8507.566666666668,
+    "firstAttempt": 30,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 255227,
+    "successes": 30,
+    "perSuccess": 8507.566666666668,
+    "firstAttempt": 30,
+    "repairs": 0
+   }
+  },
+  "block-positional|auth-form": {
+   "binding": {
+    "n": 30,
+    "evaluated": 26,
+    "passed": 23,
+    "passRate": 0.8846153846153846,
+    "measure": 88722,
+    "successes": 23,
+    "perSuccess": 3857.478260869565,
+    "firstAttempt": 23,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 26,
+    "passed": 25,
+    "passRate": 0.9615384615384616,
+    "measure": 88722,
+    "successes": 25,
+    "perSuccess": 3548.88,
+    "firstAttempt": 25,
+    "repairs": 0
+   }
+  },
+  "block-positional|guide-steps": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 29,
+    "passRate": 0.9666666666666667,
+    "measure": 156117,
+    "successes": 29,
+    "perSuccess": 5383.3448275862065,
+    "firstAttempt": 28,
+    "repairs": 1
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 29,
+    "passRate": 0.9666666666666667,
+    "measure": 156117,
+    "successes": 29,
+    "perSuccess": 5383.3448275862065,
+    "firstAttempt": 28,
+    "repairs": 1
+   }
+  },
+  "block-positional|null": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 23,
+    "passRate": 0.7666666666666667,
+    "measure": 510838,
+    "successes": 23,
+    "perSuccess": 22210.347826086956,
+    "firstAttempt": 21,
+    "repairs": 2
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 27,
+    "passRate": 0.9,
+    "measure": 510838,
+    "successes": 27,
+    "perSuccess": 18919.925925925927,
+    "firstAttempt": 22,
+    "repairs": 5
+   }
+  },
+  "capped|records-table": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 373010,
+    "successes": 30,
+    "perSuccess": 12433.666666666666,
+    "firstAttempt": 30,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 373010,
+    "successes": 30,
+    "perSuccess": 12433.666666666666,
+    "firstAttempt": 30,
+    "repairs": 0
+   }
+  },
+  "capped|auth-form": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 370059,
+    "successes": 30,
+    "perSuccess": 12335.3,
+    "firstAttempt": 30,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 30,
+    "passRate": 1.0,
+    "measure": 370059,
+    "successes": 30,
+    "perSuccess": 12335.3,
+    "firstAttempt": 30,
+    "repairs": 0
+   }
+  },
+  "capped|guide-steps": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 28,
+    "passRate": 0.9333333333333333,
+    "measure": 460923,
+    "successes": 28,
+    "perSuccess": 16461.535714285714,
+    "firstAttempt": 26,
+    "repairs": 2
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 28,
+    "passRate": 0.9333333333333333,
+    "measure": 460923,
+    "successes": 28,
+    "perSuccess": 16461.535714285714,
+    "firstAttempt": 26,
+    "repairs": 2
+   }
+  },
+  "capped|null": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 26,
+    "passRate": 0.8666666666666667,
+    "measure": 495521,
+    "successes": 26,
+    "perSuccess": 19058.5,
+    "firstAttempt": 20,
+    "repairs": 6
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 29,
+    "passRate": 0.9666666666666667,
+    "measure": 495521,
+    "successes": 29,
+    "perSuccess": 17086.931034482757,
+    "firstAttempt": 21,
+    "repairs": 8
+   }
+  },
+  "production|records-table": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 29,
+    "passRate": 0.9666666666666667,
+    "measure": 398404,
+    "successes": 29,
+    "perSuccess": 13738.068965517241,
+    "firstAttempt": 29,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 29,
+    "passRate": 0.9666666666666667,
+    "measure": 398404,
+    "successes": 29,
+    "perSuccess": 13738.068965517241,
+    "firstAttempt": 29,
+    "repairs": 0
+   }
+  },
+  "production|auth-form": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 29,
+    "passRate": 0.9666666666666667,
+    "measure": 382259,
+    "successes": 29,
+    "perSuccess": 13181.344827586207,
+    "firstAttempt": 29,
+    "repairs": 0
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 29,
+    "passRate": 0.9666666666666667,
+    "measure": 382259,
+    "successes": 29,
+    "perSuccess": 13181.344827586207,
+    "firstAttempt": 29,
+    "repairs": 0
+   }
+  },
+  "production|guide-steps": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 27,
+    "passRate": 0.9,
+    "measure": 479644,
+    "successes": 27,
+    "perSuccess": 17764.59259259259,
+    "firstAttempt": 26,
+    "repairs": 1
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 27,
+    "passRate": 0.9,
+    "measure": 479644,
+    "successes": 27,
+    "perSuccess": 17764.59259259259,
+    "firstAttempt": 26,
+    "repairs": 1
+   }
+  },
+  "production|null": {
+   "binding": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 23,
+    "passRate": 0.7666666666666667,
+    "measure": 472902,
+    "successes": 23,
+    "perSuccess": 20560.956521739132,
+    "firstAttempt": 21,
+    "repairs": 2
+   },
+   "ordinary": {
+    "n": 30,
+    "evaluated": 30,
+    "passed": 28,
+    "passRate": 0.9333333333333333,
+    "measure": 472902,
+    "successes": 28,
+    "perSuccess": 16889.35714285714,
+    "firstAttempt": 23,
+    "repairs": 5
+   }
+  }
+ },
+ "byFamilyCondition": {
+  "block|records-table|fresh": [
+   6,
+   6,
+   2333.6666666666665
+  ],
+  "block|records-table|refine-content": [
+   6,
+   6,
+   1124.3333333333333
+  ],
+  "block|records-table|refine-add": [
+   6,
+   6,
+   1160.5
+  ],
+  "block|records-table|refine-remove": [
+   6,
+   6,
+   1094.6666666666667
+  ],
+  "block|records-table|refine-structural": [
+   6,
+   6,
+   13717.5
+  ],
+  "block|auth-form|fresh": [
+   6,
+   6,
+   1932.6666666666667
+  ],
+  "block|auth-form|refine-content": [
+   6,
+   6,
+   659.6666666666666
+  ],
+  "block|auth-form|refine-add": [
+   6,
+   6,
+   658.6666666666666
+  ],
+  "block|auth-form|refine-remove": [
+   6,
+   6,
+   2583.0
+  ],
+  "block|auth-form|refine-structural": [
+   6,
+   6,
+   12553.166666666666
+  ],
+  "block|guide-steps|fresh": [
+   6,
+   6,
+   2432.1666666666665
+  ],
+  "block|guide-steps|refine-content": [
+   6,
+   6,
+   3384.5
+  ],
+  "block|guide-steps|refine-add": [
+   6,
+   6,
+   1351.6666666666667
+  ],
+  "block|guide-steps|refine-remove": [
+   6,
+   6,
+   1315.3333333333333
+  ],
+  "block|guide-steps|refine-structural": [
+   4,
+   6,
+   29025.0
+  ],
+  "block|null|fresh": [
+   6,
+   6,
+   15541.333333333334
+  ],
+  "block|null|refine-content": [
+   6,
+   6,
+   11771.833333333334
+  ],
+  "block|null|refine-add": [
+   4,
+   6,
+   26327.25
+  ],
+  "block|null|refine-remove": [
+   3,
+   6,
+   35431.666666666664
+  ],
+  "block|null|refine-structural": [
+   6,
+   6,
+   14398.666666666666
+  ],
+  "block-positional|records-table|fresh": [
+   6,
+   6,
+   8997.5
+  ],
+  "block-positional|records-table|refine-content": [
+   6,
+   6,
+   6707.0
+  ],
+  "block-positional|records-table|refine-add": [
+   6,
+   6,
+   6735.833333333333
+  ],
+  "block-positional|records-table|refine-remove": [
+   6,
+   6,
+   6675.166666666667
+  ],
+  "block-positional|records-table|refine-structural": [
+   6,
+   6,
+   13422.333333333334
+  ],
+  "block-positional|auth-form|fresh": [
+   5,
+   6,
+   2594.2
+  ],
+  "block-positional|auth-form|refine-content": [
+   5,
+   5,
+   797.8
+  ],
+  "block-positional|auth-form|refine-add": [
+   5,
+   5,
+   796.2
+  ],
+  "block-positional|auth-form|refine-remove": [
+   3,
+   5,
+   1320.3333333333333
+  ],
+  "block-positional|auth-form|refine-structural": [
+   5,
+   5,
+   12764.0
+  ],
+  "block-positional|guide-steps|fresh": [
+   6,
+   6,
+   2478.3333333333335
+  ],
+  "block-positional|guide-steps|refine-content": [
+   6,
+   6,
+   1414.1666666666667
+  ],
+  "block-positional|guide-steps|refine-add": [
+   6,
+   6,
+   1426.8333333333333
+  ],
+  "block-positional|guide-steps|refine-remove": [
+   6,
+   6,
+   1391.5
+  ],
+  "block-positional|guide-steps|refine-structural": [
+   5,
+   6,
+   23170.4
+  ],
+  "block-positional|null|fresh": [
+   6,
+   6,
+   15375.333333333334
+  ],
+  "block-positional|null|refine-content": [
+   6,
+   6,
+   11748.166666666666
+  ],
+  "block-positional|null|refine-add": [
+   4,
+   6,
+   31976.75
+  ],
+  "block-positional|null|refine-remove": [
+   3,
+   6,
+   31437.666666666668
+  ],
+  "block-positional|null|refine-structural": [
+   4,
+   6,
+   31469.25
+  ],
+  "capped|records-table|fresh": [
+   6,
+   6,
+   12988.833333333334
+  ],
+  "capped|records-table|refine-content": [
+   6,
+   6,
+   12155.333333333334
+  ],
+  "capped|records-table|refine-add": [
+   6,
+   6,
+   12185.5
+  ],
+  "capped|records-table|refine-remove": [
+   6,
+   6,
+   12123.333333333334
+  ],
+  "capped|records-table|refine-structural": [
+   6,
+   6,
+   12715.333333333334
+  ],
+  "capped|auth-form|fresh": [
+   6,
+   6,
+   12641.666666666666
+  ],
+  "capped|auth-form|refine-content": [
+   6,
+   6,
+   11741.333333333334
+  ],
+  "capped|auth-form|refine-add": [
+   6,
+   6,
+   11804.5
+  ],
+  "capped|auth-form|refine-remove": [
+   6,
+   6,
+   11678.833333333334
+  ],
+  "capped|auth-form|refine-structural": [
+   6,
+   6,
+   13810.166666666666
+  ],
+  "capped|guide-steps|fresh": [
+   6,
+   6,
+   17364.5
+  ],
+  "capped|guide-steps|refine-content": [
+   6,
+   6,
+   12465.333333333334
+  ],
+  "capped|guide-steps|refine-add": [
+   6,
+   6,
+   12510.333333333334
+  ],
+  "capped|guide-steps|refine-remove": [
+   6,
+   6,
+   12408.333333333334
+  ],
+  "capped|guide-steps|refine-structural": [
+   4,
+   6,
+   33108.0
+  ],
+  "capped|null|fresh": [
+   6,
+   6,
+   19331.833333333332
+  ],
+  "capped|null|refine-content": [
+   6,
+   6,
+   11757.166666666666
+  ],
+  "capped|null|refine-add": [
+   5,
+   6,
+   23319.4
+  ],
+  "capped|null|refine-remove": [
+   3,
+   6,
+   31403.333333333332
+  ],
+  "capped|null|refine-structural": [
+   6,
+   6,
+   16363.333333333334
+  ],
+  "production|records-table|fresh": [
+   6,
+   6,
+   12996.5
+  ],
+  "production|records-table|refine-content": [
+   6,
+   6,
+   12094.833333333334
+  ],
+  "production|records-table|refine-add": [
+   6,
+   6,
+   12125.833333333334
+  ],
+  "production|records-table|refine-remove": [
+   6,
+   6,
+   12066.833333333334
+  ],
+  "production|records-table|refine-structural": [
+   5,
+   6,
+   20540.0
+  ],
+  "production|auth-form|fresh": [
+   6,
+   6,
+   12584.166666666666
+  ],
+  "production|auth-form|refine-content": [
+   6,
+   6,
+   11734.333333333334
+  ],
+  "production|auth-form|refine-add": [
+   6,
+   6,
+   11785.166666666666
+  ],
+  "production|auth-form|refine-remove": [
+   6,
+   6,
+   11662.833333333334
+  ],
+  "production|auth-form|refine-structural": [
+   5,
+   6,
+   19132.0
+  ],
+  "production|guide-steps|fresh": [
+   6,
+   6,
+   15309.5
+  ],
+  "production|guide-steps|refine-content": [
+   6,
+   6,
+   12517.0
+  ],
+  "production|guide-steps|refine-add": [
+   6,
+   6,
+   12558.833333333334
+  ],
+  "production|guide-steps|refine-remove": [
+   6,
+   6,
+   12455.833333333334
+  ],
+  "production|guide-steps|refine-structural": [
+   3,
+   6,
+   54199.0
+  ],
+  "production|null|fresh": [
+   6,
+   6,
+   17394.333333333332
+  ],
+  "production|null|refine-content": [
+   6,
+   6,
+   11736.666666666666
+  ],
+  "production|null|refine-add": [
+   3,
+   6,
+   38791.333333333336
+  ],
+  "production|null|refine-remove": [
+   3,
+   6,
+   27460.666666666668
+  ],
+  "production|null|refine-structural": [
+   5,
+   6,
+   19872.0
+  ]
+ },
+ "paths": [
+  [
+   "block",
+   "fresh",
+   "block",
+   18
+  ],
+  [
+   "block",
+   "fresh",
+   "primitive",
+   6
+  ],
+  [
+   "block",
+   "refine-add",
+   "block",
+   18
+  ],
+  [
+   "block",
+   "refine-add",
+   "primitive",
+   6
+  ],
+  [
+   "block",
+   "refine-content",
+   "block",
+   17
+  ],
+  [
+   "block",
+   "refine-content",
+   "fallback",
+   1
+  ],
+  [
+   "block",
+   "refine-content",
+   "primitive",
+   6
+  ],
+  [
+   "block",
+   "refine-remove",
+   "block",
+   17
+  ],
+  [
+   "block",
+   "refine-remove",
+   "fallback",
+   1
+  ],
+  [
+   "block",
+   "refine-remove",
+   "primitive",
+   6
+  ],
+  [
+   "block",
+   "refine-structural",
+   "fallback",
+   18
+  ],
+  [
+   "block",
+   "refine-structural",
+   "primitive",
+   6
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "block",
+   13
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "block-repair",
+   1
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "fallback",
+   3
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "primitive",
+   6
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "provider-failure",
+   1
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "block",
+   14
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "primitive",
+   6
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "switch",
+   3
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "block",
+   14
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "primitive",
+   6
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "switch",
+   3
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "block",
+   14
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "primitive",
+   6
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "switch",
+   3
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "fallback",
+   14
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "primitive",
+   6
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "switch",
+   3
+  ],
+  [
+   "capped",
+   "fresh",
+   "primitive",
+   24
+  ],
+  [
+   "capped",
+   "refine-add",
+   "primitive",
+   24
+  ],
+  [
+   "capped",
+   "refine-content",
+   "primitive",
+   24
+  ],
+  [
+   "capped",
+   "refine-remove",
+   "primitive",
+   24
+  ],
+  [
+   "capped",
+   "refine-structural",
+   "primitive",
+   24
+  ],
+  [
+   "production",
+   "fresh",
+   "primitive",
+   24
+  ],
+  [
+   "production",
+   "refine-add",
+   "primitive",
+   24
+  ],
+  [
+   "production",
+   "refine-content",
+   "primitive",
+   24
+  ],
+  [
+   "production",
+   "refine-remove",
+   "primitive",
+   24
+  ],
+  [
+   "production",
+   "refine-structural",
+   "primitive",
+   24
+  ]
+ ],
+ "fallback": [
+  [
+   "block",
+   "refine-content",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   2,
+   true,
+   1
+  ],
+  [
+   "block",
+   "refine-remove",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   2,
+   true,
+   1
+  ],
+  [
+   "block",
+   "refine-structural",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   1,
+   true,
+   1
+  ],
+  [
+   "block",
+   "refine-structural",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   2,
+   false,
+   2
+  ],
+  [
+   "block",
+   "refine-structural",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   2,
+   true,
+   15
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "invalid-call",
+   "$.p.2: expected an array; $.p.3.0: 4 positional values for 2 declared fields; $.p.3.0.0: expected an array; $.p.3.1: 4 positional values for 2 declared fields; $.p.3.1.0: expected an array; $.p.3.2: 4 positional values for 2 declared fields; $.p.3.2.0: expected an array; $.p.3.3: 4 positional values for 2 declared fields; $.p.3.3.0: expected an array; $.p.3.4: 4 positional values for 2 declared fields; $.p.3.4.0: expected an array; no budget for a block repair",
+   1,
+   true,
+   1
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "invalid-call",
+   "$.p.3.0: 5 positional values for 2 declared fields",
+   1,
+   true,
+   1
+  ],
+  [
+   "block-positional",
+   "fresh",
+   "invalid-call",
+   "$.p: 10 positional values for 7 declared fields; $.p.2: expected an array; $.p.3: expected an array; no budget for a block repair",
+   1,
+   true,
+   1
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "switch",
+   "no-valid-seed",
+   null,
+   true,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "switch",
+   "no-valid-seed",
+   null,
+   true,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "switch",
+   "no-valid-seed",
+   null,
+   true,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "switch",
+   "no-valid-seed",
+   null,
+   true,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   1,
+   true,
+   2
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   2,
+   false,
+   1
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "unsupported-refinement",
+   "the model answered that this block cannot express the change",
+   2,
+   true,
+   11
+  ]
+ ],
+ "retention": [
+  [
+   "block",
+   "refine-add",
+   "auth-form",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block",
+   "refine-add",
+   "guide-steps",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block",
+   "refine-add",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block",
+   "refine-add",
+   "records-table",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block",
+   "refine-content",
+   "auth-form",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block",
+   "refine-content",
+   "guide-steps",
+   "compact",
+   false,
+   1
+  ],
+  [
+   "block",
+   "refine-content",
+   "guide-steps",
+   "compact",
+   true,
+   5
+  ],
+  [
+   "block",
+   "refine-content",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block",
+   "refine-content",
+   "records-table",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block",
+   "refine-remove",
+   "auth-form",
+   "compact",
+   false,
+   1
+  ],
+  [
+   "block",
+   "refine-remove",
+   "auth-form",
+   "compact",
+   true,
+   5
+  ],
+  [
+   "block",
+   "refine-remove",
+   "guide-steps",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block",
+   "refine-remove",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block",
+   "refine-remove",
+   "records-table",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block",
+   "refine-structural",
+   "auth-form",
+   "compact",
+   false,
+   6
+  ],
+  [
+   "block",
+   "refine-structural",
+   "guide-steps",
+   "compact",
+   false,
+   6
+  ],
+  [
+   "block",
+   "refine-structural",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block",
+   "refine-structural",
+   "records-table",
+   "compact",
+   false,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "auth-form",
+   "compact",
+   true,
+   5
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "guide-steps",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "records-table",
+   "compact",
+   true,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-add",
+   "records-table",
+   "switch",
+   false,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "auth-form",
+   "compact",
+   true,
+   5
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "guide-steps",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "records-table",
+   "compact",
+   true,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-content",
+   "records-table",
+   "switch",
+   false,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "auth-form",
+   "compact",
+   true,
+   5
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "guide-steps",
+   "compact",
+   true,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "records-table",
+   "compact",
+   true,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-remove",
+   "records-table",
+   "switch",
+   false,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "auth-form",
+   "compact",
+   false,
+   5
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "guide-steps",
+   "compact",
+   false,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "null",
+   "primitive",
+   false,
+   6
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "records-table",
+   "compact",
+   false,
+   3
+  ],
+  [
+   "block-positional",
+   "refine-structural",
+   "records-table",
+   "switch",
+   false,
+   3
+  ]
+ ],
+ "latency": {
+  "block|all": {
+   "totalMs": 3248.149830000126,
+   "firstGatedAttemptMs": 2999.550560499716,
+   "blockPhaseMs": 2080.0602650002984,
+   "emitMs": 110.49762000015471,
+   "planMs": 2594.3303430000087,
+   "n": 120
+  },
+  "block|fresh": {
+   "totalMs": 5919.568138500035,
+   "firstGatedAttemptMs": 5784.606728999934,
+   "blockPhaseMs": 3101.333025999891,
+   "emitMs": 110.42485650011804,
+   "planMs": 2594.3303430000087,
+   "n": 24
+  },
+  "block|refinements": {
+   "totalMs": 2832.495217499789,
+   "firstGatedAttemptMs": 2665.6344734999584,
+   "blockPhaseMs": 2032.583418500144,
+   "emitMs": 110.76100600020436,
+   "planMs": null,
+   "n": 96
+  },
+  "block-positional|all": {
+   "totalMs": 3415.120941000234,
+   "firstGatedAttemptMs": 3017.0392439998686,
+   "blockPhaseMs": 2205.715609499719,
+   "emitMs": 107.58727199956775,
+   "planMs": 2527.3655475002306,
+   "n": 116
+  },
+  "block-positional|fresh": {
+   "totalMs": 6181.692671499961,
+   "firstGatedAttemptMs": 6091.805936999968,
+   "blockPhaseMs": 3648.764027999936,
+   "emitMs": 103.19105200003833,
+   "planMs": 2527.3655475002306,
+   "n": 24
+  },
+  "block-positional|refinements": {
+   "totalMs": 2703.2435980006703,
+   "firstGatedAttemptMs": 2557.3502149999767,
+   "blockPhaseMs": 1995.1865784999682,
+   "emitMs": 108.36870949994773,
+   "planMs": null,
+   "n": 92
+  },
+  "capped|all": {
+   "totalMs": 3912.8088940002344,
+   "firstGatedAttemptMs": 3544.958343000035,
+   "blockPhaseMs": null,
+   "emitMs": 107.3528670000378,
+   "planMs": 2026.9518934998196,
+   "n": 120
+  },
+  "capped|fresh": {
+   "totalMs": 5885.651987499907,
+   "firstGatedAttemptMs": 5784.428914500168,
+   "blockPhaseMs": null,
+   "emitMs": 107.13357999990694,
+   "planMs": 2026.9518934998196,
+   "n": 24
+  },
+  "capped|refinements": {
+   "totalMs": 3331.500510999933,
+   "firstGatedAttemptMs": 2986.4806499998085,
+   "blockPhaseMs": null,
+   "emitMs": 107.3528670000378,
+   "planMs": null,
+   "n": 96
+  },
+  "production|all": {
+   "totalMs": 3700.7715030000545,
+   "firstGatedAttemptMs": 3474.9499800001504,
+   "blockPhaseMs": null,
+   "emitMs": 108.48690399993211,
+   "planMs": 2167.607501000166,
+   "n": 120
+  },
+  "production|fresh": {
+   "totalMs": 5867.010684000037,
+   "firstGatedAttemptMs": 5721.621845500078,
+   "blockPhaseMs": null,
+   "emitMs": 109.44410849991255,
+   "planMs": 2167.607501000166,
+   "n": 24
+  },
+  "production|refinements": {
+   "totalMs": 3247.188472000067,
+   "firstGatedAttemptMs": 2997.941593999858,
+   "blockPhaseMs": null,
+   "emitMs": 106.32890399964526,
+   "planMs": null,
+   "n": 96
+  }
+ },
+ "parity": {
+  "block|fresh": {
+   "scored": 24,
+   "mean": 0.875,
+   "full": 18
+  },
+  "block|refine-content": {
+   "scored": 24,
+   "mean": 0.795138888888889,
+   "full": 14
+  },
+  "block|refine-add": {
+   "scored": 22,
+   "mean": 0.8636363636363636,
+   "full": 16
+  },
+  "block|refine-remove": {
+   "scored": 21,
+   "mean": 0.7222222222222223,
+   "full": 10
+  },
+  "block|refine-structural": {
+   "scored": 22,
+   "mean": 0.8787878787878788,
+   "full": 17
+  },
+  "block|all": {
+   "scored": 113,
+   "mean": 0.8281710914454278,
+   "full": 75
+  },
+  "block-positional|fresh": {
+   "scored": 23,
+   "mean": 0.8260869565217391,
+   "full": 16
+  },
+  "block-positional|refine-content": {
+   "scored": 23,
+   "mean": 0.7427536231884059,
+   "full": 12
+  },
+  "block-positional|refine-add": {
+   "scored": 21,
+   "mean": 0.8095238095238095,
+   "full": 14
+  },
+  "block-positional|refine-remove": {
+   "scored": 18,
+   "mean": 0.6944444444444444,
+   "full": 9
+  },
+  "block-positional|refine-structural": {
+   "scored": 20,
+   "mean": 0.8166666666666667,
+   "full": 14
+  },
+  "block-positional|all": {
+   "scored": 105,
+   "mean": 0.78015873015873,
+   "full": 65
+  },
+  "capped|fresh": {
+   "scored": 24,
+   "mean": 0.8472222222222222,
+   "full": 17
+  },
+  "capped|refine-content": {
+   "scored": 24,
+   "mean": 0.8229166666666666,
+   "full": 16
+  },
+  "capped|refine-add": {
+   "scored": 23,
+   "mean": 0.8405797101449275,
+   "full": 16
+  },
+  "capped|refine-remove": {
+   "scored": 21,
+   "mean": 0.7142857142857143,
+   "full": 10
+  },
+  "capped|refine-structural": {
+   "scored": 22,
+   "mean": 0.856060606060606,
+   "full": 16
+  },
+  "capped|all": {
+   "scored": 114,
+   "mean": 0.8179824561403509,
+   "full": 75
+  },
+  "production|fresh": {
+   "scored": 24,
+   "mean": 0.8472222222222222,
+   "full": 17
+  },
+  "production|refine-content": {
+   "scored": 24,
+   "mean": 0.84375,
+   "full": 17
+  },
+  "production|refine-add": {
+   "scored": 21,
+   "mean": 0.8253968253968254,
+   "full": 14
+  },
+  "production|refine-remove": {
+   "scored": 21,
+   "mean": 0.6904761904761905,
+   "full": 9
+  },
+  "production|refine-structural": {
+   "scored": 18,
+   "mean": 0.824074074074074,
+   "full": 13
+  },
+  "production|all": {
+   "scored": 108,
+   "mean": 0.8078703703703703,
+   "full": 70
+  }
+ },
+ "parityMissing": [
+  [
+   "block",
+   "af-01",
+   "label:email",
+   1
+  ],
+  [
+   "block",
+   "af-02",
+   "label:name",
+   1
+  ],
+  [
+   "block",
+   "af-02",
+   "label:password",
+   1
+  ],
+  [
+   "block",
+   "af-03",
+   "label:github",
+   1
+  ],
+  [
+   "block",
+   "af-03",
+   "label:google",
+   1
+  ],
+  [
+   "block",
+   "af-04",
+   "label:email",
+   1
+  ],
+  [
+   "block",
+   "af-06",
+   "label:email",
+   1
+  ],
+  [
+   "block",
+   "gs-01",
+   "label:pasta",
+   1
+  ],
+  [
+   "block",
+   "gs-01",
+   "label:tomato",
+   1
+  ],
+  [
+   "block",
+   "gs-02",
+   "label:router",
+   1
+  ],
+  [
+   "block",
+   "gs-03",
+   "label:bookshelf",
+   1
+  ],
+  [
+   "block",
+   "nb-06",
+   "label:name",
+   5
+  ],
+  [
+   "block",
+   "rt-01",
+   "label:priority",
+   4
+  ],
+  [
+   "block",
+   "rt-02",
+   "label:customer",
+   1
+  ],
+  [
+   "block",
+   "rt-02",
+   "label:total",
+   5
+  ],
+  [
+   "block",
+   "rt-03",
+   "label:quantity",
+   5
+  ],
+  [
+   "block",
+   "rt-03",
+   "label:sku",
+   5
+  ],
+  [
+   "block",
+   "rt-04",
+   "label:name",
+   4
+  ],
+  [
+   "block",
+   "rt-04",
+   "label:role",
+   2
+  ],
+  [
+   "block",
+   "rt-05",
+   "label:amount",
+   4
+  ],
+  [
+   "block",
+   "rt-06",
+   "label:company",
+   1
+  ],
+  [
+   "block-positional",
+   "af-02",
+   "label:password",
+   1
+  ],
+  [
+   "block-positional",
+   "af-03",
+   "label:github",
+   1
+  ],
+  [
+   "block-positional",
+   "af-03",
+   "label:google",
+   1
+  ],
+  [
+   "block-positional",
+   "af-05",
+   "label:forgot",
+   1
+  ],
+  [
+   "block-positional",
+   "af-05",
+   "label:password",
+   1
+  ],
+  [
+   "block-positional",
+   "af-06",
+   "label:email",
+   1
+  ],
+  [
+   "block-positional",
+   "gs-01",
+   "label:pasta",
+   1
+  ],
+  [
+   "block-positional",
+   "gs-01",
+   "label:tomato",
+   1
+  ],
+  [
+   "block-positional",
+   "gs-02",
+   "label:router",
+   1
+  ],
+  [
+   "block-positional",
+   "gs-03",
+   "label:bookshelf",
+   1
+  ],
+  [
+   "block-positional",
+   "gs-05",
+   "label:tire",
+   1
+  ],
+  [
+   "block-positional",
+   "nb-06",
+   "label:name",
+   5
+  ],
+  [
+   "block-positional",
+   "rt-01",
+   "label:priority",
+   4
+  ],
+  [
+   "block-positional",
+   "rt-01",
+   "label:status",
+   4
+  ],
+  [
+   "block-positional",
+   "rt-02",
+   "label:customer",
+   4
+  ],
+  [
+   "block-positional",
+   "rt-02",
+   "label:total",
+   5
+  ],
+  [
+   "block-positional",
+   "rt-03",
+   "label:quantity",
+   5
+  ],
+  [
+   "block-positional",
+   "rt-03",
+   "label:sku",
+   5
+  ],
+  [
+   "block-positional",
+   "rt-04",
+   "label:name",
+   4
+  ],
+  [
+   "block-positional",
+   "rt-04",
+   "label:role",
+   2
+  ],
+  [
+   "block-positional",
+   "rt-05",
+   "label:amount",
+   4
+  ],
+  [
+   "block-positional",
+   "rt-05",
+   "label:invoice",
+   1
+  ],
+  [
+   "block-positional",
+   "rt-06",
+   "label:company",
+   4
+  ],
+  [
+   "capped",
+   "af-01",
+   "label:email",
+   1
+  ],
+  [
+   "capped",
+   "af-02",
+   "label:name",
+   1
+  ],
+  [
+   "capped",
+   "af-02",
+   "label:password",
+   1
+  ],
+  [
+   "capped",
+   "af-03",
+   "label:github",
+   1
+  ],
+  [
+   "capped",
+   "af-03",
+   "label:google",
+   1
+  ],
+  [
+   "capped",
+   "af-04",
+   "label:email",
+   1
+  ],
+  [
+   "capped",
+   "af-06",
+   "label:password",
+   1
+  ],
+  [
+   "capped",
+   "gs-03",
+   "label:bookshelf",
+   1
+  ],
+  [
+   "capped",
+   "nb-06",
+   "label:name",
+   5
+  ],
+  [
+   "capped",
+   "rt-01",
+   "label:priority",
+   4
+  ],
+  [
+   "capped",
+   "rt-02",
+   "label:customer",
+   4
+  ],
+  [
+   "capped",
+   "rt-02",
+   "label:total",
+   5
+  ],
+  [
+   "capped",
+   "rt-03",
+   "label:quantity",
+   5
+  ],
+  [
+   "capped",
+   "rt-03",
+   "label:sku",
+   2
+  ],
+  [
+   "capped",
+   "rt-04",
+   "label:name",
+   4
+  ],
+  [
+   "capped",
+   "rt-04",
+   "label:role",
+   5
+  ],
+  [
+   "capped",
+   "rt-05",
+   "label:amount",
+   4
+  ],
+  [
+   "capped",
+   "rt-05",
+   "label:invoice",
+   1
+  ],
+  [
+   "capped",
+   "rt-06",
+   "label:company",
+   4
+  ],
+  [
+   "capped",
+   "rt-06",
+   "label:stage",
+   1
+  ],
+  [
+   "production",
+   "af-01",
+   "label:email",
+   1
+  ],
+  [
+   "production",
+   "af-02",
+   "label:name",
+   1
+  ],
+  [
+   "production",
+   "af-03",
+   "label:github",
+   1
+  ],
+  [
+   "production",
+   "af-03",
+   "label:google",
+   1
+  ],
+  [
+   "production",
+   "af-04",
+   "label:email",
+   1
+  ],
+  [
+   "production",
+   "af-06",
+   "label:email",
+   1
+  ],
+  [
+   "production",
+   "af-06",
+   "label:password",
+   1
+  ],
+  [
+   "production",
+   "nb-06",
+   "label:name",
+   5
+  ],
+  [
+   "production",
+   "rt-01",
+   "label:priority",
+   1
+  ],
+  [
+   "production",
+   "rt-01",
+   "label:status",
+   5
+  ],
+  [
+   "production",
+   "rt-02",
+   "label:customer",
+   4
+  ],
+  [
+   "production",
+   "rt-02",
+   "label:total",
+   4
+  ],
+  [
+   "production",
+   "rt-03",
+   "label:quantity",
+   5
+  ],
+  [
+   "production",
+   "rt-03",
+   "label:sku",
+   5
+  ],
+  [
+   "production",
+   "rt-04",
+   "label:name",
+   4
+  ],
+  [
+   "production",
+   "rt-04",
+   "label:role",
+   2
+  ],
+  [
+   "production",
+   "rt-05",
+   "label:amount",
+   4
+  ],
+  [
+   "production",
+   "rt-05",
+   "label:invoice",
+   1
+  ],
+  [
+   "production",
+   "rt-06",
+   "label:company",
+   4
+  ],
+  [
+   "production",
+   "rt-06",
+   "label:stage",
+   1
+  ]
+ ],
+ "operations": {
+  "block": {
+   "checked": 48,
+   "performed": 43,
+   "mixed": 0,
+   "missed": 5,
+   "unchanged": 1,
+   "unchecked": 0,
+   "misses": [
+    "nb-01 add (none)",
+    "nb-01 remove (add)",
+    "nb-02 add (none, unchanged)",
+    "nb-02 remove (add)",
+    "nb-03 remove (add)"
+   ]
+  },
+  "block-positional": {
+   "checked": 45,
+   "performed": 39,
+   "mixed": 0,
+   "missed": 6,
+   "unchanged": 4,
+   "unchecked": 0,
+   "misses": [
+    "af-02 remove (none, unchanged)",
+    "af-04 remove (none, unchanged)",
+    "nb-01 add (none, unchanged)",
+    "nb-01 remove (none, unchanged)",
+    "nb-02 remove (add)",
+    "nb-03 remove (add)"
+   ]
+  },
+  "capped": {
+   "checked": 47,
+   "performed": 44,
+   "mixed": 0,
+   "missed": 3,
+   "unchanged": 1,
+   "unchecked": 0,
+   "misses": [
+    "nb-01 remove (none, unchanged)",
+    "nb-02 remove (add)",
+    "nb-03 remove (add)"
+   ]
+  },
+  "production": {
+   "checked": 47,
+   "performed": 42,
+   "mixed": 0,
+   "missed": 5,
+   "unchanged": 3,
+   "unchecked": 0,
+   "misses": [
+    "nb-01 add (none, unchanged)",
+    "nb-01 remove (none, unchanged)",
+    "nb-02 remove (none, unchanged)",
+    "nb-03 add (none)",
+    "nb-03 remove (add)"
+   ]
+  }
+ },
+ "c2Removes": [
+  [
+   "block",
+   "af-01",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ],
+    [
+     "button",
+     "Forgot password?"
+    ]
+   ],
+   []
+  ],
+  [
+   "capped",
+   "af-01",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "production",
+   "af-01",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "block",
+   "af-02",
+   "passed",
+   [
+    [
+     "text-input",
+     "Full name"
+    ]
+   ],
+   []
+  ],
+  [
+   "block-positional",
+   "af-02",
+   "passed",
+   [],
+   []
+  ],
+  [
+   "capped",
+   "af-02",
+   "passed",
+   [
+    [
+     "text-input",
+     "Your name"
+    ]
+   ],
+   []
+  ],
+  [
+   "production",
+   "af-02",
+   "passed",
+   [
+    [
+     "text-input",
+     "Your name"
+    ]
+   ],
+   []
+  ],
+  [
+   "block",
+   "af-03",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ],
+    [
+     "button",
+     "Continue with Google"
+    ],
+    [
+     "button",
+     "Continue with GitHub"
+    ]
+   ],
+   []
+  ],
+  [
+   "block-positional",
+   "af-03",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ],
+    [
+     "button",
+     "Continue with Google"
+    ],
+    [
+     "button",
+     "Continue with GitHub"
+    ]
+   ],
+   []
+  ],
+  [
+   "capped",
+   "af-03",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ],
+    [
+     "text",
+     "Or continue with"
+    ],
+    [
+     "button",
+     "Sign in with Google"
+    ],
+    [
+     "button",
+     "Sign in with GitHub"
+    ]
+   ],
+   []
+  ],
+  [
+   "production",
+   "af-03",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ],
+    [
+     "text",
+     "Or continue with"
+    ],
+    [
+     "button",
+     "Sign in with Google"
+    ],
+    [
+     "button",
+     "Sign in with GitHub"
+    ]
+   ],
+   []
+  ],
+  [
+   "block",
+   "af-04",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "block-positional",
+   "af-04",
+   "passed",
+   [],
+   []
+  ],
+  [
+   "capped",
+   "af-04",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "production",
+   "af-04",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "block",
+   "af-05",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "block-positional",
+   "af-05",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "capped",
+   "af-05",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "production",
+   "af-05",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "block",
+   "af-06",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ],
+    [
+     "button",
+     "Forgot password?"
+    ]
+   ],
+   []
+  ],
+  [
+   "block-positional",
+   "af-06",
+   "passed",
+   [
+    [
+     "text-input",
+     "Email address"
+    ]
+   ],
+   []
+  ],
+  [
+   "capped",
+   "af-06",
+   "passed",
+   [
+    [
+     "text-input",
+     "Work email"
+    ]
+   ],
+   []
+  ],
+  [
+   "production",
+   "af-06",
+   "passed",
+   [
+    [
+     "text-input",
+     "Work email"
+    ]
+   ],
+   []
+  ]
+ ],
+ "structural": {
+  "block": {
+   "passed": 22,
+   "failures": [
+    "gs-03 failed-lint-exhausted via fallback",
+    "gs-04 failed-lint-exhausted via fallback"
+   ]
+  },
+  "block-positional": {
+   "passed": 20,
+   "failures": [
+    "gs-03 failed-adapter via fallback",
+    "nb-04 failed-adapter via primitive",
+    "nb-05 failed-lint-exhausted via primitive"
+   ]
+  },
+  "capped": {
+   "passed": 22,
+   "failures": [
+    "gs-02 failed-lint-exhausted via primitive",
+    "gs-04 failed-lint-exhausted via primitive"
+   ]
+  },
+  "production": {
+   "passed": 18,
+   "failures": [
+    "rt-02 failed-lint-exhausted via primitive",
+    "af-03 failed-adapter via primitive",
+    "gs-02 failed-lint-exhausted via primitive",
+    "gs-05 failed-lint-exhausted via primitive",
+    "gs-06 failed-lint-exhausted via primitive",
+    "nb-04 failed-lint-exhausted via primitive"
+   ]
+  }
+ },
+ "nullAA": {
+  "stats": {
+   "block": {
+    "binding": [
+     25,
+     30,
+     18475.0
+    ],
+    "ordinary": [
+     30,
+     30,
+     15395.833333333334
+    ]
+   },
+   "production": {
+    "binding": [
+     23,
+     30,
+     20560.956521739132
+    ],
+    "ordinary": [
+     28,
+     30,
+     16889.35714285714
+    ]
+   },
+   "capped": {
+    "binding": [
+     26,
+     30,
+     19058.5
+    ],
+    "ordinary": [
+     29,
+     30,
+     17086.931034482757
+    ]
+   },
+   "block-positional": {
+    "binding": [
+     23,
+     30,
+     22210.347826086956
+    ],
+    "ordinary": [
+     27,
+     30,
+     18919.925925925927
+    ]
+   }
+  },
+  "paths": [
+   [
+    "block",
+    "primitive",
+    30
+   ],
+   [
+    "block-positional",
+    "primitive",
+    30
+   ],
+   [
+    "capped",
+    "primitive",
+    30
+   ],
+   [
+    "production",
+    "primitive",
+    30
+   ]
+  ]
+ },
+ "encoding": {
+  "all": {
+   "named": [
+    113,
+    120,
+    7573.309734513275
+   ],
+   "positional": [
+    105,
+    116,
+    9627.657142857142
+   ]
+  },
+  "fresh": {
+   "named": [
+    24,
+    24,
+    5559.958333333333
+   ],
+   "positional": [
+    23,
+    24,
+    7568.608695652174
+   ]
+  },
+  "refine-content": {
+   "named": [
+    24,
+    24,
+    4235.083333333333
+   ],
+   "positional": [
+    23,
+    23,
+    5356.739130434783
+   ]
+  },
+  "refine-add": {
+   "named": [
+    22,
+    24,
+    5651.545454545455
+   ],
+   "positional": [
+    21,
+    23,
+    8612.57142857143
+   ]
+  },
+  "refine-remove": {
+   "named": [
+    21,
+    24,
+    6488.238095238095
+   ],
+   "positional": [
+    18,
+    23,
+    8148.555555555556
+   ]
+  },
+  "refine-structural": {
+   "named": [
+    22,
+    24,
+    16368.90909090909
+   ],
+   "positional": [
+    20,
+    23,
+    19304.15
+   ]
+  },
+  "records-table": {
+   "named": [
+    30,
+    30,
+    3886.133333333333
+   ],
+   "positional": [
+    30,
+    30,
+    8507.566666666668
+   ]
+  },
+  "auth-form": {
+   "named": [
+    30,
+    30,
+    3677.4333333333334
+   ],
+   "positional": [
+    23,
+    26,
+    3857.478260869565
+   ]
+  },
+  "guide-steps": {
+   "named": [
+    28,
+    30,
+    5964.357142857143
+   ],
+   "positional": [
+    29,
+    30,
+    5383.3448275862065
+   ]
+  },
+  "null": {
+   "named": [
+    25,
+    30,
+    18475.0
+   ],
+   "positional": [
+    23,
+    30,
+    22210.347826086956
+   ]
+  }
+ }
+}

@@ -1,0 +1,135 @@
+
+> @dspack-studio/block-bench@0.1.0 eval:live /home/user/dspack-studio/packages/block-bench
+> tsx live/run.ts -- --provider hosted --corpus 2 --reference astryx --prompts rt-01,rt-02,rt-03,rt-04,rt-05,rt-06,af-01,af-02,af-03,af-04,af-05,af-06,gs-01,gs-02,gs-03,gs-04,gs-05,gs-06,nb-01,nb-02,nb-03,nb-04,nb-05,nb-06 --max-total-usd 17 --max-total-requests 1150 --max-requests 825 --spacing-ms 12000 --resume live/runs/1b-stage3-astryx-2026-10-12
+
+{
+  "at": "2026-10-13T01:59:10.685Z",
+  "sidecars": [
+    {
+      "reference": "astryx",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    }
+  ],
+  "drafts": false,
+  "baseUrl": "https://composer.aesthetic-function.com",
+  "buildId": "txDlHURTKv_S6yicLso97",
+  "worker": {
+    "shape": "per-call-model",
+    "status": 400,
+    "error": "invalid-request",
+    "calls": [],
+    "capabilities": [
+      "per-call-model"
+    ]
+  },
+  "models": [
+    "scripted",
+    "hosted-ai"
+  ]
+}
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-02|refine-add: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-02|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-02|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-02|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-add: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-02|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-02|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-02|refine-add: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-02|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-02|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-03|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-03|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-03|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-03|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-03|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-add: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-03|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-add: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-03|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-03|refine-add: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-03|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-03|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-04|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-04|refine-structural: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-structural: failed-adapter via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-structural: passed via primitive in 2 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-04|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-04|refine-structural: failed-lint-exhausted via primitive in 3 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-05|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-05|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-05|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-05|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-05|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-05|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-structural: failed-lint-exhausted via primitive in 3 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-05|fresh: passed via primitive in 2 attempt(s), 4 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-05|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-05|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-05|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-05|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-05|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-06|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-06|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-06|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-06|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|nb-06|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-06|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-06|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-06|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-06|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|nb-06|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-06|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-06|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-06|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-06|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|nb-06|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-06|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-06|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-06|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-06|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|production|nb-06|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+
+run 2026-10-12T23-36-49-450Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 480 of 480 cells (387 reused); report at live/runs/1b-stage3-astryx-2026-10-12/REPORT.md
+astryx on hosted-ai:claude-haiku-4.5: pass
+  tokens per success fell 52.8% against production (needs 30%)
+  pass rate 94.2% is within 5 points of production (90.0%)
+  pass rate 94.2% is within 5 points of capped (95.0%)

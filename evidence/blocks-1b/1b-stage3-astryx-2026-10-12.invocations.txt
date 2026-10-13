@@ -1,2 +1,4 @@
 invocation 1 start 2026-10-12T23:36:46Z
 invocation 1 end 2026-10-13T01:25:50Z exit 3
+invocation 2 start 2026-10-13T01:59:08Z
+invocation 2 end 2026-10-13T02:28:19Z exit 0
