@@ -560,6 +560,62 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
     }
   });
 
+  it("a status, once known, decides alone: a busy word in the message never overrides one that is not a numeric 429", async () => {
+    const busyWorded = () => upstream("InferenceUpstreamError: 429 Too Many Requests");
+    const cases = [
+      ["binding 500", refusingBinding(500, busyWorded())],
+      ["binding 503", refusingBinding(503, busyWorded())],
+      ["binding 200", refusingBinding(200, busyWorded())],
+      ["binding '429'", refusingBinding("429", busyWorded())],
+      ["binding 429, error 500", refusingBinding(429, upstream("InferenceUpstreamError: 429 Too Many Requests", { status: 500 }))],
+      ["error 500", { run: vi.fn().mockRejectedValue(upstream("rate limited", { status: 500 })) }],
+      ["error '429'", { run: vi.fn().mockRejectedValue(upstream("429 Too Many Requests", { status: "429" })) }],
+      ["response 503", { run: vi.fn().mockRejectedValue(upstream("capacity exceeded", { response: { status: 503 } })) }],
+    ];
+    for (const [name, ai] of cases) {
+      const { status, body } = await classify(ai);
+      expect(status, name).toBe(502);
+      expect(body.cause, name).toBe("provider");
+      expect(body.calls, name).toEqual([REJECTED]);
+    }
+  });
+
+  it("with no status known, the message decides as before: no status recorded, a null status, or two overlapping calls", async () => {
+    const busyWorded = () => upstream("InferenceUpstreamError: 429 Too Many Requests");
+    for (const ai of [refusingBinding(null, busyWorded()), { run: vi.fn().mockRejectedValue(upstream("rate limited", { status: null })) }]) {
+      const { status, body } = await classify(ai);
+      expect(status).toBe(503);
+      expect(body.error).toBe("busy");
+    }
+    const first = deferred();
+    const second = deferred();
+    const ai = { lastRequestHttpStatusCode: null, run: vi.fn() };
+    const refuse = (gate, recorded) =>
+      async function () {
+        await gate.promise;
+        this.lastRequestHttpStatusCode = recorded;
+        throw busyWorded();
+      };
+    ai.run.mockImplementationOnce(refuse(first, 500)).mockImplementationOnce(refuse(second, 500));
+    const a = worker.handlePropose(post(), { AI: ai });
+    await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(1));
+    const b = worker.handlePropose(post(), { AI: ai });
+    await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(2));
+    first.resolve();
+    second.resolve();
+    const replies = await Promise.all([a, b]);
+    expect(replies.map((r) => r.status)).toEqual([503, 503]);
+  });
+
+  it("a 429 the binding recorded on a request that has already spent fails closed, whatever its message says", async () => {
+    const ai = refusingBinding(429, upstream("InferenceUpstreamError: 429 Too Many Requests"));
+    ai.run.mockImplementationOnce(async () => servedBy("prose", HAIKU, 700, 30));
+    const { status, body } = await classify(ai);
+    expect(status).toBe(502);
+    expect(body.cause).toBe("provider");
+    expect(body.usage).toEqual({ inputTokens: 700, outputTokens: 30 });
+  });
+
   it("a 429 after an earlier billed call in the same request is never busy by its status: the request has spent", async () => {
     const ai = refusingBinding(429);
     ai.run.mockImplementationOnce(async () => servedBy("prose", HAIKU, 700, 30));
@@ -636,6 +692,54 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
     first.resolve();
     const [ra, rb] = await Promise.all([a, b]);
     expect([ra.status, rb.status]).toEqual([502, 502]);
+  });
+
+  it("a call the binding never settles blocks the status only while its request could still be running", async () => {
+    // workerd never settles the I/O of a request it canceled (a client gone, the Worker's own timeout), so a hung call
+    // may stay unsettled for the isolate's life. It stops counting once its request can no longer be running.
+    vi.useFakeTimers();
+    const hung = deferred();
+    try {
+      const ai = refusingBinding(429);
+      ai.run.mockImplementationOnce(async function () {
+        await hung.promise;
+      });
+      const first = worker.handlePropose(post(), { AI: ai });
+      await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(1));
+      await vi.advanceTimersByTimeAsync(45_000);
+      expect((await first).status).toBe(502);
+      expect((await classify(ai)).status).toBe(502);
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      const { status, body } = await classify(ai);
+      expect(status).toBe(503);
+      expect(body.error).toBe("busy");
+    } finally {
+      hung.resolve();
+      await vi.runAllTimersAsync();
+      vi.useRealTimers();
+    }
+  });
+
+  it("a binding that throws before returning a promise is never read: whatever it recorded, the call sent nothing of its own", async () => {
+    const ai = {
+      lastRequestHttpStatusCode: null,
+      run: vi.fn(function () {
+        this.lastRequestHttpStatusCode = 429;
+        throw upstream("request refused");
+      }),
+    };
+    const { status, body } = await classify(ai);
+    expect(status).toBe(502);
+    expect(body.cause).toBe("provider");
+  });
+
+  it("a model result anywhere in the rejection fails closed: in its data, body, error, errors, or its response's data", async () => {
+    const usage = { input_tokens: 10, output_tokens: 2 };
+    for (const extra of [{ data: { usage } }, { body: { usage } }, { error: { usage } }, { errors: [{ usage }] }, { response: { status: 429, data: { usage } } }, { data: { model: HAIKU } }]) {
+      const { status, body } = await classify({ run: vi.fn().mockRejectedValue(upstream("request refused", { status: 429, ...extra })) });
+      expect(status, JSON.stringify(extra)).toBe(502);
+      expect(body.cause, JSON.stringify(extra)).toBe("provider");
+    }
   });
 
   it("the guards leave nothing behind: after a timeout and an overlap, a lone #539 refusal is busy again", async () => {

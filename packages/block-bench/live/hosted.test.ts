@@ -1038,7 +1038,8 @@ describe("a gateway 429 the binding records, through the real Worker and the led
   // lastRequestHttpStatusCode, then throws an error carrying only a name and a message. #539's named none of the Worker's
   // busy words, so the Worker answered 502 provider and the paced run stopped on a refusal that reached no model.
   type Binding = { lastRequestHttpStatusCode: number | null; run: () => Promise<unknown> };
-  type Step = { status: number; error: Error } | "served";
+  /** A status of null records none, as when no reply arrived: the Worker then classifies by the message alone. */
+  type Step = { status: number | null; error: Error } | "served";
   const served = { content: [{ type: "text", text: JSON.stringify({ answer: 1 }) }], usage: { input_tokens: 10, output_tokens: 2 }, model: HAIKU_ID };
   const refusal = (message: string, extra: Record<string, unknown> = {}) => Object.assign(new Error(message), { name: "InferenceUpstreamError" }, extra);
   /** #539: a refusal whose message names none of the busy words. */
@@ -1105,7 +1106,7 @@ describe("a gateway 429 the binding records, through the real Worker and the led
 
   it("when the backoff schedule runs out, a structured 429 ends exactly as the message-classified busy refusal does: free, and a provider failure to re-run", async () => {
     for (const backoffMs of [[], [5]]) {
-      const legacy = await through(binding([{ status: 429, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }]), backoffMs);
+      const legacy = await through(binding([{ status: null, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }]), backoffMs);
       const structured = await through(binding([{ status: 429, error: silent() }]), backoffMs);
       expect(structured, JSON.stringify(backoffMs)).toEqual(legacy);
       expect(structured.outcome).toMatchObject({ ok: false, kind: "provider", status: 503 });
@@ -1114,11 +1115,12 @@ describe("a gateway 429 the binding records, through the real Worker and the led
     }
   });
 
-  it("a 429 that shows a model result, and a 500 the binding recorded, are never released: held at the most the request could cost", async () => {
+  it("a 429 that shows a model result, and a 500 the binding recorded, whatever its message, are never released: held at the most the request could cost", async () => {
     const cases: Array<[string, Binding]> = [
       ["a 429 with usage", binding([{ status: 429, error: refusal("request refused", { usage: { input_tokens: 10, output_tokens: 2 } }) }])],
       ["a 429 naming a model", binding([{ status: 429, error: refusal("request refused", { model: HAIKU_ID }) }])],
       ["a 500", binding([{ status: 500, error: silent() }])],
+      ["a 500 whose message names a busy word", binding([{ status: 500, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }])],
     ];
     for (const [name, ai] of cases) {
       const r = await through(ai, [5]);

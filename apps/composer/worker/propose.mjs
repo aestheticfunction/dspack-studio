@@ -98,11 +98,24 @@ function extractText(raw) {
    provider failure (Astryx stage 3, request #539). One binding object may
    serve several requests in an isolate, so the status is read as this call's
    only when the Worker cleared it before the call, no other model call was in
-   flight when the call began or began while it ran (a call stays in flight
-   until the binding settles it, after this Worker's timeout too), and the
-   binding itself rejected the call. Otherwise it is unknown. */
-let modelCallsInFlight = 0;
+   flight when the call began or began while it ran, and the binding itself
+   rejected the call, never this Worker's timeout. Otherwise it is unknown.
+   A call stays in flight until the binding settles it. workerd never settles
+   the I/O of a request it canceled (a client gone, or this Worker's timeout
+   with nothing kept waiting), so a call stops counting STALE_CALL_MS after it
+   began, when its request can no longer be running: a request makes at most
+   two calls of at most PROVIDER_TIMEOUT_MS each, then replies. */
+const modelCallsInFlight = new Map();
 let modelCallsStarted = 0;
+const STALE_CALL_MS = 5 * 60_000;
+
+/** Whether another model call may still be running in this isolate; calls past STALE_CALL_MS are let go. */
+function othersInFlight(now) {
+  for (const [id, began] of modelCallsInFlight) {
+    if (now - began >= STALE_CALL_MS) modelCallsInFlight.delete(id);
+  }
+  return modelCallsInFlight.size > 0;
+}
 
 function clearReplyStatus(ai) {
   try {
@@ -113,22 +126,23 @@ function clearReplyStatus(ai) {
   }
 }
 
+/** The status the binding recorded, as it recorded it; none when it recorded none. One that cannot be read is stated
+    as unreadable, which is no 429, so it fails closed. */
 function replyStatus(ai) {
   try {
-    const status = ai.lastRequestHttpStatusCode;
-    return Number.isInteger(status) ? status : undefined;
+    return ai.lastRequestHttpStatusCode ?? undefined;
   } catch {
-    return undefined;
+    return "unreadable";
   }
 }
 
 /** A provider call that did not return: what rejected it, and the status of
     the reply the binding refused it on, when that is known to be this call's. */
 class Rejected extends Error {
-  constructor(error, replyStatus) {
+  constructor(error, status) {
     super(describe(error));
     this.error = error;
-    this.replyStatus = replyStatus;
+    this.replyStatus = status;
   }
 }
 
@@ -136,8 +150,9 @@ class Rejected extends Error {
     transport) and is classified by the caller — never retried in this Worker. */
 async function runModel(env, model, request) {
   const ai = env.AI;
-  const alone = modelCallsInFlight === 0;
-  const started = ++modelCallsStarted;
+  const began = Date.now();
+  const alone = !othersInFlight(began);
+  const id = ++modelCallsStarted;
   const cleared = clearReplyStatus(ai);
   let call;
   try {
@@ -145,9 +160,9 @@ async function runModel(env, model, request) {
   } catch (error) {
     throw new Rejected(error, undefined);
   }
-  modelCallsInFlight += 1;
+  modelCallsInFlight.set(id, began);
   const settled = () => {
-    modelCallsInFlight -= 1;
+    modelCallsInFlight.delete(id);
   };
   call.then(settled, settled);
   let timer;
@@ -163,7 +178,7 @@ async function runModel(env, model, request) {
       }),
     ]);
   } catch (error) {
-    const own = cleared && alone && !timedOut && modelCallsStarted === started;
+    const own = cleared && alone && !timedOut && modelCallsStarted === id;
     throw new Rejected(error, own ? replyStatus(ai) : undefined);
   } finally {
     clearTimeout(timer);
@@ -403,20 +418,32 @@ export async function handlePropose(request, env) {
 /** Every key a provider reports usage or a served model under: on a rejection, any of them shows a model result. */
 const RESULT_KEYS = ["usage", "model", "inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens"];
 
-/** What a rejection carries as structured data, through its response and cause a few levels deep: every status it
-    states, and whether it shows a model result. One that cannot be read shows one, so it fails closed. */
+/** What a rejection carries as structured data: every status it states, itself or through its response and cause a
+    few levels deep, and whether anything it holds, at any depth, shows a model result. One that cannot be read in
+    full shows one, so it fails closed. */
 function evidenceOf(rejection) {
   const statuses = [];
-  let result = false;
-  const visit = (value, depth) => {
+  const chain = (value, depth) => {
     if (!value || typeof value !== "object" || depth > 3) return;
+    if (value.status != null) statuses.push(value.status);
+    chain(value.response, depth + 1);
+    chain(value.cause, depth + 1);
+  };
+  const seen = new Set();
+  let result = false;
+  const search = (value, depth) => {
+    if (result || !value || typeof value !== "object" || seen.has(value)) return;
+    if (depth > 6 || seen.size >= 256) {
+      result = true;
+      return;
+    }
+    seen.add(value);
     for (const key of RESULT_KEYS) if (value[key] != null) result = true;
-    if (value.status !== undefined) statuses.push(value.status);
-    visit(value.response, depth + 1);
-    visit(value.cause, depth + 1);
+    for (const next of [value.response, value.cause, ...Object.values(value)]) search(next, depth + 1);
   };
   try {
-    visit(rejection, 0);
+    chain(rejection, 0);
+    search(rejection, 0);
     return { statuses, result };
   } catch {
     return { statuses: [], result: true };
@@ -427,10 +454,11 @@ function evidenceOf(rejection) {
 const unspent = (call) => call?.outcome === "provider-error" && call.inputTokens === null && call.outputTokens === null && call.model === undefined;
 
 /* Busy: the gateway refused the call before any model ran, which the browser
-   and the bench may retry at no cost. A structured 429 decides it first: the
-   status the binding recorded for this call's reply, or one the rejection
-   itself carries, every status stated agreeing on 429, on a request whose
-   only call is the one refused. Otherwise the message decides, as before: the
+   and the bench may retry at no cost. A status, once known, decides alone:
+   the one the binding recorded for this call's reply and any the rejection
+   itself carries must all be a numeric 429, on a request whose only call is
+   the one refused; anything else is a provider failure, whatever the message
+   says. Only when no status is known does the message decide, as before: the
    compatibility fallback. Never when the failure is an unusable output, or
    the rejection shows a model result: those may have spent, and stay
    provider failures. */
@@ -440,8 +468,8 @@ function isBusy(error, calls) {
   const { statuses, result } = rejection ? evidenceOf(rejection.error) : { statuses: [], result: false };
   if (result) return false;
   const stated = rejection?.replyStatus === undefined ? statuses : [rejection.replyStatus, ...statuses];
-  const refused = calls.length === 1 && unspent(calls[0]) && stated.length > 0 && stated.every((status) => status === 429);
-  return refused || /\b429\b|too many requests|rate.?limit|capacity/i.test(String(error?.message ?? ""));
+  if (stated.length > 0) return calls.length === 1 && unspent(calls[0]) && stated.every((status) => status === 429);
+  return /\b429\b|too many requests|rate.?limit|capacity/i.test(String(error?.message ?? ""));
 }
 
 /** The error reply for a request that made provider calls, carrying them. */

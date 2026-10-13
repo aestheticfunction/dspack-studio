@@ -91,9 +91,10 @@ A `HOSTED_AI` var is the kill switch.
 rate-limited to `503 busy` (verified), which bounds total Haiku spend zone-wide
 — plus the kill switch, the per-call `max_tokens`, and the request body-size
 cap. The Worker recognizes the gateway's refusal by the HTTP 429 the AI binding
-records for the reply, or by the error's message as before; a refusal that
-shows no model result is answered `503 busy`, reporting the one call the gateway
-turned away. The Worker also declares a native per-client rate-limit binding
+records for the reply, trusted only for a call no other model call in the
+isolate overlapped, or, when no status is known, by the error's message as
+before; a refusal that shows no model result is answered `503 busy`, reporting
+the one call the gateway turned away. The Worker also declares a native per-client rate-limit binding
 (`PROPOSE_RATE_LIMIT`) for fairness, but that binding **does not currently
 enforce on this account** (`.limit()` reports success for every call; 20+ rapid
 requests all passed). It is kept as forward-compatible defense-in-depth; the
