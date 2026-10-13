@@ -171,3 +171,14 @@ git show 3aae0ea:packages/block-bench/live/corpora/blocks.v2.json > /tmp/blocks.
 cd evidence/blocks-1b
 python3 -I verify_stage3.py 1b-stage3-astryx-2026-10-12 /tmp/w1/evidence/blocks-1b/1b-stage3-astryx-2026-10-12 /tmp/blocks.v2.json /tmp/verify.json
 ```
+
+## After the run (2026-10-13)
+
+- **The owner accepted the result** as a clear pass under the frozen v2 decision rule, with the reported validity limitations and sensitivity readings retained. Broader Phase 1B and Phase 2 are not authorized.
+- **The 429 correction (option C)** landed as aestheticfunction/dspack-studio#101, merged to main as `eaf6ae359d8bda171daae6e072042ba24e514c7b` and deployed as build `w6ajVrX5g8V0WhqowIBGN`.
+  - It reads the binding's recorded HTTP status, not the gateway's log. The update at the top of `.follow-up-429.md` says how it differs from the fix proposed there.
+  - The zero-cost production baseline taken after it is on `claude/blocks-baseline-eaf6ae3-evidence`.
+- **`.next-stage.md`'s 73% figure is withdrawn.** It was the point estimate at the observed rate. One event cannot support a forecast, so the document now gives the exact 95% interval instead.
+- **No file of the run changed.** Only `.follow-up-429.md`, `.next-stage.md` and this README did.
+  - Both checksum files are refreshed.
+  - Every other line of `.SHA256SUMS` is unchanged: the run directory, logs, checks, monitor logs, results and scripts.

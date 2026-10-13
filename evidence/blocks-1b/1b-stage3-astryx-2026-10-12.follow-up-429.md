@@ -1,6 +1,10 @@
 # Follow-up candidate: the Worker reads a gateway 429 from its message text
 
-**Status:** documented only, as the owner directed. No code change, pull request, merge or deployment has been made.
+**Status, when written:** documented only, as the owner directed. No code change, pull request, merge or deployment had been made.
+
+**Update, 2026-10-13:** the owner then approved the correction (option C). It landed as aestheticfunction/dspack-studio#101, merged to main as `eaf6ae3` and deployed as build `w6ajVrX5g8V0WhqowIBGN`.
+- **It works differently from the fix proposed below.** The Worker reads the HTTP status the AI binding records for each reply (`env.AI.lastRequestHttpStatusCode`), not the gateway's log: the owner ruled out querying gateway logs at runtime. The message check remains only as a fallback, for when no status is known. The pull request's description gives the exact rules.
+- **The trace and the effect on results stand as written.** Request 539's records and its $1.118208 hold are unchanged.
 
 ## What happened
 
