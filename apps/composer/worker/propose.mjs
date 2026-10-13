@@ -417,14 +417,16 @@ export async function handlePropose(request, env) {
 
 /** Every key a provider reports usage or a served model under: on a rejection, any of them shows a model result. */
 const RESULT_KEYS = ["usage", "model", "inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens"];
-/** The same evidence written as text: a quoted usage or token key. The binding makes a reply's whole body its error's
-    message when the body names no error code. A model's name alone does not count here, since a refusal's body may
-    name the model it refused. */
-const RESULT_IN_TEXT = /"(usage|inputTokens|outputTokens|input_tokens|output_tokens|prompt_tokens|completion_tokens)"\s*:/;
+/** The same evidence written as text: a quoted usage or token key, in any case, its quotes escaped or not (a body
+    quoted inside another). The binding makes a reply's whole body its error's message when the body names no error
+    code. A model's name alone does not count here, since a refusal's body may name the model it refused. */
+const RESULT_IN_TEXT = /\\?"(usage|inputTokens|outputTokens|input_tokens|output_tokens|prompt_tokens|completion_tokens)\\?"\s*:/i;
 /** How deep a rejection is read, its statuses and its search alike; anything deeper fails closed. */
 const EVIDENCE_DEPTH = 6;
+/** How many values the search reads in all; a rejection holding more fails closed, unread. */
+const EVIDENCE_VALUES = 4096;
 /** What the search reads in full: plain objects, arrays and errors. Anything else (a Response, a stream, a Map, a
-    buffer) may hold what it cannot read, such as a body, so it fails closed. */
+    buffer, a function) may hold what it cannot read, such as a body, so it fails closed. */
 const plainData = (value) => Array.isArray(value) || value instanceof Error || [Object.prototype, null].includes(Object.getPrototypeOf(value));
 
 /** What a rejection carries as structured data: every status it states, itself or down its response and cause, and
@@ -440,20 +442,27 @@ function evidenceOf(rejection) {
   };
   const seen = new Set();
   let result = false;
+  let values = 0;
   const search = (value, depth) => {
     if (result) return;
     if (typeof value === "string") {
       if (RESULT_IN_TEXT.test(value)) result = true;
       return;
     }
-    if (!value || typeof value !== "object" || seen.has(value)) return;
-    if (depth > EVIDENCE_DEPTH || seen.size >= 256 || !plainData(value)) {
+    if (!value || (typeof value !== "object" && typeof value !== "function") || seen.has(value)) return;
+    if (depth > EVIDENCE_DEPTH || seen.size >= 256 || !plainData(value) || (Array.isArray(value) && value.length > EVIDENCE_VALUES)) {
       result = true;
       return;
     }
     seen.add(value);
+    const keys = Reflect.ownKeys(value);
+    values += keys.length;
+    if (values > EVIDENCE_VALUES) {
+      result = true;
+      return;
+    }
     for (const key of RESULT_KEYS) if (value[key] != null) result = true;
-    for (const next of [value.response, value.cause, ...Reflect.ownKeys(value).map((key) => value[key])]) search(next, depth + 1);
+    for (const next of [value.response, value.cause, ...keys.map((key) => value[key])]) search(next, depth + 1);
   };
   try {
     chain(rejection, 0);

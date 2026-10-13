@@ -118,7 +118,9 @@ call before any model ran:
   `Response` and its body, counts as showing one.
 - **This trusts that `ds-ai-gateway` answers 429 only before it forwards a
   request.** Keep its Retry Requests setting off, and if guardrails or DLP are
-  enabled, check that they never block an answered request with a 429.
+  enabled, check that they never block an answered request with a 429. The
+  gateway is shared with the af-site theme generator, so its settings are a
+  shared precondition.
 
 Crucially, the Worker **never runs the deterministic pipeline** — Cloudflare
 Workers ban the runtime `new Function` that AJV (S1/S2/S3 + emit) needs, so
