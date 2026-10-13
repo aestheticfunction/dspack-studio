@@ -1,0 +1,16 @@
+2026-10-12T23:36:52Z monitor up: run /home/user/dspack-studio/packages/block-bench/live/runs/1b-stage3-astryx-2026-10-12, harness process group 542, resuming at 0 cells
+2026-10-12T23:47:42Z progress: 40 cells, 55 requests reserved, 0 refusals released, outcomes {'passed': 39, 'failed-lint-exhausted': 1}
+2026-10-12T23:58:47Z progress: 80 cells, 110 requests reserved, 0 refusals released, outcomes {'passed': 79, 'failed-lint-exhausted': 1}
+2026-10-13T00:09:32Z progress: 120 cells, 164 requests reserved, 0 refusals released, outcomes {'passed': 119, 'failed-lint-exhausted': 1}
+2026-10-13T00:14:52Z a refusal released before any provider call: 2026-10-12T23:36:48.304Z~64076335-d9e6-4d6a-9eae-dbf60d0d1fe0#191
+2026-10-13T00:19:49Z progress: 160 cells, 214 requests reserved, 1 refusals released, outcomes {'passed': 154, 'failed-lint-exhausted': 1, 'failed-adapter': 1, 'skipped': 4}
+2026-10-13T00:25:59Z a refusal released before any provider call: 2026-10-12T23:36:48.304Z~64076335-d9e6-4d6a-9eae-dbf60d0d1fe0#245
+2026-10-13T00:30:56Z progress: 200 cells, 268 requests reserved, 2 refusals released, outcomes {'passed': 193, 'failed-lint-exhausted': 1, 'failed-adapter': 2, 'skipped': 4}
+2026-10-13T00:41:31Z progress: 240 cells, 321 requests reserved, 2 refusals released, outcomes {'passed': 233, 'failed-lint-exhausted': 1, 'failed-adapter': 2, 'skipped': 4}
+2026-10-13T00:52:58Z progress: 280 cells, 378 requests reserved, 2 refusals released, outcomes {'passed': 271, 'failed-lint-exhausted': 3, 'failed-adapter': 2, 'skipped': 4}
+2026-10-13T01:04:35Z progress: 320 cells, 436 requests reserved, 2 refusals released, outcomes {'passed': 307, 'failed-lint-exhausted': 6, 'failed-adapter': 3, 'skipped': 4}
+2026-10-13T01:16:26Z progress: 360 cells, 495 requests reserved, 2 refusals released, outcomes {'passed': 345, 'failed-lint-exhausted': 8, 'failed-adapter': 3, 'skipped': 4}
+2026-10-13T01:18:59Z a refusal released before any provider call: 2026-10-12T23:36:48.304Z~64076335-d9e6-4d6a-9eae-dbf60d0d1fe0#508
+2026-10-13T01:23:55Z a refusal released before any provider call: 2026-10-12T23:36:48.304Z~64076335-d9e6-4d6a-9eae-dbf60d0d1fe0#531
+2026-10-13T01:25:51Z STOP: a ledger line not settled at its reported usage: 'usage not verified' on 2026-10-12T23:36:48.304Z~64076335-d9e6-4d6a-9eae-dbf60d0d1fe0#539
+2026-10-13T01:25:52Z harness stopped by the monitor

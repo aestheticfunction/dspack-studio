@@ -1,0 +1,7852 @@
+{
+  "runId": "2026-10-12T23-36-49-450Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com",
+  "provider": "hosted-ai:claude-haiku-4.5@https://composer.aesthetic-function.com",
+  "corpus": {
+    "id": "blocks-1b",
+    "version": 2,
+    "frozenAt": "2026-10-12",
+    "sha256": "0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9"
+  },
+  "cells": {
+    "total": 480,
+    "done": 387,
+    "reused": 0
+  },
+  "stopped": {
+    "reason": "integrity",
+    "message": "usage-missing: a refine call (provider-error) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it"
+  },
+  "servedModel": {
+    "id": "claude-haiku-4-5-20251001",
+    "at": "2026-10-12T23:36:55.398Z"
+  },
+  "telemetry": {
+    "pacing": {
+      "maxRequests": 825,
+      "spacingMs": 12000,
+      "backoffMs": [
+        30000,
+        60000,
+        120000,
+        240000
+      ],
+      "sent": 539,
+      "waits": [
+        {
+          "atMs": 7099,
+          "ms": 6069,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 17583,
+          "ms": 7587,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 28175,
+          "ms": 8999,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 40320,
+          "ms": 8860,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 52165,
+          "ms": 9021,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 63074,
+          "ms": 10118,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 78283,
+          "ms": 6915,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 87481,
+          "ms": 9720,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 101067,
+          "ms": 8141,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 111889,
+          "ms": 9319,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 123938,
+          "ms": 9274,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 135959,
+          "ms": 9257,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 146772,
+          "ms": 10448,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 163901,
+          "ms": 5326,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 171118,
+          "ms": 10111,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 186708,
+          "ms": 6528,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 196837,
+          "ms": 8402,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 209148,
+          "ms": 8096,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 221361,
+          "ms": 7888,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 238922,
+          "ms": 2332,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 242892,
+          "ms": 10365,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 258823,
+          "ms": 6440,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 268363,
+          "ms": 8903,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 280582,
+          "ms": 8689,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 292449,
+          "ms": 8828,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 306714,
+          "ms": 6569,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 315840,
+          "ms": 9446,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 329065,
+          "ms": 8227,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 339583,
+          "ms": 9714,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 351852,
+          "ms": 9451,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 363486,
+          "ms": 9823,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 374823,
+          "ms": 10492,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 390264,
+          "ms": 7057,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 399884,
+          "ms": 9441,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 411796,
+          "ms": 9533,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 423941,
+          "ms": 9394,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 436838,
+          "ms": 8503,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 447890,
+          "ms": 9457,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 459993,
+          "ms": 9361,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 471685,
+          "ms": 9675,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 485939,
+          "ms": 7428,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 495363,
+          "ms": 10008,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 508534,
+          "ms": 8844,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 520937,
+          "ms": 8447,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 532158,
+          "ms": 9227,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 544046,
+          "ms": 9342,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 558153,
+          "ms": 7241,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 567470,
+          "ms": 9926,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 580665,
+          "ms": 8737,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 591937,
+          "ms": 9471,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 604036,
+          "ms": 9378,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 615589,
+          "ms": 9831,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 630302,
+          "ms": 7125,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 640854,
+          "ms": 8576,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 652900,
+          "ms": 8536,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 664443,
+          "ms": 8997,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 676365,
+          "ms": 9081,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 688756,
+          "ms": 8692,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 700022,
+          "ms": 9431,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 711471,
+          "ms": 9983,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 723152,
+          "ms": 10304,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 738712,
+          "ms": 6751,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 747841,
+          "ms": 9626,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 760124,
+          "ms": 9350,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 772595,
+          "ms": 8884,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 783540,
+          "ms": 9945,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 795659,
+          "ms": 9832,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 808107,
+          "ms": 9389,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 819200,
+          "ms": 10302,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 835954,
+          "ms": 5555,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 843478,
+          "ms": 10032,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 857835,
+          "ms": 7682,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 868582,
+          "ms": 8939,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 880352,
+          "ms": 9174,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 892282,
+          "ms": 9245,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 907581,
+          "ms": 5952,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 915798,
+          "ms": 9738,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 929422,
+          "ms": 8120,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 940063,
+          "ms": 9484,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 952455,
+          "ms": 9099,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 964258,
+          "ms": 9302,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 980634,
+          "ms": 4932,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 988163,
+          "ms": 9405,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1000767,
+          "ms": 8807,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1011471,
+          "ms": 10108,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1023594,
+          "ms": 9990,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1035566,
+          "ms": 10020,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1047327,
+          "ms": 10265,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1059318,
+          "ms": 10281,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1075430,
+          "ms": 6182,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1083927,
+          "ms": 9687,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1096043,
+          "ms": 9577,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1107396,
+          "ms": 10229,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1119349,
+          "ms": 10283,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1131547,
+          "ms": 10092,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1143523,
+          "ms": 10121,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1155400,
+          "ms": 10251,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1172580,
+          "ms": 5076,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1179649,
+          "ms": 10009,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1193393,
+          "ms": 8271,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1204593,
+          "ms": 9075,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1215842,
+          "ms": 9832,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1228175,
+          "ms": 9501,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1242560,
+          "ms": 7122,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1251368,
+          "ms": 10318,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1265295,
+          "ms": 8393,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1275930,
+          "ms": 9763,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1288016,
+          "ms": 9683,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1299845,
+          "ms": 9859,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1317479,
+          "ms": 4235,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1324751,
+          "ms": 8964,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1337354,
+          "ms": 8365,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1348108,
+          "ms": 9616,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1360205,
+          "ms": 9524,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1371862,
+          "ms": 9870,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1383194,
+          "ms": 10545,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1400811,
+          "ms": 4930,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1408808,
+          "ms": 8935,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1420717,
+          "ms": 9032,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1432191,
+          "ms": 9563,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1446288,
+          "ms": 7472,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1458558,
+          "ms": 7206,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1470062,
+          "ms": 7702,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1481559,
+          "ms": 8209,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1497169,
+          "ms": 4604,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1504641,
+          "ms": 9132,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1518338,
+          "ms": 7440,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1528541,
+          "ms": 9241,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1541135,
+          "ms": 8649,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1552870,
+          "ms": 8918,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1567995,
+          "ms": 5798,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1575904,
+          "ms": 9891,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1590347,
+          "ms": 7454,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1601500,
+          "ms": 8305,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1613023,
+          "ms": 8787,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1624648,
+          "ms": 9168,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1641527,
+          "ms": 4294,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1648415,
+          "ms": 9406,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1661148,
+          "ms": 8672,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1673197,
+          "ms": 8628,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1684100,
+          "ms": 9730,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1696664,
+          "ms": 9173,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1707624,
+          "ms": 10218,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1722518,
+          "ms": 7330,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1732096,
+          "ms": 9756,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1744659,
+          "ms": 9198,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1756354,
+          "ms": 9509,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1769065,
+          "ms": 8803,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1780340,
+          "ms": 9534,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1792598,
+          "ms": 9282,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1804136,
+          "ms": 9750,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1817776,
+          "ms": 8116,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1827646,
+          "ms": 10250,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1841368,
+          "ms": 8549,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1852202,
+          "ms": 9720,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1864537,
+          "ms": 9392,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1876205,
+          "ms": 9730,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1890348,
+          "ms": 7593,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1899969,
+          "ms": 9976,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1912983,
+          "ms": 8963,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1924621,
+          "ms": 9331,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1936509,
+          "ms": 9449,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1948025,
+          "ms": 9939,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1963102,
+          "ms": 6862,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1972141,
+          "ms": 9827,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1983460,
+          "ms": 10515,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 1995455,
+          "ms": 10527,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2007448,
+          "ms": 10541,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2019466,
+          "ms": 10530,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2031643,
+          "ms": 10360,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2045748,
+          "ms": 8263,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2056474,
+          "ms": 9542,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2067555,
+          "ms": 10466,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2079545,
+          "ms": 10483,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2091887,
+          "ms": 10148,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2104227,
+          "ms": 9814,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2116210,
+          "ms": 9837,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2128697,
+          "ms": 9356,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2140023,
+          "ms": 10036,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2153600,
+          "ms": 8466,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2164737,
+          "ms": 9334,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2175947,
+          "ms": 10130,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2188108,
+          "ms": 9975,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2200289,
+          "ms": 9797,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2212510,
+          "ms": 9583,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2223981,
+          "ms": 10114,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2242327,
+          "ms": 3774,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2247998,
+          "ms": 10107,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2259915,
+          "ms": 10197,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2271588,
+          "ms": 10531,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2282679,
+          "ms": 30000,
+          "reason": "503 busy"
+        },
+        {
+          "atMs": 2314336,
+          "ms": 10370,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2326091,
+          "ms": 10623,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2338560,
+          "ms": 10162,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2352067,
+          "ms": 8661,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2362949,
+          "ms": 9784,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2374399,
+          "ms": 10340,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2386110,
+          "ms": 10636,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2398322,
+          "ms": 10431,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2410187,
+          "ms": 10573,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2422257,
+          "ms": 10510,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2436268,
+          "ms": 8506,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2446657,
+          "ms": 10122,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2459310,
+          "ms": 9471,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2471226,
+          "ms": 9560,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2483624,
+          "ms": 9168,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2495093,
+          "ms": 9705,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2507700,
+          "ms": 9104,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2518587,
+          "ms": 10218,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2531307,
+          "ms": 9502,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2543769,
+          "ms": 9046,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2555807,
+          "ms": 9014,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2567075,
+          "ms": 9749,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2580435,
+          "ms": 8395,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2591310,
+          "ms": 9522,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2602554,
+          "ms": 10284,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2614374,
+          "ms": 10470,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2627043,
+          "ms": 9809,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2638440,
+          "ms": 10418,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2650280,
+          "ms": 10585,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2666948,
+          "ms": 5924,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2675076,
+          "ms": 9799,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2686637,
+          "ms": 10244,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2698385,
+          "ms": 10503,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2710331,
+          "ms": 10564,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2722285,
+          "ms": 10617,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2734435,
+          "ms": 10473,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2748804,
+          "ms": 8111,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2759273,
+          "ms": 9647,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2772629,
+          "ms": 8297,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2784148,
+          "ms": 8779,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2795533,
+          "ms": 9399,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2807084,
+          "ms": 9854,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2819957,
+          "ms": 8985,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2831145,
+          "ms": 9802,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2843700,
+          "ms": 9253,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2855603,
+          "ms": 9356,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2868013,
+          "ms": 8952,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2879904,
+          "ms": 9066,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2897908,
+          "ms": 3068,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2903160,
+          "ms": 9819,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2914496,
+          "ms": 10489,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2927232,
+          "ms": 9760,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2938549,
+          "ms": 10444,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2949576,
+          "ms": 30000,
+          "reason": "503 busy"
+        },
+        {
+          "atMs": 2981547,
+          "ms": 10040,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 2993521,
+          "ms": 10072,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3005135,
+          "ms": 10464,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3018068,
+          "ms": 9536,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3030227,
+          "ms": 9382,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3041172,
+          "ms": 10442,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3053576,
+          "ms": 10045,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3065159,
+          "ms": 10469,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3076945,
+          "ms": 10690,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3089341,
+          "ms": 10302,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3103066,
+          "ms": 8584,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3113683,
+          "ms": 9972,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3126178,
+          "ms": 9483,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3137934,
+          "ms": 9728,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3150272,
+          "ms": 9396,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3161751,
+          "ms": 9918,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3174460,
+          "ms": 9216,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3185851,
+          "ms": 9831,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3199116,
+          "ms": 8571,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3210839,
+          "ms": 8848,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3223013,
+          "ms": 8679,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3233875,
+          "ms": 9817,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3247509,
+          "ms": 8186,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3258575,
+          "ms": 9120,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3269264,
+          "ms": 10434,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3281221,
+          "ms": 10484,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3293423,
+          "ms": 10289,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3305213,
+          "ms": 10506,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3318244,
+          "ms": 9482,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3330438,
+          "ms": 9294,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3342348,
+          "ms": 9390,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3353397,
+          "ms": 10347,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3365257,
+          "ms": 10492,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3377398,
+          "ms": 10358,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3389174,
+          "ms": 10588,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3401410,
+          "ms": 10359,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3415498,
+          "ms": 8277,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3426027,
+          "ms": 9753,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3438432,
+          "ms": 9355,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3450121,
+          "ms": 9672,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3462948,
+          "ms": 8851,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3474254,
+          "ms": 9550,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3487566,
+          "ms": 8245,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3498133,
+          "ms": 9679,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3511032,
+          "ms": 8783,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3522258,
+          "ms": 9562,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3534426,
+          "ms": 9399,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3545855,
+          "ms": 9976,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3560571,
+          "ms": 7267,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3571564,
+          "ms": 8278,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3581545,
+          "ms": 10302,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3593343,
+          "ms": 10511,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3605406,
+          "ms": 10456,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3617077,
+          "ms": 10793,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3629240,
+          "ms": 10637,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3643235,
+          "ms": 8649,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3654946,
+          "ms": 8938,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3665856,
+          "ms": 10032,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3677403,
+          "ms": 10491,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3689311,
+          "ms": 10590,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3701676,
+          "ms": 10233,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3713511,
+          "ms": 10405,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3725479,
+          "ms": 10444,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3738871,
+          "ms": 9059,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3750167,
+          "ms": 9769,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3762299,
+          "ms": 9641,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3774666,
+          "ms": 9281,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3786636,
+          "ms": 9317,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3797953,
+          "ms": 10006,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3811004,
+          "ms": 8962,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3822038,
+          "ms": 9934,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3834312,
+          "ms": 9667,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3846256,
+          "ms": 9729,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3858670,
+          "ms": 9322,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3869899,
+          "ms": 10094,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3882826,
+          "ms": 9173,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3894437,
+          "ms": 9568,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3909608,
+          "ms": 6403,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3918783,
+          "ms": 9231,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3930696,
+          "ms": 9324,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3942699,
+          "ms": 9326,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3954209,
+          "ms": 9822,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3974687,
+          "ms": 1349,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3977870,
+          "ms": 10167,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 3991690,
+          "ms": 8353,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4002476,
+          "ms": 9572,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4014649,
+          "ms": 9406,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4026549,
+          "ms": 9507,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4037657,
+          "ms": 10404,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4057949,
+          "ms": 2118,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4062112,
+          "ms": 9957,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4077415,
+          "ms": 6660,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4088331,
+          "ms": 7747,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4100769,
+          "ms": 7313,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4112132,
+          "ms": 7954,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4126849,
+          "ms": 5242,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4134258,
+          "ms": 9834,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4150698,
+          "ms": 5400,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4160367,
+          "ms": 7733,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4172452,
+          "ms": 7652,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4183974,
+          "ms": 8135,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4201320,
+          "ms": 2793,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4206601,
+          "ms": 9515,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4221204,
+          "ms": 6918,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4229974,
+          "ms": 10151,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4244465,
+          "ms": 7667,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4255095,
+          "ms": 9040,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4266944,
+          "ms": 9197,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4277607,
+          "ms": 10540,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4297616,
+          "ms": 2537,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4302548,
+          "ms": 9607,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4316750,
+          "ms": 7408,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4326484,
+          "ms": 9678,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4339244,
+          "ms": 8924,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4350624,
+          "ms": 9549,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4361781,
+          "ms": 10394,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4380204,
+          "ms": 3978,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4386488,
+          "ms": 9694,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4400498,
+          "ms": 7690,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4411646,
+          "ms": 8546,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4423235,
+          "ms": 8962,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4436227,
+          "ms": 7976,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4450351,
+          "ms": 5857,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4461023,
+          "ms": 7188,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4472739,
+          "ms": 7475,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4483167,
+          "ms": 9051,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4496577,
+          "ms": 7646,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4507510,
+          "ms": 8717,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4519622,
+          "ms": 8609,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4531565,
+          "ms": 8671,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4546059,
+          "ms": 6181,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4556714,
+          "ms": 7529,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4568742,
+          "ms": 7506,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4578909,
+          "ms": 9342,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4593937,
+          "ms": 6320,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4604535,
+          "ms": 7724,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4615816,
+          "ms": 8447,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4627545,
+          "ms": 8723,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4638008,
+          "ms": 10265,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4655809,
+          "ms": 4470,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4668220,
+          "ms": 4059,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4674776,
+          "ms": 9503,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4689186,
+          "ms": 7099,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4698586,
+          "ms": 9702,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4710723,
+          "ms": 9566,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4723026,
+          "ms": 9269,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4733916,
+          "ms": 10385,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4752630,
+          "ms": 3677,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4764102,
+          "ms": 4207,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4771157,
+          "ms": 9153,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4788283,
+          "ms": 4032,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4801973,
+          "ms": 2342,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4808758,
+          "ms": 7559,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4821129,
+          "ms": 7192,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4837876,
+          "ms": 2448,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4842760,
+          "ms": 9567,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4860331,
+          "ms": 3999,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4869640,
+          "ms": 6691,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4881583,
+          "ms": 6751,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4893556,
+          "ms": 6781,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4910101,
+          "ms": 2238,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4914523,
+          "ms": 9818,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4927146,
+          "ms": 9200,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4938336,
+          "ms": 10012,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4950284,
+          "ms": 10069,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4962339,
+          "ms": 10016,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4974101,
+          "ms": 10259,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 4989831,
+          "ms": 6536,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5001579,
+          "ms": 6789,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5011170,
+          "ms": 9201,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5023821,
+          "ms": 8555,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5034752,
+          "ms": 9629,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5047092,
+          "ms": 9295,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5061562,
+          "ms": 6830,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5070805,
+          "ms": 9590,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5086785,
+          "ms": 5616,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5109835,
+          "ms": 7986,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5121612,
+          "ms": 8213,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5133891,
+          "ms": 7938,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5145456,
+          "ms": 8377,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5157601,
+          "ms": 8237,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5171428,
+          "ms": 6411,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5181901,
+          "ms": 7939,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5193989,
+          "ms": 7855,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5204621,
+          "ms": 9227,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5220383,
+          "ms": 5471,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5229966,
+          "ms": 7890,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5242266,
+          "ms": 7595,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5254401,
+          "ms": 7465,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5267248,
+          "ms": 6622,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5277273,
+          "ms": 8601,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5291334,
+          "ms": 6545,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5300995,
+          "ms": 8887,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5313777,
+          "ms": 8110,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5325573,
+          "ms": 8319,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5336039,
+          "ms": 9858,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5363737,
+          "ms": 9538,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5379038,
+          "ms": 6243,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5388063,
+          "ms": 9221,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5400754,
+          "ms": 8536,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5412539,
+          "ms": 8756,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5423436,
+          "ms": 9860,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5447919,
+          "ms": 10010,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5464024,
+          "ms": 5911,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5475372,
+          "ms": 6564,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5487259,
+          "ms": 6680,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5499490,
+          "ms": 6452,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5510549,
+          "ms": 7395,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5527010,
+          "ms": 2938,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5534399,
+          "ms": 7552,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5548380,
+          "ms": 5574,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5560143,
+          "ms": 5813,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5570761,
+          "ms": 7196,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5582813,
+          "ms": 7148,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5595197,
+          "ms": 6768,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5608735,
+          "ms": 5234,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5621035,
+          "ms": 4935,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5633027,
+          "ms": 4945,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5640640,
+          "ms": 9333,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5655091,
+          "ms": 6887,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5664926,
+          "ms": 9056,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5676983,
+          "ms": 9002,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5688821,
+          "ms": 9170,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5700075,
+          "ms": 9922,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5719916,
+          "ms": 2088,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5724689,
+          "ms": 9317,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5739740,
+          "ms": 6272,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5749768,
+          "ms": 8246,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5761147,
+          "ms": 8872,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5773324,
+          "ms": 8701,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5784217,
+          "ms": 9811,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5802703,
+          "ms": 3332,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5815150,
+          "ms": 2888,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5820068,
+          "ms": 9972,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5835591,
+          "ms": 6453,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5844901,
+          "ms": 9146,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5858326,
+          "ms": 7726,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5869369,
+          "ms": 8688,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5882371,
+          "ms": 7690,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5892740,
+          "ms": 9324,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5906418,
+          "ms": 7652,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5917895,
+          "ms": 8178,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5929589,
+          "ms": 8489,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5940598,
+          "ms": 9482,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5954812,
+          "ms": 7274,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5968045,
+          "ms": 6044,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5977880,
+          "ms": 8212,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 5988587,
+          "ms": 9510,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6001040,
+          "ms": 9063,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6012138,
+          "ms": 9970,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6024408,
+          "ms": 9707,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6036003,
+          "ms": 10118,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6048380,
+          "ms": 9748,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6060169,
+          "ms": 9965,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6073362,
+          "ms": 8779,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6084823,
+          "ms": 9321,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6096189,
+          "ms": 9961,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6108029,
+          "ms": 10127,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6122437,
+          "ms": 7725,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6130763,
+          "ms": 30000,
+          "reason": "503 busy"
+        },
+        {
+          "atMs": 6162619,
+          "ms": 10169,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6174958,
+          "ms": 9837,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6189462,
+          "ms": 7340,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6198641,
+          "ms": 10166,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6210974,
+          "ms": 9839,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6222624,
+          "ms": 10196,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6234733,
+          "ms": 10094,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6246853,
+          "ms": 9981,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6258554,
+          "ms": 10281,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6272181,
+          "ms": 8660,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6282547,
+          "ms": 10299,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6294643,
+          "ms": 10208,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6307128,
+          "ms": 9729,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6318756,
+          "ms": 10108,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6330763,
+          "ms": 10108,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6342693,
+          "ms": 10184,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6354763,
+          "ms": 10120,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6367643,
+          "ms": 9247,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6379247,
+          "ms": 9649,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6391193,
+          "ms": 9709,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6402632,
+          "ms": 10276,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6416760,
+          "ms": 8154,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6425523,
+          "ms": 30000,
+          "reason": "503 busy"
+        },
+        {
+          "atMs": 6457468,
+          "ms": 10081,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6469262,
+          "ms": 10294,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6481685,
+          "ms": 9878,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6494400,
+          "ms": 9164,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6505876,
+          "ms": 9693,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6518572,
+          "ms": 9003,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 6529410,
+          "ms": 10171,
+          "reason": "spacing"
+        }
+      ]
+    }
+  },
+  "invocations": [
+    {
+      "at": "2026-10-12T23:36:48.304Z",
+      "id": "2026-10-12T23:36:48.304Z~64076335-d9e6-4d6a-9eae-dbf60d0d1fe0",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 825,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 539,
+          "waits": [
+            {
+              "atMs": 7099,
+              "ms": 6069,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 17583,
+              "ms": 7587,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 28175,
+              "ms": 8999,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 40320,
+              "ms": 8860,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 52165,
+              "ms": 9021,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 63074,
+              "ms": 10118,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 78283,
+              "ms": 6915,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 87481,
+              "ms": 9720,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 101067,
+              "ms": 8141,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 111889,
+              "ms": 9319,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 123938,
+              "ms": 9274,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 135959,
+              "ms": 9257,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 146772,
+              "ms": 10448,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 163901,
+              "ms": 5326,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 171118,
+              "ms": 10111,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 186708,
+              "ms": 6528,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 196837,
+              "ms": 8402,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 209148,
+              "ms": 8096,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 221361,
+              "ms": 7888,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 238922,
+              "ms": 2332,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 242892,
+              "ms": 10365,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 258823,
+              "ms": 6440,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 268363,
+              "ms": 8903,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 280582,
+              "ms": 8689,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 292449,
+              "ms": 8828,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 306714,
+              "ms": 6569,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 315840,
+              "ms": 9446,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 329065,
+              "ms": 8227,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 339583,
+              "ms": 9714,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 351852,
+              "ms": 9451,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 363486,
+              "ms": 9823,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 374823,
+              "ms": 10492,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 390264,
+              "ms": 7057,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 399884,
+              "ms": 9441,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 411796,
+              "ms": 9533,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 423941,
+              "ms": 9394,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 436838,
+              "ms": 8503,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 447890,
+              "ms": 9457,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 459993,
+              "ms": 9361,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 471685,
+              "ms": 9675,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 485939,
+              "ms": 7428,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 495363,
+              "ms": 10008,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 508534,
+              "ms": 8844,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 520937,
+              "ms": 8447,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 532158,
+              "ms": 9227,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 544046,
+              "ms": 9342,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 558153,
+              "ms": 7241,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 567470,
+              "ms": 9926,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 580665,
+              "ms": 8737,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 591937,
+              "ms": 9471,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 604036,
+              "ms": 9378,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 615589,
+              "ms": 9831,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 630302,
+              "ms": 7125,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 640854,
+              "ms": 8576,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 652900,
+              "ms": 8536,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 664443,
+              "ms": 8997,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 676365,
+              "ms": 9081,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 688756,
+              "ms": 8692,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 700022,
+              "ms": 9431,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 711471,
+              "ms": 9983,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 723152,
+              "ms": 10304,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 738712,
+              "ms": 6751,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 747841,
+              "ms": 9626,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 760124,
+              "ms": 9350,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 772595,
+              "ms": 8884,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 783540,
+              "ms": 9945,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 795659,
+              "ms": 9832,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 808107,
+              "ms": 9389,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 819200,
+              "ms": 10302,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 835954,
+              "ms": 5555,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 843478,
+              "ms": 10032,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 857835,
+              "ms": 7682,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 868582,
+              "ms": 8939,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 880352,
+              "ms": 9174,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 892282,
+              "ms": 9245,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 907581,
+              "ms": 5952,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 915798,
+              "ms": 9738,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 929422,
+              "ms": 8120,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 940063,
+              "ms": 9484,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 952455,
+              "ms": 9099,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 964258,
+              "ms": 9302,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 980634,
+              "ms": 4932,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 988163,
+              "ms": 9405,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1000767,
+              "ms": 8807,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1011471,
+              "ms": 10108,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1023594,
+              "ms": 9990,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1035566,
+              "ms": 10020,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1047327,
+              "ms": 10265,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1059318,
+              "ms": 10281,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1075430,
+              "ms": 6182,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1083927,
+              "ms": 9687,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1096043,
+              "ms": 9577,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1107396,
+              "ms": 10229,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1119349,
+              "ms": 10283,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1131547,
+              "ms": 10092,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1143523,
+              "ms": 10121,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1155400,
+              "ms": 10251,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1172580,
+              "ms": 5076,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1179649,
+              "ms": 10009,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1193393,
+              "ms": 8271,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1204593,
+              "ms": 9075,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1215842,
+              "ms": 9832,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1228175,
+              "ms": 9501,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1242560,
+              "ms": 7122,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1251368,
+              "ms": 10318,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1265295,
+              "ms": 8393,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1275930,
+              "ms": 9763,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1288016,
+              "ms": 9683,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1299845,
+              "ms": 9859,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1317479,
+              "ms": 4235,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1324751,
+              "ms": 8964,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1337354,
+              "ms": 8365,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1348108,
+              "ms": 9616,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1360205,
+              "ms": 9524,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1371862,
+              "ms": 9870,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1383194,
+              "ms": 10545,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1400811,
+              "ms": 4930,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1408808,
+              "ms": 8935,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1420717,
+              "ms": 9032,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1432191,
+              "ms": 9563,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1446288,
+              "ms": 7472,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1458558,
+              "ms": 7206,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1470062,
+              "ms": 7702,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1481559,
+              "ms": 8209,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1497169,
+              "ms": 4604,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1504641,
+              "ms": 9132,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1518338,
+              "ms": 7440,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1528541,
+              "ms": 9241,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1541135,
+              "ms": 8649,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1552870,
+              "ms": 8918,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1567995,
+              "ms": 5798,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1575904,
+              "ms": 9891,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1590347,
+              "ms": 7454,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1601500,
+              "ms": 8305,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1613023,
+              "ms": 8787,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1624648,
+              "ms": 9168,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1641527,
+              "ms": 4294,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1648415,
+              "ms": 9406,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1661148,
+              "ms": 8672,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1673197,
+              "ms": 8628,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1684100,
+              "ms": 9730,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1696664,
+              "ms": 9173,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1707624,
+              "ms": 10218,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1722518,
+              "ms": 7330,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1732096,
+              "ms": 9756,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1744659,
+              "ms": 9198,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1756354,
+              "ms": 9509,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1769065,
+              "ms": 8803,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1780340,
+              "ms": 9534,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1792598,
+              "ms": 9282,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1804136,
+              "ms": 9750,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1817776,
+              "ms": 8116,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1827646,
+              "ms": 10250,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1841368,
+              "ms": 8549,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1852202,
+              "ms": 9720,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1864537,
+              "ms": 9392,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1876205,
+              "ms": 9730,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1890348,
+              "ms": 7593,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1899969,
+              "ms": 9976,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1912983,
+              "ms": 8963,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1924621,
+              "ms": 9331,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1936509,
+              "ms": 9449,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1948025,
+              "ms": 9939,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1963102,
+              "ms": 6862,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1972141,
+              "ms": 9827,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1983460,
+              "ms": 10515,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1995455,
+              "ms": 10527,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2007448,
+              "ms": 10541,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2019466,
+              "ms": 10530,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2031643,
+              "ms": 10360,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2045748,
+              "ms": 8263,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2056474,
+              "ms": 9542,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2067555,
+              "ms": 10466,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2079545,
+              "ms": 10483,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2091887,
+              "ms": 10148,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2104227,
+              "ms": 9814,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2116210,
+              "ms": 9837,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2128697,
+              "ms": 9356,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2140023,
+              "ms": 10036,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2153600,
+              "ms": 8466,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2164737,
+              "ms": 9334,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2175947,
+              "ms": 10130,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2188108,
+              "ms": 9975,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2200289,
+              "ms": 9797,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2212510,
+              "ms": 9583,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2223981,
+              "ms": 10114,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2242327,
+              "ms": 3774,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2247998,
+              "ms": 10107,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2259915,
+              "ms": 10197,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2271588,
+              "ms": 10531,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2282679,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 2314336,
+              "ms": 10370,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2326091,
+              "ms": 10623,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2338560,
+              "ms": 10162,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2352067,
+              "ms": 8661,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2362949,
+              "ms": 9784,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2374399,
+              "ms": 10340,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2386110,
+              "ms": 10636,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2398322,
+              "ms": 10431,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2410187,
+              "ms": 10573,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2422257,
+              "ms": 10510,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2436268,
+              "ms": 8506,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2446657,
+              "ms": 10122,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2459310,
+              "ms": 9471,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2471226,
+              "ms": 9560,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2483624,
+              "ms": 9168,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2495093,
+              "ms": 9705,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2507700,
+              "ms": 9104,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2518587,
+              "ms": 10218,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2531307,
+              "ms": 9502,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2543769,
+              "ms": 9046,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2555807,
+              "ms": 9014,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2567075,
+              "ms": 9749,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2580435,
+              "ms": 8395,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2591310,
+              "ms": 9522,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2602554,
+              "ms": 10284,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2614374,
+              "ms": 10470,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2627043,
+              "ms": 9809,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2638440,
+              "ms": 10418,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2650280,
+              "ms": 10585,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2666948,
+              "ms": 5924,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2675076,
+              "ms": 9799,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2686637,
+              "ms": 10244,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2698385,
+              "ms": 10503,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2710331,
+              "ms": 10564,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2722285,
+              "ms": 10617,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2734435,
+              "ms": 10473,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2748804,
+              "ms": 8111,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2759273,
+              "ms": 9647,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2772629,
+              "ms": 8297,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2784148,
+              "ms": 8779,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2795533,
+              "ms": 9399,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2807084,
+              "ms": 9854,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2819957,
+              "ms": 8985,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2831145,
+              "ms": 9802,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2843700,
+              "ms": 9253,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2855603,
+              "ms": 9356,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2868013,
+              "ms": 8952,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2879904,
+              "ms": 9066,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2897908,
+              "ms": 3068,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2903160,
+              "ms": 9819,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2914496,
+              "ms": 10489,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2927232,
+              "ms": 9760,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2938549,
+              "ms": 10444,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2949576,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 2981547,
+              "ms": 10040,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 2993521,
+              "ms": 10072,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3005135,
+              "ms": 10464,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3018068,
+              "ms": 9536,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3030227,
+              "ms": 9382,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3041172,
+              "ms": 10442,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3053576,
+              "ms": 10045,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3065159,
+              "ms": 10469,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3076945,
+              "ms": 10690,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3089341,
+              "ms": 10302,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3103066,
+              "ms": 8584,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3113683,
+              "ms": 9972,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3126178,
+              "ms": 9483,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3137934,
+              "ms": 9728,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3150272,
+              "ms": 9396,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3161751,
+              "ms": 9918,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3174460,
+              "ms": 9216,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3185851,
+              "ms": 9831,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3199116,
+              "ms": 8571,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3210839,
+              "ms": 8848,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3223013,
+              "ms": 8679,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3233875,
+              "ms": 9817,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3247509,
+              "ms": 8186,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3258575,
+              "ms": 9120,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3269264,
+              "ms": 10434,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3281221,
+              "ms": 10484,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3293423,
+              "ms": 10289,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3305213,
+              "ms": 10506,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3318244,
+              "ms": 9482,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3330438,
+              "ms": 9294,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3342348,
+              "ms": 9390,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3353397,
+              "ms": 10347,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3365257,
+              "ms": 10492,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3377398,
+              "ms": 10358,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3389174,
+              "ms": 10588,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3401410,
+              "ms": 10359,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3415498,
+              "ms": 8277,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3426027,
+              "ms": 9753,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3438432,
+              "ms": 9355,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3450121,
+              "ms": 9672,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3462948,
+              "ms": 8851,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3474254,
+              "ms": 9550,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3487566,
+              "ms": 8245,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3498133,
+              "ms": 9679,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3511032,
+              "ms": 8783,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3522258,
+              "ms": 9562,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3534426,
+              "ms": 9399,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3545855,
+              "ms": 9976,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3560571,
+              "ms": 7267,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3571564,
+              "ms": 8278,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3581545,
+              "ms": 10302,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3593343,
+              "ms": 10511,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3605406,
+              "ms": 10456,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3617077,
+              "ms": 10793,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3629240,
+              "ms": 10637,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3643235,
+              "ms": 8649,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3654946,
+              "ms": 8938,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3665856,
+              "ms": 10032,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3677403,
+              "ms": 10491,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3689311,
+              "ms": 10590,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3701676,
+              "ms": 10233,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3713511,
+              "ms": 10405,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3725479,
+              "ms": 10444,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3738871,
+              "ms": 9059,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3750167,
+              "ms": 9769,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3762299,
+              "ms": 9641,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3774666,
+              "ms": 9281,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3786636,
+              "ms": 9317,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3797953,
+              "ms": 10006,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3811004,
+              "ms": 8962,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3822038,
+              "ms": 9934,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3834312,
+              "ms": 9667,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3846256,
+              "ms": 9729,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3858670,
+              "ms": 9322,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3869899,
+              "ms": 10094,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3882826,
+              "ms": 9173,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3894437,
+              "ms": 9568,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3909608,
+              "ms": 6403,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3918783,
+              "ms": 9231,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3930696,
+              "ms": 9324,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3942699,
+              "ms": 9326,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3954209,
+              "ms": 9822,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3974687,
+              "ms": 1349,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3977870,
+              "ms": 10167,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 3991690,
+              "ms": 8353,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4002476,
+              "ms": 9572,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4014649,
+              "ms": 9406,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4026549,
+              "ms": 9507,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4037657,
+              "ms": 10404,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4057949,
+              "ms": 2118,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4062112,
+              "ms": 9957,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4077415,
+              "ms": 6660,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4088331,
+              "ms": 7747,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4100769,
+              "ms": 7313,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4112132,
+              "ms": 7954,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4126849,
+              "ms": 5242,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4134258,
+              "ms": 9834,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4150698,
+              "ms": 5400,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4160367,
+              "ms": 7733,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4172452,
+              "ms": 7652,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4183974,
+              "ms": 8135,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4201320,
+              "ms": 2793,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4206601,
+              "ms": 9515,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4221204,
+              "ms": 6918,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4229974,
+              "ms": 10151,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4244465,
+              "ms": 7667,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4255095,
+              "ms": 9040,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4266944,
+              "ms": 9197,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4277607,
+              "ms": 10540,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4297616,
+              "ms": 2537,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4302548,
+              "ms": 9607,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4316750,
+              "ms": 7408,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4326484,
+              "ms": 9678,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4339244,
+              "ms": 8924,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4350624,
+              "ms": 9549,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4361781,
+              "ms": 10394,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4380204,
+              "ms": 3978,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4386488,
+              "ms": 9694,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4400498,
+              "ms": 7690,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4411646,
+              "ms": 8546,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4423235,
+              "ms": 8962,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4436227,
+              "ms": 7976,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4450351,
+              "ms": 5857,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4461023,
+              "ms": 7188,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4472739,
+              "ms": 7475,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4483167,
+              "ms": 9051,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4496577,
+              "ms": 7646,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4507510,
+              "ms": 8717,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4519622,
+              "ms": 8609,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4531565,
+              "ms": 8671,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4546059,
+              "ms": 6181,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4556714,
+              "ms": 7529,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4568742,
+              "ms": 7506,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4578909,
+              "ms": 9342,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4593937,
+              "ms": 6320,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4604535,
+              "ms": 7724,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4615816,
+              "ms": 8447,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4627545,
+              "ms": 8723,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4638008,
+              "ms": 10265,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4655809,
+              "ms": 4470,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4668220,
+              "ms": 4059,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4674776,
+              "ms": 9503,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4689186,
+              "ms": 7099,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4698586,
+              "ms": 9702,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4710723,
+              "ms": 9566,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4723026,
+              "ms": 9269,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4733916,
+              "ms": 10385,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4752630,
+              "ms": 3677,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4764102,
+              "ms": 4207,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4771157,
+              "ms": 9153,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4788283,
+              "ms": 4032,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4801973,
+              "ms": 2342,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4808758,
+              "ms": 7559,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4821129,
+              "ms": 7192,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4837876,
+              "ms": 2448,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4842760,
+              "ms": 9567,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4860331,
+              "ms": 3999,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4869640,
+              "ms": 6691,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4881583,
+              "ms": 6751,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4893556,
+              "ms": 6781,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4910101,
+              "ms": 2238,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4914523,
+              "ms": 9818,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4927146,
+              "ms": 9200,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4938336,
+              "ms": 10012,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4950284,
+              "ms": 10069,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4962339,
+              "ms": 10016,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4974101,
+              "ms": 10259,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 4989831,
+              "ms": 6536,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5001579,
+              "ms": 6789,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5011170,
+              "ms": 9201,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5023821,
+              "ms": 8555,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5034752,
+              "ms": 9629,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5047092,
+              "ms": 9295,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5061562,
+              "ms": 6830,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5070805,
+              "ms": 9590,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5086785,
+              "ms": 5616,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5109835,
+              "ms": 7986,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5121612,
+              "ms": 8213,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5133891,
+              "ms": 7938,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5145456,
+              "ms": 8377,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5157601,
+              "ms": 8237,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5171428,
+              "ms": 6411,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5181901,
+              "ms": 7939,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5193989,
+              "ms": 7855,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5204621,
+              "ms": 9227,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5220383,
+              "ms": 5471,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5229966,
+              "ms": 7890,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5242266,
+              "ms": 7595,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5254401,
+              "ms": 7465,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5267248,
+              "ms": 6622,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5277273,
+              "ms": 8601,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5291334,
+              "ms": 6545,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5300995,
+              "ms": 8887,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5313777,
+              "ms": 8110,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5325573,
+              "ms": 8319,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5336039,
+              "ms": 9858,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5363737,
+              "ms": 9538,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5379038,
+              "ms": 6243,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5388063,
+              "ms": 9221,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5400754,
+              "ms": 8536,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5412539,
+              "ms": 8756,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5423436,
+              "ms": 9860,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5447919,
+              "ms": 10010,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5464024,
+              "ms": 5911,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5475372,
+              "ms": 6564,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5487259,
+              "ms": 6680,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5499490,
+              "ms": 6452,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5510549,
+              "ms": 7395,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5527010,
+              "ms": 2938,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5534399,
+              "ms": 7552,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5548380,
+              "ms": 5574,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5560143,
+              "ms": 5813,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5570761,
+              "ms": 7196,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5582813,
+              "ms": 7148,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5595197,
+              "ms": 6768,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5608735,
+              "ms": 5234,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5621035,
+              "ms": 4935,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5633027,
+              "ms": 4945,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5640640,
+              "ms": 9333,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5655091,
+              "ms": 6887,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5664926,
+              "ms": 9056,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5676983,
+              "ms": 9002,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5688821,
+              "ms": 9170,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5700075,
+              "ms": 9922,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5719916,
+              "ms": 2088,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5724689,
+              "ms": 9317,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5739740,
+              "ms": 6272,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5749768,
+              "ms": 8246,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5761147,
+              "ms": 8872,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5773324,
+              "ms": 8701,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5784217,
+              "ms": 9811,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5802703,
+              "ms": 3332,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5815150,
+              "ms": 2888,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5820068,
+              "ms": 9972,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5835591,
+              "ms": 6453,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5844901,
+              "ms": 9146,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5858326,
+              "ms": 7726,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5869369,
+              "ms": 8688,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5882371,
+              "ms": 7690,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5892740,
+              "ms": 9324,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5906418,
+              "ms": 7652,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5917895,
+              "ms": 8178,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5929589,
+              "ms": 8489,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5940598,
+              "ms": 9482,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5954812,
+              "ms": 7274,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5968045,
+              "ms": 6044,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5977880,
+              "ms": 8212,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 5988587,
+              "ms": 9510,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6001040,
+              "ms": 9063,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6012138,
+              "ms": 9970,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6024408,
+              "ms": 9707,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6036003,
+              "ms": 10118,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6048380,
+              "ms": 9748,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6060169,
+              "ms": 9965,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6073362,
+              "ms": 8779,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6084823,
+              "ms": 9321,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6096189,
+              "ms": 9961,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6108029,
+              "ms": 10127,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6122437,
+              "ms": 7725,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6130763,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 6162619,
+              "ms": 10169,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6174958,
+              "ms": 9837,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6189462,
+              "ms": 7340,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6198641,
+              "ms": 10166,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6210974,
+              "ms": 9839,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6222624,
+              "ms": 10196,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6234733,
+              "ms": 10094,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6246853,
+              "ms": 9981,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6258554,
+              "ms": 10281,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6272181,
+              "ms": 8660,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6282547,
+              "ms": 10299,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6294643,
+              "ms": 10208,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6307128,
+              "ms": 9729,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6318756,
+              "ms": 10108,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6330763,
+              "ms": 10108,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6342693,
+              "ms": 10184,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6354763,
+              "ms": 10120,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6367643,
+              "ms": 9247,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6379247,
+              "ms": 9649,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6391193,
+              "ms": 9709,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6402632,
+              "ms": 10276,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6416760,
+              "ms": 8154,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6425523,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 6457468,
+              "ms": 10081,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6469262,
+              "ms": 10294,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6481685,
+              "ms": 9878,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6494400,
+              "ms": 9164,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6505876,
+              "ms": 9693,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6518572,
+              "ms": 9003,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 6529410,
+              "ms": 10171,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "integrity",
+        "message": "usage-missing: a refine call (provider-error) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it"
+      }
+    }
+  ],
+  "requests": {
+    "cap": 1150,
+    "sent": 539,
+    "capUsd": 17,
+    "usd": 5.86356015
+  },
+  "superseded": {
+    "records": 0,
+    "providerCalls": 0,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "requestBytes": 0
+  },
+  "summary": {
+    "scoring": "binding",
+    "arms": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "fresh",
+        "n": 20,
+        "skipped": 0,
+        "completed": 20,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 20,
+        "passed": 20,
+        "passRate": 1,
+        "firstAttemptPassed": 20,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 20,
+        "meteredSuccesses": 20,
+        "meteredTokens": 65613,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 3280.65,
+        "inputTokensPerSuccess": 2857.1,
+        "outputTokensPerSuccess": 423.55,
+        "tokensPerPassingRun": 3280.65,
+        "providerCallsPerRun": 2,
+        "requestBytesPerRun": 11159.9,
+        "latency": {
+          "totalMs": 5852.020982500049,
+          "firstGatedAttemptMs": 5697.1074564999435,
+          "blockPhaseMs": 3101.333025999891,
+          "emitMs": 112.86611599999014,
+          "planMs": 2573.3971664999845,
+          "pacingMs": 15392.032567999559,
+          "wallTotalMs": 21359.311661500018
+        },
+        "parity": {
+          "meanScore": 0.9,
+          "scored": 20,
+          "fullyParityPassed": 15,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "block": {
+            "n": 18,
+            "passed": 18
+          },
+          "primitive": {
+            "n": 2,
+            "passed": 2
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "fresh",
+        "n": 20,
+        "skipped": 0,
+        "completed": 20,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 20,
+        "passed": 19,
+        "passRate": 0.95,
+        "firstAttemptPassed": 19,
+        "firstAttemptPassRate": 0.95,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 20,
+        "meteredSuccesses": 19,
+        "meteredTokens": 107193,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 5641.736842105263,
+        "inputTokensPerSuccess": 5209.315789473684,
+        "outputTokensPerSuccess": 432.42105263157896,
+        "tokensPerPassingRun": 5501.578947368421,
+        "providerCallsPerRun": 2.4,
+        "requestBytesPerRun": 18459.6,
+        "latency": {
+          "totalMs": 5821.206629000011,
+          "firstGatedAttemptMs": 6032.2442710000105,
+          "blockPhaseMs": 3648.764027999936,
+          "emitMs": 103.19105200003833,
+          "planMs": 2458.813492999994,
+          "pacingMs": 17849.976324499818,
+          "wallTotalMs": 22697.56669349996
+        },
+        "parity": {
+          "meanScore": 0.8421052631578947,
+          "scored": 19,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "block": {
+            "n": 13,
+            "passed": 13
+          },
+          "fallback": {
+            "n": 3,
+            "passed": 3
+          },
+          "block-repair": {
+            "n": 1,
+            "passed": 1
+          },
+          "provider-failure": {
+            "n": 1,
+            "passed": 0
+          },
+          "primitive": {
+            "n": 2,
+            "passed": 2
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "1": 3
+        },
+        "fallbackByClassification": {
+          "invalid-call": 3
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "fresh",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 19,
+        "passRate": 1,
+        "firstAttemptPassed": 17,
+        "firstAttemptPassRate": 0.8947368421052632,
+        "repairsPerSuccess": 0.10526315789473684,
+        "meteredRuns": 19,
+        "meteredSuccesses": 19,
+        "meteredTokens": 270359,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 14229.421052631578,
+        "inputTokensPerSuccess": 13655.842105263158,
+        "outputTokensPerSuccess": 573.578947368421,
+        "tokensPerPassingRun": 14229.421052631578,
+        "providerCallsPerRun": 2.1052631578947367,
+        "requestBytesPerRun": 49227.31578947369,
+        "latency": {
+          "totalMs": 6053.346336999908,
+          "firstGatedAttemptMs": 5945.359107000288,
+          "blockPhaseMs": null,
+          "emitMs": 107.41653099982068,
+          "planMs": 2026.4343129992485,
+          "pacingMs": 15928.478746000677,
+          "wallTotalMs": 22932.496588000096
+        },
+        "parity": {
+          "meanScore": 0.8596491228070174,
+          "scored": 19,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 19
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "fresh",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 19,
+        "passRate": 1,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9473684210526315,
+        "repairsPerSuccess": 0.05263157894736842,
+        "meteredRuns": 19,
+        "meteredSuccesses": 19,
+        "meteredTokens": 257731,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 13564.78947368421,
+        "inputTokensPerSuccess": 13001.842105263158,
+        "outputTokensPerSuccess": 562.9473684210526,
+        "tokensPerPassingRun": 13564.78947368421,
+        "providerCallsPerRun": 2.0526315789473686,
+        "requestBytesPerRun": 46861.73684210526,
+        "latency": {
+          "totalMs": 5595.335756000131,
+          "firstGatedAttemptMs": 5395.507579000201,
+          "blockPhaseMs": null,
+          "emitMs": 132.44819600041956,
+          "planMs": 2164.672804000322,
+          "pacingMs": 17174.538793000043,
+          "wallTotalMs": 23463.455984000117
+        },
+        "parity": {
+          "meanScore": 0.8596491228070174,
+          "scored": 19,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 19
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-add",
+        "n": 20,
+        "skipped": 0,
+        "completed": 20,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 20,
+        "passed": 18,
+        "passRate": 0.9,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 20,
+        "meteredSuccesses": 18,
+        "meteredTokens": 76202,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 4233.444444444444,
+        "inputTokensPerSuccess": 3990.5555555555557,
+        "outputTokensPerSuccess": 242.88888888888889,
+        "tokensPerPassingRun": 1056.9444444444443,
+        "providerCallsPerRun": 1.15,
+        "requestBytesPerRun": 11043.25,
+        "latency": {
+          "totalMs": 2503.913840000023,
+          "firstGatedAttemptMs": 2326.5627289999975,
+          "blockPhaseMs": 2241.4612874999875,
+          "emitMs": 111.35229899990372,
+          "planMs": null,
+          "pacingMs": 9740.898322500027,
+          "wallTotalMs": 12105.251305000158
+        },
+        "parity": {
+          "meanScore": 0.8888888888888888,
+          "scored": 18,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 20,
+          "performed": 18,
+          "mixed": 0,
+          "missed": 2,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 2,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 2,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 18,
+            "passed": 18
+          },
+          "primitive": {
+            "n": 2,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.95,
+        "changed": 19,
+        "refinedPassed": 20,
+        "retention": 1,
+        "retained": 18,
+        "onBlockPrior": 18
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-add",
+        "n": 19,
+        "skipped": 1,
+        "completed": 18,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 18,
+        "passed": 17,
+        "passRate": 0.9444444444444444,
+        "firstAttemptPassed": 17,
+        "firstAttemptPassRate": 0.9444444444444444,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 18,
+        "meteredSuccesses": 17,
+        "meteredTokens": 87223,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 5130.764705882353,
+        "inputTokensPerSuccess": 4899.176470588235,
+        "outputTokensPerSuccess": 231.58823529411765,
+        "tokensPerPassingRun": 3115.1176470588234,
+        "providerCallsPerRun": 1.1111111111111112,
+        "requestBytesPerRun": 14333.611111111111,
+        "latency": {
+          "totalMs": 2611.861641499767,
+          "firstGatedAttemptMs": 2526.046561499912,
+          "blockPhaseMs": 2188.916871500027,
+          "emitMs": 105.32427250000183,
+          "planMs": null,
+          "pacingMs": 9693.329799000174,
+          "wallTotalMs": 12121.077043499565
+        },
+        "parity": {
+          "meanScore": 0.8235294117647058,
+          "scored": 17,
+          "fullyParityPassed": 11,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 18,
+          "performed": 17,
+          "mixed": 0,
+          "missed": 1,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 5,
+            "performed": 5,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 1,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 14,
+            "passed": 14
+          },
+          "switch": {
+            "n": 3,
+            "passed": 3
+          },
+          "primitive": {
+            "n": 1,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {
+          "switch": 3
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9444444444444444,
+        "changed": 17,
+        "refinedPassed": 18,
+        "retention": 0.8235294117647058,
+        "retained": 14,
+        "onBlockPrior": 17
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-add",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 19,
+        "passRate": 1,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9473684210526315,
+        "repairsPerSuccess": 0.05263157894736842,
+        "meteredRuns": 19,
+        "meteredSuccesses": 19,
+        "meteredTokens": 241912,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12732.21052631579,
+        "inputTokensPerSuccess": 12323.052631578947,
+        "outputTokensPerSuccess": 409.1578947368421,
+        "tokensPerPassingRun": 12732.21052631579,
+        "providerCallsPerRun": 1.0526315789473684,
+        "requestBytesPerRun": 43898.26315789474,
+        "latency": {
+          "totalMs": 3035.7796700000763,
+          "firstGatedAttemptMs": 2706.915765999933,
+          "blockPhaseMs": null,
+          "emitMs": 104.65709099918604,
+          "planMs": null,
+          "pacingMs": 9081.283760999795,
+          "wallTotalMs": 12310.072650999995
+        },
+        "parity": {
+          "meanScore": 0.8596491228070174,
+          "scored": 19,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 19,
+          "performed": 19,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 1,
+            "performed": 1,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 19
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 19,
+        "refinedPassed": 19,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-add",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 18,
+        "passRate": 0.9473684210526315,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9473684210526315,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 19,
+        "meteredSuccesses": 18,
+        "meteredTokens": 241701,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 13427.833333333334,
+        "inputTokensPerSuccess": 12996.722222222223,
+        "outputTokensPerSuccess": 431.1111111111111,
+        "tokensPerPassingRun": 12156.611111111111,
+        "providerCallsPerRun": 1.0526315789473684,
+        "requestBytesPerRun": 43862.63157894737,
+        "latency": {
+          "totalMs": 3212.606814000057,
+          "firstGatedAttemptMs": 2942.183126000222,
+          "blockPhaseMs": null,
+          "emitMs": 111.27798399981111,
+          "planMs": null,
+          "pacingMs": 9051.737989000045,
+          "wallTotalMs": 12110.425996000879
+        },
+        "parity": {
+          "meanScore": 0.8518518518518517,
+          "scored": 18,
+          "fullyParityPassed": 12,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 19,
+          "performed": 18,
+          "mixed": 0,
+          "missed": 1,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 1,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 18
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9473684210526315,
+        "changed": 18,
+        "refinedPassed": 19,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-content",
+        "n": 20,
+        "skipped": 0,
+        "completed": 20,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 20,
+        "passed": 20,
+        "passRate": 1,
+        "firstAttemptPassed": 20,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 20,
+        "meteredSuccesses": 20,
+        "meteredTokens": 53695,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 2684.75,
+        "inputTokensPerSuccess": 2483.45,
+        "outputTokensPerSuccess": 201.3,
+        "tokensPerPassingRun": 2684.75,
+        "providerCallsPerRun": 1.05,
+        "requestBytesPerRun": 9110.15,
+        "latency": {
+          "totalMs": 2261.216730499931,
+          "firstGatedAttemptMs": 2149.0800925000513,
+          "blockPhaseMs": 2146.005208000017,
+          "emitMs": 111.49843800021335,
+          "planMs": null,
+          "pacingMs": 9075.340110000223,
+          "wallTotalMs": 11316.939596000127
+        },
+        "parity": {
+          "meanScore": 0.8041666666666668,
+          "scored": 20,
+          "fullyParityPassed": 11,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "block": {
+            "n": 17,
+            "passed": 17
+          },
+          "fallback": {
+            "n": 1,
+            "passed": 1
+          },
+          "primitive": {
+            "n": 2,
+            "passed": 2
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "2": 1
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 1
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 20,
+        "refinedPassed": 20,
+        "retention": 0.9444444444444444,
+        "retained": 17,
+        "onBlockPrior": 18
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-content",
+        "n": 20,
+        "skipped": 1,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 19,
+        "passRate": 1,
+        "firstAttemptPassed": 19,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 19,
+        "meteredSuccesses": 19,
+        "meteredTokens": 75420,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 3969.4736842105262,
+        "inputTokensPerSuccess": 3783.684210526316,
+        "outputTokensPerSuccess": 185.78947368421052,
+        "tokensPerPassingRun": 3969.4736842105262,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 13546.684210526315,
+        "latency": {
+          "totalMs": 2303.901250001043,
+          "firstGatedAttemptMs": 2195.6776150008664,
+          "blockPhaseMs": 2064.9768940001377,
+          "emitMs": 102.4697079998441,
+          "planMs": null,
+          "pacingMs": 8809.107195000164,
+          "wallTotalMs": 11050.98053
+        },
+        "parity": {
+          "meanScore": 0.7412280701754387,
+          "scored": 19,
+          "fullyParityPassed": 9,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "block": {
+            "n": 14,
+            "passed": 14
+          },
+          "switch": {
+            "n": 3,
+            "passed": 3
+          },
+          "primitive": {
+            "n": 2,
+            "passed": 2
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {
+          "switch": 3
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 19,
+        "refinedPassed": 19,
+        "retention": 0.8235294117647058,
+        "retained": 14,
+        "onBlockPrior": 17
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-content",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 19,
+        "passRate": 1,
+        "firstAttemptPassed": 19,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 19,
+        "meteredSuccesses": 19,
+        "meteredTokens": 229512,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12079.578947368422,
+        "inputTokensPerSuccess": 11724.578947368422,
+        "outputTokensPerSuccess": 355,
+        "tokensPerPassingRun": 12079.578947368422,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 41771.26315789474,
+        "latency": {
+          "totalMs": 2923.7731449999847,
+          "firstGatedAttemptMs": 2829.346363000106,
+          "blockPhaseMs": null,
+          "emitMs": 111.33384799957275,
+          "planMs": null,
+          "pacingMs": 8275.482596999966,
+          "wallTotalMs": 11649.128139000386
+        },
+        "parity": {
+          "meanScore": 0.8289473684210527,
+          "scored": 19,
+          "fullyParityPassed": 12,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 19
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 19,
+        "refinedPassed": 19,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-content",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 19,
+        "passRate": 1,
+        "firstAttemptPassed": 19,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 19,
+        "meteredSuccesses": 19,
+        "meteredTokens": 229415,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12074.473684210527,
+        "inputTokensPerSuccess": 11713.894736842105,
+        "outputTokensPerSuccess": 360.57894736842104,
+        "tokensPerPassingRun": 12074.473684210527,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 41734.10526315789,
+        "latency": {
+          "totalMs": 2952.96933299955,
+          "firstGatedAttemptMs": 2841.4743739995174,
+          "blockPhaseMs": null,
+          "emitMs": 105.94335900014266,
+          "planMs": null,
+          "pacingMs": 8398.015299000079,
+          "wallTotalMs": 11223.906014000066
+        },
+        "parity": {
+          "meanScore": 0.8552631578947368,
+          "scored": 19,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 19
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 19,
+        "refinedPassed": 19,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-remove",
+        "n": 20,
+        "skipped": 0,
+        "completed": 20,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 20,
+        "passed": 18,
+        "passRate": 0.9,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 20,
+        "meteredSuccesses": 18,
+        "meteredTokens": 76489,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 4249.388888888889,
+        "inputTokensPerSuccess": 4026.3888888888887,
+        "outputTokensPerSuccess": 223,
+        "tokensPerPassingRun": 1664.3333333333333,
+        "providerCallsPerRun": 1.15,
+        "requestBytesPerRun": 13167.1,
+        "latency": {
+          "totalMs": 2429.209401,
+          "firstGatedAttemptMs": 2057.735683500039,
+          "blockPhaseMs": 2051.7134455000923,
+          "emitMs": 107.13564449997648,
+          "planMs": null,
+          "pacingMs": 9775.635816000053,
+          "wallTotalMs": 11837.569104999991
+        },
+        "parity": {
+          "meanScore": 0.7314814814814815,
+          "scored": 18,
+          "fullyParityPassed": 8,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 20,
+          "performed": 18,
+          "mixed": 0,
+          "missed": 2,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 2,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 2,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 17,
+            "passed": 17
+          },
+          "fallback": {
+            "n": 1,
+            "passed": 1
+          },
+          "primitive": {
+            "n": 2,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "2": 1
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 1
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 20,
+        "refinedPassed": 20,
+        "retention": 0.9444444444444444,
+        "retained": 17,
+        "onBlockPrior": 18
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-remove",
+        "n": 19,
+        "skipped": 1,
+        "completed": 18,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 18,
+        "passed": 15,
+        "passRate": 0.8333333333333334,
+        "firstAttemptPassed": 15,
+        "firstAttemptPassRate": 0.8333333333333334,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 18,
+        "meteredSuccesses": 15,
+        "meteredTokens": 63716,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 4247.733333333334,
+        "inputTokensPerSuccess": 4030.4666666666667,
+        "outputTokensPerSuccess": 217.26666666666668,
+        "tokensPerPassingRun": 3385.4666666666667,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 12037.611111111111,
+        "latency": {
+          "totalMs": 2386.3312750001787,
+          "firstGatedAttemptMs": 2292.967348000355,
+          "blockPhaseMs": 2353.19200749998,
+          "emitMs": 108.33106150035746,
+          "planMs": null,
+          "pacingMs": 9489.379859499633,
+          "wallTotalMs": 11930.457949499832
+        },
+        "parity": {
+          "meanScore": 0.7,
+          "scored": 15,
+          "fullyParityPassed": 7,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 18,
+          "performed": 15,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 3,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 5,
+            "performed": 3,
+            "mixed": 0,
+            "missed": 2,
+            "unchanged": 2,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 1,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 14,
+            "passed": 12
+          },
+          "switch": {
+            "n": 3,
+            "passed": 3
+          },
+          "primitive": {
+            "n": 1,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {
+          "switch": 3
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.8333333333333334,
+        "changed": 15,
+        "refinedPassed": 18,
+        "retention": 0.8235294117647058,
+        "retained": 14,
+        "onBlockPrior": 17
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-remove",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 18,
+        "passRate": 0.9473684210526315,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9473684210526315,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 19,
+        "meteredSuccesses": 18,
+        "meteredTokens": 228600,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12700,
+        "inputTokensPerSuccess": 12365.888888888889,
+        "outputTokensPerSuccess": 334.1111111111111,
+        "tokensPerPassingRun": 12070.166666666666,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 41728.84210526316,
+        "latency": {
+          "totalMs": 2656.7135489999782,
+          "firstGatedAttemptMs": 2557.582948000054,
+          "blockPhaseMs": null,
+          "emitMs": 102.87880699988455,
+          "planMs": null,
+          "pacingMs": 9173.804635999724,
+          "wallTotalMs": 11664.835450999904
+        },
+        "parity": {
+          "meanScore": 0.7222222222222222,
+          "scored": 18,
+          "fullyParityPassed": 8,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 19,
+          "performed": 18,
+          "mixed": 0,
+          "missed": 1,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 1,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 18
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9473684210526315,
+        "changed": 18,
+        "refinedPassed": 19,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-remove",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 18,
+        "passRate": 0.9473684210526315,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9473684210526315,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 19,
+        "meteredSuccesses": 18,
+        "meteredTokens": 228456,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12692,
+        "inputTokensPerSuccess": 12354.611111111111,
+        "outputTokensPerSuccess": 337.3888888888889,
+        "tokensPerPassingRun": 12061.833333333334,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 41691.68421052631,
+        "latency": {
+          "totalMs": 2510.597243999131,
+          "firstGatedAttemptMs": 2408.7670299997553,
+          "blockPhaseMs": null,
+          "emitMs": 101.23764199949801,
+          "planMs": null,
+          "pacingMs": 8957.20317999972,
+          "wallTotalMs": 11624.199929999886
+        },
+        "parity": {
+          "meanScore": 0.6944444444444444,
+          "scored": 18,
+          "fullyParityPassed": 7,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 19,
+          "performed": 18,
+          "mixed": 0,
+          "missed": 1,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 1,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 18
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9473684210526315,
+        "changed": 18,
+        "refinedPassed": 19,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-structural",
+        "n": 20,
+        "skipped": 0,
+        "completed": 20,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 20,
+        "passed": 18,
+        "passRate": 0.9,
+        "firstAttemptPassed": 18,
+        "firstAttemptPassRate": 0.9,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 20,
+        "meteredSuccesses": 18,
+        "meteredTokens": 296778,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 16487.666666666668,
+        "inputTokensPerSuccess": 15353.5,
+        "outputTokensPerSuccess": 1134.1666666666667,
+        "tokensPerPassingRun": 13396.277777777777,
+        "providerCallsPerRun": 2.05,
+        "requestBytesPerRun": 49637.6,
+        "latency": {
+          "totalMs": 6972.347246999976,
+          "firstGatedAttemptMs": 6801.090052499923,
+          "blockPhaseMs": 1737.7348594996147,
+          "emitMs": 116.23989999986952,
+          "planMs": null,
+          "pacingMs": 20311.17590450005,
+          "wallTotalMs": 27024.279066999996
+        },
+        "parity": {
+          "meanScore": 0.9074074074074073,
+          "scored": 18,
+          "fullyParityPassed": 14,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "fallback": {
+            "n": 18,
+            "passed": 16
+          },
+          "primitive": {
+            "n": 2,
+            "passed": 2
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "1": 1,
+          "2": 17
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 18
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 18,
+        "refinedPassed": 18,
+        "retention": 0,
+        "retained": 0,
+        "onBlockPrior": 18
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-structural",
+        "n": 19,
+        "skipped": 1,
+        "completed": 18,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 18,
+        "passed": 17,
+        "passRate": 0.9444444444444444,
+        "firstAttemptPassed": 16,
+        "firstAttemptPassRate": 0.8888888888888888,
+        "repairsPerSuccess": 0.058823529411764705,
+        "meteredRuns": 18,
+        "meteredSuccesses": 17,
+        "meteredTokens": 272072,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 16004.235294117647,
+        "inputTokensPerSuccess": 14814.941176470587,
+        "outputTokensPerSuccess": 1189.2941176470588,
+        "tokensPerPassingRun": 14372.117647058823,
+        "providerCallsPerRun": 2,
+        "requestBytesPerRun": 50029.555555555555,
+        "latency": {
+          "totalMs": 7768.588054999942,
+          "firstGatedAttemptMs": 7229.666121000191,
+          "blockPhaseMs": 1668.3593254999723,
+          "emitMs": 116.4501600000076,
+          "planMs": null,
+          "pacingMs": 19936.740626999643,
+          "wallTotalMs": 27183.966283999966
+        },
+        "parity": {
+          "meanScore": 0.8431372549019607,
+          "scored": 17,
+          "fullyParityPassed": 12,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "fallback": {
+            "n": 14,
+            "passed": 13
+          },
+          "switch": {
+            "n": 3,
+            "passed": 3
+          },
+          "primitive": {
+            "n": 1,
+            "passed": 1
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "1": 2,
+          "2": 12
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 14,
+          "switch": 3
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 17,
+        "refinedPassed": 17,
+        "retention": 0,
+        "retained": 0,
+        "onBlockPrior": 17
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-structural",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 17,
+        "passRate": 0.8947368421052632,
+        "firstAttemptPassed": 16,
+        "firstAttemptPassRate": 0.8421052631578947,
+        "repairsPerSuccess": 0.058823529411764705,
+        "meteredRuns": 19,
+        "meteredSuccesses": 17,
+        "meteredTokens": 314828,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 18519.29411764706,
+        "inputTokensPerSuccess": 17508.882352941175,
+        "outputTokensPerSuccess": 1010.4117647058823,
+        "tokensPerPassingRun": 13841.70588235294,
+        "providerCallsPerRun": 1.3157894736842106,
+        "requestBytesPerRun": 55993.52631578947,
+        "latency": {
+          "totalMs": 5040.499568998814,
+          "firstGatedAttemptMs": 4723.941228999989,
+          "blockPhaseMs": null,
+          "emitMs": 117.91015999997035,
+          "planMs": null,
+          "pacingMs": 9554.036431999877,
+          "wallTotalMs": 14714.788166000042
+        },
+        "parity": {
+          "meanScore": 0.872549019607843,
+          "scored": 17,
+          "fullyParityPassed": 12,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 17
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9411764705882353,
+        "changed": 16,
+        "refinedPassed": 17,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-structural",
+        "n": 19,
+        "skipped": 0,
+        "completed": 19,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 19,
+        "passed": 14,
+        "passRate": 0.7368421052631579,
+        "firstAttemptPassed": 14,
+        "firstAttemptPassRate": 0.7368421052631579,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 19,
+        "meteredSuccesses": 14,
+        "meteredTokens": 372436,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 26602.571428571428,
+        "inputTokensPerSuccess": 25026.714285714286,
+        "outputTokensPerSuccess": 1575.857142857143,
+        "tokensPerPassingRun": 13357.214285714286,
+        "providerCallsPerRun": 1.5263157894736843,
+        "requestBytesPerRun": 61717.89473684211,
+        "latency": {
+          "totalMs": 7703.218308000127,
+          "firstGatedAttemptMs": 5273.457333500177,
+          "blockPhaseMs": null,
+          "emitMs": 115.26054100040346,
+          "planMs": null,
+          "pacingMs": 9869.483123000013,
+          "wallTotalMs": 16545.107991999947
+        },
+        "parity": {
+          "meanScore": 0.8452380952380951,
+          "scored": 14,
+          "fullyParityPassed": 10,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 19,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 14,
+        "refinedPassed": 14,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      }
+    ],
+    "pooled": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "all",
+        "n": 100,
+        "skipped": 0,
+        "completed": 100,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 100,
+        "passed": 94,
+        "passRate": 0.94,
+        "firstAttemptPassed": 94,
+        "firstAttemptPassRate": 0.94,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 100,
+        "meteredSuccesses": 94,
+        "meteredTokens": 568777,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 6050.81914893617,
+        "inputTokensPerSuccess": 5611.478723404255,
+        "outputTokensPerSuccess": 439.3404255319149,
+        "tokensPerPassingRun": 4355.574468085107,
+        "providerCallsPerRun": 1.48,
+        "requestBytesPerRun": 18823.6,
+        "latency": {
+          "totalMs": 3291.8352915002615,
+          "firstGatedAttemptMs": 2992.6752944997324,
+          "blockPhaseMs": 2080.0602650002984,
+          "emitMs": 111.31590849997883,
+          "planMs": 2573.3971664999845,
+          "pacingMs": 10484.26789649995,
+          "wallTotalMs": 12608.583211999852
+        },
+        "parity": {
+          "meanScore": 0.8466312056737589,
+          "scored": 94,
+          "fullyParityPassed": 61,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 40,
+          "performed": 36,
+          "mixed": 0,
+          "missed": 4,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 4,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 4,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 70,
+            "passed": 70
+          },
+          "fallback": {
+            "n": 20,
+            "passed": 18
+          },
+          "primitive": {
+            "n": 10,
+            "passed": 6
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "1": 1,
+          "2": 19
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 20
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9871794871794872,
+        "changed": 77,
+        "refinedPassed": 78,
+        "retention": 0.7222222222222222,
+        "retained": 52,
+        "onBlockPrior": 72
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "all",
+        "n": 97,
+        "skipped": 4,
+        "completed": 93,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 93,
+        "passed": 87,
+        "passRate": 0.9354838709677419,
+        "firstAttemptPassed": 86,
+        "firstAttemptPassRate": 0.9247311827956989,
+        "repairsPerSuccess": 0.011494252873563218,
+        "meteredRuns": 93,
+        "meteredSuccesses": 87,
+        "meteredTokens": 605624,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 6961.19540229885,
+        "inputTokensPerSuccess": 6511.080459770115,
+        "outputTokensPerSuccess": 450.11494252873564,
+        "tokensPerPassingRun": 6069.137931034483,
+        "providerCallsPerRun": 1.5161290322580645,
+        "requestBytesPerRun": 21524.655913978495,
+        "latency": {
+          "totalMs": 3237.1499080006033,
+          "firstGatedAttemptMs": 3017.0392439998686,
+          "blockPhaseMs": 2205.715609499719,
+          "emitMs": 108.34308699984103,
+          "planMs": 2458.813492999994,
+          "pacingMs": 10290.556866999948,
+          "wallTotalMs": 12338.716733000241
+        },
+        "parity": {
+          "meanScore": 0.7921455938697317,
+          "scored": 87,
+          "fullyParityPassed": 52,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 36,
+          "performed": 32,
+          "mixed": 0,
+          "missed": 4,
+          "unchanged": 4,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 10,
+            "performed": 8,
+            "mixed": 0,
+            "missed": 2,
+            "unchanged": 2,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 2,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 2,
+            "unchanged": 2,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 55,
+            "passed": 53
+          },
+          "fallback": {
+            "n": 17,
+            "passed": 16
+          },
+          "switch": {
+            "n": 12,
+            "passed": 12
+          },
+          "block-repair": {
+            "n": 1,
+            "passed": 1
+          },
+          "provider-failure": {
+            "n": 1,
+            "passed": 0
+          },
+          "primitive": {
+            "n": 7,
+            "passed": 5
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "1": 5,
+          "2": 12
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 14,
+          "invalid-call": 3,
+          "switch": 12
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9444444444444444,
+        "changed": 68,
+        "refinedPassed": 72,
+        "retention": 0.6176470588235294,
+        "retained": 42,
+        "onBlockPrior": 68
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "all",
+        "n": 95,
+        "skipped": 0,
+        "completed": 95,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 95,
+        "passed": 92,
+        "passRate": 0.968421052631579,
+        "firstAttemptPassed": 88,
+        "firstAttemptPassRate": 0.9263157894736842,
+        "repairsPerSuccess": 0.043478260869565216,
+        "meteredRuns": 95,
+        "meteredSuccesses": 92,
+        "meteredTokens": 1285211,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 13969.684782608696,
+        "inputTokensPerSuccess": 13441.33695652174,
+        "outputTokensPerSuccess": 528.3478260869565,
+        "tokensPerPassingRun": 12982.119565217392,
+        "providerCallsPerRun": 1.2947368421052632,
+        "requestBytesPerRun": 46523.84210526316,
+        "latency": {
+          "totalMs": 3902.9860579999804,
+          "firstGatedAttemptMs": 3647.8466890007257,
+          "blockPhaseMs": null,
+          "emitMs": 107.41653099982068,
+          "planMs": 2026.4343129992485,
+          "pacingMs": 9360.21542399982,
+          "wallTotalMs": 12396.375315000303
+        },
+        "parity": {
+          "meanScore": 0.8288043478260869,
+          "scored": 92,
+          "fullyParityPassed": 58,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 38,
+          "performed": 37,
+          "mixed": 0,
+          "missed": 1,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 2,
+            "performed": 1,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 95,
+            "passed": 92
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.972972972972973,
+        "changed": 72,
+        "refinedPassed": 74,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "all",
+        "n": 95,
+        "skipped": 0,
+        "completed": 95,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 95,
+        "passed": 88,
+        "passRate": 0.9263157894736842,
+        "firstAttemptPassed": 87,
+        "firstAttemptPassRate": 0.9157894736842105,
+        "repairsPerSuccess": 0.011363636363636364,
+        "meteredRuns": 95,
+        "meteredSuccesses": 88,
+        "meteredTokens": 1329739,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 15110.670454545454,
+        "inputTokensPerSuccess": 14503.375,
+        "outputTokensPerSuccess": 607.2954545454545,
+        "tokensPerPassingRun": 12614.53409090909,
+        "providerCallsPerRun": 1.3263157894736841,
+        "requestBytesPerRun": 47173.61052631579,
+        "latency": {
+          "totalMs": 3813.1291690003127,
+          "firstGatedAttemptMs": 3656.405962000019,
+          "blockPhaseMs": null,
+          "emitMs": 109.73277299979236,
+          "planMs": 2164.672804000322,
+          "pacingMs": 9384.007172000012,
+          "wallTotalMs": 12180.729407999665
+        },
+        "parity": {
+          "meanScore": 0.8210227272727273,
+          "scored": 88,
+          "fullyParityPassed": 55,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 38,
+          "performed": 36,
+          "mixed": 0,
+          "missed": 2,
+          "unchanged": 2,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 12,
+            "performed": 12,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "null": {
+            "checked": 2,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 2,
+            "unchanged": 2,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 95,
+            "passed": 88
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.971830985915493,
+        "changed": 69,
+        "refinedPassed": 71,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      }
+    ],
+    "selection": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "n": 20,
+        "correct": 20,
+        "hit": 18,
+        "missedToNull": 0,
+        "wrongBlock": 0,
+        "nullCorrect": 2,
+        "falseBlock": 0,
+        "explicitNull": 2,
+        "omitted": 0,
+        "rejected": 0,
+        "planningFailed": 0,
+        "intentCorrect": 20,
+        "accuracy": 1,
+        "intentAccuracy": 1
+      }
+    ],
+    "decisions": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "verdict": "insufficient",
+        "reasons": [
+          "capped: 19 prompt threads (95 cells), fewer than the 20 the rule needs",
+          "production: 19 prompt threads (95 cells), fewer than the 20 the rule needs"
+        ],
+        "tokens": {
+          "block": 6050.81914893617,
+          "capped": 13969.684782608696,
+          "production": 15110.670454545454,
+          "reductionVsProduction": 0.5995664674749083,
+          "reductionVsCapped": 0.5668607242685227
+        },
+        "passRates": {
+          "block": 0.94,
+          "capped": 0.968421052631579,
+          "production": 0.9263157894736842
+        },
+        "evaluated": {
+          "block": 100,
+          "capped": 95,
+          "production": 95
+        },
+        "metered": {
+          "block": 100,
+          "capped": 95,
+          "production": 95
+        },
+        "threads": {
+          "block": 20,
+          "capped": 19,
+          "production": 19
+        },
+        "meteredThreads": {
+          "block": 20,
+          "capped": 19,
+          "production": 19
+        },
+        "counts": {
+          "passed": {
+            "block": 94,
+            "capped": 92,
+            "production": 88
+          },
+          "meteredTokens": {
+            "block": 568777,
+            "capped": 1285211,
+            "production": 1329739
+          },
+          "meteredSuccesses": {
+            "block": 94,
+            "capped": 92,
+            "production": 88
+          }
+        },
+        "cohort": 19,
+        "meteredCohort": 19,
+        "intervals": {
+          "reductionVsProduction": {
+            "low": 0.5282156275588114,
+            "high": 0.7339336820407905,
+            "resamples": 2000,
+            "prompts": 19
+          },
+          "reductionVsCapped": {
+            "low": 0.5017901614153737,
+            "high": 0.6989241629232513,
+            "resamples": 2000,
+            "prompts": 19
+          },
+          "passDiffVsProduction": {
+            "low": -0.021052631578947434,
+            "high": 0.0842105263157894,
+            "resamples": 2000,
+            "prompts": 19
+          },
+          "passDiffVsCapped": {
+            "low": -0.04210526315789476,
+            "high": 0.021052631578947434,
+            "resamples": 2000,
+            "prompts": 19
+          }
+        },
+        "clarity": {
+          "tokens": "insufficient",
+          "vsProduction": "insufficient",
+          "vsCapped": "insufficient",
+          "overall": "insufficient"
+        },
+        "paired": {
+          "vsProduction": {
+            "prompts": 19,
+            "passRate": {
+              "better": 5,
+              "same": 12,
+              "worse": 2
+            },
+            "tokensPerSuccess": {
+              "lower": 18,
+              "same": 0,
+              "higher": 1,
+              "comparable": 19
+            }
+          },
+          "vsCapped": {
+            "prompts": 19,
+            "passRate": {
+              "better": 1,
+              "same": 16,
+              "worse": 2
+            },
+            "tokensPerSuccess": {
+              "lower": 18,
+              "same": 0,
+              "higher": 1,
+              "comparable": 19
+            }
+          }
+        },
+        "options": {
+          "reduction": 0.3,
+          "margin": 0.05,
+          "minimum": 20
+        }
+      }
+    ],
+    "sensitivity": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "operation": {
+          "block": {
+            "checked": 40,
+            "performed": 36,
+            "mixed": 0,
+            "missed": 4,
+            "unchanged": 1,
+            "unchecked": 0
+          },
+          "capped": {
+            "checked": 38,
+            "performed": 37,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          },
+          "production": {
+            "checked": 38,
+            "performed": 36,
+            "mixed": 0,
+            "missed": 2,
+            "unchanged": 2,
+            "unchecked": 0
+          }
+        },
+        "readings": [
+          {
+            "failing": "none",
+            "reading": {
+              "verdict": "insufficient",
+              "overall": "insufficient",
+              "passed": {
+                "block": 98,
+                "capped": 93,
+                "production": 90
+              },
+              "evaluated": {
+                "block": 100,
+                "capped": 95,
+                "production": 95
+              },
+              "reductionVsProduction": 0.607181390867083
+            }
+          }
+        ],
+        "verdictHolds": true,
+        "clarityHolds": true,
+        "robust": true
+      }
+    ],
+    "encodings": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "paired": {
+          "prompts": 20,
+          "passRate": {
+            "better": 2,
+            "same": 15,
+            "worse": 3
+          },
+          "tokensPerSuccess": {
+            "lower": 7,
+            "same": 0,
+            "higher": 12,
+            "comparable": 19
+          }
+        },
+        "intervals": {
+          "passDiff": {
+            "low": -0.059801192145862554,
+            "high": 0.04999999999999993,
+            "resamples": 2000,
+            "prompts": 20
+          },
+          "tokenReduction": {
+            "low": -0.6147523118524134,
+            "high": 0.1853971526148335,
+            "resamples": 2000,
+            "prompts": 20
+          }
+        }
+      }
+    ],
+    "totals": {
+      "records": 387,
+      "completed": 383,
+      "providerCalls": 538,
+      "inputTokens": 3606843,
+      "outputTokens": 182508,
+      "requestBytes": 12785411
+    }
+  }
+}

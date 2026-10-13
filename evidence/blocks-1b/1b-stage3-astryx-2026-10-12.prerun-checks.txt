@@ -1,0 +1,10 @@
+checks at 2026-10-12T23:36:31Z
+HEAD 3aae0eac8495044e7a4de57b1c1bf3a3d59836fe | origin/main 3aae0eac8495044e7a4de57b1c1bf3a3d59836fe
+working tree clean
+fresh directory absent: ok (live/runs/1b-stage3-astryx-2026-10-12)
+evidence checksums: 43 entries, 0 not OK
+probe exit=0
+probe at 2026-10-12T23:36:41.077Z | build txDlHURTKv_S6yicLso97 | worker per-call-model ['per-call-model'] 400 calls [] | models scripted,hosted-ai | equals the committed baseline apart from 'at': True []
+code identity fe2b8e841d49778793efb9b640e2e2ae3a54048a5c4e540339aaa976ad2cc86d
+stage3-astryx v2  ok 480 cells {"corpus":"v2","digest":"0e4e4706e19e","pinned":true,"scoring":"binding","usd":17,"total":1150,"per":825,"spacing":12000}
+checks ended 2026-10-12T23:36:46Z
