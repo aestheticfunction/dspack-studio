@@ -1033,3 +1033,115 @@ describe("the block-positional arm through the real Worker", () => {
   });
 });
 
+describe("a gateway 429 the binding records, through the real Worker and the ledger (Astryx #539)", () => {
+  // workerd's AI binding (src/cloudflare/internal/ai-api.ts) records the status of the reply it received in
+  // lastRequestHttpStatusCode, then throws an error carrying only a name and a message. #539's named none of the Worker's
+  // busy words, so the Worker answered 502 provider and the paced run stopped on a refusal that reached no model.
+  type Binding = { lastRequestHttpStatusCode: number | null; run: () => Promise<unknown> };
+  /** A status of null records none, as when no reply arrived: the Worker then classifies by the message alone. */
+  type Step = { status: number | null; error: Error } | "served" | "prose";
+  const served = { content: [{ type: "text", text: JSON.stringify({ answer: 1 }) }], usage: { input_tokens: 10, output_tokens: 2 }, model: HAIKU_ID };
+  /** An answer the Worker cannot use, billed: the Worker calls again. */
+  const prose = { content: [{ type: "text", text: "Here is a surface." }], usage: { input_tokens: 700, output_tokens: 30 }, model: HAIKU_ID };
+  const refusal = (message: string, extra: Record<string, unknown> = {}) => Object.assign(new Error(message), { name: "InferenceUpstreamError" }, extra);
+  /** #539: a refusal whose message names none of the busy words. */
+  const silent = () => refusal("request refused by the gateway");
+  /** A binding that takes each call's step in turn, the last repeating: a status it records then an error it throws, or an answer. */
+  const binding = (steps: Step[]): Binding => {
+    let n = 0;
+    return {
+      lastRequestHttpStatusCode: null,
+      async run(this: Binding) {
+        const step = steps[Math.min(n++, steps.length - 1)]!;
+        if (step === "served" || step === "prose") {
+          this.lastRequestHttpStatusCode = 200;
+          return step === "served" ? served : prose;
+        }
+        this.lastRequestHttpStatusCode = step.status;
+        throw step.error;
+      },
+    };
+  };
+  /** One request through the hosted client, the real Worker and a pacer whose ledger lines are kept. */
+  const through = async (ai: Binding, backoffMs: number[]) => {
+    const lines: Array<[string, number]> = [];
+    const pacer = createPacer({ maxRequests: 100, spacingMs: 0, backoffMs, now: () => 0, sleep: async () => undefined });
+    pacer.ledger = {
+      cap: 100,
+      sent: 0,
+      capUsd: USD,
+      usd: 0,
+      record(usd = 0) {
+        lines.push(["request", usd]);
+        this.sent += 1;
+        this.usd = (this.usd ?? 0) + usd;
+      },
+      adjust(usd: number, reason: string) {
+        lines.push([reason, usd]);
+        this.usd = (this.usd ?? 0) + usd;
+      },
+    };
+    const fetchImpl = (async (url: string, init: RequestInit) => handlePropose(new Request(url, init), { HOSTED_AI: "on", AI: ai })) as typeof fetch;
+    const provider = createHostedProvider({ baseUrl: "https://example.test", fetchImpl, pacer });
+    const recorder = createCallRecorder();
+    const outcome = await provider
+      .surfaceAdapter({ recorder, meter: createMeter(), refinement: false })
+      .generate(request)
+      .then(
+        (result) => ({ ok: true as const, json: result.json }),
+        (error: HarnessError) => ({ ok: false as const, error: error.constructor.name, kind: error.kind, status: error.status }),
+      );
+    return { outcome, lines, waits: pacer.waits.map((w) => w.reason), calls: strip(recorder.calls).map((c) => [c.source, c.outcome]) };
+  };
+  const priced = worstCaseUsd(request, 2);
+
+  it("#539: the refusal is released at $0, backed off and retried, and the retry is settled at its reported usage", async () => {
+    const r = await through(binding([{ status: 429, error: silent() }, "served"]), [5]);
+    expect(r.outcome).toEqual({ ok: true, json: { answer: 1 } });
+    expect(r.waits).toEqual(["503 busy"]);
+    expect(r.calls).toEqual([["none", "refused"], ["provider", "ok"]]);
+    expect(r.lines.map(([reason]) => reason)).toEqual(["request", "refused before any provider call", "request", "settled at the reported usage"]);
+    expect(r.lines[0]![1]).toBeCloseTo(priced, 12);
+    expect(r.lines[1]![1]).toBeCloseTo(-priced, 12);
+    expect(r.lines[3]![1]).toBeCloseTo((10 * 1e-6 + 2 * 5e-6) * 1.05 - priced, 12);
+  });
+
+  it("when the backoff schedule runs out, a structured 429 ends exactly as the message-classified busy refusal does: free, and a provider failure to re-run", async () => {
+    for (const backoffMs of [[], [5]]) {
+      const legacy = await through(binding([{ status: null, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }]), backoffMs);
+      const structured = await through(binding([{ status: 429, error: silent() }]), backoffMs);
+      expect(structured, JSON.stringify(backoffMs)).toEqual(legacy);
+      expect(structured.outcome).toMatchObject({ ok: false, kind: "provider", status: 503 });
+      expect(structured.lines.filter(([reason]) => reason !== "request").map(([reason]) => reason)).toEqual(Array(backoffMs.length + 1).fill("refused before any provider call"));
+      expect(structured.lines.reduce((a, [, usd]) => a + usd, 0)).toBeCloseTo(0, 12);
+    }
+  });
+
+  it("a 429 that shows a model result, and a 500 the binding recorded, whatever its message, are never released: held at the most the request could cost", async () => {
+    const cases: Array<[string, Binding]> = [
+      ["a 429 with usage", binding([{ status: 429, error: refusal("request refused", { usage: { input_tokens: 10, output_tokens: 2 } }) }])],
+      ["a 429 naming a model", binding([{ status: 429, error: refusal("request refused", { model: HAIKU_ID }) }])],
+      // The binding makes a reply's whole body the message when the body names no error code.
+      ["a 429 whose message carries usage", binding([{ status: 429, error: refusal('{"type":"error","usage":{"input_tokens":700,"output_tokens":30}}') }])],
+      ["a 500", binding([{ status: 500, error: silent() }])],
+      ["a 500 whose message names a busy word", binding([{ status: 500, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }])],
+    ];
+    for (const [name, ai] of cases) {
+      const r = await through(ai, [5]);
+      expect(r.outcome.ok, name).toBe(false);
+      expect(r.waits, name).toEqual([]);
+      expect(r.lines.map(([reason]) => reason), name).toEqual(["request", "usage not verified"]);
+      expect(r.lines[1]![1], name).toBeCloseTo(absoluteUsd(2) - priced, 12);
+    }
+  });
+
+  it("a busy-worded 429 after a billed, unusable first answer is held at the most the request could cost, as it always was", async () => {
+    for (const status of [null, 429]) {
+      const r = await through(binding(["prose", { status, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }]), [5]);
+      expect(r.outcome, String(status)).toMatchObject({ ok: false, kind: "provider" });
+      expect(r.waits, String(status)).toEqual([]);
+      expect(r.lines.map(([reason]) => reason), String(status)).toEqual(["request", "usage not verified"]);
+      expect(r.lines[1]![1], String(status)).toBeCloseTo(absoluteUsd(2) - priced, 12);
+    }
+  });
+});

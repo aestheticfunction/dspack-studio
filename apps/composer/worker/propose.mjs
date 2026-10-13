@@ -90,17 +90,96 @@ function extractText(raw) {
   return raw.choices?.[0]?.message?.content ?? raw.response ?? "";
 }
 
+/* The status of the reply the binding refused a call on. workerd's AI binding
+   (src/cloudflare/internal/ai-api.ts) records the HTTP status of every reply
+   it receives in `lastRequestHttpStatusCode`, then throws on one that is not
+   OK, with an error that carries only a name and a message. That status is
+   how a gateway 429 whose message names none of the busy words is told from a
+   provider failure (Astryx stage 3, request #539). One binding object may
+   serve several requests in an isolate, so the status is read as this call's
+   only when the Worker cleared it before the call, no other model call was in
+   flight when the call began or began while it ran, and the binding itself
+   rejected the call, never this Worker's timeout. Otherwise it is unknown.
+   A call stays in flight until the binding settles it. workerd never settles
+   the I/O of a request it canceled (a client gone, or this Worker's timeout
+   with nothing kept waiting), so a call stops counting STALE_CALL_MS after it
+   began, when its request can no longer be running: a request makes at most
+   two calls of at most PROVIDER_TIMEOUT_MS each, then replies. */
+const modelCallsInFlight = new Map();
+let modelCallsStarted = 0;
+const STALE_CALL_MS = 5 * 60_000;
+
+/** Whether another model call may still be running in this isolate; calls past STALE_CALL_MS are let go. */
+function othersInFlight(now) {
+  for (const [id, began] of modelCallsInFlight) {
+    if (now - began >= STALE_CALL_MS) modelCallsInFlight.delete(id);
+  }
+  return modelCallsInFlight.size > 0;
+}
+
+function clearReplyStatus(ai) {
+  try {
+    ai.lastRequestHttpStatusCode = null;
+    return ai.lastRequestHttpStatusCode === null;
+  } catch {
+    return false;
+  }
+}
+
+/** The status the binding recorded, as it recorded it; none when it recorded none. One that cannot be read is stated
+    as unreadable, which is no 429, so it fails closed. */
+function replyStatus(ai) {
+  try {
+    return ai.lastRequestHttpStatusCode ?? undefined;
+  } catch {
+    return "unreadable";
+  }
+}
+
+/** A provider call that did not return: what rejected it, and the status of
+    the reply the binding refused it on, when that is known to be this call's. */
+class Rejected extends Error {
+  constructor(error, status) {
+    super(describe(error));
+    this.error = error;
+    this.replyStatus = status;
+  }
+}
+
 /** ONE provider call. Rejection here is a provider FAILURE (429/busy/timeout/
     transport) and is classified by the caller — never retried in this Worker. */
 async function runModel(env, model, request) {
+  const ai = env.AI;
+  const began = Date.now();
+  const alone = !othersInFlight(began);
+  const id = ++modelCallsStarted;
+  const cleared = clearReplyStatus(ai);
+  let call;
+  try {
+    call = Promise.resolve(ai.run(model, inputFor(model, request), { gateway: AI_GATEWAY_OPTIONS }));
+  } catch (error) {
+    throw new Rejected(error, undefined);
+  }
+  modelCallsInFlight.set(id, began);
+  const settled = () => {
+    modelCallsInFlight.delete(id);
+  };
+  call.then(settled, settled);
   let timer;
+  let timedOut = false;
   try {
     return await Promise.race([
-      env.AI.run(model, inputFor(model, request), { gateway: AI_GATEWAY_OPTIONS }),
+      call,
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error("provider timeout")), PROVIDER_TIMEOUT_MS);
+        timer = setTimeout(() => {
+          timedOut = true;
+          reject(new Error("provider timeout"));
+        }, PROVIDER_TIMEOUT_MS);
       }),
     ]);
+  } catch (error) {
+    const own = cleared && alone && !timedOut && modelCallsStarted === id;
+    throw new Rejected(error, own ? replyStatus(ai) : undefined);
   } finally {
     clearTimeout(timer);
   }
@@ -175,6 +254,7 @@ class CallFailure extends Error {
     super(describe(error));
     this.calls = calls;
     this.failure = failure;
+    this.rejection = error instanceof Rejected ? error : undefined;
   }
 }
 
@@ -335,6 +415,88 @@ export async function handlePropose(request, env) {
   return reply(200, text);
 }
 
+/** Every key a provider reports usage or a served model under: on a rejection, any of them shows a model result. */
+const RESULT_KEYS = ["usage", "model", "inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens"];
+/** The same evidence written as text: a quoted usage or token key, in any case, its quotes escaped or not (a body
+    quoted inside another). The binding makes a reply's whole body its error's message when the body names no error
+    code. A model's name alone does not count here, since a refusal's body may name the model it refused. */
+const RESULT_IN_TEXT = /\\?"(usage|inputTokens|outputTokens|input_tokens|output_tokens|prompt_tokens|completion_tokens)\\?"\s*:/i;
+/** How deep a rejection is read, its statuses and its search alike; anything deeper fails closed. */
+const EVIDENCE_DEPTH = 6;
+/** How many values the search reads in all; a rejection holding more fails closed, unread. */
+const EVIDENCE_VALUES = 4096;
+/** What the search reads in full: plain objects, arrays and errors. Anything else (a Response, a stream, a Map, a
+    buffer, a function) may hold what it cannot read, such as a body, so it fails closed. */
+const plainData = (value) => Array.isArray(value) || value instanceof Error || [Object.prototype, null].includes(Object.getPrototypeOf(value));
+
+/** What a rejection carries as structured data: every status it states, itself or down its response and cause, and
+    whether anything it holds shows a model result: a result key, or a string quoting one, under any own key,
+    enumerable or not. One that cannot be read in full shows one, so it fails closed. */
+function evidenceOf(rejection) {
+  const statuses = [];
+  const chain = (value, depth) => {
+    if (!value || typeof value !== "object" || depth > EVIDENCE_DEPTH) return;
+    if (value.status != null) statuses.push(value.status);
+    chain(value.response, depth + 1);
+    chain(value.cause, depth + 1);
+  };
+  const seen = new Set();
+  let result = false;
+  let values = 0;
+  const search = (value, depth) => {
+    if (result) return;
+    if (typeof value === "string") {
+      if (RESULT_IN_TEXT.test(value)) result = true;
+      return;
+    }
+    if (!value || (typeof value !== "object" && typeof value !== "function") || seen.has(value)) return;
+    if (depth > EVIDENCE_DEPTH || seen.size >= 256 || !plainData(value) || (Array.isArray(value) && value.length > EVIDENCE_VALUES)) {
+      result = true;
+      return;
+    }
+    seen.add(value);
+    const keys = Reflect.ownKeys(value);
+    values += keys.length;
+    if (values > EVIDENCE_VALUES) {
+      result = true;
+      return;
+    }
+    for (const key of RESULT_KEYS) if (value[key] != null) result = true;
+    for (const next of [value.response, value.cause, ...keys.map((key) => value[key])]) search(next, depth + 1);
+  };
+  try {
+    chain(rejection, 0);
+    search(rejection, 0);
+    return { statuses, result };
+  } catch {
+    return { statuses: [], result: true };
+  }
+}
+
+/** A call the gateway turned away: it returned nothing, so it reports no usage and names no model. */
+const unspent = (call) => call?.outcome === "provider-error" && call.inputTokens === null && call.outputTokens === null && call.model === undefined;
+
+/* Busy: the gateway turned away the request's only call before any model
+   ran, which the browser and the bench may retry at no cost. So a request
+   that made any other call (an unusable output first), or whose rejection
+   shows a model result in its fields or its message, is never busy: it may
+   have spent, and stays a provider failure. Then a status, once known,
+   decides alone: the one the binding recorded for this call's reply and any
+   the rejection itself carries must all be a numeric 429; anything else is a
+   provider failure, whatever the message says. Only when no status is known
+   does the message decide, as before: the compatibility fallback. */
+function isBusy(error, calls) {
+  if (error?.failure === "unusable-output") return false;
+  if (calls.length !== 1 || !unspent(calls[0])) return false;
+  const message = String(error?.message ?? "");
+  const rejection = error?.rejection;
+  const { statuses, result } = rejection ? evidenceOf(rejection.error) : { statuses: [], result: false };
+  if (result || RESULT_IN_TEXT.test(message)) return false;
+  const stated = rejection?.replyStatus === undefined ? statuses : [rejection.replyStatus, ...statuses];
+  if (stated.length > 0) return stated.every((status) => status === 429);
+  return /\b429\b|too many requests|rate.?limit|capacity/i.test(message);
+}
+
 /** The error reply for a request that made provider calls, carrying them. */
 function failed(error) {
   // Every provider call this request made is reported, on every reply, so
@@ -345,8 +507,7 @@ function failed(error) {
   // provider error can quote the request that caused it, and the prompt must
   // not reach a log or a response. The zone-wide gateway rate limit fires
   // because SOMEONE ELSE is generating, which is a different, actionable fact.
-  const shape = String(error?.message ?? "");
-  const busy = error?.failure !== "unusable-output" && /\b429\b|too many requests|rate.?limit|capacity/i.test(shape);
+  const busy = isBusy(error, calls);
   if (busy) {
     return json(503, {
       error: "busy",
