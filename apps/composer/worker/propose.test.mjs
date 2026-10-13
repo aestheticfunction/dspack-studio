@@ -546,6 +546,20 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
     }
   });
 
+  it("a rejection whose fields cannot be read fails closed, whatever its status or message says", async () => {
+    for (const message of ["request refused", "InferenceUpstreamError: 429 Too Many Requests"]) {
+      const unreadable = upstream(message, { status: 429 });
+      Object.defineProperty(unreadable, "usage", {
+        get() {
+          throw new Error("unreadable usage");
+        },
+      });
+      const { status, body } = await classify({ run: vi.fn().mockRejectedValue(unreadable) });
+      expect(status, message).toBe(502);
+      expect(body.cause, message).toBe("provider");
+    }
+  });
+
   it("a 429 after an earlier billed call in the same request is never busy by its status: the request has spent", async () => {
     const ai = refusingBinding(429);
     ai.run.mockImplementationOnce(async () => servedBy("prose", HAIKU, 700, 30));

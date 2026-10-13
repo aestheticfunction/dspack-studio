@@ -90,17 +90,81 @@ function extractText(raw) {
   return raw.choices?.[0]?.message?.content ?? raw.response ?? "";
 }
 
+/* The status of the reply the binding refused a call on. workerd's AI binding
+   (src/cloudflare/internal/ai-api.ts) records the HTTP status of every reply
+   it receives in `lastRequestHttpStatusCode`, then throws on one that is not
+   OK, with an error that carries only a name and a message. That status is
+   how a gateway 429 whose message names none of the busy words is told from a
+   provider failure (Astryx stage 3, request #539). One binding object may
+   serve several requests in an isolate, so the status is read as this call's
+   only when the Worker cleared it before the call, no other model call was in
+   flight when the call began or began while it ran (a call stays in flight
+   until the binding settles it, after this Worker's timeout too), and the
+   binding itself rejected the call. Otherwise it is unknown. */
+let modelCallsInFlight = 0;
+let modelCallsStarted = 0;
+
+function clearReplyStatus(ai) {
+  try {
+    ai.lastRequestHttpStatusCode = null;
+    return ai.lastRequestHttpStatusCode === null;
+  } catch {
+    return false;
+  }
+}
+
+function replyStatus(ai) {
+  try {
+    const status = ai.lastRequestHttpStatusCode;
+    return Number.isInteger(status) ? status : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A provider call that did not return: what rejected it, and the status of
+    the reply the binding refused it on, when that is known to be this call's. */
+class Rejected extends Error {
+  constructor(error, replyStatus) {
+    super(describe(error));
+    this.error = error;
+    this.replyStatus = replyStatus;
+  }
+}
+
 /** ONE provider call. Rejection here is a provider FAILURE (429/busy/timeout/
     transport) and is classified by the caller — never retried in this Worker. */
 async function runModel(env, model, request) {
+  const ai = env.AI;
+  const alone = modelCallsInFlight === 0;
+  const started = ++modelCallsStarted;
+  const cleared = clearReplyStatus(ai);
+  let call;
+  try {
+    call = Promise.resolve(ai.run(model, inputFor(model, request), { gateway: AI_GATEWAY_OPTIONS }));
+  } catch (error) {
+    throw new Rejected(error, undefined);
+  }
+  modelCallsInFlight += 1;
+  const settled = () => {
+    modelCallsInFlight -= 1;
+  };
+  call.then(settled, settled);
   let timer;
+  let timedOut = false;
   try {
     return await Promise.race([
-      env.AI.run(model, inputFor(model, request), { gateway: AI_GATEWAY_OPTIONS }),
+      call,
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error("provider timeout")), PROVIDER_TIMEOUT_MS);
+        timer = setTimeout(() => {
+          timedOut = true;
+          reject(new Error("provider timeout"));
+        }, PROVIDER_TIMEOUT_MS);
       }),
     ]);
+  } catch (error) {
+    const own = cleared && alone && !timedOut && modelCallsStarted === started;
+    throw new Rejected(error, own ? replyStatus(ai) : undefined);
   } finally {
     clearTimeout(timer);
   }
@@ -175,6 +239,7 @@ class CallFailure extends Error {
     super(describe(error));
     this.calls = calls;
     this.failure = failure;
+    this.rejection = error instanceof Rejected ? error : undefined;
   }
 }
 
@@ -335,6 +400,50 @@ export async function handlePropose(request, env) {
   return reply(200, text);
 }
 
+/** Every key a provider reports usage or a served model under: on a rejection, any of them shows a model result. */
+const RESULT_KEYS = ["usage", "model", "inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens"];
+
+/** What a rejection carries as structured data, through its response and cause a few levels deep: every status it
+    states, and whether it shows a model result. One that cannot be read shows one, so it fails closed. */
+function evidenceOf(rejection) {
+  const statuses = [];
+  let result = false;
+  const visit = (value, depth) => {
+    if (!value || typeof value !== "object" || depth > 3) return;
+    for (const key of RESULT_KEYS) if (value[key] != null) result = true;
+    if (value.status !== undefined) statuses.push(value.status);
+    visit(value.response, depth + 1);
+    visit(value.cause, depth + 1);
+  };
+  try {
+    visit(rejection, 0);
+    return { statuses, result };
+  } catch {
+    return { statuses: [], result: true };
+  }
+}
+
+/** A call the gateway turned away: it returned nothing, so it reports no usage and names no model. */
+const unspent = (call) => call?.outcome === "provider-error" && call.inputTokens === null && call.outputTokens === null && call.model === undefined;
+
+/* Busy: the gateway refused the call before any model ran, which the browser
+   and the bench may retry at no cost. A structured 429 decides it first: the
+   status the binding recorded for this call's reply, or one the rejection
+   itself carries, every status stated agreeing on 429, on a request whose
+   only call is the one refused. Otherwise the message decides, as before: the
+   compatibility fallback. Never when the failure is an unusable output, or
+   the rejection shows a model result: those may have spent, and stay
+   provider failures. */
+function isBusy(error, calls) {
+  if (error?.failure === "unusable-output") return false;
+  const rejection = error?.rejection;
+  const { statuses, result } = rejection ? evidenceOf(rejection.error) : { statuses: [], result: false };
+  if (result) return false;
+  const stated = rejection?.replyStatus === undefined ? statuses : [rejection.replyStatus, ...statuses];
+  const refused = calls.length === 1 && unspent(calls[0]) && stated.length > 0 && stated.every((status) => status === 429);
+  return refused || /\b429\b|too many requests|rate.?limit|capacity/i.test(String(error?.message ?? ""));
+}
+
 /** The error reply for a request that made provider calls, carrying them. */
 function failed(error) {
   // Every provider call this request made is reported, on every reply, so
@@ -345,8 +454,7 @@ function failed(error) {
   // provider error can quote the request that caused it, and the prompt must
   // not reach a log or a response. The zone-wide gateway rate limit fires
   // because SOMEONE ELSE is generating, which is a different, actionable fact.
-  const shape = String(error?.message ?? "");
-  const busy = error?.failure !== "unusable-output" && /\b429\b|too many requests|rate.?limit|capacity/i.test(shape);
+  const busy = isBusy(error, calls);
   if (busy) {
     return json(503, {
       error: "busy",
