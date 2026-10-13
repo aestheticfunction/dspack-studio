@@ -417,14 +417,23 @@ export async function handlePropose(request, env) {
 
 /** Every key a provider reports usage or a served model under: on a rejection, any of them shows a model result. */
 const RESULT_KEYS = ["usage", "model", "inputTokens", "outputTokens", "input_tokens", "output_tokens", "prompt_tokens", "completion_tokens"];
+/** The same evidence written as text: a quoted usage or token key. The binding makes a reply's whole body its error's
+    message when the body names no error code. A model's name alone does not count here, since a refusal's body may
+    name the model it refused. */
+const RESULT_IN_TEXT = /"(usage|inputTokens|outputTokens|input_tokens|output_tokens|prompt_tokens|completion_tokens)"\s*:/;
+/** How deep a rejection is read, its statuses and its search alike; anything deeper fails closed. */
+const EVIDENCE_DEPTH = 6;
+/** What the search reads in full: plain objects, arrays and errors. Anything else (a Response, a stream, a Map, a
+    buffer) may hold what it cannot read, such as a body, so it fails closed. */
+const plainData = (value) => Array.isArray(value) || value instanceof Error || [Object.prototype, null].includes(Object.getPrototypeOf(value));
 
-/** What a rejection carries as structured data: every status it states, itself or through its response and cause a
-    few levels deep, and whether anything it holds, at any depth, shows a model result. One that cannot be read in
-    full shows one, so it fails closed. */
+/** What a rejection carries as structured data: every status it states, itself or down its response and cause, and
+    whether anything it holds shows a model result: a result key, or a string quoting one, under any own key,
+    enumerable or not. One that cannot be read in full shows one, so it fails closed. */
 function evidenceOf(rejection) {
   const statuses = [];
   const chain = (value, depth) => {
-    if (!value || typeof value !== "object" || depth > 3) return;
+    if (!value || typeof value !== "object" || depth > EVIDENCE_DEPTH) return;
     if (value.status != null) statuses.push(value.status);
     chain(value.response, depth + 1);
     chain(value.cause, depth + 1);
@@ -432,14 +441,19 @@ function evidenceOf(rejection) {
   const seen = new Set();
   let result = false;
   const search = (value, depth) => {
-    if (result || !value || typeof value !== "object" || seen.has(value)) return;
-    if (depth > 6 || seen.size >= 256) {
+    if (result) return;
+    if (typeof value === "string") {
+      if (RESULT_IN_TEXT.test(value)) result = true;
+      return;
+    }
+    if (!value || typeof value !== "object" || seen.has(value)) return;
+    if (depth > EVIDENCE_DEPTH || seen.size >= 256 || !plainData(value)) {
       result = true;
       return;
     }
     seen.add(value);
     for (const key of RESULT_KEYS) if (value[key] != null) result = true;
-    for (const next of [value.response, value.cause, ...Object.values(value)]) search(next, depth + 1);
+    for (const next of [value.response, value.cause, ...Reflect.ownKeys(value).map((key) => value[key])]) search(next, depth + 1);
   };
   try {
     chain(rejection, 0);
@@ -453,23 +467,25 @@ function evidenceOf(rejection) {
 /** A call the gateway turned away: it returned nothing, so it reports no usage and names no model. */
 const unspent = (call) => call?.outcome === "provider-error" && call.inputTokens === null && call.outputTokens === null && call.model === undefined;
 
-/* Busy: the gateway refused the call before any model ran, which the browser
-   and the bench may retry at no cost. A status, once known, decides alone:
-   the one the binding recorded for this call's reply and any the rejection
-   itself carries must all be a numeric 429, on a request whose only call is
-   the one refused; anything else is a provider failure, whatever the message
-   says. Only when no status is known does the message decide, as before: the
-   compatibility fallback. Never when the failure is an unusable output, or
-   the rejection shows a model result: those may have spent, and stay
-   provider failures. */
+/* Busy: the gateway turned away the request's only call before any model
+   ran, which the browser and the bench may retry at no cost. So a request
+   that made any other call (an unusable output first), or whose rejection
+   shows a model result in its fields or its message, is never busy: it may
+   have spent, and stays a provider failure. Then a status, once known,
+   decides alone: the one the binding recorded for this call's reply and any
+   the rejection itself carries must all be a numeric 429; anything else is a
+   provider failure, whatever the message says. Only when no status is known
+   does the message decide, as before: the compatibility fallback. */
 function isBusy(error, calls) {
   if (error?.failure === "unusable-output") return false;
+  if (calls.length !== 1 || !unspent(calls[0])) return false;
+  const message = String(error?.message ?? "");
   const rejection = error?.rejection;
   const { statuses, result } = rejection ? evidenceOf(rejection.error) : { statuses: [], result: false };
-  if (result) return false;
+  if (result || RESULT_IN_TEXT.test(message)) return false;
   const stated = rejection?.replyStatus === undefined ? statuses : [rejection.replyStatus, ...statuses];
-  if (stated.length > 0) return calls.length === 1 && unspent(calls[0]) && stated.every((status) => status === 429);
-  return /\b429\b|too many requests|rate.?limit|capacity/i.test(String(error?.message ?? ""));
+  if (stated.length > 0) return stated.every((status) => status === 429);
+  return /\b429\b|too many requests|rate.?limit|capacity/i.test(message);
 }
 
 /** The error reply for a request that made provider calls, carrying them. */

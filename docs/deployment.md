@@ -90,16 +90,35 @@ A `HOSTED_AI` var is the kill switch.
 `ds-ai-gateway` zone rate limit — a concurrent burst to `/api/propose` is
 rate-limited to `503 busy` (verified), which bounds total Haiku spend zone-wide
 — plus the kill switch, the per-call `max_tokens`, and the request body-size
-cap. The Worker recognizes the gateway's refusal by the HTTP 429 the AI binding
-records for the reply, trusted only for a call no other model call in the
-isolate overlapped, or, when no status is known, by the error's message as
-before; a refusal that shows no model result is answered `503 busy`, reporting
-the one call the gateway turned away. The Worker also declares a native per-client rate-limit binding
+cap. The Worker also declares a native per-client rate-limit binding
 (`PROPOSE_RATE_LIMIT`) for fairness, but that binding **does not currently
 enforce on this account** (`.limit()` reports success for every call; 20+ rapid
 requests all passed). It is kept as forward-compatible defense-in-depth; the
 gateway ceiling is the real gate. A per-client KV/DO counter is the follow-up if
 per-IP fairness becomes necessary.
+
+**Busy refusals.** The Worker answers `503 busy`, which the browser and the
+bench retry at no cost, only when the gateway turned away the request's only
+call before any model ran:
+- **A known status decides.** The AI binding records the HTTP status of each
+  reply (`lastRequestHttpStatusCode`) before it throws, and busy needs every
+  known status to be a numeric 429; any other is a provider failure (`502`),
+  whatever the error's message says. The binding's status counts as the call's
+  own only when no other model call in the isolate overlapped it, never after
+  the Worker's own 45 s timeout, and never for a call the binding threw on
+  before returning; a call the binding never settles stops counting 5 minutes
+  after it began.
+- **Only when no status is known does the message decide**, by its busy words,
+  as before.
+- **A request that may have spent is never busy:** a 429 after an unusable
+  first output, or an error that shows a model result, as a usage or token
+  field or as a quoted usage or token key in a string such as its message
+  (the binding makes a reply's whole body the message when the body names no
+  error code). An error that holds what cannot be read in full, such as a
+  `Response` and its body, counts as showing one.
+- **This trusts that `ds-ai-gateway` answers 429 only before it forwards a
+  request.** Keep its Retry Requests setting off, and if guardrails or DLP are
+  enabled, check that they never block an answered request with a 429.
 
 Crucially, the Worker **never runs the deterministic pipeline** — Cloudflare
 Workers ban the runtime `new Function` that AJV (S1/S2/S3 + emit) needs, so
