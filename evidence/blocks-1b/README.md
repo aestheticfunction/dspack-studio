@@ -81,7 +81,7 @@ The owner authorized one resume, window 2, with the same flags and `--resume liv
 - **What it ran:** the stopped cell first (`astryx | block-positional | nb-02 | refine-add`, from its start), then the rest: 93 cells.
 - **Requests:** 140 reserved and 140 finalized; none unverified.
   - 136 settled at the reported usage, every one on `claude-haiku-4-5-20251001`.
-  - 4 busy refusals (503) were released before any provider call, each passed on its first 30 s backoff.
+  - 4 busy refusals (503) were released as refusals that reached no model, each passed on its first 30 s backoff.
 - **Cost:** $1.76630475 committed. That equals its cells' reported usage with the 5% credit fee ($1.682195 at list).
 - **Cells:** 93 logged and completed: 87 passed, 2 failed-lint-exhausted and 4 failed-adapter. These are on the pipeline's pass, and all are arm results.
 - **The operator monitor** logged the 4 released refusals and the harness's exit. None of its stop conditions fired.
@@ -131,7 +131,7 @@ The owner authorized one resume, window 2, with the same flags and `--resume liv
 - **The bootstrap, independently:** a different generator (20,000 resamples, and 200 seeds of 2,000) calls the decision clear every time.
 
 **Sensitivity** (`analysis_stage3.py`, result in `.sensitivity.json`). These are readings beside the verdict, and none replaces it.
-- **Every binding failure sits on three prompts.** All 13 of the decision arms' binding failures are add or remove cells on nb-01 to nb-03, the destructive confirmations.
+- **Every binding failure in the decision arms sits on three prompts.** All 13 of the decision arms' binding failures are add or remove cells on nb-01 to nb-03, the destructive confirmations.
   - In every arm, those surfaces are a single Astryx `alert-dialog` with no list, so "Add one more item." and "Remove the last item." have nothing to act on.
   - On null prompts the block arm runs the production configuration, so these failures say nothing about blocks.
 - **Excusing unchanged misses** (counting an untouched surface as a correct no-op) keeps the pass verdict. Block minus capped's interval then reaches -5.8 points, so that reading is uncertain.
@@ -151,6 +151,16 @@ The owner authorized one resume, window 2, with the same flags and `--resume liv
 - `verify_stage3.py` and `.verify.json`: the independent verification and its result.
 - `analysis_stage3.py` and `.sensitivity.json`: the decision-packet tables and the sensitivity readings.
 - `.SHA256SUMS`: covers every file of the run, both windows. `SHA256SUMS` covers the baseline and this README.
+
+**Documents written from the evidence** (no paid call; nothing here changes the run):
+- `1b-stage3-astryx-2026-10-12.decision-packet.md`: the formal decision. It covers:
+  - the ordinary and binding readings side by side;
+  - per-arm, per-condition, per-family and per-prompt results;
+  - selection, retention, fallback, repairs, latency, parity, and named against positional;
+  - validity and sensitivity.
+- `1b-stage3-astryx-2026-10-12.follow-up-429.md`: the Worker's 429 classification gap, traced. It gives a minimal fix and a fail-first test plan, neither implemented.
+- `1b-stage3-astryx-2026-10-12.next-stage.md`: stopping, shadcn/ui v3 Stage 3, and a narrow correction first, compared, with commands only.
+- `1b-stage3-astryx-2026-10-12.handoff.md`: the morning handoff.
 
 **To re-run the verification from a checkout of this branch:**
 
