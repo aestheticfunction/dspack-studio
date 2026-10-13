@@ -1039,8 +1039,10 @@ describe("a gateway 429 the binding records, through the real Worker and the led
   // busy words, so the Worker answered 502 provider and the paced run stopped on a refusal that reached no model.
   type Binding = { lastRequestHttpStatusCode: number | null; run: () => Promise<unknown> };
   /** A status of null records none, as when no reply arrived: the Worker then classifies by the message alone. */
-  type Step = { status: number | null; error: Error } | "served";
+  type Step = { status: number | null; error: Error } | "served" | "prose";
   const served = { content: [{ type: "text", text: JSON.stringify({ answer: 1 }) }], usage: { input_tokens: 10, output_tokens: 2 }, model: HAIKU_ID };
+  /** An answer the Worker cannot use, billed: the Worker calls again. */
+  const prose = { content: [{ type: "text", text: "Here is a surface." }], usage: { input_tokens: 700, output_tokens: 30 }, model: HAIKU_ID };
   const refusal = (message: string, extra: Record<string, unknown> = {}) => Object.assign(new Error(message), { name: "InferenceUpstreamError" }, extra);
   /** #539: a refusal whose message names none of the busy words. */
   const silent = () => refusal("request refused by the gateway");
@@ -1051,9 +1053,9 @@ describe("a gateway 429 the binding records, through the real Worker and the led
       lastRequestHttpStatusCode: null,
       async run(this: Binding) {
         const step = steps[Math.min(n++, steps.length - 1)]!;
-        if (step === "served") {
+        if (step === "served" || step === "prose") {
           this.lastRequestHttpStatusCode = 200;
-          return served;
+          return step === "served" ? served : prose;
         }
         this.lastRequestHttpStatusCode = step.status;
         throw step.error;
@@ -1119,6 +1121,8 @@ describe("a gateway 429 the binding records, through the real Worker and the led
     const cases: Array<[string, Binding]> = [
       ["a 429 with usage", binding([{ status: 429, error: refusal("request refused", { usage: { input_tokens: 10, output_tokens: 2 } }) }])],
       ["a 429 naming a model", binding([{ status: 429, error: refusal("request refused", { model: HAIKU_ID }) }])],
+      // The binding makes a reply's whole body the message when the body names no error code.
+      ["a 429 whose message carries usage", binding([{ status: 429, error: refusal('{"type":"error","usage":{"input_tokens":700,"output_tokens":30}}') }])],
       ["a 500", binding([{ status: 500, error: silent() }])],
       ["a 500 whose message names a busy word", binding([{ status: 500, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }])],
     ];
@@ -1128,6 +1132,16 @@ describe("a gateway 429 the binding records, through the real Worker and the led
       expect(r.waits, name).toEqual([]);
       expect(r.lines.map(([reason]) => reason), name).toEqual(["request", "usage not verified"]);
       expect(r.lines[1]![1], name).toBeCloseTo(absoluteUsd(2) - priced, 12);
+    }
+  });
+
+  it("a busy-worded 429 after a billed, unusable first answer is held at the most the request could cost, as it always was", async () => {
+    for (const status of [null, 429]) {
+      const r = await through(binding(["prose", { status, error: refusal("InferenceUpstreamError: 429 Too Many Requests") }]), [5]);
+      expect(r.outcome, String(status)).toMatchObject({ ok: false, kind: "provider" });
+      expect(r.waits, String(status)).toEqual([]);
+      expect(r.lines.map(([reason]) => reason), String(status)).toEqual(["request", "usage not verified"]);
+      expect(r.lines[1]![1], String(status)).toBeCloseTo(absoluteUsd(2) - priced, 12);
     }
   });
 });
