@@ -97,17 +97,18 @@ requests all passed). It is kept as forward-compatible defense-in-depth; the
 gateway ceiling is the real gate. A per-client KV/DO counter is the follow-up if
 per-IP fairness becomes necessary.
 
-**Busy refusals.** The Worker answers `503 busy`, which the browser and the
-bench retry at no cost, only when the gateway turned away the request's only
+**Busy refusals.** The Worker answers `503 busy`, a refusal that cost nothing
+(the bench backs off and retries it; the browser shows it as busy, for the
+visitor to try again), only when the gateway turned away the request's only
 call before any model ran:
 - **A known status decides.** The AI binding records the HTTP status of each
   reply (`lastRequestHttpStatusCode`) before it throws, and busy needs every
   known status to be a numeric 429; any other is a provider failure (`502`),
   whatever the error's message says. The binding's status counts as the call's
-  own only when no other model call in the isolate overlapped it, never after
-  the Worker's own 45 s timeout, and never for a call the binding threw on
-  before returning; a call the binding never settles stops counting 5 minutes
-  after it began.
+  own only when the Worker cleared it to `null` just before the call and no
+  other model call in the isolate overlapped it; never after the Worker's own
+  45 s timeout, and never for a call the binding threw on before returning. A
+  call the binding never settles stops counting 5 minutes after it began.
 - **Only when no status is known does the message decide**, by its busy words,
   as before.
 - **A request that may have spent is never busy:** a 429 after an unusable

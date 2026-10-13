@@ -865,20 +865,25 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
       for (let i = 0; i < levels; i++) nested = { data: nested };
       return nested;
     };
+    const keyed = (count) => Object.fromEntries(Array.from({ length: count }, (_, i) => [`k${i}`, i]));
     const cases = [
       ["one level deeper than the search reads", upstream("request refused", { status: 429, data: wrapped(6) })],
       ["more objects than the search reads", upstream("request refused", { status: 429, data: Array.from({ length: 300 }, () => ({})) })],
       ["more values than the search reads", upstream("request refused", { status: 429, data: new Array(5000).fill(0) })],
       ["a million values, refused unread", upstream("request refused", { status: 429, data: new Array(1_000_000).fill(0) })],
+      ["one object with more keys than the search reads", upstream("request refused", { status: 429, data: keyed(5000) })],
+      ["two objects whose keys together pass what the search reads", upstream("request refused", { status: 429, data: { a: keyed(3000), b: keyed(3000) } })],
     ];
     for (const [name, error] of cases) {
       const { status, body } = await classify({ run: vi.fn().mockRejectedValue(error) });
       expect(status, name).toBe(502);
       expect(body.cause, name).toBe("provider");
     }
-    // The deepest level the search reads is still read, and plain data there shows nothing.
-    const { status } = await classify({ run: vi.fn().mockRejectedValue(upstream("request refused", { status: 429, data: wrapped(5) })) });
-    expect(status).toBe(503);
+    // The deepest level the search reads is still read, as is plain data under its value bound, and neither shows anything.
+    for (const [name, data] of [["the deepest level", wrapped(5)], ["3,500 values", keyed(3500)]]) {
+      const { status } = await classify({ run: vi.fn().mockRejectedValue(upstream("request refused", { status: 429, data })) });
+      expect(status, name).toBe(503);
+    }
   });
 
   it("each usage, token or model key alone shows a model result, as a field, and each usage or token key quoted in the message", async () => {
@@ -896,7 +901,7 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
   });
 
   it("a usage key in the message is found however it is written: spaced, escaped inside a JSON string, or capitalized", async () => {
-    for (const message of ['{"usage" : {"input_tokens": 5}}', '{"message":"{\\"usage\\":{\\"input_tokens\\":5}}"}', '{"Usage":{"Input_Tokens":5}}']) {
+    for (const message of ['{"usage" : 5}', '{"message":"{\\"usage\\":{\\"input_tokens\\":5}}"}', '{"Usage":{"Input_Tokens":5}}']) {
       const { status } = await classify(refusingBinding(429, upstream(message)));
       expect(status, message).toBe(502);
     }
