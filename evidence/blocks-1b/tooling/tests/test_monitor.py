@@ -143,7 +143,8 @@ class Rules(unittest.TestCase):
         self.assertIn("8 refusals released", message)
 
     def test_refusals_stop_once_their_backoff_reaches_fifteen_minutes(self):
-        self.m = mon.Monitor(config(maxReleased=100), CORPUS, log=self.logged.append)
+        # The limit as configured: fifteen minutes here, against the shipped ten.
+        self.m = mon.Monitor(config(maxReleased=100, maxBackoffSeconds=900), CORPUS, log=self.logged.append)
         self.m.begin(MANIFEST, PREFLIGHT)
         self.request(refusals=4)  # 450 s
         self.request(refusals=3)  # 660 s
@@ -273,6 +274,65 @@ class Rules(unittest.TestCase):
         self.m.tick(mon.epoch("2026-10-14T00:05:00.000Z"))
         self.stops("integrity", lambda: self.m.tick(mon.epoch("2026-10-14T00:10:02.000Z")))
 
+    # From the review of 8bf756d.
+    def test_a_record_read_before_the_fifth_release_still_stops(self):
+        # The fifth release and its cell's record can land between two reads; the record is then processed first.
+        for _ in range(4):
+            self.n += 1
+            self.m.ledger(reserve(self.at, self.n))
+            self.m.ledger(release(self.at, self.n))
+        self.n += 1
+        self.m.ledger(reserve(self.at, self.n))
+        self.m.record(record(self.at, outcome="planning-failure", passed=False, failure={"kind": "provider", "message": "busy", "rerunEligible": True}))
+        message = self.stops("refusals", lambda: self.m.ledger(release(self.at, self.n)))
+        self.assertIn("refused 5 times in a row", message)
+
+    def test_the_backoff_limit_fires_before_the_release_limit(self):
+        # With the shipped limits, a full schedule then three more refusals in a row stop on backoff, at 7 releases.
+        self.request(refusals=4)  # 450 s, allowed
+        message = self.stops("refusals", lambda: self.request(refusals=3))  # 480, 540, then 660 s
+        self.assertIn("660 s of backoff", message)
+        self.assertEqual(self.m.released, 7)
+
+    def test_a_hold_is_left_to_the_harness_to_stop(self):
+        self.m.ledger(reserve(self.at, 1))
+        line = settle(self.at, 1, 1.118208)
+        line["reason"] = mon.UNVERIFIED
+        with self.assertRaises(mon.Stop) as caught:
+            self.m.ledger(line)
+        self.assertTrue(caught.exception.harness_stops)
+
+    def test_a_request_from_another_invocation_stops(self):
+        other = "2026-10-14T00:00:00.500Z~ffff"
+        self.stops("integrity", lambda: self.m.ledger({"at": "2026-10-14T00:00:30.000Z", "invocation": other, "request": f"{other}#1", "usd": 0.1}))
+
+    def test_more_requests_than_the_window_allows_stop(self):
+        self.m = mon.Monitor(config(maxRequestsPerWindow=3), CORPUS, log=self.logged.append)
+        self.m.begin(MANIFEST, PREFLIGHT)
+        for _ in range(3):
+            self.request()
+        self.stops("integrity", lambda: self.request())
+
+    def test_a_turned_away_call_must_end_a_failed_cell(self):
+        r = record(self.at)
+        r["calls"] = [{"operation": "plan", "subCall": 0, "source": "provider", "outcome": "provider-error"}, *r["calls"]]
+        self.stops("model", lambda: self.m.record(r))
+
+    def test_a_set_aside_record_is_allowed_when_the_model_measured_is_the_one_expected(self):
+        self.m.check_manifest({**MANIFEST, "setAside": [{"servedModel": {"id": MODEL, "at": INV}, "at": INV, "invocation": ID}]})
+        self.stops("model", lambda: self.m.check_manifest({**MANIFEST, "servedModel": {"id": "claude-haiku-4-5", "at": INV}, "setAside": [{"servedModel": {"id": MODEL, "at": INV}, "at": INV, "invocation": ID}]}))
+
+    def test_an_unreadable_build_stops_once_it_has_been_unreadable_five_minutes(self):
+        unread = SHADCN["maxUnreadableBuildSeconds"] // SHADCN["buildCheckSeconds"]
+        for _ in range(unread - 1):
+            self.m.live_build(None)
+        self.stops("build", lambda: self.m.live_build(None))
+
+    def test_the_shadcn_configuration_checks_the_build_every_30_seconds(self):
+        self.assertEqual(SHADCN["buildCheckSeconds"], 30)
+        self.assertEqual(SHADCN["maxBackoffSeconds"], 600)
+        self.assertEqual(SHADCN["maxRequestsPerWindow"], 123)
+
     # Failures.
     def test_one_provider_failure_is_allowed_and_the_second_stops(self):
         failed = lambda: record(self.at, outcome="failed-adapter", passed=False, failure={"kind": "provider", "message": "timeout", "rerunEligible": True})
@@ -292,7 +352,8 @@ class Rules(unittest.TestCase):
 
 def replay(name):
     """Each invocation of a synthetic run through a fresh monitor, its ledger lines and records in the order they were
-    written. Returns, per invocation, the rule it stopped on (None for none) and what the monitor logged."""
+    written, as far as they had been written when the next invocation began. Returns, per invocation, the rule it
+    stopped on (None for none) and what the monitor logged."""
     root = os.path.join(TOOLING, "fixtures", name)
     run = os.path.join(root, "run")
     with open(os.path.join(run, "manifest.json")) as f:
@@ -313,7 +374,7 @@ def replay(name):
         until = preflights[k + 1]["at"] if k + 1 < len(preflights) else "9999"
         logged = []
         m = mon.Monitor(config(build=build, code=code), CORPUS, log=logged.append)
-        stream = [(x["at"], 0, i, x) for i, x in enumerate(ledger)] + [(r["at"], 1, i, r) for i, r in enumerate(records) if pf["at"] <= r["at"] < until]
+        stream = [(x["at"], 0, i, x) for i, x in enumerate(ledger) if x["at"] < until] + [(r["at"], 1, i, r) for i, r in enumerate(records) if pf["at"] <= r["at"] < until]
         rule = None
         try:
             m.begin(manifest, pf)
@@ -345,6 +406,110 @@ class Replays(unittest.TestCase):
         self.assertTrue(any("raised to $1.118208" in x for x in r[6][1]))
         # Four refusals in a row, then an answer: the whole schedule used, and allowed (450 s of backoff).
         self.assertTrue(any("4 in a row" in x and "450 s of backoff" in x for x in r[9][1]))
+
+
+class Loop(unittest.TestCase):
+    """main() against a fake harness that writes a run directory on a fixed timeline."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="monitor-loop-")
+        self.run_dir = os.path.join(self.tmp, "run")
+        self.build_file = os.path.join(self.tmp, "build.html")
+        with open(self.build_file, "w") as f:
+            f.write('<script>self.__next_f.push([1,"{\\"b\\":\\"BuildA\\"}"])</script>')
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def start(self, steps):
+        plan = os.path.join(self.tmp, "plan.json")
+        with open(plan, "w") as f:
+            json.dump({"dir": self.run_dir, "steps": steps}, f)
+        return subprocess.Popen([sys.executable, "-I", os.path.join(HERE, "fake_harness.py"), plan], start_new_session=True)
+
+    def watch(self, harness, preflights, timeout=30, pgid=None, **over):
+        path = os.path.join(self.tmp, "monitor.json")
+        with open(path, "w") as f:
+            json.dump(config(buildCheckSeconds=0.2, **over), f)
+        events = os.path.join(self.tmp, "events.log")
+        watcher = subprocess.Popen([sys.executable, "-I", os.path.join(TOOLING, "monitor_run.py"), "--run", self.run_dir, "--pgid", str(pgid or harness.pid), "--preflights", str(preflights), "--config", path, "--corpus", CORPUS_V2, "--events", events, "--poll", "0.05", "--build-url", f"file://{self.build_file}", "--hand-back-after", "8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        deadline = time.time() + timeout
+        while watcher.poll() is None and time.time() < deadline:
+            if harness is not None:
+                harness.poll()
+            time.sleep(0.02)
+        if watcher.poll() is None:
+            watcher.kill()
+            watcher.wait()
+        if harness is not None:
+            try:
+                harness.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                harness.kill()
+                harness.wait()
+        text = ""
+        if os.path.exists(events):
+            with open(events) as f:
+                text = f.read()
+        return watcher.returncode, text
+
+    def opening(self, preflights=1):
+        steps = [{"write": "manifest.json", "json": MANIFEST}, {"write": "preflight.json", "json": PREFLIGHT}]
+        for k in range(1, preflights):
+            steps.append({"write": f"preflight.resume-{k}.json", "json": {**PREFLIGHT, "at": f"2026-10-14T0{k}:00:00.000Z"}})
+        return steps
+
+    def test_a_hold_is_left_to_the_harness_which_stops_itself(self):
+        at = Clock()
+        sent = reserve(at, 1)
+        held = settle(at, 1, 1.118208)
+        held["reason"] = mon.UNVERIFIED
+        steps = self.opening() + [{"sleep": 0.5}, {"append": "requests.jsonl", "json": sent}, {"append": "requests.jsonl", "json": held}, {"sleep": 1.0}, {"append": "pacing.jsonl", "json": {"at": INV, "id": ID, "stopped": {"reason": "integrity", "message": "usage-missing"}}}, {"exit": 3}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(harness.returncode, 3, events)
+        self.assertEqual(code, 0, events)
+        self.assertIn("stopped itself", events)
+
+    def test_a_preflight_count_that_is_not_this_windows_stops_the_window(self):
+        second = f"2026-10-14T01:00:00.000Z~1111"
+        steps = self.opening(preflights=2) + [{"append": "requests.jsonl", "json": {"at": "2026-10-14T01:00:01.000Z", "invocation": second, "request": f"{second}#1", "usd": 0.1}}, {"sleep": 6}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 10, events)
+        self.assertIn("not this window", events)
+
+    def test_a_preflight_that_never_comes_stops_the_window(self):
+        steps = self.opening(preflights=2) + [{"sleep": 6}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 3, preflightWaitSeconds=1)
+        self.assertEqual(code, 10, events)
+        self.assertIn("preflight", events)
+
+    def test_the_closing_count_holds_every_request_the_window_wrote(self):
+        # A stop on the first request's settlement, with a second request already written: the monitor still reads
+        # it, so the count it closes on is the ledger's.
+        at = Clock()
+        lines = [reserve(at, 1), settle(at, 1, model="claude-haiku-4-5"), reserve(at, 2), settle(at, 2)]
+        steps = self.opening() + [{"sleep": 0.3}] + [{"append": "requests.jsonl", "json": x} for x in lines] + [{"sleep": 6}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 10, events)
+        self.assertIn("STOP (model)", events)
+        self.assertIn("harness stopped by the monitor: 0 cells, 2 requests sent", events)
+
+    def test_its_own_process_group_is_refused(self):
+        code, events = self.watch(None, 1, timeout=10, pgid=os.getpgrp())
+        self.assertEqual(code, 2, events)
+
+    def test_a_process_group_that_is_not_running_is_refused(self):
+        # A launch from a shell with job control can hand the monitor a group that is already gone: it must not take
+        # that for a harness that exited, and leave the real one unwatched.
+        gone = subprocess.Popen([sys.executable, "-I", "-c", "pass"], start_new_session=True)
+        gone.wait()
+        code, events = self.watch(None, 1, timeout=10, pgid=gone.pid)
+        self.assertEqual(code, 2, events)
+        self.assertIn("no process group", events)
 
 
 def available():
@@ -410,8 +575,10 @@ class Live(unittest.TestCase):
         return [x for x in lines if x["invocation"].startswith(f"{at}~")]
 
     def verify(self, *extra):
+        """verify_run.py on the run so far, with each monitored window's events log."""
         out = os.path.join(self.tmp, "verify.json")
-        subprocess.run([sys.executable, "-I", os.path.join(TOOLING, "verify_run.py"), "--run", self.run_dir, "--corpus", CORPUS_V2, "--out", out, "--partial-history", "--quick", *extra], capture_output=True, text=True, timeout=300)
+        events = [x for k in range(1, self.k + 1) for x in ["--monitor-events", os.path.join(self.tmp, f"events-{k}.log")] if os.path.exists(os.path.join(self.tmp, f"events-{k}.log"))]
+        subprocess.run([sys.executable, "-I", os.path.join(TOOLING, "verify_run.py"), "--run", self.run_dir, "--corpus", CORPUS_V2, "--out", out, "--partial-history", "--quick", *events, *extra], capture_output=True, text=True, timeout=300)
         with open(out) as f:
             return json.load(f)
 
@@ -432,6 +599,7 @@ class Live(unittest.TestCase):
         result = self.verify()
         self.assertEqual(result["findings"], [])
         self.assertEqual([e["ended"] for e in result["invocations"]], ["cap", "killed"])
+        self.assertEqual([(e["window"], e["requestsSeen"]) for e in result["monitorEvents"]], [(2, len(self.ledger_of(2)) - sum(1 for x in self.ledger_of(2) if "adjust" in x))])
 
     def test_repeated_refusals_stop_the_window_during_a_backoff(self):
         self.invocation(30)
@@ -470,6 +638,7 @@ class Live(unittest.TestCase):
         result = self.verify("--complete")
         self.assertEqual(result["findings"], [])
         self.assertEqual([e["ended"] for e in result["invocations"]], ["cap", "killed", "complete"])
+        self.assertTrue(any("the live build changed during invocation 2 to ['AnotherBuild']" in n for n in result["notes"]), result["notes"])
 
 
 if __name__ == "__main__":
