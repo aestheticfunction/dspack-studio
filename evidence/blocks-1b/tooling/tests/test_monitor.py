@@ -239,10 +239,13 @@ class Rules(unittest.TestCase):
         m = mon.Monitor(config(), CORPUS, log=self.logged.append)
         self.stops("build", lambda: m.begin(MANIFEST, {**PREFLIGHT, "buildId": "BuildB"}))
 
-    def test_the_shadcn_configuration_stops_until_its_build_is_set(self):
+    def test_the_shadcn_configuration_holds_the_baselines_build_and_stops_on_any_other(self):
+        e = SHADCN["expect"]
+        self.assertEqual(e["build"], "Dyml8RSqfWynKU1KbVuZI")  # claude/blocks-baseline-7e260c3-evidence
+        manifest = {**MANIFEST, "provider": e["provider"], "references": [{"id": "shadcn-v3"}], "code": {"sha256": e["code"]}, "deployment": {**MANIFEST["deployment"], "baseUrl": "https://composer.aesthetic-function.com", "buildId": e["build"]}}
+        mon.Monitor(SHADCN, CORPUS, log=self.logged.append).begin(manifest, {**PREFLIGHT, "buildId": e["build"]})
         m = mon.Monitor(SHADCN, CORPUS, log=self.logged.append)
-        manifest = {**MANIFEST, "provider": SHADCN["expect"]["provider"], "references": [{"id": "shadcn-v3"}], "code": {"sha256": SHADCN["expect"]["code"]}}
-        self.stops("build", lambda: m.begin(manifest, PREFLIGHT))
+        self.stops("build", lambda: m.begin(manifest, {**PREFLIGHT, "buildId": "w6ajVrX5g8V0WhqowIBGN"}))
 
     # Corpus and integrity.
     def test_another_corpus_stops(self):

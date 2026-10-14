@@ -189,7 +189,13 @@ primitive generation. The block phase's request shapes are covered by the Astryx
 - **900 s of backoff:** about half a window's 30 to 40 minutes of requests. It allows one full schedule, which costs 450 s, and leaves room for single refusals.
 - **Provider failures:** Astryx had none; its 7 adapter failures were unusable outputs.
 
-**Before any window, the build must be set:** `expect.build` must be the post-merge baseline's. Until it is, the monitor stops every window at once. The code identity and the corpus are already set: `51c80cec…a229` and v2 `0e4e4706…1ae9`.
+**What every window must match:**
+- **Build:** `Dyml8RSqfWynKU1KbVuZI`, the zero-cost baseline's after PR 102 merged as `7e260c3`, on `claude/blocks-baseline-7e260c3-evidence`.
+- **Code identity:** `51c80cec…a229`.
+- **Corpus:** v2, `0e4e4706…1ae9`.
+- **Model:** `claude-haiku-4-5-20251001`.
+
+Any other build stops a window at once. So would a redeployment of main, which would also stop the run for good, since the harness refuses to resume across a deployment.
 
 **Launching a window** follows the Astryx procedure (`v2/stage3/preresume-and-launch.sh` in the operator's scratch). Run the no-cost checks first. Start the harness in its own session, then start the monitor at once:
 

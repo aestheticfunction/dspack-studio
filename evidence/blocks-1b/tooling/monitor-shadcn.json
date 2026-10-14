@@ -1,8 +1,8 @@
 {
-  "note": "The operator monitor's configuration for shadcn/ui v3 Stage 3 (monitor_run.py). Not launched: no run is authorized. The build is the zero-cost baseline's after PR 102 merges; until it is set, the monitor stops any window at once. A window is one invocation of --max-requests 123.",
+  "note": "The operator monitor's configuration for shadcn/ui v3 Stage 3 (monitor_run.py). Not launched: no run is authorized. The build is the zero-cost baseline's after PR 102 merged as 7e260c3 (claude/blocks-baseline-7e260c3-evidence); any other build stops a window at once. A window is one invocation of --max-requests 123.",
   "expect": {
     "model": "claude-haiku-4-5-20251001",
-    "build": "SET-FROM-THE-POST-MERGE-BASELINE",
+    "build": "Dyml8RSqfWynKU1KbVuZI",
     "code": "51c80cec7a652216c3b9b28b1467e8c45eb0ecebe170969854bb1d49d3c8a229",
     "corpus": {
       "id": "blocks-1b",
