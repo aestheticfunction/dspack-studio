@@ -455,6 +455,28 @@ class EdgeStates(unittest.TestCase):
                 code, r = verify_dir(snap, snapshots=snaps[:i])
                 self.assertEqual(r["findings"], [])
 
+    def test_a_request_a_later_invocation_left_unraised(self):
+        # An invocation that ended by itself read the ledger, and would have raised a request left open before it: one
+        # still open is no request in flight, though nothing was written after it.
+        tmp = tempfile.mkdtemp(prefix="verify-noraise-")
+        try:
+            root = os.path.join(FIXTURES, "synthetic-dead")
+            copy = os.path.join(tmp, "after-2")
+            shutil.copytree(os.path.join(root, "snapshots", "after-2"), copy)
+            with open(os.path.join(copy, "preflight.resume-1.json")) as f:
+                at = json.load(f)["at"]
+            with open(os.path.join(root, "run", "pacing.jsonl")) as f:
+                entry = json.loads(f.readline())
+            entry.update(at=at, id=f"{at}~00000000-0000-4000-8000-000000000000", stopped={"reason": "cap", "message": "the pacing cap of 30 requests for this invocation is reached; resume later"})
+            entry["telemetry"]["pacing"].update(sent=0, waits=[], maxRequests=30)
+            with open(os.path.join(copy, "pacing.jsonl"), "w") as f:
+                f.write(json.dumps(entry) + "\n")
+            code, r = verify_dir(copy, snapshots=[os.path.join(root, "snapshots", "after-1")])
+            self.assertEqual(code, 1)
+            self.assertTrue(any("#3" in f and "never finalized" in f for f in r["findings"]), r["findings"])
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_an_integrity_stop_killed_in_its_shutdown(self):
         run = Run("synthetic-5")
         try:
@@ -660,6 +682,26 @@ class MonitorEvents(unittest.TestCase):
         code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *logs)
         self.assertEqual(code, 1)
         self.assertTrue(any("ran with limits other than" in f and "maxReleased" in f for f in r["findings"]), r["findings"])
+
+    def test_a_restarted_monitors_limits_are_pinned_too(self):
+        # A restarted monitor appends to its window's log, with a "monitor up" line of its own: each is held to the config.
+        logs = {k: self.events(k, limits=SHADCN_LIMITS) for k in range(1, 13)}
+        with open(logs[6]) as f:
+            first = f.readline()
+        with open(logs[6], "a") as f:
+            f.write(first.replace(json.dumps(SHADCN_LIMITS, separators=(",", ":")), json.dumps(dict(SHADCN_LIMITS, maxReleased=1000), separators=(",", ":"))))
+        code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *[x for k in range(1, 13) for x in ("--monitor-events", logs[k])])
+        self.assertEqual(code, 1)
+        self.assertTrue(any("ran with limits other than" in f and "maxReleased" in f for f in r["findings"]), r["findings"])
+
+    def test_a_log_that_never_opened_its_window_is_no_log(self):
+        logs = {k: self.events(k, limits=SHADCN_LIMITS) for k in range(1, 13)}
+        with open(logs[3]) as f:
+            up = f.readline()
+        write_lines(logs[3], [up.rstrip("\n"), f"{up.split(' ')[0]} the harness exited before preflight.resume-2.json was written (a launch the harness refuses writes none): 0 cells, 0 requests sent"])
+        code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *[x for k in range(1, 13) for x in ("--monitor-events", logs[k])])
+        self.assertEqual(code, 1)
+        self.assertTrue(any("invocation 3" in f and "never opened" in f for f in r["findings"]), r["findings"])
 
     def test_every_window_needs_a_log_under_the_monitor_config(self):
         logs = [("--monitor-events", self.events(k, limits=SHADCN_LIMITS)) for k in range(1, 13)]

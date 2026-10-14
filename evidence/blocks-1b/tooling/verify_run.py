@@ -625,7 +625,8 @@ for req in order:
     r, f = reserves[req], finals.get(req)
     k = inv_of_id.get(r["invocation"])
     if f is None:
-        if k is not None and req == by_inv[k][-1] and invocations[k - 1]["ended"] in ("killed", "error") and first_writer_after(inv_at[k - 1]) is None:
+        later_ended = any(pacing_of.get(j) for j in range(k + 1, N + 1)) if k is not None else True
+        if k is not None and req == by_inv[k][-1] and invocations[k - 1]["ended"] in ("killed", "error") and first_writer_after(inv_at[k - 1]) is None and not later_ended:
             in_flight.append(req)
             note(f"{req}: {'recorded and never sent' if unsent.get(k) == req else 'in flight'} when invocation {k} stopped ({invocations[k - 1]['ended']}); the next process to write to the ledger raises it to the most a request can cost")
         else:
@@ -1869,15 +1870,22 @@ for path in A.monitor_events:
             events.append((epoch_of(stamp), message))
         except ValueError:
             finding(f"monitor events {path}: an unreadable line {x[:80]!r}")
-    up = next((m_ for _, msg in events for m_ in [re.match(r"monitor up: window (\d+),.*limits (\{.*\})$", msg)] if m_), None)
-    if up is None:
+    ups = [m_ for _, msg in events for m_ in [re.match(r"monitor up: window (\d+),.*limits (\{.*\})$", msg)] if m_]
+    if not ups:
         finding(f"monitor events {path}: no \"monitor up\" line naming its window and limits")
         continue
-    k = int(up.group(1))
-    limits_ = json.loads(up.group(2))
-    if PINNED is not None and limits_ != PINNED:
-        differ = {key: (limits_.get(key), PINNED.get(key)) for key in sorted(set(limits_) | set(PINNED)) if limits_.get(key) != PINNED.get(key)}
-        finding(f"monitor events {path}: it ran with limits other than {A.monitor_config}'s: {differ}")
+    # A restarted monitor appends a "monitor up" line of its own: every one names the same window, and with a
+    # configuration given, runs with its limits.
+    if len({int(u.group(1)) for u in ups}) > 1:
+        finding(f"monitor events {path}: its monitors name different windows: {sorted({int(u.group(1)) for u in ups})}")
+    k = int(ups[0].group(1))
+    limits_ = json.loads(ups[0].group(2))
+    for u in ups:
+        ran = json.loads(u.group(2))
+        if PINNED is not None and ran != PINNED:
+            differ = {key: (ran.get(key), PINNED.get(key)) for key in sorted(set(ran) | set(PINNED)) if ran.get(key) != PINNED.get(key)}
+            finding(f"monitor events {path}: it ran with limits other than {A.monitor_config}'s: {differ}")
+    if PINNED is not None:
         limits_ = PINNED
     entry = {"events": path, "window": k}
     monitored.append(entry)
@@ -1886,7 +1894,9 @@ for path in A.monitor_events:
         continue
     opened = [(t_, m_.group(1)) for t_, msg in events for m_ in [re.match(r"window opened (\S+):", msg)] if m_]
     if not opened:
-        note(f"monitor events {path}: window {k}'s monitor stopped before it opened the window")
+        # It never watched the window: under a configuration every window must be watched, so this is no window's log.
+        (finding if PINNED is not None else note)(f"monitor events {path}: invocation {k}'s monitor never opened its window, so the window ran unwatched")
+        entry["window"] = None
         continue
     if opened[0][1] != inv_at[k - 1]:
         finding(f"monitor events {path}: it watched the window opened {opened[0][1]}, but invocation {k}'s preflight is {inv_at[k - 1]}")
@@ -1931,7 +1941,7 @@ for path in A.monitor_events:
     if early:
         note(f"monitor events {path}: {len(early)} of invocation {k}'s requests came before the monitor's first build reading")
 if A.monitor_events or PINNED is not None:
-    windows_ = [e["window"] for e in monitored]
+    windows_ = [e["window"] for e in monitored if e["window"] is not None]
     if len(set(windows_)) != len(windows_):
         finding(f"two monitor events logs name the same window (a restarted monitor appends to its window's log): {sorted(windows_)}")
     if PINNED is not None:
