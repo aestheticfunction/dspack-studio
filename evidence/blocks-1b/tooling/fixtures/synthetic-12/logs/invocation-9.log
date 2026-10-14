@@ -1,0 +1,9 @@
+astryx|hosted-ai:claude-haiku-4.5|block-positional|rt-02|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|rt-02|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|rt-02|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block-positional|rt-02|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+stopped: the pacing cap of 24 requests for this invocation is reached; resume later
+
+run synthetic-12: 29 of 60 cells (25 reused)
+stopped: the pacing cap of 24 requests for this invocation is reached; resume later
+resume with: --resume /tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/evidence-stage3/evidence/blocks-1b/tooling/fixtures/synthetic-12/run

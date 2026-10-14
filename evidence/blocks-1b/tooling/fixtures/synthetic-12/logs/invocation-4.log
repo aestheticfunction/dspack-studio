@@ -1,0 +1,9 @@
+astryx|hosted-ai:claude-haiku-4.5|capped|rt-01|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|rt-01|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|rt-01|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|capped|rt-01|refine-structural: passed via primitive in 1 attempt(s), 1 provider call(s)
+stopped on astryx|hosted-ai:claude-haiku-4.5|production|rt-01|fresh, a call the run cannot trust: usage-missing: a generate call (ok) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it
+
+run synthetic-12: 15 of 60 cells (11 reused)
+stopped, a call the run cannot trust (not an arm result): usage-missing: a generate call (ok) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it
+No record was logged for the cell in flight, and what it spent is in requests.jsonl. Once the cause is understood, resume with: --resume /tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/evidence-stage3/evidence/blocks-1b/tooling/fixtures/synthetic-12/run
