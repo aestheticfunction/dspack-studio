@@ -27,10 +27,12 @@ A hold ("usage not verified", the conservative settlement of a reply the run can
 harness makes itself: it holds the request, halts (exit 3), and writes its stop record (pacing.jsonl, then
 summary.json and REPORT.md) in a short synchronous shutdown that a signal would cut off. A reply that passes its
 integrity checks but not its price bound (more tokens than its reservation priced) is held too, and the harness goes on
-with it. So the monitor logs a HOLD and waits: for the harness to exit by itself (it has holdGraceSeconds once its
-pacing entry shows it ending), or to show it carried on, and then stops it where nothing is in flight. That is on the
-cell's record, or before its next request can go out (the held request's reservation plus spacingSeconds), or, when
-it carried on into another request, once that request settles.
+with it. So the monitor logs a HOLD and waits: for the harness to exit by itself (it has holdGraceSeconds from the
+pacing entry that shows it ending), or to show it carried on, and then stops it where nothing is in flight. That is on
+the cell's record, or before its next request can go out (the held request's reservation plus spacingSeconds), or,
+when it carried on into another request, once that request settles; if the next goes out at once, it is stopped with
+that one in flight rather than ride on. A hold met while waiting starts its own wait, and the window's other limits
+(a request in flight too long, the build, the hand-back) hold throughout.
 
 Refusals (the gateway's zero-cost busy and limiter refusals, which the harness releases and retries after a backoff):
 - a refusal released and then answered within the backoff schedule is allowed, and logged with the wait it costs;
@@ -56,8 +58,10 @@ next window, before its first request, and logs it.
 The monitor fails closed. It waits at most preflightWaitSeconds for this window's preflight, and stops the harness if
 it sends a request before that preflight exists (--preflights is then not this window's count). If the monitor
 itself fails, it stops the harness rather than leave it unwatched. It signals --pgid only once the run's lock has
-shown the harness inside it: a group that does not hold the lock (another process, the operator's shell) is never
-signalled, and the process the lock names is stopped instead.
+shown the harness inside it: a lock taken on this host, no earlier than the window's preflight, by a process already
+running then (a pid that started later was reused). A group that does not hold the lock (another process, the
+operator's shell) is never signalled; once this window's preflight is known, the process the lock names is stopped
+instead, and before that nothing is.
 
 Not checked here: a settlement's amount against its cell's calls (verify_run.py does that). A restarted monitor logs
 again the releases its predecessor logged.
@@ -72,7 +76,6 @@ signalled. Usage:
       [--poll <s>] [--build-url <url, or file:// for tests>]
 """
 import argparse
-import itertools
 import json
 import os
 import re
@@ -114,6 +117,30 @@ class Stop(Exception):
 
 def epoch(iso):
     return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp()
+
+
+def order_lines(lines, records):
+    """The ledger's new lines and the new records, as ("ledger" | "record", line) in the order the harness wrote them.
+    By time; within one millisecond, as the harness writes them when nothing waits between: raises first (an earlier
+    window's requests), then each request's reservation before its settlement in request order, and the records after
+    the last settlement, before any later request."""
+    def number(x):
+        tail = str(x.get("request", "")).rsplit("#", 1)[-1]
+        return int(tail) if tail.isdigit() else -1
+
+    buckets = {}
+    for x in lines:
+        buckets.setdefault(str(x.get("at", "")), ([], []))[0].append(x)
+    for x in records:
+        buckets.setdefault(str(x.get("at", "")), ([], []))[1].append(x)
+    out = []
+    for at in sorted(buckets):
+        ledger, recs = buckets[at]
+        ledger = sorted(ledger, key=lambda x: (0, 0, 0) if x.get("reason") == NEVER_READ else (1, number(x), 1 if "adjust" in x else 0))
+        settled = [i for i, x in enumerate(ledger) if "adjust" in x]
+        cut = next((i for i in range(settled[-1] + 1 if settled else 0, len(ledger)) if "adjust" not in ledger[i]), len(ledger))
+        out += [("ledger", x) for x in ledger[:cut]] + [("record", x) for x in recs] + [("ledger", x) for x in ledger[cut:]]
+    return out
 
 
 class Monitor:
@@ -412,24 +439,51 @@ def main(argv=None):
     after = f"preflight.resume-{a.preflights}.json"
     exists = lambda name: os.path.exists(os.path.join(run, name))
 
-    iso = lambda t: datetime.fromtimestamp(t, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    def started(pid):
+        """When a process started, in epoch seconds (from /proc), or None where that cannot be read."""
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                stat = f.read()
+            ticks = int(stat[stat.rfind(")") + 2:].split()[19])
+            with open("/proc/stat") as f:
+                boot = next(int(line.split()[1]) for line in f if line.startswith("btime "))
+            return boot + ticks / os.sysconf("SC_CLK_TCK")
+        except (OSError, ValueError, IndexError, StopIteration):
+            return None
+
+    def newest_preflight():
+        """The newest preflight time the run holds, whoever wrote it."""
+        times = []
+        for name in os.listdir(run):
+            if re.fullmatch(r"preflight(\.resume-\d+)?\.json", name):
+                try:
+                    with open(os.path.join(run, name)) as f:
+                        times.append(str(json.load(f)["at"]))
+                except (OSError, ValueError, KeyError, TypeError):
+                    pass
+        return max(times, default=None)
 
     def holder():
-        """The harness the run's lock names: (its pid, its process group), when it runs on this host and took the lock
-        for this window (after this window's preflight, or, before that is known, at most 5 minutes before the monitor
-        started; an older lock is a stopped window's, whose pid may since be another process's). Otherwise None."""
+        """The harness the run's lock names: (its pid, its process group). Only a lock taken on this host, no earlier
+        than this window's preflight (before that is known, than the newest preflight in the run, so a stopped
+        window's lock never counts), by a process already running when it was taken: a pid that started later is
+        another process that reused it. Otherwise None."""
         try:
             with open(os.path.join(run, "run.lock")) as f:
                 lock = json.load(f)
         except (OSError, ValueError):
             return None
-        if not isinstance(lock, dict) or not whole(lock.get("pid")) or lock["pid"] <= 1 or lock.get("host") != socket.gethostname():
+        if not isinstance(lock, dict) or not whole(lock.get("pid")) or lock["pid"] <= 1 or lock.get("host") != socket.gethostname() or not isinstance(lock.get("at"), str):
             return None
-        if not isinstance(lock.get("at"), str) or lock["at"] < (m.inv if m.inv is not None else iso(m.started - 300)):
+        floor = m.inv if m.inv is not None else newest_preflight()
+        if floor is None or lock["at"] < floor:
             return None
         try:
+            began = started(lock["pid"])
+            if began is not None and began > epoch(lock["at"]) + 2:
+                return None
             return lock["pid"], os.getpgid(lock["pid"])
-        except (ProcessLookupError, PermissionError):
+        except (ProcessLookupError, PermissionError, ValueError):
             return None
 
     verified = []  # the harness's pid, once the run's lock has shown it inside --pgid
@@ -465,11 +519,14 @@ def main(argv=None):
         log(f"STOP ({s.rule}): {s.message}")
         target = s.pid  # a process the run's lock names outside --pgid: it alone is signalled
         if target is None and not verified:
-            try:
-                check_holder()
-            except Stop as outside:
-                target = outside.pid
-                log(outside.message)
+            found = holder()
+            if found is not None and found[1] == a.pgid:
+                verified.append(found[0])
+            elif found is not None and m.inv is not None:
+                target = found[0]
+                log(f"the run's lock names pid {found[0]}, in process group {found[1]}, not --pgid {a.pgid}: that process alone is stopped")
+            elif found is not None:
+                log(f"the run's lock names pid {found[0]}, in process group {found[1]}, not --pgid {a.pgid}; this window's preflight is not known, so it may be another window's harness")
         if target is None and not verified:
             if not alive():
                 last_lines("after the harness exited")
@@ -560,7 +617,6 @@ def main(argv=None):
     inodes = {}
     seen = set()
     pending = []
-    order = itertools.count()
 
     def read_new(name):
         """The whole lines appended to a log since the last read, each once. A log replaced (a new inode: a resume's
@@ -601,14 +657,13 @@ def main(argv=None):
         wrote."""
         records = [x for x in read_new("runs.jsonl") if str(x.get("at", "")) >= m.inv]
         lines = read_new("requests.jsonl")
-        items = [(str(x.get("at", "")), 0 if "adjust" in x else 2, next(order), x) for x in lines] + [(str(x.get("at", "")), 1, next(order), x) for x in records]
+        items = order_lines(lines, records)
         # A line read but not yet judged waits here: a stop on one line leaves the rest for the closing read.
         pending.extend(items)
-        pending.sort(key=lambda t: t[:3])
         while pending:
-            _, source, _, x = pending.pop(0)
+            source, x = pending.pop(0)
             try:
-                (m.record if source == 1 else m.ledger)(x)
+                (m.record if source == "record" else m.ledger)(x)
             except Stop as late:
                 if seen_after is None:
                     raise
@@ -632,37 +687,68 @@ def main(argv=None):
 
     def hold(s):
         """A hold: the harness halts itself on a reply it cannot trust, or carries on with one that passed its integrity
-        checks. It has the time to show which; if it carried on, it is stopped where nothing is in flight."""
+        checks. It has the time to show which; if it carried on, it is stopped where nothing is in flight. A hold met
+        while waiting starts its own wait."""
+        while True:
+            outcome = wait_out(s)
+            if not isinstance(outcome, Stop):
+                return outcome
+            s = outcome
+
+    def wait_out(s):
         grace = config["holdGraceSeconds"]
         t0 = time.time()
         # Its next request goes out no sooner than the held one's reservation plus the spacing: until then, less a
         # margin for the poll and the signal, a stop finds nothing in flight. Its own halt shows within a second.
         safe = s.reserved_at + config["spacingSeconds"] - 1.0 if s.reserved_at is not None else t0
         decide = min(t0 + grace, max(t0 + HALT_SECONDS, safe))
-        log(f"HOLD ({s.rule}): {s.message}. The harness halts itself on such a reply, or carries on with one that passed its integrity checks: it has {decide - t0:.1f} s to show it is halting, and {grace} s to exit")
-        halting = False
+        log(f"HOLD ({s.rule}): {s.message}. The harness halts itself on such a reply, or carries on with one that passed its integrity checks: it has {decide - t0:.1f} s to show it is halting, and {grace} s to exit from then")
+        halting_since = None
         cells = m.cells
-        into_request = False
+        waited_for = None  # the request it carried on into
         while True:
             if not alive():
                 return exited("the harness stopped itself after the hold")
-            if not halting and ended_windows(m.inv):
-                halting = True
-                log("its pacing entry is written: the harness is ending its window by itself")
-            if halting:
-                if time.time() >= t0 + grace:
-                    return stop(Stop(s.rule, f"{s.message}; the harness had not exited {grace} s after it"))
+            now = time.time()
+            if halting_since is None and ended_windows(m.inv):
+                halting_since = now
+                log(f"its pacing entry is written: the harness is ending its window by itself, and has {grace} s to exit")
+            if halting_since is not None:
+                if now >= halting_since + grace:
+                    return stop(Stop(s.rule, f"{s.message}; the harness had not exited {grace} s after its pacing entry"))
             else:
-                drain()
+                try:
+                    drain()
+                except Stop as later:
+                    if later.harness_stops:
+                        return later  # another hold: its own wait
+                    raise
                 if m.open is not None:
-                    into_request = True  # it carried on into another request: stopped once that one settles
-                elif into_request:
+                    if waited_for is None:
+                        waited_for = m.open[0]  # it carried on into another request: stopped once that one settles
+                    elif m.open[0] != waited_for:
+                        return stop(Stop(s.rule, f"{s.message}; the harness carried on after it, and its next request went out as soon as {waited_for} settled: stopped with {m.open[0]} in flight rather than ride on"))
+                elif waited_for is not None:
                     return stop(Stop(s.rule, f"{s.message}; the harness carried on after it into another request, and was stopped once that request settled"))
                 elif m.cells > cells:
                     return stop(Stop(s.rule, f"{s.message}; the harness carried on after it, and was stopped on its cell's record, between cells"))
-                elif time.time() >= decide:
+                elif now >= decide:
                     return stop(Stop(s.rule, f"{s.message}; the harness carried on after it, and was stopped before its next request could go out"))
+                # The window's other limits hold while it waits.
+                m.tick(now)
+                take_builds()
+                if now > deadline:
+                    log(f"handing back while the harness runs, after a hold: {m.progress()}")
+                    return 20
             time.sleep(min(a.poll, 0.05))
+
+    def take_builds():
+        """The live build readings taken since the last look, each judged at the time it was read."""
+        with readings_lock:
+            builds = readings[:]
+            readings.clear()
+        for at_, build in builds:
+            m.live_build(build, now=at_)
 
     def requests_now():
         """The requests (not settlements) the ledger holds now; a cut-off or unreadable line is none yet."""
@@ -749,11 +835,7 @@ def main(argv=None):
                 log(f"the window has ended, and --pgid {a.pgid} still runs, though no lock of this window's showed the harness inside it: it is not the harness's, and nothing is signalled: {m.progress()}")
                 return 2
             m.tick(time.time())
-            with readings_lock:
-                builds = readings[:]
-                readings.clear()
-            for at_, build in builds:
-                m.live_build(build, now=at_)
+            take_builds()
             if time.time() > deadline:
                 log(f"handing back while the harness runs: {m.progress()}")
                 return 20

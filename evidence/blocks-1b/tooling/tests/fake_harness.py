@@ -4,7 +4,7 @@ never calls anything.
 
     python3 -I fake_harness.py <plan.json>
 
-The plan is {"dir": ..., "steps": [...]}, each step one of:
+The plan is {"dir": ..., "steps": [...], "lockAt": <optional ISO time the lock claims it was taken at>}, each step one of:
     {"write": "<file>", "json": {...}}       write a whole file (a manifest, a preflight)
     {"append": "<file>", "json": {...}}      append one JSON line (the ledger, runs.jsonl, pacing.jsonl)
     {"sleep": <seconds>}
@@ -23,7 +23,7 @@ d = plan["dir"]
 os.makedirs(d, exist_ok=True)
 lock = os.path.join(d, "run.lock")
 with open(lock, "w") as f:
-    f.write(json.dumps({"pid": os.getpid(), "host": socket.gethostname(), "nonce": str(uuid.uuid4()), "at": time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())}) + "\n")
+    f.write(json.dumps({"pid": os.getpid(), "host": socket.gethostname(), "nonce": str(uuid.uuid4()), "at": plan.get("lockAt") or time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())}) + "\n")
 for step in plan["steps"]:
     if "write" in step:
         with open(os.path.join(d, step["write"]), "w") as f:

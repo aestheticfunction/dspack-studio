@@ -75,6 +75,19 @@ class Clock:
         return f"2026-10-14T00:{self.t // 60:02d}:{self.t % 60:02d}.000Z"
 
 
+class Now:
+    """Times from the real clock, a millisecond apart at least, as the harness stamps its lines: for the loop tests,
+    whose limits (a request in flight too long) run on the clock."""
+
+    def __init__(self):
+        self.last = 0.0
+
+    def __call__(self):
+        from datetime import datetime, timezone
+        self.last = max(time.time(), self.last + 0.001)
+        return datetime.fromtimestamp(self.last, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
 def reserve(at, n, usd=0.1, inv=ID):
     return {"at": at(), "invocation": inv, "request": f"{inv}#{n}", "usd": usd}
 
@@ -344,6 +357,18 @@ class Rules(unittest.TestCase):
         self.m.live_build(None, now=1500.0)
         self.stops("build", lambda: self.m.live_build(None, now=1581.0))
 
+    def test_lines_of_one_millisecond_are_judged_in_the_order_the_harness_writes_them(self):
+        # A request's settlement, then its cell's record, then the next request; and a request before its own
+        # settlement when a refusal comes back within the millisecond.
+        at = "2026-10-14T00:00:05.000Z"
+        res = lambda n: {"at": at, "invocation": ID, "request": f"{ID}#{n}", "usd": 0.1}
+        fin = lambda n: {"at": at, "invocation": ID, "request": f"{ID}#{n}", "final": 0, "adjust": -0.1, "reason": mon.RELEASED}
+        rec = dict(record(Clock()), at=at)
+        order = lambda lines, records: [x.get("request", "record") + ("" if "request" not in x else "+" if "adjust" in x else "?") for _, x in mon.order_lines(lines, records)]
+        self.assertEqual(order([res(2), fin(1)], [rec]), [f"{ID}#1+", "record", f"{ID}#2?"])
+        self.assertEqual(order([fin(3), res(3)], []), [f"{ID}#3?", f"{ID}#3+"])
+        self.assertEqual(order([res(4), fin(4), res(5)], [rec]), [f"{ID}#4?", f"{ID}#4+", "record", f"{ID}#5?"])
+
     def test_a_request_past_the_window_limit_is_still_followed(self):
         self.m = mon.Monitor(config(maxRequestsPerWindow=1), CORPUS, log=self.logged.append)
         self.m.begin(MANIFEST, PREFLIGHT)
@@ -441,10 +466,10 @@ class Loop(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def start(self, steps):
+    def start(self, steps, lock_at=None):
         plan = os.path.join(self.tmp, "plan.json")
         with open(plan, "w") as f:
-            json.dump({"dir": self.run_dir, "steps": steps}, f)
+            json.dump({"dir": self.run_dir, "steps": steps, **({"lockAt": lock_at} if lock_at else {})}, f)
         return subprocess.Popen([sys.executable, "-I", os.path.join(HERE, "fake_harness.py"), plan], start_new_session=True)
 
     def watch(self, harness, preflights, timeout=30, pgid=None, env=None, build_url=None, **over):
@@ -480,7 +505,7 @@ class Loop(unittest.TestCase):
         return steps
 
     def test_a_hold_is_left_to_the_harness_which_stops_itself(self):
-        at = Clock()
+        at = Now()
         sent = reserve(at, 1)
         held = settle(at, 1, 1.118208)
         held["reason"] = mon.UNVERIFIED
@@ -495,7 +520,7 @@ class Loop(unittest.TestCase):
         # A reply that passes every integrity check but not its price bound (more tokens than its reservation priced)
         # is held, and the cell goes on with it. The monitor stops the run as soon as the cell's record shows it carried
         # on, between cells, not after the 15 s grace.
-        at = Clock()
+        at = Now()
         sent = reserve(at, 1)
         held = settle(at, 1, 1.118208)
         held["reason"] = mon.UNVERIFIED
@@ -512,7 +537,7 @@ class Loop(unittest.TestCase):
     def test_a_hold_carried_on_into_another_request_stops_once_that_request_settles(self):
         # The cell goes on after the hold with another request: a stop on its reservation would leave it in flight (the
         # next resume raises it to the most a request can cost). The monitor waits for its settlement instead.
-        at = Clock()
+        at = Now()
         held = settle(at, 1, 1.118208)
         held["reason"] = mon.UNVERIFIED
         lines = [reserve(at, 1), held]
@@ -524,6 +549,71 @@ class Loop(unittest.TestCase):
         self.assertEqual(code, 10, events)
         self.assertIn("carried on", events)
         self.assertIn("harness stopped by the monitor: 0 cells, 2 requests sent, 1 settled", events)
+
+    def test_a_halt_on_a_request_after_a_carried_on_hold_is_left_to_the_harness(self):
+        # The harness carries on after one hold, then halts on the next request's: that halt gets its own wait.
+        at = Now()
+        held = lambda n: dict(settle(at, n, 1.118208), reason=mon.UNVERIFIED)
+        steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 1)}, {"append": "requests.jsonl", "json": held(1)}, {"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 2)}, {"sleep": 0.5}, {"append": "requests.jsonl", "json": held(2)}, {"sleep": 0.5}, {"append": "pacing.jsonl", "json": {"at": INV, "id": ID, "stopped": {"reason": "integrity", "message": "usage-missing"}}}, {"sleep": 1.0}, {"exit": 3}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(harness.returncode, 3, events)
+        self.assertEqual(code, 0, events)
+        self.assertIn("stopped itself", events)
+
+    def test_a_halts_grace_runs_from_its_pacing_entry(self):
+        # The shutdown is timed from the pacing entry that starts it, not from the hold before it.
+        at = Now()
+        steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 1)}, {"append": "requests.jsonl", "json": dict(settle(at, 1, 1.118208), reason=mon.UNVERIFIED)}, {"sleep": 1.5}, {"append": "pacing.jsonl", "json": {"at": INV, "id": ID, "stopped": {"reason": "integrity", "message": "usage-missing"}}}, {"sleep": 1.5}, {"exit": 3}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1, holdGraceSeconds=2)
+        self.assertEqual(harness.returncode, 3, events)
+        self.assertEqual(code, 0, events)
+
+    def test_a_carried_on_hold_still_keeps_the_windows_limits(self):
+        # Waiting on a request after a hold, the monitor still stops on one in flight too long.
+        at = Clock()
+        steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 1)}, {"append": "requests.jsonl", "json": dict(settle(at, 1, 1.118208), reason=mon.UNVERIFIED)}, {"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 2)}, {"sleep": 30}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1, timeout=20, openRequestSeconds=1)
+        self.assertEqual(code, 10, events)
+        self.assertIn("in flight", events)
+
+    def test_a_carried_on_hold_rides_one_request_at_most(self):
+        # The request in flight when the carry-on shows settles and the next goes out at once: the monitor stops then,
+        # rather than ride on while every request outlasts the spacing.
+        at = Now()
+        steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 1)}, {"append": "requests.jsonl", "json": dict(settle(at, 1, 1.118208), reason=mon.UNVERIFIED)}, {"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 2)}, {"sleep": 0.5}, {"append": "requests.jsonl", "json": settle(at, 2)}, {"append": "requests.jsonl", "json": reserve(at, 3)}, {"sleep": 3.0}, {"append": "requests.jsonl", "json": settle(at, 3)}, {"sleep": 30}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 10, events)
+        self.assertIn("harness stopped by the monitor: 0 cells, 3 requests sent, 1 settled", events)
+
+    def test_another_harness_holding_the_run_is_never_stopped_before_this_windows_preflight(self):
+        # A monitor launched with a wrong count and a wrong group, while the run's own harness holds the lock: it
+        # cannot tell whose window it waits for, so it signals no one.
+        decoy = subprocess.Popen([sys.executable, "-I", "-c", "import time; time.sleep(60)"], start_new_session=True)
+        try:
+            steps = self.opening(preflights=2) + [{"sleep": 3}, {"exit": 0}]
+            harness = self.start(steps)
+            code, events = self.watch(harness, 3, timeout=20, pgid=decoy.pid, preflightWaitSeconds=1)
+            self.assertEqual(harness.returncode, 0, "the monitor stopped a harness it could not tell was this window's")
+            self.assertIsNone(decoy.poll())
+            self.assertEqual(code, 2, events)
+            self.assertIn("nothing is signalled", events)
+        finally:
+            for p in (decoy,):
+                p.kill()
+                p.wait()
+
+    def test_a_lock_older_than_its_holder_is_not_the_harnesss(self):
+        # A lock whose pid started after the lock was taken is not its holder (the pid was reused): nothing is signalled.
+        at = Clock()
+        steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 1)}, {"append": "requests.jsonl", "json": settle(at, 1, model="claude-haiku-4-5")}, {"sleep": 6}, {"exit": 0}]
+        harness = self.start(steps, lock_at="2026-10-14T00:00:01.000Z")
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 2, events)
+        self.assertIn("nothing is signalled", events)
 
     def test_a_process_group_that_is_not_the_harness_is_never_signalled(self):
         # The run's lock names the harness: a --pgid that does not hold it (another process, the operator's shell) is
@@ -552,7 +642,8 @@ class Loop(unittest.TestCase):
         refusals = []
         for n, s in zip(range(2, 7), range(3, 13, 2)):
             refusals += [{"at": t(s), "invocation": ID, "request": f"{ID}#{n}", "usd": 0.1}, {"at": t(s + 1), "invocation": ID, "request": f"{ID}#{n}", "final": 0, "adjust": -0.1, "reason": mon.RELEASED, "servedModel": MODEL}]
-        steps = self.opening() + [{"sleep": 0.3}] + [{"append": "requests.jsonl", "json": x} for x in lines + refusals] + [{"append": "runs.jsonl", "json": first}, {"sleep": 30}, {"exit": 0}]
+        # Written in the harness's order (the record before the next request), so a read between writes judges the same.
+        steps = self.opening() + [{"sleep": 0.3}] + [{"append": "requests.jsonl", "json": x} for x in lines] + [{"append": "runs.jsonl", "json": first}] + [{"append": "requests.jsonl", "json": x} for x in refusals] + [{"sleep": 30}, {"exit": 0}]
         harness = self.start(steps)
         code, events = self.watch(harness, 1)
         self.assertEqual(code, 10, events)
@@ -603,6 +694,7 @@ class Loop(unittest.TestCase):
             self.assertNotIn("could not be read", events)
         finally:
             server.shutdown()
+            server.server_close()
 
     def test_a_preflight_count_that_is_not_this_windows_stops_the_window(self):
         second = f"2026-10-14T01:00:00.000Z~1111"
