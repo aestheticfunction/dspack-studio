@@ -97,10 +97,8 @@ requests all passed). It is kept as forward-compatible defense-in-depth; the
 gateway ceiling is the real gate. A per-client KV/DO counter is the follow-up if
 per-IP fairness becomes necessary.
 
-**Busy refusals.** The Worker answers `503 busy`, a refusal that cost nothing
-(the bench backs off and retries it; the browser shows it as busy, for the
-visitor to try again), only when the gateway turned away the request's only
-call before any model ran:
+**Busy refusals.** The Worker answers `503 busy`, a refusal that cost nothing,
+only when the gateway turned away the request's only call before any model ran:
 - **A known status decides.** The AI binding records the HTTP status of each
   reply (`lastRequestHttpStatusCode`) before it throws, and busy needs every
   known status to be a numeric 429; any other is a provider failure (`502`),
@@ -112,16 +110,26 @@ call before any model ran:
 - **Only when no status is known does the message decide**, by its busy words,
   as before.
 - **A request that may have spent is never busy:** a 429 after an unusable
-  first output, or an error that shows a model result, as a usage or token
-  field or as a quoted usage or token key in a string such as its message
-  (the binding makes a reply's whole body the message when the body names no
-  error code). An error that holds what cannot be read in full, such as a
-  `Response` and its body, counts as showing one.
+  first output, or an error that shows a model result, as a usage, token or
+  `model` field, or as a quoted usage or token key in a string such as its
+  message (the binding makes a reply's whole body the message when the body
+  names no error code; a model's name alone in text does not count, since a
+  refusal's body may name the model it refused). An error that holds what
+  cannot be read in full, such as a `Response` and its body, counts as showing
+  one.
 - **This trusts that `ds-ai-gateway` answers 429 only before it forwards a
   request.** Keep its Retry Requests setting off, and if guardrails or DLP are
   enabled, check that they never block an answered request with a 429. The
   gateway is shared with the af-site theme generator, so its settings are a
   shared precondition.
+
+A paced bench run backs off and retries a busy refusal until its backoff
+schedule is spent, then reads it as a provider failure; a bench run without the
+pacer reads it as a provider failure at once. In the browser, a busy generation
+call shows the generic failure headline, "The model provider could not produce
+a result — nothing was generated", with the Worker's busy message as the reason,
+for the visitor to try again; a busy planning call falls back to deterministic
+routing, as any failed planning call does.
 
 Crucially, the Worker **never runs the deterministic pipeline** — Cloudflare
 Workers ban the runtime `new Function` that AJV (S1/S2/S3 + emit) needs, so

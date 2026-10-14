@@ -1,13 +1,15 @@
 # ADR-B3 amendment 2: corpus v2 and the binding add and remove check
 
-**Status: proposed, not adopted.** Drafted on 2026-10-12 for the owner's review.
+**Status: adopted.** The owner adopted it on 2026-10-12, before any refinement cell ran live on any provider, at aestheticfunction/dspack-studio#100's head `e129472`, without D1 to D3. #100 merged it to main as `3aae0ea`, so corpus v2 is pinned at `0e4e4706…1ae9`. Astryx Stage 3 measured v2.
+- It was drafted on 2026-10-12 for the owner's review.
+- The text below is the amendment as adopted. Its conditions on how and when it could be decided are kept as written.
 - **When it is decided:** before any refinement cell runs live, that is, before the Stage-2 pilot or Stage 3, whichever runs first. A refinement cell runs live when any provider answers it, hosted or local (Ollama); the scripted provider does not count. The owner adopts or rejects it whole: the templates, whether D1 to D3 join them, and the scoring, including whether it binds tokens per success.
 - **If a refinement cell runs live first, it lapses** as a pre-data amendment. Adopting it, or any part of it, after that is a post-data amendment, labelled so, naming the cells that preceded it.
 - **Merging this change adopts it,** because it makes v2 the corpus a run measures by default.
 - **Once a refinement cell has run, no part of it changes.** The pilot and Stage 3 run on the version adopted. A later change is a new amendment, labelled post-data, and cells already run stay on the version they measured.
 - Corpus v1, and everything measured on it, stays as it is.
 
-**Pre-data.** No refinement cell has ever run live. Both smokes ran fresh cells only: `1b-smoke-2026-10-11` ran 5, and `1b-smoke-option-b-2026-10-12` ran 32. Neither ran a content, add, remove or structural refinement, so no arm's result on any template exists.
+**Pre-data (at adoption).** No refinement cell has ever run live. Both smokes ran fresh cells only: `1b-smoke-2026-10-11` ran 5, and `1b-smoke-option-b-2026-10-12` ran 32. Neither ran a content, add, remove or structural refinement, so no arm's result on any template exists.
 - Every template change follows from a static audit of the corpus text and the design systems' vocabularies (`live/applicability.ts`), the same for every arm.
 - The choice of lenient over strict binding (below) used the structure of the Option B smoke's fresh surfaces, with simulated edits. No pass rate, token count or outcome entered any change.
 
@@ -134,7 +136,7 @@ The same two rules find three more templates that cannot apply everywhere: struc
 
 ## What adopting it invalidates
 
-- **Decision evidence:** none exists yet.
+- **Decision evidence:** none exists yet (at adoption).
 - **The smokes:** both are v1 systems evidence and stay so.
 - **The addendum's fixed scoring:** superseded for runs on v2, as above.
 - **The Stage-3 offline plan and cost:** recomputed for v2. The cells are unchanged; only refinement instruction bytes change.
