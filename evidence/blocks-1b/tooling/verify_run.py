@@ -1889,14 +1889,16 @@ for path in A.monitor_events:
         limits_ = PINNED
     entry = {"events": path, "window": k}
     monitored.append(entry)
-    if not 1 <= k <= N:
-        finding(f"monitor events {path}: window {k}, but the run has {N} invocations")
-        continue
     opened = [(t_, m_.group(1)) for t_, msg in events for m_ in [re.match(r"window opened (\S+):", msg)] if m_]
     if not opened:
-        # It never watched the window: under a configuration every window must be watched, so this is no window's log.
-        (finding if PINNED is not None else note)(f"monitor events {path}: invocation {k}'s monitor never opened its window, so the window ran unwatched")
+        # It watched no window: its launch wrote no preflight (a launch the harness refused, which is no invocation), or
+        # it stopped first. So it is no window's log, and each window still needs one whose monitor opened it.
+        note(f"monitor events {path}: its monitor (window {k}) never opened a window, so it is no window's log")
         entry["window"] = None
+        entry["stops"] = [msg for _, msg in events if msg.startswith(("STOP (", "HOLD ("))]
+        continue
+    if not 1 <= k <= N:
+        finding(f"monitor events {path}: window {k}, but the run has {N} invocations")
         continue
     if opened[0][1] != inv_at[k - 1]:
         finding(f"monitor events {path}: it watched the window opened {opened[0][1]}, but invocation {k}'s preflight is {inv_at[k - 1]}")

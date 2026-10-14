@@ -694,14 +694,33 @@ class MonitorEvents(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertTrue(any("ran with limits other than" in f and "maxReleased" in f for f in r["findings"]), r["findings"])
 
+    def refused(self, k, name):
+        """The log of a monitor whose launch the harness refused, as monitor_run.py writes one: it names window k and
+        never opens it."""
+        at = stamp(epoch(self.r.ledger()[-1]["at"]) + 60)
+        newest = "preflight.json" if k == 1 else f"preflight.resume-{k - 1}.json"
+        path = os.path.join(self.r.tmp, name)
+        write_lines(path, [f"{at} monitor up: window {k}, run {self.r.run}, harness process group 4242, waiting for {newest}; limits {json.dumps(SHADCN_LIMITS, separators=(',', ':'))}",
+                           f"{at} the harness exited before {newest} was written (a launch the harness refuses writes none): 0 cells, 0 requests sent, 0 settled, 0 released (0 s of backoff), 0 provider failures, outcomes {{}}"])
+        return path
+
     def test_a_log_that_never_opened_its_window_is_no_log(self):
         logs = {k: self.events(k, limits=SHADCN_LIMITS) for k in range(1, 13)}
-        with open(logs[3]) as f:
-            up = f.readline()
-        write_lines(logs[3], [up.rstrip("\n"), f"{up.split(' ')[0]} the harness exited before preflight.resume-2.json was written (a launch the harness refuses writes none): 0 cells, 0 requests sent"])
+        logs[3] = self.refused(3, "events-3.never.log")
         code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *[x for k in range(1, 13) for x in ("--monitor-events", logs[k])])
         self.assertEqual(code, 1)
-        self.assertTrue(any("invocation 3" in f and "never opened" in f for f in r["findings"]), r["findings"])
+        self.assertTrue(any("invocation 3 has no monitor events log" in f for f in r["findings"]), r["findings"])
+        self.assertTrue(any("never opened" in n for n in r["notes"]), r["notes"])
+
+    def test_a_refused_launchs_log_beside_its_windows_is_no_finding(self):
+        # A launch the harness refuses is no invocation, and its monitor opens no window: its log, kept on its own beside
+        # the log of the window that ran (or after the last one), is no window's.
+        logs = [("--monitor-events", self.events(k, limits=SHADCN_LIMITS)) for k in range(1, 13)]
+        extra = [("--monitor-events", self.refused(3, "events-3.refused.log")), ("--monitor-events", self.refused(13, "events-13.refused.log"))]
+        code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *[x for pair in logs + extra for x in pair])
+        self.assertEqual(r["findings"], [])
+        self.assertEqual(code, 0)
+        self.assertEqual(sum(1 for n in r["notes"] if "never opened" in n), 2, r["notes"])
 
     def test_every_window_needs_a_log_under_the_monitor_config(self):
         logs = [("--monitor-events", self.events(k, limits=SHADCN_LIMITS)) for k in range(1, 13)]
