@@ -33,7 +33,7 @@ python3 -I verify_run.py --run <run dir> --corpus <the frozen corpus json> --out
 - **`--invocations`** is the operator's record of each invocation's start, end and exit code, in the format of
   `../1b-stage3-astryx-2026-10-12.invocations.txt`. A launch the harness refuses writes no preflight and is no
   invocation: record it as `refused launch after invocation <k>: <start> to <end> exit 1`, not as an invocation.
-- **`--monitor-events`** is a window's `monitor_run.py` events log, one per monitored window. A monitor restarted during a window appends to its window's log, so each window has one.
+- **`--monitor-events`** is a window's `monitor_run.py` events log, one per monitored window. A monitor restarted during a window appends to its window's log, so each window has one. The log of a monitor whose launch the harness refused opens no window: pass it too if it was kept on its own, and it counts as no window's log.
 - **`--monitor-config`** is the configuration every window's monitor ran with. Every monitor in a log (a restarted one appends its own "monitor up" line) must have run with its limits, and every window must have a log whose monitor opened it.
 - **`--parity-reading`** says how the run's code read a surface's text for parity: `arrays` (the default; code from
   aestheticfunction/dspack-studio#102 on, which reads the strings arrays hold) or `no-arrays` (before it, as the Astryx
@@ -99,7 +99,8 @@ Everything is recomputed from the run's own files and the frozen corpus. Nothing
   - the count of requests it saw is the ledger's for that invocation;
   - it read the live build at least every `2 × buildCheckSeconds + 25` seconds;
   - any build other than the baseline's is a finding, with the requests settled after the last good reading: their cells may have been measured on another deployment, and the owner decides;
-  - with `--monitor-config`, every monitor in it ran with the configuration's limits, and no window lacks a log whose monitor opened it.
+  - with `--monitor-config`, every monitor in it ran with the configuration's limits, and no window lacks a log whose monitor opened it;
+  - a log whose monitor opened no window (its launch was refused, or it stopped first) is noted, and is no window's log.
 
 ## Validation
 
@@ -146,7 +147,8 @@ binding. Every invocation is its own process, as the CLI makes it. All four veri
   3. A resume that raises it, as the first process after the first window to write to the ledger, and completes the run.
 
 **Every window copy** of the four runs also verifies on its own, as the run so far, with no findings. So does each
-run with a window copy missing across a re-run (`--partial-history`).
+run with a window copy missing across a re-run (`--partial-history`), and a run whose refused launches' monitor logs
+are passed beside its windows' logs.
 
 **Broken copies.** The verifier fails, and names the fault, on 42 copies, each broken one way:
 - duplicate cells, at the end and inside the history;
@@ -165,11 +167,11 @@ run with a window copy missing across a re-run (`--partial-history`).
 - a stored parity unlike its surface's;
 - a window copy missing;
 - a killed window's trailing request removed from every copy, with the totals adjusted to match. Nothing in the run's own files shows it, and the monitor's events log does;
-- a monitor that went too long without reading the build, a window whose monitor read another build, a log whose limits are not the configuration's (its first monitor's, or a restarted one's), a window with no log, and a log whose monitor never opened its window;
+- a monitor that went too long without reading the build, a window whose monitor read another build, a log whose limits are not the configuration's (its first monitor's, or a restarted one's), and a window with no log, or only one whose monitor never opened it;
 - a request left open that a later invocation, which ended by itself, never raised.
 
 ```sh
-python3 -I evidence/blocks-1b/tooling/tests/test_verify_run.py -v   # 53 tests, about 25 seconds
+python3 -I evidence/blocks-1b/tooling/tests/test_verify_run.py -v   # 54 tests, about 25 seconds
 ```
 
 The tests read the corpus from a dspack-studio checkout (`DSPACK_STUDIO`, default `/home/user/dspack-studio`). They
