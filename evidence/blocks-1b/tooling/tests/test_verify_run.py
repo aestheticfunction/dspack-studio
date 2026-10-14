@@ -25,6 +25,9 @@ CORPUS_V2 = os.path.join(CHECKOUT, "packages/block-bench/live/corpora/blocks.v2.
 CORPUS_V1 = os.path.join(CHECKOUT, "packages/block-bench/live/corpora/blocks.json")
 ASTRYX = os.path.join(os.path.dirname(TOOLING), "1b-stage3-astryx-2026-10-12")
 ASTRYX_WINDOW_1 = "17328e3"  # the evidence commit that preserved the run as window 1 left it
+SHADCN_CONFIG = os.path.join(TOOLING, "monitor-shadcn.json")
+with open(SHADCN_CONFIG) as f:
+    SHADCN_LIMITS = {k: v for k, v in json.load(f).items() if k not in ("note", "expect")}
 
 
 def lines(path):
@@ -439,6 +442,19 @@ class EdgeStates(unittest.TestCase):
                 code, r = verify_dir(os.path.join(root, "run"), "--complete", "--partial-history", snapshots=snaps, invocations=os.path.join(root, "invocations.txt"))
                 self.assertEqual(r["findings"], [])
 
+    def test_a_window_killed_before_it_raised(self):
+        # The second invocation is killed as soon as its preflight is on the disk, before it raises the request the
+        # first left in flight: the third, the first process after the first to write to the ledger, raises it.
+        root = os.path.join(FIXTURES, "synthetic-dead")
+        snaps = [os.path.join(root, "snapshots", d) for d in ("after-1", "after-2")]
+        code, r = verify_dir(os.path.join(root, "run"), "--complete", "--expect-build", "SyntheticBuildDead", snapshots=snaps, invocations=os.path.join(root, "invocations.txt"))
+        self.assertEqual(r["findings"], [])
+        self.assertEqual([e["ended"] for e in r["invocations"]], ["killed", "killed", "complete"])
+        for i, snap in enumerate(snaps):
+            with self.subTest(window=i + 1):
+                code, r = verify_dir(snap, snapshots=snaps[:i])
+                self.assertEqual(r["findings"], [])
+
     def test_an_integrity_stop_killed_in_its_shutdown(self):
         run = Run("synthetic-5")
         try:
@@ -582,14 +598,14 @@ class MonitorEvents(unittest.TestCase):
     def tearDown(self):
         self.r.close()
 
-    def events(self, k, seen=None, every=1.0, build=None, span=None):
+    def events(self, k, seen=None, every=1.0, build=None, span=None, limits=None):
         ids = self.r.invocation_ids()
         mine = [x for x in self.r.ledger() if x["invocation"] == ids[k - 1]]
         opened = ids[k - 1].split("~")[0]
         t0 = epoch(opened)
         t1 = t0 + span if span else epoch(mine[-1]["at"]) + 1
         build = build or self.r.scenario["buildId"]
-        lines = [f"{stamp(t0)} monitor up: window {k}, run {self.r.run}, harness process group 4242, waiting for preflight.resume-{k - 1}.json; limits {json.dumps({'buildCheckSeconds': 30, 'maxReleased': 8}, separators=(',', ':'))}",
+        lines = [f"{stamp(t0)} monitor up: window {k}, run {self.r.run}, harness process group 4242, waiting for preflight.resume-{k - 1}.json; limits {json.dumps(limits or {'buildCheckSeconds': 30, 'maxReleased': 8}, separators=(',', ':'))}",
                  f"{stamp(t0)} window opened {opened}: build {build}, code c0de, corpus blocks-1b v2, astryx"]
         t = t0
         while t <= t1:
@@ -632,9 +648,26 @@ class MonitorEvents(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertTrue(any("without a live build reading" in f for f in r["findings"]), r["findings"])
 
-    def test_a_window_on_another_build_is_reported(self):
+    def test_a_window_on_another_build_fails(self):
+        # The cells settled after the monitor last read the baseline's build may have been measured on another.
         code, r = self.r.verify("--monitor-events", self.events(6, build="AnotherBuild"))
-        self.assertTrue(any("the live build changed during invocation 6" in n for n in r["notes"]), r["notes"])
+        self.assertEqual(code, 1)
+        self.assertTrue(any("the live build changed during invocation 6" in f for f in r["findings"]), r["findings"])
+
+    def test_a_log_whose_limits_are_not_the_configs_fails(self):
+        loose = dict(SHADCN_LIMITS, maxReleased=1000, buildCheckSeconds=600)
+        logs = [x for k in range(1, 13) for x in ("--monitor-events", self.events(k, limits=loose if k == 6 else SHADCN_LIMITS))]
+        code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *logs)
+        self.assertEqual(code, 1)
+        self.assertTrue(any("ran with limits other than" in f and "maxReleased" in f for f in r["findings"]), r["findings"])
+
+    def test_every_window_needs_a_log_under_the_monitor_config(self):
+        logs = [("--monitor-events", self.events(k, limits=SHADCN_LIMITS)) for k in range(1, 13)]
+        code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *[x for pair in logs for x in pair])
+        self.assertEqual(r["findings"], [])
+        code, r = self.r.verify("--monitor-config", SHADCN_CONFIG, *[x for i, pair in enumerate(logs) if i != 2 for x in pair])
+        self.assertEqual(code, 1)
+        self.assertTrue(any("invocation 3 has no monitor events log" in f for f in r["findings"]), r["findings"])
 
 
 if __name__ == "__main__":

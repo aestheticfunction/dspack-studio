@@ -17,8 +17,8 @@ What it checks, for any number of invocations:
 - the ledger, request by request: consecutive ids per invocation, one request at a time, every settlement's arithmetic
   in whole nanodollars, releases at nothing, holds at no less than their reservation nor the most one call can cost
   (the least the harness holds a reply it cannot trust at), a request an invocation left open raised to the most a
-  request can cost by the next process to resume the run (the next invocation, or a launch the harness refused that
-  raised it before refusing), the caps, each invocation's own count, and a cap stop that was due;
+  request can cost by the first process after it to write to the ledger (the next invocation, or a launch the harness
+  refused that raised it before refusing), the caps, each invocation's own count, and a cap stop that was due;
 - the cells: the planned grid once each at the end, every invocation running the cells left to do in their planned
   order, so a resume skips nothing and repeats nothing, a cell a stopped invocation abandoned repeated from its
   beginning, a re-run replacing exactly the records it moved aside;
@@ -32,7 +32,8 @@ What it checks, for any number of invocations:
   named-against-positional comparison, against summary.json field by field (no entry the records do not make, and
   every one they do), and the verdict REPORT.md states;
 - with --monitor-events, each monitored window's events log against the run: the window it watched, every request it
-  saw, its stops, and a live build read and logged at least every few build-check intervals, all the baseline's.
+  saw, its stops, and a live build read and logged at least every few build-check intervals, all the baseline's; with
+  --monitor-config, every window has a log, and each ran with that configuration's limits.
 
 A run between windows verifies too: a window stopped from outside leaves no pacing entry, perhaps no summary.json,
 perhaps a request in flight (raised by the next resume), and arms and conditions with no record yet. summary.json is
@@ -45,6 +46,7 @@ Usage:
       [--invocations <file>]     the operator's record of each invocation's start, end and exit code (invocations.txt);
                                  a launch the harness refused is recorded as "refused launch after invocation <k>: ..."
       [--monitor-events <file>]...  a window's monitor_run.py events log
+      [--monitor-config <file>]  the monitor configuration every window ran with (monitor-shadcn.json)
       [--expect-build <id>] [--expect-model <id>] [--expect-code <sha256>] [--expect-corpus <sha256>]
       [--expect-max-requests <n>]  every invocation that ended by itself ran with --max-requests n
       [--parity-reading arrays|no-arrays]  how the run's code read a surface's text: arrays (the default, code from
@@ -71,6 +73,7 @@ ap.add_argument("--out", required=True)
 ap.add_argument("--snapshot", action="append", default=[])
 ap.add_argument("--invocations")
 ap.add_argument("--monitor-events", action="append", default=[])
+ap.add_argument("--monitor-config")
 ap.add_argument("--expect-max-requests", type=int)
 ap.add_argument("--parity-reading", choices=["arrays", "no-arrays"], default="arrays")
 ap.add_argument("--expect-build")
@@ -520,6 +523,20 @@ for (na, da), (nb, db) in zip(states, states[1:]):
 info["history"] = {"copies": [{"invocations": n_, "dir": d} for n_, d in snaps], "steps": history}
 
 # --- 4. The ledger --------------------------------------------------------------------------------------------------
+# Every process that wrote to the ledger, by its time: each invocation, and each launch the harness refused that raised.
+WRITERS = sorted({(str(x.get("invocation")).split("~")[0], x.get("invocation")) for x in ledger if isinstance(x.get("invocation"), str)})
+
+
+def first_writer_after(at):
+    return next((i for t_, i in WRITERS if t_ > at), None)
+
+
+def describe(invocation):
+    if invocation in inv_of_id:
+        return f"invocation {inv_of_id[invocation]}"
+    return f"a refused launch ({invocation})" if invocation in refused else f"{invocation!r}"
+
+
 reserves, finals, order = {}, {}, []
 line_of = {}
 last_at = ""
@@ -539,17 +556,15 @@ for i, line in enumerate(ledger):
         if req not in reserves:
             finding(f"{req}: finalized before it was reserved")
         if line.get("reason") == NEVER_READ:
-            # Written by the next process to resume the run, for a request an invocation left open: the next
-            # invocation, or a launch the harness refused after raising it, between the two.
+            # Written for a request an invocation left open by the first process after it to write to the ledger,
+            # which raises every request it finds open: the next invocation, or a launch the harness refused after
+            # raising it, or a later one if those between them died before writing anything.
             raiser = line.get("invocation")
+            expected = first_writer_after(inv_at[req_owner - 1]) if req_owner is not None else None
             if req_owner is None:
                 finding(f"{req}: raised as never read, but no invocation sent it")
-            elif raiser in refused:
-                t_ = str(raiser).split("~")[0]
-                if not (t_ > inv_at[req_owner - 1] and (req_owner == N or t_ < inv_at[req_owner])):
-                    finding(f"{req}: left open by invocation {req_owner}, raised as never read by a refused launch ({raiser}) that did not come next")
-            elif owner != req_owner + 1:
-                finding(f"{req}: left open by invocation {req_owner}, raised as never read by invocation {owner}, not by the next process to resume the run (invocation {req_owner + 1})")
+            elif raiser != expected:
+                finding(f"{req}: left open by invocation {req_owner}, raised as never read by {describe(raiser)}, not by the first process after it to write to the ledger ({describe(expected)})")
         elif owner != req_owner:
             finding(f"requests.jsonl line {i + 1}: {req} settled by another invocation")
         finals[req] = line
@@ -610,9 +625,9 @@ for req in order:
     r, f = reserves[req], finals.get(req)
     k = inv_of_id.get(r["invocation"])
     if f is None:
-        if k == N and req == by_inv[k][-1] and invocations[k - 1]["ended"] in ("killed", "error"):
+        if k is not None and req == by_inv[k][-1] and invocations[k - 1]["ended"] in ("killed", "error") and first_writer_after(inv_at[k - 1]) is None:
             in_flight.append(req)
-            note(f"{req}: {'recorded and never sent' if unsent.get(k) == req else 'in flight'} when invocation {k} stopped ({invocations[k - 1]['ended']}); the next resume raises it to the most a request can cost")
+            note(f"{req}: {'recorded and never sent' if unsent.get(k) == req else 'in flight'} when invocation {k} stopped ({invocations[k - 1]['ended']}); the next process to write to the ledger raises it to the most a request can cost")
         else:
             finding(f"{req}: reserved and never finalized")
         continue
@@ -1841,6 +1856,10 @@ def epoch_of(iso):
 
 
 monitored = []
+PINNED = None
+if A.monitor_config:
+    with open(A.monitor_config, encoding="utf-8") as f:
+        PINNED = {k: v for k, v in json.load(f).items() if k not in ("note", "expect")}
 for path in A.monitor_events:
     lines = [x.rstrip("\n") for x in open(path, encoding="utf-8") if x.strip()]
     events = []
@@ -1856,6 +1875,10 @@ for path in A.monitor_events:
         continue
     k = int(up.group(1))
     limits_ = json.loads(up.group(2))
+    if PINNED is not None and limits_ != PINNED:
+        differ = {key: (limits_.get(key), PINNED.get(key)) for key in sorted(set(limits_) | set(PINNED)) if limits_.get(key) != PINNED.get(key)}
+        finding(f"monitor events {path}: it ran with limits other than {A.monitor_config}'s: {differ}")
+        limits_ = PINNED
     entry = {"events": path, "window": k}
     monitored.append(entry)
     if not 1 <= k <= N:
@@ -1888,9 +1911,11 @@ for path in A.monitor_events:
     stops = [msg for _, msg in events if msg.startswith(("STOP (", "HOLD ("))]
     entry["stops"] = stops
     if other:
+        # The cells that settled requests after the last reading of the baseline's build may have been measured on
+        # another deployment; the owner decides what becomes of them.
         good = [t_ for t_, b in readings if b == expected_build]
         settled_after = [r for r in by_inv.get(k, []) if r in finals and (not good or epoch_of(finals[r]["at"]) > max(good))]
-        note(f"monitor events {path}: the live build changed during invocation {k} to {other}; {len(settled_after)} of its requests settled after the monitor last read {expected_build}")
+        finding(f"monitor events {path}: the live build changed during invocation {k} to {other}; {len(settled_after)} of its requests settled after the monitor last read {expected_build}, so their cells may have been measured on another deployment")
     # The build is read every buildCheckSeconds on a thread of its own (each reading at most two 10 s fetches): no
     # stretch of the window may go longer than twice that without a reading.
     bound = 2 * limits_.get("buildCheckSeconds", 30) + 25
@@ -1905,10 +1930,14 @@ for path in A.monitor_events:
     early = [r for r in by_inv.get(k, []) if readings and epoch_of(reserves[r]["at"]) < readings[0][0] - bound]
     if early:
         note(f"monitor events {path}: {len(early)} of invocation {k}'s requests came before the monitor's first build reading")
-if A.monitor_events:
+if A.monitor_events or PINNED is not None:
     windows_ = [e["window"] for e in monitored]
     if len(set(windows_)) != len(windows_):
-        finding(f"two monitor events logs name the same window: {sorted(windows_)}")
+        finding(f"two monitor events logs name the same window (a restarted monitor appends to its window's log): {sorted(windows_)}")
+    if PINNED is not None:
+        for k in range(1, N + 1):
+            if k not in windows_:
+                finding(f"invocation {k} has no monitor events log")
 info["monitorEvents"] = monitored
 
 for path in TORN:
