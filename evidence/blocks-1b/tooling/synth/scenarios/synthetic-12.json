@@ -1,0 +1,24 @@
+{
+  "name": "synthetic-12",
+  "runId": "synthetic-12",
+  "promptIds": ["rt-01", "rt-02", "rt-03"],
+  "spacingMs": 12000,
+  "maxTotalRequests": 600,
+  "maxTotalUsd": 60,
+  "baseUrl": "https://synthetic.example",
+  "buildId": "SyntheticBuild0012",
+  "invocations": [
+    { "note": "start; a busy 429 released and retried; a clean cap stop", "maxRequests": 24, "events": { "2": "busy" } },
+    { "note": "resume; a clean cap stop", "maxRequests": 24 },
+    { "note": "resume; the Worker's own limiter refuses one request (429 rate-limited, before any call); a clean cap stop", "maxRequests": 24, "events": { "2": "zone429" } },
+    { "note": "resume; a reply without usage is held and halts the run (exit 3) inside a fresh cell, after its plan settled", "maxRequests": 24, "events": { "6": "no-usage" } },
+    { "note": "resume; the abandoned cell repeated from its beginning, its plan refused three times in a row (30 s, 60 s, 120 s) before it settles; a clean cap stop", "maxRequests": 24, "events": { "1": "busy", "2": "busy", "3": "busy" } },
+    { "note": "resume; the invocation is killed while a request is open (no settlement, no pacing entry)", "maxRequests": 24, "events": { "3": "kill" } },
+    { "note": "resume; the open request raised to the most a request can cost, the cell repeated from its beginning; the Worker re-asks a garbled output inside one request; a clean cap stop", "maxRequests": 24, "events": { "2": "garble" } },
+    { "note": "resume; five busy refusals exhaust the backoff schedule on a fresh plan, the cell fails as a provider failure, and the monitor kills the invocation at its next spacing wait", "maxRequests": 40, "events": { "4": "busy", "5": "busy", "6": "busy", "7": "busy", "8": "busy" }, "killAtSpacingAfter": 8 },
+    { "note": "resume with --rerun-failed: the failed cell and its skipped refinements superseded and re-run; a clean cap stop", "maxRequests": 24, "rerunFailed": true },
+    { "note": "resume; four busy refusals in a row use the whole backoff schedule (30 s, 60 s, 120 s, 240 s) and the fifth try settles; a clean cap stop", "maxRequests": 24, "events": { "1": "busy", "2": "busy", "3": "busy", "4": "busy" } },
+    { "note": "resume; a clean cap stop", "maxRequests": 24 },
+    { "note": "resume; the run completes", "maxRequests": 300 }
+  ]
+}

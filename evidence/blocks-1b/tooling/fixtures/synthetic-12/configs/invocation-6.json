@@ -1,0 +1,19 @@
+{
+  "root": "/home/user/dspack-studio",
+  "dir": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/evidence-stage3/evidence/blocks-1b/tooling/fixtures/synthetic-12/run",
+  "runId": "synthetic-12",
+  "promptIds": [
+    "rt-01",
+    "rt-02",
+    "rt-03"
+  ],
+  "resume": true,
+  "rerunFailed": false,
+  "maxRequests": 24,
+  "spacingMs": 12000,
+  "baseUrl": "https://synthetic.example",
+  "buildId": "SyntheticBuild0012",
+  "events": {
+    "3": "kill"
+  }
+}

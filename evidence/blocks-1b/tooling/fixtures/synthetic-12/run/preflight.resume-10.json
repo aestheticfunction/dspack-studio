@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-14T02:52:06.090Z",
+  "sidecars": [
+    {
+      "reference": "astryx",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    }
+  ],
+  "drafts": false,
+  "baseUrl": "https://synthetic.example",
+  "buildId": "SyntheticBuild0012",
+  "worker": {
+    "shape": "per-call-model",
+    "status": 400,
+    "error": "invalid-request",
+    "calls": [],
+    "capabilities": [
+      "per-call-model"
+    ]
+  },
+  "models": [
+    "scripted",
+    "hosted-ai"
+  ]
+}

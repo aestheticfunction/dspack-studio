@@ -1,0 +1,55 @@
+{
+  "name": "synthetic-5",
+  "runId": "synthetic-5",
+  "promptIds": [
+    "rt-01",
+    "rt-02"
+  ],
+  "spacingMs": 12000,
+  "maxTotalRequests": 400,
+  "maxTotalUsd": 40,
+  "baseUrl": "https://synthetic.example",
+  "buildId": "SyntheticBuild0005",
+  "invocations": [
+    {
+      "note": "start; a busy 429 released at no cost and retried after one backoff; a clean cap stop",
+      "maxRequests": 30,
+      "events": {
+        "3": "busy"
+      }
+    },
+    {
+      "note": "resume; a reply without usage is held at its worst case and halts the run (exit 3) inside a fresh cell, whose plan had settled",
+      "maxRequests": 30,
+      "events": {
+        "4": "no-usage"
+      }
+    },
+    {
+      "note": "resume; the abandoned cell repeated from its beginning; two busy refusals in a row (30 s, 60 s), then the Worker's own limiter (429 rate-limited); a clean cap stop",
+      "maxRequests": 30,
+      "events": {
+        "2": "busy",
+        "3": "busy",
+        "7": "zone429"
+      }
+    },
+    {
+      "note": "resume; five busy refusals in a row exhaust the backoff schedule on a fresh plan, the cell fails as a provider failure, and the monitor kills the invocation at its next spacing wait",
+      "maxRequests": 30,
+      "events": {
+        "5": "busy",
+        "6": "busy",
+        "7": "busy",
+        "8": "busy",
+        "9": "busy"
+      },
+      "killAtSpacingAfter": 9
+    },
+    {
+      "note": "resume with --rerun-failed: the failed cell and the refinements skipped for it are superseded and re-run; the run completes",
+      "maxRequests": 300,
+      "rerunFailed": true
+    }
+  ]
+}

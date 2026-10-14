@@ -1,0 +1,2805 @@
+{
+  "runId": "synthetic-12",
+  "provider": "hosted-ai:claude-haiku-4.5@https://synthetic.example",
+  "corpus": {
+    "id": "blocks-1b",
+    "version": 2,
+    "frozenAt": "2026-10-12",
+    "sha256": "0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9"
+  },
+  "cells": {
+    "total": 60,
+    "done": 60,
+    "reused": 34
+  },
+  "stopped": null,
+  "servedModel": {
+    "id": "claude-haiku-4-5-20251001",
+    "at": "2026-10-14T02:51:36.091Z"
+  },
+  "telemetry": {
+    "pacing": {
+      "maxRequests": 300,
+      "spacingMs": 12000,
+      "backoffMs": [
+        30000,
+        60000,
+        120000,
+        240000
+      ],
+      "sent": 31,
+      "waits": [
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        },
+        {
+          "atMs": 0,
+          "ms": 12000,
+          "reason": "spacing"
+        }
+      ]
+    }
+  },
+  "invocations": [
+    {
+      "at": "2026-10-14T02:51:36.036Z",
+      "id": "2026-10-14T02:51:36.036Z~d7253c41-d554-4468-bd08-12327d4f7adf",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 5,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:51:39.047Z",
+      "id": "2026-10-14T02:51:39.047Z~bb780260-1a03-4e54-8c0a-f927f4728122",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 5,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:51:42.488Z",
+      "id": "2026-10-14T02:51:42.488Z~6b428678-9148-47d1-99b9-6b8b48d5368e",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 6,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 30000,
+              "reason": "429 rate-limited"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:51:45.608Z",
+      "id": "2026-10-14T02:51:45.608Z~e29e5a8c-2092-4de0-8baa-7b864d7cee81",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 6,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "integrity",
+        "message": "usage-missing: a generate call (ok) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it"
+      }
+    },
+    {
+      "at": "2026-10-14T02:51:48.849Z",
+      "id": "2026-10-14T02:51:48.849Z~090cd20d-a81c-42fd-82bd-ef1affce6cc1",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 5,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 60000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 120000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:51:54.264Z",
+      "id": "2026-10-14T02:51:54.264Z~89bfe02b-b744-4187-9dd4-c01b96afdd4e",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 5,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:52:00.250Z",
+      "id": "2026-10-14T02:52:00.250Z~99047950-4c5d-4ff6-be48-8b02d2ca614d",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 5,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:52:03.323Z",
+      "id": "2026-10-14T02:52:03.323Z~4a7e82bc-6441-4bd6-9e9c-93c38a33bcc4",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 5,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 60000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 120000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 240000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:52:06.090Z",
+      "id": "2026-10-14T02:52:06.090Z~8eed82a3-04b7-4898-b475-6e63bb1ee9b6",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 24,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 5,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 24 requests for this invocation is reached; resume later"
+      }
+    },
+    {
+      "at": "2026-10-14T02:52:09.211Z",
+      "id": "2026-10-14T02:52:09.211Z~daf71fe7-bba2-4390-9f18-f556657c5f3e",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 300,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 31,
+          "waits": [
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 0,
+              "ms": 12000,
+              "reason": "spacing"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "requests": {
+    "cap": 600,
+    "sent": 89,
+    "capUsd": 60,
+    "usd": 3.1057572
+  },
+  "superseded": {
+    "records": 5,
+    "providerCalls": 1,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "requestBytes": 5518
+  },
+  "summary": {
+    "scoring": "binding",
+    "arms": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "fresh",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 40540,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 13513.333333333334,
+        "inputTokensPerSuccess": 13194.333333333334,
+        "outputTokensPerSuccess": 319,
+        "tokensPerPassingRun": 13513.333333333334,
+        "providerCallsPerRun": 2,
+        "requestBytesPerRun": 46383.333333333336,
+        "latency": {
+          "totalMs": 131.49408700000004,
+          "firstGatedAttemptMs": 10.370699999999943,
+          "blockPhaseMs": null,
+          "emitMs": 120.15729800000008,
+          "planMs": 4.023937999999816,
+          "pacingMs": 0,
+          "wallTotalMs": 131.49408700000004
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "fresh",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 40540,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 13513.333333333334,
+        "inputTokensPerSuccess": 13194.333333333334,
+        "outputTokensPerSuccess": 319,
+        "tokensPerPassingRun": 13513.333333333334,
+        "providerCallsPerRun": 2,
+        "requestBytesPerRun": 46383.333333333336,
+        "latency": {
+          "totalMs": 200.2492699999998,
+          "firstGatedAttemptMs": 18.51114299999972,
+          "blockPhaseMs": null,
+          "emitMs": 180.2961220000002,
+          "planMs": 4.441851000000042,
+          "pacingMs": 0,
+          "wallTotalMs": 200.2492699999998
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "fresh",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 39553,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 13184.333333333334,
+        "inputTokensPerSuccess": 12888,
+        "outputTokensPerSuccess": 296.3333333333333,
+        "tokensPerPassingRun": 13184.333333333334,
+        "providerCallsPerRun": 2,
+        "requestBytesPerRun": 45199.333333333336,
+        "latency": {
+          "totalMs": 125.52369200000021,
+          "firstGatedAttemptMs": 9.511424000000261,
+          "blockPhaseMs": null,
+          "emitMs": 115.23345100000006,
+          "planMs": 3.2914449999998396,
+          "pacingMs": 0,
+          "wallTotalMs": 125.52369200000021
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "fresh",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 39553,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 13184.333333333334,
+        "inputTokensPerSuccess": 12888,
+        "outputTokensPerSuccess": 296.3333333333333,
+        "tokensPerPassingRun": 13184.333333333334,
+        "providerCallsPerRun": 2,
+        "requestBytesPerRun": 45186.333333333336,
+        "latency": {
+          "totalMs": 171.28708700000016,
+          "firstGatedAttemptMs": 10.838932000000113,
+          "blockPhaseMs": null,
+          "emitMs": 159.38204399999995,
+          "planMs": 4.146808999999848,
+          "pacingMs": 0,
+          "wallTotalMs": 171.28708700000016
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-add",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36960,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42146.666666666664,
+        "latency": {
+          "totalMs": 155.96165100000007,
+          "firstGatedAttemptMs": 6.376357999999982,
+          "blockPhaseMs": null,
+          "emitMs": 148.60217300000022,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 155.96165100000007
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-add",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36960,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42146.666666666664,
+        "latency": {
+          "totalMs": 124.8394659999999,
+          "firstGatedAttemptMs": 6.838637999999719,
+          "blockPhaseMs": null,
+          "emitMs": 117.1923270000002,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 124.8394659999999
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-add",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36960,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42159.666666666664,
+        "latency": {
+          "totalMs": 128.91432299999997,
+          "firstGatedAttemptMs": 6.418559999999616,
+          "blockPhaseMs": null,
+          "emitMs": 121.62071600000036,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 128.91432299999997
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-add",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36960,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42146.666666666664,
+        "latency": {
+          "totalMs": 133.13581000000022,
+          "firstGatedAttemptMs": 7.431712999999945,
+          "blockPhaseMs": null,
+          "emitMs": 124.86692100000027,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 133.13581000000022
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-content",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 36961,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12320.333333333334,
+        "inputTokensPerSuccess": 12069.333333333334,
+        "outputTokensPerSuccess": 251,
+        "tokensPerPassingRun": 12320.333333333334,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42149.666666666664,
+        "latency": {
+          "totalMs": 134.92920700000013,
+          "firstGatedAttemptMs": 7.201829000000089,
+          "blockPhaseMs": null,
+          "emitMs": 126.67409300000008,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 134.92920700000013
+        },
+        "parity": {
+          "meanScore": 0.5,
+          "scored": 3,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-content",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 36961,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12320.333333333334,
+        "inputTokensPerSuccess": 12069.333333333334,
+        "outputTokensPerSuccess": 251,
+        "tokensPerPassingRun": 12320.333333333334,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42149.666666666664,
+        "latency": {
+          "totalMs": 146.42026299999998,
+          "firstGatedAttemptMs": 10.38150799999994,
+          "blockPhaseMs": null,
+          "emitMs": 132.90015300000005,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 146.42026299999998
+        },
+        "parity": {
+          "meanScore": 0.5,
+          "scored": 3,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-content",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 36961,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12320.333333333334,
+        "inputTokensPerSuccess": 12069.333333333334,
+        "outputTokensPerSuccess": 251,
+        "tokensPerPassingRun": 12320.333333333334,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42162.666666666664,
+        "latency": {
+          "totalMs": 143.9022619999996,
+          "firstGatedAttemptMs": 7.481804999999895,
+          "blockPhaseMs": null,
+          "emitMs": 135.54391399999986,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 143.9022619999996
+        },
+        "parity": {
+          "meanScore": 0.5,
+          "scored": 3,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-content",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 36961,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12320.333333333334,
+        "inputTokensPerSuccess": 12069.333333333334,
+        "outputTokensPerSuccess": 251,
+        "tokensPerPassingRun": 12320.333333333334,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42149.666666666664,
+        "latency": {
+          "totalMs": 158.99906499999997,
+          "firstGatedAttemptMs": 9.276421999999911,
+          "blockPhaseMs": null,
+          "emitMs": 148.92425000000003,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 158.99906499999997
+        },
+        "parity": {
+          "meanScore": 0.5,
+          "scored": 3,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-remove",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36924,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42098.666666666664,
+        "latency": {
+          "totalMs": 134.19941400000016,
+          "firstGatedAttemptMs": 7.298483000000033,
+          "blockPhaseMs": null,
+          "emitMs": 126.06544299999996,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 134.19941400000016
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-remove",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36924,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42098.666666666664,
+        "latency": {
+          "totalMs": 131.74708099999998,
+          "firstGatedAttemptMs": 6.966427999999723,
+          "blockPhaseMs": null,
+          "emitMs": 123.94824300000028,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 131.74708099999998
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-remove",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36924,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42111.666666666664,
+        "latency": {
+          "totalMs": 139.29941000000008,
+          "firstGatedAttemptMs": 8.37050199999976,
+          "blockPhaseMs": null,
+          "emitMs": 130.06599499999993,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 139.29941000000008
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-remove",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 0,
+        "passRate": 0,
+        "firstAttemptPassed": 0,
+        "firstAttemptPassRate": 0,
+        "repairsPerSuccess": null,
+        "meteredRuns": 3,
+        "meteredSuccesses": 0,
+        "meteredTokens": 36924,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": null,
+        "inputTokensPerSuccess": null,
+        "outputTokensPerSuccess": null,
+        "tokensPerPassingRun": null,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42098.666666666664,
+        "latency": {
+          "totalMs": 133.9892930000001,
+          "firstGatedAttemptMs": 7.570549000000028,
+          "blockPhaseMs": null,
+          "emitMs": 125.56104800000003,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 133.9892930000001
+        },
+        "parity": {
+          "meanScore": null,
+          "scored": 0,
+          "fullyParityPassed": 0,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 3,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 3,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-structural",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 36981,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12327,
+        "inputTokensPerSuccess": 12076,
+        "outputTokensPerSuccess": 251,
+        "tokensPerPassingRun": 12327,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42174.666666666664,
+        "latency": {
+          "totalMs": 127.35400899999968,
+          "firstGatedAttemptMs": 6.793267000000014,
+          "blockPhaseMs": null,
+          "emitMs": 119.66743899999983,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 127.35400899999968
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-structural",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 36981,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12327,
+        "inputTokensPerSuccess": 12076,
+        "outputTokensPerSuccess": 251,
+        "tokensPerPassingRun": 12327,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42174.666666666664,
+        "latency": {
+          "totalMs": 125.36619500000006,
+          "firstGatedAttemptMs": 6.451467000000321,
+          "blockPhaseMs": null,
+          "emitMs": 118.10810599999968,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 125.36619500000006
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-structural",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 36981,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 12327,
+        "inputTokensPerSuccess": 12076,
+        "outputTokensPerSuccess": 251,
+        "tokensPerPassingRun": 12327,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 42187.666666666664,
+        "latency": {
+          "totalMs": 153.2880580000001,
+          "firstGatedAttemptMs": 9.871376000000055,
+          "blockPhaseMs": null,
+          "emitMs": 142.56717500000013,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 153.2880580000001
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-structural",
+        "n": 3,
+        "skipped": 0,
+        "completed": 3,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 3,
+        "passed": 3,
+        "passRate": 1,
+        "firstAttemptPassed": 3,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 3,
+        "meteredSuccesses": 3,
+        "meteredTokens": 49068,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 16356,
+        "inputTokensPerSuccess": 16100.333333333334,
+        "outputTokensPerSuccess": 255.66666666666666,
+        "tokensPerPassingRun": 16356,
+        "providerCallsPerRun": 1.3333333333333333,
+        "requestBytesPerRun": 42174.666666666664,
+        "latency": {
+          "totalMs": 137.17965000000004,
+          "firstGatedAttemptMs": 7.62407500000063,
+          "blockPhaseMs": null,
+          "emitMs": 130.08691599999975,
+          "planMs": null,
+          "pacingMs": 0,
+          "wallTotalMs": 137.17965000000004
+        },
+        "parity": {
+          "meanScore": 0.6666666666666666,
+          "scored": 3,
+          "fullyParityPassed": 1,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 3,
+            "passed": 3
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 3,
+        "refinedPassed": 3,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      }
+    ],
+    "pooled": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "all",
+        "n": 15,
+        "skipped": 0,
+        "completed": 15,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 15,
+        "passed": 9,
+        "passRate": 0.6,
+        "firstAttemptPassed": 9,
+        "firstAttemptPassRate": 0.6,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 15,
+        "meteredSuccesses": 9,
+        "meteredTokens": 188366,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 20929.555555555555,
+        "inputTokensPerSuccess": 20488.555555555555,
+        "outputTokensPerSuccess": 441,
+        "tokensPerPassingRun": 12720.222222222223,
+        "providerCallsPerRun": 1.2,
+        "requestBytesPerRun": 42990.6,
+        "latency": {
+          "totalMs": 134.19941400000016,
+          "firstGatedAttemptMs": 7.298483000000033,
+          "blockPhaseMs": null,
+          "emitMs": 126.06544299999996,
+          "planMs": 4.023937999999816,
+          "pacingMs": 0,
+          "wallTotalMs": 134.19941400000016
+        },
+        "parity": {
+          "meanScore": 0.611111111111111,
+          "scored": 9,
+          "fullyParityPassed": 2,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 6,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 6,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 6,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 15,
+            "passed": 9
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 12,
+        "refinedPassed": 12,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "all",
+        "n": 15,
+        "skipped": 0,
+        "completed": 15,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 15,
+        "passed": 9,
+        "passRate": 0.6,
+        "firstAttemptPassed": 9,
+        "firstAttemptPassRate": 0.6,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 15,
+        "meteredSuccesses": 9,
+        "meteredTokens": 188366,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 20929.555555555555,
+        "inputTokensPerSuccess": 20488.555555555555,
+        "outputTokensPerSuccess": 441,
+        "tokensPerPassingRun": 12720.222222222223,
+        "providerCallsPerRun": 1.2,
+        "requestBytesPerRun": 42990.6,
+        "latency": {
+          "totalMs": 131.74708099999998,
+          "firstGatedAttemptMs": 9.090355000000272,
+          "blockPhaseMs": null,
+          "emitMs": 123.94824300000028,
+          "planMs": 4.441851000000042,
+          "pacingMs": 0,
+          "wallTotalMs": 131.74708099999998
+        },
+        "parity": {
+          "meanScore": 0.611111111111111,
+          "scored": 9,
+          "fullyParityPassed": 2,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 6,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 6,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 6,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 15,
+            "passed": 9
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 12,
+        "refinedPassed": 12,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "all",
+        "n": 15,
+        "skipped": 0,
+        "completed": 15,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 15,
+        "passed": 9,
+        "passRate": 0.6,
+        "firstAttemptPassed": 9,
+        "firstAttemptPassRate": 0.6,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 15,
+        "meteredSuccesses": 9,
+        "meteredTokens": 187379,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 20819.88888888889,
+        "inputTokensPerSuccess": 20386.444444444445,
+        "outputTokensPerSuccess": 433.44444444444446,
+        "tokensPerPassingRun": 12610.555555555555,
+        "providerCallsPerRun": 1.2,
+        "requestBytesPerRun": 42764.2,
+        "latency": {
+          "totalMs": 139.29941000000008,
+          "firstGatedAttemptMs": 7.481804999999895,
+          "blockPhaseMs": null,
+          "emitMs": 130.06599499999993,
+          "planMs": 3.2914449999998396,
+          "pacingMs": 0,
+          "wallTotalMs": 139.29941000000008
+        },
+        "parity": {
+          "meanScore": 0.611111111111111,
+          "scored": 9,
+          "fullyParityPassed": 2,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 6,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 6,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 6,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 15,
+            "passed": 9
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 12,
+        "refinedPassed": 12,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "all",
+        "n": 15,
+        "skipped": 0,
+        "completed": 15,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 15,
+        "passed": 9,
+        "passRate": 0.6,
+        "firstAttemptPassed": 9,
+        "firstAttemptPassRate": 0.6,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 15,
+        "meteredSuccesses": 9,
+        "meteredTokens": 199466,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 22162.88888888889,
+        "inputTokensPerSuccess": 21727.88888888889,
+        "outputTokensPerSuccess": 435,
+        "tokensPerPassingRun": 13953.555555555555,
+        "providerCallsPerRun": 1.2666666666666666,
+        "requestBytesPerRun": 42751.2,
+        "latency": {
+          "totalMs": 138.99759500000027,
+          "firstGatedAttemptMs": 7.62407500000063,
+          "blockPhaseMs": null,
+          "emitMs": 130.76673200000005,
+          "planMs": 4.146808999999848,
+          "pacingMs": 0,
+          "wallTotalMs": 138.99759500000027
+        },
+        "parity": {
+          "meanScore": 0.611111111111111,
+          "scored": 9,
+          "fullyParityPassed": 2,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 6,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 6,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 6,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 15,
+            "passed": 9
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 12,
+        "refinedPassed": 12,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      }
+    ],
+    "selection": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "n": 3,
+        "correct": 0,
+        "hit": 0,
+        "missedToNull": 3,
+        "wrongBlock": 0,
+        "nullCorrect": 0,
+        "falseBlock": 0,
+        "explicitNull": 3,
+        "omitted": 0,
+        "rejected": 0,
+        "planningFailed": 0,
+        "intentCorrect": 3,
+        "accuracy": 0,
+        "intentAccuracy": 1
+      }
+    ],
+    "decisions": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "verdict": "insufficient",
+        "reasons": [
+          "block: 3 prompt threads (15 cells), fewer than the 20 the rule needs",
+          "capped: 3 prompt threads (15 cells), fewer than the 20 the rule needs",
+          "production: 3 prompt threads (15 cells), fewer than the 20 the rule needs"
+        ],
+        "tokens": {
+          "block": 20929.555555555555,
+          "capped": 20819.88888888889,
+          "production": 22162.88888888889,
+          "reductionVsProduction": 0.05564858171317433,
+          "reductionVsCapped": -0.005267399228301883
+        },
+        "passRates": {
+          "block": 0.6,
+          "capped": 0.6,
+          "production": 0.6
+        },
+        "evaluated": {
+          "block": 15,
+          "capped": 15,
+          "production": 15
+        },
+        "metered": {
+          "block": 15,
+          "capped": 15,
+          "production": 15
+        },
+        "threads": {
+          "block": 3,
+          "capped": 3,
+          "production": 3
+        },
+        "meteredThreads": {
+          "block": 3,
+          "capped": 3,
+          "production": 3
+        },
+        "counts": {
+          "passed": {
+            "block": 9,
+            "capped": 9,
+            "production": 9
+          },
+          "meteredTokens": {
+            "block": 188366,
+            "capped": 187379,
+            "production": 199466
+          },
+          "meteredSuccesses": {
+            "block": 9,
+            "capped": 9,
+            "production": 9
+          }
+        },
+        "cohort": 3,
+        "meteredCohort": 3,
+        "intervals": {
+          "reductionVsProduction": {
+            "low": -0.005267286786955205,
+            "high": 0.15777255954377734,
+            "resamples": 2000,
+            "prompts": 3
+          },
+          "reductionVsCapped": {
+            "low": -0.0052692270732566104,
+            "high": -0.005265685019206101,
+            "resamples": 2000,
+            "prompts": 3
+          },
+          "passDiffVsProduction": {
+            "low": 0,
+            "high": 0,
+            "resamples": 2000,
+            "prompts": 3
+          },
+          "passDiffVsCapped": {
+            "low": 0,
+            "high": 0,
+            "resamples": 2000,
+            "prompts": 3
+          }
+        },
+        "clarity": {
+          "tokens": "insufficient",
+          "vsProduction": "insufficient",
+          "vsCapped": "insufficient",
+          "overall": "insufficient"
+        },
+        "paired": {
+          "vsProduction": {
+            "prompts": 3,
+            "passRate": {
+              "better": 0,
+              "same": 3,
+              "worse": 0
+            },
+            "tokensPerSuccess": {
+              "lower": 1,
+              "same": 0,
+              "higher": 2,
+              "comparable": 3
+            }
+          },
+          "vsCapped": {
+            "prompts": 3,
+            "passRate": {
+              "better": 0,
+              "same": 3,
+              "worse": 0
+            },
+            "tokensPerSuccess": {
+              "lower": 0,
+              "same": 0,
+              "higher": 3,
+              "comparable": 3
+            }
+          }
+        },
+        "options": {
+          "reduction": 0.3,
+          "margin": 0.05,
+          "minimum": 20
+        }
+      }
+    ],
+    "sensitivity": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "operation": {
+          "block": {
+            "checked": 6,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 6,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "capped": {
+            "checked": 6,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 6,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "production": {
+            "checked": 6,
+            "performed": 0,
+            "mixed": 0,
+            "missed": 6,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "readings": [
+          {
+            "failing": "none",
+            "reading": {
+              "verdict": "insufficient",
+              "overall": "insufficient",
+              "passed": {
+                "block": 15,
+                "capped": 15,
+                "production": 15
+              },
+              "evaluated": {
+                "block": 15,
+                "capped": 15,
+                "production": 15
+              },
+              "reductionVsProduction": 0.05564858171317422
+            }
+          }
+        ],
+        "verdictHolds": true,
+        "clarityHolds": true,
+        "robust": true
+      }
+    ],
+    "encodings": [
+      {
+        "reference": "astryx",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "paired": {
+          "prompts": 3,
+          "passRate": {
+            "better": 0,
+            "same": 3,
+            "worse": 0
+          },
+          "tokensPerSuccess": {
+            "lower": 0,
+            "same": 3,
+            "higher": 0,
+            "comparable": 3
+          }
+        },
+        "intervals": {
+          "passDiff": {
+            "low": 0,
+            "high": 0,
+            "resamples": 2000,
+            "prompts": 3
+          },
+          "tokenReduction": {
+            "low": 0,
+            "high": 0,
+            "resamples": 2000,
+            "prompts": 3
+          }
+        }
+      }
+    ],
+    "totals": {
+      "records": 60,
+      "completed": 60,
+      "providerCalls": 73,
+      "inputTokens": 747823,
+      "outputTokens": 15754,
+      "requestBytes": 2572449
+    }
+  }
+}
