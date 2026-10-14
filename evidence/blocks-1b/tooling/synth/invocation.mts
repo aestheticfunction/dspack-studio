@@ -18,7 +18,8 @@
  *   no-usage  the reply reports no usage: the harness raises the request to its worst case and halts (exit 3)
  *   kill      the process is killed while the request is open (SIGKILL): no settlement and no pacing entry
  * With config.killAtSpacingAfter = n, the process is killed at its first spacing wait after the n-th request: an
- * operator monitor stopping the run between cells (SIGKILL, so nothing is written on the way out).
+ * operator monitor stopping the run between cells (SIGKILL, so nothing is written on the way out). With
+ * config.sleepScale, the pacer's waits are slept for real at that fraction, so a monitor can watch the run as it goes.
  *
  * The exit code is the CLI's (live/run.ts stopNotice): 0 complete or a cap, 3 a call the run cannot trust, 1 an error.
  */
@@ -42,6 +43,8 @@ const config = JSON.parse(readFileSync(process.argv[2]!, "utf8")) as {
   buildId: string;
   events?: Record<string, "busy" | "zone429" | "garble" | "no-usage" | "kill">;
   killAtSpacingAfter?: number;
+  /** Real sleeps at this fraction of the pacer's (0.02: a 12 s spacing takes 240 ms), so a monitor can watch the run. */
+  sleepScale?: number;
 };
 
 const load = (path: string) => import(pathToFileURL(join(config.root, path)).href);
@@ -164,6 +167,7 @@ const pacer = createPacer({
   now: () => 0,
   sleep: async (ms: number) => {
     if (armed && ms === config.spacingMs) process.kill(process.pid, "SIGKILL");
+    if (config.sleepScale) await new Promise((r) => setTimeout(r, ms * config.sleepScale!));
   },
 });
 

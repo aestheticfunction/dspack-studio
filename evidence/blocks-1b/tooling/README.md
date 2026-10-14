@@ -138,4 +138,81 @@ primitive generation. The block phase's request shapes are covered by the Astryx
 
 - **A window copy whose last line was cut off** is reported as a finding, to be checked by hand. The harness sets such a line aside on its next resume, and the verifier does not reconstruct that.
 - **Without window copies,** what each invocation logged is read from the record times, and the history before them is not checked. Each case is listed among the notes.
+- **A window stopped from outside.** Its `summary.json` is the previous window's. The verifier checks that summary's request count against the windows it covers, and compares nothing else in it.
 - **Prices.** The verifier prices Claude Haiku 4.5 alone, as the harness does.
+
+## The operator monitor for shadcn/ui v3 (not launched)
+
+| Path | What it is |
+|---|---|
+| `monitor_run.py` | The monitor for one window (one invocation). It reads the run directory and never writes to it. It only ever signals the harness's process group. |
+| `monitor-shadcn.json` | Its configuration for shadcn/ui v3 Stage 3: what each window must match, and its limits. |
+| `tests/test_monitor.py` | Its tests: 33 rules one at a time, both synthetic runs replayed, and 4 windows of a live synthetic harness. |
+
+**What stops a window at once:**
+- **Settlement:** any of these:
+  - a request that ends neither settled at its reported usage nor released as a refusal at no cost (a hold, such as "usage not verified");
+  - arithmetic that does not hold in whole nanodollars;
+  - a release not at zero;
+  - two requests in flight;
+  - a settlement for a request not in flight;
+  - a line it cannot read.
+- **Model:** a settlement or a provider call on another model, or a manifest that records another, or one set aside.
+- **Build:** the live deployment, checked every 10 minutes, or the window's preflight or the manifest, naming any other build than the baseline's.
+- **Corpus:** another pinned corpus, a record for another reference or provider, or labels other than the frozen corpus's.
+- **Integrity:** any of these:
+  - another code identity;
+  - the manifest's identity changing during the window;
+  - an invariant failure;
+  - a request in flight for 10 minutes. No reply can take that long: at most two calls of at most 45 s each.
+
+**Refusals** (zero-cost busy and limiter refusals, which the harness releases and retries after a backoff):
+- **Allowed:** a refusal answered within its backoff schedule, including one that uses the whole schedule (30, 60, 120 and 240 s). Each release is logged with the wait it costs, never silently.
+- **Stopped:**
+  - a request refused through its whole schedule, which is 5 times in a row;
+  - the window's 8th released refusal;
+  - refusals whose backoffs reach 900 s in the window.
+
+  So refusals cannot quietly eat the rest of a daily window.
+
+**Failures:**
+- **Policy or unknown:** a policy failure, or an unknown one, stops the window.
+- **Provider:** one provider failure per window is allowed and logged; re-run it with `--rerun-failed`. The second stops the window.
+- **Ordinary arm results** never stop a run: a lint exhaustion, a gate failure, an unusable output, a skipped refinement.
+
+**When a stop holds nothing.** A stop on a refusal lands when nothing is in flight: the harness has just released the request and is waiting out its backoff, or the spacing after a spent schedule. The live tests show that no request is left open.
+- **A stop on a record or the build can land while a request is in flight.** The next resume then raises that request to the most a request can cost, $1.118208 against the ceiling, and repeats its cell from the beginning. The monitor allows that raise at the start of the next window, before its first request, and logs it.
+
+**The limits, for a window of `--max-requests 123`:**
+- **Refusals in Astryx:** at most 4 per window, which is 2.9% of window 2's 140 requests.
+- **Eight releases:** 6.5% of a window, more than twice that rate.
+- **900 s of backoff:** about half a window's 30 to 40 minutes of requests. It allows one full schedule, which costs 450 s, and leaves room for single refusals.
+- **Provider failures:** Astryx had none; its 7 adapter failures were unusable outputs.
+
+**Before any window, the build must be set:** `expect.build` must be the post-merge baseline's. Until it is, the monitor stops every window at once. The code identity and the corpus are already set: `51c80cec…a229` and v2 `0e4e4706…1ae9`.
+
+**Launching a window** follows the Astryx procedure (`v2/stage3/preresume-and-launch.sh` in the operator's scratch). Run the no-cost checks first. Start the harness in its own session, then start the monitor at once:
+
+```sh
+python3 -I monitor_run.py --run <run dir> --pgid <the harness session's process group> --preflights <N> \
+  --config monitor-shadcn.json --corpus <frozen corpus v2> --events <window events log>
+```
+
+- **`--preflights`** is the number of preflight files the run will hold once this window has started: 1 for the first window, and one more for each resume.
+- **The monitor reads only this window's lines,** so restarting it during a window rebuilds its count from the files.
+- **Exit codes:**
+  - 0: the harness exited by itself;
+  - 10: the monitor stopped it;
+  - 20: the monitor handed back while the harness still runs (after 7 hours by default).
+
+```sh
+python3 -I evidence/blocks-1b/tooling/tests/test_monitor.py -v   # 39 tests, about 70 seconds
+```
+
+The live tests start the synthetic harness in its own process group, with its waits slept for real at a fraction of their length, and the monitor watches it:
+- **An exhausted schedule** stops the window with nothing in flight.
+- **Eight retried refusals** stop it during a backoff.
+- **A single retried refusal** lets the window finish.
+- **A build change** stops it, and a resume completes the run.
+
+Each run then verifies with `verify_run.py`, and finds nothing.

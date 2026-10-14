@@ -528,12 +528,21 @@ info["ledger"] = {
 }
 req_sum = summary_file.get("requests") or {}
 limits = manifest.get("limits") or {}
-if req_sum.get("sent") != len(reserves):
-    finding(f"summary requests.sent {req_sum.get('sent')} != {len(reserves)} reserved")
-if req_sum.get("usd") is None or nano(req_sum["usd"]) != committed_nano:
-    finding(f"summary requests.usd {req_sum.get('usd')} != committed {committed_nano / 1e9}")
-if req_sum.get("cap") != limits.get("maxTotalRequests") or req_sum.get("capUsd") != limits.get("maxTotalUsd"):
-    finding(f"summary caps {req_sum.get('cap')}/{req_sum.get('capUsd')} != the manifest's {limits.get('maxTotalRequests')}/{limits.get('maxTotalUsd')}")
+if pacing_of.get(N) is None:
+    # The last invocation was stopped from outside: summary.json is the last one's that ended, and holds what the
+    # ledger held then.
+    reported = max(pacing_of, default=0)
+    sent_then = sum(len(by_inv.get(k, [])) for k in range(1, reported + 1))
+    if req_sum.get("sent") != sent_then:
+        finding(f"summary requests.sent {req_sum.get('sent')} != {sent_then} reserved by invocations 1 to {reported}, whose summary it is")
+    note(f"summary.json is invocation {reported}'s (invocation {N} was stopped from outside): its dollars and figures are not compared")
+else:
+    if req_sum.get("sent") != len(reserves):
+        finding(f"summary requests.sent {req_sum.get('sent')} != {len(reserves)} reserved")
+    if req_sum.get("usd") is None or nano(req_sum["usd"]) != committed_nano:
+        finding(f"summary requests.usd {req_sum.get('usd')} != committed {committed_nano / 1e9}")
+    if req_sum.get("cap") != limits.get("maxTotalRequests") or req_sum.get("capUsd") != limits.get("maxTotalUsd"):
+        finding(f"summary caps {req_sum.get('cap')}/{req_sum.get('capUsd')} != the manifest's {limits.get('maxTotalRequests')}/{limits.get('maxTotalUsd')}")
 if len(reserves) > limits.get("maxTotalRequests", 0) or committed_nano > nano(limits.get("maxTotalUsd", 0)):
     finding("the ledger exceeds the run's caps")
 
@@ -1369,6 +1378,9 @@ for ref in REFERENCES:
     selection["accuracy"] = ratio(selection["correct"], selection["n"])
     selection["intentAccuracy"] = ratio(selection["intentCorrect"], selection["n"])
 
+    if pacing_of.get(N) is None:
+        results[ref] = {"decision": decision, "pooled": pooled, "perCondition": {f"{a}|{c}": v for (a, c), v in per_condition.items()}, "selection": selection, "encoding": encoding, "readings": readings, "bootstrapRobustness": robustness}
+        continue
     theirs = one(S["decisions"], reference=ref, provider=PROVIDER_ID)
     if theirs:
         compare(f"{ref}.decision", decision, theirs)
@@ -1405,7 +1417,8 @@ totals = {
     "outputTokens": sum(r["tokens"]["output"] for r in records if r["status"] == "completed"),
     "requestBytes": sum(r["requestBytes"] for r in records if r["status"] == "completed"),
 }
-compare("totals", totals, S["totals"])
+if pacing_of.get(N) is not None:
+    compare("totals", totals, S["totals"])
 cells_expected = {"total": len(PLANNED), "done": len(records), "reused": reused_at_last}
 if pacing_of.get(N) is not None and summary_file["cells"] != cells_expected:
     finding(f"summary cells {summary_file['cells']} != {cells_expected}")
