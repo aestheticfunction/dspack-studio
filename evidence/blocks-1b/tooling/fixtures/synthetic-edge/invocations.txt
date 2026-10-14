@@ -1,0 +1,7 @@
+invocation 1 start 2026-10-14T04:21:13.709Z
+invocation 1 end 2026-10-14T04:21:18.592Z exit 137
+refused launch after invocation 1: 2026-10-14T04:21:18.620Z to 2026-10-14T04:21:21.228Z exit 1
+invocation 2 start 2026-10-14T04:21:21.323Z
+invocation 2 end 2026-10-14T04:21:24.474Z exit 1
+invocation 3 start 2026-10-14T04:21:24.497Z
+invocation 3 end 2026-10-14T04:21:30.076Z exit 0

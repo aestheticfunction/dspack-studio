@@ -1,0 +1,7 @@
+astryx|hosted-ai:claude-haiku-4.5|block|rt-01|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|rt-01|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+astryx|hosted-ai:claude-haiku-4.5|block|rt-01|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+stopped on astryx|hosted-ai:claude-haiku-4.5|block|rt-01|refine-structural: the run's lock /tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/evidence-stage3/evidence/blocks-1b/tooling/fixtures/synthetic-edge/run/run.lock no longer names this invocation, so nothing more is sent; another invocation may be running the run: let it finish, then resume
+
+run synthetic-edge: 4 of 20 cells (1 reused)
+stopped: the run's lock /tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/evidence-stage3/evidence/blocks-1b/tooling/fixtures/synthetic-edge/run/run.lock no longer names this invocation, so nothing more is sent; another invocation may be running the run: let it finish, then resume

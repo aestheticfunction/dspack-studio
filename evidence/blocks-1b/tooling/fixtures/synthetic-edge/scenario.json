@@ -1,0 +1,36 @@
+{
+  "name": "synthetic-edge",
+  "runId": "synthetic-edge",
+  "promptIds": [
+    "rt-01"
+  ],
+  "spacingMs": 12000,
+  "maxTotalRequests": 400,
+  "maxTotalUsd": 40,
+  "baseUrl": "https://synthetic.example",
+  "buildId": "SyntheticBuildEdge",
+  "invocations": [
+    {
+      "note": "start; killed from outside with its third request in flight: the first window leaves no pacing entry and no summary",
+      "maxRequests": 30,
+      "events": {
+        "3": "kill"
+      }
+    },
+    {
+      "note": "a resume the harness refuses (its request cap below what the run has sent), after it has raised the request left in flight: no preflight, so no invocation",
+      "maxRequests": 30,
+      "maxTotalRequests": 2,
+      "refused": true
+    },
+    {
+      "note": "resume; the run's lock is lost before the fourth request, whose line is written but never sent: an error stop (LockLost, exit 1)",
+      "maxRequests": 30,
+      "loseLockBefore": 4
+    },
+    {
+      "note": "resume; the unsent request raised to the most a request can cost, and the run completes",
+      "maxRequests": 300
+    }
+  ]
+}

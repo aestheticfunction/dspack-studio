@@ -1,0 +1,1 @@
+--max-total-requests 2 is below the 3 requests the run in /tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/evidence-stage3/evidence/blocks-1b/tooling/fixtures/synthetic-edge/run has already sent; a cap can be lowered only as far as that

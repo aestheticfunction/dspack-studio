@@ -1,0 +1,14 @@
+{
+  "root": "/home/user/dspack-studio",
+  "dir": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/evidence-stage3/evidence/blocks-1b/tooling/fixtures/synthetic-edge/run",
+  "runId": "synthetic-edge",
+  "promptIds": [
+    "rt-01"
+  ],
+  "resume": true,
+  "rerunFailed": false,
+  "maxRequests": 300,
+  "spacingMs": 12000,
+  "baseUrl": "https://synthetic.example",
+  "buildId": "SyntheticBuildEdge"
+}

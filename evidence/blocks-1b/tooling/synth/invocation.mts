@@ -20,10 +20,12 @@
  * With config.killAtSpacingAfter = n, the process is killed at its first spacing wait after the n-th request: an
  * operator monitor stopping the run between cells (SIGKILL, so nothing is written on the way out). With
  * config.sleepScale, the pacer's waits are slept for real at that fraction, so a monitor can watch the run as it goes.
+ * With config.loseLockBefore = n, the run's lock is deleted in the spacing wait before the n-th request: the harness
+ * puts that request's line on the record, finds the lock no longer its own, and stops (LockLost, exit 1) unsent.
  *
  * The exit code is the CLI's (live/run.ts stopNotice): 0 complete or a cap, 3 a call the run cannot trust, 1 an error.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -45,6 +47,8 @@ const config = JSON.parse(readFileSync(process.argv[2]!, "utf8")) as {
   killAtSpacingAfter?: number;
   /** Real sleeps at this fraction of the pacer's (0.02: a 12 s spacing takes 240 ms), so a monitor can watch the run. */
   sleepScale?: number;
+  /** The run's lock is deleted in the spacing wait before the n-th request: its line is written, then LockLost (exit 1). */
+  loseLockBefore?: number;
 };
 
 const load = (path: string) => import(pathToFileURL(join(config.root, path)).href);
@@ -167,6 +171,7 @@ const pacer = createPacer({
   now: () => 0,
   sleep: async (ms: number) => {
     if (armed && ms === config.spacingMs) process.kill(process.pid, "SIGKILL");
+    if (config.loseLockBefore !== undefined && current.n === config.loseLockBefore - 1 && ms === config.spacingMs) rmSync(join(config.dir, "run.lock"), { force: true });
     if (config.sleepScale) await new Promise((r) => setTimeout(r, ms * config.sleepScale!));
   },
 });
