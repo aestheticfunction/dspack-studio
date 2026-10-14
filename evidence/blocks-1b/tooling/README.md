@@ -12,9 +12,9 @@ No provider was called to build or test anything here.
 | Path | What it is |
 |---|---|
 | `verify_run.py` | The verifier for a hosted run of any number of invocations. It generalizes `verify_stage3.py`, which handles two. |
-| `tests/test_verify_run.py` | Its tests: the real Astryx run, three synthetic runs, every window copy read as the run so far, and 36 copies each broken one way. |
+| `tests/test_verify_run.py` | Its tests: the real Astryx run, four synthetic runs, every window copy read as the run so far, and 39 copies each broken one way. |
 | `synth/` | The generator of the synthetic runs, and their scenarios. |
-| `fixtures/synthetic-5/`, `fixtures/synthetic-12/`, `fixtures/synthetic-edge/` | The synthetic runs: 5, 12 and 3 invocations. |
+| `fixtures/synthetic-5/`, `fixtures/synthetic-12/`, `fixtures/synthetic-edge/`, `fixtures/synthetic-dead/` | The synthetic runs: 5, 12, 3 and 3 invocations. |
 | `monitor_run.py`, `monitor-shadcn.json` | The operator monitor for one window, and its configuration for shadcn/ui v3 (below). |
 | `tests/test_monitor.py`, `tests/fake_harness.py` | The monitor's tests, and a stand-in harness that writes a run directory on a fixed timeline. |
 | `SHA256SUMS` | Checksums of every file here. |
@@ -24,7 +24,7 @@ No provider was called to build or test anything here.
 ```sh
 python3 -I verify_run.py --run <run dir> --corpus <the frozen corpus json> --out <result json> \
   --snapshot <the run dir as invocation 1 left it> ... --snapshot <as invocation N-1 left it> \
-  --invocations <invocations.txt> --monitor-events <window 1 events log> ... \
+  --invocations <invocations.txt> --monitor-config monitor-shadcn.json --monitor-events <window 1 events log> ... \
   --expect-build <the baseline's build id> --expect-code <the code identity> --expect-max-requests 123 --complete
 ```
 
@@ -33,7 +33,8 @@ python3 -I verify_run.py --run <run dir> --corpus <the frozen corpus json> --out
 - **`--invocations`** is the operator's record of each invocation's start, end and exit code, in the format of
   `../1b-stage3-astryx-2026-10-12.invocations.txt`. A launch the harness refuses writes no preflight and is no
   invocation: record it as `refused launch after invocation <k>: <start> to <end> exit 1`, not as an invocation.
-- **`--monitor-events`** is a window's `monitor_run.py` events log, one per monitored window.
+- **`--monitor-events`** is a window's `monitor_run.py` events log, one per monitored window. A monitor restarted during a window appends to its window's log, so each window has one.
+- **`--monitor-config`** is the configuration every window's monitor ran with. Each log's limits must be its own, and every window must have a log.
 - **`--parity-reading`** says how the run's code read a surface's text for parity: `arrays` (the default; code from
   aestheticfunction/dspack-studio#102 on, which reads the strings arrays hold) or `no-arrays` (before it, as the Astryx
   run's code did). The other reading's arm means are reported too.
@@ -68,7 +69,7 @@ Everything is recomputed from the run's own files and the frozen corpus. Nothing
   - Every settlement's arithmetic holds in whole nanodollars:
     - a release is at nothing;
     - a hold is at no less than its reservation, nor the most one call can cost ($0.559104, the least the harness holds a reply it cannot trust at).
-  - A request an invocation left open is raised to the most a request can cost ($1.118208) by the next process to resume the run. That is the next invocation, or a launch the harness refused that raised it before refusing.
+  - A request an invocation left open is raised to the most a request can cost ($1.118208) by the first process after it to write to the ledger. That is the next invocation, a launch the harness refused that raised it before refusing, or a later invocation when those between died before writing anything.
   - Each invocation's count matches its pacing entry and stays under its cap. A lost lock or an unsyncable reservation stops an invocation with one request recorded but never sent, and that is allowed for.
   - A cap stop was due: the next cell's worst case no longer fit.
   - The run's totals stay under the run's caps.
@@ -97,7 +98,8 @@ Everything is recomputed from the run's own files and the frozen corpus. Nothing
   - the window it watched is the invocation it names;
   - the count of requests it saw is the ledger's for that invocation;
   - it read the live build at least every `2 × buildCheckSeconds + 25` seconds;
-  - any build other than the baseline's is reported, with the requests settled after the last good reading.
+  - any build other than the baseline's is a finding, with the requests settled after the last good reading: their cells may have been measured on another deployment, and the owner decides;
+  - with `--monitor-config`, its limits are the configuration's, and no window lacks a log.
 
 ## Validation
 
@@ -118,7 +120,7 @@ Everything is recomputed from the run's own files and the frozen corpus. Nothing
   - each window's figures, and each window's backoffs.
 
 **The synthetic runs** went through the real harness and the real Worker (`propose.mjs`), with a scripted model
-binding. Every invocation is its own process, as the CLI makes it. All three verify with no findings.
+binding. Every invocation is its own process, as the CLI makes it. All four verify with no findings.
 - **`synthetic-5`,** 5 invocations over rt-01 and rt-02, 40 cells:
   1. A busy 429, released at no cost and retried after 30 s, then a cap stop.
   2. A reply without usage, held at its worst case. The run halts (exit 3) inside a fresh cell whose plan had settled.
@@ -138,11 +140,15 @@ binding. Every invocation is its own process, as the CLI makes it. All three ver
   2. A resume the harness refuses, its request cap below what the run has sent. It raises the open request first, and writes no preflight.
   3. A resume whose lock is lost before its fourth request. That request is written but never sent, and the invocation stops on an error (exit 1).
   4. A resume that raises the unsent request and completes the run.
+- **`synthetic-dead`,** 3 invocations over rt-01, 20 cells:
+  1. Killed from outside with its third request in flight.
+  2. A resume killed as soon as its preflight is on the disk, before it raises that request. It writes nothing to the ledger.
+  3. A resume that raises it, as the first process after the first window to write to the ledger, and completes the run.
 
-**Every window copy** of the three runs also verifies on its own, as the run so far, with no findings. So does each
+**Every window copy** of the four runs also verifies on its own, as the run so far, with no findings. So does each
 run with a window copy missing across a re-run (`--partial-history`).
 
-**Broken copies.** The verifier fails, and names the fault, on 36 copies, each broken one way:
+**Broken copies.** The verifier fails, and names the fault, on 39 copies, each broken one way:
 - duplicate cells, at the end and inside the history;
 - missing requests, in the last window and inside the history;
 - a resume against another build, or an unexpected build;
@@ -159,10 +165,10 @@ run with a window copy missing across a re-run (`--partial-history`).
 - a stored parity unlike its surface's;
 - a window copy missing;
 - a killed window's trailing request removed from every copy, with the totals adjusted to match. Nothing in the run's own files shows it, and the monitor's events log does;
-- a monitor that went too long without reading the build.
+- a monitor that went too long without reading the build, a window whose monitor read another build, a log whose limits are not the configuration's, and a window with no log.
 
 ```sh
-python3 -I evidence/blocks-1b/tooling/tests/test_verify_run.py -v   # 47 tests, about 20 seconds
+python3 -I evidence/blocks-1b/tooling/tests/test_verify_run.py -v   # 50 tests, about 25 seconds
 ```
 
 The tests read the corpus from a dspack-studio checkout (`DSPACK_STUDIO`, default `/home/user/dspack-studio`). They
@@ -175,8 +181,8 @@ take the Astryx window-1 copy from this branch's history.
 packages/block-bench/node_modules/.bin/tsx <this dir>/synth/generate.mts <this dir>/synth/scenarios/synthetic-12.json <out dir>
 ```
 
-`synthetic-5` and `synthetic-12` were generated with the checkout at `299911d` (PR 102), `synthetic-edge` at its
-merge `7e260c3`; all three have code identity `51c80cec…a229`. Each fixture's `generated.json` records this, and its
+`synthetic-5` and `synthetic-12` were generated with the checkout at `299911d` (PR 102), `synthetic-edge` and
+`synthetic-dead` at its merge `7e260c3`; all four have code identity `51c80cec…a229`. Each fixture's `generated.json` records this, and its
 `configs/` and `logs/` hold each invocation's configuration and output. The scripted binding answers each plan with
 the prompt's own intent and no block, so every arm routes to primitive generation. The block phase's request shapes
 are covered by the Astryx run instead.
@@ -188,6 +194,7 @@ are covered by the Astryx run instead.
 - **An earlier invocation's `summary.json`.** The verifier checks its request count against the invocations it covers, and compares nothing else in it.
 - **A stop at the run's dollar ceiling** is not checked for being due.
 - **Without a monitor's events log,** a killed window's trailing request removed from every copy, with the totals adjusted, goes unseen.
+- **The monitor's own rules** (its refusal limits, its stops) are not replayed against its events log; their limits are checked, and its count of requests.
 - **Prices.** The verifier prices Claude Haiku 4.5 alone, as the harness does.
 
 ## The operator monitor for shadcn/ui v3 (not launched)
@@ -205,11 +212,11 @@ ever signals the harness's process group. `monitor-shadcn.json` holds what each 
   - a line it cannot read.
 - **Model:** a settlement or a provider call on another model, or a manifest that records another. The busy gateway's turned-away call names no model; it is allowed only as the last provider call of a cell that failed on it. A resume may set aside the expected model; setting aside any other stops the window.
 - **Build:** any of these naming another build than the baseline's:
-  - the live deployment, read every 30 s on a thread of its own, with each reading logged;
+  - the live deployment, read every 30 s on a thread of its own, following redirects as the harness does, with each reading logged;
   - the window's preflight;
   - the manifest.
 
-  A live build that cannot be read for 5 minutes also stops the window.
+  A live build that cannot be read for 5 minutes, by the clock, also stops the window.
 - **Corpus:** another pinned corpus, a record for another reference or provider, or labels other than the frozen corpus's.
 - **Integrity:** any of these:
   - another code identity;
@@ -219,11 +226,15 @@ ever signals the harness's process group. `monitor-shadcn.json` holds what each 
   - more than 123 requests in the window, its `--max-requests`. The harness never sends more, so this is a second guard;
   - a sign that this is not the window being run: a ledger line from a later invocation, a newer preflight, a pacing entry for the preflight given, or a request sent before the preflight exists.
 
-**A hold** ("usage not verified": a reply the run cannot trust, held at its worst case) is a stop the harness makes
-itself. It halts (exit 3) and writes its stop record (pacing entry, `summary.json`, `REPORT.md`) in a short
-synchronous shutdown, and a signal there would cut that record off. So the monitor logs a HOLD and gives the harness
-15 s to exit. It signals only if the harness carries on, because an unreadable reply fails its cell and the run goes
-on, or if the 15 s run out.
+**A hold** ("usage not verified": a reply held at its worst case) is usually a stop the harness makes itself. It
+halts (exit 3) and writes its stop record (pacing entry, then `summary.json` and `REPORT.md`) in a short synchronous
+shutdown, and a signal there would cut that record off. But a reply that passes its integrity checks and exceeds its
+priced reservation is held too, and the harness goes on with it. So the monitor logs a HOLD and waits:
+- **if the harness halts** (its pacing entry is written), it has 15 s to exit, and is signalled only after that;
+- **if it carries on,** it is stopped where nothing is in flight:
+  - on its cell's record;
+  - before its next request can go out (the held request's reservation plus the 12 s spacing, less a second), allowing the halt at least 2 s to show;
+  - or, if it has already sent another request, once that request settles.
 
 **Refusals** (zero-cost busy and limiter refusals, which the harness releases and retries after a backoff):
 - **Allowed:** a refusal answered within its backoff schedule, including one that uses the whole schedule (30, 60, 120 and 240 s). Each release is logged with the wait it costs, never silently.
@@ -248,14 +259,19 @@ monitor's 2 s poll. The live tests show that no request is left open.
 **It fails closed.**
 - It waits at most 180 s for this window's preflight.
 - It stops the harness if a request is sent before that preflight exists.
-- It stops the harness if the monitor itself fails, rather than leave the window unwatched.
+- It stops the harness if the monitor itself fails, rather than leave the window unwatched, and that includes a failure while it waits out a hold or stops.
 - It refuses to start on its own process group, or on one that is not running.
+- It signals `--pgid` only once the run's lock (taken by this window's harness, on this host) has shown the harness inside it. A group that does not hold the lock, such as another process or the operator's shell, is never signalled; the process the lock names is stopped instead. Nothing is signalled before a lock shows where the harness is.
 - A group whose processes have exited but not been reaped still counts as exited.
 
-**What it does not check:** a settlement's amount against its cell's calls. The verifier does that. A restarted
-monitor logs again the releases its predecessor logged.
+**Reading order.** It reads `runs.jsonl` before `requests.jsonl`, then takes lines by time; on a tie, a settlement
+before a record before a reservation, the order the harness writes them in. A record ends a chain of refusals only at
+the next request, so a release read late still counts in its chain.
 
-**The limits, for a window of `--max-requests 123`:**
+**What it does not check:** a settlement's amount against its cell's calls. The verifier does that. A restarted
+monitor logs again the releases its predecessor logged; give it the same `--events` file, which it appends to.
+
+**The limits, for a window of `--max-requests 123` and `--spacing-ms 12000` (`spacingSeconds` 12 in the configuration):**
 - **Refusals in Astryx:** at most 4 per window, which is 2.9% of window 2's 140 requests.
 - **Eight releases:** 6.5% of a window, more than twice that rate.
 - **600 s of backoff:** about a third of a window's 25 to 30 minutes of requests. It allows one full schedule, which costs 450 s, and a few single refusals besides.
@@ -270,7 +286,7 @@ monitor logs again the releases its predecessor logged.
 Any other build stops a window at once. So would a redeployment of main, which would also stop the run for good,
 since the harness refuses to resume across a deployment.
 
-**Launching a window** follows the Astryx procedure (`v2/stage3/preresume-and-launch.sh` in the operator's scratch). Run the no-cost checks first. Start the harness in its own session, then start the monitor at once:
+**Launching a window** follows the Astryx procedure (`v2/stage3/preresume-and-launch.sh` in the operator's scratch). Run the no-cost checks first. Start the harness in its own session, from a script without job control so that `$!` is that session's process group, then start the monitor at once:
 
 ```sh
 python3 -I monitor_run.py --run <run dir> --pgid <the harness session's process group> --preflights <N> \
@@ -283,17 +299,21 @@ python3 -I monitor_run.py --run <run dir> --pgid <the harness session's process 
   - 0: the harness exited by itself. That includes a hold it halted on, and a stop condition seen only after it had exited, which is still logged as a STOP line;
   - 10: the monitor stopped it;
   - 20: the monitor handed back while the harness still runs (after 7 hours by default);
-  - 2: a usage error.
+  - 2: a usage error, or a `--pgid` that never held the run: nothing was signalled, and a harness still running must be stopped by hand;
+  - 1: the stop itself failed, and nothing could be signalled.
 
 ```sh
-python3 -I evidence/blocks-1b/tooling/tests/test_monitor.py -v   # 54 tests, about 70 seconds
+python3 -I evidence/blocks-1b/tooling/tests/test_monitor.py -v   # 62 tests, about 80 seconds
 ```
 
 The rules are tested one at a time, and both synthetic runs are replayed through the monitor. `main()` is tested
-against `tests/fake_harness.py` for:
-- a hold left to the harness;
+against `tests/fake_harness.py`, which holds the run's lock as the harness does, for:
+- a hold left to the harness, and a hold the harness carries on from, onto its cell's record or into another request;
 - a wrong preflight count, either way;
-- its own process group, and a process group that is not running;
+- its own process group, a process group that is not running, and one that does not hold the run's lock;
+- a record and the next request in the same millisecond;
+- a failure inside a hold;
+- a deployment that redirects;
 - a closing count that holds every request the window wrote.
 
 The live tests start the synthetic harness in its own process group, with its waits slept for real at a fraction of
