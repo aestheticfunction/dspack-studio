@@ -9,7 +9,7 @@
 - **Once a refinement cell has run, no part of it changes.** The pilot and Stage 3 run on the version adopted. A later change is a new amendment, labelled post-data, and cells already run stay on the version they measured.
 - Corpus v1, and everything measured on it, stays as it is.
 
-**Pre-data.** No refinement cell has ever run live. Both smokes ran fresh cells only: `1b-smoke-2026-10-11` ran 5, and `1b-smoke-option-b-2026-10-12` ran 32. Neither ran a content, add, remove or structural refinement, so no arm's result on any template exists.
+**Pre-data (at adoption).** No refinement cell has ever run live. Both smokes ran fresh cells only: `1b-smoke-2026-10-11` ran 5, and `1b-smoke-option-b-2026-10-12` ran 32. Neither ran a content, add, remove or structural refinement, so no arm's result on any template exists.
 - Every template change follows from a static audit of the corpus text and the design systems' vocabularies (`live/applicability.ts`), the same for every arm.
 - The choice of lenient over strict binding (below) used the structure of the Option B smoke's fresh surfaces, with simulated edits. No pass rate, token count or outcome entered any change.
 
@@ -136,7 +136,7 @@ The same two rules find three more templates that cannot apply everywhere: struc
 
 ## What adopting it invalidates
 
-- **Decision evidence:** none exists yet.
+- **Decision evidence:** none exists yet (at adoption).
 - **The smokes:** both are v1 systems evidence and stay so.
 - **The addendum's fixed scoring:** superseded for runs on v2, as above.
 - **The Stage-3 offline plan and cost:** recomputed for v2. The cells are unchanged; only refinement instruction bytes change.
