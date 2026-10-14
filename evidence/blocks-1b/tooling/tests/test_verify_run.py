@@ -135,7 +135,7 @@ class FixturesVerify(unittest.TestCase):
             subprocess.run(["tar", "-x", "-C", tmp], input=archive.stdout, check=True)
             window1 = os.path.join(tmp, "evidence/blocks-1b/1b-stage3-astryx-2026-10-12")
             out = os.path.join(tmp, "out.json")
-            proc = subprocess.run([sys.executable, "-I", VERIFY, "--run", ASTRYX, "--snapshot", window1, "--corpus", CORPUS_V2, "--out", out, "--invocations", os.path.join(os.path.dirname(TOOLING), "1b-stage3-astryx-2026-10-12.invocations.txt"), "--expect-build", "txDlHURTKv_S6yicLso97", "--expect-code", "fe2b8e841d49778793efb9b640e2e2ae3a54048a5c4e540339aaa976ad2cc86d", "--complete", "--quick"], capture_output=True, text=True)
+            proc = subprocess.run([sys.executable, "-I", VERIFY, "--run", ASTRYX, "--snapshot", window1, "--corpus", CORPUS_V2, "--out", out, "--invocations", os.path.join(os.path.dirname(TOOLING), "1b-stage3-astryx-2026-10-12.invocations.txt"), "--expect-build", "txDlHURTKv_S6yicLso97", "--expect-code", "fe2b8e841d49778793efb9b640e2e2ae3a54048a5c4e540339aaa976ad2cc86d", "--parity-reading", "no-arrays", "--complete", "--quick"], capture_output=True, text=True)
             with open(out) as f:
                 r = json.load(f)
             self.assertEqual(r["findings"], [])
@@ -377,6 +377,264 @@ class Mutations(unittest.TestCase):
         code, result = self.r.verify("--partial-history", snapshots=snaps)
         self.assertEqual(result["findings"], [])
         self.assertEqual(code, 0)
+
+
+
+def verify_dir(run, *extra, snapshots=(), corpus=CORPUS_V2, invocations=None):
+    """verify_run.py on any run directory (a final one, or a window's copy read as the run so far)."""
+    tmp = tempfile.mkdtemp(prefix="verify-dir-")
+    try:
+        out = os.path.join(tmp, "out.json")
+        args = [sys.executable, "-I", VERIFY, "--run", run, "--corpus", corpus, "--out", out, "--quick"]
+        for snap in snapshots:
+            args += ["--snapshot", snap]
+        if invocations:
+            args += ["--invocations", invocations]
+        proc = subprocess.run(args + list(extra), capture_output=True, text=True)
+        if not os.path.exists(out):
+            raise AssertionError(f"no result written; stderr: {proc.stderr[-2000:]}")
+        with open(out) as f:
+            return proc.returncode, json.load(f)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+class EdgeStates(unittest.TestCase):
+    """Legitimate states a run passes through, which must verify: the review of 8bf756d found each one flagged."""
+
+    def test_a_killed_first_window_a_refused_resume_and_a_lost_lock(self):
+        root = os.path.join(FIXTURES, "synthetic-edge")
+        snaps = [os.path.join(root, "snapshots", d) for d in ("after-1", "after-2")]
+        code, r = verify_dir(os.path.join(root, "run"), "--complete", "--expect-build", "SyntheticBuildEdge", snapshots=snaps, invocations=os.path.join(root, "invocations.txt"))
+        self.assertEqual(r["findings"], [])
+        self.assertEqual(code, 0)
+        self.assertEqual([e["ended"] for e in r["invocations"]], ["killed", "error", "complete"])
+        self.assertTrue(any("refused" in n for n in r["notes"]), r["notes"])
+
+    def test_the_killed_first_window_verifies_as_the_run_so_far(self):
+        root = os.path.join(FIXTURES, "synthetic-edge")
+        code, r = verify_dir(os.path.join(root, "snapshots", "after-1"))
+        self.assertEqual(r["findings"], [])
+        self.assertTrue(any("summary.json" in n for n in r["notes"]), r["notes"])
+
+    def test_the_lost_lock_window_verifies_as_the_run_so_far(self):
+        root = os.path.join(FIXTURES, "synthetic-edge")
+        code, r = verify_dir(os.path.join(root, "snapshots", "after-2"), snapshots=[os.path.join(root, "snapshots", "after-1")])
+        self.assertEqual(r["findings"], [])
+
+    def test_every_window_copy_verifies_as_the_run_so_far(self):
+        for name in ("synthetic-5", "synthetic-12"):
+            root = os.path.join(FIXTURES, name)
+            snaps = sorted((os.path.join(root, "snapshots", d) for d in os.listdir(os.path.join(root, "snapshots"))), key=lambda d: int(d.rsplit("-", 1)[1]))
+            for i, snap in enumerate(snaps):
+                with self.subTest(fixture=name, window=i + 1):
+                    code, r = verify_dir(snap, snapshots=snaps[:i])
+                    self.assertEqual(r["findings"], [])
+
+    def test_partial_history_across_a_rerun(self):
+        for name, missing in (("synthetic-12", "after-8"), ("synthetic-5", "after-4")):
+            root = os.path.join(FIXTURES, name)
+            snaps = sorted((os.path.join(root, "snapshots", d) for d in os.listdir(os.path.join(root, "snapshots")) if d != missing), key=lambda d: int(d.rsplit("-", 1)[1]))
+            with self.subTest(fixture=name, missing=missing):
+                code, r = verify_dir(os.path.join(root, "run"), "--complete", "--partial-history", snapshots=snaps, invocations=os.path.join(root, "invocations.txt"))
+                self.assertEqual(r["findings"], [])
+
+    def test_an_integrity_stop_killed_in_its_shutdown(self):
+        run = Run("synthetic-5")
+        try:
+            path = os.path.join(run.root, "invocations.txt")
+            with open(path) as f:
+                text = f.read()
+            with open(path, "w") as f:
+                f.write(text.replace(" exit 3\n", " exit 143\n", 1))
+            code, r = run.verify()
+            self.assertEqual(r["findings"], [])
+            self.assertTrue(any("shutdown" in n for n in r["notes"]), r["notes"])
+        finally:
+            run.close()
+
+    def test_a_summary_the_last_window_did_not_write(self):
+        run = Run("synthetic-5")
+        try:
+            shutil.copy(os.path.join(run.snapshots[2], "summary.json"), os.path.join(run.run, "summary.json"))
+            code, r = run.verify()
+            self.assertTrue(any("summary.json" in f for f in r["findings"]), r["findings"])
+            code, r = run.verify("--partial-history")  # still --complete: a run's final summary must be its own
+            self.assertTrue(any("summary.json" in f for f in r["findings"]))
+        finally:
+            run.close()
+
+
+class MoreMutations(unittest.TestCase):
+    """What the review of 8bf756d showed passing: each must now fail by name."""
+
+    def setUp(self):
+        self.r = Run("synthetic-12")
+
+    def tearDown(self):
+        self.r.close()
+
+    def fails_with(self, *needles, run=None, **kw):
+        code, result = (run or self.r).verify(*kw.pop("extra", ()), **kw)
+        self.assertEqual(code, 1, result["findings"])
+        for needle in needles:
+            self.assertTrue(any(needle in f for f in result["findings"]), f"no finding names {needle!r}: {result['findings']}")
+        return result
+
+    def edit_summary(self, change):
+        path = os.path.join(self.r.run, "summary.json")
+        with open(path) as f:
+            s = json.load(f)
+        change(s)
+        with open(path, "w") as f:
+            json.dump(s, f)
+
+    def test_a_held_settlement_below_the_harness_hold(self):
+        run = Run("synthetic-5")
+        try:
+            second = run.invocation_ids()[1]
+
+            def change(items):
+                for x in items:
+                    if x.get("request") == f"{second}#4" and x.get("reason") == "usage not verified":
+                        x["final"] = 0.086742601
+                        x["adjust"] = round(0.086742601 - [y for y in items if y.get("request") == f"{second}#4" and "usd" in y][0]["usd"], 9)
+                return items
+
+            for d in run.dirs_after(2):
+                path = os.path.join(d, "requests.jsonl")
+                items = change([json.loads(x) for x in lines(path)])
+                write_lines(path, [json.dumps(x, separators=(",", ":"), ensure_ascii=False) for x in items])
+            self.fails_with("below the most", run=run)
+        finally:
+            run.close()
+
+    def test_a_stored_parity_unlike_its_surface(self):
+        def change(items):
+            last = items[-1]
+            last["parity"] = {"score": 0.5, "satisfied": last["parity"]["satisfied"][:1], "missing": last["parity"]["satisfied"][1:] + last["parity"]["missing"]}
+            return items
+
+        path = os.path.join(self.r.run, "runs.jsonl")
+        items = change([json.loads(x) for x in lines(path)])
+        write_lines(path, [json.dumps(x, separators=(",", ":"), ensure_ascii=False) for x in items])
+        self.fails_with("parity recomputed from its surface")
+
+    def test_a_decision_for_a_reference_the_run_never_measured(self):
+        self.edit_summary(lambda s: s["summary"]["decisions"].append({**s["summary"]["decisions"][0], "reference": "shadcn-v3", "verdict": "pass"}))
+        self.fails_with("summary: decisions holds")
+
+    def test_another_scoring(self):
+        self.edit_summary(lambda s: s["summary"].__setitem__("scoring", "beside"))
+        self.fails_with("summary scoring")
+
+    def test_sensitivity_flags_flipped(self):
+        def change(s):
+            sens = s["summary"]["sensitivity"][0]
+            sens["verdictHolds"] = not sens["verdictHolds"]
+            sens["robust"] = not sens["robust"]
+        self.edit_summary(change)
+        self.fails_with("sensitivity")
+
+    def test_a_report_with_another_verdict(self):
+        path = os.path.join(self.r.run, "REPORT.md")
+        with open(path) as f:
+            text = f.read()
+        self.assertIn("insufficient", text)
+        with open(path, "w") as f:
+            f.write(text.replace("insufficient", "pass"))
+        self.fails_with("REPORT.md")
+
+    def test_the_telemetry_altered(self):
+        self.edit_summary(lambda s: s["telemetry"]["pacing"].__setitem__("sent", s["telemetry"]["pacing"]["sent"] + 1))
+        self.fails_with("telemetry")
+
+    def test_a_raise_deferred_past_the_next_invocation(self):
+        # The open request the sixth window left is raised by the eighth instead of the seventh, which ran first.
+        ids = self.r.invocation_ids()
+        path = os.path.join(self.r.run, "requests.jsonl")
+        items = [json.loads(x) for x in lines(path)]
+        i = next(i for i, x in enumerate(items) if x.get("reason") == "a request whose reply was never read" and x["request"].startswith(ids[5]))
+        raise_line = dict(items.pop(i), invocation=ids[7])
+        j = next(j for j, x in enumerate(items) if x.get("invocation") == ids[7])
+        items.insert(j, raise_line)
+        write_lines(path, [json.dumps(x, separators=(",", ":"), ensure_ascii=False) for x in items])
+        self.fails_with("raised")
+
+
+def stamp(t):
+    """An events-log time, as monitor_run.py writes one."""
+    from datetime import datetime, timezone
+    return datetime.fromtimestamp(t, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def epoch(iso):
+    from datetime import datetime
+    return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp()
+
+
+class MonitorEvents(unittest.TestCase):
+    """--monitor-events: a window's events log against the run (a log written here as monitor_run.py writes one)."""
+
+    def setUp(self):
+        self.r = Run("synthetic-12")
+
+    def tearDown(self):
+        self.r.close()
+
+    def events(self, k, seen=None, every=1.0, build=None, span=None):
+        ids = self.r.invocation_ids()
+        mine = [x for x in self.r.ledger() if x["invocation"] == ids[k - 1]]
+        opened = ids[k - 1].split("~")[0]
+        t0 = epoch(opened)
+        t1 = t0 + span if span else epoch(mine[-1]["at"]) + 1
+        build = build or self.r.scenario["buildId"]
+        lines = [f"{stamp(t0)} monitor up: window {k}, run {self.r.run}, harness process group 4242, waiting for preflight.resume-{k - 1}.json; limits {json.dumps({'buildCheckSeconds': 30, 'maxReleased': 8}, separators=(',', ':'))}",
+                 f"{stamp(t0)} window opened {opened}: build {build}, code c0de, corpus blocks-1b v2, astryx"]
+        t = t0
+        while t <= t1:
+            lines.append(f"{stamp(t)} build {build}")
+            t += every
+        sent = sum(1 for x in mine if "adjust" not in x)
+        lines += [f"{stamp(t1)} STOP (integrity): a request in flight", f"{stamp(t1)} harness stopped by the monitor: 2 cells, {sent if seen is None else seen} requests sent, 2 settled, 0 released (0 s of backoff), 0 provider failures, outcomes {{}}"]
+        path = os.path.join(self.r.tmp, f"events-{k}.log")
+        write_lines(path, lines)
+        return path
+
+    def test_a_window_watched_whole_verifies(self):
+        code, r = self.r.verify("--monitor-events", self.events(6))
+        self.assertEqual(r["findings"], [])
+        self.assertEqual(r["monitorEvents"][0]["requestsSeen"], 3)
+
+    def test_a_trailing_request_dropped_everywhere_is_caught_by_what_the_monitor_saw(self):
+        # The sixth window's open request, and the seventh's raise of it, taken out of every copy, the totals adjusted.
+        events = self.events(6)
+        ids = self.r.invocation_ids()
+        gone = f"{ids[5]}#3"
+        for d in self.r.dirs_after(6):
+            path = os.path.join(d, "requests.jsonl")
+            write_lines(path, [x for x in lines(path) if json.loads(x).get("request") != gone])
+        path = os.path.join(self.r.run, "summary.json")
+        with open(path) as f:
+            s = json.load(f)
+        s["requests"]["sent"] -= 1
+        s["requests"]["usd"] = (round(s["requests"]["usd"] * 1e9) - 1118208000) / 1e9
+        with open(path, "w") as f:
+            json.dump(s, f)
+        code, r = self.r.verify()
+        self.assertEqual(r["findings"], [])  # nothing in the run's own files shows it
+        code, r = self.r.verify("--monitor-events", events)
+        self.assertEqual(code, 1)
+        self.assertTrue(any("the monitor saw 3 requests from invocation 6, the ledger holds 2" in f for f in r["findings"]), r["findings"])
+
+    def test_a_window_whose_build_went_unread_too_long(self):
+        code, r = self.r.verify("--monitor-events", self.events(6, every=120.0, span=300))
+        self.assertEqual(code, 1)
+        self.assertTrue(any("without a live build reading" in f for f in r["findings"]), r["findings"])
+
+    def test_a_window_on_another_build_is_reported(self):
+        code, r = self.r.verify("--monitor-events", self.events(6, build="AnotherBuild"))
+        self.assertTrue(any("the live build changed during invocation 6" in n for n in r["notes"]), r["notes"])
 
 
 if __name__ == "__main__":

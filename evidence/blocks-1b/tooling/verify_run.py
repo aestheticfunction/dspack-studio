@@ -10,12 +10,15 @@ there are none.
 
 What it checks, for any number of invocations:
 - identity: the corpus is the one given and the one the manifest pins; every invocation's preflight names the
-  manifest's deployment (base URL, build id, Worker shape), the same models and sidecars; one model is measured;
+  manifest's deployment (base URL, build id, Worker shape), the same models and sidecars; one model is measured (a
+  resume may set aside a served model no record shows measured only if it is the model expected);
 - history: each window's preserved copy of the run directory (--snapshot, oldest first) is a prefix of what came
   after it, file by file, and the identity files never change; a re-run moves records aside, never deletes them;
 - the ledger, request by request: consecutive ids per invocation, one request at a time, every settlement's arithmetic
-  in whole nanodollars, releases at nothing, holds at no less than their reservation, a request a killed invocation
-  left open raised by the next to the most a request can cost, the caps, and each invocation's own count;
+  in whole nanodollars, releases at nothing, holds at no less than their reservation nor the most one call can cost
+  (the least the harness holds a reply it cannot trust at), a request an invocation left open raised to the most a
+  request can cost by the next process to resume the run (the next invocation, or a launch the harness refused that
+  raised it before refusing), the caps, each invocation's own count, and a cap stop that was due;
 - the cells: the planned grid once each at the end, every invocation running the cells left to do in their planned
   order, so a resume skips nothing and repeats nothing, a cell a stopped invocation abandoned repeated from its
   beginning, a re-run replacing exactly the records it moved aside;
@@ -23,15 +26,29 @@ What it checks, for any number of invocations:
   the requests no logged cell made (an abandoned cell's) only at the end of an invocation that stopped inside a cell;
 - each invocation's backoffs against its refusals: each refused request waits the next step of the schedule, a request
   refused through the whole schedule fails its cell, and nothing else waits;
-- the surfaces, the add and remove check, binding scoring, the arm statistics, the ADR-B3 decision and its paired
-  cluster bootstrap (as specified, and again with an independent generator and many seeds), selection, retention,
-  parity and the named-against-positional comparison, against summary.json.
+- the surfaces, parity (recomputed from each surface and its checklist), the add and remove check, binding scoring,
+  the arm statistics, the ADR-B3 decision and its reasons and paired cluster bootstrap (as specified, and again with an
+  independent generator and many seeds), every operation-sensitivity reading, selection, retention and the
+  named-against-positional comparison, against summary.json field by field (no entry the records do not make, and
+  every one they do), and the verdict REPORT.md states;
+- with --monitor-events, each monitored window's events log against the run: the window it watched, every request it
+  saw, its stops, and a live build read and logged at least every few build-check intervals, all the baseline's.
+
+A run between windows verifies too: a window stopped from outside leaves no pacing entry, perhaps no summary.json,
+perhaps a request in flight (raised by the next resume), and arms and conditions with no record yet. summary.json is
+an invocation's last write, so a stop inside that invocation's shutdown can leave an earlier one's: that is reported,
+and a finding for a run that must be complete.
 
 Usage:
   python3 -I verify_run.py --run <run dir> --corpus <corpus json> --out <out json>
       [--snapshot <dir>]...      the run directory as each invocation but the last left it, oldest first
-      [--invocations <file>]     the operator's record of each invocation's start, end and exit code (invocations.txt)
+      [--invocations <file>]     the operator's record of each invocation's start, end and exit code (invocations.txt);
+                                 a launch the harness refused is recorded as "refused launch after invocation <k>: ..."
+      [--monitor-events <file>]...  a window's monitor_run.py events log
       [--expect-build <id>] [--expect-model <id>] [--expect-code <sha256>] [--expect-corpus <sha256>]
+      [--expect-max-requests <n>]  every invocation that ended by itself ran with --max-requests n
+      [--parity-reading arrays|no-arrays]  how the run's code read a surface's text: arrays (the default, code from
+                                 aestheticfunction/dspack-studio#102 on) or no-arrays (before it, as the Astryx run's)
       [--complete]               the run must be finished: every planned cell once, the last invocation ended cleanly
       [--partial-history]        a missing window copy is reported, not a finding
       [--quick]                  skip the 200-seed and 20,000-resample bootstrap robustness checks
@@ -44,6 +61,8 @@ import random
 import re
 import sys
 from collections import Counter, defaultdict
+from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal
 
 ap = argparse.ArgumentParser(description="Verify a Phase 1B hosted run of any number of invocations.")
 ap.add_argument("--run", required=True)
@@ -51,6 +70,9 @@ ap.add_argument("--corpus", required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--snapshot", action="append", default=[])
 ap.add_argument("--invocations")
+ap.add_argument("--monitor-events", action="append", default=[])
+ap.add_argument("--expect-max-requests", type=int)
+ap.add_argument("--parity-reading", choices=["arrays", "no-arrays"], default="arrays")
 ap.add_argument("--expect-build")
 ap.add_argument("--expect-model", default="claude-haiku-4-5-20251001")
 ap.add_argument("--expect-code")
@@ -66,6 +88,8 @@ NANO_IN, NANO_OUT = 1050, 5250
 # The most any request can cost (live/cost.ts REQUEST_USD_BOUND): two calls, each at the model's documented 204,800
 # input tokens and 65,536 output tokens.
 REQUEST_BOUND_NANO = 2 * (204_800 * NANO_IN + 65_536 * NANO_OUT)
+# The most one call can cost (live/cost.ts absoluteUsd(1)): the least the harness holds a reply it cannot trust at.
+CALL_BOUND_NANO = 204_800 * NANO_IN + 65_536 * NANO_OUT
 # The most requests one cell makes (live/cost.ts CELL_REQUESTS): its plan and three generation requests.
 CELL_REQUESTS = 4
 MODEL = A.expect_model
@@ -98,8 +122,26 @@ def read_bytes(path):
         return f.read()
 
 
+TORN = []  # the logs whose last line is cut off (a process stopped while writing it): the next resume sets it aside
+
+
 def jl(path):
-    return [json.loads(line) for line in read_bytes(path).decode("utf-8").split("\n") if line.strip()]
+    """A JSON-lines log's whole lines. A cut-off last line is set aside, as the next resume sets it aside, and
+    reported; a line in the middle that is not JSON is a finding."""
+    text = read_bytes(path).decode("utf-8")
+    lines = text.split("\n")
+    tail = lines.pop()
+    if tail.strip():
+        TORN.append(path)
+    out = []
+    for i, line in enumerate(lines, 1):
+        if not line.strip():
+            continue
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            findings.append(f"{path}: line {i} is not JSON")
+    return out
 
 
 def jload(path):
@@ -137,6 +179,16 @@ def js_stringify(value):
     return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
 
 
+def js_num(x):
+    """A number as JavaScript prints it in a template string, for the values the reasons print (30, 5)."""
+    return str(int(x)) if float(x).is_integer() and abs(x) < 1e21 else repr(float(x))
+
+
+def to_fixed1(x):
+    """Number.prototype.toFixed(1): the exact value, rounded half away from zero."""
+    return str(Decimal(x).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+
+
 nano = lambda usd: round(usd * 1e9)  # the ledger counts whole nanodollars
 cell = lambda r: f"{r['arm']}|{r['prompt']}|{r['condition']}"
 key_of = lambda r: (r["reference"], r["arm"], r["prompt"], r["condition"])
@@ -155,8 +207,9 @@ def inventory(d):
 
 info["files"] = inventory(RUN)
 manifest = jload(os.path.join(RUN, "manifest.json"))
-summary_file = jload(os.path.join(RUN, "summary.json"))
-S = summary_file["summary"]
+# summary.json is the last thing an invocation writes as it ends: a first window stopped from outside leaves none.
+summary_file = jload(os.path.join(RUN, "summary.json")) if os.path.exists(os.path.join(RUN, "summary.json")) else None
+S = (summary_file or {}).get("summary") or {}
 with open(A.corpus, encoding="utf-8") as f:
     corpus = json.load(f)
 corpus_digest = hashlib.sha256(js_stringify(corpus).encode("utf-8")).hexdigest()
@@ -177,8 +230,13 @@ if deployment["worker"] != "per-call-model":
 served = (manifest.get("servedModel") or {}).get("id")
 if served != MODEL:
     finding(f"model: the manifest records {served!r} as the model measured, expected {MODEL}")
-if manifest.get("setAside"):
-    finding(f"model: a resume set aside a served model {manifest['setAside']}")
+# A resume sets aside a served model no record shows measured; the run then records the next one a reply reports.
+for entry in manifest.get("setAside") or []:
+    aside = ((entry or {}).get("servedModel") or {}).get("id")
+    if aside != MODEL:
+        finding(f"model: a resume set aside {aside!r}, not the model expected ({MODEL}): a reply on it came back")
+    else:
+        note(f"model: a resume set aside the served model {aside} (no record showed it measured), the model expected")
 REFERENCES = [r["id"] for r in manifest["references"]]
 PROVIDER_ID, _, BASE = manifest["provider"].partition("@")
 if BASE != deployment["baseUrl"]:
@@ -252,10 +310,19 @@ for p in pacing:
     if p.get("id") not in ids:
         ids.append(p.get("id"))
 inv_of_id = {}
+# A launch the harness refused (a cap below what the run has sent, say) writes no preflight and is no invocation, but
+# it may have raised a request an earlier invocation left open before it refused: its id names no preflight, and
+# every line it wrote is such a raise.
+refused = {}
 for i in ids:
     at = str(i).split("~")[0]
     if at not in inv_at:
-        finding(f"invocation id {i} matches no preflight")
+        written = [x for x in ledger if x.get("invocation") == i]
+        if written and all(x.get("reason") == NEVER_READ for x in written) and not any(p.get("id") == i for p in pacing):
+            refused[i] = written
+            note(f"a launch the harness refused ({i}: no preflight, so no invocation) raised {', '.join(str(x.get('request')) for x in written)} before it refused")
+        else:
+            finding(f"invocation id {i} matches no preflight")
         continue
     k = inv_at.index(at) + 1
     if k in inv_of_id.values():
@@ -282,6 +349,7 @@ STEPS = len(SCHEDULE)
 CELL_BOUND = CELL_REQUESTS * (1 + STEPS)
 
 operator = {}
+refused_launches = []
 if A.invocations:
     for line in open(A.invocations, encoding="utf-8"):
         m = re.match(r"invocation (\d+) (start|end) (\S+)(?: (exit|signal) (\S+))?", line.strip())
@@ -290,9 +358,14 @@ if A.invocations:
             e[m.group(2)] = m.group(3)
             if m.group(4):
                 e[m.group(4)] = m.group(5)
+        elif line.startswith("refused launch"):
+            refused_launches.append(line.strip())
     if sorted(operator) != list(range(1, N + 1)):
         finding(f"the operator's record lists invocations {sorted(operator)}, the run has {N}")
+info["refusedLaunches"] = {"operator": refused_launches, "raisedBy": sorted(refused)}
 
+# An exit by signal: the code a shell or tsx reports for SIGKILL or SIGTERM, or the signal itself.
+signalled = lambda o: o.get("exit") in ("137", "143") or "signal" in o
 invocations = []
 for k in range(1, N + 1):
     p = pacing_of.get(k)
@@ -301,21 +374,53 @@ for k in range(1, N + 1):
     if p:
         t = p["telemetry"]["pacing"]
         e.update({"maxRequests": t["maxRequests"], "spacingMs": t["spacingMs"], "sent": t["sent"]})
+        if A.expect_max_requests is not None and t["maxRequests"] != A.expect_max_requests:
+            finding(f"invocation {k} ran with --max-requests {t['maxRequests']}, expected {A.expect_max_requests}")
     o = operator.get(k)
     if o:
         e["operator"] = o
-        code = o.get("exit")
-        expected = {"complete": {"0"}, "cap": {"0"}, "integrity": {"3"}, "error": {"1"}, "killed": {"137", "143", None}}[status]
-        if (code if "exit" in o else None) not in expected and not ("signal" in o and status == "killed"):
+        if status == "killed":
+            ok = "exit" not in o or signalled(o)
+        else:
+            ok = o.get("exit") == {"complete": "0", "cap": "0", "integrity": "3", "error": "1"}[status]
+            if not ok and signalled(o):
+                # A signal inside the harness's synchronous shutdown (summary, then pacing.jsonl, then summary.json, then
+                # REPORT.md) ends it there; its pacing entry is written, its summary perhaps not (checked below).
+                ok = True
+                e["signalledInShutdown"] = True
+                note(f"invocation {k}: the operator recorded {o.get('exit') or o.get('signal')}, a signal, but it wrote its pacing entry ({status}): the signal reached it in its shutdown, after its stop was on the record")
+        if not ok:
             finding(f"invocation {k}: the operator recorded {o}, but the run shows it {status}")
     invocations.append(e)
 if pacing_of.get(N) is None:
-    (finding if A.complete else note)(f"the last invocation ({N}) left no pacing entry: it was stopped from outside, and summary.json is an earlier invocation's")
+    (finding if A.complete else note)(f"the last invocation ({N}) left no pacing entry: it was stopped from outside, and summary.json, if any, is an earlier invocation's")
 elif A.complete and (pacing_of[N].get("stopped") is not None):
     finding(f"the last invocation stopped ({pacing_of[N]['stopped']['reason']}): the run is not complete")
 for k in range(1, N):
     if pacing_of.get(k) and not (pacing_of[k].get("stopped")):
         note(f"invocation {k} ended complete, and another invocation followed it")
+
+# Whose summary.json this is: an invocation writes it as it ends, after its pacing entry, listing every pacing entry up
+# to its own. It is the last invocation's own only if that invocation wrote one; the figures are compared only then.
+LAST_ENDED = max(pacing_of, default=None)  # the last invocation with a pacing entry
+summary_owner = None
+if summary_file is None:
+    if LAST_ENDED is not None:
+        cut = invocations[LAST_ENDED - 1].get("signalledInShutdown")
+        (finding if A.complete or not cut else note)(f"summary.json: none, though invocation {LAST_ENDED} wrote its pacing entry: its shutdown did not finish")
+    else:
+        (finding if A.complete else note)("summary.json: none yet; no invocation has ended by itself (the first window was stopped from outside)")
+else:
+    listed = [x.get("id") for x in summary_file.get("invocations") or []]
+    if listed and listed == [p.get("id") for p in pacing[: len(listed)]]:
+        summary_owner = inv_of_id.get(listed[-1])
+    else:
+        finding("summary.json: the invocations it lists are not the run's first pacing entries")
+    if summary_owner is not None and summary_owner != LAST_ENDED:
+        cut = invocations[LAST_ENDED - 1].get("signalledInShutdown")
+        (finding if A.complete or not cut else note)(f"summary.json is invocation {summary_owner}'s, but invocation {LAST_ENDED} ended after it with a pacing entry and no summary.json of its own: its shutdown did not finish")
+SUMMARY_CURRENT = summary_owner is not None and summary_owner == N and summary_owner == LAST_ENDED
+info["summaryOf"] = summary_owner
 
 
 # --- 3. History: each window's copy against what came after it ------------------------------------------------------
@@ -331,8 +436,10 @@ def lines_of(data):
 IDENTITY_FIELDS = ["runId", "startedAt", "provider", "corpus", "references", "code", "model", "deployment", "selection", "decision"]
 
 
-def compare_states(a_dir, b_dir, label):
-    """b_dir must extend a_dir: append-only logs, identity files unchanged, runs.jsonl less only what a re-run moved."""
+def compare_states(a_dir, b_dir, label, since=None):
+    """b_dir must extend a_dir: append-only logs, identity files unchanged, runs.jsonl less only what a re-run moved.
+    Across several invocations (no copy between them), a re-run may also move aside a record logged in between: one
+    stamped at or after `since`, the first of them's preflight."""
     for name in ["preflight.json"] + [n for n in sorted(os.listdir(a_dir)) if n.startswith("preflight.resume-")]:
         if not os.path.exists(os.path.join(b_dir, name)) or sha256_file(os.path.join(a_dir, name)) != sha256_file(os.path.join(b_dir, name)):
             finding(f"{label}: {name} changed or vanished")
@@ -368,7 +475,7 @@ def compare_states(a_dir, b_dir, label):
     for line in moved:
         if line in kept:
             kept.remove(line)
-        else:
+        elif since is None or str(json.loads(line).get("at", "")) < since:
             finding(f"{label}: a record moved aside by a re-run was not in the earlier runs.jsonl")
     after = lines_of(read_bytes(os.path.join(b_dir, "runs.jsonl")))
     if after[: len(kept)] != kept:
@@ -401,7 +508,7 @@ for (na, da), (nb, db) in zip(states, states[1:]):
             new = None  # without a copy, what each invocation logged is read from the times below
         rel = {"kept": [], "moved": [], "new": new}
     else:
-        rel = compare_states(da, db, label)
+        rel = compare_states(da, db, label, since=inv_at[na] if nb > na + 1 else None)
         # The copy itself must hold exactly the invocations it says, and the later state must agree with it on them.
         pa = jl(os.path.join(da, "pacing.jsonl"))
         if [p.get("id") for p in pa] != [p.get("id") for p in pacing[: len(pa)]]:
@@ -432,9 +539,17 @@ for i, line in enumerate(ledger):
         if req not in reserves:
             finding(f"{req}: finalized before it was reserved")
         if line.get("reason") == NEVER_READ:
-            # Written by the next invocation, for a request a killed one left open.
-            if owner is None or req_owner is None or owner <= req_owner:
-                finding(f"{req}: raised as never read by invocation {owner}, which is not a later one")
+            # Written by the next process to resume the run, for a request an invocation left open: the next
+            # invocation, or a launch the harness refused after raising it, between the two.
+            raiser = line.get("invocation")
+            if req_owner is None:
+                finding(f"{req}: raised as never read, but no invocation sent it")
+            elif raiser in refused:
+                t_ = str(raiser).split("~")[0]
+                if not (t_ > inv_at[req_owner - 1] and (req_owner == N or t_ < inv_at[req_owner])):
+                    finding(f"{req}: left open by invocation {req_owner}, raised as never read by a refused launch ({raiser}) that did not come next")
+            elif owner != req_owner + 1:
+                finding(f"{req}: left open by invocation {req_owner}, raised as never read by invocation {owner}, not by the next process to resume the run (invocation {req_owner + 1})")
         elif owner != req_owner:
             finding(f"requests.jsonl line {i + 1}: {req} settled by another invocation")
         finals[req] = line
@@ -456,6 +571,7 @@ for req in order:
 ledger_invs = [inv_of_id.get(reserves[r]["invocation"]) for r in order]
 if ledger_invs != sorted(ledger_invs, key=lambda k: k or 0):
     finding("requests.jsonl interleaves invocations")
+unsent = {}  # invocation -> its last request, recorded but never sent (it stopped between the two)
 for k, reqs in by_inv.items():
     for n_, req in enumerate(reqs, 1):
         if req != f"{id_of_inv.get(k)}#{n_}":
@@ -463,9 +579,15 @@ for k, reqs in by_inv.items():
     p = pacing_of.get(k)
     if p is not None:
         t = p["telemetry"]["pacing"]
-        if t["sent"] != len(reqs):
+        last_final = finals.get(reqs[-1]) if reqs else None
+        if t["sent"] == len(reqs) - 1 and (p.get("stopped") or {}).get("reason") == "error" and (last_final is None or (last_final.get("reason") == NEVER_READ and inv_of_id.get(last_final.get("invocation")) != k)):
+            # A lost lock, or a reservation whose line reached the disk but could not be synced, stops the invocation
+            # after the request's line is written and before it is counted or sent; the next resume raises it.
+            unsent[k] = reqs[-1]
+            note(f"invocation {k}: its last request {reqs[-1]} was recorded but never sent ({p['stopped']['message'][:80]}...)")
+        elif t["sent"] != len(reqs):
             finding(f"invocation {k}: its pacing says {t['sent']} sent, the ledger holds {len(reqs)}")
-        if len(reqs) > t["maxRequests"]:
+        if len(reqs) - (1 if k in unsent else 0) > t["maxRequests"]:
             finding(f"invocation {k}: {len(reqs)} requests, past its cap of {t['maxRequests']}")
 for k in range(1, N + 1):
     if pacing_of.get(k) is not None and pacing_of[k]["telemetry"]["pacing"]["sent"] > 0 and not by_inv.get(k):
@@ -482,12 +604,17 @@ for a, b in zip(order, order[1:]):
     if a in finals and finals[a].get("reason") != NEVER_READ and line_of[(a, "final")] > line_of[(b, "reserve")]:
         finding(f"{a} was finalized after {b} was reserved")
 open_left = []
+in_flight = []  # the run so far: the last request of a last invocation stopped inside it, for the next resume to raise
 reasons = Counter()
 for req in order:
     r, f = reserves[req], finals.get(req)
     k = inv_of_id.get(r["invocation"])
     if f is None:
-        finding(f"{req}: reserved and never finalized")
+        if k == N and req == by_inv[k][-1] and invocations[k - 1]["ended"] in ("killed", "error"):
+            in_flight.append(req)
+            note(f"{req}: {'recorded and never sent' if unsent.get(k) == req else 'in flight'} when invocation {k} stopped ({invocations[k - 1]['ended']}); the next resume raises it to the most a request can cost")
+        else:
+            finding(f"{req}: reserved and never finalized")
         continue
     reasons[f["reason"]] += 1
     if nano(r["usd"]) + nano(f["adjust"]) != nano(f["final"]):
@@ -496,6 +623,8 @@ for req in order:
         finding(f"{req}: released at {f['final']}, not zero")
     if f["reason"] == UNVERIFIED and nano(f["final"]) < nano(r["usd"]):
         finding(f"{req}: an unverified request settled below its reservation")
+    if f["reason"] == UNVERIFIED and nano(f["final"]) < CALL_BOUND_NANO:
+        finding(f"{req}: held at {f['final']}, below the most one call can cost (${CALL_BOUND_NANO / 1e9}), the least the harness holds a reply it cannot trust at")
     if f["reason"] == NEVER_READ:
         open_left.append(req)
         if nano(f["final"]) != max(REQUEST_BOUND_NANO, nano(r["usd"])):
@@ -525,26 +654,53 @@ info["ledger"] = {
     "invocations": {k: {"requests": len(reqs), "committedUsd": sum(nano(finals[r]["final"]) for r in reqs if r in finals) / 1e9} for k, reqs in sorted(by_inv.items(), key=lambda x: x[0] or 0)},
     "unverified": [{"request": r, "reservedUsd": reserves[r]["usd"], "finalUsd": finals[r]["final"], "at": finals[r]["at"]} for r in order if r in finals and finals[r]["reason"] == UNVERIFIED],
     "leftOpen": open_left,
+    "inFlight": in_flight,
+    "recordedNotSent": {str(k): v for k, v in sorted(unsent.items())},
+    "pendingRaiseUsd": len(in_flight) * REQUEST_BOUND_NANO / 1e9,
 }
-req_sum = summary_file.get("requests") or {}
+req_sum = (summary_file or {}).get("requests") or {}
 limits = manifest.get("limits") or {}
-if pacing_of.get(N) is None:
-    # The last invocation was stopped from outside: summary.json is the last one's that ended, and holds what the
-    # ledger held then.
-    reported = max(pacing_of, default=0)
-    sent_then = sum(len(by_inv.get(k, [])) for k in range(1, reported + 1))
-    if req_sum.get("sent") != sent_then:
-        finding(f"summary requests.sent {req_sum.get('sent')} != {sent_then} reserved by invocations 1 to {reported}, whose summary it is")
-    note(f"summary.json is invocation {reported}'s (invocation {N} was stopped from outside): its dollars and figures are not compared")
-else:
-    if req_sum.get("sent") != len(reserves):
-        finding(f"summary requests.sent {req_sum.get('sent')} != {len(reserves)} reserved")
-    if req_sum.get("usd") is None or nano(req_sum["usd"]) != committed_nano:
-        finding(f"summary requests.usd {req_sum.get('usd')} != committed {committed_nano / 1e9}")
+
+
+def counted_through(k):
+    """The requests the harness had counted when invocation k ended: every line through k's, less a last request k
+    recorded but never sent, which it had not counted (the next resume counts it, raised)."""
+    return sum(len(by_inv.get(j, [])) for j in range(1, k + 1)) - (1 if unsent.get(k) else 0)
+
+
+if summary_owner is not None and not SUMMARY_CURRENT:
+    # summary.json is an earlier invocation's: it holds what the ledger held when that invocation ended.
+    if req_sum.get("sent") != counted_through(summary_owner):
+        finding(f"summary requests.sent {req_sum.get('sent')} != {counted_through(summary_owner)} requests the run had sent through invocation {summary_owner}, whose summary it is")
+    note(f"summary.json is invocation {summary_owner}'s, not the last invocation's ({N}): its dollars and figures are not compared")
+elif SUMMARY_CURRENT:
+    if req_sum.get("sent") != counted_through(N):
+        finding(f"summary requests.sent {req_sum.get('sent')} != {counted_through(N)} reserved")
+    # A request the last invocation sent and could not settle (an unwritable settlement) still counts at its reservation.
+    pending = sum(nano(reserves[r]["usd"]) for r in in_flight if r != unsent.get(N))
+    if req_sum.get("usd") is None or nano(req_sum["usd"]) != committed_nano + pending:
+        finding(f"summary requests.usd {req_sum.get('usd')} != committed {(committed_nano + pending) / 1e9}")
     if req_sum.get("cap") != limits.get("maxTotalRequests") or req_sum.get("capUsd") != limits.get("maxTotalUsd"):
         finding(f"summary caps {req_sum.get('cap')}/{req_sum.get('capUsd')} != the manifest's {limits.get('maxTotalRequests')}/{limits.get('maxTotalUsd')}")
 if len(reserves) > limits.get("maxTotalRequests", 0) or committed_nano > nano(limits.get("maxTotalUsd", 0)):
     finding("the ledger exceeds the run's caps")
+# A cap stop is due only when the next cell's worst case (CELL_BOUND requests) no longer fits: the harness refuses a
+# cell before its first request rather than cut it off inside (live/pacing.ts reserve).
+for k in range(1, N + 1):
+    stopped = (pacing_of.get(k) or {}).get("stopped") or {}
+    if stopped.get("reason") != "cap":
+        continue
+    t = pacing_of[k]["telemetry"]["pacing"]
+    message = str(stopped.get("message"))
+    if "for this invocation" in message:
+        if not t["sent"] + CELL_BOUND > t["maxRequests"]:
+            finding(f"invocation {k} stopped at its own cap with {t['sent']} of {t['maxRequests']} requests sent, though a cell's worst case ({CELL_BOUND}) still fit")
+    elif "cumulative cap" in message:
+        cap = int(re.search(r"cumulative cap of (\d+)", message).group(1))
+        if not counted_through(k) + CELL_BOUND > cap:
+            finding(f"invocation {k} stopped at the run's cap of {cap} with {counted_through(k)} requests sent, though a cell's worst case ({CELL_BOUND}) still fit")
+    else:
+        note(f"invocation {k} stopped at the run's dollar ceiling; whether it was due is not recomputed here")
 
 # --- 5. The records -------------------------------------------------------------------------------------------------
 records = jl(os.path.join(RUN, "runs.jsonl"))
@@ -590,9 +746,11 @@ for r in records + superseded:
     mine = {"input": tin, "output": tout, "providerCalls": len(pc), "unreportedCalls": unreported, "modelFreeCalls": free}
     if r["status"] == "completed" and mine != r["tokens"]:
         finding(f"{cell(r)}: tokens {r['tokens']} != recomputed {mine}")
-    for c in pc:
-        if c.get("model") != MODEL and not turned_away([c]):
-            finding(f"{cell(r)}: a provider call on {c.get('model')!r}")
+    for i, c in enumerate(pc):
+        # The busy gateway's turned-away call names no model; it may only be the last provider call of a cell that
+        # failed on it.
+        if c.get("model") != MODEL and not (turned_away([c]) and i == len(pc) - 1 and (r.get("failure") or {}).get("kind") in ("provider", "policy")):
+            finding(f"{cell(r)}: a provider call on {c.get('model')!r}" + (" (a turned-away call, but not the last of a cell that failed on it)" if turned_away([c]) else ""))
     if r["condition"] == "fresh" and r["status"] == "completed" and r.get("plan"):
         if [c for c in r["calls"] if c["operation"] == "plan"] != r["plan"]["calls"]:
             finding(f"{cell(r)}: the plan's calls differ from the record's plan calls")
@@ -603,7 +761,9 @@ for r in superseded:
     fresh_rerun = any(s["condition"] == "fresh" and (s.get("failure") or {}).get("rerunEligible") and (s["reference"], s["arm"], s["prompt"]) == (r["reference"], r["arm"], r["prompt"]) for s in superseded)
     if not (f_.get("rerunEligible") or (r["status"] == "skipped" and r["condition"] != "fresh" and fresh_rerun)):
         finding(f"{cell(r)}: moved aside by a re-run, but it was neither a re-run eligible failure nor a refinement skipped for one")
-    if keyed.get(key_of(r)) != 1:
+    if keyed.get(key_of(r)) is None and not A.complete:
+        note(f"{cell(r)}: moved aside by a re-run, and not run again yet")
+    elif keyed.get(key_of(r)) != 1:
         finding(f"{cell(r)}: moved aside by a re-run, but runs.jsonl does not hold its replacement once")
     else:
         replacement = next(x for x in records if key_of(x) == key_of(r))
@@ -642,21 +802,33 @@ for k in range(1, N + 1):
 
 # The cells left to do at each invocation's start, in planned order: each invocation must run exactly a prefix of them.
 done = {}
+unplaced = [(key_of(r), r["at"]) for r in superseded]  # moved aside by a re-run, at an invocation's start not yet known
 for k in range(1, N + 1):
+    keys = [key_of(r) for r in logged[k]]
     moved_keys = Counter()
     if k in moved_at:
         moved_keys = Counter(key_of(json.loads(x)) for x in moved_at[k])
+        for x in moved_at[k]:
+            r = json.loads(x)
+            if (key_of(r), r["at"]) in unplaced:
+                unplaced.remove((key_of(r), r["at"]))
     else:
-        # Without a copy: the records moved aside at this invocation's start are those whose replacement it logged.
-        for r in superseded:
-            if any(key_of(x) == key_of(r) for x in logged[k]) and r["at"] < inv_at[k - 1]:
-                moved_keys[key_of(r)] += 1
+        # Without a copy: a re-run moves aside, as an invocation starts, the re-run eligible failures logged before it
+        # (and the refinements skipped for one). Once moved, they are the first cells left to do again, so the
+        # invocation's own cells say whether it moved those not yet placed: if it logged none, the next one decides.
+        candidates = [x for x in unplaced if x[1] < inv_at[k - 1]]
+        if candidates and keys:
+            moving = Counter(x[0] for x in candidates)
+            with_move = [c for c in PLANNED if c not in done or c in moving]
+            if keys == with_move[: len(keys)] and keys != [c for c in PLANNED if c not in done][: len(keys)]:
+                moved_keys = moving
+                for x in candidates:
+                    unplaced.remove(x)
     for k_ in moved_keys:
         if k_ not in done:
             finding(f"invocation {k}: a re-run moved aside {'|'.join(k_)}, which was not done")
         done.pop(k_, None)
     remaining = [c for c in PLANNED if c not in done]
-    keys = [key_of(r) for r in logged[k]]
     if keys != remaining[: len(keys)]:
         bad = next((i for i, (a, b) in enumerate(zip(keys, remaining)) if a != b), min(len(keys), len(remaining)))
         finding(f"invocation {k}: logged {'|'.join(keys[bad]) if bad < len(keys) else 'more cells'} where the next cell left to do was {'|'.join(remaining[bad]) if bad < len(remaining) else 'none'}")
@@ -832,7 +1004,7 @@ info["windows"] = w
 info["orphans"] = orphans
 info["exhaustedSchedules"] = {k: v for k, v in chains.items() if v}
 for o in orphans:
-    if o["reason"] is None:
+    if o["reason"] is None and o["request"] not in in_flight:
         finding(f"{o['request']}: never finalized")
 held_nano = sum(nano(o["finalUsd"]) for o in orphans if o["finalUsd"] is not None)
 cells_nano = sum(mapped_cost_nano.values())
@@ -970,6 +1142,106 @@ for r in records:
             finding(f"{cell(r)}: operation {r.get('operation')} != recomputed {mine}")
 info["surfaceChecks"] = {"digestMismatches": digest_mismatch, "operationMismatches": op_mismatch, "changedMismatches": changed_mismatch, "operationsRecomputed": len(ops)}
 
+# --- 7b. Parity, recomputed from each surface and its checklist (live/parity.ts, live/arms.ts) ----------------------
+# The checklist: the prompt's labels, a refinement's expected text, and the prompt's components for the reference. The
+# surface's text is its text nodes and string props, never a key that names structure; from
+# aestheticfunction/dspack-studio#102 on (--parity-reading arrays) also the strings arrays hold, such as a table's
+# column labels.
+STRUCTURE_KEYS = {"component", "id", "dspackSurface", "system", "intent"}
+REFINEMENT_KIND = {"refine-content": "content", "refine-add": "add", "refine-remove": "remove", "refine-structural": "structural"}
+
+
+def surface_texts(surface, arrays):
+    out = []
+
+    def walk(node, key=None):
+        if isinstance(node, str):
+            if arrays and (key is None or key not in STRUCTURE_KEYS):
+                out.append(node)
+            return
+        if isinstance(node, list):
+            for item in node:
+                walk(item, key)
+            return
+        if not isinstance(node, dict):
+            return
+        if isinstance(node.get("text"), str):
+            out.append(node["text"])
+        for k, v in node.items():
+            if k == "text":
+                continue
+            if arrays:
+                walk(v, k)
+            elif isinstance(v, str):
+                if k not in STRUCTURE_KEYS:
+                    out.append(v)
+            elif isinstance(v, (dict, list)):
+                walk(v)
+
+    walk(root_of(surface))
+    return out
+
+
+def surface_components(surface):
+    out = set()
+
+    def walk(node):
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not isinstance(node, dict):
+            return
+        if isinstance(node.get("component"), str):
+            out.add(node["component"])
+        for v in node.values():
+            if isinstance(v, (dict, list)):
+                walk(v)
+
+    walk(root_of(surface))
+    return out
+
+
+def checklist_of(r):
+    p = corpus_prompts[r["prompt"]]
+    labels = list(p["parity"]["labels"])
+    if r["condition"] != "fresh":
+        templates = corpus["refinements"].get(p["block"] if p["block"] is not None else "null") or corpus["refinements"]["null"]
+        expect = templates[REFINEMENT_KIND[r["condition"]]].get("expectText")
+        if expect:
+            labels.append(expect)
+    c = p["parity"].get("components")
+    return labels, ([] if not c else c if isinstance(c, list) else c.get(r["reference"], []))
+
+
+def check_parity(surface, labels, components, arrays):
+    haystack = "\n".join(surface_texts(surface, arrays)).lower()
+    present = surface_components(surface)
+    satisfied, missing_ = [], []
+    for label in labels:
+        (satisfied if label.lower() in haystack else missing_).append(f"label:{label}")
+    for c in components:
+        (satisfied if c in present else missing_).append(f"component:{c}")
+    total = len(satisfied) + len(missing_)
+    return {"score": 1 if total == 0 else len(satisfied) / total, "satisfied": satisfied, "missing": missing_}
+
+
+ARRAYS = A.parity_reading == "arrays"
+parity_mismatch = 0
+other_score = {}  # id(record) -> its parity score under the other reading, for the record
+for logged_, r in [(True, x) for x in records] + [(False, x) for x in superseded]:
+    if r["prompt"] not in corpus_prompts:
+        continue
+    surface = r.get("surface") if r.get("passed") else None
+    labels, components = checklist_of(r)
+    mine = check_parity(surface, labels, components, ARRAYS) if surface is not None else None
+    if mine != r.get("parity"):
+        parity_mismatch += 1
+        finding(f"{cell(r)}: its parity {r.get('parity')} differs from its parity recomputed from its surface ({A.parity_reading}): {mine}")
+    if surface is not None and logged_:
+        other_score[id(r)] = check_parity(surface, labels, components, not ARRAYS)["score"]
+info["parity"] = {"reading": A.parity_reading, "mismatches": parity_mismatch}
+
 # --- 8. Scoring and the arm statistics ----------------------------------------------------------------------------
 for r in records + superseded:
     if r["status"] == "completed" and r.get("outcome") == "failed-adapter":
@@ -1005,6 +1277,17 @@ READINGS = {
 }
 binding = (corpus.get("scoring") or {}).get("operation") == "binding"
 scored = score(records, READINGS["binding (missed or unchecked)"] if binding else READINGS["none"])
+
+
+def other_parity_mean(arm):
+    """The arm's parity mean as the summary takes it (its passing evaluated results with a check), under the other
+    reading: for a run before aestheticfunction/dspack-studio#102, the corrected figure."""
+    ev = [r for r in scored if r["arm"] == arm and r["status"] == "completed" and not r.get("failure", {}).get("rerunEligible") and r["passed"]]
+    ev = [r for r in ev if isinstance((r.get("parity") or {}).get("score"), (int, float)) and len(r["parity"]["satisfied"]) + len(r["parity"]["missing"]) > 0]
+    return mean([other_score[id(r)] for r in ev if id(r) in other_score])
+
+
+info["parity"]["otherReading"] = {"reading": "no-arrays" if ARRAYS else "arrays", "meanScore": {a: other_parity_mean(a) for a in ARMS}}
 
 
 def evaluated_of(recs):
@@ -1057,11 +1340,13 @@ def arm_stats(recs):
     brf = Counter(str(r["budgetRemainingAtFallback"]) for r in completed if "budgetRemainingAtFallback" in r)
     fbc = Counter(r["trace"]["fallback"]["classification"] for r in completed if (r.get("trace") or {}).get("fallback", {}).get("classification"))
     exe = lambda key: median([r["timings"]["execution"][key] for r in completed if r["timings"].get("execution") and isinstance(r["timings"]["execution"].get(key), (int, float))])
+    rerun_by_kind = Counter(r["failure"]["kind"] for r in completed if r.get("failure", {}).get("rerunEligible"))
     return {
         "n": len(recs),
         "skipped": len(recs) - len(completed),
         "completed": len(completed),
         "rerunEligible": sum(1 for r in completed if r.get("failure", {}).get("rerunEligible")),
+        "rerunByKind": dict(rerun_by_kind),
         "evaluated": len(ev),
         "passed": len(passed),
         "passRate": ratio(len(passed), len(ev)),
@@ -1261,6 +1546,31 @@ def decide(recs, label, draw=None, resamples=2000):
                 verdict = "insufficient"
             elif rates["block"] < rates[other] - OPTIONS["margin"] - EPS and verdict != "insufficient":
                 verdict = "fail"
+    # The decision's reasons, worded as live/metrics.ts decide words them.
+    minimum, reduction_pct, margin_pts = OPTIONS["minimum"], js_num(100 * OPTIONS["reduction"]), js_num(100 * OPTIONS["margin"])
+    evaluated = {a: st[a]["evaluated"] for a in DECISION_ARMS}
+    metered = {a: st[a]["meteredRuns"] for a in DECISION_ARMS}
+    reasons = []
+    for a in DECISION_ARMS:
+        if threads[a] < minimum:
+            reasons.append(f"{a}: {threads[a]} prompt {'thread' if threads[a] == 1 else 'threads'} ({evaluated[a]} cells), fewer than the {minimum} the rule needs")
+    for a in DECISION_ARMS:
+        if metered_threads[a] < minimum and metered_threads[a] < threads[a]:
+            reasons.append(f"{a}: {metered_threads[a]} metered prompt {'thread' if metered_threads[a] == 1 else 'threads'} ({metered[a]} metered {'cell' if metered[a] == 1 else 'cells'}) in the token cohort, fewer than the {minimum} the rule needs")
+    if not reasons:
+        if red_p is None:
+            reasons.append("tokens per success is not measurable: a metered passing run is missing in the block arm or the production arm (scripted or unreported usage)")
+        elif red_p < OPTIONS["reduction"] - EPS:
+            reasons.append(f"tokens per success fell {to_fixed1(100 * red_p)}% against production; the rule needs {reduction_pct}%")
+        else:
+            reasons.append(f"tokens per success fell {to_fixed1(100 * red_p)}% against production (needs {reduction_pct}%)")
+        for other in ("production", "capped"):
+            if rates["block"] is None or rates[other] is None:
+                reasons.append(f"pass rate unavailable for the {other} comparison")
+            elif rates["block"] < rates[other] - OPTIONS["margin"] - EPS:
+                reasons.append(f"pass rate {to_fixed1(100 * rates['block'])}% is more than {margin_pts} points below {other} ({to_fixed1(100 * rates[other])}%)")
+            else:
+                reasons.append(f"pass rate {to_fixed1(100 * rates['block'])}% is within {margin_pts} points of {other} ({to_fixed1(100 * rates[other])}%)")
     iv = bootstrap(sums, DECISION_STATS, draw or spec_draw(label), resamples)
     enough = len(shared) >= OPTIONS["minimum"]
     clarity = {
@@ -1273,6 +1583,8 @@ def decide(recs, label, draw=None, resamples=2000):
     clarity["overall"] = "insufficient" if not enough or below else "clear" if agrees else "uncertain"
     return {
         "verdict": verdict,
+        "reasons": reasons,
+        "options": OPTIONS,
         "tokens": {**tps, "reductionVsProduction": red_p, "reductionVsCapped": red_c},
         "passRates": rates,
         "evaluated": {a: st[a]["evaluated"] for a in DECISION_ARMS},
@@ -1292,28 +1604,89 @@ def decide(recs, label, draw=None, resamples=2000):
 def compare(label, mine, theirs, tol=1e-9):
     if isinstance(mine, dict) and isinstance(theirs, dict):
         for k in sorted(set(mine) | set(theirs)):
-            if k in ("reference", "provider", "arm", "condition", "options", "reasons", "rerunByKind"):
+            if k in ("reference", "provider", "arm", "condition"):
                 continue
             if k not in mine or k not in theirs:
                 finding(f"{label}.{k}: present on one side only (mine {k in mine}, summary {k in theirs})")
                 continue
             compare(f"{label}.{k}", mine[k], theirs[k], tol)
-    elif isinstance(mine, (int, float)) and isinstance(theirs, (int, float)) and not isinstance(mine, bool):
+    elif isinstance(mine, list) and isinstance(theirs, list) and len(mine) == len(theirs) and any(isinstance(x, (dict, list, float)) for x in mine + theirs):
+        for i, (a_, b_) in enumerate(zip(mine, theirs)):
+            compare(f"{label}[{i}]", a_, b_, tol)
+    elif isinstance(mine, (int, float)) and isinstance(theirs, (int, float)) and not isinstance(mine, bool) and not isinstance(theirs, bool):
         if not close(float(mine), float(theirs), tol):
             finding(f"{label}: mine {mine} != summary {theirs}")
     elif mine != theirs:
         finding(f"{label}: mine {mine!r} != summary {theirs!r}")
 
 
-def one(rows, **match):
-    hits = [x for x in rows if all(x.get(k) == v for k, v in match.items())]
-    if len(hits) != 1:
-        finding(f"summary: {len(hits)} entries for {match}")
-        return None
-    return hits[0]
+def entries(name, rows, expected, key):
+    """The summary's entries in one list, by key: each the records make once, and none they do not make."""
+    found = defaultdict(list)
+    for x in rows or []:
+        found[key(x)].append(x)
+    for k_ in found:
+        if k_ not in expected:
+            finding(f"summary: {name} holds an entry for {'|'.join(map(str, k_))}, which the run's records do not make")
+    out = {}
+    for k_ in expected:
+        if len(found.get(k_, [])) != 1:
+            finding(f"summary: {len(found.get(k_, []))} {name} entries for {'|'.join(map(str, k_))}")
+        else:
+            out[k_] = found[k_][0]
+    return out
+
+
+# The ways a decision is read again with add and remove refinements counted as failures (live/metrics.ts
+# operationSensitivity): "none" is the pipeline's pass alone; the others count more of them as failures on top of the
+# corpus's scoring, where the record carries an operation.
+HARNESS_FAILING = {
+    "missed": lambda op, r: missed(op),
+    "missed-and-mixed": lambda op, r: not performed(op),
+    "changed-missed": lambda op, r: missed(op) and r.get("changed") is not False,
+    "changed-missed-and-mixed": lambda op, r: (missed(op) and r.get("changed") is not False) or op["observed"] == "mixed",
+}
+VERDICT_SCORING = READINGS["binding (missed or unchecked)"] if binding else READINGS["none"]
+
+
+def sensitivity_records(recs, way):
+    if way == "none":
+        return recs
+    return [dict(r, passed=False) if r.get("passed") and okey(r) in ops and HARNESS_FAILING[way](ops[okey(r)], r) else r for r in score(recs, VERDICT_SCORING)]
+
+
+def sensitivity_ways(recs, operation):
+    """The readings the harness lists for a decision: under binding scoring, the pipeline's pass alone if the scoring
+    failed any pass, and the mixed ones failing too if a decision arm has one; otherwise each way that changes a count."""
+    present = lambda f: any(o[f] > 0 for o in operation.values())
+    if binding:
+        scored_out = any(a_.get("passed") != b_.get("passed") for a_, b_ in zip(score(recs, VERDICT_SCORING), recs))
+        return (["none"] if scored_out else []) + (["missed-and-mixed"] if present("mixed") else [])
+    return (["missed"] if present("missed") else []) + (["missed-and-mixed"] if present("mixed") else []) + (["changed-missed"] if present("unchanged") else []) + (["changed-missed-and-mixed"] if present("unchanged") and present("mixed") else [])
 
 
 results = {}
+summary_decisions = summary_pooled = summary_arms = summary_selection = summary_encodings = summary_sensitivity = {}
+if SUMMARY_CURRENT:
+    if S.get("scoring") != ("binding" if binding else "beside"):
+        finding(f"summary scoring {S.get('scoring')!r} is not the corpus's {'binding' if binding else 'beside'}")
+    made = [r for r in scored]
+    decided = {(r["reference"], r["provider"]) for r in made if r["arm"] in DECISION_ARMS}
+    summary_decisions = entries("decisions", S.get("decisions"), decided, lambda x: (x.get("reference"), x.get("provider")))
+    summary_sensitivity = entries("sensitivity", S.get("sensitivity"), decided, lambda x: (x.get("reference"), x.get("provider")))
+    summary_pooled = entries("pooled", S.get("pooled"), {(r["reference"], r["arm"]) for r in made}, lambda x: (x.get("reference"), x.get("arm")))
+    summary_arms = entries("arms", S.get("arms"), {(r["reference"], r["arm"], r["condition"]) for r in made}, lambda x: (x.get("reference"), x.get("arm"), x.get("condition")))
+    selected = {(r["reference"], r["provider"]) for r in made if r["arm"] == "block" and r["condition"] == "fresh" and r["status"] == "completed" and r.get("selection")}
+    summary_selection = entries("selection", S.get("selection"), selected, lambda x: (x.get("reference"), x.get("provider")))
+    encoded = {(r["reference"], r["provider"]) for r in made if r["arm"] == "block-positional"}
+    encoded = {k_ for k_ in encoded if any(r["arm"] == "block" and (r["reference"], r["provider"]) == k_ and r["status"] == "completed" and not r.get("failure", {}).get("rerunEligible") for r in made)}
+    summary_encodings = entries("encodings", S.get("encodings"), encoded, lambda x: (x.get("reference"), x.get("provider")))
+    for x in S.get("pooled") or []:
+        if x.get("provider") != PROVIDER_ID:
+            finding(f"summary: a pooled entry for provider {x.get('provider')}")
+    for x in S.get("arms") or []:
+        if x.get("provider") != PROVIDER_ID:
+            finding(f"summary: an arms entry for provider {x.get('provider')}")
 for ref in REFERENCES:
     label = f"{ref}|{PROVIDER_ID}"
     mine_recs = [r for r in scored if r["reference"] == ref]
@@ -1378,36 +1751,53 @@ for ref in REFERENCES:
     selection["accuracy"] = ratio(selection["correct"], selection["n"])
     selection["intentAccuracy"] = ratio(selection["intentCorrect"], selection["n"])
 
-    if pacing_of.get(N) is None:
-        results[ref] = {"decision": decision, "pooled": pooled, "perCondition": {f"{a}|{c}": v for (a, c), v in per_condition.items()}, "selection": selection, "encoding": encoding, "readings": readings, "bootstrapRobustness": robustness}
+    results[ref] = {"decision": decision, "pooled": pooled, "perCondition": {f"{a}|{c}": v for (a, c), v in per_condition.items()}, "selection": selection, "encoding": encoding, "readings": readings, "bootstrapRobustness": robustness}
+    if not SUMMARY_CURRENT:
         continue
-    theirs = one(S["decisions"], reference=ref, provider=PROVIDER_ID)
-    if theirs:
-        compare(f"{ref}.decision", decision, theirs)
+    decision_recs = [r for r in records if r["reference"] == ref and r["arm"] in DECISION_ARMS]
+    if decision_recs:
+        theirs = summary_decisions.get((ref, PROVIDER_ID))
+        if theirs:
+            compare(f"{ref}.decision", decision, theirs)
     for a in ARMS:
-        t = one(S["pooled"], reference=ref, arm=a)
+        t = summary_pooled.get((ref, a))
         if t:
             compare(f"{ref}.pooled.{a}", pooled[a], t)
     for (a, c), mine in per_condition.items():
-        t = one(S["arms"], reference=ref, arm=a, condition=c)
+        t = summary_arms.get((ref, a, c))
         if t:
             compare(f"{ref}.arms.{a}.{c}", mine, t)
-    t = one(S["selection"], reference=ref, provider=PROVIDER_ID)
+    t = summary_selection.get((ref, PROVIDER_ID))
     if t:
         compare(f"{ref}.selection", selection, t)
-    t = one(S["encodings"], reference=ref, provider=PROVIDER_ID)
+    t = summary_encodings.get((ref, PROVIDER_ID))
     if t:
         compare(f"{ref}.encodings", encoding, t)
-    sens = one(S["sensitivity"], reference=ref, provider=PROVIDER_ID)
+    sens = summary_sensitivity.get((ref, PROVIDER_ID))
     if sens:
-        compare(f"{ref}.sensitivity.operation", {a: pooled[a]["operation"] for a in DECISION_ARMS if a in pooled}, sens["operation"])
-        their_none = next((x["reading"] for x in sens["readings"] if x["failing"] == "none"), None)
-        mine_none = readings["none"]
-        compare(f"{ref}.sensitivity.none", {"verdict": mine_none["verdict"], "overall": mine_none["overall"], "passed": mine_none["passed"], "evaluated": mine_none["evaluated"], "reductionVsProduction": mine_none["reductionVsProduction"]}, their_none)
-        mixed = any(ops[okey(r)]["observed"] == "mixed" for r in records if r["reference"] == ref and r["arm"] in DECISION_ARMS and okey(r) in ops and gate_passed(r))
-        if any(x["failing"] != "none" for x in sens["readings"]) != mixed:
-            finding(f"{ref}: the summary's readings beyond 'none' do not follow whether a decision arm has a mixed change")
-    results[ref] = {"decision": decision, "pooled": pooled, "perCondition": {f"{a}|{c}": v for (a, c), v in per_condition.items()}, "selection": selection, "encoding": encoding, "readings": readings, "bootstrapRobustness": robustness}
+        operation = {a: arm_stats([r for r in decision_recs if r["arm"] == a])["operation"] for a in DECISION_ARMS}
+        compare(f"{ref}.sensitivity.operation", operation, sens["operation"])
+        ways = sensitivity_ways(decision_recs, operation)
+        if [x.get("failing") for x in sens.get("readings") or []] != ways:
+            finding(f"{ref}: the summary's sensitivity readings are {[x.get('failing') for x in sens.get('readings') or []]}, the records call for {ways}")
+        mine_readings = []
+        for way in ways:
+            d = decide(sensitivity_records(decision_recs, way), label)
+            mine_readings.append({"failing": way, "reading": {"verdict": d["verdict"], "overall": d["clarity"]["overall"], "passed": d["counts"]["passed"], "evaluated": d["evaluated"], "reductionVsProduction": d["tokens"]["reductionVsProduction"]}})
+        if len(mine_readings) == len(sens.get("readings") or []):
+            compare(f"{ref}.sensitivity.readings", mine_readings, sens["readings"])
+        holds = all(x["reading"]["verdict"] == decision["verdict"] for x in mine_readings)
+        clear = all(x["reading"]["overall"] == decision["clarity"]["overall"] for x in mine_readings)
+        compare(f"{ref}.sensitivity", {"verdictHolds": holds, "clarityHolds": clear, "robust": holds and clear}, {k: sens.get(k) for k in ("verdictHolds", "clarityHolds", "robust")})
+    # The report states the verdict the decision reached (live/report.ts).
+    heading = f"### {ref} on {PROVIDER_ID}: **{decision['verdict']}** ({'too few prompts behind it to call' if decision['clarity']['overall'] == 'insufficient' else decision['clarity']['overall']})"
+    report_path = os.path.join(RUN, "REPORT.md")
+    if not os.path.exists(report_path):
+        (finding if A.complete else note)("REPORT.md: none beside summary.json")
+    else:
+        stated = [line for line in read_bytes(report_path).decode("utf-8").split("\n") if line.startswith(f"### {ref} on ")]
+        if stated != [heading]:
+            finding(f"REPORT.md states {stated}, not the decision recomputed here: {heading!r}")
 
 totals = {
     "records": len(records),
@@ -1417,23 +1807,112 @@ totals = {
     "outputTokens": sum(r["tokens"]["output"] for r in records if r["status"] == "completed"),
     "requestBytes": sum(r["requestBytes"] for r in records if r["status"] == "completed"),
 }
-if pacing_of.get(N) is not None:
-    compare("totals", totals, S["totals"])
+if SUMMARY_CURRENT:
+    compare("totals", totals, S.get("totals"))
 cells_expected = {"total": len(PLANNED), "done": len(records), "reused": reused_at_last}
-if pacing_of.get(N) is not None and summary_file["cells"] != cells_expected:
-    finding(f"summary cells {summary_file['cells']} != {cells_expected}")
+if SUMMARY_CURRENT and summary_file.get("cells") != cells_expected:
+    finding(f"summary cells {summary_file.get('cells')} != {cells_expected}")
 unique_sup = list({js_stringify(r): r for r in superseded}.values())
 spend = {"records": len(unique_sup), "providerCalls": sum(r["tokens"]["providerCalls"] for r in unique_sup), "inputTokens": sum(r["tokens"]["input"] for r in unique_sup), "outputTokens": sum(r["tokens"]["output"] for r in unique_sup), "requestBytes": sum(r["requestBytes"] for r in unique_sup)}
-if pacing_of.get(N) is not None:
+if SUMMARY_CURRENT:
     compare("superseded", spend, summary_file.get("superseded"))
     if summary_file.get("invocations") != pacing:
         finding("summary invocations differ from pacing.jsonl")
     if summary_file.get("stopped") != pacing_of[N].get("stopped"):
         finding(f"summary stopped {summary_file.get('stopped')} != the last invocation's {pacing_of[N].get('stopped')}")
+    # The summary's telemetry is the last invocation's own, which its pacing entry also holds.
+    compare("telemetry", pacing_of[N].get("telemetry"), summary_file.get("telemetry"))
     if summary_file.get("servedModel") != manifest.get("servedModel"):
         finding("summary servedModel differs from the manifest's")
     if summary_file.get("runId") != manifest["runId"] or summary_file.get("corpus") != manifest["corpus"] or summary_file.get("provider") != manifest["provider"]:
         finding("summary run id, corpus or provider differs from the manifest's")
+    unknown = sorted(set(summary_file) - {"runId", "provider", "corpus", "cells", "stopped", "servedModel", "setAside", "telemetry", "invocations", "requests", "superseded", "summary"})
+    if unknown:
+        finding(f"summary.json holds fields this verifier does not know: {unknown}")
+    unknown = sorted(set(S) - {"scoring", "arms", "pooled", "selection", "decisions", "sensitivity", "encodings", "totals"})
+    if unknown:
+        finding(f"summary.json's summary holds fields this verifier does not know: {unknown}")
+# --- 10b. The monitor's events logs (--monitor-events), against the run ------------------------------------------------
+# Each names its window (monitor up: window k), the invocation it opened (window opened <preflight time>), every live
+# build it read, and, last, what it had seen: its count of the window's requests comes from the ledger lines it read,
+# so a request the run's files no longer hold shows here.
+def epoch_of(iso):
+    return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp()
+
+
+monitored = []
+for path in A.monitor_events:
+    lines = [x.rstrip("\n") for x in open(path, encoding="utf-8") if x.strip()]
+    events = []
+    for x in lines:
+        stamp, _, message = x.partition(" ")
+        try:
+            events.append((epoch_of(stamp), message))
+        except ValueError:
+            finding(f"monitor events {path}: an unreadable line {x[:80]!r}")
+    up = next((m_ for _, msg in events for m_ in [re.match(r"monitor up: window (\d+),.*limits (\{.*\})$", msg)] if m_), None)
+    if up is None:
+        finding(f"monitor events {path}: no \"monitor up\" line naming its window and limits")
+        continue
+    k = int(up.group(1))
+    limits_ = json.loads(up.group(2))
+    entry = {"events": path, "window": k}
+    monitored.append(entry)
+    if not 1 <= k <= N:
+        finding(f"monitor events {path}: window {k}, but the run has {N} invocations")
+        continue
+    opened = [(t_, m_.group(1)) for t_, msg in events for m_ in [re.match(r"window opened (\S+):", msg)] if m_]
+    if not opened:
+        note(f"monitor events {path}: window {k}'s monitor stopped before it opened the window")
+        continue
+    if opened[0][1] != inv_at[k - 1]:
+        finding(f"monitor events {path}: it watched the window opened {opened[0][1]}, but invocation {k}'s preflight is {inv_at[k - 1]}")
+    progress = [m_ for _, msg in events for m_ in [re.search(r"(\d+) cells, (\d+) requests sent", msg)] if m_]
+    final = events[-1][1]
+    entry["last"] = final[:120]
+    if final.startswith("handing back"):
+        note(f"monitor events {path}: the monitor handed back while invocation {k} ran; what it saw is not all of it")
+    elif progress:
+        seen = int(progress[-1].group(2))
+        entry["requestsSeen"] = seen
+        if seen != len(by_inv.get(k, [])):
+            finding(f"monitor events {path}: the monitor saw {seen} requests from invocation {k}, the ledger holds {len(by_inv.get(k, []))}")
+    else:
+        finding(f"monitor events {path}: no closing line with what the monitor saw")
+    expected_build = deployment["buildId"]
+    readings = [(t_, m_.group(1)) for t_, msg in events for m_ in [re.fullmatch(r"build (\S+)", msg)] if m_]
+    readings += [(t_, None) for t_, msg in events if msg.startswith("the live build could not be read")]
+    readings.sort()
+    entry["buildReadings"] = len(readings)
+    other = sorted({b for _, b in readings if b is not None and b != expected_build})
+    stops = [msg for _, msg in events if msg.startswith(("STOP (", "HOLD ("))]
+    entry["stops"] = stops
+    if other:
+        good = [t_ for t_, b in readings if b == expected_build]
+        settled_after = [r for r in by_inv.get(k, []) if r in finals and (not good or epoch_of(finals[r]["at"]) > max(good))]
+        note(f"monitor events {path}: the live build changed during invocation {k} to {other}; {len(settled_after)} of its requests settled after the monitor last read {expected_build}")
+    # The build is read every buildCheckSeconds on a thread of its own (each reading at most two 10 s fetches): no
+    # stretch of the window may go longer than twice that without a reading.
+    bound = 2 * limits_.get("buildCheckSeconds", 30) + 25
+    times = [opened[0][0]] + [t_ for t_, _ in readings] + [events[-1][0]]
+    gap = max((b_ - a_ for a_, b_ in zip(times, times[1:])), default=0)
+    entry["longestGapSeconds"] = round(gap, 3)
+    if gap > bound:
+        finding(f"monitor events {path}: {gap:.0f} s passed without a live build reading during invocation {k} (at most {bound:.0f} s)")
+    unconfirmed = sum(1 for _, b in readings if b is None)
+    if unconfirmed:
+        note(f"monitor events {path}: {unconfirmed} build readings during invocation {k} could not be read")
+    early = [r for r in by_inv.get(k, []) if readings and epoch_of(reserves[r]["at"]) < readings[0][0] - bound]
+    if early:
+        note(f"monitor events {path}: {len(early)} of invocation {k}'s requests came before the monitor's first build reading")
+if A.monitor_events:
+    windows_ = [e["window"] for e in monitored]
+    if len(set(windows_)) != len(windows_):
+        finding(f"two monitor events logs name the same window: {sorted(windows_)}")
+info["monitorEvents"] = monitored
+
+for path in TORN:
+    (finding if A.complete or os.path.dirname(path) != RUN.rstrip("/") else note)(f"{path} ends with a cut-off line, which the next resume sets aside")
 
 result = {"findings": findings, "notes": notes, "references": results, "totals": totals, "mapping": mapping, **info}
 with open(A.out, "w") as f:
