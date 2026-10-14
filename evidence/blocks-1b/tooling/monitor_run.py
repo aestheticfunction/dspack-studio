@@ -23,11 +23,14 @@ Immediate stops:
   that is not this window's count). Also an invariant failure: an arm result the run keeps (ADR-B4), but a block
   template that produced an invalid surface is the owner's to see before more is spent.
 
-A hold ("usage not verified", the conservative settlement of a reply the run cannot trust) is a stop the harness
-usually makes itself: it holds the request, halts (exit 3), and writes its stop record (pacing.jsonl, summary.json,
-REPORT.md) in a short synchronous shutdown that a signal would cut off. So the monitor logs a HOLD and gives the
-harness holdGraceSeconds to exit by itself. It signals only if the harness carries on (a reply it could not read fails
-its cell, which the harness logs before going on) or the grace runs out.
+A hold ("usage not verified", the conservative settlement of a reply the run cannot trust) is usually a stop the
+harness makes itself: it holds the request, halts (exit 3), and writes its stop record (pacing.jsonl, then
+summary.json and REPORT.md) in a short synchronous shutdown that a signal would cut off. A reply that passes its
+integrity checks but not its price bound (more tokens than its reservation priced) is held too, and the harness goes on
+with it. So the monitor logs a HOLD and waits: for the harness to exit by itself (it has holdGraceSeconds once its
+pacing entry shows it ending), or to show it carried on, and then stops it where nothing is in flight. That is on the
+cell's record, or before its next request can go out (the held request's reservation plus spacingSeconds), or, when
+it carried on into another request, once that request settles.
 
 Refusals (the gateway's zero-cost busy and limiter refusals, which the harness releases and retries after a backoff):
 - a refusal released and then answered within the backoff schedule is allowed, and logged with the wait it costs;
@@ -39,8 +42,8 @@ Refusals (the gateway's zero-cost busy and limiter refusals, which the harness r
   8th release at 240 s.
 A release is the safest moment to stop: the harness is then waiting out a backoff of 30 s or more with no request in
 flight, so a stop within a poll of it holds nothing. After a schedule spent it waits its spacing instead, which must
-also be several polls long (12 s against a 2 s poll). The live build is read on a thread of its own, so a slow
-deployment never delays a stop.
+also be several polls long (12 s against a 2 s poll). The live build is read on a thread of its own, following
+redirects as the harness does, so a slow deployment never delays a stop.
 
 Failures: a policy or unknown failure stops the window at once; a provider failure is allowed maxProviderFailures
 times per window (each is re-run later with --rerun-failed), and the next stops it. Ordinary arm results (a lint
@@ -52,14 +55,18 @@ next window, before its first request, and logs it.
 
 The monitor fails closed. It waits at most preflightWaitSeconds for this window's preflight, and stops the harness if
 it sends a request before that preflight exists (--preflights is then not this window's count). If the monitor
-itself fails, it stops the harness rather than leave it unwatched.
+itself fails, it stops the harness rather than leave it unwatched. It signals --pgid only once the run's lock has
+shown the harness inside it: a group that does not hold the lock (another process, the operator's shell) is never
+signalled, and the process the lock names is stopped instead.
 
 Not checked here: a settlement's amount against its cell's calls (verify_run.py does that). A restarted monitor logs
 again the releases its predecessor logged.
 
 Exit codes: 0 the harness exited by itself (a stop condition seen only after it had exited is still logged, as a
 STOP or HOLD line); 10 the monitor stopped it; 20 handing back while the harness still runs; 2 a usage error (a
-config missing a limit, or a --pgid that is the monitor's own process group or no running one). Usage:
+config missing a limit, or a --pgid that is the monitor's own process group or no running one) or a --pgid no lock of
+this window's showed the harness inside, so nothing was signalled; 1 the stop itself failed and nothing could be
+signalled. Usage:
   monitor_run.py --run <run dir> --pgid <harness process group> --preflights <N, this window's preflight count>
       --config <monitor config json> --corpus <frozen corpus json> --events <events log> [--hand-back-after <s>]
       [--poll <s>] [--build-url <url, or file:// for tests>]
@@ -70,6 +77,7 @@ import json
 import os
 import re
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -83,7 +91,10 @@ NEVER_READ = "a request whose reply was never read"
 NANO_IN, NANO_OUT = 1050, 5250
 REQUEST_BOUND_NANO = 2 * (204_800 * NANO_IN + 65_536 * NANO_OUT)
 IDENTITY = ["runId", "startedAt", "provider", "corpus", "references", "code", "model", "deployment", "selection", "decision"]
-LIMITS = ["backoffMs", "maxReleased", "maxBackoffSeconds", "maxProviderFailures", "maxRequestsPerWindow", "openRequestSeconds", "buildCheckSeconds", "maxUnreadableBuildSeconds", "preflightWaitSeconds", "holdGraceSeconds", "progressEvery"]
+LIMITS = ["backoffMs", "maxReleased", "maxBackoffSeconds", "maxProviderFailures", "maxRequestsPerWindow", "openRequestSeconds", "buildCheckSeconds", "maxUnreadableBuildSeconds", "preflightWaitSeconds", "holdGraceSeconds", "spacingSeconds", "progressEvery"]
+# The least a hold waits for the harness's own halt to show (its pacing entry): its whole shutdown took 0.1 to 0.25 s
+# over Astryx's 430 records.
+HALT_SECONDS = 2.0
 nano = lambda usd: round(usd * 1e9)
 whole = lambda v: isinstance(v, int) and not isinstance(v, bool)
 number = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
@@ -92,11 +103,13 @@ number = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
 class Stop(Exception):
     """A condition the window stops on: its rule, what was seen, and whether the harness stops itself on it (a hold)."""
 
-    def __init__(self, rule, message, harness_stops=False):
+    def __init__(self, rule, message, harness_stops=False, reserved_at=None, pid=None):
         super().__init__(f"{rule}: {message}")
         self.rule = rule
         self.message = message
         self.harness_stops = harness_stops
+        self.reserved_at = reserved_at  # a hold: when its request was reserved (epoch seconds)
+        self.pid = pid  # the process to stop, when the run's lock names one outside --pgid
 
 
 def epoch(iso):
@@ -128,6 +141,7 @@ class Monitor:
         self.outcomes = Counter()
         self.raised = []
         self.unreadable = 0
+        self.unreadable_since = None
         self.set_aside = 0
         self.started = None  # when the monitor started, in epoch seconds (main() sets it)
 
@@ -169,16 +183,21 @@ class Monitor:
         if self.identity is not None and {k: manifest.get(k) for k in IDENTITY} != self.identity:
             raise Stop("integrity", "the manifest's identity changed while the window ran")
 
-    def live_build(self, build):
+    def live_build(self, build, now=None):
+        """A reading of the live build, taken at `now` (epoch seconds): unreadable ones count by the clock, since each
+        failed fetch adds to the time between readings; without a time, by their number."""
         limit = self.c["maxUnreadableBuildSeconds"]
         if build is None:
             self.unreadable += 1
-            unread = self.unreadable * self.c["buildCheckSeconds"]
+            if now is not None and self.unreadable_since is None:
+                self.unreadable_since = now
+            unread = now - self.unreadable_since if now is not None else self.unreadable * self.c["buildCheckSeconds"]
             if unread >= limit:
-                raise Stop("build", f"the live build could not be read {self.unreadable} times in a row (about {unread:.0f} s): the window cannot confirm it still runs on {self.expect['build']}")
-            self.log(f"the live build could not be read ({self.unreadable} in a row; the window stops once that is {limit} s)")
+                raise Stop("build", f"the live build could not be read for {unread:.0f} s ({self.unreadable} readings in a row): the window cannot confirm it still runs on {self.expect['build']}")
+            self.log(f"the live build could not be read ({self.unreadable} in a row, {unread:.0f} s; the window stops once that is {limit} s)")
             return
         self.unreadable = 0
+        self.unreadable_since = None
         self.log(f"build {build}")
         if build != self.expect["build"]:
             raise Stop("build", f"the live deployment is build {build}, the window expects {self.expect['build']}")
@@ -211,13 +230,14 @@ class Monitor:
                 raise Stop("settlement", f"{req} is not request #{self.sent} of this window: the ledger is out of sequence")
             if self.open is not None:
                 raise Stop("settlement", f"{req} reserved while {self.open[0]} was still in flight")
-            if self.sent > self.c["maxRequestsPerWindow"]:
-                raise Stop("integrity", f"{req} is this window's request {self.sent}; a window may send {self.c['maxRequestsPerWindow']} (its --max-requests)")
             if self.chain_ended:
                 self.in_a_row = 0
                 self.chain_ended = False
+            # Followed even when it is past the window's limit, so its settlement reads as what it is.
             self.reserved[req] = nano(line["usd"])
             self.open = (req, epoch(line["at"]))
+            if self.sent > self.c["maxRequestsPerWindow"]:
+                raise Stop("integrity", f"{req} is this window's request {self.sent}; a window may send {self.c['maxRequestsPerWindow']} (its --max-requests)")
             return
         reason = line.get("reason")
         if not number(line.get("final")) or not number(line.get("adjust")):
@@ -235,6 +255,7 @@ class Monitor:
             raise Stop("settlement", f"a settlement for {req}, which is not the request in flight")
         if self.reserved[req] + nano(line["adjust"]) != nano(line["final"]):
             raise Stop("settlement", f"{req}: reserve + adjust {line['adjust']} != final {line['final']}")
+        reserved_at = self.open[1]
         self.open = None
         if reason == RELEASED:
             if nano(line["final"]) != 0:
@@ -243,7 +264,7 @@ class Monitor:
             return
         self.in_a_row = 0
         if reason == UNVERIFIED:
-            raise Stop("settlement", f"{req} held at ${line['final']:.6f}, its usage not verified (a reply the run cannot trust)", harness_stops=True)
+            raise Stop("settlement", f"{req} held at ${line['final']:.6f}, its usage not verified (a reply the run cannot trust)", harness_stops=True, reserved_at=reserved_at)
         if reason != SETTLED:
             raise Stop("settlement", f"{req} ended {reason!r} (final {line.get('final')}), not settled at its reported usage")
         if line.get("servedModel") != self.expect["model"]:
@@ -391,23 +412,88 @@ def main(argv=None):
     after = f"preflight.resume-{a.preflights}.json"
     exists = lambda name: os.path.exists(os.path.join(run, name))
 
+    iso = lambda t: datetime.fromtimestamp(t, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+    def holder():
+        """The harness the run's lock names: (its pid, its process group), when it runs on this host and took the lock
+        for this window (after this window's preflight, or, before that is known, at most 5 minutes before the monitor
+        started; an older lock is a stopped window's, whose pid may since be another process's). Otherwise None."""
+        try:
+            with open(os.path.join(run, "run.lock")) as f:
+                lock = json.load(f)
+        except (OSError, ValueError):
+            return None
+        if not isinstance(lock, dict) or not whole(lock.get("pid")) or lock["pid"] <= 1 or lock.get("host") != socket.gethostname():
+            return None
+        if not isinstance(lock.get("at"), str) or lock["at"] < (m.inv if m.inv is not None else iso(m.started - 300)):
+            return None
+        try:
+            return lock["pid"], os.getpgid(lock["pid"])
+        except (ProcessLookupError, PermissionError):
+            return None
+
+    verified = []  # the harness's pid, once the run's lock has shown it inside --pgid
+
+    def check_holder():
+        """Once the run's lock names this window's harness, it must be inside --pgid: a group that does not hold the run
+        (another process, the operator's shell) is never signalled, and the process the lock names is stopped instead."""
+        if verified:
+            return
+        found = holder()
+        if found is None:
+            return
+        if found[1] != a.pgid:
+            raise Stop("integrity", f"the run's lock names pid {found[0]}, in process group {found[1]}, not --pgid {a.pgid}: --pgid is not the harness's, so it is not signalled; the process the lock names is stopped instead", pid=found[0])
+        verified.append(found[0])
+        log(f"the run's lock names pid {found[0]}, inside --pgid {a.pgid}: the harness")
+
+    def pid_alive(pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                stat = f.read()
+            return stat[stat.rfind(")") + 2:].split()[0] != "Z"
+        except (OSError, IndexError):
+            return True
+
     def stop(s):
         log(f"STOP ({s.rule}): {s.message}")
-        if not alive():
+        target = s.pid  # a process the run's lock names outside --pgid: it alone is signalled
+        if target is None and not verified:
+            try:
+                check_holder()
+            except Stop as outside:
+                target = outside.pid
+                log(outside.message)
+        if target is None and not verified:
+            if not alive():
+                last_lines("after the harness exited")
+                log(f"the harness had already exited by itself; no signal sent: {m.progress()}")
+                return 0
+            log(f"nothing is signalled: no lock of this window's has shown the harness inside --pgid {a.pgid}. If the harness runs, stop it by hand: {m.progress()}")
+            return 2
+        running = (lambda: pid_alive(target)) if target is not None else alive
+        send = (lambda sig: os.kill(target, sig)) if target is not None else (lambda sig: os.killpg(a.pgid, sig))
+        if not running():
             last_lines("after the harness exited")
             log(f"the harness had already exited by itself; no signal sent: {m.progress()}")
             return 0
         try:
-            os.killpg(a.pgid, signal.SIGTERM)
+            send(signal.SIGTERM)
         except ProcessLookupError:
             pass
         for _ in range(60):
-            if not alive():
+            if not running():
                 break
             time.sleep(0.5)
-        if alive():
+        if running():
             try:
-                os.killpg(a.pgid, signal.SIGKILL)
+                send(signal.SIGKILL)
             except ProcessLookupError:
                 pass
             log("the harness did not exit on SIGTERM; sent SIGKILL")
@@ -415,13 +501,31 @@ def main(argv=None):
         log(f"harness stopped by the monitor: {m.progress()}")
         return 10
 
+    def last_resort(error):
+        """The stop itself failed: the harness is signalled plainly, where the run's lock showed it to be."""
+        try:
+            log(f"the monitor's stop failed ({error!r}); signalling the harness plainly")
+        except Exception:
+            pass
+        try:
+            if verified:
+                os.killpg(a.pgid, signal.SIGTERM)
+                return 10
+            found = holder()
+            if found is not None:
+                os.kill(found[0], signal.SIGTERM)
+                return 10
+        except Exception:
+            pass
+        return 1
+
     def live_build():
         """The live build, read as the harness's preflight reads it (live/preflight.ts readBuildId): the build manifest
         named in the page, else the flight payload's "b", and only if that build's manifest is served. None if it
         cannot be read."""
 
         def get(url, body):
-            out = subprocess.run(["curl", "-sS", "--max-time", "10", "-H", "accept: text/html", *([] if body else ["-o", "/dev/null"]), "-w", "\n%{http_code}", url], capture_output=True, text=True, timeout=20)
+            out = subprocess.run(["curl", "-sS", "-L", "--max-time", "10", "-H", "accept: text/html", *([] if body else ["-o", "/dev/null"]), "-w", "\n%{http_code}", url], capture_output=True, text=True, timeout=20)
             text, _, code = out.stdout.rpartition("\n")
             return code, text
 
@@ -449,7 +553,7 @@ def main(argv=None):
         while True:
             build = live_build()
             with readings_lock:
-                readings.append(build)
+                readings.append((time.time(), build))
             time.sleep(config["buildCheckSeconds"])
 
     offsets = {"requests.jsonl": 0, "runs.jsonl": 0}
@@ -491,18 +595,20 @@ def main(argv=None):
     def drain(seen_after=None):
         """Both logs' new lines in the order they were written, and whether there were any. runs.jsonl is read first: a
         record is written after every ledger line of its cell, so the ledger read after it holds them all. Then by
-        time, a ledger line before a record on a tie. Once the harness has gone (seen_after says when), a condition is
-        logged and the rest still read, so the closing count is all the window wrote."""
+        time; on a tie, a settlement before a record before a reservation, as the harness writes them when nothing
+        waits between: it settles a request, logs its cell, then reserves the next request. Once the harness has gone
+        (seen_after says when), a condition is logged and the rest still read, so the closing count is all the window
+        wrote."""
         records = [x for x in read_new("runs.jsonl") if str(x.get("at", "")) >= m.inv]
         lines = read_new("requests.jsonl")
-        items = [(str(x.get("at", "")), 0, next(order), x) for x in lines] + [(str(x.get("at", "")), 1, next(order), x) for x in records]
+        items = [(str(x.get("at", "")), 0 if "adjust" in x else 2, next(order), x) for x in lines] + [(str(x.get("at", "")), 1, next(order), x) for x in records]
         # A line read but not yet judged waits here: a stop on one line leaves the rest for the closing read.
         pending.extend(items)
         pending.sort(key=lambda t: t[:3])
         while pending:
             _, source, _, x = pending.pop(0)
             try:
-                (m.ledger if source == 0 else m.record)(x)
+                (m.record if source == 1 else m.ledger)(x)
             except Stop as late:
                 if seen_after is None:
                     raise
@@ -525,21 +631,38 @@ def main(argv=None):
         return 0
 
     def hold(s):
+        """A hold: the harness halts itself on a reply it cannot trust, or carries on with one that passed its integrity
+        checks. It has the time to show which; if it carried on, it is stopped where nothing is in flight."""
         grace = config["holdGraceSeconds"]
-        log(f"HOLD ({s.rule}): {s.message}. The harness halts itself on a reply it cannot trust and writes its stop record; it has {grace} s to exit before any signal")
-        end = time.time() + grace
+        t0 = time.time()
+        # Its next request goes out no sooner than the held one's reservation plus the spacing: until then, less a
+        # margin for the poll and the signal, a stop finds nothing in flight. Its own halt shows within a second.
+        safe = s.reserved_at + config["spacingSeconds"] - 1.0 if s.reserved_at is not None else t0
+        decide = min(t0 + grace, max(t0 + HALT_SECONDS, safe))
+        log(f"HOLD ({s.rule}): {s.message}. The harness halts itself on such a reply, or carries on with one that passed its integrity checks: it has {decide - t0:.1f} s to show it is halting, and {grace} s to exit")
+        halting = False
+        cells = m.cells
+        into_request = False
         while True:
             if not alive():
                 return exited("the harness stopped itself after the hold")
-            try:
-                carried_on = drain()
-            except Stop:
-                carried_on = True
-            if carried_on:
-                return stop(Stop(s.rule, f"{s.message}; the harness carried on after it (a reply it could not read fails its cell, and the run goes on)"))
-            if time.time() >= end:
-                return stop(Stop(s.rule, f"{s.message}; the harness had not exited {grace} s after it"))
-            time.sleep(min(a.poll, 0.1))
+            if not halting and ended_windows(m.inv):
+                halting = True
+                log("its pacing entry is written: the harness is ending its window by itself")
+            if halting:
+                if time.time() >= t0 + grace:
+                    return stop(Stop(s.rule, f"{s.message}; the harness had not exited {grace} s after it"))
+            else:
+                drain()
+                if m.open is not None:
+                    into_request = True  # it carried on into another request: stopped once that one settles
+                elif into_request:
+                    return stop(Stop(s.rule, f"{s.message}; the harness carried on after it into another request, and was stopped once that request settled"))
+                elif m.cells > cells:
+                    return stop(Stop(s.rule, f"{s.message}; the harness carried on after it, and was stopped on its cell's record, between cells"))
+                elif time.time() >= decide:
+                    return stop(Stop(s.rule, f"{s.message}; the harness carried on after it, and was stopped before its next request could go out"))
+            time.sleep(min(a.poll, 0.05))
 
     def requests_now():
         """The requests (not settlements) the ledger holds now; a cut-off or unreadable line is none yet."""
@@ -608,26 +731,46 @@ def main(argv=None):
         m.begin(load("manifest.json"), preflight)
         threading.Thread(target=read_builds, daemon=True).start()
         while True:
+            check_holder()
             if exists(after):
                 raise Stop("integrity", f"{after} was written while this window ran: --preflights {a.preflights} is not this window, or another process resumed the run")
             drain()
             m.check_manifest(load("manifest.json"))
             if not alive():
                 return exited("the harness exited")
+            if not verified and ended_windows(m.inv):
+                # The window has ended by itself, and --pgid still runs though no lock of this window's showed the
+                # harness inside it: it is not the harness's.
+                end = time.time() + config["holdGraceSeconds"]
+                while alive() and time.time() < end:
+                    time.sleep(0.1)
+                if not alive():
+                    return exited("the harness exited")
+                log(f"the window has ended, and --pgid {a.pgid} still runs, though no lock of this window's showed the harness inside it: it is not the harness's, and nothing is signalled: {m.progress()}")
+                return 2
             m.tick(time.time())
             with readings_lock:
                 builds = readings[:]
                 readings.clear()
-            for build in builds:
-                m.live_build(build)
+            for at_, build in builds:
+                m.live_build(build, now=at_)
             if time.time() > deadline:
                 log(f"handing back while the harness runs: {m.progress()}")
                 return 20
             time.sleep(a.poll)
     except Stop as s:
-        return hold(s) if s.harness_stops else stop(s)
+        outcome = s
     except Exception as error:  # fail closed: an unwatched window is worse than a stopped one
-        return stop(Stop("monitor", f"the monitor failed, and stops the window rather than leave it unwatched: {error!r}"))
+        outcome = Stop("monitor", f"the monitor failed, and stops the window rather than leave it unwatched: {error!r}")
+    try:
+        try:
+            return hold(outcome) if outcome.harness_stops else stop(outcome)
+        except Stop as later:  # a condition seen while waiting out a hold: a stop, never a second wait
+            return stop(Stop(later.rule, later.message, pid=later.pid))
+        except Exception as error:
+            return stop(Stop("monitor", f"the monitor failed while it stopped the window: {error!r}"))
+    except Exception as error:
+        return last_resort(error)
 
 
 if __name__ == "__main__":

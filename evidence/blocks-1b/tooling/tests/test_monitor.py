@@ -332,6 +332,26 @@ class Rules(unittest.TestCase):
         self.assertEqual(SHADCN["buildCheckSeconds"], 30)
         self.assertEqual(SHADCN["maxBackoffSeconds"], 600)
         self.assertEqual(SHADCN["maxRequestsPerWindow"], 123)
+        self.assertEqual(SHADCN["spacingSeconds"], 12)  # the launch's --spacing-ms 12000
+
+    # From the review of 3db4c76.
+    def test_an_unreadable_build_stops_by_the_time_it_has_been_unreadable(self):
+        # Each failed reading can add 20 s of fetching to the 30 s between readings: the clock decides, not the count.
+        self.m.live_build(None, now=1000.0)
+        self.m.live_build(None, now=1200.0)
+        self.m.live_build("BuildA", now=1250.0)  # readable again: the count starts over
+        self.m.live_build(None, now=1280.0)
+        self.m.live_build(None, now=1500.0)
+        self.stops("build", lambda: self.m.live_build(None, now=1581.0))
+
+    def test_a_request_past_the_window_limit_is_still_followed(self):
+        self.m = mon.Monitor(config(maxRequestsPerWindow=1), CORPUS, log=self.logged.append)
+        self.m.begin(MANIFEST, PREFLIGHT)
+        self.request()
+        self.n += 1
+        self.stops("integrity", lambda: self.m.ledger(reserve(self.at, self.n)))
+        self.m.ledger(settle(self.at, self.n))  # its settlement is followed, not a second stop
+        self.assertEqual((self.m.sent, self.m.settled), (2, 2))
 
     # Failures.
     def test_one_provider_failure_is_allowed_and_the_second_stops(self):
@@ -427,12 +447,12 @@ class Loop(unittest.TestCase):
             json.dump({"dir": self.run_dir, "steps": steps}, f)
         return subprocess.Popen([sys.executable, "-I", os.path.join(HERE, "fake_harness.py"), plan], start_new_session=True)
 
-    def watch(self, harness, preflights, timeout=30, pgid=None, **over):
+    def watch(self, harness, preflights, timeout=30, pgid=None, env=None, build_url=None, **over):
         path = os.path.join(self.tmp, "monitor.json")
         with open(path, "w") as f:
             json.dump(config(buildCheckSeconds=0.2, **over), f)
         events = os.path.join(self.tmp, "events.log")
-        watcher = subprocess.Popen([sys.executable, "-I", os.path.join(TOOLING, "monitor_run.py"), "--run", self.run_dir, "--pgid", str(pgid or harness.pid), "--preflights", str(preflights), "--config", path, "--corpus", CORPUS_V2, "--events", events, "--poll", "0.05", "--build-url", f"file://{self.build_file}", "--hand-back-after", "8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        watcher = subprocess.Popen([sys.executable, "-I", os.path.join(TOOLING, "monitor_run.py"), "--run", self.run_dir, "--pgid", str(pgid or harness.pid), "--preflights", str(preflights), "--config", path, "--corpus", CORPUS_V2, "--events", events, "--poll", "0.05", "--build-url", build_url or f"file://{self.build_file}", "--hand-back-after", "8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
         deadline = time.time() + timeout
         while watcher.poll() is None and time.time() < deadline:
             if harness is not None:
@@ -470,6 +490,119 @@ class Loop(unittest.TestCase):
         self.assertEqual(harness.returncode, 3, events)
         self.assertEqual(code, 0, events)
         self.assertIn("stopped itself", events)
+
+    def test_a_hold_the_harness_carries_on_from_is_stopped_without_waiting_out_the_grace(self):
+        # A reply that passes every integrity check but not its price bound (more tokens than its reservation priced)
+        # is held, and the cell goes on with it. The monitor stops the run as soon as the cell's record shows it carried
+        # on, between cells, not after the 15 s grace.
+        at = Clock()
+        sent = reserve(at, 1)
+        held = settle(at, 1, 1.118208)
+        held["reason"] = mon.UNVERIFIED
+        done = record(at)
+        steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": sent}, {"append": "requests.jsonl", "json": held}, {"sleep": 0.5}, {"append": "runs.jsonl", "json": done}, {"sleep": 30}, {"exit": 0}]
+        harness = self.start(steps)
+        began = time.time()
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 10, events)
+        self.assertLess(time.time() - began, 12, events)
+        self.assertIn("HOLD (settlement)", events)
+        self.assertIn("carried on", events)
+
+    def test_a_hold_carried_on_into_another_request_stops_once_that_request_settles(self):
+        # The cell goes on after the hold with another request: a stop on its reservation would leave it in flight (the
+        # next resume raises it to the most a request can cost). The monitor waits for its settlement instead.
+        at = Clock()
+        held = settle(at, 1, 1.118208)
+        held["reason"] = mon.UNVERIFIED
+        lines = [reserve(at, 1), held]
+        later = [reserve(at, 2), settle(at, 2)]
+        lines = [lines[0], dict(lines[1], at=at())]
+        steps = self.opening() + [{"sleep": 0.3}] + [{"append": "requests.jsonl", "json": x} for x in lines] + [{"sleep": 0.5}, {"append": "requests.jsonl", "json": dict(later[0], at=at())}, {"sleep": 1.0}, {"append": "requests.jsonl", "json": dict(later[1], at=at())}, {"sleep": 30}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 10, events)
+        self.assertIn("carried on", events)
+        self.assertIn("harness stopped by the monitor: 0 cells, 2 requests sent, 1 settled", events)
+
+    def test_a_process_group_that_is_not_the_harness_is_never_signalled(self):
+        # The run's lock names the harness: a --pgid that does not hold it (another process, the operator's shell) is
+        # never signalled; the harness the lock names is stopped instead.
+        decoy = subprocess.Popen([sys.executable, "-I", "-c", "import time; time.sleep(60)"], start_new_session=True)
+        try:
+            at = Clock()
+            steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": reserve(at, 1)}, {"append": "requests.jsonl", "json": settle(at, 1, model="claude-haiku-4-5")}, {"sleep": 30}, {"exit": 0}]
+            harness = self.start(steps)
+            code, events = self.watch(harness, 1, pgid=decoy.pid)
+            self.assertIsNone(decoy.poll(), "the monitor signalled a process group that is not the harness's")
+            self.assertEqual(code, 10, events)
+            self.assertIn("not --pgid", events)
+            self.assertEqual(harness.returncode, -15, events)
+        finally:
+            decoy.kill()
+            decoy.wait()
+
+    def test_a_record_and_the_next_request_in_the_same_millisecond_keep_the_chain(self):
+        # The harness logs a cell's record, then reserves the next cell's first request, in the same millisecond: the
+        # record must count first, or the next request's retries start a new chain and five refusals never stop it.
+        t = lambda s: f"2026-10-14T00:00:{s:02d}.000Z"
+        first = record(Clock())
+        first["at"] = t(3)
+        lines = [{"at": t(1), "invocation": ID, "request": f"{ID}#1", "usd": 0.1}, {"at": t(2), "invocation": ID, "request": f"{ID}#1", "final": 0.01, "adjust": -0.09, "reason": mon.SETTLED, "servedModel": MODEL}]
+        refusals = []
+        for n, s in zip(range(2, 7), range(3, 13, 2)):
+            refusals += [{"at": t(s), "invocation": ID, "request": f"{ID}#{n}", "usd": 0.1}, {"at": t(s + 1), "invocation": ID, "request": f"{ID}#{n}", "final": 0, "adjust": -0.1, "reason": mon.RELEASED, "servedModel": MODEL}]
+        steps = self.opening() + [{"sleep": 0.3}] + [{"append": "requests.jsonl", "json": x} for x in lines + refusals] + [{"append": "runs.jsonl", "json": first}, {"sleep": 30}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 10, events)
+        self.assertIn("refused 5 times in a row", events)
+
+    def test_a_failure_inside_a_hold_still_stops_the_window(self):
+        at = Clock()
+        sent = reserve(at, 1)
+        held = settle(at, 1, 1.118208)
+        held["reason"] = mon.UNVERIFIED
+        broken = record(at)
+        broken["calls"] = 5  # a record the monitor cannot read
+        steps = self.opening() + [{"sleep": 0.3}, {"append": "requests.jsonl", "json": sent}, {"append": "requests.jsonl", "json": held}, {"sleep": 0.3}, {"append": "runs.jsonl", "json": broken}, {"sleep": 30}, {"exit": 0}]
+        harness = self.start(steps)
+        code, events = self.watch(harness, 1)
+        self.assertEqual(code, 10, events)
+        self.assertEqual(harness.returncode, -15, events)
+
+    def test_a_deployment_that_redirects_is_followed(self):
+        # The harness's fetch follows redirects; so must the monitor's, or a redirecting root reads as unreadable.
+        import http.server
+        import threading
+
+        class Site(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == "/":
+                    self.send_response(302)
+                    self.send_header("Location", "/app/")
+                    self.end_headers()
+                    return
+                body = {"/app/": b'<script>self.__next_f.push([1,"{\\"b\\":\\"BuildA\\"}"])</script>', "/_next/static/BuildA/_buildManifest.js": b"self.__BUILD_MANIFEST={}"}.get(self.path)
+                self.send_response(200 if body else 404)
+                self.end_headers()
+                self.wfile.write(body or b"")
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Site)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            env = dict(os.environ, NO_PROXY="127.0.0.1,localhost", no_proxy="127.0.0.1,localhost")
+            steps = self.opening() + [{"sleep": 2.0}, {"exit": 0}]
+            harness = self.start(steps)
+            code, events = self.watch(harness, 1, env=env, build_url=f"http://127.0.0.1:{server.server_address[1]}/")
+            self.assertEqual(code, 0, events)
+            self.assertIn("build BuildA", events)
+            self.assertNotIn("could not be read", events)
+        finally:
+            server.shutdown()
 
     def test_a_preflight_count_that_is_not_this_windows_stops_the_window(self):
         second = f"2026-10-14T01:00:00.000Z~1111"
@@ -636,9 +769,11 @@ class Live(unittest.TestCase):
         self.write_build("SyntheticBuildLive")
         self.invocation(300)
         result = self.verify("--complete")
-        self.assertEqual(result["findings"], [])
         self.assertEqual([e["ended"] for e in result["invocations"]], ["cap", "killed", "complete"])
-        self.assertTrue(any("the live build changed during invocation 2 to ['AnotherBuild']" in n for n in result["notes"]), result["notes"])
+        # The cells that settled after the monitor last read the baseline's build may have been measured on the other:
+        # the one finding, for the owner to decide on.
+        self.assertEqual(len(result["findings"]), 1, result["findings"])
+        self.assertIn("the live build changed during invocation 2 to ['AnotherBuild']", result["findings"][0])
 
 
 if __name__ == "__main__":
