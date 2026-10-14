@@ -1,0 +1,12 @@
+{
+  "checkout": "7e260c38029ab0a1df1fc499733ed037c06d60db",
+  "code": {
+    "sha256": "51c80cec7a652216c3b9b28b1467e8c45eb0ecebe170969854bb1d49d3c8a229",
+    "packages": {
+      "@aestheticfunction/dspack-gen": "0.5.0",
+      "@aestheticfunction/dspack-emit": "0.7.0"
+    }
+  },
+  "node": "v22.22.0",
+  "at": "2026-10-14T05:37:52.782Z"
+}

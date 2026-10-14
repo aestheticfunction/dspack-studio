@@ -30,7 +30,7 @@ const scenario = JSON.parse(readFileSync(scenarioPath, "utf8")) as {
   maxTotalUsd: number;
   baseUrl: string;
   buildId: string;
-  invocations: Array<{ note: string; maxRequests: number; rerunFailed?: boolean; events?: Record<string, string>; killAtSpacingAfter?: number; loseLockBefore?: number; maxTotalRequests?: number; refused?: boolean }>;
+  invocations: Array<{ note: string; maxRequests: number; rerunFailed?: boolean; events?: Record<string, string>; killAtSpacingAfter?: number; loseLockBefore?: number; killAfterPreflight?: boolean; maxTotalRequests?: number; refused?: boolean }>;
 };
 
 const tsx = join(root, "packages/block-bench/node_modules/.bin/tsx");
@@ -62,6 +62,7 @@ for (const inv of scenario.invocations) {
     ...(inv.events ? { events: inv.events } : {}),
     ...(inv.killAtSpacingAfter !== undefined ? { killAtSpacingAfter: inv.killAtSpacingAfter } : {}),
     ...(inv.loseLockBefore !== undefined ? { loseLockBefore: inv.loseLockBefore } : {}),
+    ...(inv.killAfterPreflight ? { killAfterPreflight: true } : {}),
   };
   const name = inv.refused ? `refused-${window}` : `invocation-${window}`;
   const configPath = join(out, "configs", `${name}.json`);

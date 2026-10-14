@@ -22,10 +22,13 @@
  * config.sleepScale, the pacer's waits are slept for real at that fraction, so a monitor can watch the run as it goes.
  * With config.loseLockBefore = n, the run's lock is deleted in the spacing wait before the n-th request: the harness
  * puts that request's line on the record, finds the lock no longer its own, and stops (LockLost, exit 1) unsent.
+ * With config.killAfterPreflight, the process is killed (SIGKILL) as soon as its preflight is on the disk: an invocation
+ * that dies before it raises a request an earlier one left open (the harness raises it after writing the preflight).
  *
  * The exit code is the CLI's (live/run.ts stopNotice): 0 complete or a cap, 3 a call the run cannot trust, 1 an error.
  */
-import { readFileSync, rmSync } from "node:fs";
+import fs, { readFileSync, rmSync } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -49,7 +52,19 @@ const config = JSON.parse(readFileSync(process.argv[2]!, "utf8")) as {
   sleepScale?: number;
   /** The run's lock is deleted in the spacing wait before the n-th request: its line is written, then LockLost (exit 1). */
   loseLockBefore?: number;
+  /** Killed as soon as the invocation's preflight is written, before it raises anything. */
+  killAfterPreflight?: boolean;
 };
+
+if (config.killAfterPreflight) {
+  // The harness writes its preflight with writeFileSync (live/evaluate.ts writeJson); its named import follows this.
+  const write = fs.writeFileSync;
+  (fs as { writeFileSync: typeof write }).writeFileSync = ((file: Parameters<typeof write>[0], ...rest: unknown[]) => {
+    (write as (...args: unknown[]) => void)(file, ...rest);
+    if (/preflight(\.resume-\d+)?\.json$/.test(String(file))) process.kill(process.pid, "SIGKILL");
+  }) as typeof write;
+  syncBuiltinESMExports();
+}
 
 const load = (path: string) => import(pathToFileURL(join(config.root, path)).href);
 const { handlePropose, handleModels } = await load("apps/composer/worker/propose.mjs");

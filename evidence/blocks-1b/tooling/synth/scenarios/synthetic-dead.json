@@ -1,0 +1,15 @@
+{
+  "name": "synthetic-dead",
+  "runId": "synthetic-dead",
+  "promptIds": ["rt-01"],
+  "spacingMs": 12000,
+  "maxTotalRequests": 400,
+  "maxTotalUsd": 40,
+  "baseUrl": "https://synthetic.example",
+  "buildId": "SyntheticBuildDead",
+  "invocations": [
+    { "note": "start; killed from outside with its third request in flight", "maxRequests": 30, "events": { "3": "kill" } },
+    { "note": "resume; killed as soon as its preflight is on the disk, before it raises the request left in flight: no ledger line, no pacing entry", "maxRequests": 30, "killAfterPreflight": true },
+    { "note": "resume; the first process after the first window to write to the ledger: it raises the request left in flight, and the run completes", "maxRequests": 300 }
+  ]
+}

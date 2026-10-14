@@ -1,0 +1,6 @@
+invocation 1 start 2026-10-14T05:37:52.803Z
+invocation 1 end 2026-10-14T05:37:55.551Z exit 137
+invocation 2 start 2026-10-14T05:37:55.576Z
+invocation 2 end 2026-10-14T05:37:58.381Z exit 137
+invocation 3 start 2026-10-14T05:37:58.404Z
+invocation 3 end 2026-10-14T05:38:03.809Z exit 0
