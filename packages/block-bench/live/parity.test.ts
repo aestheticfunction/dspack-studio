@@ -45,6 +45,17 @@ describe("parity reads every string a surface shows", () => {
     expect(checkParity(surface, { labels: ["priority", "status"], components: [] })).toEqual({ score: 0, satisfied: [], missing: ["label:priority", "label:status"] });
   });
 
+  it("never reads a component's name as content, so a label it contains stays missing", () => {
+    // shadcn-v3 labels a component name contains: rt-12's "action" (alert-dialog-action), nb-26's "cancel"
+    // (alert-dialog-cancel) and nb-28's "message" (form-message).
+    const surface = { root: { component: "alert-dialog", children: [{ component: "alert-dialog-action", text: "Delete" }, { component: "alert-dialog-cancel", text: "Keep" }, { component: "form-message" }] } };
+    expect(checkParity(surface, { labels: ["action", "cancel", "message", "delete"], components: ["alert-dialog-action"] })).toEqual({
+      score: 0.4,
+      satisfied: ["label:delete", "component:alert-dialog-action"],
+      missing: ["label:action", "label:cancel", "label:message"],
+    });
+  });
+
   it("reads a shadcn table's header labels, which are text nodes, as it always did", () => {
     const head = (text: string) => ({ component: "table-head", text });
     const surface = { root: { component: "table", children: [{ component: "table-header", children: [{ component: "table-row", children: [head("Status"), head("Priority")] }] }] } };
