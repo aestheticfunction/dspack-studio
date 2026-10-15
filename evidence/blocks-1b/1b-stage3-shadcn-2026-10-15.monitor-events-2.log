@@ -1,0 +1,50 @@
+2026-10-15T20:20:38.285Z monitor up: window 2, run live/runs/1b-stage3-shadcn-2026-10-15, harness process group 472, waiting for preflight.resume-1.json; limits {"backoffMs":[30000,60000,120000,240000],"maxReleased":8,"maxBackoffSeconds":600,"maxProviderFailures":1,"maxRequestsPerWindow":123,"openRequestSeconds":600,"buildCheckSeconds":30,"maxUnreadableBuildSeconds":300,"preflightWaitSeconds":180,"holdGraceSeconds":15,"spacingSeconds":12,"progressEvery":40}
+2026-10-15T20:20:44.296Z window opened 2026-10-15T20:20:40.601Z: build Dyml8RSqfWynKU1KbVuZI, code 51c80cec7a65, corpus blocks-1b v2, shadcn-v3
+2026-10-15T20:20:44.298Z the run's lock names pid 503, inside --pgid 472: the harness
+2026-10-15T20:20:46.313Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:21:18.350Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:21:50.393Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:22:22.433Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:22:52.466Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:23:24.505Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:23:56.541Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:24:28.579Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:25:00.619Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:25:32.673Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:26:02.706Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:26:34.739Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:27:06.775Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:27:36.818Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:28:08.852Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:28:40.886Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:29:12.922Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:29:42.955Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:30:14.990Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:30:47.030Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:31:17.067Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:31:49.102Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:32:21.137Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:32:51.168Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:33:23.201Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:33:55.235Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:33:57.236Z 40 cells, 62 requests sent, 62 settled, 0 released (0 s of backoff), 0 provider failures, outcomes {'passed': 37, 'failed-gate': 3}
+2026-10-15T20:34:25.269Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:34:57.302Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:35:27.335Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:35:59.370Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:36:31.405Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:37:01.442Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:37:33.476Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:38:05.512Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:38:35.546Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:39:13.620Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:39:49.661Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:40:19.736Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:40:51.775Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:41:21.810Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:41:53.862Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:41:57.865Z a refusal released at no cost: 2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#99, 1 in a row; the harness waits 30 s if it retries (1 released, 30 s of backoff in this window)
+2026-10-15T20:42:23.895Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:42:53.925Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:43:25.959Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T20:43:31.964Z the harness exited: 73 cells, 105 requests sent, 104 settled, 1 released (30 s of backoff), 0 provider failures, outcomes {'passed': 64, 'failed-gate': 3, 'failed-adapter': 2, 'skipped': 4}
