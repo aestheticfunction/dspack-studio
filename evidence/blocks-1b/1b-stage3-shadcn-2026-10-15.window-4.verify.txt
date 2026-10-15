@@ -1,0 +1,19 @@
+run 2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 4 invocations, 279 of 480 planned cells, 0 moved aside by re-runs
+ledger: 417 reserved, 417 finalized, reasons {'settled at the reported usage': 413, 'refused before any provider call': 4}, committed $18.006551850, by UTC day {'2026-10-15': 18.00655185}
+invocation 1 (cap): 72 records (64 completed, 8 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.455322200; first block|rt-01|fresh, next shadcn-v3|capped|rt-04|refine-add
+invocation 2 (cap): 73 records (69 completed, 4 skipped), 0 moved aside at its start, 105 requests from cells vs 105 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.664056950; first capped|rt-04|refine-add, next shadcn-v3|block-positional|af-02|fresh
+invocation 3 (cap): 66 records (66 completed, 0 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.061161650; first block-positional|af-02|fresh, next shadcn-v3|capped|af-05|refine-content
+invocation 4 (cap): 68 records (68 completed, 0 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.826011050; first capped|af-05|refine-content, next shadcn-v3|production|gs-02|refine-structural
+orphans: []
+cost: {'listUsdLoggedCells': 17.149097, 'withFeeUsdLoggedCells': 18.00655185, 'heldUsd': 0.0, 'cellsPlusHeldUsd': 18.00655185, 'committedUsd': 18.00655185}
+history: [{'from': 0, 'to': 1, 'kept': 0, 'moved': 0, 'new': 72}, {'from': 1, 'to': 2, 'kept': 72, 'moved': 0, 'new': 73}, {'from': 2, 'to': 3, 'kept': 145, 'moved': 0, 'new': 66}, {'from': 3, 'to': 4, 'kept': 211, 'moved': 0, 'new': 68}]
+surfaces: {'digestMismatches': 0, 'operationMismatches': 0, 'changedMismatches': 0, 'operationsRecomputed': 105}
+shadcn-v3: decision insufficient (insufficient); tokens/success {'block': 28851.72131147541, 'capped': 100312.609375, 'production': 104250.7, 'reductionVsProduction': 0.7232467378015168, 'reductionVsCapped': 0.7123819080050183}; pass {'block': 0.8714285714285714, 'capped': 0.9142857142857143, 'production': 0.8695652173913043}; threads {'block': 14, 'capped': 14, 'production': 14}; cohort 14/14
+  reductionVsProduction: spec [0.651811, 0.793047]
+  reductionVsCapped: spec [0.652772, 0.771730]
+  passDiffVsProduction: spec [-0.100000, 0.128571]
+  passDiffVsCapped: spec [-0.128571, 0.071429]
+totals {'records': 279, 'completed': 267, 'providerCalls': 421, 'inputTokens': 15358372, 'outputTokens': 358145, 'requestBytes': 52612924}
+NOTES: 1
+ - 201 planned cells have no record yet, e.g. [('shadcn-v3', 'production', 'gs-02', 'refine-structural'), ('shadcn-v3', 'block', 'gs-03', 'fresh'), ('shadcn-v3', 'block', 'gs-03', 'refine-content')]
+FINDINGS: 0

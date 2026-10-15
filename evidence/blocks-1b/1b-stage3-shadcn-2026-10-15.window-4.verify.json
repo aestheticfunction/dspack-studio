@@ -1,0 +1,5263 @@
+{
+ "findings": [],
+ "notes": [
+  "201 planned cells have no record yet, e.g. [('shadcn-v3', 'production', 'gs-02', 'refine-structural'), ('shadcn-v3', 'block', 'gs-03', 'fresh'), ('shadcn-v3', 'block', 'gs-03', 'refine-content')]"
+ ],
+ "references": {
+  "shadcn-v3": {
+   "decision": {
+    "verdict": "insufficient",
+    "reasons": [
+     "block: 14 prompt threads (70 cells), fewer than the 20 the rule needs",
+     "capped: 14 prompt threads (70 cells), fewer than the 20 the rule needs",
+     "production: 14 prompt threads (69 cells), fewer than the 20 the rule needs"
+    ],
+    "options": {
+     "reduction": 0.3,
+     "margin": 0.05,
+     "minimum": 20
+    },
+    "tokens": {
+     "block": 28851.72131147541,
+     "capped": 100312.609375,
+     "production": 104250.7,
+     "reductionVsProduction": 0.7232467378015168,
+     "reductionVsCapped": 0.7123819080050183
+    },
+    "passRates": {
+     "block": 0.8714285714285714,
+     "capped": 0.9142857142857143,
+     "production": 0.8695652173913043
+    },
+    "evaluated": {
+     "block": 70,
+     "capped": 70,
+     "production": 69
+    },
+    "metered": {
+     "block": 70,
+     "capped": 70,
+     "production": 69
+    },
+    "threads": {
+     "block": 14,
+     "capped": 14,
+     "production": 14
+    },
+    "meteredThreads": {
+     "block": 14,
+     "capped": 14,
+     "production": 14
+    },
+    "counts": {
+     "passed": {
+      "block": 61,
+      "capped": 64,
+      "production": 60
+     },
+     "meteredTokens": {
+      "block": 1759955,
+      "capped": 6420007,
+      "production": 6255042
+     },
+     "meteredSuccesses": {
+      "block": 61,
+      "capped": 64,
+      "production": 60
+     }
+    },
+    "cohort": 14,
+    "meteredCohort": 14,
+    "intervals": {
+     "reductionVsProduction": {
+      "low": 0.6518108235458803,
+      "high": 0.7930473106876819,
+      "resamples": 2000,
+      "prompts": 14
+     },
+     "reductionVsCapped": {
+      "low": 0.6527724460409371,
+      "high": 0.7717298666739932,
+      "resamples": 2000,
+      "prompts": 14
+     },
+     "passDiffVsProduction": {
+      "low": -0.09999999999999998,
+      "high": 0.12857142857142856,
+      "resamples": 2000,
+      "prompts": 14
+     },
+     "passDiffVsCapped": {
+      "low": -0.12857142857142856,
+      "high": 0.0714285714285714,
+      "resamples": 2000,
+      "prompts": 14
+     }
+    },
+    "clarity": {
+     "tokens": "insufficient",
+     "vsProduction": "insufficient",
+     "vsCapped": "insufficient",
+     "overall": "insufficient"
+    },
+    "paired": {
+     "vsProduction": {
+      "prompts": 14,
+      "passRate": {
+       "better": 5,
+       "same": 3,
+       "worse": 6
+      },
+      "tokensPerSuccess": {
+       "lower": 14,
+       "same": 0,
+       "higher": 0,
+       "comparable": 14
+      }
+     },
+     "vsCapped": {
+      "prompts": 14,
+      "passRate": {
+       "better": 3,
+       "same": 4,
+       "worse": 7
+      },
+      "tokensPerSuccess": {
+       "lower": 14,
+       "same": 0,
+       "higher": 0,
+       "comparable": 14
+      }
+     }
+    }
+   },
+   "pooled": {
+    "block": {
+     "n": 70,
+     "skipped": 0,
+     "completed": 70,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 70,
+     "passed": 61,
+     "passRate": 0.8714285714285714,
+     "firstAttemptPassed": 59,
+     "firstAttemptPassRate": 0.8428571428571429,
+     "repairsPerSuccess": 0.03278688524590164,
+     "meteredRuns": 70,
+     "meteredSuccesses": 61,
+     "meteredTokens": 1759955,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 28851.72131147541,
+     "inputTokensPerSuccess": 27892.311475409835,
+     "outputTokensPerSuccess": 959.4098360655738,
+     "tokensPerPassingRun": 10402.032786885246,
+     "providerCallsPerRun": 1.5571428571428572,
+     "requestBytesPerRun": 86859.08571428571,
+     "latency": {
+      "totalMs": 3559.0617024999956,
+      "firstGatedAttemptMs": 3324.0432169999694,
+      "blockPhaseMs": 2507.3767704999773,
+      "emitMs": 112.04646599999978,
+      "planMs": 2752.0036265000235,
+      "pacingMs": 9678.757990000013,
+      "wallTotalMs": 12837.46776899998
+     },
+     "parity": {
+      "meanScore": 0.9508196721311475,
+      "scored": 61,
+      "fullyParityPassed": 56,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 28,
+      "performed": 27,
+      "mixed": 0,
+      "missed": 1,
+      "unchanged": 1,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 12,
+       "performed": 12,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 12,
+       "performed": 11,
+       "mixed": 0,
+       "missed": 1,
+       "unchanged": 1,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 56,
+       "passed": 55
+      },
+      "fallback": {
+       "n": 14,
+       "passed": 6
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 14
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 14
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 2,
+     "changedRate": 0.9791666666666666,
+     "changed": 47,
+     "refinedPassed": 48,
+     "retention": 0.75,
+     "retained": 42,
+     "onBlockPrior": 56
+    },
+    "block-positional": {
+     "n": 70,
+     "skipped": 12,
+     "completed": 58,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 58,
+     "passed": 45,
+     "passRate": 0.7758620689655172,
+     "firstAttemptPassed": 42,
+     "firstAttemptPassRate": 0.7241379310344828,
+     "repairsPerSuccess": 0.06666666666666667,
+     "meteredRuns": 58,
+     "meteredSuccesses": 45,
+     "meteredTokens": 1281513,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 28478.066666666666,
+     "inputTokensPerSuccess": 27395.844444444443,
+     "outputTokensPerSuccess": 1082.2222222222222,
+     "tokensPerPassingRun": 12630.466666666667,
+     "providerCallsPerRun": 1.6896551724137931,
+     "requestBytesPerRun": 75951.25862068965,
+     "latency": {
+      "totalMs": 3540.906316000015,
+      "firstGatedAttemptMs": 3095.727594500029,
+      "blockPhaseMs": 2375.394807000004,
+      "emitMs": 109.24745900000562,
+      "planMs": 2666.795918499978,
+      "pacingMs": 10265.95313899999,
+      "wallTotalMs": 12683.035629999998
+     },
+     "parity": {
+      "meanScore": 0.9703703703703704,
+      "scored": 45,
+      "fullyParityPassed": 43,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 22,
+      "performed": 19,
+      "mixed": 0,
+      "missed": 3,
+      "unchanged": 3,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 8,
+       "performed": 8,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 10,
+       "performed": 7,
+       "mixed": 0,
+       "missed": 3,
+       "unchanged": 3,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 42,
+       "passed": 39
+      },
+      "fallback": {
+       "n": 10,
+       "passed": 4
+      },
+      "provider-failure": {
+       "n": 4,
+       "passed": 0
+      },
+      "block-repair": {
+       "n": 2,
+       "passed": 2
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 8,
+      "1": 2
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 10
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.918918918918919,
+     "changed": 34,
+     "refinedPassed": 37,
+     "retention": 0.75,
+     "retained": 33,
+     "onBlockPrior": 44
+    },
+    "capped": {
+     "n": 70,
+     "skipped": 0,
+     "completed": 70,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 70,
+     "passed": 64,
+     "passRate": 0.9142857142857143,
+     "firstAttemptPassed": 47,
+     "firstAttemptPassRate": 0.6714285714285714,
+     "repairsPerSuccess": 0.328125,
+     "meteredRuns": 70,
+     "meteredSuccesses": 64,
+     "meteredTokens": 6420007,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 100312.609375,
+     "inputTokensPerSuccess": 98324.75,
+     "outputTokensPerSuccess": 1987.859375,
+     "tokensPerPassingRun": 92149.0,
+     "providerCallsPerRun": 1.542857142857143,
+     "requestBytesPerRun": 318359.7428571429,
+     "latency": {
+      "totalMs": 7270.487912000011,
+      "firstGatedAttemptMs": 6829.542873999919,
+      "blockPhaseMs": null,
+      "emitMs": 107.5325989999983,
+      "planMs": 2242.550644000079,
+      "pacingMs": 7427.616012499959,
+      "wallTotalMs": 13336.286272999976
+     },
+     "parity": {
+      "meanScore": 0.9127604166666666,
+      "scored": 64,
+      "fullyParityPassed": 51,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 28,
+      "performed": 23,
+      "mixed": 1,
+      "missed": 4,
+      "unchanged": 4,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 12,
+       "performed": 12,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 12,
+       "performed": 7,
+       "mixed": 1,
+       "missed": 4,
+       "unchanged": 4,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 70,
+       "passed": 64
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.9259259259259259,
+     "changed": 50,
+     "refinedPassed": 54,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production": {
+     "n": 69,
+     "skipped": 0,
+     "completed": 69,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 69,
+     "passed": 60,
+     "passRate": 0.8695652173913043,
+     "firstAttemptPassed": 45,
+     "firstAttemptPassRate": 0.6521739130434783,
+     "repairsPerSuccess": 0.25,
+     "meteredRuns": 69,
+     "meteredSuccesses": 60,
+     "meteredTokens": 6255042,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 104250.7,
+     "inputTokensPerSuccess": 102189.06666666667,
+     "outputTokensPerSuccess": 2061.633333333333,
+     "tokensPerPassingRun": 87769.06666666667,
+     "providerCallsPerRun": 1.536231884057971,
+     "requestBytesPerRun": 287571.49275362317,
+     "latency": {
+      "totalMs": 6665.99294799997,
+      "firstGatedAttemptMs": 6051.11467499999,
+      "blockPhaseMs": null,
+      "emitMs": 106.6536999999953,
+      "planMs": 2135.125492500025,
+      "pacingMs": 7912.711700999993,
+      "wallTotalMs": 13881.966093000025
+     },
+     "parity": {
+      "meanScore": 0.913888888888889,
+      "scored": 60,
+      "fullyParityPassed": 47,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 27,
+      "performed": 23,
+      "mixed": 1,
+      "missed": 3,
+      "unchanged": 3,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 12,
+       "performed": 12,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 12,
+       "performed": 8,
+       "mixed": 1,
+       "missed": 3,
+       "unchanged": 3,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 3,
+       "performed": 3,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 69,
+       "passed": 60
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.9387755102040817,
+     "changed": 46,
+     "refinedPassed": 49,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    }
+   },
+   "perCondition": {
+    "block|fresh": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 14,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 45585,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 3256.0714285714284,
+     "inputTokensPerSuccess": 2878.0,
+     "outputTokensPerSuccess": 378.07142857142856,
+     "tokensPerPassingRun": 3256.0714285714284,
+     "providerCallsPerRun": 2.0,
+     "requestBytesPerRun": 12290.857142857143,
+     "latency": {
+      "totalMs": 6207.684138500015,
+      "firstGatedAttemptMs": 6092.347874000028,
+      "blockPhaseMs": 3599.5679889999155,
+      "emitMs": 111.26556800000253,
+      "planMs": 2752.0036265000235,
+      "pacingMs": 9472.30365250002,
+      "wallTotalMs": 16141.255405499987
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 14,
+      "fullyParityPassed": 14,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "block|refine-content": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 14,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 14314,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 1022.4285714285714,
+     "inputTokensPerSuccess": 864.6428571428571,
+     "outputTokensPerSuccess": 157.78571428571428,
+     "tokensPerPassingRun": 1022.4285714285714,
+     "providerCallsPerRun": 1.0714285714285714,
+     "requestBytesPerRun": 3367.4285714285716,
+     "latency": {
+      "totalMs": 2346.5428620001185,
+      "firstGatedAttemptMs": 2228.952578999988,
+      "blockPhaseMs": 2222.7940879999715,
+      "emitMs": 115.8159015000565,
+      "planMs": null,
+      "pacingMs": 8804.824796500005,
+      "wallTotalMs": 10952.617838999984
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 14,
+      "fullyParityPassed": 14,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 14,
+     "refinedPassed": 14,
+     "retention": 1.0,
+     "retained": 14,
+     "onBlockPrior": 14
+    },
+    "block|refine-add": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 14,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 13430,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 959.2857142857143,
+     "inputTokensPerSuccess": 790.5,
+     "outputTokensPerSuccess": 168.78571428571428,
+     "tokensPerPassingRun": 959.2857142857143,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 3081.785714285714,
+     "latency": {
+      "totalMs": 2734.8309359999985,
+      "firstGatedAttemptMs": 2626.085208500008,
+      "blockPhaseMs": 2620.941121000069,
+      "emitMs": 107.18396049999865,
+      "planMs": null,
+      "pacingMs": 9770.978433000011,
+      "wallTotalMs": 12398.088752500007
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 14,
+      "fullyParityPassed": 14,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 14,
+      "performed": 14,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 2,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 14,
+     "refinedPassed": 14,
+     "retention": 1.0,
+     "retained": 14,
+     "onBlockPrior": 14
+    },
+    "block|refine-remove": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 13,
+     "passRate": 0.9285714285714286,
+     "firstAttemptPassed": 13,
+     "firstAttemptPassRate": 0.9285714285714286,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 13,
+     "meteredTokens": 12890,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 991.5384615384615,
+     "inputTokensPerSuccess": 843.9230769230769,
+     "outputTokensPerSuccess": 147.6153846153846,
+     "tokensPerPassingRun": 939.0769230769231,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 3058.0714285714284,
+     "latency": {
+      "totalMs": 2103.272424499999,
+      "firstGatedAttemptMs": 1994.6478469999856,
+      "blockPhaseMs": 1991.8730179999257,
+      "emitMs": 116.39665450004395,
+      "planMs": null,
+      "pacingMs": 9267.078458499993,
+      "wallTotalMs": 11740.552044499957
+     },
+     "parity": {
+      "meanScore": 0.8205128205128206,
+      "scored": 13,
+      "fullyParityPassed": 9,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 14,
+      "performed": 13,
+      "mixed": 0,
+      "missed": 1,
+      "unchanged": 1,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 6,
+       "performed": 5,
+       "mixed": 0,
+       "missed": 1,
+       "unchanged": 1,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 2,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 14,
+       "passed": 13
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.9285714285714286,
+     "changed": 13,
+     "refinedPassed": 14,
+     "retention": 1.0,
+     "retained": 14,
+     "onBlockPrior": 14
+    },
+    "block|refine-structural": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 6,
+     "passRate": 0.42857142857142855,
+     "firstAttemptPassed": 4,
+     "firstAttemptPassRate": 0.2857142857142857,
+     "repairsPerSuccess": 0.3333333333333333,
+     "meteredRuns": 14,
+     "meteredSuccesses": 6,
+     "meteredTokens": 1673736,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 278956.0,
+     "inputTokensPerSuccess": 271166.0,
+     "outputTokensPerSuccess": 7790.0,
+     "tokensPerPassingRun": 91497.83333333333,
+     "providerCallsPerRun": 2.7142857142857144,
+     "requestBytesPerRun": 412497.28571428574,
+     "latency": {
+      "totalMs": 24005.81232899992,
+      "firstGatedAttemptMs": 16049.081562999985,
+      "blockPhaseMs": 2180.8520830000634,
+      "emitMs": 117.58764599997085,
+      "planMs": null,
+      "pacingMs": 20216.779966500013,
+      "wallTotalMs": 45780.59339149995
+     },
+     "parity": {
+      "meanScore": 0.8888888888888888,
+      "scored": 6,
+      "fullyParityPassed": 5,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "fallback": {
+       "n": 14,
+       "passed": 6
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 14
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 14
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 2,
+     "changedRate": 1.0,
+     "changed": 6,
+     "refinedPassed": 6,
+     "retention": 0.0,
+     "retained": 0,
+     "onBlockPrior": 14
+    },
+    "block-positional|fresh": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 11,
+     "passRate": 0.7857142857142857,
+     "firstAttemptPassed": 11,
+     "firstAttemptPassRate": 0.7857142857142857,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 11,
+     "meteredTokens": 52222,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 4747.454545454545,
+     "inputTokensPerSuccess": 4218.454545454545,
+     "outputTokensPerSuccess": 529.0,
+     "tokensPerPassingRun": 3578.818181818182,
+     "providerCallsPerRun": 2.357142857142857,
+     "requestBytesPerRun": 13708.214285714286,
+     "latency": {
+      "totalMs": 7454.373206500022,
+      "firstGatedAttemptMs": 7133.658990000025,
+      "blockPhaseMs": 4371.648532000021,
+      "emitMs": 119.95151499996427,
+      "planMs": 2666.795918499978,
+      "pacingMs": 12696.469859499979,
+      "wallTotalMs": 20392.737297000072
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 11,
+      "fullyParityPassed": 11,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 10,
+       "passed": 10
+      },
+      "provider-failure": {
+       "n": 3,
+       "passed": 0
+      },
+      "block-repair": {
+       "n": 1,
+       "passed": 1
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "block-positional|refine-content": {
+     "n": 14,
+     "skipped": 3,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 11,
+     "passRate": 1.0,
+     "firstAttemptPassed": 11,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 11,
+     "meteredTokens": 12790,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 1162.7272727272727,
+     "inputTokensPerSuccess": 1019.0909090909091,
+     "outputTokensPerSuccess": 143.63636363636363,
+     "tokensPerPassingRun": 1162.7272727272727,
+     "providerCallsPerRun": 1.0909090909090908,
+     "requestBytesPerRun": 3747.2727272727275,
+     "latency": {
+      "totalMs": 2086.168093000015,
+      "firstGatedAttemptMs": 1974.5168199999898,
+      "blockPhaseMs": 1969.6729199999972,
+      "emitMs": 115.72098500002176,
+      "planMs": null,
+      "pacingMs": 10059.532344999956,
+      "wallTotalMs": 11734.652746000007
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 11,
+      "fullyParityPassed": 11,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 10,
+       "passed": 10
+      },
+      "block-repair": {
+       "n": 1,
+       "passed": 1
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 11,
+     "refinedPassed": 11,
+     "retention": 1.0,
+     "retained": 11,
+     "onBlockPrior": 11
+    },
+    "block-positional|refine-add": {
+     "n": 14,
+     "skipped": 3,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 11,
+     "passRate": 1.0,
+     "firstAttemptPassed": 11,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 11,
+     "meteredTokens": 12074,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 1097.6363636363637,
+     "inputTokensPerSuccess": 942.1818181818181,
+     "outputTokensPerSuccess": 155.45454545454547,
+     "tokensPerPassingRun": 1097.6363636363637,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 3453.909090909091,
+     "latency": {
+      "totalMs": 2457.792788999999,
+      "firstGatedAttemptMs": 2343.0423809999993,
+      "blockPhaseMs": 2338.3971600000004,
+      "emitMs": 104.91817900002934,
+      "planMs": null,
+      "pacingMs": 9918.648503000004,
+      "wallTotalMs": 12308.342899999989
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 11,
+      "fullyParityPassed": 11,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 11,
+      "performed": 11,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 5,
+       "performed": 5,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 2,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 11,
+       "passed": 11
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 11,
+     "refinedPassed": 11,
+     "retention": 1.0,
+     "retained": 11,
+     "onBlockPrior": 11
+    },
+    "block-positional|refine-remove": {
+     "n": 14,
+     "skipped": 3,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 8,
+     "passRate": 0.7272727272727273,
+     "firstAttemptPassed": 8,
+     "firstAttemptPassRate": 0.7272727272727273,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 8,
+     "meteredTokens": 11735,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 1466.875,
+     "inputTokensPerSuccess": 1286.75,
+     "outputTokensPerSuccess": 180.125,
+     "tokensPerPassingRun": 1168.625,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 3431.7272727272725,
+     "latency": {
+      "totalMs": 2319.632362000004,
+      "firstGatedAttemptMs": 2193.4712140000192,
+      "blockPhaseMs": 2188.8281450000068,
+      "emitMs": 102.80409899994265,
+      "planMs": null,
+      "pacingMs": 9551.806507000001,
+      "wallTotalMs": 11745.543015000003
+     },
+     "parity": {
+      "meanScore": 0.875,
+      "scored": 8,
+      "fullyParityPassed": 7,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 11,
+      "performed": 8,
+      "mixed": 0,
+      "missed": 3,
+      "unchanged": 3,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 5,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 3,
+       "unchanged": 3,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 2,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 11,
+       "passed": 8
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.7272727272727273,
+     "changed": 8,
+     "refinedPassed": 11,
+     "retention": 1.0,
+     "retained": 11,
+     "onBlockPrior": 11
+    },
+    "block-positional|refine-structural": {
+     "n": 14,
+     "skipped": 3,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 4,
+     "passRate": 0.36363636363636365,
+     "firstAttemptPassed": 1,
+     "firstAttemptPassRate": 0.09090909090909091,
+     "repairsPerSuccess": 0.75,
+     "meteredRuns": 11,
+     "meteredSuccesses": 4,
+     "meteredTokens": 1192692,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 298173.0,
+     "inputTokensPerSuccess": 288635.5,
+     "outputTokensPerSuccess": 9537.5,
+     "tokensPerPassingRun": 123697.75,
+     "providerCallsPerRun": 2.8181818181818183,
+     "requestBytesPerRun": 372390.54545454547,
+     "latency": {
+      "totalMs": 20897.71721199993,
+      "firstGatedAttemptMs": 17548.008124000044,
+      "blockPhaseMs": 2459.7199220000766,
+      "emitMs": 118.27594700001646,
+      "planMs": null,
+      "pacingMs": 20995.413323000015,
+      "wallTotalMs": 45508.98740000022
+     },
+     "parity": {
+      "meanScore": 0.9166666666666666,
+      "scored": 4,
+      "fullyParityPassed": 3,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "fallback": {
+       "n": 10,
+       "passed": 4
+      },
+      "provider-failure": {
+       "n": 1,
+       "passed": 0
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 8,
+      "1": 2
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 10
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 4,
+     "refinedPassed": 4,
+     "retention": 0.0,
+     "retained": 0,
+     "onBlockPrior": 11
+    },
+    "capped|fresh": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 9,
+     "firstAttemptPassRate": 0.6428571428571429,
+     "repairsPerSuccess": 0.42857142857142855,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 1378528,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 98466.28571428571,
+     "inputTokensPerSuccess": 96316.21428571429,
+     "outputTokensPerSuccess": 2150.0714285714284,
+     "tokensPerPassingRun": 98466.28571428571,
+     "providerCallsPerRun": 2.4285714285714284,
+     "requestBytesPerRun": 341603.64285714284,
+     "latency": {
+      "totalMs": 12030.299223500013,
+      "firstGatedAttemptMs": 8609.048579999991,
+      "blockPhaseMs": null,
+      "emitMs": 110.93630499986466,
+      "planMs": 2242.550644000079,
+      "pacingMs": 14577.316117000093,
+      "wallTotalMs": 26506.63903349996
+     },
+     "parity": {
+      "meanScore": 0.9761904761904762,
+      "scored": 14,
+      "fullyParityPassed": 13,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-content": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 14,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 934685,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 66763.21428571429,
+     "inputTokensPerSuccess": 66116.28571428571,
+     "outputTokensPerSuccess": 646.9285714285714,
+     "tokensPerPassingRun": 66763.21428571429,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 232792.57142857142,
+     "latency": {
+      "totalMs": 3794.317563999968,
+      "firstGatedAttemptMs": 3692.6273294999846,
+      "blockPhaseMs": null,
+      "emitMs": 103.51651849999325,
+      "planMs": null,
+      "pacingMs": 5777.9219284999635,
+      "wallTotalMs": 9692.34748399991
+     },
+     "parity": {
+      "meanScore": 0.875,
+      "scored": 14,
+      "fullyParityPassed": 8,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 14,
+     "refinedPassed": 14,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-add": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 13,
+     "firstAttemptPassRate": 0.9285714285714286,
+     "repairsPerSuccess": 0.07142857142857142,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 1003691,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 71692.21428571429,
+     "inputTokensPerSuccess": 70776.71428571429,
+     "outputTokensPerSuccess": 915.5,
+     "tokensPerPassingRun": 71692.21428571429,
+     "providerCallsPerRun": 1.0714285714285714,
+     "requestBytesPerRun": 249204.2857142857,
+     "latency": {
+      "totalMs": 6347.730396499945,
+      "firstGatedAttemptMs": 6249.441967499995,
+      "blockPhaseMs": null,
+      "emitMs": 102.27298599999631,
+      "planMs": null,
+      "pacingMs": 7477.409216,
+      "wallTotalMs": 12611.98994749997
+     },
+     "parity": {
+      "meanScore": 0.9761904761904762,
+      "scored": 14,
+      "fullyParityPassed": 13,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 14,
+      "performed": 14,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 2,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 14,
+     "refinedPassed": 14,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-remove": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 10,
+     "passRate": 0.7142857142857143,
+     "firstAttemptPassed": 10,
+     "firstAttemptPassRate": 0.7142857142857143,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 10,
+     "meteredTokens": 933250,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 93325.0,
+     "inputTokensPerSuccess": 92551.6,
+     "outputTokensPerSuccess": 773.4,
+     "tokensPerPassingRun": 67506.8,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 232758.57142857142,
+     "latency": {
+      "totalMs": 4609.4278784999915,
+      "firstGatedAttemptMs": 4484.547249999974,
+      "blockPhaseMs": null,
+      "emitMs": 100.91239400001359,
+      "planMs": null,
+      "pacingMs": 6257.411964000028,
+      "wallTotalMs": 10735.10623949999
+     },
+     "parity": {
+      "meanScore": 0.8166666666666667,
+      "scored": 10,
+      "fullyParityPassed": 7,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 14,
+      "performed": 9,
+      "mixed": 1,
+      "missed": 4,
+      "unchanged": 4,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 6,
+       "performed": 1,
+       "mixed": 1,
+       "missed": 4,
+       "unchanged": 4,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 2,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 10
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.7142857142857143,
+     "changed": 10,
+     "refinedPassed": 14,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-structural": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 12,
+     "passRate": 0.8571428571428571,
+     "firstAttemptPassed": 1,
+     "firstAttemptPassRate": 0.07142857142857142,
+     "repairsPerSuccess": 1.1666666666666667,
+     "meteredRuns": 14,
+     "meteredSuccesses": 12,
+     "meteredTokens": 2169853,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 180821.08333333334,
+     "inputTokensPerSuccess": 175194.91666666666,
+     "outputTokensPerSuccess": 5626.166666666667,
+     "tokensPerPassingRun": 158797.0,
+     "providerCallsPerRun": 2.2142857142857144,
+     "requestBytesPerRun": 535439.6428571428,
+     "latency": {
+      "totalMs": 26704.686889000004,
+      "firstGatedAttemptMs": 14824.78483199996,
+      "blockPhaseMs": null,
+      "emitMs": 116.23273049999261,
+      "planMs": null,
+      "pacingMs": 7986.874175499979,
+      "wallTotalMs": 36049.94646899996
+     },
+     "parity": {
+      "meanScore": 0.888888888888889,
+      "scored": 12,
+      "fullyParityPassed": 10,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 12
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 12,
+     "refinedPassed": 12,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|fresh": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 7,
+     "firstAttemptPassRate": 0.5,
+     "repairsPerSuccess": 0.5,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 1438563,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 102754.5,
+     "inputTokensPerSuccess": 100617.5,
+     "outputTokensPerSuccess": 2137.0,
+     "tokensPerPassingRun": 102754.5,
+     "providerCallsPerRun": 2.5,
+     "requestBytesPerRun": 356115.14285714284,
+     "latency": {
+      "totalMs": 10825.962018999991,
+      "firstGatedAttemptMs": 7516.080000999966,
+      "blockPhaseMs": null,
+      "emitMs": 109.99477550006122,
+      "planMs": 2135.125492500025,
+      "pacingMs": 10325.686069999996,
+      "wallTotalMs": 25643.520781999978
+     },
+     "parity": {
+      "meanScore": 0.9761904761904762,
+      "scored": 14,
+      "fullyParityPassed": 13,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-content": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 14,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 936228,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 66873.42857142857,
+     "inputTokensPerSuccess": 66168.35714285714,
+     "outputTokensPerSuccess": 705.0714285714286,
+     "tokensPerPassingRun": 66873.42857142857,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 233019.42857142858,
+     "latency": {
+      "totalMs": 4051.814713999993,
+      "firstGatedAttemptMs": 3936.5353674999933,
+      "blockPhaseMs": null,
+      "emitMs": 106.2676255000406,
+      "planMs": null,
+      "pacingMs": 6339.820091000001,
+      "wallTotalMs": 10024.182524999982
+     },
+     "parity": {
+      "meanScore": 0.8928571428571429,
+      "scored": 14,
+      "fullyParityPassed": 8,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 14,
+     "refinedPassed": 14,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-add": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 14,
+     "passRate": 1.0,
+     "firstAttemptPassed": 14,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 14,
+     "meteredTokens": 939353,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 67096.64285714286,
+     "inputTokensPerSuccess": 66167.21428571429,
+     "outputTokensPerSuccess": 929.4285714285714,
+     "tokensPerPassingRun": 67096.64285714286,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 233009.14285714287,
+     "latency": {
+      "totalMs": 5930.51065150003,
+      "firstGatedAttemptMs": 5798.485426000036,
+      "blockPhaseMs": null,
+      "emitMs": 107.1097490000393,
+      "planMs": null,
+      "pacingMs": 7954.395831000002,
+      "wallTotalMs": 13544.923445000008
+     },
+     "parity": {
+      "meanScore": 0.9761904761904762,
+      "scored": 14,
+      "fullyParityPassed": 13,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 14,
+      "performed": 14,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 2,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 14
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 14,
+     "refinedPassed": 14,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-remove": {
+     "n": 14,
+     "skipped": 0,
+     "completed": 14,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 14,
+     "passed": 10,
+     "passRate": 0.7142857142857143,
+     "firstAttemptPassed": 10,
+     "firstAttemptPassRate": 0.7142857142857143,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 14,
+     "meteredSuccesses": 10,
+     "meteredTokens": 1002088,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 100208.8,
+     "inputTokensPerSuccess": 99219.2,
+     "outputTokensPerSuccess": 989.6,
+     "tokensPerPassingRun": 67290.2,
+     "providerCallsPerRun": 1.0714285714285714,
+     "requestBytesPerRun": 232985.42857142858,
+     "latency": {
+      "totalMs": 4061.68378750002,
+      "firstGatedAttemptMs": 3941.69909800007,
+      "blockPhaseMs": null,
+      "emitMs": 97.1423219999997,
+      "planMs": null,
+      "pacingMs": 6070.168414999993,
+      "wallTotalMs": 10791.506415499964
+     },
+     "parity": {
+      "meanScore": 0.8333333333333333,
+      "scored": 10,
+      "fullyParityPassed": 7,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 13,
+      "performed": 9,
+      "mixed": 1,
+      "missed": 3,
+      "unchanged": 3,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 6,
+       "performed": 2,
+       "mixed": 1,
+       "missed": 3,
+       "unchanged": 3,
+       "unchecked": 0
+      },
+      "guide-steps": {
+       "checked": 1,
+       "performed": 1,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 14,
+       "passed": 10
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.7692307692307693,
+     "changed": 10,
+     "refinedPassed": 13,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-structural": {
+     "n": 13,
+     "skipped": 0,
+     "completed": 13,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 13,
+     "passed": 8,
+     "passRate": 0.6153846153846154,
+     "firstAttemptPassed": 0,
+     "firstAttemptPassRate": 0.0,
+     "repairsPerSuccess": 1.0,
+     "meteredRuns": 13,
+     "meteredSuccesses": 8,
+     "meteredTokens": 1938810,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 242351.25,
+     "inputTokensPerSuccess": 234726.125,
+     "outputTokensPerSuccess": 7625.125,
+     "tokensPerPassingRun": 159887.25,
+     "providerCallsPerRun": 2.1538461538461537,
+     "requestBytesPerRun": 390048.07692307694,
+     "latency": {
+      "totalMs": 22042.322428000014,
+      "firstGatedAttemptMs": 15881.400216500013,
+      "blockPhaseMs": null,
+      "emitMs": 126.27687750000041,
+      "planMs": null,
+      "pacingMs": 7970.273982000072,
+      "wallTotalMs": 31018.956578000012
+     },
+     "parity": {
+      "meanScore": 0.8333333333333334,
+      "scored": 8,
+      "fullyParityPassed": 6,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 13,
+       "passed": 8
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 8,
+     "refinedPassed": 8,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    }
+   },
+   "selection": {
+    "n": 14,
+    "correct": 14,
+    "hit": 14,
+    "missedToNull": 0,
+    "wrongBlock": 0,
+    "nullCorrect": 0,
+    "falseBlock": 0,
+    "explicitNull": 0,
+    "omitted": 0,
+    "rejected": 0,
+    "planningFailed": 0,
+    "intentCorrect": 14,
+    "accuracy": 1.0,
+    "intentAccuracy": 1.0
+   },
+   "encoding": {
+    "paired": {
+     "prompts": 14,
+     "passRate": {
+      "better": 3,
+      "same": 4,
+      "worse": 7
+     },
+     "tokensPerSuccess": {
+      "lower": 6,
+      "same": 0,
+      "higher": 5,
+      "comparable": 11
+     }
+    },
+    "intervals": {
+     "passDiff": {
+      "low": -0.22608695652173916,
+      "high": 0.01625615763546795,
+      "resamples": 2000,
+      "prompts": 14
+     },
+     "tokenReduction": {
+      "low": -0.1799897821026565,
+      "high": 0.17743537042355667,
+      "resamples": 2000,
+      "prompts": 14
+     }
+    }
+   },
+   "readings": {
+    "none": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 62,
+      "capped": 68,
+      "production": 63
+     },
+     "evaluated": {
+      "block": 70,
+      "capped": 70,
+      "production": 69
+     },
+     "reductionVsProduction": 0.7140960250997928,
+     "passRates": {
+      "block": 0.8857142857142857,
+      "capped": 0.9714285714285714,
+      "production": 0.9130434782608695
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6464354370149992,
+       0.7774687245957029
+      ],
+      "reductionVsCapped": [
+       0.6409227309907244,
+       0.7544917287740515
+      ],
+      "passDiffVsProduction": [
+       -0.11366459627329195,
+       0.060924369747899165
+      ],
+      "passDiffVsCapped": [
+       -0.1428571428571429,
+       -0.014285714285714346
+      ]
+     }
+    },
+    "binding (missed or unchecked)": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 61,
+      "capped": 64,
+      "production": 60
+     },
+     "evaluated": {
+      "block": 70,
+      "capped": 70,
+      "production": 69
+     },
+     "reductionVsProduction": 0.7232467378015168,
+     "passRates": {
+      "block": 0.8714285714285714,
+      "capped": 0.9142857142857143,
+      "production": 0.8695652173913043
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6518108235458803,
+       0.7930473106876819
+      ],
+      "reductionVsCapped": [
+       0.6527724460409371,
+       0.7717298666739932
+      ],
+      "passDiffVsProduction": [
+       -0.09999999999999998,
+       0.12857142857142856
+      ],
+      "passDiffVsCapped": [
+       -0.12857142857142856,
+       0.0714285714285714
+      ]
+     }
+    },
+    "missed-and-mixed": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 61,
+      "capped": 63,
+      "production": 59
+     },
+     "evaluated": {
+      "block": 70,
+      "capped": 70,
+      "production": 69
+     },
+     "reductionVsProduction": 0.7278592921714915,
+     "passRates": {
+      "block": 0.8714285714285714,
+      "capped": 0.9,
+      "production": 0.855072463768116
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.653470114661457,
+       0.7998906718800987
+      ],
+      "reductionVsCapped": [
+       0.6530614127374634,
+       0.7795183303302504
+      ],
+      "passDiffVsProduction": [
+       -0.09938405797101456,
+       0.1463768115942029
+      ],
+      "passDiffVsCapped": [
+       -0.12857142857142856,
+       0.08571428571428563
+      ]
+     }
+    },
+    "changed-missed (unchanged misses excused)": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 62,
+      "capped": 68,
+      "production": 63
+     },
+     "evaluated": {
+      "block": 70,
+      "capped": 70,
+      "production": 69
+     },
+     "reductionVsProduction": 0.7140960250997928,
+     "passRates": {
+      "block": 0.8857142857142857,
+      "capped": 0.9714285714285714,
+      "production": 0.9130434782608695
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6464354370149992,
+       0.7774687245957029
+      ],
+      "reductionVsCapped": [
+       0.6409227309907244,
+       0.7544917287740515
+      ],
+      "passDiffVsProduction": [
+       -0.11366459627329195,
+       0.060924369747899165
+      ],
+      "passDiffVsCapped": [
+       -0.1428571428571429,
+       -0.014285714285714346
+      ]
+     }
+    },
+    "changed-missed-and-mixed": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 62,
+      "capped": 67,
+      "production": 62
+     },
+     "evaluated": {
+      "block": 70,
+      "capped": 70,
+      "production": 69
+     },
+     "reductionVsProduction": 0.7186341834315422,
+     "passRates": {
+      "block": 0.8857142857142857,
+      "capped": 0.9571428571428572,
+      "production": 0.8985507246376812
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6478378749422812,
+       0.7844675895504071
+      ],
+      "reductionVsCapped": [
+       0.642474782689964,
+       0.7653869638423366
+      ],
+      "passDiffVsProduction": [
+       -0.11344568262087447,
+       0.09033613445378152
+      ],
+      "passDiffVsCapped": [
+       -0.1428571428571429,
+       0.0
+      ]
+     }
+    }
+   },
+   "bootstrapRobustness": {
+    "independent20000": {
+     "reductionVsProduction": {
+      "low": 0.6514247223932554,
+      "high": 0.7920630356904652,
+      "resamples": 20000,
+      "prompts": 14
+     },
+     "reductionVsCapped": {
+      "low": 0.652245019112551,
+      "high": 0.7722822056984361,
+      "resamples": 20000,
+      "prompts": 14
+     },
+     "passDiffVsProduction": {
+      "low": -0.10000000000000009,
+      "high": 0.12016806722689077,
+      "resamples": 20000,
+      "prompts": 14
+     },
+     "passDiffVsCapped": {
+      "low": -0.12857142857142867,
+      "high": 0.05714285714285716,
+      "resamples": 20000,
+      "prompts": 14
+     }
+    },
+    "seeds200x2000": {
+     "reductionVsProduction": {
+      "lowMin": 0.6484220434753346,
+      "lowMax": 0.6579528900650736,
+      "highMin": 0.784883007611063,
+      "highMax": 0.7975174101954197
+     },
+     "reductionVsCapped": {
+      "lowMin": 0.6468553272900327,
+      "lowMax": 0.6567710042751516,
+      "highMin": 0.7670058005244812,
+      "highMax": 0.7761499504249871
+     },
+     "passDiffVsProduction": {
+      "lowMin": -0.1136697722567288,
+      "lowMax": -0.09896480331262936,
+      "highMin": 0.10897121535181235,
+      "highMax": 0.1310662525879917
+     },
+     "passDiffVsCapped": {
+      "lowMin": -0.1428571428571429,
+      "lowMax": -0.12857142857142856,
+      "highMin": 0.05714285714285716,
+      "highMax": 0.0714285714285714
+     },
+     "overallClarity": {
+      "insufficient": 200
+     },
+     "criteria": {
+      "tokens": {
+       "insufficient": 200
+      },
+      "vsProduction": {
+       "insufficient": 200
+      },
+      "vsCapped": {
+       "insufficient": 200
+      }
+     }
+    }
+   }
+  }
+ },
+ "totals": {
+  "records": 279,
+  "completed": 267,
+  "providerCalls": 421,
+  "inputTokens": 15358372,
+  "outputTokens": 358145,
+  "requestBytes": 52612924
+ },
+ "mapping": {
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#1": {
+   "cell": "block|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#2": {
+   "cell": "block|rt-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#3": {
+   "cell": "block|rt-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#4": {
+   "cell": "block|rt-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#5": {
+   "cell": "block|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#6": {
+   "cell": "block|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#7": {
+   "cell": "block|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#8": {
+   "cell": "block|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#9": {
+   "cell": "block-positional|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#10": {
+   "cell": "block-positional|rt-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#11": {
+   "cell": "block-positional|rt-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#12": {
+   "cell": "block-positional|rt-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#13": {
+   "cell": "block-positional|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#14": {
+   "cell": "block-positional|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#15": {
+   "cell": "block-positional|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#16": {
+   "cell": "block-positional|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#17": {
+   "cell": "capped|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#18": {
+   "cell": "capped|rt-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#19": {
+   "cell": "capped|rt-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#20": {
+   "cell": "capped|rt-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#21": {
+   "cell": "capped|rt-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#22": {
+   "cell": "capped|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#23": {
+   "cell": "capped|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#24": {
+   "cell": "capped|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#25": {
+   "cell": "production|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#26": {
+   "cell": "production|rt-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#27": {
+   "cell": "production|rt-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#28": {
+   "cell": "production|rt-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#29": {
+   "cell": "production|rt-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#30": {
+   "cell": "production|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#31": {
+   "cell": "production|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#32": {
+   "cell": "production|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#33": {
+   "cell": "block|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#34": {
+   "cell": "block|rt-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#35": {
+   "cell": "block|rt-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#36": {
+   "cell": "block|rt-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#37": {
+   "cell": "block|rt-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#38": {
+   "cell": "block|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#39": {
+   "cell": "block|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#40": {
+   "cell": "block|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#41": {
+   "cell": "block-positional|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#42": {
+   "cell": "block-positional|rt-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#43": {
+   "cell": "block-positional|rt-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#44": {
+   "cell": "capped|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#45": {
+   "cell": "capped|rt-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#46": {
+   "cell": "capped|rt-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#47": {
+   "cell": "capped|rt-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#48": {
+   "cell": "capped|rt-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#49": {
+   "cell": "capped|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#50": {
+   "cell": "capped|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#51": {
+   "cell": "production|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#52": {
+   "cell": "production|rt-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#53": {
+   "cell": "production|rt-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#54": {
+   "cell": "production|rt-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#55": {
+   "cell": "production|rt-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#56": {
+   "cell": "production|rt-02|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#57": {
+   "cell": "production|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "refused before any provider call"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#58": {
+   "cell": "production|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#59": {
+   "cell": "block|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#60": {
+   "cell": "block|rt-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#61": {
+   "cell": "block|rt-03|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#62": {
+   "cell": "block|rt-03|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#63": {
+   "cell": "block|rt-03|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#64": {
+   "cell": "block|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#65": {
+   "cell": "block|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#66": {
+   "cell": "block|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#67": {
+   "cell": "block-positional|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#68": {
+   "cell": "block-positional|rt-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#69": {
+   "cell": "block-positional|rt-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#70": {
+   "cell": "capped|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#71": {
+   "cell": "capped|rt-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#72": {
+   "cell": "capped|rt-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#73": {
+   "cell": "capped|rt-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#74": {
+   "cell": "capped|rt-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#75": {
+   "cell": "capped|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#76": {
+   "cell": "capped|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#77": {
+   "cell": "capped|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#78": {
+   "cell": "production|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#79": {
+   "cell": "production|rt-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#80": {
+   "cell": "production|rt-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#81": {
+   "cell": "production|rt-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#82": {
+   "cell": "production|rt-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#83": {
+   "cell": "production|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#84": {
+   "cell": "production|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#85": {
+   "cell": "block|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#86": {
+   "cell": "block|rt-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#87": {
+   "cell": "block|rt-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#88": {
+   "cell": "block|rt-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#89": {
+   "cell": "block|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#90": {
+   "cell": "block|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#91": {
+   "cell": "block|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#92": {
+   "cell": "block|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#93": {
+   "cell": "block-positional|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#94": {
+   "cell": "block-positional|rt-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#95": {
+   "cell": "block-positional|rt-04|fresh",
+   "calls": 1,
+   "operation": "block-repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#96": {
+   "cell": "block-positional|rt-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#97": {
+   "cell": "block-positional|rt-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#98": {
+   "cell": "block-positional|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#99": {
+   "cell": "block-positional|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#100": {
+   "cell": "block-positional|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#101": {
+   "cell": "block-positional|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#102": {
+   "cell": "capped|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#103": {
+   "cell": "capped|rt-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#104": {
+   "cell": "capped|rt-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#1": {
+   "cell": "capped|rt-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#2": {
+   "cell": "capped|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#3": {
+   "cell": "capped|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#4": {
+   "cell": "capped|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#5": {
+   "cell": "capped|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#6": {
+   "cell": "production|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#7": {
+   "cell": "production|rt-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#8": {
+   "cell": "production|rt-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#9": {
+   "cell": "production|rt-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#10": {
+   "cell": "production|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#11": {
+   "cell": "production|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#12": {
+   "cell": "production|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#13": {
+   "cell": "block|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#14": {
+   "cell": "block|rt-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#15": {
+   "cell": "block|rt-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#16": {
+   "cell": "block|rt-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#17": {
+   "cell": "block|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#18": {
+   "cell": "block|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#19": {
+   "cell": "block|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#20": {
+   "cell": "block|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#21": {
+   "cell": "block-positional|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#22": {
+   "cell": "block-positional|rt-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#23": {
+   "cell": "block-positional|rt-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#24": {
+   "cell": "block-positional|rt-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#25": {
+   "cell": "block-positional|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#26": {
+   "cell": "block-positional|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#27": {
+   "cell": "block-positional|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#28": {
+   "cell": "block-positional|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#29": {
+   "cell": "capped|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#30": {
+   "cell": "capped|rt-05|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#31": {
+   "cell": "capped|rt-05|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#32": {
+   "cell": "capped|rt-05|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#33": {
+   "cell": "capped|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#34": {
+   "cell": "capped|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#35": {
+   "cell": "capped|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#36": {
+   "cell": "production|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#37": {
+   "cell": "production|rt-05|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#38": {
+   "cell": "production|rt-05|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#39": {
+   "cell": "production|rt-05|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#40": {
+   "cell": "production|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#41": {
+   "cell": "production|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#42": {
+   "cell": "production|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#43": {
+   "cell": "block|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#44": {
+   "cell": "block|rt-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#45": {
+   "cell": "block|rt-06|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#46": {
+   "cell": "block|rt-06|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#47": {
+   "cell": "block|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#48": {
+   "cell": "block|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#49": {
+   "cell": "block|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#50": {
+   "cell": "block|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#51": {
+   "cell": "block-positional|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#52": {
+   "cell": "block-positional|rt-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#53": {
+   "cell": "block-positional|rt-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#54": {
+   "cell": "block-positional|rt-06|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#55": {
+   "cell": "block-positional|rt-06|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#56": {
+   "cell": "block-positional|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#57": {
+   "cell": "block-positional|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#58": {
+   "cell": "block-positional|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#59": {
+   "cell": "block-positional|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#60": {
+   "cell": "capped|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#61": {
+   "cell": "capped|rt-06|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#62": {
+   "cell": "capped|rt-06|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#63": {
+   "cell": "capped|rt-06|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#64": {
+   "cell": "capped|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#65": {
+   "cell": "capped|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#66": {
+   "cell": "capped|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#67": {
+   "cell": "capped|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#68": {
+   "cell": "production|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#69": {
+   "cell": "production|rt-06|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#70": {
+   "cell": "production|rt-06|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#71": {
+   "cell": "production|rt-06|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#72": {
+   "cell": "production|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#73": {
+   "cell": "production|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#74": {
+   "cell": "production|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#75": {
+   "cell": "block|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#76": {
+   "cell": "block|af-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#77": {
+   "cell": "block|af-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#78": {
+   "cell": "block|af-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#79": {
+   "cell": "block|af-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#80": {
+   "cell": "block|af-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#81": {
+   "cell": "block|af-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#82": {
+   "cell": "block-positional|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#83": {
+   "cell": "block-positional|af-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#84": {
+   "cell": "block-positional|af-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#85": {
+   "cell": "capped|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#86": {
+   "cell": "capped|af-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#87": {
+   "cell": "capped|af-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#88": {
+   "cell": "capped|af-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#89": {
+   "cell": "capped|af-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#90": {
+   "cell": "capped|af-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#91": {
+   "cell": "production|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#92": {
+   "cell": "production|af-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#93": {
+   "cell": "production|af-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#94": {
+   "cell": "production|af-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#95": {
+   "cell": "production|af-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#96": {
+   "cell": "production|af-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#97": {
+   "cell": "production|af-01|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#98": {
+   "cell": "block|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#99": {
+   "cell": "block|af-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "refused before any provider call"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#100": {
+   "cell": "block|af-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#101": {
+   "cell": "block|af-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#102": {
+   "cell": "block|af-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#103": {
+   "cell": "block|af-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#104": {
+   "cell": "block|af-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#105": {
+   "cell": "block|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#1": {
+   "cell": "block-positional|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#2": {
+   "cell": "block-positional|af-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#3": {
+   "cell": "block-positional|af-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#4": {
+   "cell": "block-positional|af-02|refine-content",
+   "calls": 1,
+   "operation": "block-repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#5": {
+   "cell": "block-positional|af-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#6": {
+   "cell": "block-positional|af-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#7": {
+   "cell": "block-positional|af-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#8": {
+   "cell": "block-positional|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#9": {
+   "cell": "capped|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#10": {
+   "cell": "capped|af-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#11": {
+   "cell": "capped|af-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#12": {
+   "cell": "capped|af-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#13": {
+   "cell": "capped|af-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#14": {
+   "cell": "capped|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#15": {
+   "cell": "capped|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#16": {
+   "cell": "production|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#17": {
+   "cell": "production|af-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#18": {
+   "cell": "production|af-02|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#19": {
+   "cell": "production|af-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#20": {
+   "cell": "production|af-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#21": {
+   "cell": "production|af-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#22": {
+   "cell": "production|af-02|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#23": {
+   "cell": "block|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#24": {
+   "cell": "block|af-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#25": {
+   "cell": "block|af-03|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#26": {
+   "cell": "block|af-03|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#27": {
+   "cell": "block|af-03|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#28": {
+   "cell": "block|af-03|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#29": {
+   "cell": "block|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#30": {
+   "cell": "block|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#31": {
+   "cell": "block-positional|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#32": {
+   "cell": "block-positional|af-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#33": {
+   "cell": "block-positional|af-03|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#34": {
+   "cell": "block-positional|af-03|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#35": {
+   "cell": "block-positional|af-03|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#36": {
+   "cell": "block-positional|af-03|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#37": {
+   "cell": "block-positional|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#38": {
+   "cell": "block-positional|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#39": {
+   "cell": "capped|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#40": {
+   "cell": "capped|af-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#41": {
+   "cell": "capped|af-03|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#42": {
+   "cell": "capped|af-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#43": {
+   "cell": "capped|af-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#44": {
+   "cell": "capped|af-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#45": {
+   "cell": "capped|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#46": {
+   "cell": "capped|af-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#47": {
+   "cell": "production|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#48": {
+   "cell": "production|af-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#49": {
+   "cell": "production|af-03|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#50": {
+   "cell": "production|af-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#51": {
+   "cell": "production|af-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#52": {
+   "cell": "production|af-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#53": {
+   "cell": "production|af-03|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#54": {
+   "cell": "production|af-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#55": {
+   "cell": "block|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#56": {
+   "cell": "block|af-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "refused before any provider call"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#57": {
+   "cell": "block|af-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#58": {
+   "cell": "block|af-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#59": {
+   "cell": "block|af-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#60": {
+   "cell": "block|af-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#61": {
+   "cell": "block|af-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#62": {
+   "cell": "block|af-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#63": {
+   "cell": "block-positional|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#64": {
+   "cell": "block-positional|af-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#65": {
+   "cell": "block-positional|af-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#66": {
+   "cell": "block-positional|af-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#67": {
+   "cell": "block-positional|af-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#68": {
+   "cell": "block-positional|af-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#69": {
+   "cell": "block-positional|af-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#70": {
+   "cell": "block-positional|af-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#71": {
+   "cell": "capped|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#72": {
+   "cell": "capped|af-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#73": {
+   "cell": "capped|af-04|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#74": {
+   "cell": "capped|af-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#75": {
+   "cell": "capped|af-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#76": {
+   "cell": "capped|af-04|refine-add",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#77": {
+   "cell": "capped|af-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#78": {
+   "cell": "capped|af-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#79": {
+   "cell": "capped|af-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#80": {
+   "cell": "production|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#81": {
+   "cell": "production|af-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#82": {
+   "cell": "production|af-04|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#83": {
+   "cell": "production|af-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#84": {
+   "cell": "production|af-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#85": {
+   "cell": "production|af-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#86": {
+   "cell": "production|af-04|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#87": {
+   "cell": "block|af-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#88": {
+   "cell": "block|af-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#89": {
+   "cell": "block|af-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#90": {
+   "cell": "block|af-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#91": {
+   "cell": "block|af-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#92": {
+   "cell": "block|af-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#93": {
+   "cell": "block|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#94": {
+   "cell": "block|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#95": {
+   "cell": "block-positional|af-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#96": {
+   "cell": "block-positional|af-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#97": {
+   "cell": "block-positional|af-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#98": {
+   "cell": "block-positional|af-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#99": {
+   "cell": "block-positional|af-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#100": {
+   "cell": "block-positional|af-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#101": {
+   "cell": "block-positional|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#102": {
+   "cell": "block-positional|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#103": {
+   "cell": "capped|af-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#104": {
+   "cell": "capped|af-05|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#1": {
+   "cell": "capped|af-05|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#2": {
+   "cell": "capped|af-05|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#3": {
+   "cell": "capped|af-05|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#4": {
+   "cell": "capped|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#5": {
+   "cell": "capped|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#6": {
+   "cell": "production|af-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#7": {
+   "cell": "production|af-05|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#8": {
+   "cell": "production|af-05|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#9": {
+   "cell": "production|af-05|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#10": {
+   "cell": "production|af-05|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#11": {
+   "cell": "production|af-05|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#12": {
+   "cell": "block|af-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#13": {
+   "cell": "block|af-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#14": {
+   "cell": "block|af-06|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#15": {
+   "cell": "block|af-06|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#16": {
+   "cell": "block|af-06|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#17": {
+   "cell": "block|af-06|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#18": {
+   "cell": "block|af-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#19": {
+   "cell": "block-positional|af-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#20": {
+   "cell": "block-positional|af-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#21": {
+   "cell": "block-positional|af-06|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#22": {
+   "cell": "block-positional|af-06|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#23": {
+   "cell": "block-positional|af-06|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#24": {
+   "cell": "block-positional|af-06|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#25": {
+   "cell": "block-positional|af-06|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#26": {
+   "cell": "capped|af-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#27": {
+   "cell": "capped|af-06|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#28": {
+   "cell": "capped|af-06|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#29": {
+   "cell": "capped|af-06|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#30": {
+   "cell": "capped|af-06|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#31": {
+   "cell": "capped|af-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#32": {
+   "cell": "capped|af-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#33": {
+   "cell": "capped|af-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#34": {
+   "cell": "production|af-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#35": {
+   "cell": "production|af-06|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#36": {
+   "cell": "production|af-06|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#37": {
+   "cell": "production|af-06|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#38": {
+   "cell": "production|af-06|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#39": {
+   "cell": "production|af-06|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#40": {
+   "cell": "block|gs-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#41": {
+   "cell": "block|gs-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#42": {
+   "cell": "block|gs-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#43": {
+   "cell": "block|gs-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#44": {
+   "cell": "block|gs-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "refused before any provider call"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#45": {
+   "cell": "block|gs-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#46": {
+   "cell": "block|gs-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#47": {
+   "cell": "block|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#48": {
+   "cell": "block|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#49": {
+   "cell": "block|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#50": {
+   "cell": "block-positional|gs-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#51": {
+   "cell": "block-positional|gs-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#52": {
+   "cell": "block-positional|gs-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#53": {
+   "cell": "block-positional|gs-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#54": {
+   "cell": "block-positional|gs-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#55": {
+   "cell": "block-positional|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#56": {
+   "cell": "block-positional|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#57": {
+   "cell": "block-positional|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#58": {
+   "cell": "capped|gs-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#59": {
+   "cell": "capped|gs-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#60": {
+   "cell": "capped|gs-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#61": {
+   "cell": "capped|gs-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#62": {
+   "cell": "capped|gs-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#63": {
+   "cell": "capped|gs-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#64": {
+   "cell": "capped|gs-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#65": {
+   "cell": "capped|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#66": {
+   "cell": "capped|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#67": {
+   "cell": "production|gs-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#68": {
+   "cell": "production|gs-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#69": {
+   "cell": "production|gs-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#70": {
+   "cell": "production|gs-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#71": {
+   "cell": "production|gs-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#72": {
+   "cell": "production|gs-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#73": {
+   "cell": "production|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#74": {
+   "cell": "production|gs-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#75": {
+   "cell": "block|gs-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#76": {
+   "cell": "block|gs-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#77": {
+   "cell": "block|gs-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#78": {
+   "cell": "block|gs-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#79": {
+   "cell": "block|gs-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#80": {
+   "cell": "block|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#81": {
+   "cell": "block|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#82": {
+   "cell": "block|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#83": {
+   "cell": "block-positional|gs-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#84": {
+   "cell": "block-positional|gs-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#85": {
+   "cell": "block-positional|gs-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#86": {
+   "cell": "block-positional|gs-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#87": {
+   "cell": "block-positional|gs-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#88": {
+   "cell": "block-positional|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#89": {
+   "cell": "block-positional|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#90": {
+   "cell": "block-positional|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#91": {
+   "cell": "capped|gs-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#92": {
+   "cell": "capped|gs-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#93": {
+   "cell": "capped|gs-02|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#94": {
+   "cell": "capped|gs-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#95": {
+   "cell": "capped|gs-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#96": {
+   "cell": "capped|gs-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#97": {
+   "cell": "capped|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#98": {
+   "cell": "capped|gs-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#99": {
+   "cell": "production|gs-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#100": {
+   "cell": "production|gs-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#101": {
+   "cell": "production|gs-02|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#102": {
+   "cell": "production|gs-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#103": {
+   "cell": "production|gs-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf#104": {
+   "cell": "production|gs-02|refine-remove",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  }
+ },
+ "files": {
+  "REPORT.md": {
+   "bytes": 18988,
+   "lines": 165,
+   "sha256": "ca839277cb0bf7ccc25c4565681043444557ac6aef226fc6364052c96984ff18"
+  },
+  "manifest.json": {
+   "bytes": 2272,
+   "lines": 95,
+   "sha256": "ed43b1e8ef93f1bdd8da18a6b9860f247063afb51e4bf50f387bc50096f8869b"
+  },
+  "pacing.jsonl": {
+   "bytes": 16760,
+   "lines": 4,
+   "sha256": "45d99836da0ebea6c3db8f24e5aaf96cba36364698548fafd71b038c26f47c49"
+  },
+  "preflight.json": {
+   "bytes": 610,
+   "lines": 32,
+   "sha256": "1d8ede7a241e1fd0692bcac6fd3061259b581b0cf707b287084de8cd4777eeba"
+  },
+  "preflight.resume-1.json": {
+   "bytes": 610,
+   "lines": 32,
+   "sha256": "f5fdd338a6cf80685aa2820b5eb983eb5615857583ae4c6bd13d05947edae825"
+  },
+  "preflight.resume-2.json": {
+   "bytes": 610,
+   "lines": 32,
+   "sha256": "d8a39fd86192cf23fab38723210d08bcbcddd1a231270b87e6a7853697117f52"
+  },
+  "preflight.resume-3.json": {
+   "bytes": 610,
+   "lines": 32,
+   "sha256": "de5e2469bb078852346da1cd12173a20afa27d77dc875c7115ae5b00cd668846"
+  },
+  "requests.jsonl": {
+   "bytes": 217267,
+   "lines": 834,
+   "sha256": "bae1774bb09d95febb83bd4690505a657276e6bf5c21fd7850c271f09b629c90"
+  },
+  "runs.jsonl": {
+   "bytes": 1117827,
+   "lines": 279,
+   "sha256": "03bee5504829bf72e02b746b9520867861c08d5d6e6624da95bc35cc89450b8f"
+  },
+  "summary.json": {
+   "bytes": 115247,
+   "lines": 4494,
+   "sha256": "24007f6458f7961b3f5c2726dbfb9286cb82b389b243cda47ad8e3fd31f336a6"
+  }
+ },
+ "identity": {
+  "corpus": {
+   "id": "blocks-1b",
+   "version": 2,
+   "frozenAt": "2026-10-12",
+   "sha256": "0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9"
+  },
+  "corpusFileSha256": "0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9",
+  "code": {
+   "sha256": "51c80cec7a652216c3b9b28b1467e8c45eb0ecebe170969854bb1d49d3c8a229",
+   "packages": {
+    "@aestheticfunction/dspack-gen": "0.5.0",
+    "@aestheticfunction/dspack-emit": "0.7.0"
+   }
+  },
+  "deployment": {
+   "baseUrl": "https://composer.aesthetic-function.com",
+   "buildId": "Dyml8RSqfWynKU1KbVuZI",
+   "worker": "per-call-model"
+  },
+  "servedModel": {
+   "id": "claude-haiku-4-5-20251001",
+   "at": "2026-10-15T00:22:31.936Z"
+  },
+  "provider": "hosted-ai:claude-haiku-4.5@https://composer.aesthetic-function.com",
+  "references": [
+   "shadcn-v3"
+  ]
+ },
+ "planned": 480,
+ "refusedLaunches": {
+  "operator": [],
+  "raisedBy": []
+ },
+ "summaryOf": 4,
+ "history": {
+  "copies": [
+   {
+    "invocations": 1,
+    "dir": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w4/clean-85fbe3606466aa43c07c89a4a4e3c8af27793f23/snapshots/1/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15"
+   },
+   {
+    "invocations": 2,
+    "dir": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w4/clean-85fbe3606466aa43c07c89a4a4e3c8af27793f23/snapshots/2/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15"
+   },
+   {
+    "invocations": 3,
+    "dir": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w4/clean-85fbe3606466aa43c07c89a4a4e3c8af27793f23/snapshots/3/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15"
+   }
+  ],
+  "steps": [
+   {
+    "from": 0,
+    "to": 1,
+    "kept": 0,
+    "moved": 0,
+    "new": 72
+   },
+   {
+    "from": 1,
+    "to": 2,
+    "kept": 72,
+    "moved": 0,
+    "new": 73
+   },
+   {
+    "from": 2,
+    "to": 3,
+    "kept": 145,
+    "moved": 0,
+    "new": 66
+   },
+   {
+    "from": 3,
+    "to": 4,
+    "kept": 211,
+    "moved": 0,
+    "new": 68
+   }
+  ]
+ },
+ "ledger": {
+  "lines": 834,
+  "reserved": 417,
+  "finalized": 417,
+  "reasons": {
+   "settled at the reported usage": 413,
+   "refused before any provider call": 4
+  },
+  "committedUsd": 18.00655185,
+  "byUtcDay": {
+   "2026-10-15": 18.00655185
+  },
+  "invocations": {
+   "1": {
+    "requests": 104,
+    "committedUsd": 4.4553222
+   },
+   "2": {
+    "requests": 105,
+    "committedUsd": 4.66405695
+   },
+   "3": {
+    "requests": 104,
+    "committedUsd": 4.06116165
+   },
+   "4": {
+    "requests": 104,
+    "committedUsd": 4.82601105
+   }
+  },
+  "unverified": [],
+  "leftOpen": [],
+  "inFlight": [],
+  "recordedNotSent": {},
+  "pendingRaiseUsd": 0.0
+ },
+ "invocations": [
+  {
+   "invocation": 1,
+   "id": "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a",
+   "at": "2026-10-15T00:22:24.340Z",
+   "ended": "cap",
+   "maxRequests": 123,
+   "spacingMs": 12000,
+   "sent": 104,
+   "operator": {
+    "start": "2026-10-15T00:22:21Z",
+    "end": "2026-10-15T00:44:57Z",
+    "exit": "0"
+   },
+   "cellsAtStart": 0,
+   "logged": 72,
+   "moved": 0,
+   "nextCell": "shadcn-v3|capped|rt-04|refine-add"
+  },
+  {
+   "invocation": 2,
+   "id": "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64",
+   "at": "2026-10-15T20:20:40.601Z",
+   "ended": "cap",
+   "maxRequests": 123,
+   "spacingMs": 12000,
+   "sent": 105,
+   "operator": {
+    "start": "2026-10-15T20:20:38Z",
+    "end": "2026-10-15T20:43:31Z",
+    "exit": "0"
+   },
+   "cellsAtStart": 72,
+   "logged": 73,
+   "moved": 0,
+   "nextCell": "shadcn-v3|block-positional|af-02|fresh"
+  },
+  {
+   "invocation": 3,
+   "id": "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b",
+   "at": "2026-10-15T23:05:42.280Z",
+   "ended": "cap",
+   "maxRequests": 123,
+   "spacingMs": 12000,
+   "sent": 104,
+   "operator": {
+    "start": "2026-10-15T23:05:40Z",
+    "end": "2026-10-15T23:26:58Z",
+    "exit": "0"
+   },
+   "cellsAtStart": 145,
+   "logged": 66,
+   "moved": 0,
+   "nextCell": "shadcn-v3|capped|af-05|refine-content"
+  },
+  {
+   "invocation": 4,
+   "id": "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf",
+   "at": "2026-10-15T23:29:08.644Z",
+   "ended": "cap",
+   "maxRequests": 123,
+   "spacingMs": 12000,
+   "sent": 104,
+   "operator": {
+    "start": "2026-10-15T23:29:06Z",
+    "end": "2026-10-15T23:52:07Z",
+    "exit": "0"
+   },
+   "cellsAtStart": 211,
+   "logged": 68,
+   "moved": 0,
+   "nextCell": "shadcn-v3|production|gs-02|refine-structural"
+  }
+ ],
+ "windows": {
+  "1": {
+   "recordsLogged": 72,
+   "completed": 64,
+   "skipped": 8,
+   "requestsFromCells": 104,
+   "ledgerRequests": 104,
+   "orphans": [],
+   "mappingMismatches": 0,
+   "settledFromCellsUsd": 4.4553222,
+   "listUsd": 4.243164,
+   "committedUsd": 4.4553222,
+   "firstCell": "block|rt-01|fresh",
+   "lastCell": "capped|rt-04|refine-content",
+   "providerCalls": 104,
+   "workerParseRetries": 1,
+   "releasedRefusals": 1,
+   "exhaustedSchedules": [],
+   "inputTokens": 3723359,
+   "outputTokens": 103961,
+   "backoffMs": [
+    30000
+   ],
+   "waits": {
+    "spacing": 82,
+    "503 busy": 1
+   }
+  },
+  "2": {
+   "recordsLogged": 73,
+   "completed": 69,
+   "skipped": 4,
+   "requestsFromCells": 105,
+   "ledgerRequests": 105,
+   "orphans": [],
+   "mappingMismatches": 0,
+   "settledFromCellsUsd": 4.66405695,
+   "listUsd": 4.441959,
+   "committedUsd": 4.66405695,
+   "firstCell": "capped|rt-04|refine-add",
+   "lastCell": "block|af-02|refine-structural",
+   "providerCalls": 105,
+   "workerParseRetries": 1,
+   "releasedRefusals": 1,
+   "exhaustedSchedules": [],
+   "inputTokens": 3994184,
+   "outputTokens": 89555,
+   "backoffMs": [
+    30000
+   ],
+   "waits": {
+    "spacing": 77,
+    "503 busy": 1
+   }
+  },
+  "3": {
+   "recordsLogged": 66,
+   "completed": 66,
+   "skipped": 0,
+   "requestsFromCells": 104,
+   "ledgerRequests": 104,
+   "orphans": [],
+   "mappingMismatches": 0,
+   "settledFromCellsUsd": 4.06116165,
+   "listUsd": 3.867773,
+   "committedUsd": 4.06116165,
+   "firstCell": "block-positional|af-02|fresh",
+   "lastCell": "capped|af-05|fresh",
+   "providerCalls": 106,
+   "workerParseRetries": 3,
+   "releasedRefusals": 1,
+   "exhaustedSchedules": [],
+   "inputTokens": 3594108,
+   "outputTokens": 54733,
+   "backoffMs": [
+    30000
+   ],
+   "waits": {
+    "spacing": 99,
+    "503 busy": 1
+   }
+  },
+  "4": {
+   "recordsLogged": 68,
+   "completed": 68,
+   "skipped": 0,
+   "requestsFromCells": 104,
+   "ledgerRequests": 104,
+   "orphans": [],
+   "mappingMismatches": 0,
+   "settledFromCellsUsd": 4.82601105,
+   "listUsd": 4.596201,
+   "committedUsd": 4.82601105,
+   "firstCell": "capped|af-05|refine-content",
+   "lastCell": "production|gs-02|refine-remove",
+   "providerCalls": 106,
+   "workerParseRetries": 3,
+   "releasedRefusals": 1,
+   "exhaustedSchedules": [],
+   "inputTokens": 4046721,
+   "outputTokens": 109896,
+   "backoffMs": [
+    30000
+   ],
+   "waits": {
+    "spacing": 78,
+    "503 busy": 1
+   }
+  }
+ },
+ "orphans": [],
+ "exhaustedSchedules": {},
+ "cost": {
+  "listUsdLoggedCells": 17.149097,
+  "withFeeUsdLoggedCells": 18.00655185,
+  "heldUsd": 0.0,
+  "cellsPlusHeldUsd": 18.00655185,
+  "committedUsd": 18.00655185
+ },
+ "surfaceChecks": {
+  "digestMismatches": 0,
+  "operationMismatches": 0,
+  "changedMismatches": 0,
+  "operationsRecomputed": 105
+ },
+ "parity": {
+  "reading": "arrays",
+  "mismatches": 0,
+  "otherReading": {
+   "reading": "no-arrays",
+   "meanScore": {
+    "block": 0.9508196721311475,
+    "block-positional": 0.9703703703703703,
+    "capped": 0.9127604166666666,
+    "production": 0.913888888888889
+   }
+  }
+ },
+ "monitorEvents": [
+  {
+   "events": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w4/clean-85fbe3606466aa43c07c89a4a4e3c8af27793f23/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15.monitor-events-1.log",
+   "window": 1,
+   "last": "the harness exited: 72 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcome",
+   "requestsSeen": 104,
+   "buildReadings": 44,
+   "stops": [],
+   "longestGapSeconds": 32.063
+  },
+  {
+   "events": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w4/clean-85fbe3606466aa43c07c89a4a4e3c8af27793f23/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15.monitor-events-2.log",
+   "window": 2,
+   "last": "the harness exited: 73 cells, 105 requests sent, 104 settled, 1 released (30 s of backoff), 0 provider failures, outcome",
+   "requestsSeen": 105,
+   "buildReadings": 44,
+   "stops": [],
+   "longestGapSeconds": 38.074
+  },
+  {
+   "events": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w4/clean-85fbe3606466aa43c07c89a4a4e3c8af27793f23/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15.monitor-events-3.log",
+   "window": 3,
+   "last": "the harness exited: 66 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcome",
+   "requestsSeen": 104,
+   "buildReadings": 42,
+   "stops": [],
+   "longestGapSeconds": 32.042
+  },
+  {
+   "events": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w4/clean-85fbe3606466aa43c07c89a4a4e3c8af27793f23/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15.monitor-events-4.log",
+   "window": 4,
+   "last": "the harness exited: 68 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcome",
+   "requestsSeen": 104,
+   "buildReadings": 45,
+   "stops": [],
+   "longestGapSeconds": 32.042
+  }
+ ]
+}

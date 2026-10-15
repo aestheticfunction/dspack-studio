@@ -45,6 +45,10 @@ dd3deb9cd4ec924f68ea627a57b257c33c099ea39b4d1130e59c6c27118af8ce  1b-stage3-shad
 1249aed1df205d8e1c788552ba2a0dd2c7202c84a3b2c79788e8a3969d2bbc4e  1b-stage3-shadcn-2026-10-15.window-4.launch-console.txt
 578f2ff13e9dc966f8762d3caa08dc081353c3235ec15dbb27eddd2198474eb5  1b-stage3-shadcn-2026-10-15.window-4.preresume-checks.txt
 fd05a7c0ed763e9c90a30a4e4cb11b96fa70aa4f3ae0f970cbcf483fc02c382c  1b-stage3-shadcn-2026-10-15.window-4.preresume-probe.json
+2c3fe86e10fda11cd472037e1d5dcc80b1368ecedc6dcd8d5b85b38d5aedbe65  1b-stage3-shadcn-2026-10-15.window-4.reconcile.json
+f2fe479f6914dba7db18db52d305f0eb34c8e84027ce524f9458e774eeaa6b0d  1b-stage3-shadcn-2026-10-15.window-4.reconcile.txt
+7593a9c65c35390fd04b67b113f719f523e25cd7f3346ac6488e6395fa2ad4f1  1b-stage3-shadcn-2026-10-15.window-4.verify.json
+95ca6b4088c56a5754450a957447f5ed7f99aee4f8dba81fcc13d8233f7252ca  1b-stage3-shadcn-2026-10-15.window-4.verify.txt
 fdd7d48195450f179e20efeb20955fdfc0bc4ee0ea40b40586cbd878103ed7b1  1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh
 05268b3b49fc66824a8ddb701e586b4067a5c15e1bef6bbef016580daef27321  1b-stage3-shadcn-2026-10-15.window-k.preserve.sh
 c3760143420f66cfc0d049ea28ea5c5ca4463e606665957a7c381ece63f307e6  reconcile_window.py

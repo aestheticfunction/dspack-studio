@@ -270,6 +270,20 @@ There was no provider or policy failure.
 - It read the live build 45 times, always `Dyml8RSqfWynKU1KbVuZI`.
 - It allowed the one refusal within its schedule.
 
+**Verification** of window 4's copy, as origin holds it at `85fbe36`:
+- **`verify_run.py`** (at `e3f57da`), with windows 1 to 3's copies as snapshots and all four monitor events logs:
+  - no findings;
+  - one note: 201 planned cells have no record yet.
+
+  It maps all 417 requests to their cells, with nothing held. It also checks:
+  - the 211 earlier records are kept, and none was moved aside;
+  - each monitor's count equals the ledger's.
+- **`reconcile_window.py`** agrees on every figure across the four windows:
+  - 417 requests, 413 settled and 4 released at $0;
+  - $18.00655185 committed;
+  - every settlement and call on `claude-haiku-4-5-20251001`;
+  - 15,358,372 input and 358,145 output tokens, whose price equals the settled total to the nanodollar.
+
 **Next:** window 5 follows at once with `shadcn-window.sh launch 5 <this window's copy>` (`--preflights 5`), only if window 4's evidence verifies.
 
 ## Files of the run
