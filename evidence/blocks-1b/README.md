@@ -119,6 +119,23 @@ This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and
 - It read the live build 44 times, always `Dyml8RSqfWynKU1KbVuZI`.
 - It allowed the one refusal within its schedule.
 
+**Verification** of window 2's copy, as origin holds it at `4c3db56`:
+- **`verify_run.py`** (at `e3f57da`), with the packet's command (`--snapshot` set to window 1's copy at `1cc106b`, and both monitor events logs):
+  - no findings;
+  - one note: 335 planned cells have no record yet.
+
+  It maps all 209 requests to their cells, with no orphan and nothing held. It also checks:
+  - window 1's 72 records are kept, and none was moved aside;
+  - the 52 add and remove operations recompute with no mismatch;
+  - each monitor's count (104, then 105) equals the ledger's.
+
+  The decision reads "insufficient", as it must with 7 to 8 prompt threads per arm.
+- **`reconcile_window.py`**, independent of the harness and the verifier, agrees on every figure across both windows:
+  - 209 requests, 207 settled and 2 released at $0;
+  - $9.11937915 committed;
+  - every settlement and call on `claude-haiku-4-5-20251001`;
+  - 7,717,543 input and 193,516 output tokens, whose price equals the settled total to the nanodollar.
+
 **Next:** window 3 resumes the run with `--resume live/runs/1b-stage3-shadcn-2026-10-15` and the monitor's `--preflights 3`, and only on the owner's authorization.
 
 ## Files of the run
@@ -136,6 +153,7 @@ This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and
 - `1b-stage3-shadcn-2026-10-15.launch-console.txt`: the launch script's console, holding the checks, the monitor's output and its exit code.
 - `1b-stage3-shadcn-2026-10-15.window-1.verify.json` and `.txt`: the verifier's result and console for window 1's copy, as origin holds it at `1cc106b`.
 - `1b-stage3-shadcn-2026-10-15.window-1.reconcile.json` and `.txt`: the independent reconciliation of the same copy.
+- `1b-stage3-shadcn-2026-10-15.window-2.verify.json` and `.txt`, and `.window-2.reconcile.json` and `.txt`: the verifier's result and the reconciliation for window 2's copy, as origin holds it at `4c3db56`.
 - `reconcile_window.py`: that reconciliation's script. Run it as `python3 -I reconcile_window.py <run dir> <invocations.txt> <monitor events log> <out.json>`.
 - `1b-stage3-shadcn-2026-10-15.SHA256SUMS`: the sha256 of the run directory's files and of every file above. Run `sha256sum -c 1b-stage3-shadcn-2026-10-15.SHA256SUMS` from this directory.
 

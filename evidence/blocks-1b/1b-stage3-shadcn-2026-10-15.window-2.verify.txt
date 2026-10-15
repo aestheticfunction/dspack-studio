@@ -1,0 +1,17 @@
+run 2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 2 invocations, 145 of 480 planned cells, 0 moved aside by re-runs
+ledger: 209 reserved, 209 finalized, reasons {'settled at the reported usage': 207, 'refused before any provider call': 2}, committed $9.119379150, by UTC day {'2026-10-15': 9.11937915}
+invocation 1 (cap): 72 records (64 completed, 8 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.455322200; first block|rt-01|fresh, next shadcn-v3|capped|rt-04|refine-add
+invocation 2 (cap): 73 records (69 completed, 4 skipped), 0 moved aside at its start, 105 requests from cells vs 105 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.664056950; first capped|rt-04|refine-add, next shadcn-v3|block-positional|af-02|fresh
+orphans: []
+cost: {'listUsdLoggedCells': 8.685123, 'withFeeUsdLoggedCells': 9.11937915, 'heldUsd': 0.0, 'cellsPlusHeldUsd': 9.11937915, 'committedUsd': 9.11937915}
+history: [{'from': 0, 'to': 1, 'kept': 0, 'moved': 0, 'new': 72}, {'from': 1, 'to': 2, 'kept': 72, 'moved': 0, 'new': 73}]
+surfaces: {'digestMismatches': 0, 'operationMismatches': 0, 'changedMismatches': 0, 'operationsRecomputed': 52}
+shadcn-v3: decision insufficient (insufficient); tokens/success {'block': 29188.944444444445, 'capped': 92826.35294117648, 'production': 95218.66666666667, 'reductionVsProduction': 0.6934535478570962, 'reductionVsCapped': 0.6855532559494035}; pass {'block': 0.9, 'capped': 0.9714285714285714, 'production': 0.9428571428571428}; threads {'block': 8, 'capped': 7, 'production': 7}; cohort 7/7
+  reductionVsProduction: spec [0.584882, 0.772980]
+  reductionVsCapped: spec [0.595098, 0.726128]
+  passDiffVsProduction: spec [-0.171429, 0.114286]
+  passDiffVsCapped: spec [-0.171429, 0.028571]
+totals {'records': 145, 'completed': 133, 'providerCalls': 209, 'inputTokens': 7717543, 'outputTokens': 193516, 'requestBytes': 27081325}
+NOTES: 1
+ - 335 planned cells have no record yet, e.g. [('shadcn-v3', 'block-positional', 'af-02', 'fresh'), ('shadcn-v3', 'block-positional', 'af-02', 'refine-content'), ('shadcn-v3', 'block-positional', 'af-02', 'refine-add')]
+FINDINGS: 0
