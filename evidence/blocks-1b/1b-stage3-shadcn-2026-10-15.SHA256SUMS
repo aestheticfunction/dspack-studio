@@ -29,4 +29,6 @@ ffb07d564bb451d4405d0d77fef82b6da35e1e8c6f98d8f0a8e941bde8a63d71  1b-stage3-shad
 75be9576870c512036eb3b8a0c62c2de766577d0b1a3cde61857e7f563f25363  1b-stage3-shadcn-2026-10-15.window-2.reconcile.txt
 f20a24290c856fbbc82ee00c457af483b0bdd887d88af22ae3045836baf5642a  1b-stage3-shadcn-2026-10-15.window-2.verify.json
 845986908aa4dfef61af57e39323a0545f33ff06d5fdca94480fdec5994c5ef1  1b-stage3-shadcn-2026-10-15.window-2.verify.txt
+fdd7d48195450f179e20efeb20955fdfc0bc4ee0ea40b40586cbd878103ed7b1  1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh
+05268b3b49fc66824a8ddb701e586b4067a5c15e1bef6bbef016580daef27321  1b-stage3-shadcn-2026-10-15.window-k.preserve.sh
 c3760143420f66cfc0d049ea28ea5c5ca4463e606665957a7c381ece63f307e6  reconcile_window.py

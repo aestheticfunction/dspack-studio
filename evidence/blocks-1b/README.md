@@ -154,6 +154,15 @@ This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and
 - `1b-stage3-shadcn-2026-10-15.window-1.verify.json` and `.txt`: the verifier's result and console for window 1's copy, as origin holds it at `1cc106b`.
 - `1b-stage3-shadcn-2026-10-15.window-1.reconcile.json` and `.txt`: the independent reconciliation of the same copy.
 - `1b-stage3-shadcn-2026-10-15.window-2.verify.json` and `.txt`, and `.window-2.reconcile.json` and `.txt`: the verifier's result and the reconciliation for window 2's copy, as origin holds it at `4c3db56`.
+- `1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh` and `.window-k.preserve.sh`: the operator scripts for window 3 onward, under the owner's standing authorization.
+  - **The launch script** generalizes window 2's. It takes the window number and the commit that preserved the previous window's copy, and reads the expected state from that copy:
+    - the run directory byte-identical to it;
+    - every request finalized, nothing held;
+    - every earlier window stopped at its cap;
+    - the identity and caps unchanged.
+
+    It then repeats every no-cost check and launches the packet's frozen command with `--resume`, with the monitor at `--preflights` equal to the window number, only if all pass.
+  - **The preserve script** adds the window's copy to this branch.
 - `reconcile_window.py`: that reconciliation's script. Run it as `python3 -I reconcile_window.py <run dir> <invocations.txt> <monitor events log> <out.json>`.
 - `1b-stage3-shadcn-2026-10-15.SHA256SUMS`: the sha256 of the run directory's files and of every file above. Run `sha256sum -c 1b-stage3-shadcn-2026-10-15.SHA256SUMS` from this directory.
 
