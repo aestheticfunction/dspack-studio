@@ -4,6 +4,21 @@ This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and
 
 **Status: the run is open.** Windows 1 and 2 are complete. Each stopped cleanly at its request cap, and together they cover 145 of 480 cells. No later window is authorized yet.
 
+## Operational change: the daily spend limit (2026-10-15)
+
+At 22:47Z on 2026-10-15, after window 2 and before window 3, the owner temporarily raised the Cloudflare daily spend limit from $10 to $40. With it, the remaining windows run back to back instead of one per UTC day.
+- **Made by the owner,** and explicitly authorized.
+- **Nothing else changed in Cloudflare:** auto top-up stays off.
+- **Temporary:** the owner restores the $10 limit after the run.
+
+**Nothing in the experiment changes:**
+- each window keeps its 123-request cap and 12 s spacing;
+- the run keeps its $77 and 1,275-request ceilings;
+- the model, build, corpus, sidecars and every identity check stay as they were;
+- each window starts only after the one before it has stopped cleanly at its cap, and its evidence is preserved, verified and pushed.
+
+Only the readiness packet's pace of one window a day, which the $10 limit set, is lifted. A Cloudflare limit response still stops the run, as does any STOP or HOLD, provider failure, integrity or verification finding, or identity change.
+
 ## Window 1 (2026-10-15)
 
 **Authorized by the owner, window 1 only:**
