@@ -54,6 +54,20 @@ This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and
 - It read the live build 44 times, always `Dyml8RSqfWynKU1KbVuZI`, at most 32 s apart.
 - It allowed the one refusal within its schedule.
 
+**Verification** of window 1's copy, as origin holds it at `1cc106b`:
+- **`verify_run.py`** (at `e3f57da`), with the packet's command (`--monitor-config`, `--monitor-events`, `--invocations`, `--expect-build`, `--expect-code`, `--expect-max-requests 123`):
+  - no findings;
+  - one note: 408 planned cells have no record yet.
+
+  It maps every one of the 104 requests to its cell, with no orphan and no request held. It also recomputes:
+  - every surface's digest and the 24 add and remove operations, with no mismatch;
+  - the monitor's count, 104, against the ledger.
+
+  The run's decision reads "insufficient", as it must with 3 to 4 prompt threads per arm.
+- **`reconcile_window.py`** reconciles the window independently from the raw files, and shares no code with the harness or the verifier. It agrees on every figure:
+  - every request, settlement, refusal, model, token and dollar;
+  - the cell records' calls, priced at Claude Haiku 4.5's rates, equal the settled total to the nanodollar.
+
 **Next:** the next window resumes the run with `--resume live/runs/1b-stage3-shadcn-2026-10-15` and the monitor's `--preflights 2`, and only on the owner's authorization.
 
 ## Files of the run
@@ -68,7 +82,10 @@ This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and
 - `1b-stage3-shadcn-2026-10-15.invocation-1.log`: the harness's console output, unedited. Its only warnings are Node's "EnvHttpProxyAgent is experimental".
 - `1b-stage3-shadcn-2026-10-15.monitor-events-1.log`: the operator monitor's events log for window 1.
 - `1b-stage3-shadcn-2026-10-15.launch-console.txt`: the launch script's console, holding the checks, the monitor's output and its exit code.
-- `1b-stage3-shadcn-2026-10-15.SHA256SUMS`: the sha256 of the run directory's files and of the files above. Run `sha256sum -c 1b-stage3-shadcn-2026-10-15.SHA256SUMS` from this directory.
+- `1b-stage3-shadcn-2026-10-15.window-1.verify.json` and `.txt`: the verifier's result and console for window 1's copy, as origin holds it at `1cc106b`.
+- `1b-stage3-shadcn-2026-10-15.window-1.reconcile.json` and `.txt`: the independent reconciliation of the same copy.
+- `reconcile_window.py`: that reconciliation's script. Run it as `python3 -I reconcile_window.py <run dir> <invocations.txt> <monitor events log> <out.json>`.
+- `1b-stage3-shadcn-2026-10-15.SHA256SUMS`: the sha256 of the run directory's files and of every file above. Run `sha256sum -c 1b-stage3-shadcn-2026-10-15.SHA256SUMS` from this directory.
 
 ## The baseline the run is held to
 

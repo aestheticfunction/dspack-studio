@@ -1,0 +1,10 @@
+ledger: 104 reservations, 104 finals, open none, duplicates none, orphan finals none, arithmetic mismatches none, releases above $0 none
+  settled at the reported usage: 103 requests, $4.455322200
+  refused before any provider call: 1 requests, $0.000000000
+  committed $4.455322200; settled at usage $4.455322200 ($4.243164 at list); served models {'claude-haiku-4-5-20251001': 103}
+records: 72 cells, statuses {'completed': 64, 'skipped': 8}, passed 58; arms {'block': 20, 'block-positional': 20, 'capped': 17, 'production': 15}; conditions {'fresh': 15, 'refine-content': 15, 'refine-add': 14, 'refine-remove': 14, 'refine-structural': 14}
+  provider calls 104 (non-provider 1), tokens in 3,723,359 out 103,961, call models {'claude-haiku-4-5-20251001': 104}
+  the records' calls priced $4.455322200; settled minus priced $0.000000000 (the requests of a cell left unrecorded at the stop, if any)
+pacing: invocation 2026-10-15T00:22:24.340Z~85b11514-3f8e-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+operator: ['invocation 1 start 2026-10-15T00:22:21Z', 'invocation 1 end 2026-10-15T00:44:57Z exit 0']
+monitor: 50 lines, STOP/HOLD none, builds {'Dyml8RSqfWynKU1KbVuZI': 44}, last: 2026-10-15T00:44:59.492Z the harness exited: 72 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcomes {'passed': 58, 'failed-gate': 2, 'failed-adapter': 3, 'skipped': 8, 'failed-lint-exhausted': 1}
