@@ -1,0 +1,4465 @@
+{
+ "findings": [],
+ "notes": [
+  "269 planned cells have no record yet, e.g. [('shadcn-v3', 'capped', 'af-05', 'refine-content'), ('shadcn-v3', 'capped', 'af-05', 'refine-add'), ('shadcn-v3', 'capped', 'af-05', 'refine-remove')]"
+ ],
+ "references": {
+  "shadcn-v3": {
+   "decision": {
+    "verdict": "insufficient",
+    "reasons": [
+     "block: 11 prompt threads (55 cells), fewer than the 20 the rule needs",
+     "capped: 11 prompt threads (51 cells), fewer than the 20 the rule needs",
+     "production: 10 prompt threads (50 cells), fewer than the 20 the rule needs"
+    ],
+    "options": {
+     "reduction": 0.3,
+     "margin": 0.05,
+     "minimum": 20
+    },
+    "tokens": {
+     "block": 28461.061224489797,
+     "capped": 95873.95833333333,
+     "production": 101848.82222222222,
+     "reductionVsProduction": 0.7205558139652211,
+     "reductionVsCapped": 0.7031408557729852
+    },
+    "passRates": {
+     "block": 0.8909090909090909,
+     "capped": 0.9411764705882353,
+     "production": 0.9
+    },
+    "evaluated": {
+     "block": 55,
+     "capped": 51,
+     "production": 50
+    },
+    "metered": {
+     "block": 55,
+     "capped": 51,
+     "production": 50
+    },
+    "threads": {
+     "block": 11,
+     "capped": 11,
+     "production": 10
+    },
+    "meteredThreads": {
+     "block": 11,
+     "capped": 11,
+     "production": 10
+    },
+    "counts": {
+     "passed": {
+      "block": 49,
+      "capped": 48,
+      "production": 45
+     },
+     "meteredTokens": {
+      "block": 1394592,
+      "capped": 4601950,
+      "production": 4583197
+     },
+     "meteredSuccesses": {
+      "block": 49,
+      "capped": 48,
+      "production": 45
+     }
+    },
+    "cohort": 10,
+    "meteredCohort": 10,
+    "intervals": {
+     "reductionVsProduction": {
+      "low": 0.6324182783757399,
+      "high": 0.808240649961163,
+      "resamples": 2000,
+      "prompts": 10
+     },
+     "reductionVsCapped": {
+      "low": 0.6312787031841771,
+      "high": 0.7827738213727762,
+      "resamples": 2000,
+      "prompts": 10
+     },
+     "passDiffVsProduction": {
+      "low": -0.14,
+      "high": 0.14,
+      "resamples": 2000,
+      "prompts": 10
+     },
+     "passDiffVsCapped": {
+      "low": -0.16000000000000003,
+      "high": 0.09999999999999998,
+      "resamples": 2000,
+      "prompts": 10
+     }
+    },
+    "clarity": {
+     "tokens": "insufficient",
+     "vsProduction": "insufficient",
+     "vsCapped": "insufficient",
+     "overall": "insufficient"
+    },
+    "paired": {
+     "vsProduction": {
+      "prompts": 10,
+      "passRate": {
+       "better": 3,
+       "same": 2,
+       "worse": 5
+      },
+      "tokensPerSuccess": {
+       "lower": 10,
+       "same": 0,
+       "higher": 0,
+       "comparable": 10
+      }
+     },
+     "vsCapped": {
+      "prompts": 11,
+      "passRate": {
+       "better": 2,
+       "same": 3,
+       "worse": 6
+      },
+      "tokensPerSuccess": {
+       "lower": 11,
+       "same": 0,
+       "higher": 0,
+       "comparable": 11
+      }
+     }
+    }
+   },
+   "pooled": {
+    "block": {
+     "n": 55,
+     "skipped": 0,
+     "completed": 55,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 55,
+     "passed": 49,
+     "passRate": 0.8909090909090909,
+     "firstAttemptPassed": 47,
+     "firstAttemptPassRate": 0.8545454545454545,
+     "repairsPerSuccess": 0.04081632653061224,
+     "meteredRuns": 55,
+     "meteredSuccesses": 49,
+     "meteredTokens": 1394592,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 28461.061224489797,
+     "inputTokensPerSuccess": 27535.061224489797,
+     "outputTokensPerSuccess": 926.0,
+     "tokensPerPassingRun": 11200.408163265307,
+     "providerCallsPerRun": 1.5454545454545454,
+     "requestBytesPerRun": 87752.61818181818,
+     "latency": {
+      "totalMs": 3674.6049799999746,
+      "firstGatedAttemptMs": 3428.826800999974,
+      "blockPhaseMs": 2300.710824000009,
+      "emitMs": 111.26556800000253,
+      "planMs": 2705.4716350000817,
+      "pacingMs": 9745.135873999912,
+      "wallTotalMs": 12687.639557000002
+     },
+     "parity": {
+      "meanScore": 0.9387755102040817,
+      "scored": 49,
+      "fullyParityPassed": 44,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 22,
+      "performed": 22,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 12,
+       "performed": 12,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 10,
+       "performed": 10,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 44,
+       "passed": 44
+      },
+      "fallback": {
+       "n": 11,
+       "passed": 5
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 11
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 11
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 2,
+     "changedRate": 1.0,
+     "changed": 38,
+     "refinedPassed": 38,
+     "retention": 0.75,
+     "retained": 33,
+     "onBlockPrior": 44
+    },
+    "block-positional": {
+     "n": 55,
+     "skipped": 12,
+     "completed": 43,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 43,
+     "passed": 32,
+     "passRate": 0.7441860465116279,
+     "firstAttemptPassed": 31,
+     "firstAttemptPassRate": 0.7209302325581395,
+     "repairsPerSuccess": 0.03125,
+     "meteredRuns": 43,
+     "meteredSuccesses": 32,
+     "meteredTokens": 980161,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 30630.03125,
+     "inputTokensPerSuccess": 29481.46875,
+     "outputTokensPerSuccess": 1148.5625,
+     "tokensPerPassingRun": 8420.03125,
+     "providerCallsPerRun": 1.744186046511628,
+     "requestBytesPerRun": 78525.86046511628,
+     "latency": {
+      "totalMs": 4443.05587000004,
+      "firstGatedAttemptMs": 3403.8896855000057,
+      "blockPhaseMs": 2338.3971600000004,
+      "emitMs": 107.80407099996228,
+      "planMs": 2666.965763999964,
+      "pacingMs": 10304.350635000039,
+      "wallTotalMs": 13071.035283999998
+     },
+     "parity": {
+      "meanScore": 0.9583333333333334,
+      "scored": 32,
+      "fullyParityPassed": 30,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 16,
+      "performed": 14,
+      "mixed": 0,
+      "missed": 2,
+      "unchanged": 2,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 8,
+       "performed": 8,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 8,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 2,
+       "unchanged": 2,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 30,
+       "passed": 28
+      },
+      "fallback": {
+       "n": 8,
+       "passed": 2
+      },
+      "provider-failure": {
+       "n": 3,
+       "passed": 0
+      },
+      "block-repair": {
+       "n": 2,
+       "passed": 2
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 6,
+      "1": 2
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 8
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.9230769230769231,
+     "changed": 24,
+     "refinedPassed": 26,
+     "retention": 0.75,
+     "retained": 24,
+     "onBlockPrior": 32
+    },
+    "capped": {
+     "n": 51,
+     "skipped": 0,
+     "completed": 51,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 51,
+     "passed": 48,
+     "passRate": 0.9411764705882353,
+     "firstAttemptPassed": 36,
+     "firstAttemptPassRate": 0.7058823529411765,
+     "repairsPerSuccess": 0.2916666666666667,
+     "meteredRuns": 51,
+     "meteredSuccesses": 48,
+     "meteredTokens": 4601950,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 95873.95833333333,
+     "inputTokensPerSuccess": 94172.58333333333,
+     "outputTokensPerSuccess": 1701.375,
+     "tokensPerPassingRun": 90410.39583333333,
+     "providerCallsPerRun": 1.5294117647058822,
+     "requestBytesPerRun": 314490.60784313723,
+     "latency": {
+      "totalMs": 6876.178804999916,
+      "firstGatedAttemptMs": 6279.534966499952,
+      "blockPhaseMs": null,
+      "emitMs": 107.18084849999286,
+      "planMs": 2295.328847000026,
+      "pacingMs": 7473.369272999931,
+      "wallTotalMs": 14025.917133999988
+     },
+     "parity": {
+      "meanScore": 0.8836805555555555,
+      "scored": 48,
+      "fullyParityPassed": 35,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 20,
+      "performed": 17,
+      "mixed": 1,
+      "missed": 2,
+      "unchanged": 2,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 12,
+       "performed": 12,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 8,
+       "performed": 5,
+       "mixed": 1,
+       "missed": 2,
+       "unchanged": 2,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 51,
+       "passed": 48
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.9487179487179487,
+     "changed": 37,
+     "refinedPassed": 39,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production": {
+     "n": 50,
+     "skipped": 0,
+     "completed": 50,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 50,
+     "passed": 45,
+     "passRate": 0.9,
+     "firstAttemptPassed": 33,
+     "firstAttemptPassRate": 0.66,
+     "repairsPerSuccess": 0.26666666666666666,
+     "meteredRuns": 50,
+     "meteredSuccesses": 45,
+     "meteredTokens": 4583197,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 101848.82222222222,
+     "inputTokensPerSuccess": 99972.04444444444,
+     "outputTokensPerSuccess": 1876.7777777777778,
+     "tokensPerPassingRun": 90170.46666666666,
+     "providerCallsPerRun": 1.54,
+     "requestBytesPerRun": 295716.6,
+     "latency": {
+      "totalMs": 6183.359735499951,
+      "firstGatedAttemptMs": 5956.9459749999805,
+      "blockPhaseMs": null,
+      "emitMs": 105.09831100003794,
+      "planMs": 2211.753531000024,
+      "pacingMs": 7933.083834999998,
+      "wallTotalMs": 14112.120434000011
+     },
+     "parity": {
+      "meanScore": 0.8851851851851852,
+      "scored": 45,
+      "fullyParityPassed": 32,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 20,
+      "performed": 17,
+      "mixed": 1,
+      "missed": 2,
+      "unchanged": 2,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 12,
+       "performed": 12,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 8,
+       "performed": 5,
+       "mixed": 1,
+       "missed": 2,
+       "unchanged": 2,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 50,
+       "passed": 45
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.9459459459459459,
+     "changed": 35,
+     "refinedPassed": 37,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    }
+   },
+   "perCondition": {
+    "block|fresh": {
+     "n": 11,
+     "skipped": 0,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 11,
+     "passRate": 1.0,
+     "firstAttemptPassed": 11,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 11,
+     "meteredTokens": 35509,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 3228.090909090909,
+     "inputTokensPerSuccess": 2876.4545454545455,
+     "outputTokensPerSuccess": 351.6363636363636,
+     "tokensPerPassingRun": 3228.090909090909,
+     "providerCallsPerRun": 2.0,
+     "requestBytesPerRun": 12297.818181818182,
+     "latency": {
+      "totalMs": 5855.753527000081,
+      "firstGatedAttemptMs": 5758.142856000108,
+      "blockPhaseMs": 3342.4427530000685,
+      "emitMs": 110.52129699999932,
+      "planMs": 2705.4716350000817,
+      "pacingMs": 9434.471997000015,
+      "wallTotalMs": 16212.760752999999
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 11,
+      "fullyParityPassed": 11,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 11,
+       "passed": 11
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "block|refine-content": {
+     "n": 11,
+     "skipped": 0,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 11,
+     "passRate": 1.0,
+     "firstAttemptPassed": 11,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 11,
+     "meteredTokens": 9899,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 899.9090909090909,
+     "inputTokensPerSuccess": 766.0909090909091,
+     "outputTokensPerSuccess": 133.8181818181818,
+     "tokensPerPassingRun": 899.9090909090909,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 2998.909090909091,
+     "latency": {
+      "totalMs": 2317.6498419999843,
+      "firstGatedAttemptMs": 2217.95108899998,
+      "blockPhaseMs": 2214.9744989999454,
+      "emitMs": 113.88513100007549,
+      "planMs": null,
+      "pacingMs": 8761.80620500003,
+      "wallTotalMs": 10991.284844999958
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 11,
+      "fullyParityPassed": 11,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 11,
+       "passed": 11
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 11,
+     "refinedPassed": 11,
+     "retention": 1.0,
+     "retained": 11,
+     "onBlockPrior": 11
+    },
+    "block|refine-add": {
+     "n": 11,
+     "skipped": 0,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 11,
+     "passRate": 1.0,
+     "firstAttemptPassed": 11,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 11,
+     "meteredTokens": 10046,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 913.2727272727273,
+     "inputTokensPerSuccess": 766.1818181818181,
+     "outputTokensPerSuccess": 147.0909090909091,
+     "tokensPerPassingRun": 913.2727272727273,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 2993.181818181818,
+     "latency": {
+      "totalMs": 2637.4030539998785,
+      "firstGatedAttemptMs": 2517.7788429998327,
+      "blockPhaseMs": 2510.790682999883,
+      "emitMs": 106.58038800000213,
+      "planMs": null,
+      "pacingMs": 9683.812891000009,
+      "wallTotalMs": 12108.537948000012
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 11,
+      "fullyParityPassed": 11,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 11,
+      "performed": 11,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 5,
+       "performed": 5,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 11,
+       "passed": 11
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 11,
+     "refinedPassed": 11,
+     "retention": 1.0,
+     "retained": 11,
+     "onBlockPrior": 11
+    },
+    "block|refine-remove": {
+     "n": 11,
+     "skipped": 0,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 11,
+     "passRate": 1.0,
+     "firstAttemptPassed": 11,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 11,
+     "meteredTokens": 9595,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 872.2727272727273,
+     "inputTokensPerSuccess": 759.0909090909091,
+     "outputTokensPerSuccess": 113.18181818181819,
+     "tokensPerPassingRun": 872.2727272727273,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 2970.6363636363635,
+     "latency": {
+      "totalMs": 2087.481706999999,
+      "firstGatedAttemptMs": 1983.397702999995,
+      "blockPhaseMs": 1980.5466849999502,
+      "emitMs": 115.13851000007708,
+      "planMs": null,
+      "pacingMs": 9373.010128000053,
+      "wallTotalMs": 11689.037235000054
+     },
+     "parity": {
+      "meanScore": 0.787878787878788,
+      "scored": 11,
+      "fullyParityPassed": 7,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 11,
+      "performed": 11,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 5,
+       "performed": 5,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 11,
+       "passed": 11
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 11,
+     "refinedPassed": 11,
+     "retention": 1.0,
+     "retained": 11,
+     "onBlockPrior": 11
+    },
+    "block|refine-structural": {
+     "n": 11,
+     "skipped": 0,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 5,
+     "passRate": 0.45454545454545453,
+     "firstAttemptPassed": 3,
+     "firstAttemptPassRate": 0.2727272727272727,
+     "repairsPerSuccess": 0.4,
+     "meteredRuns": 11,
+     "meteredSuccesses": 5,
+     "meteredTokens": 1329543,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 265908.6,
+     "inputTokensPerSuccess": 258474.4,
+     "outputTokensPerSuccess": 7434.2,
+     "tokensPerPassingRun": 96754.2,
+     "providerCallsPerRun": 2.727272727272727,
+     "requestBytesPerRun": 417502.54545454547,
+     "latency": {
+      "totalMs": 23396.66097899992,
+      "firstGatedAttemptMs": 17388.747044999996,
+      "blockPhaseMs": 2300.710824000009,
+      "emitMs": 117.58764599997085,
+      "planMs": null,
+      "pacingMs": 20598.235054000048,
+      "wallTotalMs": 45826.44901699992
+     },
+     "parity": {
+      "meanScore": 0.8666666666666666,
+      "scored": 5,
+      "fullyParityPassed": 4,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "fallback": {
+       "n": 11,
+       "passed": 5
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 11
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 11
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 2,
+     "changedRate": 1.0,
+     "changed": 5,
+     "refinedPassed": 5,
+     "retention": 0.0,
+     "retained": 0,
+     "onBlockPrior": 11
+    },
+    "block-positional|fresh": {
+     "n": 11,
+     "skipped": 0,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 8,
+     "passRate": 0.7272727272727273,
+     "firstAttemptPassed": 8,
+     "firstAttemptPassRate": 0.7272727272727273,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 11,
+     "meteredSuccesses": 8,
+     "meteredTokens": 41837,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 5229.625,
+     "inputTokensPerSuccess": 4653.25,
+     "outputTokensPerSuccess": 576.375,
+     "tokensPerPassingRun": 3622.75,
+     "providerCallsPerRun": 2.4545454545454546,
+     "requestBytesPerRun": 13967.454545454546,
+     "latency": {
+      "totalMs": 7426.013622000115,
+      "firstGatedAttemptMs": 6770.034058000019,
+      "blockPhaseMs": 4279.763738000067,
+      "emitMs": 120.67031650000717,
+      "planMs": 2666.965763999964,
+      "pacingMs": 13083.80362099997,
+      "wallTotalMs": 21855.611281000078
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 8,
+      "fullyParityPassed": 8,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 7,
+       "passed": 7
+      },
+      "provider-failure": {
+       "n": 3,
+       "passed": 0
+      },
+      "block-repair": {
+       "n": 1,
+       "passed": 1
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "block-positional|refine-content": {
+     "n": 11,
+     "skipped": 3,
+     "completed": 8,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 8,
+     "passed": 8,
+     "passRate": 1.0,
+     "firstAttemptPassed": 8,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 8,
+     "meteredSuccesses": 8,
+     "meteredTokens": 8912,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 1114.0,
+     "inputTokensPerSuccess": 1003.25,
+     "outputTokensPerSuccess": 110.75,
+     "tokensPerPassingRun": 1114.0,
+     "providerCallsPerRun": 1.125,
+     "requestBytesPerRun": 3698.0,
+     "latency": {
+      "totalMs": 1927.490122499963,
+      "firstGatedAttemptMs": 1825.0981674999784,
+      "blockPhaseMs": 1820.842503000029,
+      "emitMs": 111.5957180000114,
+      "planMs": null,
+      "pacingMs": 10181.941489999997,
+      "wallTotalMs": 11933.377442999918
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 8,
+      "fullyParityPassed": 8,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "block": {
+       "n": 7,
+       "passed": 7
+      },
+      "block-repair": {
+       "n": 1,
+       "passed": 1
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 8,
+     "refinedPassed": 8,
+     "retention": 1.0,
+     "retained": 8,
+     "onBlockPrior": 8
+    },
+    "block-positional|refine-add": {
+     "n": 11,
+     "skipped": 3,
+     "completed": 8,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 8,
+     "passed": 8,
+     "passRate": 1.0,
+     "firstAttemptPassed": 8,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 8,
+     "meteredSuccesses": 8,
+     "meteredTokens": 8166,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 1020.75,
+     "inputTokensPerSuccess": 899.625,
+     "outputTokensPerSuccess": 121.125,
+     "tokensPerPassingRun": 1020.75,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 3304.75,
+     "latency": {
+      "totalMs": 2450.929026999933,
+      "firstGatedAttemptMs": 2325.599478999964,
+      "blockPhaseMs": 2320.8333060000186,
+      "emitMs": 105.72241599997506,
+      "planMs": null,
+      "pacingMs": 10073.102072999973,
+      "wallTotalMs": 12238.364364000008
+     },
+     "parity": {
+      "meanScore": 1.0,
+      "scored": 8,
+      "fullyParityPassed": 8,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 8,
+      "performed": 8,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 8,
+       "passed": 8
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 8,
+     "refinedPassed": 8,
+     "retention": 1.0,
+     "retained": 8,
+     "onBlockPrior": 8
+    },
+    "block-positional|refine-remove": {
+     "n": 11,
+     "skipped": 3,
+     "completed": 8,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 8,
+     "passed": 6,
+     "passRate": 0.75,
+     "firstAttemptPassed": 6,
+     "firstAttemptPassRate": 0.75,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 8,
+     "meteredSuccesses": 6,
+     "meteredTokens": 7918,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 1319.6666666666667,
+     "inputTokensPerSuccess": 1190.8333333333333,
+     "outputTokensPerSuccess": 128.83333333333334,
+     "tokensPerPassingRun": 1054.1666666666667,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 3284.75,
+     "latency": {
+      "totalMs": 2181.7985165000136,
+      "firstGatedAttemptMs": 2067.321706500021,
+      "blockPhaseMs": 2063.7256280000292,
+      "emitMs": 104.79790099995444,
+      "planMs": null,
+      "pacingMs": 9552.423588500009,
+      "wallTotalMs": 11729.499723000015
+     },
+     "parity": {
+      "meanScore": 0.8333333333333334,
+      "scored": 6,
+      "fullyParityPassed": 5,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 8,
+      "performed": 6,
+      "mixed": 0,
+      "missed": 2,
+      "unchanged": 2,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 4,
+       "performed": 2,
+       "mixed": 0,
+       "missed": 2,
+       "unchanged": 2,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "block": {
+       "n": 8,
+       "passed": 6
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.75,
+     "changed": 6,
+     "refinedPassed": 8,
+     "retention": 1.0,
+     "retained": 8,
+     "onBlockPrior": 8
+    },
+    "block-positional|refine-structural": {
+     "n": 11,
+     "skipped": 3,
+     "completed": 8,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 8,
+     "passed": 2,
+     "passRate": 0.25,
+     "firstAttemptPassed": 1,
+     "firstAttemptPassRate": 0.125,
+     "repairsPerSuccess": 0.5,
+     "meteredRuns": 8,
+     "meteredSuccesses": 2,
+     "meteredTokens": 913328,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 456664.0,
+     "inputTokensPerSuccess": 441906.5,
+     "outputTokensPerSuccess": 14757.5,
+     "tokensPerPassingRun": 108528.0,
+     "providerCallsPerRun": 2.875,
+     "requestBytesPerRun": 392583.75,
+     "latency": {
+      "totalMs": 19446.115574000054,
+      "firstGatedAttemptMs": 18206.030557500046,
+      "blockPhaseMs": 2485.535936000022,
+      "emitMs": 0.8016480000223964,
+      "planMs": null,
+      "pacingMs": 21788.993446499982,
+      "wallTotalMs": 45992.48522899998
+     },
+     "parity": {
+      "meanScore": 0.8333333333333333,
+      "scored": 2,
+      "fullyParityPassed": 1,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "fallback": {
+       "n": 8,
+       "passed": 2
+      }
+     },
+     "budgetRemainingAtFallback": {
+      "2": 6,
+      "1": 2
+     },
+     "fallbackByClassification": {
+      "unsupported-refinement": 8
+     },
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 2,
+     "refinedPassed": 2,
+     "retention": 0.0,
+     "retained": 0,
+     "onBlockPrior": 8
+    },
+    "capped|fresh": {
+     "n": 11,
+     "skipped": 0,
+     "completed": 11,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 11,
+     "passed": 11,
+     "passRate": 1.0,
+     "firstAttemptPassed": 8,
+     "firstAttemptPassRate": 0.7272727272727273,
+     "repairsPerSuccess": 0.2727272727272727,
+     "meteredRuns": 11,
+     "meteredSuccesses": 11,
+     "meteredTokens": 961962,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 87451.09090909091,
+     "inputTokensPerSuccess": 86169.0,
+     "outputTokensPerSuccess": 1282.090909090909,
+     "tokensPerPassingRun": 87451.09090909091,
+     "providerCallsPerRun": 2.272727272727273,
+     "requestBytesPerRun": 305427.0909090909,
+     "latency": {
+      "totalMs": 11425.868615000043,
+      "firstGatedAttemptMs": 8586.733435999988,
+      "blockPhaseMs": null,
+      "emitMs": 109.43088500003796,
+      "planMs": 2295.328847000026,
+      "pacingMs": 16966.977093000016,
+      "wallTotalMs": 25671.461486
+     },
+     "parity": {
+      "meanScore": 0.9696969696969696,
+      "scored": 11,
+      "fullyParityPassed": 10,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 11,
+       "passed": 11
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-content": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 10,
+     "passRate": 1.0,
+     "firstAttemptPassed": 10,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 10,
+     "meteredSuccesses": 10,
+     "meteredTokens": 671405,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 67140.5,
+     "inputTokensPerSuccess": 66619.9,
+     "outputTokensPerSuccess": 520.6,
+     "tokensPerPassingRun": 67140.5,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 234925.9,
+     "latency": {
+      "totalMs": 3794.317563999968,
+      "firstGatedAttemptMs": 3692.6273294999846,
+      "blockPhaseMs": null,
+      "emitMs": 98.61198799998965,
+      "planMs": null,
+      "pacingMs": 6109.614309999975,
+      "wallTotalMs": 9692.34748399991
+     },
+     "parity": {
+      "meanScore": 0.825,
+      "scored": 10,
+      "fullyParityPassed": 4,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 10
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 10,
+     "refinedPassed": 10,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-add": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 10,
+     "passRate": 1.0,
+     "firstAttemptPassed": 9,
+     "firstAttemptPassRate": 0.9,
+     "repairsPerSuccess": 0.1,
+     "meteredRuns": 10,
+     "meteredSuccesses": 10,
+     "meteredTokens": 739739,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 73973.9,
+     "inputTokensPerSuccess": 73146.3,
+     "outputTokensPerSuccess": 827.6,
+     "tokensPerPassingRun": 73973.9,
+     "providerCallsPerRun": 1.1,
+     "requestBytesPerRun": 257911.3,
+     "latency": {
+      "totalMs": 6347.730396499945,
+      "firstGatedAttemptMs": 6249.441967499995,
+      "blockPhaseMs": null,
+      "emitMs": 101.61841549999372,
+      "planMs": null,
+      "pacingMs": 7477.409216,
+      "wallTotalMs": 12969.44977649994
+     },
+     "parity": {
+      "meanScore": 0.9666666666666666,
+      "scored": 10,
+      "fullyParityPassed": 9,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 10,
+      "performed": 10,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 10
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 10,
+     "refinedPassed": 10,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-remove": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 8,
+     "passRate": 0.8,
+     "firstAttemptPassed": 8,
+     "firstAttemptPassRate": 0.8,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 10,
+     "meteredSuccesses": 8,
+     "meteredTokens": 670439,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 83804.875,
+     "inputTokensPerSuccess": 83265.375,
+     "outputTokensPerSuccess": 539.5,
+     "tokensPerPassingRun": 67660.125,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 234894.9,
+     "latency": {
+      "totalMs": 4609.4278784999915,
+      "firstGatedAttemptMs": 4484.547249999974,
+      "blockPhaseMs": null,
+      "emitMs": 104.51696199999424,
+      "planMs": null,
+      "pacingMs": 6257.411964000028,
+      "wallTotalMs": 10731.239751000016
+     },
+     "parity": {
+      "meanScore": 0.7708333333333333,
+      "scored": 8,
+      "fullyParityPassed": 5,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 10,
+      "performed": 7,
+      "mixed": 1,
+      "missed": 2,
+      "unchanged": 2,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 4,
+       "performed": 1,
+       "mixed": 1,
+       "missed": 2,
+       "unchanged": 2,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 8
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.8,
+     "changed": 8,
+     "refinedPassed": 10,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "capped|refine-structural": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 9,
+     "passRate": 0.9,
+     "firstAttemptPassed": 1,
+     "firstAttemptPassRate": 0.1,
+     "repairsPerSuccess": 1.1111111111111112,
+     "meteredRuns": 10,
+     "meteredSuccesses": 9,
+     "meteredTokens": 1558405,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 173156.11111111112,
+     "inputTokensPerSuccess": 167626.66666666666,
+     "outputTokensPerSuccess": 5529.444444444444,
+     "tokensPerPassingRun": 158368.0,
+     "providerCallsPerRun": 2.2,
+     "requestBytesPerRun": 540200.2,
+     "latency": {
+      "totalMs": 26704.686889000004,
+      "firstGatedAttemptMs": 14691.170441999999,
+      "blockPhaseMs": null,
+      "emitMs": 116.57124199997634,
+      "planMs": null,
+      "pacingMs": 7986.874175499979,
+      "wallTotalMs": 34846.19274899998
+     },
+     "parity": {
+      "meanScore": 0.8518518518518519,
+      "scored": 9,
+      "fullyParityPassed": 7,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 9
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 9,
+     "refinedPassed": 9,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|fresh": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 10,
+     "passRate": 1.0,
+     "firstAttemptPassed": 5,
+     "firstAttemptPassRate": 0.5,
+     "repairsPerSuccess": 0.5,
+     "meteredRuns": 10,
+     "meteredSuccesses": 10,
+     "meteredTokens": 1027426,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 102742.6,
+     "inputTokensPerSuccess": 101174.4,
+     "outputTokensPerSuccess": 1568.2,
+     "tokensPerPassingRun": 102742.6,
+     "providerCallsPerRun": 2.5,
+     "requestBytesPerRun": 358354.0,
+     "latency": {
+      "totalMs": 10825.962018999991,
+      "firstGatedAttemptMs": 7516.080000999966,
+      "blockPhaseMs": null,
+      "emitMs": 103.91355200001271,
+      "planMs": 2211.753531000024,
+      "pacingMs": 10315.52269100002,
+      "wallTotalMs": 24796.424824
+     },
+     "parity": {
+      "meanScore": 0.9666666666666666,
+      "scored": 10,
+      "fullyParityPassed": 9,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 10
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": null,
+     "changed": 0,
+     "refinedPassed": 0,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-content": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 10,
+     "passRate": 1.0,
+     "firstAttemptPassed": 10,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 10,
+     "meteredSuccesses": 10,
+     "meteredTokens": 672308,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 67230.8,
+     "inputTokensPerSuccess": 66661.0,
+     "outputTokensPerSuccess": 569.8,
+     "tokensPerPassingRun": 67230.8,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 235087.8,
+     "latency": {
+      "totalMs": 4051.814713999993,
+      "firstGatedAttemptMs": 3936.5353674999933,
+      "blockPhaseMs": null,
+      "emitMs": 102.06000100004167,
+      "planMs": null,
+      "pacingMs": 6339.820091000001,
+      "wallTotalMs": 9815.47664300003
+     },
+     "parity": {
+      "meanScore": 0.85,
+      "scored": 10,
+      "fullyParityPassed": 4,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 10
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 10,
+     "refinedPassed": 10,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-add": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 10,
+     "passRate": 1.0,
+     "firstAttemptPassed": 10,
+     "firstAttemptPassRate": 1.0,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 10,
+     "meteredSuccesses": 10,
+     "meteredTokens": 674301,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 67430.1,
+     "inputTokensPerSuccess": 66661.2,
+     "outputTokensPerSuccess": 768.9,
+     "tokensPerPassingRun": 67430.1,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 235082.4,
+     "latency": {
+      "totalMs": 5930.51065150003,
+      "firstGatedAttemptMs": 5798.485426000036,
+      "blockPhaseMs": null,
+      "emitMs": 99.20215500000631,
+      "planMs": null,
+      "pacingMs": 7954.395831000002,
+      "wallTotalMs": 13483.705846000026
+     },
+     "parity": {
+      "meanScore": 0.9666666666666666,
+      "scored": 10,
+      "fullyParityPassed": 9,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 10,
+      "performed": 10,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 4,
+       "performed": 4,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 10
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 10,
+     "refinedPassed": 10,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-remove": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 8,
+     "passRate": 0.8,
+     "firstAttemptPassed": 8,
+     "firstAttemptPassRate": 0.8,
+     "repairsPerSuccess": 0.0,
+     "meteredRuns": 10,
+     "meteredSuccesses": 8,
+     "meteredTokens": 670995,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 83874.375,
+     "inputTokensPerSuccess": 83316.75,
+     "outputTokensPerSuccess": 557.625,
+     "tokensPerPassingRun": 67711.875,
+     "providerCallsPerRun": 1.0,
+     "requestBytesPerRun": 235056.8,
+     "latency": {
+      "totalMs": 4061.68378750002,
+      "firstGatedAttemptMs": 3962.2954980000504,
+      "blockPhaseMs": null,
+      "emitMs": 98.92267200001515,
+      "planMs": null,
+      "pacingMs": 6070.168414999993,
+      "wallTotalMs": 10346.71089200001
+     },
+     "parity": {
+      "meanScore": 0.7916666666666666,
+      "scored": 8,
+      "fullyParityPassed": 5,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 10,
+      "performed": 7,
+      "mixed": 1,
+      "missed": 2,
+      "unchanged": 2,
+      "unchecked": 0
+     },
+     "operationByBlock": {
+      "records-table": {
+       "checked": 6,
+       "performed": 6,
+       "mixed": 0,
+       "missed": 0,
+       "unchanged": 0,
+       "unchecked": 0
+      },
+      "auth-form": {
+       "checked": 4,
+       "performed": 1,
+       "mixed": 1,
+       "missed": 2,
+       "unchanged": 2,
+       "unchecked": 0
+      }
+     },
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 8
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 0.8,
+     "changed": 8,
+     "refinedPassed": 10,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    },
+    "production|refine-structural": {
+     "n": 10,
+     "skipped": 0,
+     "completed": 10,
+     "rerunEligible": 0,
+     "rerunByKind": {},
+     "evaluated": 10,
+     "passed": 7,
+     "passRate": 0.7,
+     "firstAttemptPassed": 0,
+     "firstAttemptPassRate": 0.0,
+     "repairsPerSuccess": 1.0,
+     "meteredRuns": 10,
+     "meteredSuccesses": 7,
+     "meteredTokens": 1538167,
+     "unmeteredRuns": 0,
+     "unmeteredSuccesses": 0,
+     "tokensPerSuccess": 219738.14285714287,
+     "inputTokensPerSuccess": 212463.14285714287,
+     "outputTokensPerSuccess": 7275.0,
+     "tokensPerPassingRun": 163134.42857142858,
+     "providerCallsPerRun": 2.2,
+     "requestBytesPerRun": 415002.0,
+     "latency": {
+      "totalMs": 27506.677461999847,
+      "firstGatedAttemptMs": 16618.601626000018,
+      "blockPhaseMs": null,
+      "emitMs": 126.15366399998311,
+      "planMs": null,
+      "pacingMs": 7941.492841500032,
+      "wallTotalMs": 35661.963220999896
+     },
+     "parity": {
+      "meanScore": 0.8095238095238095,
+      "scored": 7,
+      "fullyParityPassed": 5,
+      "noChecks": 0
+     },
+     "operation": {
+      "checked": 0,
+      "performed": 0,
+      "mixed": 0,
+      "missed": 0,
+      "unchanged": 0,
+      "unchecked": 0
+     },
+     "operationByBlock": {},
+     "paths": {
+      "primitive": {
+       "n": 10,
+       "passed": 7
+      }
+     },
+     "budgetRemainingAtFallback": {},
+     "fallbackByClassification": {},
+     "invariantFailures": 0,
+     "budgetExhausted": 0,
+     "changedRate": 1.0,
+     "changed": 7,
+     "refinedPassed": 7,
+     "retention": null,
+     "retained": 0,
+     "onBlockPrior": 0
+    }
+   },
+   "selection": {
+    "n": 11,
+    "correct": 11,
+    "hit": 11,
+    "missedToNull": 0,
+    "wrongBlock": 0,
+    "nullCorrect": 0,
+    "falseBlock": 0,
+    "explicitNull": 0,
+    "omitted": 0,
+    "rejected": 0,
+    "planningFailed": 0,
+    "intentCorrect": 11,
+    "accuracy": 1.0,
+    "intentAccuracy": 1.0
+   },
+   "encoding": {
+    "paired": {
+     "prompts": 11,
+     "passRate": {
+      "better": 1,
+      "same": 4,
+      "worse": 6
+     },
+     "tokensPerSuccess": {
+      "lower": 3,
+      "same": 0,
+      "higher": 5,
+      "comparable": 8
+     }
+    },
+    "intervals": {
+     "passDiff": {
+      "low": -0.29765993265993257,
+      "high": -0.02475822050290133,
+      "resamples": 2000,
+      "prompts": 11
+     },
+     "tokenReduction": {
+      "low": -0.32465286479050115,
+      "high": 0.13538081037039815,
+      "resamples": 2000,
+      "prompts": 11
+     }
+    }
+   },
+   "readings": {
+    "none": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 49,
+      "capped": 50,
+      "production": 47
+     },
+     "evaluated": {
+      "block": 55,
+      "capped": 51,
+      "production": 50
+     },
+     "reductionVsProduction": 0.7081360723636754,
+     "passRates": {
+      "block": 0.8909090909090909,
+      "capped": 0.9803921568627451,
+      "production": 0.94
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6296361278914738,
+       0.7903494389199269
+      ],
+      "reductionVsCapped": [
+       0.6289663926501514,
+       0.7652794378208758
+      ],
+      "passDiffVsProduction": [
+       -0.14,
+       0.05999999999999994
+      ],
+      "passDiffVsCapped": [
+       -0.16000000000000003,
+       0.0
+      ]
+     }
+    },
+    "binding (missed or unchecked)": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 49,
+      "capped": 48,
+      "production": 45
+     },
+     "evaluated": {
+      "block": 55,
+      "capped": 51,
+      "production": 50
+     },
+     "reductionVsProduction": 0.7205558139652211,
+     "passRates": {
+      "block": 0.8909090909090909,
+      "capped": 0.9411764705882353,
+      "production": 0.9
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6324182783757399,
+       0.808240649961163
+      ],
+      "reductionVsCapped": [
+       0.6312787031841771,
+       0.7827738213727762
+      ],
+      "passDiffVsProduction": [
+       -0.14,
+       0.14
+      ],
+      "passDiffVsCapped": [
+       -0.16000000000000003,
+       0.09999999999999998
+      ]
+     }
+    },
+    "missed-and-mixed": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 49,
+      "capped": 47,
+      "production": 44
+     },
+     "evaluated": {
+      "block": 55,
+      "capped": 51,
+      "production": 50
+     },
+     "reductionVsProduction": 0.7267656847659939,
+     "passRates": {
+      "block": 0.8909090909090909,
+      "capped": 0.9215686274509803,
+      "production": 0.88
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6345848922140339,
+       0.8189381517944823
+      ],
+      "reductionVsCapped": [
+       0.6324878072475705,
+       0.7925757897134439
+      ],
+      "passDiffVsProduction": [
+       -0.12,
+       0.17999999999999994
+      ],
+      "passDiffVsCapped": [
+       -0.14,
+       0.12
+      ]
+     }
+    },
+    "changed-missed (unchanged misses excused)": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 49,
+      "capped": 50,
+      "production": 47
+     },
+     "evaluated": {
+      "block": 55,
+      "capped": 51,
+      "production": 50
+     },
+     "reductionVsProduction": 0.7081360723636754,
+     "passRates": {
+      "block": 0.8909090909090909,
+      "capped": 0.9803921568627451,
+      "production": 0.94
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6296361278914738,
+       0.7903494389199269
+      ],
+      "reductionVsCapped": [
+       0.6289663926501514,
+       0.7652794378208758
+      ],
+      "passDiffVsProduction": [
+       -0.14,
+       0.05999999999999994
+      ],
+      "passDiffVsCapped": [
+       -0.16000000000000003,
+       0.0
+      ]
+     }
+    },
+    "changed-missed-and-mixed": {
+     "verdict": "insufficient",
+     "overall": "insufficient",
+     "passed": {
+      "block": 49,
+      "capped": 49,
+      "production": 46
+     },
+     "evaluated": {
+      "block": 55,
+      "capped": 51,
+      "production": 50
+     },
+     "reductionVsProduction": 0.7143459431644481,
+     "passRates": {
+      "block": 0.8909090909090909,
+      "capped": 0.9607843137254902,
+      "production": 0.92
+     },
+     "intervals": {
+      "reductionVsProduction": [
+       0.6296361278914738,
+       0.8002219043272814
+      ],
+      "reductionVsCapped": [
+       0.6291251344429244,
+       0.777518346809073
+      ],
+      "passDiffVsProduction": [
+       -0.14,
+       0.12
+      ],
+      "passDiffVsCapped": [
+       -0.16000000000000003,
+       0.039999999999999925
+      ]
+     }
+    }
+   },
+   "bootstrapRobustness": {
+    "independent20000": {
+     "reductionVsProduction": {
+      "low": 0.6296011153670762,
+      "high": 0.8141020595550915,
+      "resamples": 20000,
+      "prompts": 10
+     },
+     "reductionVsCapped": {
+      "low": 0.6328493283258043,
+      "high": 0.7863359244864473,
+      "resamples": 20000,
+      "prompts": 10
+     },
+     "passDiffVsProduction": {
+      "low": -0.14,
+      "high": 0.15999999999999992,
+      "resamples": 20000,
+      "prompts": 10
+     },
+     "passDiffVsCapped": {
+      "low": -0.14,
+      "high": 0.08000000000000007,
+      "resamples": 20000,
+      "prompts": 10
+     }
+    },
+    "seeds200x2000": {
+     "reductionVsProduction": {
+      "lowMin": 0.6168058749771473,
+      "lowMax": 0.6378286071682366,
+      "highMin": 0.8091642382519623,
+      "highMax": 0.8211472079211559
+     },
+     "reductionVsCapped": {
+      "lowMin": 0.6256907946493755,
+      "lowMax": 0.6374399756293689,
+      "highMin": 0.7804864722011476,
+      "highMax": 0.7919302304910424
+     },
+     "passDiffVsProduction": {
+      "lowMin": -0.14,
+      "lowMax": -0.12,
+      "highMin": 0.14,
+      "highMax": 0.16000000000000003
+     },
+     "passDiffVsCapped": {
+      "lowMin": -0.16000000000000003,
+      "lowMax": -0.14,
+      "highMin": 0.07999999999999996,
+      "highMax": 0.09999999999999998
+     },
+     "overallClarity": {
+      "insufficient": 200
+     },
+     "criteria": {
+      "tokens": {
+       "insufficient": 200
+      },
+      "vsProduction": {
+       "insufficient": 200
+      },
+      "vsCapped": {
+       "insufficient": 200
+      }
+     }
+    }
+   }
+  }
+ },
+ "totals": {
+  "records": 211,
+  "completed": 199,
+  "providerCalls": 315,
+  "inputTokens": 11311651,
+  "outputTokens": 248249,
+  "requestBytes": 39027857
+ },
+ "mapping": {
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#1": {
+   "cell": "block|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#2": {
+   "cell": "block|rt-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#3": {
+   "cell": "block|rt-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#4": {
+   "cell": "block|rt-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#5": {
+   "cell": "block|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#6": {
+   "cell": "block|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#7": {
+   "cell": "block|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#8": {
+   "cell": "block|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#9": {
+   "cell": "block-positional|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#10": {
+   "cell": "block-positional|rt-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#11": {
+   "cell": "block-positional|rt-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#12": {
+   "cell": "block-positional|rt-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#13": {
+   "cell": "block-positional|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#14": {
+   "cell": "block-positional|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#15": {
+   "cell": "block-positional|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#16": {
+   "cell": "block-positional|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#17": {
+   "cell": "capped|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#18": {
+   "cell": "capped|rt-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#19": {
+   "cell": "capped|rt-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#20": {
+   "cell": "capped|rt-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#21": {
+   "cell": "capped|rt-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#22": {
+   "cell": "capped|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#23": {
+   "cell": "capped|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#24": {
+   "cell": "capped|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#25": {
+   "cell": "production|rt-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#26": {
+   "cell": "production|rt-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#27": {
+   "cell": "production|rt-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#28": {
+   "cell": "production|rt-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#29": {
+   "cell": "production|rt-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#30": {
+   "cell": "production|rt-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#31": {
+   "cell": "production|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#32": {
+   "cell": "production|rt-01|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#33": {
+   "cell": "block|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#34": {
+   "cell": "block|rt-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#35": {
+   "cell": "block|rt-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#36": {
+   "cell": "block|rt-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#37": {
+   "cell": "block|rt-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#38": {
+   "cell": "block|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#39": {
+   "cell": "block|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#40": {
+   "cell": "block|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#41": {
+   "cell": "block-positional|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#42": {
+   "cell": "block-positional|rt-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#43": {
+   "cell": "block-positional|rt-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#44": {
+   "cell": "capped|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#45": {
+   "cell": "capped|rt-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#46": {
+   "cell": "capped|rt-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#47": {
+   "cell": "capped|rt-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#48": {
+   "cell": "capped|rt-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#49": {
+   "cell": "capped|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#50": {
+   "cell": "capped|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#51": {
+   "cell": "production|rt-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#52": {
+   "cell": "production|rt-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#53": {
+   "cell": "production|rt-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#54": {
+   "cell": "production|rt-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#55": {
+   "cell": "production|rt-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#56": {
+   "cell": "production|rt-02|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#57": {
+   "cell": "production|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "refused before any provider call"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#58": {
+   "cell": "production|rt-02|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#59": {
+   "cell": "block|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#60": {
+   "cell": "block|rt-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#61": {
+   "cell": "block|rt-03|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#62": {
+   "cell": "block|rt-03|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#63": {
+   "cell": "block|rt-03|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#64": {
+   "cell": "block|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#65": {
+   "cell": "block|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#66": {
+   "cell": "block|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#67": {
+   "cell": "block-positional|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#68": {
+   "cell": "block-positional|rt-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#69": {
+   "cell": "block-positional|rt-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#70": {
+   "cell": "capped|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#71": {
+   "cell": "capped|rt-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#72": {
+   "cell": "capped|rt-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#73": {
+   "cell": "capped|rt-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#74": {
+   "cell": "capped|rt-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#75": {
+   "cell": "capped|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#76": {
+   "cell": "capped|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#77": {
+   "cell": "capped|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#78": {
+   "cell": "production|rt-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#79": {
+   "cell": "production|rt-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#80": {
+   "cell": "production|rt-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#81": {
+   "cell": "production|rt-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#82": {
+   "cell": "production|rt-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#83": {
+   "cell": "production|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#84": {
+   "cell": "production|rt-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#85": {
+   "cell": "block|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#86": {
+   "cell": "block|rt-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#87": {
+   "cell": "block|rt-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#88": {
+   "cell": "block|rt-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#89": {
+   "cell": "block|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#90": {
+   "cell": "block|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#91": {
+   "cell": "block|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#92": {
+   "cell": "block|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#93": {
+   "cell": "block-positional|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#94": {
+   "cell": "block-positional|rt-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#95": {
+   "cell": "block-positional|rt-04|fresh",
+   "calls": 1,
+   "operation": "block-repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#96": {
+   "cell": "block-positional|rt-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#97": {
+   "cell": "block-positional|rt-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#98": {
+   "cell": "block-positional|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#99": {
+   "cell": "block-positional|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#100": {
+   "cell": "block-positional|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#101": {
+   "cell": "block-positional|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#102": {
+   "cell": "capped|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#103": {
+   "cell": "capped|rt-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a#104": {
+   "cell": "capped|rt-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#1": {
+   "cell": "capped|rt-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#2": {
+   "cell": "capped|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#3": {
+   "cell": "capped|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#4": {
+   "cell": "capped|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#5": {
+   "cell": "capped|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#6": {
+   "cell": "production|rt-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#7": {
+   "cell": "production|rt-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#8": {
+   "cell": "production|rt-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#9": {
+   "cell": "production|rt-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#10": {
+   "cell": "production|rt-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#11": {
+   "cell": "production|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#12": {
+   "cell": "production|rt-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#13": {
+   "cell": "block|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#14": {
+   "cell": "block|rt-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#15": {
+   "cell": "block|rt-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#16": {
+   "cell": "block|rt-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#17": {
+   "cell": "block|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#18": {
+   "cell": "block|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#19": {
+   "cell": "block|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#20": {
+   "cell": "block|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#21": {
+   "cell": "block-positional|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#22": {
+   "cell": "block-positional|rt-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#23": {
+   "cell": "block-positional|rt-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#24": {
+   "cell": "block-positional|rt-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#25": {
+   "cell": "block-positional|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#26": {
+   "cell": "block-positional|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#27": {
+   "cell": "block-positional|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#28": {
+   "cell": "block-positional|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#29": {
+   "cell": "capped|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#30": {
+   "cell": "capped|rt-05|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#31": {
+   "cell": "capped|rt-05|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#32": {
+   "cell": "capped|rt-05|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#33": {
+   "cell": "capped|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#34": {
+   "cell": "capped|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#35": {
+   "cell": "capped|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#36": {
+   "cell": "production|rt-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#37": {
+   "cell": "production|rt-05|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#38": {
+   "cell": "production|rt-05|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#39": {
+   "cell": "production|rt-05|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#40": {
+   "cell": "production|rt-05|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#41": {
+   "cell": "production|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#42": {
+   "cell": "production|rt-05|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#43": {
+   "cell": "block|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#44": {
+   "cell": "block|rt-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#45": {
+   "cell": "block|rt-06|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#46": {
+   "cell": "block|rt-06|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#47": {
+   "cell": "block|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#48": {
+   "cell": "block|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#49": {
+   "cell": "block|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#50": {
+   "cell": "block|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#51": {
+   "cell": "block-positional|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#52": {
+   "cell": "block-positional|rt-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#53": {
+   "cell": "block-positional|rt-06|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#54": {
+   "cell": "block-positional|rt-06|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#55": {
+   "cell": "block-positional|rt-06|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#56": {
+   "cell": "block-positional|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#57": {
+   "cell": "block-positional|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#58": {
+   "cell": "block-positional|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#59": {
+   "cell": "block-positional|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#60": {
+   "cell": "capped|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#61": {
+   "cell": "capped|rt-06|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#62": {
+   "cell": "capped|rt-06|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#63": {
+   "cell": "capped|rt-06|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#64": {
+   "cell": "capped|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#65": {
+   "cell": "capped|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#66": {
+   "cell": "capped|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#67": {
+   "cell": "capped|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#68": {
+   "cell": "production|rt-06|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#69": {
+   "cell": "production|rt-06|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#70": {
+   "cell": "production|rt-06|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#71": {
+   "cell": "production|rt-06|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#72": {
+   "cell": "production|rt-06|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#73": {
+   "cell": "production|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#74": {
+   "cell": "production|rt-06|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#75": {
+   "cell": "block|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#76": {
+   "cell": "block|af-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#77": {
+   "cell": "block|af-01|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#78": {
+   "cell": "block|af-01|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#79": {
+   "cell": "block|af-01|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#80": {
+   "cell": "block|af-01|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#81": {
+   "cell": "block|af-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#82": {
+   "cell": "block-positional|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#83": {
+   "cell": "block-positional|af-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#84": {
+   "cell": "block-positional|af-01|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#85": {
+   "cell": "capped|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#86": {
+   "cell": "capped|af-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#87": {
+   "cell": "capped|af-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#88": {
+   "cell": "capped|af-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#89": {
+   "cell": "capped|af-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#90": {
+   "cell": "capped|af-01|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#91": {
+   "cell": "production|af-01|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#92": {
+   "cell": "production|af-01|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#93": {
+   "cell": "production|af-01|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#94": {
+   "cell": "production|af-01|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#95": {
+   "cell": "production|af-01|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#96": {
+   "cell": "production|af-01|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#97": {
+   "cell": "production|af-01|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#98": {
+   "cell": "block|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#99": {
+   "cell": "block|af-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "refused before any provider call"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#100": {
+   "cell": "block|af-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#101": {
+   "cell": "block|af-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#102": {
+   "cell": "block|af-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#103": {
+   "cell": "block|af-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#104": {
+   "cell": "block|af-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64#105": {
+   "cell": "block|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#1": {
+   "cell": "block-positional|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#2": {
+   "cell": "block-positional|af-02|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#3": {
+   "cell": "block-positional|af-02|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#4": {
+   "cell": "block-positional|af-02|refine-content",
+   "calls": 1,
+   "operation": "block-repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#5": {
+   "cell": "block-positional|af-02|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#6": {
+   "cell": "block-positional|af-02|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#7": {
+   "cell": "block-positional|af-02|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#8": {
+   "cell": "block-positional|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#9": {
+   "cell": "capped|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#10": {
+   "cell": "capped|af-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#11": {
+   "cell": "capped|af-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#12": {
+   "cell": "capped|af-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#13": {
+   "cell": "capped|af-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#14": {
+   "cell": "capped|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#15": {
+   "cell": "capped|af-02|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#16": {
+   "cell": "production|af-02|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#17": {
+   "cell": "production|af-02|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#18": {
+   "cell": "production|af-02|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#19": {
+   "cell": "production|af-02|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#20": {
+   "cell": "production|af-02|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#21": {
+   "cell": "production|af-02|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#22": {
+   "cell": "production|af-02|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#23": {
+   "cell": "block|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#24": {
+   "cell": "block|af-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#25": {
+   "cell": "block|af-03|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#26": {
+   "cell": "block|af-03|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#27": {
+   "cell": "block|af-03|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#28": {
+   "cell": "block|af-03|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#29": {
+   "cell": "block|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#30": {
+   "cell": "block|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#31": {
+   "cell": "block-positional|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#32": {
+   "cell": "block-positional|af-03|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#33": {
+   "cell": "block-positional|af-03|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#34": {
+   "cell": "block-positional|af-03|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#35": {
+   "cell": "block-positional|af-03|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#36": {
+   "cell": "block-positional|af-03|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#37": {
+   "cell": "block-positional|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#38": {
+   "cell": "block-positional|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#39": {
+   "cell": "capped|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#40": {
+   "cell": "capped|af-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#41": {
+   "cell": "capped|af-03|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#42": {
+   "cell": "capped|af-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#43": {
+   "cell": "capped|af-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#44": {
+   "cell": "capped|af-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#45": {
+   "cell": "capped|af-03|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#46": {
+   "cell": "capped|af-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#47": {
+   "cell": "production|af-03|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#48": {
+   "cell": "production|af-03|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#49": {
+   "cell": "production|af-03|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#50": {
+   "cell": "production|af-03|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#51": {
+   "cell": "production|af-03|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#52": {
+   "cell": "production|af-03|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#53": {
+   "cell": "production|af-03|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#54": {
+   "cell": "production|af-03|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#55": {
+   "cell": "block|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#56": {
+   "cell": "block|af-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "refused before any provider call"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#57": {
+   "cell": "block|af-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#58": {
+   "cell": "block|af-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#59": {
+   "cell": "block|af-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#60": {
+   "cell": "block|af-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#61": {
+   "cell": "block|af-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#62": {
+   "cell": "block|af-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#63": {
+   "cell": "block-positional|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#64": {
+   "cell": "block-positional|af-04|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#65": {
+   "cell": "block-positional|af-04|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#66": {
+   "cell": "block-positional|af-04|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#67": {
+   "cell": "block-positional|af-04|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#68": {
+   "cell": "block-positional|af-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#69": {
+   "cell": "block-positional|af-04|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#70": {
+   "cell": "block-positional|af-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#71": {
+   "cell": "capped|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#72": {
+   "cell": "capped|af-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#73": {
+   "cell": "capped|af-04|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#74": {
+   "cell": "capped|af-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#75": {
+   "cell": "capped|af-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#76": {
+   "cell": "capped|af-04|refine-add",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#77": {
+   "cell": "capped|af-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#78": {
+   "cell": "capped|af-04|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#79": {
+   "cell": "capped|af-04|refine-structural",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#80": {
+   "cell": "production|af-04|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#81": {
+   "cell": "production|af-04|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#82": {
+   "cell": "production|af-04|fresh",
+   "calls": 1,
+   "operation": "repair",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#83": {
+   "cell": "production|af-04|refine-content",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#84": {
+   "cell": "production|af-04|refine-add",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#85": {
+   "cell": "production|af-04|refine-remove",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#86": {
+   "cell": "production|af-04|refine-structural",
+   "calls": 2,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#87": {
+   "cell": "block|af-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#88": {
+   "cell": "block|af-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#89": {
+   "cell": "block|af-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#90": {
+   "cell": "block|af-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#91": {
+   "cell": "block|af-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#92": {
+   "cell": "block|af-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#93": {
+   "cell": "block|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#94": {
+   "cell": "block|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#95": {
+   "cell": "block-positional|af-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#96": {
+   "cell": "block-positional|af-05|fresh",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#97": {
+   "cell": "block-positional|af-05|refine-content",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#98": {
+   "cell": "block-positional|af-05|refine-add",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#99": {
+   "cell": "block-positional|af-05|refine-remove",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#100": {
+   "cell": "block-positional|af-05|refine-structural",
+   "calls": 1,
+   "operation": "block",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#101": {
+   "cell": "block-positional|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#102": {
+   "cell": "block-positional|af-05|refine-structural",
+   "calls": 1,
+   "operation": "refine",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#103": {
+   "cell": "capped|af-05|fresh",
+   "calls": 1,
+   "operation": "plan",
+   "reason": "settled at the reported usage"
+  },
+  "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#104": {
+   "cell": "capped|af-05|fresh",
+   "calls": 1,
+   "operation": "generate",
+   "reason": "settled at the reported usage"
+  }
+ },
+ "files": {
+  "REPORT.md": {
+   "bytes": 18492,
+   "lines": 162,
+   "sha256": "dce41f2a3e084da71ee6a275c3ccf1c26a1e927daa580dfca1abba1435f630d2"
+  },
+  "manifest.json": {
+   "bytes": 2272,
+   "lines": 95,
+   "sha256": "ed43b1e8ef93f1bdd8da18a6b9860f247063afb51e4bf50f387bc50096f8869b"
+  },
+  "pacing.jsonl": {
+   "bytes": 12851,
+   "lines": 3,
+   "sha256": "212091cb7693d852c74ca8079521306de6ac302cd90a1229ae47f64780ce4aee"
+  },
+  "preflight.json": {
+   "bytes": 610,
+   "lines": 32,
+   "sha256": "1d8ede7a241e1fd0692bcac6fd3061259b581b0cf707b287084de8cd4777eeba"
+  },
+  "preflight.resume-1.json": {
+   "bytes": 610,
+   "lines": 32,
+   "sha256": "f5fdd338a6cf80685aa2820b5eb983eb5615857583ae4c6bd13d05947edae825"
+  },
+  "preflight.resume-2.json": {
+   "bytes": 610,
+   "lines": 32,
+   "sha256": "d8a39fd86192cf23fab38723210d08bcbcddd1a231270b87e6a7853697117f52"
+  },
+  "requests.jsonl": {
+   "bytes": 163033,
+   "lines": 626,
+   "sha256": "cd5507890cdced455cc012d1f403ffc4d4e9efdce81a31f42108c8158627d384"
+  },
+  "runs.jsonl": {
+   "bytes": 762878,
+   "lines": 211,
+   "sha256": "f91d3f0477d37e36964cc90165acdc2f9a82d5335102f5897031f4e833d010fc"
+  },
+  "summary.json": {
+   "bytes": 103958,
+   "lines": 4081,
+   "sha256": "07751f8cf3e0e47fe879e14d8d23ce90525ae54934a7ee9f6b908f3a1594e7c0"
+  }
+ },
+ "identity": {
+  "corpus": {
+   "id": "blocks-1b",
+   "version": 2,
+   "frozenAt": "2026-10-12",
+   "sha256": "0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9"
+  },
+  "corpusFileSha256": "0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9",
+  "code": {
+   "sha256": "51c80cec7a652216c3b9b28b1467e8c45eb0ecebe170969854bb1d49d3c8a229",
+   "packages": {
+    "@aestheticfunction/dspack-gen": "0.5.0",
+    "@aestheticfunction/dspack-emit": "0.7.0"
+   }
+  },
+  "deployment": {
+   "baseUrl": "https://composer.aesthetic-function.com",
+   "buildId": "Dyml8RSqfWynKU1KbVuZI",
+   "worker": "per-call-model"
+  },
+  "servedModel": {
+   "id": "claude-haiku-4-5-20251001",
+   "at": "2026-10-15T00:22:31.936Z"
+  },
+  "provider": "hosted-ai:claude-haiku-4.5@https://composer.aesthetic-function.com",
+  "references": [
+   "shadcn-v3"
+  ]
+ },
+ "planned": 480,
+ "refusedLaunches": {
+  "operator": [],
+  "raisedBy": []
+ },
+ "summaryOf": 3,
+ "history": {
+  "copies": [
+   {
+    "invocations": 1,
+    "dir": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w3/clean-791798b2c161b059bf7330c22efaf40244357beb/snapshots/1/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15"
+   },
+   {
+    "invocations": 2,
+    "dir": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w3/clean-791798b2c161b059bf7330c22efaf40244357beb/snapshots/2/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15"
+   }
+  ],
+  "steps": [
+   {
+    "from": 0,
+    "to": 1,
+    "kept": 0,
+    "moved": 0,
+    "new": 72
+   },
+   {
+    "from": 1,
+    "to": 2,
+    "kept": 72,
+    "moved": 0,
+    "new": 73
+   },
+   {
+    "from": 2,
+    "to": 3,
+    "kept": 145,
+    "moved": 0,
+    "new": 66
+   }
+  ]
+ },
+ "ledger": {
+  "lines": 626,
+  "reserved": 313,
+  "finalized": 313,
+  "reasons": {
+   "settled at the reported usage": 310,
+   "refused before any provider call": 3
+  },
+  "committedUsd": 13.1805408,
+  "byUtcDay": {
+   "2026-10-15": 13.1805408
+  },
+  "invocations": {
+   "1": {
+    "requests": 104,
+    "committedUsd": 4.4553222
+   },
+   "2": {
+    "requests": 105,
+    "committedUsd": 4.66405695
+   },
+   "3": {
+    "requests": 104,
+    "committedUsd": 4.06116165
+   }
+  },
+  "unverified": [],
+  "leftOpen": [],
+  "inFlight": [],
+  "recordedNotSent": {},
+  "pendingRaiseUsd": 0.0
+ },
+ "invocations": [
+  {
+   "invocation": 1,
+   "id": "2026-10-15T00:22:24.340Z~85b11514-3f8e-463b-8a6a-95204687cc6a",
+   "at": "2026-10-15T00:22:24.340Z",
+   "ended": "cap",
+   "maxRequests": 123,
+   "spacingMs": 12000,
+   "sent": 104,
+   "operator": {
+    "start": "2026-10-15T00:22:21Z",
+    "end": "2026-10-15T00:44:57Z",
+    "exit": "0"
+   },
+   "cellsAtStart": 0,
+   "logged": 72,
+   "moved": 0,
+   "nextCell": "shadcn-v3|capped|rt-04|refine-add"
+  },
+  {
+   "invocation": 2,
+   "id": "2026-10-15T20:20:40.601Z~01170097-5582-4a9d-80b0-c1c280adee64",
+   "at": "2026-10-15T20:20:40.601Z",
+   "ended": "cap",
+   "maxRequests": 123,
+   "spacingMs": 12000,
+   "sent": 105,
+   "operator": {
+    "start": "2026-10-15T20:20:38Z",
+    "end": "2026-10-15T20:43:31Z",
+    "exit": "0"
+   },
+   "cellsAtStart": 72,
+   "logged": 73,
+   "moved": 0,
+   "nextCell": "shadcn-v3|block-positional|af-02|fresh"
+  },
+  {
+   "invocation": 3,
+   "id": "2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b",
+   "at": "2026-10-15T23:05:42.280Z",
+   "ended": "cap",
+   "maxRequests": 123,
+   "spacingMs": 12000,
+   "sent": 104,
+   "operator": {
+    "start": "2026-10-15T23:05:40Z",
+    "end": "2026-10-15T23:26:58Z",
+    "exit": "0"
+   },
+   "cellsAtStart": 145,
+   "logged": 66,
+   "moved": 0,
+   "nextCell": "shadcn-v3|capped|af-05|refine-content"
+  }
+ ],
+ "windows": {
+  "1": {
+   "recordsLogged": 72,
+   "completed": 64,
+   "skipped": 8,
+   "requestsFromCells": 104,
+   "ledgerRequests": 104,
+   "orphans": [],
+   "mappingMismatches": 0,
+   "settledFromCellsUsd": 4.4553222,
+   "listUsd": 4.243164,
+   "committedUsd": 4.4553222,
+   "firstCell": "block|rt-01|fresh",
+   "lastCell": "capped|rt-04|refine-content",
+   "providerCalls": 104,
+   "workerParseRetries": 1,
+   "releasedRefusals": 1,
+   "exhaustedSchedules": [],
+   "inputTokens": 3723359,
+   "outputTokens": 103961,
+   "backoffMs": [
+    30000
+   ],
+   "waits": {
+    "spacing": 82,
+    "503 busy": 1
+   }
+  },
+  "2": {
+   "recordsLogged": 73,
+   "completed": 69,
+   "skipped": 4,
+   "requestsFromCells": 105,
+   "ledgerRequests": 105,
+   "orphans": [],
+   "mappingMismatches": 0,
+   "settledFromCellsUsd": 4.66405695,
+   "listUsd": 4.441959,
+   "committedUsd": 4.66405695,
+   "firstCell": "capped|rt-04|refine-add",
+   "lastCell": "block|af-02|refine-structural",
+   "providerCalls": 105,
+   "workerParseRetries": 1,
+   "releasedRefusals": 1,
+   "exhaustedSchedules": [],
+   "inputTokens": 3994184,
+   "outputTokens": 89555,
+   "backoffMs": [
+    30000
+   ],
+   "waits": {
+    "spacing": 77,
+    "503 busy": 1
+   }
+  },
+  "3": {
+   "recordsLogged": 66,
+   "completed": 66,
+   "skipped": 0,
+   "requestsFromCells": 104,
+   "ledgerRequests": 104,
+   "orphans": [],
+   "mappingMismatches": 0,
+   "settledFromCellsUsd": 4.06116165,
+   "listUsd": 3.867773,
+   "committedUsd": 4.06116165,
+   "firstCell": "block-positional|af-02|fresh",
+   "lastCell": "capped|af-05|fresh",
+   "providerCalls": 106,
+   "workerParseRetries": 3,
+   "releasedRefusals": 1,
+   "exhaustedSchedules": [],
+   "inputTokens": 3594108,
+   "outputTokens": 54733,
+   "backoffMs": [
+    30000
+   ],
+   "waits": {
+    "spacing": 99,
+    "503 busy": 1
+   }
+  }
+ },
+ "orphans": [],
+ "exhaustedSchedules": {},
+ "cost": {
+  "listUsdLoggedCells": 12.552896,
+  "withFeeUsdLoggedCells": 13.1805408,
+  "heldUsd": 0.0,
+  "cellsPlusHeldUsd": 13.1805408,
+  "committedUsd": 13.1805408
+ },
+ "surfaceChecks": {
+  "digestMismatches": 0,
+  "operationMismatches": 0,
+  "changedMismatches": 0,
+  "operationsRecomputed": 78
+ },
+ "parity": {
+  "reading": "arrays",
+  "mismatches": 0,
+  "otherReading": {
+   "reading": "no-arrays",
+   "meanScore": {
+    "block": 0.9387755102040817,
+    "block-positional": 0.9583333333333334,
+    "capped": 0.8836805555555555,
+    "production": 0.8851851851851852
+   }
+  }
+ },
+ "monitorEvents": [
+  {
+   "events": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w3/clean-791798b2c161b059bf7330c22efaf40244357beb/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15.monitor-events-1.log",
+   "window": 1,
+   "last": "the harness exited: 72 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcome",
+   "requestsSeen": 104,
+   "buildReadings": 44,
+   "stops": [],
+   "longestGapSeconds": 32.063
+  },
+  {
+   "events": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w3/clean-791798b2c161b059bf7330c22efaf40244357beb/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15.monitor-events-2.log",
+   "window": 2,
+   "last": "the harness exited: 73 cells, 105 requests sent, 104 settled, 1 released (30 s of backoff), 0 provider failures, outcome",
+   "requestsSeen": 105,
+   "buildReadings": 44,
+   "stops": [],
+   "longestGapSeconds": 38.074
+  },
+  {
+   "events": "/tmp/claude-0/-home-user/870d30cc-3b6b-550c-bdac-b13bd5711164/scratchpad/v4/shadcn-w3/clean-791798b2c161b059bf7330c22efaf40244357beb/evidence/blocks-1b/1b-stage3-shadcn-2026-10-15.monitor-events-3.log",
+   "window": 3,
+   "last": "the harness exited: 66 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcome",
+   "requestsSeen": 104,
+   "buildReadings": 42,
+   "stops": [],
+   "longestGapSeconds": 32.042
+  }
+ ]
+}

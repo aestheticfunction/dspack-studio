@@ -205,6 +205,20 @@ There was no provider or policy failure.
 - It read the live build 42 times, always `Dyml8RSqfWynKU1KbVuZI`.
 - It allowed the one refusal within its schedule.
 
+**Verification** of window 3's copy, as origin holds it at `791798b`:
+- **`verify_run.py`** (at `e3f57da`), with the packet's command (`--snapshot` set to windows 1 and 2's copies at `1cc106b` and `4c3db56`, and all three monitor events logs):
+  - no findings;
+  - one note: 269 planned cells have no record yet.
+
+  It maps all 313 requests to their cells, with no orphan and nothing held. It also checks:
+  - the 145 earlier records are kept, and none was moved aside;
+  - each monitor's count equals the ledger's.
+- **`reconcile_window.py`** agrees on every figure across the three windows:
+  - 313 requests, 310 settled and 3 released at $0;
+  - $13.1805408 committed;
+  - every settlement and call on `claude-haiku-4-5-20251001`;
+  - 11,311,651 input and 248,249 output tokens, whose price equals the settled total to the nanodollar.
+
 **Next:** window 4 follows at once with `shadcn-window.sh launch 4 <this window's copy>`, which runs the monitor with `--preflights 4`. It starts only if window 3's evidence verifies.
 
 ## Files of the run
@@ -235,6 +249,7 @@ There was no provider or policy failure.
 
     It then repeats every no-cost check and launches the packet's frozen command with `--resume`, with the monitor at `--preflights` equal to the window number, only if all pass.
   - **The preserve script** adds the window's copy to this branch.
+- `1b-stage3-shadcn-2026-10-15.window-<k>.verify.json` and `.txt`, and `.window-<k>.reconcile.json` and `.txt`, for window 3 onward: as for window 2, against each window's copy as origin holds it.
 - `reconcile_window.py`: that reconciliation's script. Run it as `python3 -I reconcile_window.py <run dir> <invocations.txt> <monitor events log> <out.json>`.
 - `1b-stage3-shadcn-2026-10-15.SHA256SUMS`: the sha256 of the run directory's files and of every file above. Run `sha256sum -c 1b-stage3-shadcn-2026-10-15.SHA256SUMS` from this directory.
 

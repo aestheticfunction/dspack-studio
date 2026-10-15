@@ -1,0 +1,18 @@
+run 2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 3 invocations, 211 of 480 planned cells, 0 moved aside by re-runs
+ledger: 313 reserved, 313 finalized, reasons {'settled at the reported usage': 310, 'refused before any provider call': 3}, committed $13.180540800, by UTC day {'2026-10-15': 13.1805408}
+invocation 1 (cap): 72 records (64 completed, 8 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.455322200; first block|rt-01|fresh, next shadcn-v3|capped|rt-04|refine-add
+invocation 2 (cap): 73 records (69 completed, 4 skipped), 0 moved aside at its start, 105 requests from cells vs 105 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.664056950; first capped|rt-04|refine-add, next shadcn-v3|block-positional|af-02|fresh
+invocation 3 (cap): 66 records (66 completed, 0 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.061161650; first block-positional|af-02|fresh, next shadcn-v3|capped|af-05|refine-content
+orphans: []
+cost: {'listUsdLoggedCells': 12.552896, 'withFeeUsdLoggedCells': 13.1805408, 'heldUsd': 0.0, 'cellsPlusHeldUsd': 13.1805408, 'committedUsd': 13.1805408}
+history: [{'from': 0, 'to': 1, 'kept': 0, 'moved': 0, 'new': 72}, {'from': 1, 'to': 2, 'kept': 72, 'moved': 0, 'new': 73}, {'from': 2, 'to': 3, 'kept': 145, 'moved': 0, 'new': 66}]
+surfaces: {'digestMismatches': 0, 'operationMismatches': 0, 'changedMismatches': 0, 'operationsRecomputed': 78}
+shadcn-v3: decision insufficient (insufficient); tokens/success {'block': 28461.061224489797, 'capped': 95873.95833333333, 'production': 101848.82222222222, 'reductionVsProduction': 0.7205558139652211, 'reductionVsCapped': 0.7031408557729852}; pass {'block': 0.8909090909090909, 'capped': 0.9411764705882353, 'production': 0.9}; threads {'block': 11, 'capped': 11, 'production': 10}; cohort 10/10
+  reductionVsProduction: spec [0.632418, 0.808241]
+  reductionVsCapped: spec [0.631279, 0.782774]
+  passDiffVsProduction: spec [-0.140000, 0.140000]
+  passDiffVsCapped: spec [-0.160000, 0.100000]
+totals {'records': 211, 'completed': 199, 'providerCalls': 315, 'inputTokens': 11311651, 'outputTokens': 248249, 'requestBytes': 39027857}
+NOTES: 1
+ - 269 planned cells have no record yet, e.g. [('shadcn-v3', 'capped', 'af-05', 'refine-content'), ('shadcn-v3', 'capped', 'af-05', 'refine-add'), ('shadcn-v3', 'capped', 'af-05', 'refine-remove')]
+FINDINGS: 0

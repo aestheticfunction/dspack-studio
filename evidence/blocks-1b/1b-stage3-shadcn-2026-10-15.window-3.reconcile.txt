@@ -1,0 +1,12 @@
+ledger: 313 reservations, 313 finals, open none, duplicates none, orphan finals none, arithmetic mismatches none, releases above $0 none
+  settled at the reported usage: 310 requests, $13.180540800
+  refused before any provider call: 3 requests, $0.000000000
+  committed $13.180540800; settled at usage $13.180540800 ($12.552896 at list); served models {'claude-haiku-4-5-20251001': 310}
+records: 211 cells, statuses {'completed': 199, 'skipped': 12}, passed 180; arms {'block': 55, 'block-positional': 55, 'capped': 51, 'production': 50}; conditions {'fresh': 43, 'refine-content': 42, 'refine-add': 42, 'refine-remove': 42, 'refine-structural': 42}
+  provider calls 315 (non-provider 3), tokens in 11,311,651 out 248,249, call models {'claude-haiku-4-5-20251001': 315}
+  the records' calls priced $13.180540800; settled minus priced $0.000000000 (the requests of a cell left unrecorded at the stop, if any)
+pacing: invocation 2026-10-15T00:22:24.340Z~85b11514-3f8e-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T20:20:40.601Z~01170097-5582-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 105 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+operator: ['invocation 1 start 2026-10-15T00:22:21Z', 'invocation 1 end 2026-10-15T00:44:57Z exit 0', 'invocation 2 start 2026-10-15T20:20:38Z', 'invocation 2 end 2026-10-15T20:43:31Z exit 0', 'invocation 3 start 2026-10-15T23:05:40Z', 'invocation 3 end 2026-10-15T23:26:58Z exit 0']
+monitor: 48 lines, STOP/HOLD none, builds {'Dyml8RSqfWynKU1KbVuZI': 42}, last: 2026-10-15T23:26:59.766Z the harness exited: 66 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcomes {'passed': 58, 'failed-adapter': 7, 'failed-gate': 1}
