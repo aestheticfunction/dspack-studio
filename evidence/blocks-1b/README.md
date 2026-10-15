@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run is open.** Windows 1 and 2 are complete. Each stopped cleanly at its request cap, and together they cover 145 of 480 cells. No later window is authorized yet.
+**Status: the run is open.** Windows 1 to 3 are complete. Each stopped cleanly at its request cap, and together they cover 211 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -151,20 +151,77 @@ Only the readiness packet's pace of one window a day, which the $10 limit set, i
   - every settlement and call on `claude-haiku-4-5-20251001`;
   - 7,717,543 input and 193,516 output tokens, whose price equals the settled total to the nanodollar.
 
-**Next:** window 3 resumes the run with `--resume live/runs/1b-stage3-shadcn-2026-10-15` and the monitor's `--preflights 3`, and only on the owner's authorization.
+## Window 3 (2026-10-15)
+
+**Authorized by the owner,** together with the remaining windows back to back, under the operational change above.
+- The owner started it at once, on the same UTC day as windows 1 and 2. The owner's $40 daily limit covers that day's earlier spend.
+- The scheduled launch was cancelled first.
+- It ran with `shadcn-window.sh launch 3 4c3db56`.
+
+**Before the first paid call:** every no-cost check was repeated from 23:05:31Z to 23:05:40Z, and all passed (`.window-3.preresume-checks.txt`):
+- main and the checkout at `7e260c3`, clean, and no harness or monitor running;
+- every evidence branch at its expected head, and 431 checksum entries;
+- the run directory byte-identical to window 2's copy at `4c3db56`, the branch's copy unchanged since:
+  - 209 requests, all finalized, nothing held;
+  - both earlier windows stopped at their caps;
+- the frozen tooling and the monitor's configuration;
+- the zero-cost probe equal to the baseline apart from `at`;
+- the resume command through the harness's own parser and planner;
+- two preflights, so `--preflights 3`;
+- the operator record holding invocations 1 and 2.
+
+**The invocation:** 23:05:40Z to 23:26:58Z, exit 0.
+- **Its stop:** "the pacing cap of 123 requests for this invocation is reached; resume later".
+- **104 requests sent.**
+
+**Window 3's ledger:** 104 requests, each with one reservation and one final.
+- **103 settled** at the reported usage, every one on `claude-haiku-4-5-20251001`.
+- **1 zero-cost busy refusal** (#56, a 503 busy reply). It was released at $0 and retried once, after the 30 s backoff. It was not a Cloudflare limit response: the window carried on to its cap.
+- **No hold,** and nothing left open.
+- **Committed:** $4.06116165, which is $3.867773 at list price plus the 5% credit fee.
+- **Window 2's records are unchanged.** Its ledger, cell records and pacing entries are byte-for-byte prefixes of the files as window 3 left them.
+
+**The run so far:**
+- **Requests:** 313 of its 1,275.
+- **Committed:** $13.1805408 ($12.552896 at list price) of its $77 ceiling.
+- **Cells:** 211 of 480.
+- **Daily spend:** windows 1 to 3 all ran on 2026-10-15 UTC, together $12.552896 at list price, within the owner's $40 daily limit.
+
+**Window 3's cells:** 66, covering the auth-form prompts af-02 to af-05. All 66 completed, and 58 passed. Every failure is a structural refinement, and an ordinary arm result that is not re-run:
+- **unusable output, twice** (classified output): 6 cells:
+  - capped: af-02;
+  - production: af-02 and af-04;
+  - block: af-05;
+  - block-positional: af-03 and af-05;
+- **block af-03:** its budget of 3 model calls ran out on the fallback path;
+- **block-positional af-04:** a failed gate on the fallback path.
+
+There was no provider or policy failure.
+
+**Window 3's tokens:** 106 provider calls, 15 of which returned unusable output. They used 3,594,108 input and 54,733 output tokens, and priced at Claude Haiku 4.5's rates they equal the window's settled total exactly.
+
+**The monitor:** exit 0, with no STOP or HOLD line.
+- It saw all 104 requests.
+- It read the live build 42 times, always `Dyml8RSqfWynKU1KbVuZI`.
+- It allowed the one refusal within its schedule.
+
+**Next:** window 4 follows at once with `shadcn-window.sh launch 4 <this window's copy>`, which runs the monitor with `--preflights 4`. It starts only if window 3's evidence verifies.
 
 ## Files of the run
 
-- `1b-stage3-shadcn-2026-10-15/`: the run directory exactly as the harness left it (`packages/block-bench/live/runs/1b-stage3-shadcn-2026-10-15`), byte-identical. Each window's copy is the commit that preserved it: window 1's is `1cc106b`, and window 2's is the commit that adds this line.
+- `1b-stage3-shadcn-2026-10-15/`: the run directory exactly as the harness left it (`packages/block-bench/live/runs/1b-stage3-shadcn-2026-10-15`), byte-identical. Each window's copy is the commit that preserved it:
+  - window 1's is `1cc106b`;
+  - window 2's is `4c3db56`;
+  - later windows' commits are named in their sections and reports.
 - `1b-stage3-shadcn-2026-10-15.prerun-checks.txt`: the no-cost checks, repeated immediately before the first paid call.
 - `1b-stage3-shadcn-2026-10-15.prerun-probe.json`: the zero-cost probe those checks made.
 - `1b-stage3-shadcn-2026-10-15.prerun-and-launch.sh` and `.plan-check.mts`:
   - the script that ran the checks and then launched the packet's frozen command and monitor;
   - its offline plan check.
 - `1b-stage3-shadcn-2026-10-15.invocations.txt`: the operator's record of each invocation's start, end and exit code.
-- `1b-stage3-shadcn-2026-10-15.window-2.preresume-checks.txt`, `.window-2.preresume-probe.json`, `.window-2.preresume-and-launch.sh`, `.window-2.plan-check.mts` and `.window-2.launch-console.txt`: window 2's checks, probe, launch script, plan check and console, as for window 1.
-- `1b-stage3-shadcn-2026-10-15.invocation-1.log` and `.invocation-2.log`: each invocation's console output, unedited. Their only warnings are Node's "EnvHttpProxyAgent is experimental".
-- `1b-stage3-shadcn-2026-10-15.monitor-events-1.log` and `.monitor-events-2.log`: the operator monitor's events log for each window.
+- `1b-stage3-shadcn-2026-10-15.window-2.preresume-checks.txt`, `.window-2.preresume-probe.json`, `.window-2.preresume-and-launch.sh`, `.window-2.plan-check.mts` and `.window-2.launch-console.txt`: window 2's checks, probe, launch script, plan check and console, as for window 1. Later windows have the same files under `.window-<k>.`, except that they share the `.window-k.` scripts.
+- `1b-stage3-shadcn-2026-10-15.invocation-<k>.log`: each invocation's console output, unedited. Their only warnings are Node's "EnvHttpProxyAgent is experimental".
+- `1b-stage3-shadcn-2026-10-15.monitor-events-<k>.log`: the operator monitor's events log for each window.
 - `1b-stage3-shadcn-2026-10-15.launch-console.txt`: the launch script's console, holding the checks, the monitor's output and its exit code.
 - `1b-stage3-shadcn-2026-10-15.window-1.verify.json` and `.txt`: the verifier's result and console for window 1's copy, as origin holds it at `1cc106b`.
 - `1b-stage3-shadcn-2026-10-15.window-1.reconcile.json` and `.txt`: the independent reconciliation of the same copy.

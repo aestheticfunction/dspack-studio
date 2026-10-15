@@ -1,0 +1,80 @@
+checks at 2026-10-15T23:05:31Z
+mode launch | run directory live/runs/1b-stage3-shadcn-2026-10-15 | window 3 | window 2's copy 4c3db560bdec8b561d83b7f5ec4f59c5f094d5b9
+HEAD 7e260c38029ab0a1df1fc499733ed037c06d60db | origin/main 7e260c38029ab0a1df1fc499733ed037c06d60db
+working tree clean
+no harness or monitor process running
+evidence blocks-stage3-shadcn-evidence eb48aaa75bc65a081e58f3f26dba7e5cadc3c12c
+evidence blocks-stage3-astryx-evidence e3f57da4280e8f67c5f8cdecde3fc0872e03708b
+evidence blocks-baseline-7e260c3-evidence 460cc81d7af794eadabb7da919dc4bd147c09c74
+evidence blocks-baseline-eaf6ae3-evidence d85a0e872ad8d888f2b367d0db3c4eba99c31efe
+evidence blocks-smoke-option-b-evidence a71b47cdfbc1ee33b7015a68f4f3c16a3059509f
+evidence blocks-smoke-c154548-evidence 11aa8b4e2419984410c318a5da9a57a3b743f826
+window 2's copy 4c3db560bdec8b561d83b7f5ec4f59c5f094d5b9 is on the shadcn evidence branch
+the branch's run directory is unchanged since 4c3db560bdec8b561d83b7f5ec4f59c5f094d5b9
+evidence checksums: 431 entries, 0 not OK
+run directory identical to window 2's copy at 4c3db560bdec8b561d83b7f5ec4f59c5f094d5b9
+no run.lock
+run so far: 209 requests, 209 finalized, open none, held none, committed $9.11937915; caps {'maxTotalRequests': 1275, 'maxTotalUsd': 77}; remaining $67.88062085 and 1066 requests; windows 2, stops ['cap', 'cap']; preflights 2; served models ['claude-haiku-4-5-20251001']; build Dyml8RSqfWynKU1KbVuZI; code 51c80cec7a65…; corpus 0e4e4706e19e…
+tooling at e3f57da4280e8f67c5f8cdecde3fc0872e03708b: 312 checksum entries verify
+monitor_run.py 5a2541a9cbae67fae72b481b361594be4f601a21a4478bdeffcd40e993e7bd3e | monitor-shadcn.json 64ed771ea1f54a13806ebe44039c922a1d446c310de511971ba187b5122b32ca | verify_run.py c6010c575493206ca520caa3076accadfad01aff4a642303cd6ed1b95648111d
+monitor configuration: model claude-haiku-4-5-20251001 | build Dyml8RSqfWynKU1KbVuZI | code 51c80cec7a65… | corpus v2 0e4e4706e19e… | reference shadcn-v3 | 123 requests a window, 12 s spacing | matches the authorization: True 
+probe exit=0
+probe at 2026-10-15T23:05:36.595Z | build Dyml8RSqfWynKU1KbVuZI | worker per-call-model ['per-call-model'] 400 calls [] | models scripted,hosted-ai | drafts False
+sidecars: shadcn-v3=approved/ok/3 usable/0 disabled; astryx=approved/ok/3 usable/0 disabled
+equals the committed baseline (7e260c3) apart from 'at': True []
+{"cells":480,"references":["shadcn-v3"],"corpus":"blocks-1b v2","digest":"0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9","frozen":true,"scoring":"binding","sidecars":["shadcn-v3:approved:ok:records-table+auth-form+guide-steps"],"maxTotalUsd":77,"maxTotalRequests":1275,"maxRequests":123,"spacingMs":12000,"out":null,"resume":"live/runs/1b-stage3-shadcn-2026-10-15","rerunFailed":false,"allowDrafts":false}
+code identity 51c80cec7a652216c3b9b28b1467e8c45eb0ecebe170969854bb1d49d3c8a229
+plan matches the authorization: True 
+preflight files in the run: 2, so the monitor's --preflights is 3
+operator record holds invocations 1 to 2: 2 ended
+checks ended 2026-10-15T23:05:40Z
+2026-10-15T23:05:40.246Z monitor up: window 3, run live/runs/1b-stage3-shadcn-2026-10-15, harness process group 472, waiting for preflight.resume-2.json; limits {"backoffMs":[30000,60000,120000,240000],"maxReleased":8,"maxBackoffSeconds":600,"maxProviderFailures":1,"maxRequestsPerWindow":123,"openRequestSeconds":600,"buildCheckSeconds":30,"maxUnreadableBuildSeconds":300,"preflightWaitSeconds":180,"holdGraceSeconds":15,"spacingSeconds":12,"progressEvery":40}
+2026-10-15T23:05:44.275Z window opened 2026-10-15T23:05:42.280Z: build Dyml8RSqfWynKU1KbVuZI, code 51c80cec7a65, corpus blocks-1b v2, shadcn-v3
+2026-10-15T23:05:44.278Z the run's lock names pid 503, inside --pgid 472: the harness
+2026-10-15T23:05:46.346Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:06:18.382Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:06:48.418Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:07:20.451Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:07:50.490Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:08:22.527Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:08:52.561Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:09:22.592Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:09:54.631Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:10:24.666Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:10:56.701Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:11:26.734Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:11:58.768Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:12:28.808Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:13:00.850Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:13:30.883Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:14:00.913Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:14:32.948Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:15:02.979Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:15:35.015Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:16:05.046Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:16:37.080Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:16:53.095Z a refusal released at no cost: 2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4e5d-a3b6-545fcbede92b#56, 1 in a row; the harness waits 30 s if it retries (1 released, 30 s of backoff in this window)
+2026-10-15T23:17:07.111Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:17:39.144Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:18:09.176Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:18:27.193Z 40 cells, 62 requests sent, 61 settled, 1 released (30 s of backoff), 0 provider failures, outcomes {'passed': 36, 'failed-adapter': 4}
+2026-10-15T23:18:41.209Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:19:11.250Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:19:41.283Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:20:13.315Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:20:43.347Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:21:15.387Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:21:45.419Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:22:17.457Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:22:47.489Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:23:19.525Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:23:49.559Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:24:19.590Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:24:51.625Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:25:21.657Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:25:53.690Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:26:23.723Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:26:53.761Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-15T23:26:59.766Z the harness exited: 66 cells, 104 requests sent, 103 settled, 1 released (30 s of backoff), 0 provider failures, outcomes {'passed': 58, 'failed-adapter': 7, 'failed-gate': 1}
+monitor exit 0 at 2026-10-15T23:26:59Z
+script exit 0
