@@ -9,8 +9,8 @@
   },
   "cells": {
     "total": 480,
-    "done": 211,
-    "reused": 145
+    "done": 279,
+    "reused": 211
   },
   "stopped": {
     "reason": "cap",
@@ -33,503 +33,398 @@
       "sent": 104,
       "waits": [
         {
-          "atMs": 5734,
-          "ms": 7498,
+          "atMs": 4880,
+          "ms": 8291,
           "reason": "spacing"
         },
         {
-          "atMs": 16552,
-          "ms": 8685,
+          "atMs": 16756,
+          "ms": 8420,
           "reason": "spacing"
         },
         {
-          "atMs": 28190,
-          "ms": 9053,
+          "atMs": 28422,
+          "ms": 8756,
           "reason": "spacing"
         },
         {
-          "atMs": 39960,
-          "ms": 9288,
+          "atMs": 42141,
+          "ms": 7042,
           "reason": "spacing"
         },
         {
-          "atMs": 51703,
-          "ms": 9547,
+          "atMs": 60575,
+          "ms": 611,
           "reason": "spacing"
         },
         {
-          "atMs": 64776,
-          "ms": 8479,
+          "atMs": 63325,
+          "ms": 9861,
           "reason": "spacing"
         },
         {
-          "atMs": 74754,
-          "ms": 10504,
+          "atMs": 77950,
+          "ms": 7242,
           "reason": "spacing"
         },
         {
-          "atMs": 90064,
-          "ms": 7198,
+          "atMs": 88767,
+          "ms": 8428,
           "reason": "spacing"
         },
         {
-          "atMs": 99508,
-          "ms": 9759,
+          "atMs": 102310,
+          "ms": 6890,
           "reason": "spacing"
         },
         {
-          "atMs": 115745,
-          "ms": 5528,
+          "atMs": 112232,
+          "ms": 8971,
           "reason": "spacing"
         },
         {
-          "atMs": 124494,
-          "ms": 8781,
+          "atMs": 146360,
+          "ms": 8888,
           "reason": "spacing"
         },
         {
-          "atMs": 141216,
-          "ms": 4064,
+          "atMs": 157588,
+          "ms": 9665,
           "reason": "spacing"
         },
         {
-          "atMs": 151241,
-          "ms": 6039,
+          "atMs": 168477,
+          "ms": 10784,
           "reason": "spacing"
         },
         {
-          "atMs": 168876,
-          "ms": 408,
+          "atMs": 182051,
+          "ms": 9213,
           "reason": "spacing"
         },
         {
-          "atMs": 180654,
-          "ms": 630,
+          "atMs": 192548,
+          "ms": 10721,
           "reason": "spacing"
         },
         {
-          "atMs": 183408,
-          "ms": 9877,
+          "atMs": 205429,
+          "ms": 9842,
           "reason": "spacing"
         },
         {
-          "atMs": 197222,
-          "ms": 8069,
+          "atMs": 219150,
+          "ms": 8126,
           "reason": "spacing"
         },
         {
-          "atMs": 209270,
-          "ms": 8026,
+          "atMs": 229397,
+          "ms": 9883,
           "reason": "spacing"
         },
         {
-          "atMs": 221348,
-          "ms": 7952,
+          "atMs": 240842,
+          "ms": 10444,
           "reason": "spacing"
         },
         {
-          "atMs": 235692,
-          "ms": 5612,
+          "atMs": 252574,
+          "ms": 10720,
           "reason": "spacing"
         },
         {
-          "atMs": 245147,
-          "ms": 8159,
+          "atMs": 264885,
+          "ms": 10416,
           "reason": "spacing"
         },
         {
-          "atMs": 275365,
-          "ms": 8685,
+          "atMs": 276719,
+          "ms": 10588,
           "reason": "spacing"
         },
         {
-          "atMs": 285819,
-          "ms": 10236,
+          "atMs": 288919,
+          "ms": 10395,
           "reason": "spacing"
         },
         {
-          "atMs": 298380,
-          "ms": 9678,
+          "atMs": 300940,
+          "ms": 10380,
           "reason": "spacing"
         },
         {
-          "atMs": 309776,
-          "ms": 10288,
+          "atMs": 313515,
+          "ms": 9808,
           "reason": "spacing"
         },
         {
-          "atMs": 322166,
-          "ms": 9905,
+          "atMs": 328220,
+          "ms": 7108,
           "reason": "spacing"
         },
         {
-          "atMs": 334754,
-          "ms": 9324,
+          "atMs": 338453,
+          "ms": 8878,
           "reason": "spacing"
         },
         {
-          "atMs": 350053,
-          "ms": 6030,
+          "atMs": 350937,
+          "ms": 8399,
           "reason": "spacing"
         },
         {
-          "atMs": 364062,
-          "ms": 4022,
+          "atMs": 362452,
+          "ms": 8889,
           "reason": "spacing"
         },
         {
-          "atMs": 371028,
-          "ms": 9056,
+          "atMs": 376289,
+          "ms": 7056,
           "reason": "spacing"
         },
         {
-          "atMs": 381591,
-          "ms": 10499,
+          "atMs": 387657,
+          "ms": 7691,
           "reason": "spacing"
         },
         {
-          "atMs": 393788,
-          "ms": 10308,
+          "atMs": 401598,
+          "ms": 5755,
           "reason": "spacing"
         },
         {
-          "atMs": 405909,
-          "ms": 10194,
+          "atMs": 409499,
+          "ms": 9857,
           "reason": "spacing"
         },
         {
-          "atMs": 418162,
-          "ms": 9948,
+          "atMs": 424279,
+          "ms": 7082,
           "reason": "spacing"
         },
         {
-          "atMs": 429690,
-          "ms": 10426,
+          "atMs": 434436,
+          "ms": 8927,
           "reason": "spacing"
         },
         {
-          "atMs": 444495,
-          "ms": 7627,
+          "atMs": 446624,
+          "ms": 8744,
           "reason": "spacing"
         },
         {
-          "atMs": 458161,
-          "ms": 5966,
+          "atMs": 457970,
+          "ms": 9404,
           "reason": "spacing"
         },
         {
-          "atMs": 467167,
-          "ms": 8962,
+          "atMs": 483307,
+          "ms": 9504,
           "reason": "spacing"
         },
         {
-          "atMs": 481734,
-          "ms": 6401,
+          "atMs": 496881,
+          "ms": 7937,
           "reason": "spacing"
         },
         {
-          "atMs": 493277,
-          "ms": 6861,
+          "atMs": 506678,
+          "ms": 10145,
           "reason": "spacing"
         },
         {
-          "atMs": 506101,
-          "ms": 6040,
+          "atMs": 519453,
+          "ms": 9376,
           "reason": "spacing"
         },
         {
-          "atMs": 515585,
-          "ms": 8608,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 529059,
-          "ms": 7139,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 543976,
-          "ms": 4226,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 557201,
-          "ms": 3002,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 562188,
-          "ms": 10018,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 577605,
-          "ms": 6608,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 589688,
-          "ms": 6529,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 599108,
-          "ms": 9113,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 612385,
-          "ms": 7842,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 624324,
-          "ms": 7908,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 648862,
-          "ms": 7777,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 659058,
-          "ms": 9586,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 669547,
+          "atMs": 529130,
           "ms": 30000,
           "reason": "503 busy"
         },
         {
-          "atMs": 702127,
-          "ms": 9446,
+          "atMs": 561974,
+          "ms": 9183,
           "reason": "spacing"
         },
         {
-          "atMs": 713026,
-          "ms": 10554,
+          "atMs": 573797,
+          "ms": 9366,
           "reason": "spacing"
         },
         {
-          "atMs": 725084,
-          "ms": 10503,
+          "atMs": 584758,
+          "ms": 10410,
           "reason": "spacing"
         },
         {
-          "atMs": 737082,
-          "ms": 10511,
+          "atMs": 625630,
+          "ms": 9697,
           "reason": "spacing"
         },
         {
-          "atMs": 749234,
-          "ms": 10367,
+          "atMs": 640515,
+          "ms": 6817,
           "reason": "spacing"
         },
         {
-          "atMs": 763345,
-          "ms": 8262,
+          "atMs": 650035,
+          "ms": 9300,
           "reason": "spacing"
         },
         {
-          "atMs": 775564,
-          "ms": 8047,
+          "atMs": 662065,
+          "ms": 9276,
           "reason": "spacing"
         },
         {
-          "atMs": 785201,
-          "ms": 10414,
+          "atMs": 673879,
+          "ms": 9467,
           "reason": "spacing"
         },
         {
-          "atMs": 797246,
-          "ms": 10373,
+          "atMs": 685636,
+          "ms": 9716,
           "reason": "spacing"
         },
         {
-          "atMs": 809123,
-          "ms": 10503,
+          "atMs": 727134,
+          "ms": 9867,
           "reason": "spacing"
         },
         {
-          "atMs": 821297,
-          "ms": 10336,
+          "atMs": 784105,
+          "ms": 3215,
           "reason": "spacing"
         },
         {
-          "atMs": 833553,
-          "ms": 10087,
+          "atMs": 795794,
+          "ms": 3529,
           "reason": "spacing"
         },
         {
-          "atMs": 845517,
-          "ms": 10130,
+          "atMs": 806457,
+          "ms": 4869,
           "reason": "spacing"
         },
         {
-          "atMs": 861333,
-          "ms": 6320,
+          "atMs": 843445,
+          "ms": 10225,
           "reason": "spacing"
         },
         {
-          "atMs": 870095,
-          "ms": 9560,
+          "atMs": 888096,
+          "ms": 4170,
           "reason": "spacing"
         },
         {
-          "atMs": 885033,
-          "ms": 6627,
+          "atMs": 901649,
+          "ms": 2617,
           "reason": "spacing"
         },
         {
-          "atMs": 896861,
-          "ms": 6798,
+          "atMs": 912559,
+          "ms": 3710,
           "reason": "spacing"
         },
         {
-          "atMs": 906663,
-          "ms": 8998,
+          "atMs": 925978,
+          "ms": 2294,
           "reason": "spacing"
         },
         {
-          "atMs": 922623,
-          "ms": 5042,
+          "atMs": 939503,
+          "ms": 772,
           "reason": "spacing"
         },
         {
-          "atMs": 933338,
-          "ms": 6328,
+          "atMs": 943380,
+          "ms": 8896,
           "reason": "spacing"
         },
         {
-          "atMs": 943996,
-          "ms": 7672,
+          "atMs": 957148,
+          "ms": 7132,
           "reason": "spacing"
         },
         {
-          "atMs": 957588,
-          "ms": 6084,
+          "atMs": 967292,
+          "ms": 8991,
           "reason": "spacing"
         },
         {
-          "atMs": 969379,
-          "ms": 6295,
+          "atMs": 979134,
+          "ms": 9154,
           "reason": "spacing"
         },
         {
-          "atMs": 977982,
-          "ms": 9695,
+          "atMs": 990946,
+          "ms": 9347,
           "reason": "spacing"
         },
         {
-          "atMs": 994394,
-          "ms": 5289,
+          "atMs": 1001794,
+          "ms": 10504,
           "reason": "spacing"
         },
         {
-          "atMs": 1005678,
-          "ms": 6006,
+          "atMs": 1036679,
+          "ms": 1016,
           "reason": "spacing"
         },
         {
-          "atMs": 1015241,
-          "ms": 8446,
+          "atMs": 1040571,
+          "ms": 9124,
           "reason": "spacing"
         },
         {
-          "atMs": 1027510,
-          "ms": 8182,
+          "atMs": 1055829,
+          "ms": 5871,
           "reason": "spacing"
         },
         {
-          "atMs": 1041390,
-          "ms": 6307,
+          "atMs": 1064204,
+          "ms": 9498,
           "reason": "spacing"
         },
         {
-          "atMs": 1070166,
-          "ms": 9294,
+          "atMs": 1076649,
+          "ms": 9058,
           "reason": "spacing"
         },
         {
-          "atMs": 1081125,
-          "ms": 10341,
+          "atMs": 1088146,
+          "ms": 9588,
           "reason": "spacing"
         },
         {
-          "atMs": 1092766,
-          "ms": 10706,
+          "atMs": 1100199,
+          "ms": 9540,
           "reason": "spacing"
         },
         {
-          "atMs": 1105556,
-          "ms": 9924,
+          "atMs": 1117660,
+          "ms": 4084,
           "reason": "spacing"
         },
         {
-          "atMs": 1117127,
-          "ms": 10359,
+          "atMs": 1133649,
+          "ms": 96,
           "reason": "spacing"
         },
         {
-          "atMs": 1128970,
-          "ms": 10523,
+          "atMs": 1135998,
+          "ms": 9747,
           "reason": "spacing"
         },
         {
-          "atMs": 1149966,
-          "ms": 1534,
+          "atMs": 1230995,
+          "ms": 1671,
           "reason": "spacing"
         },
         {
-          "atMs": 1162953,
-          "ms": 548,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1165865,
-          "ms": 9636,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1177209,
-          "ms": 10297,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1188860,
-          "ms": 10654,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1201974,
-          "ms": 9547,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1213289,
-          "ms": 10238,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1225806,
-          "ms": 9728,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1244250,
-          "ms": 3290,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1257458,
-          "ms": 2085,
-          "reason": "spacing"
-        },
-        {
-          "atMs": 1261443,
-          "ms": 10100,
+          "atMs": 1277323,
+          "ms": 9654,
           "reason": "spacing"
         }
       ]
@@ -1909,13 +1804,431 @@
         "reason": "cap",
         "message": "the pacing cap of 123 requests for this invocation is reached; resume later"
       }
+    },
+    {
+      "at": "2026-10-15T23:29:08.644Z",
+      "id": "2026-10-15T23:29:08.644Z~824dd642-29df-4bdf-8be9-f71cca64b0bf",
+      "telemetry": {
+        "pacing": {
+          "maxRequests": 123,
+          "spacingMs": 12000,
+          "backoffMs": [
+            30000,
+            60000,
+            120000,
+            240000
+          ],
+          "sent": 104,
+          "waits": [
+            {
+              "atMs": 4880,
+              "ms": 8291,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 16756,
+              "ms": 8420,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 28422,
+              "ms": 8756,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 42141,
+              "ms": 7042,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 60575,
+              "ms": 611,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 63325,
+              "ms": 9861,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 77950,
+              "ms": 7242,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 88767,
+              "ms": 8428,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 102310,
+              "ms": 6890,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 112232,
+              "ms": 8971,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 146360,
+              "ms": 8888,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 157588,
+              "ms": 9665,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 168477,
+              "ms": 10784,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 182051,
+              "ms": 9213,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 192548,
+              "ms": 10721,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 205429,
+              "ms": 9842,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 219150,
+              "ms": 8126,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 229397,
+              "ms": 9883,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 240842,
+              "ms": 10444,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 252574,
+              "ms": 10720,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 264885,
+              "ms": 10416,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 276719,
+              "ms": 10588,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 288919,
+              "ms": 10395,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 300940,
+              "ms": 10380,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 313515,
+              "ms": 9808,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 328220,
+              "ms": 7108,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 338453,
+              "ms": 8878,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 350937,
+              "ms": 8399,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 362452,
+              "ms": 8889,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 376289,
+              "ms": 7056,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 387657,
+              "ms": 7691,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 401598,
+              "ms": 5755,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 409499,
+              "ms": 9857,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 424279,
+              "ms": 7082,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 434436,
+              "ms": 8927,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 446624,
+              "ms": 8744,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 457970,
+              "ms": 9404,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 483307,
+              "ms": 9504,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 496881,
+              "ms": 7937,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 506678,
+              "ms": 10145,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 519453,
+              "ms": 9376,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 529130,
+              "ms": 30000,
+              "reason": "503 busy"
+            },
+            {
+              "atMs": 561974,
+              "ms": 9183,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 573797,
+              "ms": 9366,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 584758,
+              "ms": 10410,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 625630,
+              "ms": 9697,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 640515,
+              "ms": 6817,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 650035,
+              "ms": 9300,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 662065,
+              "ms": 9276,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 673879,
+              "ms": 9467,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 685636,
+              "ms": 9716,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 727134,
+              "ms": 9867,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 784105,
+              "ms": 3215,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 795794,
+              "ms": 3529,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 806457,
+              "ms": 4869,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 843445,
+              "ms": 10225,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 888096,
+              "ms": 4170,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 901649,
+              "ms": 2617,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 912559,
+              "ms": 3710,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 925978,
+              "ms": 2294,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 939503,
+              "ms": 772,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 943380,
+              "ms": 8896,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 957148,
+              "ms": 7132,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 967292,
+              "ms": 8991,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 979134,
+              "ms": 9154,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 990946,
+              "ms": 9347,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1001794,
+              "ms": 10504,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1036679,
+              "ms": 1016,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1040571,
+              "ms": 9124,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1055829,
+              "ms": 5871,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1064204,
+              "ms": 9498,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1076649,
+              "ms": 9058,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1088146,
+              "ms": 9588,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1100199,
+              "ms": 9540,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1117660,
+              "ms": 4084,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1133649,
+              "ms": 96,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1135998,
+              "ms": 9747,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1230995,
+              "ms": 1671,
+              "reason": "spacing"
+            },
+            {
+              "atMs": 1277323,
+              "ms": 9654,
+              "reason": "spacing"
+            }
+          ]
+        }
+      },
+      "stopped": {
+        "reason": "cap",
+        "message": "the pacing cap of 123 requests for this invocation is reached; resume later"
+      }
     }
   ],
   "requests": {
     "cap": 1275,
-    "sent": 313,
+    "sent": 417,
     "capUsd": 77,
-    "usd": 13.1805408
+    "usd": 18.00655185
   },
   "superseded": {
     "records": 0,
@@ -1932,41 +2245,41 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "block",
         "condition": "fresh",
-        "n": 11,
+        "n": 14,
         "skipped": 0,
-        "completed": 11,
+        "completed": 14,
         "rerunEligible": 0,
         "rerunByKind": {},
-        "evaluated": 11,
-        "passed": 11,
+        "evaluated": 14,
+        "passed": 14,
         "passRate": 1,
-        "firstAttemptPassed": 11,
+        "firstAttemptPassed": 14,
         "firstAttemptPassRate": 1,
         "repairsPerSuccess": 0,
-        "meteredRuns": 11,
-        "meteredSuccesses": 11,
-        "meteredTokens": 35509,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 45585,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 3228.090909090909,
-        "inputTokensPerSuccess": 2876.4545454545455,
-        "outputTokensPerSuccess": 351.6363636363636,
-        "tokensPerPassingRun": 3228.090909090909,
+        "tokensPerSuccess": 3256.0714285714284,
+        "inputTokensPerSuccess": 2878,
+        "outputTokensPerSuccess": 378.07142857142856,
+        "tokensPerPassingRun": 3256.0714285714284,
         "providerCallsPerRun": 2,
-        "requestBytesPerRun": 12297.818181818182,
+        "requestBytesPerRun": 12290.857142857143,
         "latency": {
-          "totalMs": 5855.753527000081,
-          "firstGatedAttemptMs": 5758.142856000108,
-          "blockPhaseMs": 3342.4427530000685,
-          "emitMs": 110.52129699999932,
-          "planMs": 2705.4716350000817,
-          "pacingMs": 9434.471997000015,
-          "wallTotalMs": 16212.760752999999
+          "totalMs": 6207.684138500015,
+          "firstGatedAttemptMs": 6092.347874000028,
+          "blockPhaseMs": 3599.5679889999155,
+          "emitMs": 111.26556800000253,
+          "planMs": 2752.0036265000235,
+          "pacingMs": 9472.30365250002,
+          "wallTotalMs": 16141.255405499987
         },
         "parity": {
           "meanScore": 1,
-          "scored": 11,
-          "fullyParityPassed": 11,
+          "scored": 14,
+          "fullyParityPassed": 14,
           "noChecks": 0
         },
         "operation": {
@@ -1980,8 +2293,8 @@
         "operationByBlock": {},
         "paths": {
           "block": {
-            "n": 11,
-            "passed": 11
+            "n": 14,
+            "passed": 14
           }
         },
         "budgetRemainingAtFallback": {},
@@ -2000,41 +2313,41 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "block-positional",
         "condition": "fresh",
-        "n": 11,
+        "n": 14,
         "skipped": 0,
-        "completed": 11,
+        "completed": 14,
         "rerunEligible": 0,
         "rerunByKind": {},
-        "evaluated": 11,
-        "passed": 8,
-        "passRate": 0.7272727272727273,
-        "firstAttemptPassed": 8,
-        "firstAttemptPassRate": 0.7272727272727273,
+        "evaluated": 14,
+        "passed": 11,
+        "passRate": 0.7857142857142857,
+        "firstAttemptPassed": 11,
+        "firstAttemptPassRate": 0.7857142857142857,
         "repairsPerSuccess": 0,
-        "meteredRuns": 11,
-        "meteredSuccesses": 8,
-        "meteredTokens": 41837,
+        "meteredRuns": 14,
+        "meteredSuccesses": 11,
+        "meteredTokens": 52222,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 5229.625,
-        "inputTokensPerSuccess": 4653.25,
-        "outputTokensPerSuccess": 576.375,
-        "tokensPerPassingRun": 3622.75,
-        "providerCallsPerRun": 2.4545454545454546,
-        "requestBytesPerRun": 13967.454545454546,
+        "tokensPerSuccess": 4747.454545454545,
+        "inputTokensPerSuccess": 4218.454545454545,
+        "outputTokensPerSuccess": 529,
+        "tokensPerPassingRun": 3578.818181818182,
+        "providerCallsPerRun": 2.357142857142857,
+        "requestBytesPerRun": 13708.214285714286,
         "latency": {
-          "totalMs": 7426.013622000115,
-          "firstGatedAttemptMs": 6770.034058000019,
-          "blockPhaseMs": 4279.763738000067,
-          "emitMs": 120.67031650000717,
-          "planMs": 2666.965763999964,
-          "pacingMs": 13083.80362099997,
-          "wallTotalMs": 21855.611281000078
+          "totalMs": 7454.373206500022,
+          "firstGatedAttemptMs": 7133.658990000025,
+          "blockPhaseMs": 4371.648532000021,
+          "emitMs": 119.95151499996427,
+          "planMs": 2666.795918499978,
+          "pacingMs": 12696.469859499979,
+          "wallTotalMs": 20392.737297000072
         },
         "parity": {
           "meanScore": 1,
-          "scored": 8,
-          "fullyParityPassed": 8,
+          "scored": 11,
+          "fullyParityPassed": 11,
           "noChecks": 0
         },
         "operation": {
@@ -2048,8 +2361,8 @@
         "operationByBlock": {},
         "paths": {
           "block": {
-            "n": 7,
-            "passed": 7
+            "n": 10,
+            "passed": 10
           },
           "provider-failure": {
             "n": 3,
@@ -2076,40 +2389,1345 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "capped",
         "condition": "fresh",
-        "n": 11,
+        "n": 14,
         "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 9,
+        "firstAttemptPassRate": 0.6428571428571429,
+        "repairsPerSuccess": 0.42857142857142855,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 1378528,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 98466.28571428571,
+        "inputTokensPerSuccess": 96316.21428571429,
+        "outputTokensPerSuccess": 2150.0714285714284,
+        "tokensPerPassingRun": 98466.28571428571,
+        "providerCallsPerRun": 2.4285714285714284,
+        "requestBytesPerRun": 341603.64285714284,
+        "latency": {
+          "totalMs": 12030.299223500013,
+          "firstGatedAttemptMs": 8609.048579999991,
+          "blockPhaseMs": null,
+          "emitMs": 110.93630499986466,
+          "planMs": 2242.550644000079,
+          "pacingMs": 14577.316117000093,
+          "wallTotalMs": 26506.63903349996
+        },
+        "parity": {
+          "meanScore": 0.9761904761904762,
+          "scored": 14,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "fresh",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 7,
+        "firstAttemptPassRate": 0.5,
+        "repairsPerSuccess": 0.5,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 1438563,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 102754.5,
+        "inputTokensPerSuccess": 100617.5,
+        "outputTokensPerSuccess": 2137,
+        "tokensPerPassingRun": 102754.5,
+        "providerCallsPerRun": 2.5,
+        "requestBytesPerRun": 356115.14285714284,
+        "latency": {
+          "totalMs": 10825.962018999991,
+          "firstGatedAttemptMs": 7516.080000999966,
+          "blockPhaseMs": null,
+          "emitMs": 109.99477550006122,
+          "planMs": 2135.125492500025,
+          "pacingMs": 10325.686069999996,
+          "wallTotalMs": 25643.520781999978
+        },
+        "parity": {
+          "meanScore": 0.9761904761904762,
+          "scored": 14,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": null,
+        "changed": 0,
+        "refinedPassed": 0,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-add",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 14,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 13430,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 959.2857142857143,
+        "inputTokensPerSuccess": 790.5,
+        "outputTokensPerSuccess": 168.78571428571428,
+        "tokensPerPassingRun": 959.2857142857143,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 3081.785714285714,
+        "latency": {
+          "totalMs": 2734.8309359999985,
+          "firstGatedAttemptMs": 2626.085208500008,
+          "blockPhaseMs": 2620.941121000069,
+          "emitMs": 107.18396049999865,
+          "planMs": null,
+          "pacingMs": 9770.978433000011,
+          "wallTotalMs": 12398.088752500007
+        },
+        "parity": {
+          "meanScore": 1,
+          "scored": 14,
+          "fullyParityPassed": 14,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 14,
+          "performed": 14,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 2,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 14,
+        "refinedPassed": 14,
+        "retention": 1,
+        "retained": 14,
+        "onBlockPrior": 14
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-add",
+        "n": 14,
+        "skipped": 3,
         "completed": 11,
         "rerunEligible": 0,
         "rerunByKind": {},
         "evaluated": 11,
         "passed": 11,
         "passRate": 1,
-        "firstAttemptPassed": 8,
-        "firstAttemptPassRate": 0.7272727272727273,
-        "repairsPerSuccess": 0.2727272727272727,
+        "firstAttemptPassed": 11,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
         "meteredRuns": 11,
         "meteredSuccesses": 11,
-        "meteredTokens": 961962,
+        "meteredTokens": 12074,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 87451.09090909091,
-        "inputTokensPerSuccess": 86169,
-        "outputTokensPerSuccess": 1282.090909090909,
-        "tokensPerPassingRun": 87451.09090909091,
-        "providerCallsPerRun": 2.272727272727273,
-        "requestBytesPerRun": 305427.0909090909,
+        "tokensPerSuccess": 1097.6363636363637,
+        "inputTokensPerSuccess": 942.1818181818181,
+        "outputTokensPerSuccess": 155.45454545454547,
+        "tokensPerPassingRun": 1097.6363636363637,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 3453.909090909091,
         "latency": {
-          "totalMs": 11425.868615000043,
-          "firstGatedAttemptMs": 8586.733435999988,
-          "blockPhaseMs": null,
-          "emitMs": 109.43088500003796,
-          "planMs": 2295.328847000026,
-          "pacingMs": 16966.977093000016,
-          "wallTotalMs": 25671.461486
+          "totalMs": 2457.792788999999,
+          "firstGatedAttemptMs": 2343.0423809999993,
+          "blockPhaseMs": 2338.3971600000004,
+          "emitMs": 104.91817900002934,
+          "planMs": null,
+          "pacingMs": 9918.648503000004,
+          "wallTotalMs": 12308.342899999989
         },
         "parity": {
-          "meanScore": 0.9696969696969696,
+          "meanScore": 1,
           "scored": 11,
+          "fullyParityPassed": 11,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 11,
+          "performed": 11,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 4,
+            "performed": 4,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 5,
+            "performed": 5,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 2,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 11,
+            "passed": 11
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 11,
+        "refinedPassed": 11,
+        "retention": 1,
+        "retained": 11,
+        "onBlockPrior": 11
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-add",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 13,
+        "firstAttemptPassRate": 0.9285714285714286,
+        "repairsPerSuccess": 0.07142857142857142,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 1003691,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 71692.21428571429,
+        "inputTokensPerSuccess": 70776.71428571429,
+        "outputTokensPerSuccess": 915.5,
+        "tokensPerPassingRun": 71692.21428571429,
+        "providerCallsPerRun": 1.0714285714285714,
+        "requestBytesPerRun": 249204.2857142857,
+        "latency": {
+          "totalMs": 6347.730396499945,
+          "firstGatedAttemptMs": 6249.441967499995,
+          "blockPhaseMs": null,
+          "emitMs": 102.27298599999631,
+          "planMs": null,
+          "pacingMs": 7477.409216,
+          "wallTotalMs": 12611.98994749997
+        },
+        "parity": {
+          "meanScore": 0.9761904761904762,
+          "scored": 14,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 14,
+          "performed": 14,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 2,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 14,
+        "refinedPassed": 14,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-add",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 14,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 939353,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 67096.64285714286,
+        "inputTokensPerSuccess": 66167.21428571429,
+        "outputTokensPerSuccess": 929.4285714285714,
+        "tokensPerPassingRun": 67096.64285714286,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 233009.14285714287,
+        "latency": {
+          "totalMs": 5930.51065150003,
+          "firstGatedAttemptMs": 5798.485426000036,
+          "blockPhaseMs": null,
+          "emitMs": 107.1097490000393,
+          "planMs": null,
+          "pacingMs": 7954.395831000002,
+          "wallTotalMs": 13544.923445000008
+        },
+        "parity": {
+          "meanScore": 0.9761904761904762,
+          "scored": 14,
+          "fullyParityPassed": 13,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 14,
+          "performed": 14,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 2,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 14,
+        "refinedPassed": 14,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-content",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 14,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 14314,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 1022.4285714285714,
+        "inputTokensPerSuccess": 864.6428571428571,
+        "outputTokensPerSuccess": 157.78571428571428,
+        "tokensPerPassingRun": 1022.4285714285714,
+        "providerCallsPerRun": 1.0714285714285714,
+        "requestBytesPerRun": 3367.4285714285716,
+        "latency": {
+          "totalMs": 2346.5428620001185,
+          "firstGatedAttemptMs": 2228.952578999988,
+          "blockPhaseMs": 2222.7940879999715,
+          "emitMs": 115.8159015000565,
+          "planMs": null,
+          "pacingMs": 8804.824796500005,
+          "wallTotalMs": 10952.617838999984
+        },
+        "parity": {
+          "meanScore": 1,
+          "scored": 14,
+          "fullyParityPassed": 14,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "block": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 14,
+        "refinedPassed": 14,
+        "retention": 1,
+        "retained": 14,
+        "onBlockPrior": 14
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-content",
+        "n": 14,
+        "skipped": 3,
+        "completed": 11,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 11,
+        "passed": 11,
+        "passRate": 1,
+        "firstAttemptPassed": 11,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 11,
+        "meteredSuccesses": 11,
+        "meteredTokens": 12790,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 1162.7272727272727,
+        "inputTokensPerSuccess": 1019.0909090909091,
+        "outputTokensPerSuccess": 143.63636363636363,
+        "tokensPerPassingRun": 1162.7272727272727,
+        "providerCallsPerRun": 1.0909090909090908,
+        "requestBytesPerRun": 3747.2727272727275,
+        "latency": {
+          "totalMs": 2086.168093000015,
+          "firstGatedAttemptMs": 1974.5168199999898,
+          "blockPhaseMs": 1969.6729199999972,
+          "emitMs": 115.72098500002176,
+          "planMs": null,
+          "pacingMs": 10059.532344999956,
+          "wallTotalMs": 11734.652746000007
+        },
+        "parity": {
+          "meanScore": 1,
+          "scored": 11,
+          "fullyParityPassed": 11,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "block": {
+            "n": 10,
+            "passed": 10
+          },
+          "block-repair": {
+            "n": 1,
+            "passed": 1
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 11,
+        "refinedPassed": 11,
+        "retention": 1,
+        "retained": 11,
+        "onBlockPrior": 11
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-content",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 14,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 934685,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 66763.21428571429,
+        "inputTokensPerSuccess": 66116.28571428571,
+        "outputTokensPerSuccess": 646.9285714285714,
+        "tokensPerPassingRun": 66763.21428571429,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 232792.57142857142,
+        "latency": {
+          "totalMs": 3794.317563999968,
+          "firstGatedAttemptMs": 3692.6273294999846,
+          "blockPhaseMs": null,
+          "emitMs": 103.51651849999325,
+          "planMs": null,
+          "pacingMs": 5777.9219284999635,
+          "wallTotalMs": 9692.34748399991
+        },
+        "parity": {
+          "meanScore": 0.875,
+          "scored": 14,
+          "fullyParityPassed": 8,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 14,
+        "refinedPassed": 14,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-content",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 14,
+        "passRate": 1,
+        "firstAttemptPassed": 14,
+        "firstAttemptPassRate": 1,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 14,
+        "meteredTokens": 936228,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 66873.42857142857,
+        "inputTokensPerSuccess": 66168.35714285714,
+        "outputTokensPerSuccess": 705.0714285714286,
+        "tokensPerPassingRun": 66873.42857142857,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 233019.42857142858,
+        "latency": {
+          "totalMs": 4051.814713999993,
+          "firstGatedAttemptMs": 3936.5353674999933,
+          "blockPhaseMs": null,
+          "emitMs": 106.2676255000406,
+          "planMs": null,
+          "pacingMs": 6339.820091000001,
+          "wallTotalMs": 10024.182524999982
+        },
+        "parity": {
+          "meanScore": 0.8928571428571429,
+          "scored": 14,
+          "fullyParityPassed": 8,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 14
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 14,
+        "refinedPassed": 14,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-remove",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 13,
+        "passRate": 0.9285714285714286,
+        "firstAttemptPassed": 13,
+        "firstAttemptPassRate": 0.9285714285714286,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 13,
+        "meteredTokens": 12890,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 991.5384615384615,
+        "inputTokensPerSuccess": 843.9230769230769,
+        "outputTokensPerSuccess": 147.6153846153846,
+        "tokensPerPassingRun": 939.0769230769231,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 3058.0714285714284,
+        "latency": {
+          "totalMs": 2103.272424499999,
+          "firstGatedAttemptMs": 1994.6478469999856,
+          "blockPhaseMs": 1991.8730179999257,
+          "emitMs": 116.39665450004395,
+          "planMs": null,
+          "pacingMs": 9267.078458499993,
+          "wallTotalMs": 11740.552044499957
+        },
+        "parity": {
+          "meanScore": 0.8205128205128206,
+          "scored": 13,
+          "fullyParityPassed": 9,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 14,
+          "performed": 13,
+          "mixed": 0,
+          "missed": 1,
+          "unchanged": 1,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 5,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 2,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 14,
+            "passed": 13
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.9285714285714286,
+        "changed": 13,
+        "refinedPassed": 14,
+        "retention": 1,
+        "retained": 14,
+        "onBlockPrior": 14
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-remove",
+        "n": 14,
+        "skipped": 3,
+        "completed": 11,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 11,
+        "passed": 8,
+        "passRate": 0.7272727272727273,
+        "firstAttemptPassed": 8,
+        "firstAttemptPassRate": 0.7272727272727273,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 11,
+        "meteredSuccesses": 8,
+        "meteredTokens": 11735,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 1466.875,
+        "inputTokensPerSuccess": 1286.75,
+        "outputTokensPerSuccess": 180.125,
+        "tokensPerPassingRun": 1168.625,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 3431.7272727272725,
+        "latency": {
+          "totalMs": 2319.632362000004,
+          "firstGatedAttemptMs": 2193.4712140000192,
+          "blockPhaseMs": 2188.8281450000068,
+          "emitMs": 102.80409899994265,
+          "planMs": null,
+          "pacingMs": 9551.806507000001,
+          "wallTotalMs": 11745.543015000003
+        },
+        "parity": {
+          "meanScore": 0.875,
+          "scored": 8,
+          "fullyParityPassed": 7,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 11,
+          "performed": 8,
+          "mixed": 0,
+          "missed": 3,
+          "unchanged": 3,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 4,
+            "performed": 4,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 5,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 3,
+            "unchanged": 3,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 2,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "block": {
+            "n": 11,
+            "passed": 8
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.7272727272727273,
+        "changed": 8,
+        "refinedPassed": 11,
+        "retention": 1,
+        "retained": 11,
+        "onBlockPrior": 11
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-remove",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 10,
+        "passRate": 0.7142857142857143,
+        "firstAttemptPassed": 10,
+        "firstAttemptPassRate": 0.7142857142857143,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 10,
+        "meteredTokens": 933250,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 93325,
+        "inputTokensPerSuccess": 92551.6,
+        "outputTokensPerSuccess": 773.4,
+        "tokensPerPassingRun": 67506.8,
+        "providerCallsPerRun": 1,
+        "requestBytesPerRun": 232758.57142857142,
+        "latency": {
+          "totalMs": 4609.4278784999915,
+          "firstGatedAttemptMs": 4484.547249999974,
+          "blockPhaseMs": null,
+          "emitMs": 100.91239400001359,
+          "planMs": null,
+          "pacingMs": 6257.411964000028,
+          "wallTotalMs": 10735.10623949999
+        },
+        "parity": {
+          "meanScore": 0.8166666666666667,
+          "scored": 10,
+          "fullyParityPassed": 7,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 14,
+          "performed": 9,
+          "mixed": 1,
+          "missed": 4,
+          "unchanged": 4,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 1,
+            "mixed": 1,
+            "missed": 4,
+            "unchanged": 4,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 2,
+            "performed": 2,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 10
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.7142857142857143,
+        "changed": 10,
+        "refinedPassed": 14,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "production",
+        "condition": "refine-remove",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 10,
+        "passRate": 0.7142857142857143,
+        "firstAttemptPassed": 10,
+        "firstAttemptPassRate": 0.7142857142857143,
+        "repairsPerSuccess": 0,
+        "meteredRuns": 14,
+        "meteredSuccesses": 10,
+        "meteredTokens": 1002088,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 100208.8,
+        "inputTokensPerSuccess": 99219.2,
+        "outputTokensPerSuccess": 989.6,
+        "tokensPerPassingRun": 67290.2,
+        "providerCallsPerRun": 1.0714285714285714,
+        "requestBytesPerRun": 232985.42857142858,
+        "latency": {
+          "totalMs": 4061.68378750002,
+          "firstGatedAttemptMs": 3941.69909800007,
+          "blockPhaseMs": null,
+          "emitMs": 97.1423219999997,
+          "planMs": null,
+          "pacingMs": 6070.168414999993,
+          "wallTotalMs": 10791.506415499964
+        },
+        "parity": {
+          "meanScore": 0.8333333333333333,
+          "scored": 10,
+          "fullyParityPassed": 7,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 13,
+          "performed": 9,
+          "mixed": 1,
+          "missed": 3,
+          "unchanged": 3,
+          "unchecked": 0
+        },
+        "operationByBlock": {
+          "records-table": {
+            "checked": 6,
+            "performed": 6,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          },
+          "auth-form": {
+            "checked": 6,
+            "performed": 2,
+            "mixed": 1,
+            "missed": 3,
+            "unchanged": 3,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 1,
+            "performed": 1,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
+            "unchecked": 0
+          }
+        },
+        "paths": {
+          "primitive": {
+            "n": 14,
+            "passed": 10
+          }
+        },
+        "budgetRemainingAtFallback": {},
+        "fallbackByClassification": {},
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 0.7692307692307693,
+        "changed": 10,
+        "refinedPassed": 13,
+        "retention": null,
+        "retained": 0,
+        "onBlockPrior": 0
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block",
+        "condition": "refine-structural",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 6,
+        "passRate": 0.42857142857142855,
+        "firstAttemptPassed": 4,
+        "firstAttemptPassRate": 0.2857142857142857,
+        "repairsPerSuccess": 0.3333333333333333,
+        "meteredRuns": 14,
+        "meteredSuccesses": 6,
+        "meteredTokens": 1673736,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 278956,
+        "inputTokensPerSuccess": 271166,
+        "outputTokensPerSuccess": 7790,
+        "tokensPerPassingRun": 91497.83333333333,
+        "providerCallsPerRun": 2.7142857142857144,
+        "requestBytesPerRun": 412497.28571428574,
+        "latency": {
+          "totalMs": 24005.81232899992,
+          "firstGatedAttemptMs": 16049.081562999985,
+          "blockPhaseMs": 2180.8520830000634,
+          "emitMs": 117.58764599997085,
+          "planMs": null,
+          "pacingMs": 20216.779966500013,
+          "wallTotalMs": 45780.59339149995
+        },
+        "parity": {
+          "meanScore": 0.8888888888888888,
+          "scored": 6,
+          "fullyParityPassed": 5,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "fallback": {
+            "n": 14,
+            "passed": 6
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "2": 14
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 14
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 2,
+        "changedRate": 1,
+        "changed": 6,
+        "refinedPassed": 6,
+        "retention": 0,
+        "retained": 0,
+        "onBlockPrior": 14
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "block-positional",
+        "condition": "refine-structural",
+        "n": 14,
+        "skipped": 3,
+        "completed": 11,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 11,
+        "passed": 4,
+        "passRate": 0.36363636363636365,
+        "firstAttemptPassed": 1,
+        "firstAttemptPassRate": 0.09090909090909091,
+        "repairsPerSuccess": 0.75,
+        "meteredRuns": 11,
+        "meteredSuccesses": 4,
+        "meteredTokens": 1192692,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 298173,
+        "inputTokensPerSuccess": 288635.5,
+        "outputTokensPerSuccess": 9537.5,
+        "tokensPerPassingRun": 123697.75,
+        "providerCallsPerRun": 2.8181818181818183,
+        "requestBytesPerRun": 372390.54545454547,
+        "latency": {
+          "totalMs": 20897.71721199993,
+          "firstGatedAttemptMs": 17548.008124000044,
+          "blockPhaseMs": 2459.7199220000766,
+          "emitMs": 118.27594700001646,
+          "planMs": null,
+          "pacingMs": 20995.413323000015,
+          "wallTotalMs": 45508.98740000022
+        },
+        "parity": {
+          "meanScore": 0.9166666666666666,
+          "scored": 4,
+          "fullyParityPassed": 3,
+          "noChecks": 0
+        },
+        "operation": {
+          "checked": 0,
+          "performed": 0,
+          "mixed": 0,
+          "missed": 0,
+          "unchanged": 0,
+          "unchecked": 0
+        },
+        "operationByBlock": {},
+        "paths": {
+          "fallback": {
+            "n": 10,
+            "passed": 4
+          },
+          "provider-failure": {
+            "n": 1,
+            "passed": 0
+          }
+        },
+        "budgetRemainingAtFallback": {
+          "1": 2,
+          "2": 8
+        },
+        "fallbackByClassification": {
+          "unsupported-refinement": 10
+        },
+        "invariantFailures": 0,
+        "budgetExhausted": 0,
+        "changedRate": 1,
+        "changed": 4,
+        "refinedPassed": 4,
+        "retention": 0,
+        "retained": 0,
+        "onBlockPrior": 11
+      },
+      {
+        "reference": "shadcn-v3",
+        "provider": "hosted-ai:claude-haiku-4.5",
+        "arm": "capped",
+        "condition": "refine-structural",
+        "n": 14,
+        "skipped": 0,
+        "completed": 14,
+        "rerunEligible": 0,
+        "rerunByKind": {},
+        "evaluated": 14,
+        "passed": 12,
+        "passRate": 0.8571428571428571,
+        "firstAttemptPassed": 1,
+        "firstAttemptPassRate": 0.07142857142857142,
+        "repairsPerSuccess": 1.1666666666666667,
+        "meteredRuns": 14,
+        "meteredSuccesses": 12,
+        "meteredTokens": 2169853,
+        "unmeteredRuns": 0,
+        "unmeteredSuccesses": 0,
+        "tokensPerSuccess": 180821.08333333334,
+        "inputTokensPerSuccess": 175194.91666666666,
+        "outputTokensPerSuccess": 5626.166666666667,
+        "tokensPerPassingRun": 158797,
+        "providerCallsPerRun": 2.2142857142857144,
+        "requestBytesPerRun": 535439.6428571428,
+        "latency": {
+          "totalMs": 26704.686889000004,
+          "firstGatedAttemptMs": 14824.78483199996,
+          "blockPhaseMs": null,
+          "emitMs": 116.23273049999261,
+          "planMs": null,
+          "pacingMs": 7986.874175499979,
+          "wallTotalMs": 36049.94646899996
+        },
+        "parity": {
+          "meanScore": 0.888888888888889,
+          "scored": 12,
           "fullyParityPassed": 10,
           "noChecks": 0
         },
@@ -2124,161 +3742,8 @@
         "operationByBlock": {},
         "paths": {
           "primitive": {
-            "n": 11,
-            "passed": 11
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": null,
-        "changed": 0,
-        "refinedPassed": 0,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "production",
-        "condition": "fresh",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 10,
-        "passRate": 1,
-        "firstAttemptPassed": 5,
-        "firstAttemptPassRate": 0.5,
-        "repairsPerSuccess": 0.5,
-        "meteredRuns": 10,
-        "meteredSuccesses": 10,
-        "meteredTokens": 1027426,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 102742.6,
-        "inputTokensPerSuccess": 101174.4,
-        "outputTokensPerSuccess": 1568.2,
-        "tokensPerPassingRun": 102742.6,
-        "providerCallsPerRun": 2.5,
-        "requestBytesPerRun": 358354,
-        "latency": {
-          "totalMs": 10825.962018999991,
-          "firstGatedAttemptMs": 7516.080000999966,
-          "blockPhaseMs": null,
-          "emitMs": 103.91355200001271,
-          "planMs": 2211.753531000024,
-          "pacingMs": 10315.52269100002,
-          "wallTotalMs": 24796.424824
-        },
-        "parity": {
-          "meanScore": 0.9666666666666666,
-          "scored": 10,
-          "fullyParityPassed": 9,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 10
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": null,
-        "changed": 0,
-        "refinedPassed": 0,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block",
-        "condition": "refine-add",
-        "n": 11,
-        "skipped": 0,
-        "completed": 11,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 11,
-        "passed": 11,
-        "passRate": 1,
-        "firstAttemptPassed": 11,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 11,
-        "meteredSuccesses": 11,
-        "meteredTokens": 10046,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 913.2727272727273,
-        "inputTokensPerSuccess": 766.1818181818181,
-        "outputTokensPerSuccess": 147.0909090909091,
-        "tokensPerPassingRun": 913.2727272727273,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 2993.181818181818,
-        "latency": {
-          "totalMs": 2637.4030539998785,
-          "firstGatedAttemptMs": 2517.7788429998327,
-          "blockPhaseMs": 2510.790682999883,
-          "emitMs": 106.58038800000213,
-          "planMs": null,
-          "pacingMs": 9683.812891000009,
-          "wallTotalMs": 12108.537948000012
-        },
-        "parity": {
-          "meanScore": 1,
-          "scored": 11,
-          "fullyParityPassed": 11,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 11,
-          "performed": 11,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 6,
-            "performed": 6,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 5,
-            "performed": 5,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "block": {
-            "n": 11,
-            "passed": 11
+            "n": 14,
+            "passed": 12
           }
         },
         "budgetRemainingAtFallback": {},
@@ -2286,1092 +3751,8 @@
         "invariantFailures": 0,
         "budgetExhausted": 0,
         "changedRate": 1,
-        "changed": 11,
-        "refinedPassed": 11,
-        "retention": 1,
-        "retained": 11,
-        "onBlockPrior": 11
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block-positional",
-        "condition": "refine-add",
-        "n": 11,
-        "skipped": 3,
-        "completed": 8,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 8,
-        "passed": 8,
-        "passRate": 1,
-        "firstAttemptPassed": 8,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 8,
-        "meteredSuccesses": 8,
-        "meteredTokens": 8166,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 1020.75,
-        "inputTokensPerSuccess": 899.625,
-        "outputTokensPerSuccess": 121.125,
-        "tokensPerPassingRun": 1020.75,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 3304.75,
-        "latency": {
-          "totalMs": 2450.929026999933,
-          "firstGatedAttemptMs": 2325.599478999964,
-          "blockPhaseMs": 2320.8333060000186,
-          "emitMs": 105.72241599997506,
-          "planMs": null,
-          "pacingMs": 10073.102072999973,
-          "wallTotalMs": 12238.364364000008
-        },
-        "parity": {
-          "meanScore": 1,
-          "scored": 8,
-          "fullyParityPassed": 8,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 8,
-          "performed": 8,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 4,
-            "performed": 4,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 4,
-            "performed": 4,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "block": {
-            "n": 8,
-            "passed": 8
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 8,
-        "refinedPassed": 8,
-        "retention": 1,
-        "retained": 8,
-        "onBlockPrior": 8
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "capped",
-        "condition": "refine-add",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 10,
-        "passRate": 1,
-        "firstAttemptPassed": 9,
-        "firstAttemptPassRate": 0.9,
-        "repairsPerSuccess": 0.1,
-        "meteredRuns": 10,
-        "meteredSuccesses": 10,
-        "meteredTokens": 739739,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 73973.9,
-        "inputTokensPerSuccess": 73146.3,
-        "outputTokensPerSuccess": 827.6,
-        "tokensPerPassingRun": 73973.9,
-        "providerCallsPerRun": 1.1,
-        "requestBytesPerRun": 257911.3,
-        "latency": {
-          "totalMs": 6347.730396499945,
-          "firstGatedAttemptMs": 6249.441967499995,
-          "blockPhaseMs": null,
-          "emitMs": 101.61841549999372,
-          "planMs": null,
-          "pacingMs": 7477.409216,
-          "wallTotalMs": 12969.44977649994
-        },
-        "parity": {
-          "meanScore": 0.9666666666666666,
-          "scored": 10,
-          "fullyParityPassed": 9,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 10,
-          "performed": 10,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 6,
-            "performed": 6,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 4,
-            "performed": 4,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 10
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 10,
-        "refinedPassed": 10,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "production",
-        "condition": "refine-add",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 10,
-        "passRate": 1,
-        "firstAttemptPassed": 10,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 10,
-        "meteredSuccesses": 10,
-        "meteredTokens": 674301,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 67430.1,
-        "inputTokensPerSuccess": 66661.2,
-        "outputTokensPerSuccess": 768.9,
-        "tokensPerPassingRun": 67430.1,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 235082.4,
-        "latency": {
-          "totalMs": 5930.51065150003,
-          "firstGatedAttemptMs": 5798.485426000036,
-          "blockPhaseMs": null,
-          "emitMs": 99.20215500000631,
-          "planMs": null,
-          "pacingMs": 7954.395831000002,
-          "wallTotalMs": 13483.705846000026
-        },
-        "parity": {
-          "meanScore": 0.9666666666666666,
-          "scored": 10,
-          "fullyParityPassed": 9,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 10,
-          "performed": 10,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 6,
-            "performed": 6,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 4,
-            "performed": 4,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 10
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 10,
-        "refinedPassed": 10,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block",
-        "condition": "refine-content",
-        "n": 11,
-        "skipped": 0,
-        "completed": 11,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 11,
-        "passed": 11,
-        "passRate": 1,
-        "firstAttemptPassed": 11,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 11,
-        "meteredSuccesses": 11,
-        "meteredTokens": 9899,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 899.9090909090909,
-        "inputTokensPerSuccess": 766.0909090909091,
-        "outputTokensPerSuccess": 133.8181818181818,
-        "tokensPerPassingRun": 899.9090909090909,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 2998.909090909091,
-        "latency": {
-          "totalMs": 2317.6498419999843,
-          "firstGatedAttemptMs": 2217.95108899998,
-          "blockPhaseMs": 2214.9744989999454,
-          "emitMs": 113.88513100007549,
-          "planMs": null,
-          "pacingMs": 8761.80620500003,
-          "wallTotalMs": 10991.284844999958
-        },
-        "parity": {
-          "meanScore": 1,
-          "scored": 11,
-          "fullyParityPassed": 11,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "block": {
-            "n": 11,
-            "passed": 11
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 11,
-        "refinedPassed": 11,
-        "retention": 1,
-        "retained": 11,
-        "onBlockPrior": 11
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block-positional",
-        "condition": "refine-content",
-        "n": 11,
-        "skipped": 3,
-        "completed": 8,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 8,
-        "passed": 8,
-        "passRate": 1,
-        "firstAttemptPassed": 8,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 8,
-        "meteredSuccesses": 8,
-        "meteredTokens": 8912,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 1114,
-        "inputTokensPerSuccess": 1003.25,
-        "outputTokensPerSuccess": 110.75,
-        "tokensPerPassingRun": 1114,
-        "providerCallsPerRun": 1.125,
-        "requestBytesPerRun": 3698,
-        "latency": {
-          "totalMs": 1927.490122499963,
-          "firstGatedAttemptMs": 1825.0981674999784,
-          "blockPhaseMs": 1820.842503000029,
-          "emitMs": 111.5957180000114,
-          "planMs": null,
-          "pacingMs": 10181.941489999997,
-          "wallTotalMs": 11933.377442999918
-        },
-        "parity": {
-          "meanScore": 1,
-          "scored": 8,
-          "fullyParityPassed": 8,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "block": {
-            "n": 7,
-            "passed": 7
-          },
-          "block-repair": {
-            "n": 1,
-            "passed": 1
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 8,
-        "refinedPassed": 8,
-        "retention": 1,
-        "retained": 8,
-        "onBlockPrior": 8
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "capped",
-        "condition": "refine-content",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 10,
-        "passRate": 1,
-        "firstAttemptPassed": 10,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 10,
-        "meteredSuccesses": 10,
-        "meteredTokens": 671405,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 67140.5,
-        "inputTokensPerSuccess": 66619.9,
-        "outputTokensPerSuccess": 520.6,
-        "tokensPerPassingRun": 67140.5,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 234925.9,
-        "latency": {
-          "totalMs": 3794.317563999968,
-          "firstGatedAttemptMs": 3692.6273294999846,
-          "blockPhaseMs": null,
-          "emitMs": 98.61198799998965,
-          "planMs": null,
-          "pacingMs": 6109.614309999975,
-          "wallTotalMs": 9692.34748399991
-        },
-        "parity": {
-          "meanScore": 0.825,
-          "scored": 10,
-          "fullyParityPassed": 4,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 10
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 10,
-        "refinedPassed": 10,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "production",
-        "condition": "refine-content",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 10,
-        "passRate": 1,
-        "firstAttemptPassed": 10,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 10,
-        "meteredSuccesses": 10,
-        "meteredTokens": 672308,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 67230.8,
-        "inputTokensPerSuccess": 66661,
-        "outputTokensPerSuccess": 569.8,
-        "tokensPerPassingRun": 67230.8,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 235087.8,
-        "latency": {
-          "totalMs": 4051.814713999993,
-          "firstGatedAttemptMs": 3936.5353674999933,
-          "blockPhaseMs": null,
-          "emitMs": 102.06000100004167,
-          "planMs": null,
-          "pacingMs": 6339.820091000001,
-          "wallTotalMs": 9815.47664300003
-        },
-        "parity": {
-          "meanScore": 0.85,
-          "scored": 10,
-          "fullyParityPassed": 4,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 10
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 10,
-        "refinedPassed": 10,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block",
-        "condition": "refine-remove",
-        "n": 11,
-        "skipped": 0,
-        "completed": 11,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 11,
-        "passed": 11,
-        "passRate": 1,
-        "firstAttemptPassed": 11,
-        "firstAttemptPassRate": 1,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 11,
-        "meteredSuccesses": 11,
-        "meteredTokens": 9595,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 872.2727272727273,
-        "inputTokensPerSuccess": 759.0909090909091,
-        "outputTokensPerSuccess": 113.18181818181819,
-        "tokensPerPassingRun": 872.2727272727273,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 2970.6363636363635,
-        "latency": {
-          "totalMs": 2087.481706999999,
-          "firstGatedAttemptMs": 1983.397702999995,
-          "blockPhaseMs": 1980.5466849999502,
-          "emitMs": 115.13851000007708,
-          "planMs": null,
-          "pacingMs": 9373.010128000053,
-          "wallTotalMs": 11689.037235000054
-        },
-        "parity": {
-          "meanScore": 0.787878787878788,
-          "scored": 11,
-          "fullyParityPassed": 7,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 11,
-          "performed": 11,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 6,
-            "performed": 6,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 5,
-            "performed": 5,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "block": {
-            "n": 11,
-            "passed": 11
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 11,
-        "refinedPassed": 11,
-        "retention": 1,
-        "retained": 11,
-        "onBlockPrior": 11
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block-positional",
-        "condition": "refine-remove",
-        "n": 11,
-        "skipped": 3,
-        "completed": 8,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 8,
-        "passed": 6,
-        "passRate": 0.75,
-        "firstAttemptPassed": 6,
-        "firstAttemptPassRate": 0.75,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 8,
-        "meteredSuccesses": 6,
-        "meteredTokens": 7918,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 1319.6666666666667,
-        "inputTokensPerSuccess": 1190.8333333333333,
-        "outputTokensPerSuccess": 128.83333333333334,
-        "tokensPerPassingRun": 1054.1666666666667,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 3284.75,
-        "latency": {
-          "totalMs": 2181.7985165000136,
-          "firstGatedAttemptMs": 2067.321706500021,
-          "blockPhaseMs": 2063.7256280000292,
-          "emitMs": 104.79790099995444,
-          "planMs": null,
-          "pacingMs": 9552.423588500009,
-          "wallTotalMs": 11729.499723000015
-        },
-        "parity": {
-          "meanScore": 0.8333333333333334,
-          "scored": 6,
-          "fullyParityPassed": 5,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 8,
-          "performed": 6,
-          "mixed": 0,
-          "missed": 2,
-          "unchanged": 2,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 4,
-            "performed": 4,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 4,
-            "performed": 2,
-            "mixed": 0,
-            "missed": 2,
-            "unchanged": 2,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "block": {
-            "n": 8,
-            "passed": 6
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 0.75,
-        "changed": 6,
-        "refinedPassed": 8,
-        "retention": 1,
-        "retained": 8,
-        "onBlockPrior": 8
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "capped",
-        "condition": "refine-remove",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 8,
-        "passRate": 0.8,
-        "firstAttemptPassed": 8,
-        "firstAttemptPassRate": 0.8,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 10,
-        "meteredSuccesses": 8,
-        "meteredTokens": 670439,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 83804.875,
-        "inputTokensPerSuccess": 83265.375,
-        "outputTokensPerSuccess": 539.5,
-        "tokensPerPassingRun": 67660.125,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 234894.9,
-        "latency": {
-          "totalMs": 4609.4278784999915,
-          "firstGatedAttemptMs": 4484.547249999974,
-          "blockPhaseMs": null,
-          "emitMs": 104.51696199999424,
-          "planMs": null,
-          "pacingMs": 6257.411964000028,
-          "wallTotalMs": 10731.239751000016
-        },
-        "parity": {
-          "meanScore": 0.7708333333333333,
-          "scored": 8,
-          "fullyParityPassed": 5,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 10,
-          "performed": 7,
-          "mixed": 1,
-          "missed": 2,
-          "unchanged": 2,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 6,
-            "performed": 6,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 4,
-            "performed": 1,
-            "mixed": 1,
-            "missed": 2,
-            "unchanged": 2,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 8
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 0.8,
-        "changed": 8,
-        "refinedPassed": 10,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "production",
-        "condition": "refine-remove",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 8,
-        "passRate": 0.8,
-        "firstAttemptPassed": 8,
-        "firstAttemptPassRate": 0.8,
-        "repairsPerSuccess": 0,
-        "meteredRuns": 10,
-        "meteredSuccesses": 8,
-        "meteredTokens": 670995,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 83874.375,
-        "inputTokensPerSuccess": 83316.75,
-        "outputTokensPerSuccess": 557.625,
-        "tokensPerPassingRun": 67711.875,
-        "providerCallsPerRun": 1,
-        "requestBytesPerRun": 235056.8,
-        "latency": {
-          "totalMs": 4061.68378750002,
-          "firstGatedAttemptMs": 3962.2954980000504,
-          "blockPhaseMs": null,
-          "emitMs": 98.92267200001515,
-          "planMs": null,
-          "pacingMs": 6070.168414999993,
-          "wallTotalMs": 10346.71089200001
-        },
-        "parity": {
-          "meanScore": 0.7916666666666666,
-          "scored": 8,
-          "fullyParityPassed": 5,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 10,
-          "performed": 7,
-          "mixed": 1,
-          "missed": 2,
-          "unchanged": 2,
-          "unchecked": 0
-        },
-        "operationByBlock": {
-          "records-table": {
-            "checked": 6,
-            "performed": 6,
-            "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
-            "unchecked": 0
-          },
-          "auth-form": {
-            "checked": 4,
-            "performed": 1,
-            "mixed": 1,
-            "missed": 2,
-            "unchanged": 2,
-            "unchecked": 0
-          }
-        },
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 8
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 0.8,
-        "changed": 8,
-        "refinedPassed": 10,
-        "retention": null,
-        "retained": 0,
-        "onBlockPrior": 0
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block",
-        "condition": "refine-structural",
-        "n": 11,
-        "skipped": 0,
-        "completed": 11,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 11,
-        "passed": 5,
-        "passRate": 0.45454545454545453,
-        "firstAttemptPassed": 3,
-        "firstAttemptPassRate": 0.2727272727272727,
-        "repairsPerSuccess": 0.4,
-        "meteredRuns": 11,
-        "meteredSuccesses": 5,
-        "meteredTokens": 1329543,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 265908.6,
-        "inputTokensPerSuccess": 258474.4,
-        "outputTokensPerSuccess": 7434.2,
-        "tokensPerPassingRun": 96754.2,
-        "providerCallsPerRun": 2.727272727272727,
-        "requestBytesPerRun": 417502.54545454547,
-        "latency": {
-          "totalMs": 23396.66097899992,
-          "firstGatedAttemptMs": 17388.747044999996,
-          "blockPhaseMs": 2300.710824000009,
-          "emitMs": 117.58764599997085,
-          "planMs": null,
-          "pacingMs": 20598.235054000048,
-          "wallTotalMs": 45826.44901699992
-        },
-        "parity": {
-          "meanScore": 0.8666666666666666,
-          "scored": 5,
-          "fullyParityPassed": 4,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "fallback": {
-            "n": 11,
-            "passed": 5
-          }
-        },
-        "budgetRemainingAtFallback": {
-          "2": 11
-        },
-        "fallbackByClassification": {
-          "unsupported-refinement": 11
-        },
-        "invariantFailures": 0,
-        "budgetExhausted": 2,
-        "changedRate": 1,
-        "changed": 5,
-        "refinedPassed": 5,
-        "retention": 0,
-        "retained": 0,
-        "onBlockPrior": 11
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "block-positional",
-        "condition": "refine-structural",
-        "n": 11,
-        "skipped": 3,
-        "completed": 8,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 8,
-        "passed": 2,
-        "passRate": 0.25,
-        "firstAttemptPassed": 1,
-        "firstAttemptPassRate": 0.125,
-        "repairsPerSuccess": 0.5,
-        "meteredRuns": 8,
-        "meteredSuccesses": 2,
-        "meteredTokens": 913328,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 456664,
-        "inputTokensPerSuccess": 441906.5,
-        "outputTokensPerSuccess": 14757.5,
-        "tokensPerPassingRun": 108528,
-        "providerCallsPerRun": 2.875,
-        "requestBytesPerRun": 392583.75,
-        "latency": {
-          "totalMs": 19446.115574000054,
-          "firstGatedAttemptMs": 18206.030557500046,
-          "blockPhaseMs": 2485.535936000022,
-          "emitMs": 0.8016480000223964,
-          "planMs": null,
-          "pacingMs": 21788.993446499982,
-          "wallTotalMs": 45992.48522899998
-        },
-        "parity": {
-          "meanScore": 0.8333333333333333,
-          "scored": 2,
-          "fullyParityPassed": 1,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "fallback": {
-            "n": 8,
-            "passed": 2
-          }
-        },
-        "budgetRemainingAtFallback": {
-          "1": 2,
-          "2": 6
-        },
-        "fallbackByClassification": {
-          "unsupported-refinement": 8
-        },
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 2,
-        "refinedPassed": 2,
-        "retention": 0,
-        "retained": 0,
-        "onBlockPrior": 8
-      },
-      {
-        "reference": "shadcn-v3",
-        "provider": "hosted-ai:claude-haiku-4.5",
-        "arm": "capped",
-        "condition": "refine-structural",
-        "n": 10,
-        "skipped": 0,
-        "completed": 10,
-        "rerunEligible": 0,
-        "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 9,
-        "passRate": 0.9,
-        "firstAttemptPassed": 1,
-        "firstAttemptPassRate": 0.1,
-        "repairsPerSuccess": 1.1111111111111112,
-        "meteredRuns": 10,
-        "meteredSuccesses": 9,
-        "meteredTokens": 1558405,
-        "unmeteredRuns": 0,
-        "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 173156.11111111112,
-        "inputTokensPerSuccess": 167626.66666666666,
-        "outputTokensPerSuccess": 5529.444444444444,
-        "tokensPerPassingRun": 158368,
-        "providerCallsPerRun": 2.2,
-        "requestBytesPerRun": 540200.2,
-        "latency": {
-          "totalMs": 26704.686889000004,
-          "firstGatedAttemptMs": 14691.170441999999,
-          "blockPhaseMs": null,
-          "emitMs": 116.57124199997634,
-          "planMs": null,
-          "pacingMs": 7986.874175499979,
-          "wallTotalMs": 34846.19274899998
-        },
-        "parity": {
-          "meanScore": 0.8518518518518519,
-          "scored": 9,
-          "fullyParityPassed": 7,
-          "noChecks": 0
-        },
-        "operation": {
-          "checked": 0,
-          "performed": 0,
-          "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
-          "unchecked": 0
-        },
-        "operationByBlock": {},
-        "paths": {
-          "primitive": {
-            "n": 10,
-            "passed": 9
-          }
-        },
-        "budgetRemainingAtFallback": {},
-        "fallbackByClassification": {},
-        "invariantFailures": 0,
-        "budgetExhausted": 0,
-        "changedRate": 1,
-        "changed": 9,
-        "refinedPassed": 9,
+        "changed": 12,
+        "refinedPassed": 12,
         "retention": null,
         "retained": 0,
         "onBlockPrior": 0
@@ -3381,41 +3762,41 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "production",
         "condition": "refine-structural",
-        "n": 10,
+        "n": 13,
         "skipped": 0,
-        "completed": 10,
+        "completed": 13,
         "rerunEligible": 0,
         "rerunByKind": {},
-        "evaluated": 10,
-        "passed": 7,
-        "passRate": 0.7,
+        "evaluated": 13,
+        "passed": 8,
+        "passRate": 0.6153846153846154,
         "firstAttemptPassed": 0,
         "firstAttemptPassRate": 0,
         "repairsPerSuccess": 1,
-        "meteredRuns": 10,
-        "meteredSuccesses": 7,
-        "meteredTokens": 1538167,
+        "meteredRuns": 13,
+        "meteredSuccesses": 8,
+        "meteredTokens": 1938810,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 219738.14285714287,
-        "inputTokensPerSuccess": 212463.14285714287,
-        "outputTokensPerSuccess": 7275,
-        "tokensPerPassingRun": 163134.42857142858,
-        "providerCallsPerRun": 2.2,
-        "requestBytesPerRun": 415002,
+        "tokensPerSuccess": 242351.25,
+        "inputTokensPerSuccess": 234726.125,
+        "outputTokensPerSuccess": 7625.125,
+        "tokensPerPassingRun": 159887.25,
+        "providerCallsPerRun": 2.1538461538461537,
+        "requestBytesPerRun": 390048.07692307694,
         "latency": {
-          "totalMs": 27506.677461999847,
-          "firstGatedAttemptMs": 16618.601626000018,
+          "totalMs": 22042.322428000014,
+          "firstGatedAttemptMs": 15881.400216500013,
           "blockPhaseMs": null,
-          "emitMs": 126.15366399998311,
+          "emitMs": 126.27687750000041,
           "planMs": null,
-          "pacingMs": 7941.492841500032,
-          "wallTotalMs": 35661.963220999896
+          "pacingMs": 7970.273982000072,
+          "wallTotalMs": 31018.956578000012
         },
         "parity": {
-          "meanScore": 0.8095238095238095,
-          "scored": 7,
-          "fullyParityPassed": 5,
+          "meanScore": 0.8333333333333334,
+          "scored": 8,
+          "fullyParityPassed": 6,
           "noChecks": 0
         },
         "operation": {
@@ -3429,8 +3810,8 @@
         "operationByBlock": {},
         "paths": {
           "primitive": {
-            "n": 10,
-            "passed": 7
+            "n": 13,
+            "passed": 8
           }
         },
         "budgetRemainingAtFallback": {},
@@ -3438,8 +3819,8 @@
         "invariantFailures": 0,
         "budgetExhausted": 0,
         "changedRate": 1,
-        "changed": 7,
-        "refinedPassed": 7,
+        "changed": 8,
+        "refinedPassed": 8,
         "retention": null,
         "retained": 0,
         "onBlockPrior": 0
@@ -3451,49 +3832,49 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "block",
         "condition": "all",
-        "n": 55,
+        "n": 70,
         "skipped": 0,
-        "completed": 55,
+        "completed": 70,
         "rerunEligible": 0,
         "rerunByKind": {},
-        "evaluated": 55,
-        "passed": 49,
-        "passRate": 0.8909090909090909,
-        "firstAttemptPassed": 47,
-        "firstAttemptPassRate": 0.8545454545454545,
-        "repairsPerSuccess": 0.04081632653061224,
-        "meteredRuns": 55,
-        "meteredSuccesses": 49,
-        "meteredTokens": 1394592,
+        "evaluated": 70,
+        "passed": 61,
+        "passRate": 0.8714285714285714,
+        "firstAttemptPassed": 59,
+        "firstAttemptPassRate": 0.8428571428571429,
+        "repairsPerSuccess": 0.03278688524590164,
+        "meteredRuns": 70,
+        "meteredSuccesses": 61,
+        "meteredTokens": 1759955,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 28461.061224489797,
-        "inputTokensPerSuccess": 27535.061224489797,
-        "outputTokensPerSuccess": 926,
-        "tokensPerPassingRun": 11200.408163265307,
-        "providerCallsPerRun": 1.5454545454545454,
-        "requestBytesPerRun": 87752.61818181818,
+        "tokensPerSuccess": 28851.72131147541,
+        "inputTokensPerSuccess": 27892.311475409835,
+        "outputTokensPerSuccess": 959.4098360655738,
+        "tokensPerPassingRun": 10402.032786885246,
+        "providerCallsPerRun": 1.5571428571428572,
+        "requestBytesPerRun": 86859.08571428571,
         "latency": {
-          "totalMs": 3674.6049799999746,
-          "firstGatedAttemptMs": 3428.826800999974,
-          "blockPhaseMs": 2300.710824000009,
-          "emitMs": 111.26556800000253,
-          "planMs": 2705.4716350000817,
-          "pacingMs": 9745.135873999912,
-          "wallTotalMs": 12687.639557000002
+          "totalMs": 3559.0617024999956,
+          "firstGatedAttemptMs": 3324.0432169999694,
+          "blockPhaseMs": 2507.3767704999773,
+          "emitMs": 112.04646599999978,
+          "planMs": 2752.0036265000235,
+          "pacingMs": 9678.757990000013,
+          "wallTotalMs": 12837.46776899998
         },
         "parity": {
-          "meanScore": 0.9387755102040817,
-          "scored": 49,
-          "fullyParityPassed": 44,
+          "meanScore": 0.9508196721311475,
+          "scored": 61,
+          "fullyParityPassed": 56,
           "noChecks": 0
         },
         "operation": {
-          "checked": 22,
-          "performed": 22,
+          "checked": 28,
+          "performed": 27,
           "mixed": 0,
-          "missed": 0,
-          "unchanged": 0,
+          "missed": 1,
+          "unchanged": 1,
           "unchecked": 0
         },
         "operationByBlock": {
@@ -3506,8 +3887,16 @@
             "unchecked": 0
           },
           "auth-form": {
-            "checked": 10,
-            "performed": 10,
+            "checked": 12,
+            "performed": 11,
+            "mixed": 0,
+            "missed": 1,
+            "unchanged": 1,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 4,
+            "performed": 4,
             "mixed": 0,
             "missed": 0,
             "unchanged": 0,
@@ -3516,77 +3905,77 @@
         },
         "paths": {
           "block": {
-            "n": 44,
-            "passed": 44
+            "n": 56,
+            "passed": 55
           },
           "fallback": {
-            "n": 11,
-            "passed": 5
+            "n": 14,
+            "passed": 6
           }
         },
         "budgetRemainingAtFallback": {
-          "2": 11
+          "2": 14
         },
         "fallbackByClassification": {
-          "unsupported-refinement": 11
+          "unsupported-refinement": 14
         },
         "invariantFailures": 0,
         "budgetExhausted": 2,
-        "changedRate": 1,
-        "changed": 38,
-        "refinedPassed": 38,
+        "changedRate": 0.9791666666666666,
+        "changed": 47,
+        "refinedPassed": 48,
         "retention": 0.75,
-        "retained": 33,
-        "onBlockPrior": 44
+        "retained": 42,
+        "onBlockPrior": 56
       },
       {
         "reference": "shadcn-v3",
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "block-positional",
         "condition": "all",
-        "n": 55,
+        "n": 70,
         "skipped": 12,
-        "completed": 43,
+        "completed": 58,
         "rerunEligible": 0,
         "rerunByKind": {},
-        "evaluated": 43,
-        "passed": 32,
-        "passRate": 0.7441860465116279,
-        "firstAttemptPassed": 31,
-        "firstAttemptPassRate": 0.7209302325581395,
-        "repairsPerSuccess": 0.03125,
-        "meteredRuns": 43,
-        "meteredSuccesses": 32,
-        "meteredTokens": 980161,
+        "evaluated": 58,
+        "passed": 45,
+        "passRate": 0.7758620689655172,
+        "firstAttemptPassed": 42,
+        "firstAttemptPassRate": 0.7241379310344828,
+        "repairsPerSuccess": 0.06666666666666667,
+        "meteredRuns": 58,
+        "meteredSuccesses": 45,
+        "meteredTokens": 1281513,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 30630.03125,
-        "inputTokensPerSuccess": 29481.46875,
-        "outputTokensPerSuccess": 1148.5625,
-        "tokensPerPassingRun": 8420.03125,
-        "providerCallsPerRun": 1.744186046511628,
-        "requestBytesPerRun": 78525.86046511628,
+        "tokensPerSuccess": 28478.066666666666,
+        "inputTokensPerSuccess": 27395.844444444443,
+        "outputTokensPerSuccess": 1082.2222222222222,
+        "tokensPerPassingRun": 12630.466666666667,
+        "providerCallsPerRun": 1.6896551724137931,
+        "requestBytesPerRun": 75951.25862068965,
         "latency": {
-          "totalMs": 4443.05587000004,
-          "firstGatedAttemptMs": 3403.8896855000057,
-          "blockPhaseMs": 2338.3971600000004,
-          "emitMs": 107.80407099996228,
-          "planMs": 2666.965763999964,
-          "pacingMs": 10304.350635000039,
-          "wallTotalMs": 13071.035283999998
+          "totalMs": 3540.906316000015,
+          "firstGatedAttemptMs": 3095.727594500029,
+          "blockPhaseMs": 2375.394807000004,
+          "emitMs": 109.24745900000562,
+          "planMs": 2666.795918499978,
+          "pacingMs": 10265.95313899999,
+          "wallTotalMs": 12683.035629999998
         },
         "parity": {
-          "meanScore": 0.9583333333333334,
-          "scored": 32,
-          "fullyParityPassed": 30,
+          "meanScore": 0.9703703703703704,
+          "scored": 45,
+          "fullyParityPassed": 43,
           "noChecks": 0
         },
         "operation": {
-          "checked": 16,
-          "performed": 14,
+          "checked": 22,
+          "performed": 19,
           "mixed": 0,
-          "missed": 2,
-          "unchanged": 2,
+          "missed": 3,
+          "unchanged": 3,
           "unchecked": 0
         },
         "operationByBlock": {
@@ -3599,25 +3988,33 @@
             "unchecked": 0
           },
           "auth-form": {
-            "checked": 8,
-            "performed": 6,
+            "checked": 10,
+            "performed": 7,
             "mixed": 0,
-            "missed": 2,
-            "unchanged": 2,
+            "missed": 3,
+            "unchanged": 3,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 4,
+            "performed": 4,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
             "unchecked": 0
           }
         },
         "paths": {
           "block": {
-            "n": 30,
-            "passed": 28
+            "n": 42,
+            "passed": 39
           },
           "fallback": {
-            "n": 8,
-            "passed": 2
+            "n": 10,
+            "passed": 4
           },
           "provider-failure": {
-            "n": 3,
+            "n": 4,
             "passed": 0
           },
           "block-repair": {
@@ -3627,68 +4024,68 @@
         },
         "budgetRemainingAtFallback": {
           "1": 2,
-          "2": 6
+          "2": 8
         },
         "fallbackByClassification": {
-          "unsupported-refinement": 8
+          "unsupported-refinement": 10
         },
         "invariantFailures": 0,
         "budgetExhausted": 0,
-        "changedRate": 0.9230769230769231,
-        "changed": 24,
-        "refinedPassed": 26,
+        "changedRate": 0.918918918918919,
+        "changed": 34,
+        "refinedPassed": 37,
         "retention": 0.75,
-        "retained": 24,
-        "onBlockPrior": 32
+        "retained": 33,
+        "onBlockPrior": 44
       },
       {
         "reference": "shadcn-v3",
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "capped",
         "condition": "all",
-        "n": 51,
+        "n": 70,
         "skipped": 0,
-        "completed": 51,
+        "completed": 70,
         "rerunEligible": 0,
         "rerunByKind": {},
-        "evaluated": 51,
-        "passed": 48,
-        "passRate": 0.9411764705882353,
-        "firstAttemptPassed": 36,
-        "firstAttemptPassRate": 0.7058823529411765,
-        "repairsPerSuccess": 0.2916666666666667,
-        "meteredRuns": 51,
-        "meteredSuccesses": 48,
-        "meteredTokens": 4601950,
+        "evaluated": 70,
+        "passed": 64,
+        "passRate": 0.9142857142857143,
+        "firstAttemptPassed": 47,
+        "firstAttemptPassRate": 0.6714285714285714,
+        "repairsPerSuccess": 0.328125,
+        "meteredRuns": 70,
+        "meteredSuccesses": 64,
+        "meteredTokens": 6420007,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 95873.95833333333,
-        "inputTokensPerSuccess": 94172.58333333333,
-        "outputTokensPerSuccess": 1701.375,
-        "tokensPerPassingRun": 90410.39583333333,
-        "providerCallsPerRun": 1.5294117647058822,
-        "requestBytesPerRun": 314490.60784313723,
+        "tokensPerSuccess": 100312.609375,
+        "inputTokensPerSuccess": 98324.75,
+        "outputTokensPerSuccess": 1987.859375,
+        "tokensPerPassingRun": 92149,
+        "providerCallsPerRun": 1.542857142857143,
+        "requestBytesPerRun": 318359.7428571429,
         "latency": {
-          "totalMs": 6876.178804999916,
-          "firstGatedAttemptMs": 6279.534966499952,
+          "totalMs": 7270.487912000011,
+          "firstGatedAttemptMs": 6829.542873999919,
           "blockPhaseMs": null,
-          "emitMs": 107.18084849999286,
-          "planMs": 2295.328847000026,
-          "pacingMs": 7473.369272999931,
-          "wallTotalMs": 14025.917133999988
+          "emitMs": 107.5325989999983,
+          "planMs": 2242.550644000079,
+          "pacingMs": 7427.616012499959,
+          "wallTotalMs": 13336.286272999976
         },
         "parity": {
-          "meanScore": 0.8836805555555555,
-          "scored": 48,
-          "fullyParityPassed": 35,
+          "meanScore": 0.9127604166666666,
+          "scored": 64,
+          "fullyParityPassed": 51,
           "noChecks": 0
         },
         "operation": {
-          "checked": 20,
-          "performed": 17,
+          "checked": 28,
+          "performed": 23,
           "mixed": 1,
-          "missed": 2,
-          "unchanged": 2,
+          "missed": 4,
+          "unchanged": 4,
           "unchecked": 0
         },
         "operationByBlock": {
@@ -3701,27 +4098,35 @@
             "unchecked": 0
           },
           "auth-form": {
-            "checked": 8,
-            "performed": 5,
+            "checked": 12,
+            "performed": 7,
             "mixed": 1,
-            "missed": 2,
-            "unchanged": 2,
+            "missed": 4,
+            "unchanged": 4,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 4,
+            "performed": 4,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
             "unchecked": 0
           }
         },
         "paths": {
           "primitive": {
-            "n": 51,
-            "passed": 48
+            "n": 70,
+            "passed": 64
           }
         },
         "budgetRemainingAtFallback": {},
         "fallbackByClassification": {},
         "invariantFailures": 0,
         "budgetExhausted": 0,
-        "changedRate": 0.9487179487179487,
-        "changed": 37,
-        "refinedPassed": 39,
+        "changedRate": 0.9259259259259259,
+        "changed": 50,
+        "refinedPassed": 54,
         "retention": null,
         "retained": 0,
         "onBlockPrior": 0
@@ -3731,49 +4136,49 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "arm": "production",
         "condition": "all",
-        "n": 50,
+        "n": 69,
         "skipped": 0,
-        "completed": 50,
+        "completed": 69,
         "rerunEligible": 0,
         "rerunByKind": {},
-        "evaluated": 50,
-        "passed": 45,
-        "passRate": 0.9,
-        "firstAttemptPassed": 33,
-        "firstAttemptPassRate": 0.66,
-        "repairsPerSuccess": 0.26666666666666666,
-        "meteredRuns": 50,
-        "meteredSuccesses": 45,
-        "meteredTokens": 4583197,
+        "evaluated": 69,
+        "passed": 60,
+        "passRate": 0.8695652173913043,
+        "firstAttemptPassed": 45,
+        "firstAttemptPassRate": 0.6521739130434783,
+        "repairsPerSuccess": 0.25,
+        "meteredRuns": 69,
+        "meteredSuccesses": 60,
+        "meteredTokens": 6255042,
         "unmeteredRuns": 0,
         "unmeteredSuccesses": 0,
-        "tokensPerSuccess": 101848.82222222222,
-        "inputTokensPerSuccess": 99972.04444444444,
-        "outputTokensPerSuccess": 1876.7777777777778,
-        "tokensPerPassingRun": 90170.46666666666,
-        "providerCallsPerRun": 1.54,
-        "requestBytesPerRun": 295716.6,
+        "tokensPerSuccess": 104250.7,
+        "inputTokensPerSuccess": 102189.06666666667,
+        "outputTokensPerSuccess": 2061.633333333333,
+        "tokensPerPassingRun": 87769.06666666667,
+        "providerCallsPerRun": 1.536231884057971,
+        "requestBytesPerRun": 287571.49275362317,
         "latency": {
-          "totalMs": 6183.359735499951,
-          "firstGatedAttemptMs": 5956.9459749999805,
+          "totalMs": 6665.99294799997,
+          "firstGatedAttemptMs": 6051.11467499999,
           "blockPhaseMs": null,
-          "emitMs": 105.09831100003794,
-          "planMs": 2211.753531000024,
-          "pacingMs": 7933.083834999998,
-          "wallTotalMs": 14112.120434000011
+          "emitMs": 106.6536999999953,
+          "planMs": 2135.125492500025,
+          "pacingMs": 7912.711700999993,
+          "wallTotalMs": 13881.966093000025
         },
         "parity": {
-          "meanScore": 0.8851851851851851,
-          "scored": 45,
-          "fullyParityPassed": 32,
+          "meanScore": 0.9138888888888889,
+          "scored": 60,
+          "fullyParityPassed": 47,
           "noChecks": 0
         },
         "operation": {
-          "checked": 20,
-          "performed": 17,
+          "checked": 27,
+          "performed": 23,
           "mixed": 1,
-          "missed": 2,
-          "unchanged": 2,
+          "missed": 3,
+          "unchanged": 3,
           "unchecked": 0
         },
         "operationByBlock": {
@@ -3786,27 +4191,35 @@
             "unchecked": 0
           },
           "auth-form": {
-            "checked": 8,
-            "performed": 5,
+            "checked": 12,
+            "performed": 8,
             "mixed": 1,
-            "missed": 2,
-            "unchanged": 2,
+            "missed": 3,
+            "unchanged": 3,
+            "unchecked": 0
+          },
+          "guide-steps": {
+            "checked": 3,
+            "performed": 3,
+            "mixed": 0,
+            "missed": 0,
+            "unchanged": 0,
             "unchecked": 0
           }
         },
         "paths": {
           "primitive": {
-            "n": 50,
-            "passed": 45
+            "n": 69,
+            "passed": 60
           }
         },
         "budgetRemainingAtFallback": {},
         "fallbackByClassification": {},
         "invariantFailures": 0,
         "budgetExhausted": 0,
-        "changedRate": 0.9459459459459459,
-        "changed": 35,
-        "refinedPassed": 37,
+        "changedRate": 0.9387755102040817,
+        "changed": 46,
+        "refinedPassed": 49,
         "retention": null,
         "retained": 0,
         "onBlockPrior": 0
@@ -3816,9 +4229,9 @@
       {
         "reference": "shadcn-v3",
         "provider": "hosted-ai:claude-haiku-4.5",
-        "n": 11,
-        "correct": 11,
-        "hit": 11,
+        "n": 14,
+        "correct": 14,
+        "hit": 14,
         "missedToNull": 0,
         "wrongBlock": 0,
         "nullCorrect": 0,
@@ -3827,7 +4240,7 @@
         "omitted": 0,
         "rejected": 0,
         "planningFailed": 0,
-        "intentCorrect": 11,
+        "intentCorrect": 14,
         "accuracy": 1,
         "intentAccuracy": 1
       }
@@ -3838,85 +4251,85 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "verdict": "insufficient",
         "reasons": [
-          "block: 11 prompt threads (55 cells), fewer than the 20 the rule needs",
-          "capped: 11 prompt threads (51 cells), fewer than the 20 the rule needs",
-          "production: 10 prompt threads (50 cells), fewer than the 20 the rule needs"
+          "block: 14 prompt threads (70 cells), fewer than the 20 the rule needs",
+          "capped: 14 prompt threads (70 cells), fewer than the 20 the rule needs",
+          "production: 14 prompt threads (69 cells), fewer than the 20 the rule needs"
         ],
         "tokens": {
-          "block": 28461.061224489797,
-          "capped": 95873.95833333333,
-          "production": 101848.82222222222,
-          "reductionVsProduction": 0.7205558139652211,
-          "reductionVsCapped": 0.7031408557729852
+          "block": 28851.72131147541,
+          "capped": 100312.609375,
+          "production": 104250.7,
+          "reductionVsProduction": 0.7232467378015168,
+          "reductionVsCapped": 0.7123819080050183
         },
         "passRates": {
-          "block": 0.8909090909090909,
-          "capped": 0.9411764705882353,
-          "production": 0.9
+          "block": 0.8714285714285714,
+          "capped": 0.9142857142857143,
+          "production": 0.8695652173913043
         },
         "evaluated": {
-          "block": 55,
-          "capped": 51,
-          "production": 50
+          "block": 70,
+          "capped": 70,
+          "production": 69
         },
         "metered": {
-          "block": 55,
-          "capped": 51,
-          "production": 50
+          "block": 70,
+          "capped": 70,
+          "production": 69
         },
         "threads": {
-          "block": 11,
-          "capped": 11,
-          "production": 10
+          "block": 14,
+          "capped": 14,
+          "production": 14
         },
         "meteredThreads": {
-          "block": 11,
-          "capped": 11,
-          "production": 10
+          "block": 14,
+          "capped": 14,
+          "production": 14
         },
         "counts": {
           "passed": {
-            "block": 49,
-            "capped": 48,
-            "production": 45
+            "block": 61,
+            "capped": 64,
+            "production": 60
           },
           "meteredTokens": {
-            "block": 1394592,
-            "capped": 4601950,
-            "production": 4583197
+            "block": 1759955,
+            "capped": 6420007,
+            "production": 6255042
           },
           "meteredSuccesses": {
-            "block": 49,
-            "capped": 48,
-            "production": 45
+            "block": 61,
+            "capped": 64,
+            "production": 60
           }
         },
-        "cohort": 10,
-        "meteredCohort": 10,
+        "cohort": 14,
+        "meteredCohort": 14,
         "intervals": {
           "reductionVsProduction": {
-            "low": 0.6324182783757399,
-            "high": 0.808240649961163,
+            "low": 0.6518108235458803,
+            "high": 0.7930473106876819,
             "resamples": 2000,
-            "prompts": 10
+            "prompts": 14
           },
           "reductionVsCapped": {
-            "low": 0.6312787031841771,
-            "high": 0.7827738213727762,
+            "low": 0.6527724460409371,
+            "high": 0.7717298666739932,
             "resamples": 2000,
-            "prompts": 10
+            "prompts": 14
           },
           "passDiffVsProduction": {
-            "low": -0.14,
-            "high": 0.14,
+            "low": -0.09999999999999998,
+            "high": 0.12857142857142856,
             "resamples": 2000,
-            "prompts": 10
+            "prompts": 14
           },
           "passDiffVsCapped": {
-            "low": -0.16000000000000003,
-            "high": 0.09999999999999998,
+            "low": -0.12857142857142856,
+            "high": 0.0714285714285714,
             "resamples": 2000,
-            "prompts": 10
+            "prompts": 14
           }
         },
         "clarity": {
@@ -3927,31 +4340,31 @@
         },
         "paired": {
           "vsProduction": {
-            "prompts": 10,
+            "prompts": 14,
             "passRate": {
-              "better": 3,
-              "same": 2,
-              "worse": 5
-            },
-            "tokensPerSuccess": {
-              "lower": 10,
-              "same": 0,
-              "higher": 0,
-              "comparable": 10
-            }
-          },
-          "vsCapped": {
-            "prompts": 11,
-            "passRate": {
-              "better": 2,
+              "better": 5,
               "same": 3,
               "worse": 6
             },
             "tokensPerSuccess": {
-              "lower": 11,
+              "lower": 14,
               "same": 0,
               "higher": 0,
-              "comparable": 11
+              "comparable": 14
+            }
+          },
+          "vsCapped": {
+            "prompts": 14,
+            "passRate": {
+              "better": 3,
+              "same": 4,
+              "worse": 7
+            },
+            "tokensPerSuccess": {
+              "lower": 14,
+              "same": 0,
+              "higher": 0,
+              "comparable": 14
             }
           }
         },
@@ -3968,27 +4381,27 @@
         "provider": "hosted-ai:claude-haiku-4.5",
         "operation": {
           "block": {
-            "checked": 22,
-            "performed": 22,
+            "checked": 28,
+            "performed": 27,
             "mixed": 0,
-            "missed": 0,
-            "unchanged": 0,
+            "missed": 1,
+            "unchanged": 1,
             "unchecked": 0
           },
           "capped": {
-            "checked": 20,
-            "performed": 17,
+            "checked": 28,
+            "performed": 23,
             "mixed": 1,
-            "missed": 2,
-            "unchanged": 2,
+            "missed": 4,
+            "unchanged": 4,
             "unchecked": 0
           },
           "production": {
-            "checked": 20,
-            "performed": 17,
+            "checked": 27,
+            "performed": 23,
             "mixed": 1,
-            "missed": 2,
-            "unchanged": 2,
+            "missed": 3,
+            "unchanged": 3,
             "unchecked": 0
           }
         },
@@ -3999,16 +4412,16 @@
               "verdict": "insufficient",
               "overall": "insufficient",
               "passed": {
-                "block": 49,
-                "capped": 50,
-                "production": 47
+                "block": 62,
+                "capped": 68,
+                "production": 63
               },
               "evaluated": {
-                "block": 55,
-                "capped": 51,
-                "production": 50
+                "block": 70,
+                "capped": 70,
+                "production": 69
               },
-              "reductionVsProduction": 0.7081360723636754
+              "reductionVsProduction": 0.7140960250997928
             }
           },
           {
@@ -4017,16 +4430,16 @@
               "verdict": "insufficient",
               "overall": "insufficient",
               "passed": {
-                "block": 49,
-                "capped": 47,
-                "production": 44
+                "block": 61,
+                "capped": 63,
+                "production": 59
               },
               "evaluated": {
-                "block": 55,
-                "capped": 51,
-                "production": 50
+                "block": 70,
+                "capped": 70,
+                "production": 69
               },
-              "reductionVsProduction": 0.7267656847659939
+              "reductionVsProduction": 0.7278592921714915
             }
           }
         ],
@@ -4040,42 +4453,42 @@
         "reference": "shadcn-v3",
         "provider": "hosted-ai:claude-haiku-4.5",
         "paired": {
-          "prompts": 11,
+          "prompts": 14,
           "passRate": {
-            "better": 1,
+            "better": 3,
             "same": 4,
-            "worse": 6
+            "worse": 7
           },
           "tokensPerSuccess": {
-            "lower": 3,
+            "lower": 6,
             "same": 0,
             "higher": 5,
-            "comparable": 8
+            "comparable": 11
           }
         },
         "intervals": {
           "passDiff": {
-            "low": -0.29765993265993257,
-            "high": -0.02475822050290133,
+            "low": -0.22608695652173916,
+            "high": 0.01625615763546795,
             "resamples": 2000,
-            "prompts": 11
+            "prompts": 14
           },
           "tokenReduction": {
-            "low": -0.32465286479050115,
-            "high": 0.13538081037039815,
+            "low": -0.1799897821026565,
+            "high": 0.17743537042355667,
             "resamples": 2000,
-            "prompts": 11
+            "prompts": 14
           }
         }
       }
     ],
     "totals": {
-      "records": 211,
-      "completed": 199,
-      "providerCalls": 315,
-      "inputTokens": 11311651,
-      "outputTokens": 248249,
-      "requestBytes": 39027857
+      "records": 279,
+      "completed": 267,
+      "providerCalls": 421,
+      "inputTokens": 15358372,
+      "outputTokens": 358145,
+      "requestBytes": 52612924
     }
   }
 }

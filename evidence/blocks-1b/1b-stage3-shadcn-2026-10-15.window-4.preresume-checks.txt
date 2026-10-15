@@ -1,0 +1,30 @@
+checks at 2026-10-15T23:29:00Z
+mode launch | run directory live/runs/1b-stage3-shadcn-2026-10-15 | window 4 | window 3's copy 791798b2c161b059bf7330c22efaf40244357beb
+HEAD 7e260c38029ab0a1df1fc499733ed037c06d60db | origin/main 7e260c38029ab0a1df1fc499733ed037c06d60db
+working tree clean
+no harness or monitor process running
+evidence blocks-stage3-shadcn-evidence b6c0d1113131ec1b708838df278bac2c0f6a3b1e
+evidence blocks-stage3-astryx-evidence e3f57da4280e8f67c5f8cdecde3fc0872e03708b
+evidence blocks-baseline-7e260c3-evidence 460cc81d7af794eadabb7da919dc4bd147c09c74
+evidence blocks-baseline-eaf6ae3-evidence d85a0e872ad8d888f2b367d0db3c4eba99c31efe
+evidence blocks-smoke-option-b-evidence a71b47cdfbc1ee33b7015a68f4f3c16a3059509f
+evidence blocks-smoke-c154548-evidence 11aa8b4e2419984410c318a5da9a57a3b743f826
+window 3's copy 791798b2c161b059bf7330c22efaf40244357beb is on the shadcn evidence branch
+the branch's run directory is unchanged since 791798b2c161b059bf7330c22efaf40244357beb
+evidence checksums: 441 entries, 0 not OK
+run directory identical to window 3's copy at 791798b2c161b059bf7330c22efaf40244357beb
+no run.lock
+run so far: 313 requests, 313 finalized, open none, held none, committed $13.18054080; caps {'maxTotalRequests': 1275, 'maxTotalUsd': 77}; remaining $63.81945920 and 962 requests; windows 3, stops ['cap', 'cap', 'cap']; preflights 3; served models ['claude-haiku-4-5-20251001']; build Dyml8RSqfWynKU1KbVuZI; code 51c80cec7a65…; corpus 0e4e4706e19e…
+tooling at e3f57da4280e8f67c5f8cdecde3fc0872e03708b: 312 checksum entries verify
+monitor_run.py 5a2541a9cbae67fae72b481b361594be4f601a21a4478bdeffcd40e993e7bd3e | monitor-shadcn.json 64ed771ea1f54a13806ebe44039c922a1d446c310de511971ba187b5122b32ca | verify_run.py c6010c575493206ca520caa3076accadfad01aff4a642303cd6ed1b95648111d
+monitor configuration: model claude-haiku-4-5-20251001 | build Dyml8RSqfWynKU1KbVuZI | code 51c80cec7a65… | corpus v2 0e4e4706e19e… | reference shadcn-v3 | 123 requests a window, 12 s spacing | matches the authorization: True 
+probe exit=0
+probe at 2026-10-15T23:29:03.467Z | build Dyml8RSqfWynKU1KbVuZI | worker per-call-model ['per-call-model'] 400 calls [] | models scripted,hosted-ai | drafts False
+sidecars: shadcn-v3=approved/ok/3 usable/0 disabled; astryx=approved/ok/3 usable/0 disabled
+equals the committed baseline (7e260c3) apart from 'at': True []
+{"cells":480,"references":["shadcn-v3"],"corpus":"blocks-1b v2","digest":"0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9","frozen":true,"scoring":"binding","sidecars":["shadcn-v3:approved:ok:records-table+auth-form+guide-steps"],"maxTotalUsd":77,"maxTotalRequests":1275,"maxRequests":123,"spacingMs":12000,"out":null,"resume":"live/runs/1b-stage3-shadcn-2026-10-15","rerunFailed":false,"allowDrafts":false}
+code identity 51c80cec7a652216c3b9b28b1467e8c45eb0ecebe170969854bb1d49d3c8a229
+plan matches the authorization: True 
+preflight files in the run: 3, so the monitor's --preflights is 4
+operator record holds invocations 1 to 3: 3 ended
+checks ended 2026-10-15T23:29:06Z

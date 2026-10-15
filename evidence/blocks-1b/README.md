@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run is open.** Windows 1 to 3 are complete. Each stopped cleanly at its request cap, and together they cover 211 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
+**Status: the run is open.** Windows 1 to 4 are complete. Each stopped cleanly at its request cap, and together they cover 279 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -219,7 +219,58 @@ There was no provider or policy failure.
   - every settlement and call on `claude-haiku-4-5-20251001`;
   - 11,311,651 input and 248,249 output tokens, whose price equals the settled total to the nanodollar.
 
-**Next:** window 4 follows at once with `shadcn-window.sh launch 4 <this window's copy>`, which runs the monitor with `--preflights 4`. It starts only if window 3's evidence verifies.
+## Window 4 (2026-10-15)
+
+**Under the owner's back-to-back authorization,** launched with `shadcn-window.sh launch 4 791798b` once window 3's evidence had verified.
+
+**Before the first paid call:** every no-cost check was repeated from 23:29:00Z to 23:29:06Z, and all passed (`.window-4.preresume-checks.txt`):
+- main at `7e260c3` and clean, and no harness or monitor running;
+- 441 evidence checksum entries;
+- the run directory byte-identical to window 3's copy at `791798b`:
+  - 313 requests, all finalized, nothing held;
+  - three windows, each stopped at its cap;
+- the frozen tooling and the monitor's configuration;
+- the probe equal to the baseline apart from `at`;
+- the resume command through the harness's parser and planner;
+- three preflights, so `--preflights 4`;
+- the operator record holding invocations 1 to 3.
+
+**The invocation:** 23:29:06Z to 23:52:07Z, exit 0.
+- **Its stop:** the pacing cap of 123 requests for the invocation.
+- **104 requests sent.**
+
+**Window 4's ledger:** 104 requests, each with one reservation and one final.
+- **103 settled** at the reported usage, every one on `claude-haiku-4-5-20251001`.
+- **1 zero-cost busy refusal** (#44, a 503 busy reply). It was released at $0 and retried once, after 30 s.
+- **No hold,** and nothing left open.
+- **Committed:** $4.82601105, which is $4.596201 at list price.
+- **Window 3's records are unchanged.** Its ledger, records and pacing entries are byte-for-byte prefixes of the files as window 4 left them.
+
+**The run so far:**
+- **Requests:** 417 of its 1,275.
+- **Committed:** $18.00655185 ($17.149097 at list price) of its $77 ceiling.
+- **Cells:** 279 of 480.
+- **Daily spend:** all four windows ran on 2026-10-15 UTC, within the owner's $40 daily limit.
+
+**Window 4's cells:** 68, covering the rest of af-05, then af-06 and gs-01, and the first cells of gs-02. All 68 completed, and 61 passed. Every failure is an ordinary arm result that is not re-run:
+- **unusable output, twice** (classified output): 5 cells:
+  - capped: af-05's structural refinement;
+  - production: af-05's and af-06's structural refinements, and gs-02's remove;
+  - block-positional: af-06's structural refinement;
+- **block:**
+  - gs-01's structural refinement, a failed gate on the fallback path;
+  - gs-02's structural refinement, whose lint repairs ran out.
+
+There was no provider or policy failure.
+
+**Window 4's tokens:** 106 provider calls, 11 of which returned unusable output. They used 4,046,721 input and 109,896 output tokens, and priced at Claude Haiku 4.5's rates they equal the window's settled total exactly.
+
+**The monitor:** exit 0, with no STOP or HOLD line.
+- It saw all 104 requests.
+- It read the live build 45 times, always `Dyml8RSqfWynKU1KbVuZI`.
+- It allowed the one refusal within its schedule.
+
+**Next:** window 5 follows at once with `shadcn-window.sh launch 5 <this window's copy>` (`--preflights 5`), only if window 4's evidence verifies.
 
 ## Files of the run
 
