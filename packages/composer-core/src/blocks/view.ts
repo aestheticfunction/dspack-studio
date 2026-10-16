@@ -8,9 +8,11 @@
  * A template may only emit what generation itself could emit under the same
  * profile; anything else would be refused downstream. Parity with the real
  * generation schema is asserted by packages/block-bench, so this port cannot
- * drift silently.
+ * drift silently. The view also names the components the emitter gives an
+ * action, which H1 holds to bounded ids (actions.ts).
  */
 import type { Profile } from "@aestheticfunction/dspack-emit";
+import { actionComponents } from "./actions";
 
 type Json = Record<string, unknown>;
 
@@ -21,6 +23,8 @@ export interface GenerationView {
   components: Set<string>;
   /** Components whose id is required because a profile join keys on self.id. */
   joinIdComponents: Set<string>;
+  /** Components whose emitted instances dispatch an action (H1, actions.ts). */
+  actionComponents: Set<string>;
 }
 
 function usesCasualty(value: unknown, casualties: Set<string>): boolean {
@@ -65,5 +69,5 @@ export function generationView(contract: Json, profile?: Profile): GenerationVie
     const subs = (((component.composition ?? {}) as Json).subComponents ?? []) as Array<{ id: string }>;
     for (const sub of subs) ids.add(sub.id);
   }
-  return { contract: view, components: ids, joinIdComponents: joinIdComponents(profile) };
+  return { contract: view, components: ids, joinIdComponents: joinIdComponents(profile), actionComponents: actionComponents(profile) };
 }

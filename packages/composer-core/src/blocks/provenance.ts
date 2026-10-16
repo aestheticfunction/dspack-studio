@@ -71,8 +71,14 @@ function sameReference(a: Json | undefined, b: { name: string; dspack: string; v
   return !!a && a.name === b.name && a.dspack === b.dspack && a.version === b.version;
 }
 
-/** Validate one stored record against the bundled sidecars; anything untrusted is inert. */
-function trusted(value: Json, sidecars: readonly BlocksSidecar[]): BlockProvenanceEntry | null {
+/**
+ * Validate one stored record against the bundled sidecars: its binding, block
+ * and version, intent, encoding, and a call that passes B1 and the block's
+ * constraints. Null when anything cannot be trusted. It never checks the
+ * record's digest against a surface; the action manifest re-expands the call
+ * for that (manifest.ts).
+ */
+export function trustedProvenance(value: Json, sidecars: readonly BlocksSidecar[]): BlockProvenanceEntry | null {
   const sidecar = sidecars.find((s) => sameReference(value.reference as Json | undefined, s.reference) && s.baseSha256 === value.baseSha256);
   const block = sidecar?.blocks.find((b) => b.id === value.block && b.version === value.version);
   if (!sidecar || !block) return null;
@@ -101,7 +107,7 @@ export function parseProvenance(raw: unknown, sidecars: readonly BlocksSidecar[]
   for (const [id, value] of Object.entries(raw)) {
     if (!isObject(value) || typeof value.block !== "string" || !Number.isInteger(value.version)) continue;
     const inert: InertProvenance = { block: value.block, version: value.version as number, status: "inert" };
-    out[id] = value.status === "inert" ? inert : (trusted(value, sidecars) ?? inert);
+    out[id] = value.status === "inert" ? inert : (trustedProvenance(value, sidecars) ?? inert);
   }
   return out;
 }
@@ -115,7 +121,7 @@ export function provenanceStatus(
 ): ProvenanceStatus {
   if (context.projectKind !== "reference") return "unavailable";
   if ("status" in record) return "inert";
-  return trusted(record as unknown as Json, context.sidecars) ? "refinable" : "inert";
+  return trustedProvenance(record as unknown as Json, context.sidecars) ? "refinable" : "inert";
 }
 
 /** Drop records whose example vanished or whose surface no longer equals the expansion. */

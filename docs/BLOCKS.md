@@ -3,7 +3,7 @@
 **Status: Phase 1B complete; Phase 2 under way. The beta's delivery path, guards and switches are built; no beta is deployed.**
 - **What is built.** Phases 0, 0.5 and 1A landed in aestheticfunction/dspack-studio#88. Blocks exist only in a private experimental build. The default build, the one that deploys, carries no block code, and its requests are unchanged (the byte-identity oracle checks them). What the deployed composer did gain is usage accounting: per-turn receipts, and Worker replies that report each provider call (#88, with later Worker changes in #98 and #101).
 - **What Phase 1B measured** on the hosted model: Astryx **pass, clear**; shadcn/ui v3 **pass, uncertain**. The record is [blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md).
-- **What follows.** The owner selected Phase 2 branch C, an Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4 ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)). The release plan's step 2, the beta's delivery path, guards and switches, is built ("The beta (Phase 2)", below); the first beta deploy waits on the later steps and the owner's prerequisites ([deployment.md](deployment.md), "The beta composer").
+- **What follows.** The owner selected Phase 2 branch C, an Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4 ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)). The release plan's step 2, the beta's delivery path, guards and switches, is built ("The beta (Phase 2)", below), and so is step 3, the host-action foundation ([blocks/HOST-ACTIONS.md](blocks/HOST-ACTIONS.md)); the first beta deploy waits on the later steps and the owner's prerequisites ([deployment.md](deployment.md), "The beta composer").
 
 The block format is an RFC that is not proposed upstream. The owner approved the three block definitions on each reference, and the frozen Phase 1B corpus, on 2026-10-11; their wording, templates, keywords and action names are owner-authored governance. The format specification is [blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). The measurements are in [packages/block-bench/RESULTS.md](../packages/block-bench/RESULTS.md).
 
@@ -187,6 +187,11 @@ The beta is the experimental build on its own Worker and hostname, behind Cloudf
 Two rules apply in every experimental build. A block is offered only when it and its sidecar are both approved (`sidecar-not-approved`, `no-approved-blocks`), and the runtime asks for the named call only: positional encoding stays a bench arm (ADR-B2). An accepted block surface's provenance binds to the project's packaged reference whatever the switch says now (`blockBinding`), so turning blocks off never loses the provenance of a surface already built.
 
 **Byte identity.** With blocks off, or on a reference the switch does not list, the beta posts today's planning and generation bytes: `e2e/composer-beta.spec.ts` hashes them against `packages/block-bench/results.json`. Production's `/api/models` reply is pinned byte for byte by `apps/composer/worker/blocks-beta.test.mjs`.
+
+**Host actions (step 3; [blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md), §7).** Composer still executes no action.
+- **H1.** B0 now covers action names. Every node the profile gives an action carries an id built only from literals and enum props, and the names a template can emit must equal its declared `actions`; otherwise the block is disabled at load (`packages/composer-core/src/blocks/actions.ts`).
+- **H2.** In an experimental build, Preview's "export catalog" adds an `actionManifest` that binds each surface's actions by surface and name. Only a surface that verifiably is its block's expansion gets a block binding (`manifest.ts`; `withActionManifest` in the runtime). The default build's export is byte-identical.
+- **H4.** How a host binds and authorizes these actions is [blocks/HOST-ACTIONS.md](blocks/HOST-ACTIONS.md).
 
 ## The live evaluation (Phase 1B)
 
