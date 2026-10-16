@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run is complete.** All 480 cells are done, in eight windows. Windows 1 to 6 each stopped at its request cap. Window 7 stopped on a hold, for which the owner made an explicit exception, and window 8 completed the run (below). The final verification follows.
+**Status: the run is complete and verified.** All 480 cells are done, in eight windows. Windows 1 to 6 each stopped at its request cap. Window 7 stopped on a hold, for which the owner made an explicit exception, and window 8 completed the run. The final `--complete` verification finds nothing. The ADR-B3 decision is **pass, uncertain** (below).
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -570,6 +570,64 @@ In nb-06's 10 block-arm cells, the plan selected no block, and each took the pri
 - **Daily spend:** with the fee, $19.1800287 on 2026-10-15 and $17.67963855 on 2026-10-16 UTC, the hold included, each within the owner's $40 daily limit.
 - **Cells:** 480 of 480: 448 completed, of which 393 passed, and 32 skipped.
 
+**Verification:** the final verification, `--complete`, below.
+
+## The final verification and the decision (2026-10-16)
+
+**The final verification** of the complete run, as origin holds it at `619e36f`:
+- **`verify_run.py`** (at `e3f57da`) with `--complete`, run with:
+  - windows 1 to 7's copies as snapshots;
+  - all eight monitor events logs and the monitor's configuration;
+  - the operator record;
+  - the build, code and request-cap expectations.
+
+  It finds **nothing: no findings, and no notes.**
+  - It maps 717 of the 718 requests to their cells. The one left is window 7's hold, #61, in the cell window 7 stopped inside, which window 8 re-ran from its beginning.
+  - It keeps every earlier window's records, and no window moved any aside.
+  - It recomputes the decision and its intervals, and checks the bootstrap with an independent generator.
+- **`reconcile_window.py`** agrees on every figure:
+  - 718 requests: 705 settled, 12 released at $0 and 1 held;
+  - $36.85966725 committed, $35.74145925 of it settled;
+  - every settlement and call on `claude-haiku-4-5-20251001`;
+  - 30,912,840 input and 625,329 output tokens, whose price equals the settled total to the nanodollar.
+
+**The decision (ADR-B3, corpus v2, binding scoring): pass, uncertain.**
+
+| Arm | Prompt threads | Evaluated cells | Pass rate | Tokens per success |
+| --- | ---: | ---: | ---: | ---: |
+| block | 24 | 116 | 87.1% (101/116) | 45,446 |
+| capped | 24 | 116 | 86.2% (100/116) | 112,229 |
+| production | 24 | 112 | 82.1% (92/112) | 119,696 |
+
+- **Tokens per success:**
+  - 62.0% fewer than production (95% interval 50.6% to 71.8%), against the 30% the rule needs: clearly met;
+  - 59.5% fewer than capped (46.7% to 70.1%).
+- **Pass rate against production:** +4.9 points (95% interval −4.9 to +14.8), against the 5-point margin: clearly met.
+- **Pass rate against capped:** +0.9 points (95% interval −8.0 to +10.3): uncertain, because the interval crosses the margin.
+- **So the verdict, which reads the point estimates, is pass.** The decision is uncertain, because one criterion's interval crosses its threshold.
+- **The bootstrap, independently:** 20,000 resamples, and 200 seeds of 2,000, keep the decision uncertain every time. Of the 200 seeds:
+  - the token criterion is clear in all 200;
+  - the pass-rate criterion against production is clear in 196 and uncertain in 4;
+  - the pass-rate criterion against capped is uncertain in all 200.
+- **Every reading of the add and remove check** (none, binding, missed and mixed, unchanged misses excused) keeps the verdict pass and the decision uncertain.
+
+**Beside the decision** (these decide nothing):
+- **Selection:** the plan chose correctly on all 24 fresh prompts: a block on the 18 block prompts, and none on the 6 nb prompts.
+- **Structural refinements are the block arm's weakest condition:** 52.2% passed (12/23), against 78.3% for capped and 59.1% for production.
+  - Every one with a block left block mode, as an unsupported refinement (retention 0 of 18).
+  - Its primitive fallback had the 2 calls the block phase left, and 9 of those 18 passed.
+- **Remove refinements are its strongest:** 91.3% passed, against 73.9% for capped and 68.2% for production.
+- **Named against positional (ADR-B2):** the positional encoding passed less often (79.8% against 87.1%) and cost more per success. Its token reduction against named has a 95% interval of −49.3% to −6.0%.
+
+**Against the readiness packet's plan:**
+- $36.86 committed, the hold included, against a central estimate of $40.34 (low $18.11, high $72.09);
+- 718 requests, against a central 900;
+- eight windows.
+
+**Both design-system decisions are now known:** Astryx pass, clear; shadcn/ui v3 pass, uncertain.
+- The ADR-B3 addendum allows a fourth stage, the full corpus of 3,600 cells, only when stage 3 was valid and its decision uncertain, as here, and only if narrower intervals are worth their cost.
+- That, and Phase 2, are the owner's to decide. Nothing has begun.
+
 ## Files of the run
 
 - `1b-stage3-shadcn-2026-10-15/`: the run directory exactly as the harness left it (`packages/block-bench/live/runs/1b-stage3-shadcn-2026-10-15`), byte-identical. Each window's copy is the commit that preserved it:
@@ -589,7 +647,7 @@ In nb-06's 10 block-arm cells, the plan selected no block, and each took the pri
 - `1b-stage3-shadcn-2026-10-15.window-1.verify.json` and `.txt`: the verifier's result and console for window 1's copy, as origin holds it at `1cc106b`.
 - `1b-stage3-shadcn-2026-10-15.window-1.reconcile.json` and `.txt`: the independent reconciliation of the same copy.
 - `1b-stage3-shadcn-2026-10-15.window-2.verify.json` and `.txt`, and `.window-2.reconcile.json` and `.txt`: the verifier's result and the reconciliation for window 2's copy, as origin holds it at `4c3db56`.
-- `1b-stage3-shadcn-2026-10-15.window-8.preresume-and-launch.sh` and `.window-8.provider-failure-stop.sh`: window 8's launch script and its stop at a new provider failure, under the owner's exception for window 7's hold (above). `.window-8.provider-failure-stop.txt` is that stop's log.
+- `1b-stage3-shadcn-2026-10-15.window-8.preresume-and-launch.sh` and `.window-8.provider-failure-stop.sh`: window 8's launch script and its stop at a new provider failure, under the owner's exception for window 7's hold (above). `.window-8.provider-failure-stop.txt` is that stop's log, and `.window-8.check-mode-checks.txt` the script's check-mode run before the launch. Window 8's `.verify` and `.reconcile` files are the final `--complete` verification.
 - `1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh` and `.window-k.preserve.sh`: the operator scripts for window 3 onward, under the owner's standing authorization.
   - **The launch script** generalizes window 2's. It takes the window number and the commit that preserved the previous window's copy, and reads the expected state from that copy:
     - the run directory byte-identical to it;

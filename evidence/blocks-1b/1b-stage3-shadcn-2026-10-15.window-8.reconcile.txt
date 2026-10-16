@@ -1,0 +1,18 @@
+ledger: 718 reservations, 718 finals, open none, duplicates none, orphan finals none, arithmetic mismatches none, releases above $0 none
+  settled at the reported usage: 705 requests, $35.741459250
+  refused before any provider call: 12 requests, $0.000000000
+  usage not verified: 1 requests, $1.118208000
+  committed $36.859667250; settled at usage $35.741459250 ($34.039485 at list); served models {'claude-haiku-4-5-20251001': 705}
+records: 480 cells, statuses {'completed': 448, 'skipped': 32}, passed 393; arms {'block': 120, 'block-positional': 120, 'capped': 120, 'production': 120}; conditions {'fresh': 96, 'refine-content': 96, 'refine-add': 96, 'refine-remove': 96, 'refine-structural': 96}
+  provider calls 729 (non-provider 12), tokens in 30,912,840 out 625,329, call models {'claude-haiku-4-5-20251001': 729}
+  the records' calls priced $35.741459250; settled minus priced $0.000000000 (the requests of a cell left unrecorded at the stop, if any)
+pacing: invocation 2026-10-15T00:22:24.340Z~85b11514-3f8e-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T20:20:40.601Z~01170097-5582-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 105 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T23:29:08.644Z~824dd642-29df-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T23:53:53.375Z~c1bae924-920f-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 105 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-16T00:19:17.602Z~605474b1-16dc-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-16T00:49:32.432Z~ddbd660d-7f85-4… stopped {'reason': 'integrity', 'message': 'usage-missing: a refine call (provider-error) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it'} | sent 61 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-16T01:35:19.796Z~e2ff2da7-4b7f-4… stopped None | sent 31 | max 123 | spacing 12000 ms
+operator: ['invocation 1 start 2026-10-15T00:22:21Z', 'invocation 1 end 2026-10-15T00:44:57Z exit 0', 'invocation 2 start 2026-10-15T20:20:38Z', 'invocation 2 end 2026-10-15T20:43:31Z exit 0', 'invocation 3 start 2026-10-15T23:05:40Z', 'invocation 3 end 2026-10-15T23:26:58Z exit 0', 'invocation 4 start 2026-10-15T23:29:06Z', 'invocation 4 end 2026-10-15T23:52:07Z exit 0', 'invocation 5 start 2026-10-15T23:53:51Z', 'invocation 5 end 2026-10-16T00:17:32Z exit 0', 'invocation 6 start 2026-10-16T00:19:15Z', 'invocation 6 end 2026-10-16T00:42:27Z exit 0', 'invocation 7 start 2026-10-16T00:49:30Z', 'invocation 7 end 2026-10-16T01:02:59Z exit 3', 'invocation 8 start 2026-10-16T01:35:17Z', 'invocation 8 end 2026-10-16T01:41:31Z exit 0']
+monitor: 16 lines, STOP/HOLD none, builds {'Dyml8RSqfWynKU1KbVuZI': 12}, last: 2026-10-16T01:41:32.247Z the harness exited: 23 cells, 31 requests sent, 31 settled, 0 released (0 s of backoff), 0 provider failures, outcomes {'passed': 23}

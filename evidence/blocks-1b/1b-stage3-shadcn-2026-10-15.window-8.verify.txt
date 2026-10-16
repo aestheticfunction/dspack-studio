@@ -1,0 +1,22 @@
+run 2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 8 invocations, 480 of 480 planned cells, 0 moved aside by re-runs
+ledger: 718 reserved, 718 finalized, reasons {'settled at the reported usage': 705, 'refused before any provider call': 12, 'usage not verified': 1}, committed $36.859667250, by UTC day {'2026-10-15': 19.1800287, '2026-10-16': 17.67963855}
+invocation 1 (cap): 72 records (64 completed, 8 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.455322200; first block|rt-01|fresh, next shadcn-v3|capped|rt-04|refine-add
+invocation 2 (cap): 73 records (69 completed, 4 skipped), 0 moved aside at its start, 105 requests from cells vs 105 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.664056950; first capped|rt-04|refine-add, next shadcn-v3|block-positional|af-02|fresh
+invocation 3 (cap): 66 records (66 completed, 0 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.061161650; first block-positional|af-02|fresh, next shadcn-v3|capped|af-05|refine-content
+invocation 4 (cap): 68 records (68 completed, 0 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.826011050; first capped|af-05|refine-content, next shadcn-v3|production|gs-02|refine-structural
+invocation 5 (cap): 67 records (63 completed, 4 skipped), 0 moved aside at its start, 105 requests from cells vs 105 in the ledger, orphans 0, released 0, backoffs [], exhausted [], committed $4.995707850; first production|gs-02|refine-structural, next shadcn-v3|block-positional|gs-06|refine-content
+invocation 6 (cap): 67 records (59 completed, 8 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 4, backoffs [30000, 30000, 30000, 30000], exhausted [], committed $6.550261200; first block-positional|gs-06|refine-content, next shadcn-v3|capped|nb-03|refine-remove
+invocation 7 (integrity): 44 records (36 completed, 8 skipped), 0 moved aside at its start, 60 requests from cells vs 61 in the ledger, orphans 1, released 4, backoffs [30000, 30000, 30000, 30000], exhausted [], committed $5.154291450; first capped|nb-03|refine-remove, next shadcn-v3|production|nb-05|refine-add
+invocation 8 (complete): 23 records (23 completed, 0 skipped), 0 moved aside at its start, 31 requests from cells vs 31 in the ledger, orphans 0, released 0, backoffs [], exhausted [], committed $2.152854900; first production|nb-05|refine-add, next None
+orphans: [('ddbd660d#61', 'usage not verified')]
+cost: {'listUsdLoggedCells': 34.039485, 'withFeeUsdLoggedCells': 35.74145925, 'heldUsd': 1.118208, 'cellsPlusHeldUsd': 36.85966725, 'committedUsd': 36.85966725}
+history: [{'from': 0, 'to': 1, 'kept': 0, 'moved': 0, 'new': 72}, {'from': 1, 'to': 2, 'kept': 72, 'moved': 0, 'new': 73}, {'from': 2, 'to': 3, 'kept': 145, 'moved': 0, 'new': 66}, {'from': 3, 'to': 4, 'kept': 211, 'moved': 0, 'new': 68}, {'from': 4, 'to': 5, 'kept': 279, 'moved': 0, 'new': 67}, {'from': 5, 'to': 6, 'kept': 346, 'moved': 0, 'new': 67}, {'from': 6, 'to': 7, 'kept': 413, 'moved': 0, 'new': 44}, {'from': 7, 'to': 8, 'kept': 457, 'moved': 0, 'new': 23}]
+surfaces: {'digestMismatches': 0, 'operationMismatches': 0, 'changedMismatches': 0, 'operationsRecomputed': 167}
+shadcn-v3: decision pass (uncertain); tokens/success {'block': 45445.81188118812, 'capped': 112229.49, 'production': 119695.83695652174, 'reductionVsProduction': 0.6203225355473655, 'reductionVsCapped': 0.5950635445176832}; pass {'block': 0.8706896551724138, 'capped': 0.8620689655172413, 'production': 0.8214285714285714}; threads {'block': 24, 'capped': 24, 'production': 24}; cohort 24/24
+  reductionVsProduction: spec [0.505746, 0.717508]
+  reductionVsCapped: spec [0.466706, 0.700877]
+  passDiffVsProduction: spec [-0.048669, 0.148236]
+  passDiffVsCapped: spec [-0.079885, 0.103448]
+totals {'records': 480, 'completed': 448, 'providerCalls': 729, 'inputTokens': 30912840, 'outputTokens': 625329, 'requestBytes': 104005624}
+NOTES: 0
+FINDINGS: 0
