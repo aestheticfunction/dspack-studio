@@ -16,14 +16,18 @@
  * context. Only then does the entry carry the block: its id, version,
  * expansion identity, declared actions and streaming policy.
  *
- * Provenance is a claim; the re-expansion is the proof. Forged, stale or
- * misfiled provenance binds nothing, and a surface name plus an action name
- * alone grants nothing. Nothing here throws: whatever cannot be verified
- * binds nothing. Even a binding is a statement for a host to check, never a
- * grant: the host authorizes every effect on its own server.
+ * Provenance is a claim; the re-expansion is the proof. Provenance that does
+ * not re-expand to the surface binds nothing, and a surface name plus an
+ * action name alone grants nothing. A binding certifies structure, not who
+ * wrote the copy. Verification never throws: whatever cannot be verified
+ * binds nothing. Each entry also pins the messages it describes
+ * (`messagesSha256`), so a host can tell them from altered ones. Even a
+ * binding is a statement for a host to check, never a grant: the host
+ * authorizes every effect on its own server.
  */
 import { emitSurface, type Profile } from "@aestheticfunction/dspack-emit";
 import { actionEvents } from "./actions";
+import { sha256Hex } from "./digest";
 import { expandBlock, expansionDigest } from "./expand";
 import type { LoadedBlocks } from "./load";
 import { trustedProvenance } from "./provenance";
@@ -56,8 +60,14 @@ export interface ManifestAction {
 export interface ManifestSurface {
   /** The surface's name in the export (its `surfaces[].name`). */
   surface: string;
-  /** The A2UI surfaceId its messages create, or null when they do not name exactly one. */
+  /**
+   * The A2UI surfaceId its messages create, or null when they do not name
+   * exactly one. It is the slug of the surface's intent, so surfaces of one
+   * intent share it: never look an entry up by it.
+   */
   surfaceId: string | null;
+  /** sha256 of the compact JSON of its exported messages: the bytes this entry describes. */
+  messagesSha256: string;
   /** Every action name its messages dispatch, sorted. */
   actions: ManifestAction[];
   /** The block this surface verifiably is, or null. */
@@ -176,6 +186,7 @@ export async function actionManifest(input: ActionManifestInput): Promise<Action
     surfaces.push({
       surface: s.name,
       surfaceId,
+      messagesSha256: await sha256Hex(JSON.stringify(messages)),
       actions: names.map((name) => ({ name, declared: block !== null && block.declaredActions.includes(name) })),
       block,
     });

@@ -7,16 +7,20 @@
  * emitter (dspack-emit 0.7.0) gives a node an action only where the profile
  * says so, a v1 `surfacePlan.actionProp` or a v2 route from
  * `synthesized.action`, and names it with a slug of the node's id. Without an
- * id it would name it from the node's text or component instead, and text can
- * be model-written. So H1 holds every such node to an id built only from
- * literals and enum props: the model fills content, never an action name.
+ * id it would name it from an alert dialog's confirm label, the node's text or
+ * its component instead, and those can be model-written. So H1 holds every
+ * such node to an id built only from literals and enum props: the model fills
+ * content, never an action name. Nothing else may carry an action into a
+ * surface: H1 also refuses a template value shaped like an action event (a
+ * passthrough prop would carry it into the messages verbatim) and a signature
+ * object with a field named `event`, which a call could fill.
  * The names a template can produce, at most 256 per id, must equal its
  * declared `actions`, exactly (templateActionNames says how they are
  * counted). Either failure is a B0 failure, which disables the block at load
  * (load.ts); B2 still holds every expansion's emitted names to the same list.
  */
 import { shadcnProfile, slug, type Profile } from "@aestheticfunction/dspack-emit";
-import { alwaysPresent, rootScope, specAtPath, type BlockDefinition, type Scope, type TemplateChild } from "./schema";
+import { alwaysPresent, rootScope, specAtPath, type BlockDefinition, type PropSpec, type Scope, type TemplateChild, type ValueSpec } from "./schema";
 
 type Json = Record<string, unknown>;
 
@@ -253,8 +257,64 @@ export function templateActionNames(block: Pick<BlockDefinition, "props" | "temp
   return { names: [...names].sort(), issues };
 }
 
-/** H1 for one block: unbounded action ids, then every difference between the names it can emit and the ones it declares. */
+/** Every signature field named `event`, by path: a call could fill one with an action event. */
+function eventFields(props: readonly PropSpec[] | undefined, at: string): string[] {
+  const out: string[] = [];
+  const walk = (spec: ValueSpec, path: string) => {
+    if (spec.type === "array" && spec.items) walk(spec.items, `${path}.*`);
+    for (const field of spec.type === "object" ? (spec.props ?? []) : []) {
+      if (field.name === "event") out.push(`${path}.event`);
+      walk(field, `${path}.${field.name}`);
+    }
+  };
+  for (const prop of props ?? []) {
+    if (prop.name === "event") out.push(`${at}${prop.name}`);
+    walk(prop, `${at}${prop.name}`);
+  }
+  return out;
+}
+
+/** Every place in a template's props and text that writes an object with an `event` key, literally or through a $map or $concat. */
+function eventValues(block: Pick<BlockDefinition, "template">): string[] {
+  const out: string[] = [];
+  const value = (v: unknown, at: string): void => {
+    if (Array.isArray(v)) {
+      v.forEach((entry, i) => value(entry, `${at}.${i}`));
+      return;
+    }
+    if (!isObject(v)) return;
+    if ("$map" in v) return value(v.value, `${at}.value`);
+    if ("$concat" in v) return value(v.$concat, `${at}.$concat`);
+    if (Object.keys(v).some((k) => k.startsWith("$"))) return;
+    if (Object.hasOwn(v, "event")) out.push(at);
+    for (const [key, entry] of Object.entries(v)) value(entry, `${at}.${key}`);
+  };
+  const node = (n: unknown, at: string): void => {
+    if (Array.isArray(n)) {
+      n.forEach((entry, i) => node(entry, `${at}.${i}`));
+      return;
+    }
+    if (!isObject(n)) return;
+    if ("$each" in n || "$if" in n) {
+      node(n.children, `${at}.children`);
+      node(n.else, `${at}.else`);
+      return;
+    }
+    if (n.props !== undefined) value(n.props, `${at}.props`);
+    if (n.text !== undefined) value(n.text, `${at}.text`);
+    node(n.children, `${at}.children`);
+  };
+  node(block.template, "template");
+  return out;
+}
+
+/** H1 for one block: anything that could carry an action but the emitter, unbounded action ids, then every difference between the names it can emit and the ones it declares. */
 export function actionIssues(block: Pick<BlockDefinition, "props" | "template" | "actions">, components: ReadonlySet<string>): string[] {
+  const carried = [
+    ...eventValues(block).map((at) => `${at}: carries an action event; a surface dispatches only the emitter's actions, named from bounded ids`),
+    ...eventFields(block.props, "").map((path) => `props: '${path}' is a field a call fills, so it could carry an action event; rename it`),
+  ];
+  if (carried.length > 0) return carried;
   const { names, issues } = templateActionNames(block, components);
   // An unbounded id leaves the set of names unknown, so there is nothing to compare.
   if (issues.length > 0) return issues;
