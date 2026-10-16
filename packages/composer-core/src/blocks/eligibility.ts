@@ -9,7 +9,9 @@
  *   through the agent, which has no block mode;
  * - the live vocabulary is still exactly the base the sidecar was bound to
  *   (only accepted examples added), and the live profile is unchanged;
- * - the sidecar bound, and the block was not disabled for this session.
+ * - the sidecar bound and is approved, and so is the block (a draft is never
+ *   offered, whatever its evaluation);
+ * - the block was not disabled for this session.
  * An ineligible build carries no block metadata anywhere.
  */
 import { contractDigest } from "./digest";
@@ -26,6 +28,8 @@ export type IneligibleReason =
   | "binding-mismatch"
   | "contract-edited"
   | "profile-edited"
+  | "sidecar-not-approved"
+  | "no-approved-blocks"
   | "all-disabled";
 
 export interface EligibilityInput {
@@ -62,6 +66,9 @@ export function eligibleBlocks(input: EligibilityInput): { blocks: BlockDefiniti
   if (input.loaded.binding !== "ok" || !input.loaded.sidecar) return none("binding-mismatch");
   if (input.liveDigest !== input.loaded.sidecar.baseSha256) return none("contract-edited");
   if (!input.profileMatchesBase) return none("profile-edited");
-  const blocks = input.loaded.usable.filter((b) => !input.disabled.has(b.id));
+  if (input.loaded.sidecar.status !== "approved") return none("sidecar-not-approved");
+  const approved = input.loaded.usable.filter((b) => b.status === "approved");
+  if (approved.length === 0) return none("no-approved-blocks");
+  const blocks = approved.filter((b) => !input.disabled.has(b.id));
   return blocks.length > 0 ? { blocks, reason: null } : none("all-disabled");
 }

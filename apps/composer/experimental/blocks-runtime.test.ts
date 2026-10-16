@@ -7,14 +7,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCallRecorder, foldBuildEvents, planDeterministic } from "@dspack-studio/composer-core";
 import { REFERENCES } from "../app/demo-data";
-import { blockContext, blockRunFor, chooseBlock, planGoalWithBlocks, runHostedBlockBuild, type BlockContext } from "./blocks-runtime";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import type { BlocksBetaSwitch } from "@dspack-studio/composer-core/blocks";
+import { blockBinding, blockContext, blockRunFor, chooseBlock, planGoalWithBlocks, readBlocksBeta, runHostedBlockBuild, type BlockContext } from "./blocks-runtime";
 
 type Json = Record<string, any>;
 
 const astryx = REFERENCES.astryx;
 const reference = { kind: "reference" as const, referenceId: "astryx" };
+const ALL_BLOCKS = ["records-table", "auth-form", "guide-steps"];
+/** Every known reference and block on: the switch the existing cases run under, so they test eligibility alone. */
+const ON_ALL: BlocksBetaSwitch = { state: "on", references: ["shadcn", "astryx"], blocks: ALL_BLOCKS };
+/** The owner's beta switch (Astryx only, every approved block). */
+const OWNER: BlocksBetaSwitch = { state: "on", references: ["astryx"], blocks: ALL_BLOCKS };
 const contextFor = (overrides: Json = {}) =>
-  blockContext({ mode: "demo", source: reference, inBrowser: true, contract: astryx.contract as Json, profile: astryx.profile as Json, disabled: new Set(), ...overrides });
+  blockContext({ mode: "demo", source: reference, inBrowser: true, contract: astryx.contract as Json, profile: astryx.profile as Json, disabled: new Set(), beta: ON_ALL, ...overrides });
 
 /** A fetch stub that records every POST body and answers from a script. */
 function stubFetch(script: Array<(body: Json, n: number) => Response>) {
@@ -232,5 +240,171 @@ describe("runHostedBlockBuild, scripted", () => {
     expect(progress.outcome).toBe("passed");
     expect(progress.block?.outcome).toBe("block");
     expect(recorder.calls.map((c) => [c.operation, c.source])).toEqual([["block", "none"]]);
+  });
+});
+
+describe("blockContext under the beta switch (Phase 2 plan, §6, layer 4)", () => {
+  const shadcn = REFERENCES.shadcn;
+  const shadcnContext = (beta: BlocksBetaSwitch) =>
+    blockContext({ mode: "demo", source: { kind: "reference", referenceId: "shadcn" }, inBrowser: true, contract: shadcn.contract as Json, profile: shadcn.profile as Json, disabled: new Set(), beta });
+
+  it("the owner's switch offers an Astryx project every approved block", async () => {
+    const ctx = await contextFor({ beta: OWNER });
+    expect(ctx.reason).toBeNull();
+    expect(ctx.offered.map((b) => b.id)).toEqual(ALL_BLOCKS);
+  });
+
+  it("a shadcn/ui v3 project under the owner's switch is offered none, the note says why, and its sidecar binding is kept", async () => {
+    const ctx = await shadcnContext(OWNER);
+    expect(ctx.offered).toEqual([]);
+    expect(ctx.reason).toBe("reference-not-in-beta");
+    expect(ctx.detail).toMatch(/shadcn\/ui v3 blocks are withheld from this beta: their evaluation remains inconclusive/);
+    expect(ctx.base?.sidecar.status).toBe("approved");
+  });
+
+  it("a switch that lists shadcn offers it: the Worker's allowlist, not the client, decides which references the beta reports", async () => {
+    const ctx = await shadcnContext(ON_ALL);
+    expect(ctx.reason).toBeNull();
+    expect(ctx.offered.map((b) => b.id)).toEqual(ALL_BLOCKS);
+  });
+
+  it.each(["missing", "unreadable", "malformed", "disabled"] as const)("a switch that is %s offers nothing, and the reason says which", async (reason) => {
+    const ctx = await contextFor({ beta: { state: "off", reason } });
+    expect(ctx.offered).toEqual([]);
+    expect(ctx.reason).toBe(`beta-switch-${reason}`);
+    expect(ctx.base?.sidecar.status).toBe("approved");
+  });
+
+  it("a block the switch does not list is withheld; the rest keep sidecar order", async () => {
+    const ctx = await contextFor({ beta: { state: "on", references: ["astryx"], blocks: ["guide-steps", "records-table"] } });
+    expect(ctx.reason).toBeNull();
+    expect(ctx.offered.map((b) => b.id)).toEqual(["records-table", "guide-steps"]);
+  });
+
+  it("a switch that lists none of the blocks left offers nothing", async () => {
+    const ctx = await contextFor({ beta: { state: "on", references: ["astryx"], blocks: ["auth-form"] }, disabled: new Set(["auth-form"]) });
+    expect(ctx.offered).toEqual([]);
+    expect(ctx.reason).toBe("no-blocks-in-beta");
+  });
+
+  it("eligibility answers first: an imported, local-model or edited project keeps its own reason under any switch", async () => {
+    const edited = { ...(astryx.contract as Json), intents: [...(astryx.contract as Json).intents, { id: "x", description: "y" }] };
+    for (const beta of [OWNER, { state: "off", reason: "disabled" } as const]) {
+      expect((await contextFor({ source: { kind: "imported" }, beta })).reason).toBe("imported-project");
+      expect((await contextFor({ source: { kind: "agent", path: "/x" }, beta })).reason).toBe("repository-project");
+      expect((await contextFor({ inBrowser: false, beta })).reason).toBe("local-model");
+      expect((await contextFor({ contract: edited, beta })).reason).toBe("contract-edited");
+    }
+  });
+});
+
+describe("readBlocksBeta: the switch, read fresh before every build", () => {
+  const owner = { enabled: true, references: ["astryx"], blocks: ALL_BLOCKS };
+  const MODELS = ["scripted", "hosted-ai"];
+  function stubGet(answer: (n: number) => Response | Promise<Response>) {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        return answer(calls.length - 1);
+      }),
+    );
+    return calls;
+  }
+
+  it("reads the composer's own /api/models, uncached and with a timeout, and returns the owner's switch", async () => {
+    const calls = stubGet(() => reply(200, { models: MODELS, blocks: owner }));
+    expect(await readBlocksBeta()).toEqual({ state: "on", references: ["astryx"], blocks: ALL_BLOCKS });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.url).toBe("/api/models");
+    expect(calls[0]!.init?.method ?? "GET").toBe("GET");
+    expect(calls[0]!.init?.cache).toBe("no-store");
+    expect(calls[0]!.init?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("production's reply carries no switch: missing", async () => {
+    stubGet(() => reply(200, { models: MODELS }));
+    expect(await readBlocksBeta()).toEqual({ state: "off", reason: "missing" });
+  });
+
+  it("the Worker's off forms keep their reason", async () => {
+    stubGet(() => reply(200, { models: MODELS, blocks: { enabled: false, reason: "disabled" } }));
+    expect(await readBlocksBeta()).toEqual({ state: "off", reason: "disabled" });
+    vi.unstubAllGlobals();
+    stubGet(() => reply(200, { models: MODELS, blocks: { enabled: false, reason: "malformed" } }));
+    expect(await readBlocksBeta()).toEqual({ state: "off", reason: "malformed" });
+  });
+
+  it("a reply that names an unknown reference or block is malformed", async () => {
+    stubGet(() => reply(200, { models: MODELS, blocks: { ...owner, references: ["material"] } }));
+    expect(await readBlocksBeta()).toEqual({ state: "off", reason: "malformed" });
+    vi.unstubAllGlobals();
+    stubGet(() => reply(200, { models: MODELS, blocks: { ...owner, blocks: ["data-grid"] } }));
+    expect(await readBlocksBeta()).toEqual({ state: "off", reason: "malformed" });
+  });
+
+  it.each<[string, () => Response | Promise<Response>]>([
+    ["a 404", () => reply(404, { error: "not-found" })],
+    ["a 500", () => reply(500, { models: MODELS, blocks: owner })],
+    ["the static host's HTML page", () => new Response("<!doctype html><html></html>", { status: 200, headers: { "content-type": "text/html" } })],
+    ["a network failure", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ["a timeout", () => Promise.reject(new DOMException("The operation timed out.", "TimeoutError"))],
+  ])("%s cannot be read, so it offers no blocks", async (_name, answer) => {
+    stubGet(answer);
+    expect(await readBlocksBeta()).toEqual({ state: "off", reason: "unreadable" });
+  });
+
+  it("never cached: each build reads again, so a switch turned off applies to the next build", async () => {
+    const calls = stubGet((n) => reply(200, n === 0 ? { models: MODELS, blocks: owner } : { models: MODELS, blocks: { enabled: false, reason: "disabled" } }));
+    expect((await readBlocksBeta()).state).toBe("on");
+    expect(await readBlocksBeta()).toEqual({ state: "off", reason: "disabled" });
+    expect(calls).toHaveLength(2);
+  });
+});
+
+describe("blockBinding: what an accepted block surface's provenance binds to, whatever the switch says now", () => {
+  it("a packaged reference gives its sidecar binding; any other source gives none", async () => {
+    const bound = await blockBinding(reference);
+    expect(bound?.sidecar.reference).toEqual({ name: "Astryx", dspack: "0.4", version: "0.1.4" });
+    expect(bound?.sidecar.status).toBe("approved");
+    expect(bound?.contract).toBe(astryx.contract);
+    expect((await blockBinding({ kind: "reference", referenceId: "shadcn" }))?.sidecar.reference.name).toBe("shadcn/ui");
+    expect(await blockBinding({ kind: "reference", referenceId: "material" })).toBeNull();
+    expect(await blockBinding({ kind: "imported" })).toBeNull();
+    expect(await blockBinding({ kind: "agent" })).toBeNull();
+    expect(await blockBinding(null)).toBeNull();
+  });
+});
+
+describe("named calls only (Phase 2 plan, §5)", () => {
+  it("a hosted block call asks for the named call, and its trace says named", async () => {
+    const ctx = await contextFor({ beta: OWNER });
+    const call = { block: "auth-form", version: 1, mode: "sign-up", title: "Create your account", fields: ["name", "email", "password"], providers: ["github"] };
+    const bodies = stubFetch([() => okCall(call)]);
+    const runSpec = (await blockRunFor({ ctx, choice: { id: "auth-form", reason: "r", source: "model" }, intent: "data-collection", goal: "a sign-up form", preferenceOn: true }))!;
+    const { progress } = await run(ctx, runSpec, "hosted-ai");
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]!.jsonSchema.properties.block.const).toBe("auth-form");
+    expect(bodies[0]!.jsonSchema.properties).not.toHaveProperty("b");
+    expect(bodies[0]!.jsonSchema.properties).not.toHaveProperty("p");
+    expect(progress.block?.encoding).toBe("named");
+  });
+
+  it("a scripted block run is named too", async () => {
+    const ctx = await contextFor({ beta: OWNER });
+    vi.stubGlobal("fetch", vi.fn());
+    const runSpec = (await blockRunFor({ ctx, choice: { id: "auth-form", reason: "r", source: "deterministic" }, intent: "data-collection", goal: "a sign-up form", preferenceOn: true }))!;
+    const { progress } = await run(ctx, runSpec, "scripted");
+    expect(progress.block?.encoding).toBe("named");
+  });
+
+  it("the runtime asks the block phase for the named encoding explicitly and never names the positional one", () => {
+    const source = readFileSync(fileURLToPath(new URL("./blocks-runtime.ts", import.meta.url)), "utf8");
+    const start = source.indexOf("await runBlockPhase({");
+    expect(start).toBeGreaterThan(-1);
+    const call = source.slice(start, source.indexOf("\n  });", start));
+    expect(call).toContain('encoding: "named"');
+    expect(source).not.toMatch(/positional/i);
   });
 });

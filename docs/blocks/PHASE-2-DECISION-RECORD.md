@@ -2,7 +2,7 @@
 
 **Decided by the owner on 2026-10-16.** This record holds the owner's acceptance of the Phase 1B result, the Phase 2 branch the owner chose, and the owner's answers to the release plan's open decisions ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §3 and §13).
 
-It authorizes nothing beyond what it states. The owner directed G1 only, first: "a documentation-and-records PR with no runtime behavior change", which this record is part of. Phase 2 code has not begun, and each Phase 2 change still needs the owner's authorization.
+It authorizes nothing beyond what it states. The owner directed G1 only, first: "a documentation-and-records PR with no runtime behavior change", which this record is part of. Each Phase 2 change still needs the owner's authorization. The first the owner gave, for step 2, is recorded below.
 
 ## The Phase 1B result, accepted
 
@@ -45,6 +45,19 @@ Under branch C, shadcn/ui v3 joins the beta only if an owner-authorized Stage 4 
 - **G1, records on main:** this change. It commits the two Stage 3 reports with their manifests and preflights, their run ids, and links to their evidence branches and commits. It also commits `docs/blocks/baseline.json` ([BASELINE.md](BASELINE.md)). It merges only after the shadcn/ui v3 run closed, which it did on 2026-10-16.
 - **G2, the shadcn/ui v3 decision is known:** met. The result is pass, uncertain, accepted as valid.
 - **G3, the branch and the decisions marked "before the gate":** met. The owner chose branch C and answered decisions 1 to 4; decision 5 does not arise.
+
+## Step 2, authorized (2026-10-16)
+
+After G1 merged (aestheticfunction/dspack-studio#103), the owner treated the gate as open and authorized the plan's step 2, the beta's delivery path, guards and switches, as its own PR: no deploy, no Cloudflare change, no paid model call. The owner's inputs:
+
+- **Hostname:** `composer-beta.aesthetic-function.com`.
+- **Audience:** Cloudflare Access, the owner only. Anyone more needs an explicit later decision.
+- **The switch:** the variable `BLOCKS_BETA`, strict JSON: `{"enabled":true,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}`. Unknown fields, references or block ids are rejected. Missing, malformed, unreadable or disabled configuration fails closed and offers no blocks.
+- **Credentials:** a dedicated least-privilege deploy token, `CLOUDFLARE_API_TOKEN_BETA`, never the production token. `CF_ACCESS_CLIENT_ID_BETA` and `CF_ACCESS_CLIENT_SECRET_BETA` are reserved for a later authenticated smoke.
+- **Gateway:** the shared gateway at first, with its $10 daily limit and auto top-up off.
+- **Initial stop conditions:** disable blocks at once on any model mismatch, unmetered provider-reached call, integrity failure, or authorization or provenance failure. Pause on two consecutive non-busy provider errors; when busy or refusal responses reach 10% over at least 20 beta requests; and when the shared gateway's daily spend reaches $8, leaving headroom below the $10 hard limit.
+
+How these are applied is in [../deployment.md](../deployment.md), "The beta composer".
 
 ## Operational record
 

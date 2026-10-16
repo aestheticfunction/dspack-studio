@@ -73,4 +73,5 @@ export {
 } from "./provenance";
 export { recheckBlockChoice, reconcileBlockChoice, selectBlockDeterministic, withBlockChoice } from "./select";
 export { eligibleBlocks, liveBaseDigest, type EligibilityInput, type IneligibleReason } from "./eligibility";
+export { gateBlocksBeta, parseBlocksBeta, type BlocksBetaKnown, type BlocksBetaOff, type BlocksBetaReason, type BlocksBetaSwitch } from "./beta";
 export { b0Issues, checkActions, emitCheck, emittedActionNames, loadBlocks, type EmitCheck, type LoadedBlocks } from "./load";

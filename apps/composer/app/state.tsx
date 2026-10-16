@@ -1244,7 +1244,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       // --- BLOCKS (experimental; docs/BLOCKS.md): only an experimental build
       // with the preference on offers blocks, and only to a packaged reference
       // project or Example session on its unedited base, built in the
-      // browser. Any failure here means no blocks, said on the turn. Default
+      // browser, and only what the beta's switch lists (read fresh for every
+      // build). Any failure here means no blocks, said on the turn. Default
       // builds fold this whole branch away. ---
       type BlockRuntime = typeof import("../experimental/blocks-runtime");
       let runtime: BlockRuntime | null = null;
@@ -1255,8 +1256,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           runtime = await import("../experimental/blocks-runtime");
           const source = (exampleProject ?? (activeProjectId ? getProject(activeProjectId) : null))?.source ?? null;
           const inBrowser = input.modelRef === "hosted-ai" || (mode !== "agent" && !isLocalRef(input.modelRef));
-          blockCtx = await runtime.blockContext({ mode, source, inBrowser, contract, profile, disabled: disabledBlocks.current });
-          if (blockCtx.reason) blockNote = `No interface blocks for this build: ${blockCtx.reason}.`;
+          const beta = await runtime.readBlocksBeta();
+          blockCtx = await runtime.blockContext({ mode, source, inBrowser, contract, profile, disabled: disabledBlocks.current, beta });
+          if (blockCtx.reason) blockNote = `No interface blocks for this build: ${blockCtx.reason}${blockCtx.detail ? ` (${blockCtx.detail})` : ""}.`;
         } catch (error) {
           runtime = null;
           blockCtx = null;
@@ -1510,16 +1512,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
             const projectId = activeProjectId;
             void import("../experimental/blocks-runtime")
               .then(async (runtime) => {
-                if (!profile) return;
+                // Bound to the project's packaged reference, whatever the
+                // switch says now: the block already ran on this turn.
                 const source = (exampleProject ?? (projectId ? getProject(projectId) : null))?.source ?? null;
-                const ctx = await runtime.blockContext({ mode, source, inBrowser: true, contract, profile, disabled: disabledBlocks.current });
-                if (!ctx.base) return;
+                const bound = await runtime.blockBinding(source);
+                if (!bound) return;
                 await runtime.recordProvenance({
                   store: projectId ? runtime.projectProvenanceStore(projectId) : runtime.memoryProvenanceStore(sessionProvenance),
                   exampleId: id,
                   trace: turn.progress.block,
                   accepted: turn.progress.surface,
-                  sidecar: ctx.base.sidecar,
+                  sidecar: bound.sidecar,
                   examples,
                 });
               })

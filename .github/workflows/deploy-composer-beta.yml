@@ -1,0 +1,86 @@
+name: deploy-composer-beta
+
+# Explicit deployment for the BETA composer Worker
+# (composer-beta.aesthetic-function.com): the experimental artifact,
+# apps/composer/out-experimental, with interface blocks behind the beta's
+# runtime switch (docs/blocks/PHASE-2-RELEASE-PLAN.md §6; docs/deployment.md,
+# "The beta composer").
+#
+# Dispatched only, from main, through the protected composer-beta environment
+# (a required reviewer, main only). Nothing else deploys this Worker: it is
+# never connected to Workers Builds, which reads ./wrangler.jsonc and deploys
+# the production composer on every merge to main.
+#
+# Auth: CLOUDFLARE_API_TOKEN_BETA, a secret of the composer-beta environment,
+# scoped to this Worker's deployment only and never the production token, with
+# CLOUDFLARE_ACCOUNT_ID, a variable of the same environment (a token scoped to
+# one Worker cannot look the account up). Inert until both exist.
+# CF_ACCESS_CLIENT_ID_BETA and
+# CF_ACCESS_CLIENT_SECRET_BETA are reserved for a later authenticated smoke;
+# this workflow sends no credentials, so its only check of the deployed beta is
+# that Cloudflare Access turns an anonymous request away.
+#
+# Rollback (from any machine with wrangler auth for the beta):
+#   npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc
+# targeting the anchor version recorded in this run's summary. Production and
+# the beta roll back independently.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy-composer-beta" to confirm a deployment of the beta composer Worker'
+        required: true
+
+concurrency:
+  group: deploy-composer-beta
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm == 'deploy-composer-beta' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment: composer-beta
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_BETA }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: The beta deploys only with its own credential
+        run: |
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "CLOUDFLARE_API_TOKEN_BETA is not set in the composer-beta environment; refusing to deploy"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "CLOUDFLARE_ACCOUNT_ID is not set in the composer-beta environment; refusing to deploy"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Frozen-lockfile install
+        run: pnpm install --frozen-lockfile
+      - name: Build the experimental artifact (apps/composer/out-experimental)
+        run: pnpm --filter composer build:experimental
+      - name: Guards (the production and beta configs; an experimental artifact that carries the switch)
+        run: node apps/composer/scripts/check-beta-deploy.mjs
+      - name: Cloudflare Access already turns anonymous requests away (a first deploy may not resolve yet)
+        run: node apps/composer/scripts/check-beta-deploy.mjs --access=before
+      - name: Record the rollback anchor (currently active version)
+        run: |
+          echo '## Beta composer deployment' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "source commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY" || echo "no earlier deployment: a first deploy has no rollback anchor" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy (beta Worker only, checked-in config)
+        run: npx --yes wrangler@4.146.0 deploy --config wrangler.composer-beta.jsonc
+      - name: Record the deployed version
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo 'rollback: npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Cloudflare Access turns anonymous requests away from the deployed beta
+        run: node apps/composer/scripts/check-beta-deploy.mjs --access=after

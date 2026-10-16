@@ -77,3 +77,33 @@ describe("eligibleBlocks", () => {
     expect((await ok({ disabled: new Set(["records-table", "auth-form", "guide-steps"]) })).reason).toBe("all-disabled");
   });
 });
+
+describe("eligibleBlocks: only approved blocks in an approved sidecar (Phase 2 plan, §5)", () => {
+  const ok = async (loadedOverride: LoadedBlocks) =>
+    eligibleBlocks({
+      mode: "demo",
+      source: reference,
+      inBrowser: true,
+      liveDigest: (await loaded()).sidecar!.baseSha256,
+      profileMatchesBase: true,
+      loaded: loadedOverride,
+      disabled: new Set(),
+    });
+
+  it("a draft sidecar offers nothing, whatever its blocks say", async () => {
+    const l = await loaded();
+    expect(await ok({ ...l, sidecar: { ...l.sidecar!, status: "draft" } })).toEqual({ blocks: [], reason: "sidecar-not-approved" });
+  });
+
+  it("a draft block in an approved sidecar is withheld; the approved ones stay, in sidecar order", async () => {
+    const l = await loaded();
+    const result = await ok({ ...l, usable: l.usable.map((b) => (b.id === "auth-form" ? { ...b, status: "draft" as const } : b)) });
+    expect(result.reason).toBeNull();
+    expect(result.blocks.map((b) => b.id)).toEqual(["records-table", "guide-steps"]);
+  });
+
+  it("an approved sidecar whose blocks are all drafts offers nothing", async () => {
+    const l = await loaded();
+    expect(await ok({ ...l, usable: l.usable.map((b) => ({ ...b, status: "draft" as const })) })).toEqual({ blocks: [], reason: "no-approved-blocks" });
+  });
+});
