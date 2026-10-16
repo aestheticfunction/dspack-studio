@@ -1,0 +1,14 @@
+ledger: 522 reservations, 522 finals, open none, duplicates none, orphan finals none, arithmetic mismatches none, releases above $0 none
+  settled at the reported usage: 518 requests, $23.002259700
+  refused before any provider call: 4 requests, $0.000000000
+  committed $23.002259700; settled at usage $23.002259700 ($21.906914 at list); served models {'claude-haiku-4-5-20251001': 518}
+records: 346 cells, statuses {'completed': 330, 'skipped': 16}, passed 295; arms {'block': 90, 'block-positional': 86, 'capped': 85, 'production': 85}; conditions {'fresh': 70, 'refine-content': 69, 'refine-add': 69, 'refine-remove': 69, 'refine-structural': 69}
+  provider calls 530 (non-provider 4), tokens in 19,500,129 out 481,357, call models {'claude-haiku-4-5-20251001': 530}
+  the records' calls priced $23.002259700; settled minus priced $0.000000000 (the requests of a cell left unrecorded at the stop, if any)
+pacing: invocation 2026-10-15T00:22:24.340Z~85b11514-3f8e-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T20:20:40.601Z~01170097-5582-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 105 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T23:05:42.280Z~7b05e6dc-dfb2-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T23:29:08.644Z~824dd642-29df-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 104 | max 123 | spacing 12000 ms
+pacing: invocation 2026-10-15T23:53:53.375Z~c1bae924-920f-4… stopped {'reason': 'cap', 'message': 'the pacing cap of 123 requests for this invocation is reached; resume later'} | sent 105 | max 123 | spacing 12000 ms
+operator: ['invocation 1 start 2026-10-15T00:22:21Z', 'invocation 1 end 2026-10-15T00:44:57Z exit 0', 'invocation 2 start 2026-10-15T20:20:38Z', 'invocation 2 end 2026-10-15T20:43:31Z exit 0', 'invocation 3 start 2026-10-15T23:05:40Z', 'invocation 3 end 2026-10-15T23:26:58Z exit 0', 'invocation 4 start 2026-10-15T23:29:06Z', 'invocation 4 end 2026-10-15T23:52:07Z exit 0', 'invocation 5 start 2026-10-15T23:53:51Z', 'invocation 5 end 2026-10-16T00:17:32Z exit 0']
+monitor: 51 lines, STOP/HOLD none, builds {'Dyml8RSqfWynKU1KbVuZI': 46}, last: 2026-10-16T00:17:33.069Z the harness exited: 67 cells, 105 requests sent, 105 settled, 0 released (0 s of backoff), 0 provider failures, outcomes {'passed': 54, 'failed-adapter': 7, 'failed-gate': 2, 'skipped': 4}

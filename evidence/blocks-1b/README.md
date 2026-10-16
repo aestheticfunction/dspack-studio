@@ -331,6 +331,18 @@ There was no provider or policy failure.
 - It saw all 105 requests.
 - It read the live build 46 times, always `Dyml8RSqfWynKU1KbVuZI`.
 
+**Verification** of window 5's copy, as origin holds it at `7a4f9a6`:
+- **`verify_run.py`** (at `e3f57da`), with windows 1 to 4's copies as snapshots and all five monitor events logs:
+  - no findings;
+  - one note: 134 planned cells have no record yet.
+
+  It maps all 522 requests to their cells, with nothing held, and keeps the 279 earlier records.
+- **`reconcile_window.py`** agrees on every figure:
+  - 522 requests, 518 settled and 4 released at $0;
+  - $23.0022597 committed;
+  - every settlement and call on `claude-haiku-4-5-20251001`;
+  - 19,500,129 input and 481,357 output tokens, whose price equals the settled total to the nanodollar.
+
 **Next:** window 6 follows at once with `shadcn-window.sh launch 6 <this window's copy>` (`--preflights 6`), only if window 5's evidence verifies.
 
 ## Files of the run
