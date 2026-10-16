@@ -28,6 +28,11 @@ const markers = new Set([
   "preview-provenance",
   "preview-host-owned",
   "provenanceVerdicts",
+  // Step 5: the beta receipt, the diagnostics export and the operation header.
+  "build-beta-receipt",
+  "diagnostics-export",
+  "composer-beta-diagnostics",
+  "x-composer-operation",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));
