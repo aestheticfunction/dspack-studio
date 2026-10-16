@@ -6,7 +6,8 @@
  * artifact check, the Access check and the workflows to that, so a change that
  * would deploy the wrong artifact, expose the beta or touch production fails.
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -152,8 +153,10 @@ describe("the Access check", () => {
     expect(seen.map((s) => new URL(s.url).pathname)).toEqual(["/", "/api/models"]);
     for (const s of seen) {
       expect(s.init.redirect).toBe("manual");
-      expect(s.init.headers ?? {}).toEqual({});
-      expect(s.init.credentials ?? "omit").toBe("omit");
+      // A browser's navigation, so Access answers with its login redirect; and anonymous.
+      expect(s.init.headers).toEqual({ accept: "text/html" });
+      expect(s.init.credentials).toBe("omit");
+      expect(s.init.signal).toBeInstanceOf(AbortSignal);
     }
   });
 
@@ -162,11 +165,19 @@ describe("the Access check", () => {
     expect(await checkAccess(URL_, { phase: "after", fetchImpl, wait: noWait })).toEqual([]);
   });
 
-  it("an anonymous request Access refuses outright passes", async () => {
+  it("a bare 401 or 403 is no proof of Access: a WAF rule or bot challenge may stop the runner and let others through", async () => {
     for (const status of [401, 403]) {
       const { fetchImpl } = respond(() => new Response("forbidden", { status }));
-      expect(await checkAccess(URL_, { phase: "after", fetchImpl, wait: noWait })).toEqual([]);
+      const found = await checkAccess(URL_, { phase: "after", fetchImpl, wait: noWait });
+      expect(found.join("\n")).toMatch(new RegExp(`answered ${status}.*not the Cloudflare Access login`));
     }
+    const { fetchImpl } = respond(() => new Response("challenge", { status: 403, headers: { "cf-mitigated": "challenge" } }));
+    expect((await checkAccess(URL_, { phase: "before", fetchImpl, wait: noWait })).join("\n")).toMatch(/cf-mitigated: challenge/);
+  });
+
+  it("a redirect to the Access team domain outside its login path is refused", async () => {
+    const { fetchImpl } = respond(() => redirect("https://aesthetic-function.cloudflareaccess.com/elsewhere"));
+    expect((await checkAccess(URL_, { phase: "after", fetchImpl, wait: noWait })).length).toBeGreaterThan(0);
   });
 
   it.each([
@@ -195,6 +206,25 @@ describe("the Access check", () => {
     const found = await checkAccess(URL_, { phase: "after", fetchImpl: after.fetchImpl, wait: async () => void waits++, attempts: 4 });
     expect(found.join("\n")).toMatch(/could not be reached/);
     expect(waits).toBe(3);
+  });
+
+  it.each([
+    ["a reset connection", "ECONNRESET"],
+    ["a refused connection", "ECONNREFUSED"],
+    ["a connect timeout", "UND_ERR_CONNECT_TIMEOUT"],
+    ["a TLS certificate error", "ERR_TLS_CERT_ALTNAME_INVALID"],
+    ["a temporary DNS failure", "EAI_AGAIN"],
+  ])("before the deploy, only an unresolved hostname passes: %s is refused", async (_name, code) => {
+    const failing = () => Object.assign(new TypeError("fetch failed"), { cause: Object.assign(new Error(code), { code }) });
+    const { seen, fetchImpl } = respond(failing);
+    const found = await checkAccess(URL_, { phase: "before", fetchImpl, wait: noWait });
+    expect(found.join("\n")).toMatch(new RegExp(code));
+    expect(seen).toHaveLength(1);
+  });
+
+  it("before the deploy, a probe that never answers is refused when its timeout fires", async () => {
+    const { fetchImpl } = respond(() => new DOMException("The operation was aborted due to timeout", "TimeoutError"));
+    expect((await checkAccess(URL_, { phase: "before", fetchImpl, wait: noWait })).join("\n")).toMatch(/TimeoutError|timed? ?out/i);
   });
 
   it("after the deploy, a hostname that starts resolving within the retries passes", async () => {
@@ -262,6 +292,54 @@ describe("the workflows", () => {
       expect(command).toContain("--config wrangler.composer-beta.jsonc");
     }
     expect(beta()).not.toMatch(/--config wrangler\.jsonc/);
+  });
+
+  /** The `run: |` script of the step named `name`, dedented, as the runner executes it. */
+  const stepScript = (yml, name) => {
+    const lines = yml.split("\n");
+    const start = lines.findIndex((l) => l.trim() === `- name: ${name}`);
+    expect(start, name).toBeGreaterThan(-1);
+    const run = lines.findIndex((l, i) => i > start && /^ {8}run: \|$/.test(l));
+    const body = [];
+    for (const line of lines.slice(run + 1)) {
+      if (line.trim() !== "" && !line.startsWith(" ".repeat(10))) break;
+      body.push(line.slice(10));
+    }
+    return body.join("\n");
+  };
+
+  it("a deploy needs a recorded rollback anchor; only a dispatch marked first_deploy may go ahead without one", () => {
+    const yml = beta();
+    expect(yml).toMatch(/\n      first_deploy:\n        description: [^\n]+\n        type: boolean\n        default: false\n/);
+    const name = "Record the rollback anchor (currently active version)";
+    expect(yml).toMatch(/FIRST_DEPLOY: \$\{\{ inputs\.first_deploy \}\}/);
+    const script = stepScript(yml, name);
+    expect(script).not.toMatch(/\$\{\{/);
+    const dir = mkdtempSync(join(tmpdir(), "beta-anchor-"));
+    try {
+      writeFileSync(join(dir, "npx"), '#!/bin/sh\necho "listing: $*"\nexit "${FAKE_NPX_EXIT:-0}"\n');
+      chmodSync(join(dir, "npx"), 0o755);
+      const run = (listing, firstDeploy) => {
+        const summary = join(dir, `summary-${listing}-${firstDeploy}`);
+        writeFileSync(summary, "");
+        // A run step with no shell set runs under `bash -e`, without pipefail.
+        const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-c", script], {
+          env: { PATH: `${dir}:${process.env.PATH}`, FAKE_NPX_EXIT: listing === "ok" ? "0" : "1", FIRST_DEPLOY: String(firstDeploy), GITHUB_STEP_SUMMARY: summary, GITHUB_SHA: "abc123" },
+          encoding: "utf8",
+        });
+        return { status: result.status, summary: readFileSync(summary, "utf8") };
+      };
+      const listed = run("ok", false);
+      expect(listed.status).toBe(0);
+      expect(listed.summary).toMatch(/listing: --yes wrangler@4\.146\.0 deployments list --config wrangler\.composer-beta\.jsonc/);
+      expect(run("fails", false).status).not.toBe(0);
+      const first = run("fails", true);
+      expect(first.status).toBe(0);
+      expect(first.summary).toMatch(/first deploy/i);
+      expect(run("ok", true).status).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("builds the experimental artifact and runs every guard before the deploy, and the Access check after it", () => {

@@ -14,8 +14,9 @@
  *
  *   node apps/composer/scripts/check-beta-deploy.mjs --access=before|after
  *     An anonymous request to the beta hostname, its page and its API, must be
- *     turned away by Cloudflare Access. Before the first deploy the hostname
- *     may not resolve yet, which passes; after a deploy it must resolve.
+ *     sent to the Cloudflare Access login. Before the first deploy the hostname
+ *     may not exist yet (DNS not found), which passes; any other failure does
+ *     not, and after a deploy the hostname must resolve.
  *
  * Exits 1 on any problem, after printing every one.
  */
@@ -108,11 +109,18 @@ export function checkArtifact(dir) {
 }
 
 const REDIRECTS = [301, 302, 303, 307, 308];
-const describe = (error) => String(error?.cause?.code ?? error?.cause?.message ?? error?.message ?? error);
+const PROBE_TIMEOUT_MS = 15_000;
+const describe = (error) => String(error?.cause?.code ?? error?.cause?.message ?? (error?.name === "TimeoutError" ? "TimeoutError" : error?.message) ?? error);
+/** The hostname does not exist (yet): a first deploy creates its DNS record. Nothing else counts as this. */
+const notFound = (error) => error?.cause?.code === "ENOTFOUND" || error?.code === "ENOTFOUND";
 
-/** Turned away by Cloudflare Access: refused outright, or sent to the Access login. */
+/**
+ * Sent to the Cloudflare Access login: a redirect to the Access team domain's
+ * login path, or to the Access path on the beta hostname itself. A bare 401
+ * or 403 proves nothing: a WAF rule or a bot challenge can stop this runner
+ * while other visitors get through.
+ */
 function accessVerdict(url, res) {
-  if (res.status === 401 || res.status === 403) return null;
   if (REDIRECTS.includes(res.status)) {
     let to;
     try {
@@ -121,23 +129,26 @@ function accessVerdict(url, res) {
       return `${url} redirects to an unreadable location`;
     }
     const own = new URL(url);
-    const accessLogin = to.protocol === "https:" && to.hostname.endsWith(".cloudflareaccess.com");
-    const accessPath = to.hostname === own.hostname && to.pathname.startsWith("/cdn-cgi/access/");
-    return accessLogin || accessPath ? null : `${url} redirects to ${to.origin}${to.pathname}, not to Cloudflare Access`;
+    const accessPath = to.protocol === "https:" && to.pathname.startsWith("/cdn-cgi/access/");
+    const accessHost = to.hostname.endsWith(".cloudflareaccess.com") || to.hostname === own.hostname;
+    return accessPath && accessHost ? null : `${url} redirects to ${to.origin}${to.pathname}, not to the Cloudflare Access login`;
   }
-  return `${url} answered ${res.status} to an anonymous request: the beta is not behind Cloudflare Access`;
+  const mitigated = res.headers.get("cf-mitigated");
+  return `${url} answered ${res.status}${mitigated ? ` (cf-mitigated: ${mitigated})` : ""} to an anonymous request, not the Cloudflare Access login`;
 }
 
 /**
- * An anonymous request to the page and to the API must be turned away by
- * Cloudflare Access. `phase` "before" (the deploy) lets a hostname that does
- * not resolve yet pass; "after" retries it, since a new custom domain can take
- * a moment, and fails once the attempts are spent.
+ * An anonymous request to the page and to the API must be sent to the
+ * Cloudflare Access login. `phase` "before" (the deploy) lets only a hostname
+ * that does not exist yet pass, and refuses every other failure; "after"
+ * retries any failure, since a new custom domain can take a moment, and fails
+ * once the attempts are spent. Every probe has a timeout.
  */
 export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), attempts = 10, delayMs = 6000 } = {}) {
   if (phase !== "before" && phase !== "after") throw new Error('phase must be "before" or "after"');
   const base = baseUrl.replace(/\/+$/, "");
-  const probe = (path) => fetchImpl(`${base}${path}`, { method: "GET", redirect: "manual", credentials: "omit" });
+  const probe = (path) =>
+    fetchImpl(`${base}${path}`, { method: "GET", redirect: "manual", credentials: "omit", headers: { accept: "text/html" }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
   let page;
   let failure;
   for (let i = 0; i < (phase === "after" ? attempts : 1); i++) {
@@ -150,11 +161,11 @@ export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (m
     }
   }
   if (!page) {
-    if (phase === "before") {
-      console.log(`check-beta-deploy: ${base} could not be reached (${describe(failure)}); allowed before the first deploy only`);
+    if (phase === "before" && notFound(failure)) {
+      console.log(`check-beta-deploy: ${base} does not resolve (ENOTFOUND); allowed before the first deploy only`);
       return [];
     }
-    return [`${base} could not be reached after the deploy (${describe(failure)})`];
+    return [`${base} could not be reached ${phase} the deploy (${describe(failure)})`];
   }
   const problems = [];
   const pageVerdict = accessVerdict(`${base}/`, page);
@@ -185,7 +196,7 @@ async function main(argv) {
     console.error(`check-beta-deploy: refusing:\n  ${problems.join("\n  ")}`);
     process.exit(1);
   }
-  console.log(`check-beta-deploy: ${access !== undefined ? `Cloudflare Access turns away anonymous requests (${access} the deploy)` : "configs and artifact pass"}`);
+  console.log(`check-beta-deploy: ${access !== undefined ? `anonymous requests go to the Cloudflare Access login (${access} the deploy)` : "configs and artifact pass"}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

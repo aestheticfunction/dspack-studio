@@ -226,12 +226,15 @@ Never connect this Worker to Workers Builds: that integration reads
 2. installs from the frozen lockfile and builds the experimental artifact;
 3. runs the guards, `apps/composer/scripts/check-beta-deploy.mjs`: both configs,
    and an artifact that carries the block code and the switch;
-4. checks that Cloudflare Access already turns an anonymous request away
-   (before the first deploy the hostname may not resolve yet, which passes);
-5. records the rollback anchor, deploys with the pinned wrangler 4.146.0, and
-   records the new version;
-6. checks again that Access turns anonymous requests away, from the page and
-   from `/api/models`.
+4. checks that an anonymous request already goes to the Cloudflare Access
+   login. Before the first deploy the hostname may not exist yet (DNS not
+   found), which passes; any other failure does not, and neither does a bare
+   401 or 403, which a WAF rule or bot challenge could send this runner alone;
+5. records the rollback anchor, and refuses to deploy without one unless the
+   dispatch is marked `first_deploy` (the beta Worker does not exist yet);
+6. deploys with the pinned wrangler 4.146.0, and records the new version;
+7. checks again that anonymous requests for the page and for `/api/models` go
+   to the Access login.
 
 The workflow sends no credentials to the beta, so it cannot test the app behind
 Access. An authenticated smoke is later work, with its Access service token
@@ -297,9 +300,10 @@ dashboard and never in the config, says what the beta offers:
    af-site theme generator. Keep the Cloudflare daily spend limit at $10 with
    auto top-up off, and keep the gateway settings above (Retry Requests off).
 
-**After the first deploy.** Set `BLOCKS_BETA` only once the workflow's Access
-check is green. Until it is set, the switch reads as missing, and the beta
-offers no blocks.
+**The first deploy.** Dispatch it with `first_deploy` checked, since the beta
+Worker has no earlier version to anchor; never check it again. Set
+`BLOCKS_BETA` only once that run's Access check is green. Until it is set, the
+switch reads as missing, and the beta offers no blocks.
 
 **Runbook.**
 - Stop blocks but keep hosted builds: set `"enabled": false` in `BLOCKS_BETA`,

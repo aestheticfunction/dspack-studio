@@ -18,7 +18,11 @@ name: deploy-composer-beta
 # CF_ACCESS_CLIENT_ID_BETA and
 # CF_ACCESS_CLIENT_SECRET_BETA are reserved for a later authenticated smoke;
 # this workflow sends no credentials, so its only check of the deployed beta is
-# that Cloudflare Access turns an anonymous request away.
+# that Cloudflare Access sends an anonymous request to its login.
+#
+# Every deploy records its rollback anchor first, and refuses to deploy when
+# it cannot. Only the first deploy, when the beta Worker does not exist yet,
+# goes ahead without one, and only when the dispatch says so (first_deploy).
 #
 # Rollback (from any machine with wrangler auth for the beta):
 #   npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc
@@ -31,6 +35,10 @@ on:
       confirm:
         description: 'Type "deploy-composer-beta" to confirm a deployment of the beta composer Worker'
         required: true
+      first_deploy:
+        description: 'The first deploy only: the beta Worker does not exist yet, so there is no rollback anchor to record'
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-composer-beta
@@ -65,14 +73,25 @@ jobs:
         run: pnpm --filter composer build:experimental
       - name: Guards (the production and beta configs; an experimental artifact that carries the switch)
         run: node apps/composer/scripts/check-beta-deploy.mjs
-      - name: Cloudflare Access already turns anonymous requests away (a first deploy may not resolve yet)
+      - name: Cloudflare Access already sends anonymous requests to its login (before a first deploy the hostname may not exist yet)
         run: node apps/composer/scripts/check-beta-deploy.mjs --access=before
       - name: Record the rollback anchor (currently active version)
+        env:
+          FIRST_DEPLOY: ${{ inputs.first_deploy }}
         run: |
           echo '## Beta composer deployment' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "source commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY" || echo "no earlier deployment: a first deploy has no rollback anchor" | tee -a "$GITHUB_STEP_SUMMARY"
+          if listing=$(npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc 2>&1); then
+            printf '%s\n' "$listing" | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ "$FIRST_DEPLOY" = "true" ]; then
+            printf '%s\n' "$listing" | tail -8
+            echo "first deploy, as dispatched: the beta Worker has no earlier version to anchor" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' "$listing" | tail -20
+            echo "The rollback anchor could not be recorded, so nothing is deployed. Dispatch with first_deploy only when the beta Worker does not exist yet."
+            exit 1
+          fi
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy (beta Worker only, checked-in config)
         run: npx --yes wrangler@4.146.0 deploy --config wrangler.composer-beta.jsonc
@@ -82,5 +101,5 @@ jobs:
           npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
           echo 'rollback: npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-      - name: Cloudflare Access turns anonymous requests away from the deployed beta
+      - name: Cloudflare Access sends anonymous requests for the deployed beta to its login
         run: node apps/composer/scripts/check-beta-deploy.mjs --access=after
