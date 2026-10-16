@@ -10,10 +10,11 @@
  * id it would name it from an alert dialog's confirm label, the node's text or
  * its component instead, and those can be model-written. So H1 holds every
  * such node to an id built only from literals and enum props: the model fills
- * content, never an action name. Nothing else may carry an action into a
- * surface: H1 also refuses a template value shaped like an action event (a
+ * content, never an action name. Nor may a template carry an action event in
+ * another way: H1 also refuses a template value shaped like one (a
  * passthrough prop would carry it into the messages verbatim) and a signature
- * object with a field named `event`, which a call could fill.
+ * object with a field named `event`, which a call could fill. It does not
+ * look for A2UI function calls or data bindings (HOST-ACTIONS.md, §7).
  * The names a template can produce, at most 256 per id, must equal its
  * declared `actions`, exactly (templateActionNames says how they are
  * counted). Either failure is a B0 failure, which disables the block at load
@@ -200,7 +201,7 @@ export function templateActionNames(block: Pick<BlockDefinition, "props" | "temp
       const where = `${at}.id`;
       const form = node.id === undefined ? null : idForm(node.id, scope, where);
       if (form === null) {
-        issues.push(`${at}: '${component}' dispatches an action, so it needs an id built from literals and enum props; without one, the emitter names the action from the node's text or component`);
+        issues.push(`${at}: '${component}' dispatches an action, so it needs an id built from literals and enum props; without one, the emitter names the action from a confirm label, the node's text or its component, and a model can write the first two`);
       } else if ("issue" in form) {
         issues.push(form.issue);
       } else {
