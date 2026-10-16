@@ -10,7 +10,8 @@
  *
  * The only thing this Worker adds is one governed API namespace:
  *   POST /api/propose  → the nondeterministic proposal via the AI Gateway
- *   GET  /api/models   → which hosted models are available (capability probe)
+ *   GET  /api/models   → which hosted models are available (capability probe),
+ *                        and on the beta Worker its block switch (blocks-beta.mjs)
  * Unknown /api/* paths answer as JSON here rather than falling through to an
  * HTML page — a client expecting JSON must never be handed a 404 marketing page.
  */

@@ -157,9 +157,11 @@ Status (2026-10-16):
   its requests are unchanged (the byte-identity oracle checks them).
 - **Phase 1B is complete.** Astryx passed the decision rule clearly; shadcn/ui
   v3 passed, uncertain ([blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md)).
-- **Phase 2 is selected but not started.** The owner chose branch C, an
-  Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4
+- **Phase 2 is under way.** The owner chose branch C, an Astryx-only
+  experimental beta, and deferred shadcn/ui v3 Stage 4
   ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)).
+  The beta's delivery path, guards and switches are built; no beta is
+  deployed ([BLOCKS.md](BLOCKS.md), "The beta (Phase 2)").
 - **Nothing is proposed upstream.** Under branch C, ratification waits for a
   second reference to pass clearly.
 

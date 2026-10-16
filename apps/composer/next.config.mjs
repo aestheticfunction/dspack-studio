@@ -13,8 +13,9 @@ import { fileURLToPath } from "node:url";
  * Interface blocks (experimental; docs/BLOCKS.md). The DEFAULT build is today's
  * artifact, byte for byte, with no block code in it. An EXPERIMENTAL build
  * (NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1) is a sibling artifact in
- * out-experimental/ that is never the deploy artifact. Three things enforce
- * that here, and none of them is optional:
+ * out-experimental/ that is never production's deploy artifact (only the beta
+ * deploys it; docs/deployment.md). Three things enforce that here, and none of
+ * them is optional:
  *   - the flag is inlined as "0" or "1": an unset variable would stay a
  *     runtime read, and the literal `=== "1"` checks would not fold away;
  *   - the experimental/ directory (sidecars and the block runtime) is aliased

@@ -665,7 +665,7 @@ test("the default build ships no interface-block code (docs/BLOCKS.md: blocks st
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
     const body = readFileSync(file, "utf8");
-    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime"]) {
+    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime", "reference-not-in-beta", "beta-switch-"]) {
       expect(body.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   }

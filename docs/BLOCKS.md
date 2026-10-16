@@ -1,9 +1,9 @@
 # Interface blocks (experimental)
 
-**Status: Phase 1B complete; Phase 2 selected but not started.**
+**Status: Phase 1B complete; Phase 2 under way. The beta's delivery path, guards and switches are built; no beta is deployed.**
 - **What is built.** Phases 0, 0.5 and 1A landed in aestheticfunction/dspack-studio#88. Blocks exist only in a private experimental build. The default build, the one that deploys, carries no block code, and its requests are unchanged (the byte-identity oracle checks them). What the deployed composer did gain is usage accounting: per-turn receipts, and Worker replies that report each provider call (#88, with later Worker changes in #98 and #101).
 - **What Phase 1B measured** on the hosted model: Astryx **pass, clear**; shadcn/ui v3 **pass, uncertain**. The record is [blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md).
-- **What follows.** The owner selected Phase 2 branch C, an Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4 ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)). Phase 2 code has not begun.
+- **What follows.** The owner selected Phase 2 branch C, an Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4 ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)). The release plan's step 2, the beta's delivery path, guards and switches, is built ("The beta (Phase 2)", below); the first beta deploy waits on the later steps and the owner's prerequisites ([deployment.md](deployment.md), "The beta composer").
 
 The block format is an RFC that is not proposed upstream. The owner approved the three block definitions on each reference, and the frozen Phase 1B corpus, on 2026-10-11; their wording, templates, keywords and action names are owner-authored governance. The format specification is [blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). The measurements are in [packages/block-bench/RESULTS.md](../packages/block-bench/RESULTS.md).
 
@@ -153,7 +153,7 @@ Each phase is a separately reviewable change that must be green before the next 
 | **0.5** (landed, #88) | Usage accounting: canonical keys, every call recorded (including failures and the planning call), timings, receipts | Request hashes unchanged at the real call sites |
 | **1A** (landed, #88) | Private PoC behind a build-time flag: B0/B1/B2, expander, selection with explicit `null`, block phase with budget, trace, compact refinement, provenance | Flag-off requests byte-identical; default builds contain no block code |
 | **1B** (complete, 2026-10-16) | The live evaluation, run by the owner, against frozen corpora; the harness is its own change (`packages/block-bench/live/`) | The ADR-B3 decision rule. Astryx: pass, clear. shadcn/ui v3: pass, uncertain |
-| **2** (branch C selected; not started) | Track 1: an Astryx-only experimental beta ([blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md)). Track 2, held under branch C until a second reference passes clearly: ratify dspack `blocks` upstream-first, move expansion into dspack-gen, agent parity | Track 1: the release plan's acceptance criteria. Track 2: upstream-first sync green |
+| **2** (branch C selected; step 2 of 7 built) | Track 1: an Astryx-only experimental beta ([blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md)). Track 2, held under branch C until a second reference passes clearly: ratify dspack `blocks` upstream-first, move expansion into dspack-gen, agent parity | Track 1: the release plan's acceptance criteria. Track 2: upstream-first sync green |
 
 ## The experimental build (Phase 1A)
 
@@ -161,8 +161,8 @@ Blocks exist only in an experimental build. The default build, the one every dep
 
 - **The flag is inlined.** `next.config.mjs` writes `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL` into the bundle as `"0"` or `"1"`. Every gated site spells the literal `process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"`, which Next folds away in the default build. There is no shared constant: a constant imported from another module is not folded, and a source ratchet (`apps/composer/lib/experimental-guard.test.mjs`) reads the syntax tree of every app source and fails on any `import()` of block code that is not enclosed by the literal check (the then-branch of an `if`, the true arm of a ternary, or the right side of an `&&` whose chain begins with the literal), and on any static import or re-export of block code from app code.
 - **The directory is aliased away.** Unless the flag is on, `apps/composer/experimental/` (the sidecars and the runtime) resolves to nothing.
-- **The flag and the output directory must agree.** `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1` builds only into `out-experimental/` (`pnpm --filter composer build:experimental`); the flag alone fails the build, as does the directory alone. `out-experimental/` is git-ignored and is never the deploy artifact.
-- **The artifact is scanned.** `apps/composer/scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key or any block id. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
+- **The flag and the output directory must agree.** `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1` builds only into `out-experimental/` (`pnpm --filter composer build:experimental`); the flag alone fails the build, as does the directory alone. `out-experimental/` is git-ignored and is never production's artifact; only the beta deploys it ("The beta (Phase 2)", below).
+- **The artifact is scanned.** `apps/composer/scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key, any block id, or the beta switch's reasons. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
 
 **Running it.**
 
@@ -171,9 +171,22 @@ pnpm --filter composer build:experimental
 pnpm exec playwright test --config playwright.composer-experimental.config.ts
 ```
 
-The experimental suite (`e2e/composer-blocks.spec.ts`) is agent-free and stubs the gateway, so it never calls a model. CI builds the experimental artifact after the default suites and runs it on port 3315; the default configs are unchanged.
+The experimental suites (`e2e/composer-blocks.spec.ts`, and `e2e/composer-beta.spec.ts` for the beta's switch) are agent-free and stub the gateway and the switch, so they never call a model. CI builds the experimental artifact after the default suites and runs it on port 3315; the default configs are unchanged.
 
 **What a person sees in an experimental build.** A Settings section, "Experimental", with one preference (off by default) and each reference's load status. With it on, an eligible build shows a Block row as the first row of the pipeline detail, a block note on the context line, and receipts that count block calls. Eligible means a packaged reference project or an Example session on its unedited design system, built in the browser; imported and repository projects, local models, an edited contract or profile, and a block an invariant failure disabled this session are never offered blocks, and the note says which.
+
+## The beta (Phase 2)
+
+The beta is the experimental build on its own Worker and hostname, behind Cloudflare Access, deployed only by a dispatched workflow ([deployment.md](deployment.md), "The beta composer"). Five layers decide whether a build is offered blocks ([blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md), §6):
+1. **The build flag, unchanged.** Production's `apps/composer/out/` never carries block code.
+2. **The beta deploy path.** `wrangler.composer-beta.jsonc` serves `apps/composer/out-experimental` on the Worker `dspack-studio-composer-beta`, and only `.github/workflows/deploy-composer-beta.yml` deploys it. `apps/composer/scripts/check-beta-deploy.mjs` refuses a config that would serve the wrong artifact, reach production's Worker or hostname, open a URL that bypasses Access, or declare vars, and refuses an artifact without the block code or the switch.
+3. **The preference, unchanged.** `composer.experimental.v1`, off on a fresh origin.
+4. **The runtime switch.** The beta Worker reports its `BLOCKS_BETA` variable as the `blocks` field of `/api/models` (`apps/composer/worker/blocks-beta.mjs`), and the client reads it before every build (`readBlocksBeta` in `apps/composer/experimental/blocks-runtime.ts`; `parseBlocksBeta` and `gateBlocksBeta` in `packages/composer-core/src/blocks/beta.ts`). Eligibility answers first, so an imported, repository, local-model or edited project keeps its own reason. Then the switch decides: `beta-switch-missing`, `beta-switch-unreadable`, `beta-switch-malformed` or `beta-switch-disabled` offers nothing; a reference it does not list gets `reference-not-in-beta`, which for shadcn/ui v3 says its evaluation remains inconclusive; a switch that lists none of the remaining blocks gets `no-blocks-in-beta`. The Worker's allowlist holds Astryx only. Production sets no such variable, so its reply is unchanged, and an experimental build served without the beta Worker (as `e2e/serve-composer.mjs` serves it) has no switch and offers no blocks.
+5. **The coarse switch, existing.** `HOSTED_AI=off` on the beta Worker stops hosted generation there only.
+
+Two rules apply in every experimental build. A block is offered only when it and its sidecar are both approved (`sidecar-not-approved`, `no-approved-blocks`), and the runtime asks for the named call only: positional encoding stays a bench arm (ADR-B2). An accepted block surface's provenance binds to the project's packaged reference whatever the switch says now (`blockBinding`), so turning blocks off never loses the provenance of a surface already built.
+
+**Byte identity.** With blocks off, or on a reference the switch does not list, the beta posts today's planning and generation bytes: `e2e/composer-beta.spec.ts` hashes them against `packages/block-bench/results.json`. Production's `/api/models` reply is pinned byte for byte by `apps/composer/worker/blocks-beta.test.mjs`.
 
 ## The live evaluation (Phase 1B)
 
@@ -248,6 +261,7 @@ For the "later, deliberately" list:
 - `packages/composer-core/src/blocks/` holds the sidecar schema, the call contract (named, positional, B1, constraints), the generation view (B0's oracle) and the binding digest. It is pure. The app reaches it only through `apps/composer/experimental/blocks-runtime.ts`, loaded by dynamic import in the experimental build. The default build aliases that directory away and keeps only type-only imports, which compile to nothing.
 - `packages/composer-core/src/requests.ts` holds the request builders the app actually uses. They are the byte-identity oracle's source.
 - `apps/composer/experimental/blocks/*.blocks.json` holds the sidecars, approved by the owner. They are never statically imported.
+- `apps/composer/worker/blocks-beta.mjs` reads the beta's block switch for `/api/models`. `wrangler.composer-beta.jsonc`, `.github/workflows/deploy-composer-beta.yml` and `apps/composer/scripts/check-beta-deploy.mjs` are the beta's Worker, deploy path and guards.
 - `packages/block-bench/` holds the bench, its goldens and its committed results. `pnpm test` fails on any drift; `pnpm --filter @dspack-studio/block-bench bench` regenerates them.
 - `packages/block-bench/live/` holds the Phase 1B harness: the frozen corpus, the providers (hosted, Ollama, scripted), the arms, the metrics and decision rule, and the runner. `pnpm --filter @dspack-studio/block-bench eval:live` runs it; `baseline` records the deployment it compares against.
 - `docs/blocks/BASELINE.md` fixes the production configuration the evaluation compares against. `docs/blocks/baseline.json` is the committed record of the deployment the last Stage 3 run was held to, a historical run record.

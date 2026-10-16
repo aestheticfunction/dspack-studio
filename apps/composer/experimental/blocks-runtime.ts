@@ -1,19 +1,22 @@
 /**
  * Interface blocks (experimental): the one app module that imports block
- * code and the draft sidecars.
+ * code and the sidecars.
  *
  * It is reached only through `import("../experimental/blocks-runtime")`
  * written behind the literal `process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL
  * === "1"` check, which a default build folds away; the default build also
  * aliases this whole directory to nothing (next.config.mjs). So nothing here
- * is in the deploy artifact, and the smoke suite and check-default-artifact
- * prove it on every build.
+ * is in production's deploy artifact, and the smoke suite and
+ * check-default-artifact prove it on every build; only the beta's
+ * experimental artifact carries it.
  *
  * What lives here (docs/BLOCKS.md, Phase 1A): eligibility against the
  * packaged references, the planning request with the block question, the
  * selection, the decision for a refinement, the block-mode run (the block
  * phase, then the SAME runPipeline with its attempt 0 decided), provenance
- * for accepted block surfaces, and the status Settings shows.
+ * for accepted block surfaces, and the status Settings shows. Phase 2 adds
+ * the beta's runtime switch (docs/blocks/PHASE-2-RELEASE-PLAN.md, §6), read
+ * from /api/models before every build.
  */
 import { loadProfile, type Profile } from "@aestheticfunction/dspack-emit";
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
@@ -36,8 +39,10 @@ import {
   createBudget,
   decideRefinement,
   eligibleBlocks,
+  gateBlocksBeta,
   liveBaseDigest,
   loadBlocks,
+  parseBlocksBeta,
   parseProvenance,
   preloadedAdapter,
   pruneProvenance,
@@ -51,6 +56,8 @@ import {
   type BlockPhaseDeps,
   type BlockSeed,
   type BlockTrace,
+  type BlocksBetaReason,
+  type BlocksBetaSwitch,
   type BlocksSidecar,
   type ErrorKind,
   type IneligibleReason,
@@ -67,7 +74,7 @@ import shadcnSidecar from "./blocks/shadcn-v3.blocks.json";
 
 type Json = Record<string, any>;
 
-/** The draft sidecars, by packaged reference id (demo-data REFERENCES). */
+/** The sidecars, by packaged reference id (demo-data REFERENCES). */
 const SIDECARS: Record<string, unknown> = { shadcn: shadcnSidecar, astryx: astryxSidecar };
 
 // ---------------------------------------------------------------------------
@@ -97,26 +104,81 @@ function loadedFor(referenceId: string): Promise<LoadedBlocks> {
   return loaded;
 }
 
+export type BlockBase = { contract: Json; profile: Json; loadedProfile: Profile; sidecar: BlocksSidecar };
+
 export interface BlockContext {
   referenceId: string | null;
   loaded: LoadedBlocks | null;
   /** The blocks this build may be offered, in sidecar order. */
   offered: BlockDefinition[];
-  reason: IneligibleReason | null;
-  base: { contract: Json; profile: Json; loadedProfile: Profile; sidecar: BlocksSidecar } | null;
+  reason: IneligibleReason | BlocksBetaReason | null;
+  /** More on the reason, for the build's note. */
+  detail?: string;
+  base: BlockBase | null;
 }
 
 const NOT_LOADED: LoadedBlocks = { binding: "invalid", usable: [], disabled: [], issues: ["no packaged reference"] };
 
+type ProjectSource = { kind: "reference" | "agent" | "imported"; referenceId?: string } | null;
+
+const packagedReference = (source: ProjectSource): string | null =>
+  source?.kind === "reference" && source.referenceId && REFERENCES[source.referenceId] && SIDECARS[source.referenceId] ? source.referenceId : null;
+
+// ---------------------------------------------------------------------------
+// The beta's runtime switch (docs/blocks/PHASE-2-RELEASE-PLAN.md, §6, layer 4).
+
+/** The ids a switch may name: the packaged references with sidecars, and their blocks. */
+const BETA_KNOWN = {
+  references: Object.keys(SIDECARS),
+  blocks: [...new Set(Object.values(SIDECARS).flatMap((s) => ((s as Json).blocks as Json[] | undefined)?.map((b) => String(b.id)) ?? []))],
+};
+
+/**
+ * The switch the beta Worker reports in /api/models, read fresh for every
+ * build, so turning it off applies to the next build. Production's reply has
+ * no switch; a reply that cannot be read, or arrives late, offers nothing.
+ */
+export async function readBlocksBeta(): Promise<BlocksBetaSwitch> {
+  try {
+    const res = await fetch("/api/models", { cache: "no-store", signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return { state: "off", reason: "unreadable" };
+    return parseBlocksBeta(await res.json(), BETA_KNOWN);
+  } catch {
+    return { state: "off", reason: "unreadable" };
+  }
+}
+
+/** Why a packaged reference is held out of the beta (docs/blocks/PHASE-2-DECISION-RECORD.md). */
+const WITHHELD: Record<string, string> = {
+  shadcn: "shadcn/ui v3 blocks are withheld from this beta: their evaluation remains inconclusive",
+};
+
+function baseFor(referenceId: string, loaded: LoadedBlocks): BlockBase | null {
+  const base = REFERENCES[referenceId]!;
+  return loaded.sidecar ? { contract: base.contract as Json, profile: base.profile as Json, loadedProfile: baseProfile(referenceId).parsed, sidecar: loaded.sidecar } : null;
+}
+
+/**
+ * The sidecar binding an accepted block surface's provenance is written
+ * against: the project's packaged reference, whatever the switch says now.
+ * A turn that ran a block keeps its provenance after the switch goes off.
+ */
+export async function blockBinding(source: ProjectSource): Promise<BlockBase | null> {
+  const referenceId = packagedReference(source);
+  return referenceId ? baseFor(referenceId, await loadedFor(referenceId)) : null;
+}
+
 export async function blockContext(input: {
   mode: string;
-  source: { kind: "reference" | "agent" | "imported"; referenceId?: string } | null;
+  source: ProjectSource;
   inBrowser: boolean;
   contract: Json;
   profile: Json;
   disabled: ReadonlySet<string>;
+  /** The beta's switch for this build (readBlocksBeta). */
+  beta: BlocksBetaSwitch;
 }): Promise<BlockContext> {
-  const referenceId = input.source?.kind === "reference" && input.source.referenceId && REFERENCES[input.source.referenceId] && SIDECARS[input.source.referenceId] ? input.source.referenceId : null;
+  const referenceId = packagedReference(input.source);
   if (!referenceId) {
     const { reason } = eligibleBlocks({ mode: input.mode, source: input.source, inBrowser: input.inBrowser, liveDigest: "", profileMatchesBase: false, loaded: NOT_LOADED, disabled: input.disabled });
     return { referenceId: null, loaded: null, offered: [], reason, base: null };
@@ -133,7 +195,7 @@ export async function blockContext(input: {
     profileMatchesBase = JSON.stringify(input.profile) === baseProfile(referenceId).json;
     profileMatchCache.set(input.profile, profileMatchesBase);
   }
-  const { blocks, reason } = eligibleBlocks({
+  const eligible = eligibleBlocks({
     mode: input.mode,
     source: input.source,
     inBrowser: input.inBrowser,
@@ -142,12 +204,17 @@ export async function blockContext(input: {
     loaded,
     disabled: input.disabled,
   });
+  // Eligibility answers first, so an ineligible project keeps its own reason;
+  // the switch then narrows what an eligible one is offered.
+  const { blocks, reason } = eligible.reason === null ? gateBlocksBeta(eligible.blocks, referenceId, input.beta) : eligible;
+  const withheld = () => WITHHELD[referenceId] ?? `${String((base as Json).label ?? base.contract.name ?? referenceId)} is not among this beta's references`;
   return {
     referenceId,
     loaded,
     offered: blocks,
     reason,
-    base: loaded.sidecar ? { contract: base.contract as Json, profile: base.profile as Json, loadedProfile: baseProfile(referenceId).parsed, sidecar: loaded.sidecar } : null,
+    ...(reason === "reference-not-in-beta" ? { detail: withheld() } : {}),
+    base: baseFor(referenceId, loaded),
   };
 }
 
@@ -333,6 +400,8 @@ export async function runHostedBlockBuild(args: {
     inner: budgetedInner(blockRaw!, budget, deps),
     budget,
     deps,
+    // Named calls only (Phase 2 plan, §5): the measured encoding.
+    encoding: "named",
     ...(run.kind === "compact" ? { seed: { priorGoal: run.seed.priorGoal, priorCall: run.seed.call } } : {}),
   });
 

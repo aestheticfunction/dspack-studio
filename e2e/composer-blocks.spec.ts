@@ -33,11 +33,22 @@ const preferenceOn = (page: Page) =>
     localStorage.setItem("composer.experimental.v1", JSON.stringify({ blocks: true }));
   });
 
+/**
+ * The beta switch on, for both packaged references and every block. The beta
+ * Worker reports Astryx only (apps/composer/worker/blocks-beta.mjs); these
+ * specs exercise the client on shadcn/ui v3, which it accepts as a packaged
+ * reference. e2e/composer-beta.spec.ts covers the owner's switch.
+ */
+const SWITCH_ON = { enabled: true, references: ["shadcn", "astryx"], blocks: ["records-table", "auth-form", "guide-steps"] };
+/** Scripted specs: no hosted model, as on a static host, and the switch on. */
+const scriptedSwitchOn = (page: Page) =>
+  page.route("**/api/models", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted"], blocks: SWITCH_ON }) }));
+
 /** The deployed origin offers Hosted; /api/propose answers from `answer` and keeps every body. */
 async function stubGateway(page: Page, answer: (body: Json, kind: "plan" | "block" | "generation", n: number) => { status: number; body: unknown }) {
   const bodies: Array<{ kind: "plan" | "block" | "generation"; body: Json }> = [];
   await page.route("**/api/models", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"], blocks: SWITCH_ON }) }),
   );
   await page.route("**/api/propose", (route) => {
     const body = JSON.parse(route.request().postData() ?? "{}") as Json;
@@ -70,6 +81,7 @@ test("the Settings preference persists across a reload, and each reference repor
 
 test("scripted: a sign-in goal on shadcn expands auth-form at attempt 0, passes, costs no model call, and accepts with provenance", async ({ page }) => {
   await preferenceOn(page);
+  await scriptedSwitchOn(page);
   await page.goto("/");
   await newProject(page, "Blocks scripted");
   await page.getByTestId("build-model").selectOption("scripted");
@@ -112,6 +124,7 @@ test("scripted: a refinement whose prior turn has no trace stays a refinement; i
   // T1's block choice, but the run must refine T2's surface, not play a new
   // expansion and report it as a refinement. No turn after T1 claims a block.
   await preferenceOn(page);
+  await scriptedSwitchOn(page);
   await page.goto("/");
   await newProject(page, "Blocks refine");
   await page.getByTestId("build-model").selectOption("scripted");

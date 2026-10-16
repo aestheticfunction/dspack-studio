@@ -1,7 +1,7 @@
 /**
  * The build-time flag (Phase 1A, commit 5). A default build is byte-identical
  * to today's and carries no block code; an experimental build is a sibling
- * artifact that can never be the deploy artifact. The config enforces both:
+ * artifact that can never be production's deploy artifact. The config enforces both:
  * the flag is inlined as "0" or "1" (an unset variable would stay a runtime
  * read), the experimental directory is aliased away unless the flag is on,
  * and the flag and the output directory must agree, or the build throws.

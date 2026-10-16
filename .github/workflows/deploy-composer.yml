@@ -1,13 +1,15 @@
 name: deploy-composer
 
-# Explicit deployment for the COMPOSER Worker
-# (composer.aesthetic-function.com) — the integration/validation environment.
+# Explicit deployment for the production COMPOSER Worker
+# (composer.aesthetic-function.com).
 #
-# Same posture as deploy-exhibit (issue #34): deployment is a dispatched
-# decision, not a side effect of merging. This workflow re-verifies the
-# composer, records the rollback anchor, deploys through the checked-in
-# wrangler.jsonc, and gates on the composer production smoke. The
-# exhibit Worker (wrangler.jsonc) is untouched — independent cadences.
+# The composer has two deploy paths (docs/deployment.md). The Cloudflare
+# Workers Builds integration deploys main through ./wrangler.jsonc on every
+# merge, so any merge to main redeploys production. This workflow is the
+# explicit path, for a deploy at a chosen time: it re-verifies the composer,
+# records the rollback anchor, deploys through the checked-in wrangler.jsonc,
+# and gates on the composer production smoke. The exhibit Worker
+# (wrangler.exhibit.jsonc) is untouched: independent cadences.
 #
 # Auth: repository secret CLOUDFLARE_API_TOKEN (Account > Workers Scripts >
 # Edit on the one account). Inert until that secret exists.
@@ -16,9 +18,10 @@ name: deploy-composer
 #   npx wrangler rollback --config wrangler.jsonc
 # targeting the anchor version recorded in this run's summary.
 #
-# Note: the hosted composer is agent-free — it ships the pre-emitted demo
-# project. Live authoring/generation still requires a local agent (BYO
-# machine); the deployed site is the preview/validate/export + demo surface.
+# Note: the hosted composer needs no agent. It ships the pre-emitted demo
+# project and runs the governed build in the visitor's browser, scripted or
+# hosted (the Worker's /api/propose). Connecting your own project, saving
+# worked examples to it, and local models still need the local agent.
 
 on:
   workflow_dispatch:

@@ -17,6 +17,8 @@
  * account that owns the Worker.
  */
 
+import { blocksBetaFor } from "./blocks-beta.mjs";
+
 /* SINGLE AUTHORITY for the gateway + its mandatory privacy posture. Gateway log
    collection is ON by default and would retain the visitor's prompt; every call
    sets collectLog:false explicitly so retention is suppressed regardless of the
@@ -52,8 +54,11 @@ export function hostedModelsFor(env) {
   return on ? ["scripted", "hosted-ai"] : ["scripted"];
 }
 
+/* The beta Worker also reports its block switch (blocks-beta.mjs). Without
+   the BLOCKS_BETA variable, as on production, the reply is unchanged. */
 export function handleModels(env) {
-  return json(200, { models: hostedModelsFor(env) });
+  const blocks = blocksBetaFor(env);
+  return json(200, blocks === undefined ? { models: hostedModelsFor(env) } : { models: hostedModelsFor(env), blocks });
 }
 
 /* The generation schema goes to the model as PROMPT GUIDANCE, not as a
