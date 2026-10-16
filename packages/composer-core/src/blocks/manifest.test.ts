@@ -22,6 +22,7 @@ import {
   expansionDigest,
   loadBlocks,
   parseBlocksSidecar,
+  sha256Hex,
   type ActionManifest,
   type LoadedBlocks,
   type ManifestReference,
@@ -111,6 +112,7 @@ describe("a surface that is its block's expansion", () => {
     expect(entryFor(manifest, NAME)).toEqual({
       surface: NAME,
       surfaceId: "data_collection",
+      messagesSha256: await sha256Hex(JSON.stringify(messages)),
       actions: [
         { name: "auth_provider_github", declared: true },
         { name: "auth_submit", declared: true },
@@ -130,12 +132,30 @@ describe("a surface that is its block's expansion", () => {
 
   it("names are not capabilities: a primitive surface whose button id slugs to auth_submit binds nothing", async () => {
     const manifest = await actionManifest(input());
-    expect(entryFor(manifest, PRIMITIVE)).toEqual({ surface: PRIMITIVE, surfaceId: "data_collection", actions: [{ name: "auth_submit", declared: false }], block: null });
+    expect(entryFor(manifest, PRIMITIVE)).toEqual({
+      surface: PRIMITIVE,
+      surfaceId: "data_collection",
+      messagesSha256: await sha256Hex(JSON.stringify(primitiveMessages)),
+      actions: [{ name: "auth_submit", declared: false }],
+      block: null,
+    });
   });
 
   it("lists every exported surface in the export's order, and none without messages", async () => {
     const manifest = await actionManifest(input({ surfaces: [{ name: PRIMITIVE, messages: primitiveMessages }, { name: "ex.refused" }, { name: NAME, messages }] }));
     expect(manifest.surfaces.map((s) => s.surface)).toEqual([PRIMITIVE, NAME]);
+  });
+});
+
+describe("each entry pins the exact messages it describes", () => {
+  it("messagesSha256 is the sha256 of the exported messages, so a host can tell an altered export from the one reviewed", async () => {
+    const manifest = await actionManifest(input());
+    for (const [name, list] of [[NAME, messages], [PRIMITIVE, primitiveMessages]] as const) {
+      expect(entryFor(manifest, name).messagesSha256).toBe(await sha256Hex(JSON.stringify(list)));
+    }
+    const altered = structuredClone(messages) as Json[];
+    altered.find((m) => m.updateComponents)!.updateComponents.components[0].text = "Altered";
+    expect(await sha256Hex(JSON.stringify(altered))).not.toBe(entryFor(manifest, NAME).messagesSha256);
   });
 });
 
@@ -229,6 +249,7 @@ describe("an edited surface recomputes its manifest from its messages", () => {
     expect(entryFor(manifest, NAME)).toEqual({
       surface: NAME,
       surfaceId: "data_collection",
+      messagesSha256: await sha256Hex(JSON.stringify(emit(edited))),
       actions: [
         { name: "auth_delete_account", declared: false },
         { name: "auth_provider_github", declared: false },

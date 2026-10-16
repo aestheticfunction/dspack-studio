@@ -150,6 +150,12 @@ test("the beta's Catalog export carries the action manifest: the accepted auth-f
   expect(mine.surfaceId).toBe("structured_input");
   expect(mine.block).toMatchObject({ id: "auth-form", version: 1, intent: "structured-input", declaredActions: auth.actions, streaming: "disable-actions-until-complete" });
   expect(mine.block.expansionDigest).toMatch(/^[0-9a-f]{64}$/);
+  // Each entry pins the exact messages it describes.
+  const { createHash } = await import("node:crypto");
+  for (const surface of bundle.surfaces as Json[]) {
+    const entry = manifest.surfaces.find((s: Json) => s.surface === surface.name);
+    expect(entry.messagesSha256).toBe(createHash("sha256").update(JSON.stringify(surface.messages)).digest("hex"));
+  }
   expect(mine.actions.map((a: Json) => a.name)).toContain("auth_submit");
   for (const action of mine.actions) {
     expect(action.declared).toBe(true);

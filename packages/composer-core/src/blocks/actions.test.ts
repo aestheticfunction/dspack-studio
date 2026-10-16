@@ -301,12 +301,55 @@ describe("H1 counts the names a call can reach, no more", () => {
     expect(names(block).names).toEqual(["auth_forgot", "auth_github", "auth_go_sign_in", "auth_go_sign_up", "auth_reset"]);
   });
 
+  it("an optional $case with a default names its default where the prop is absent", () => {
+    const template = card(submit({ $case: "recovery", map: { true: "auth-forgot", false: "auth-stay" }, default: "auth-none" }));
+    const block = auth(template);
+    expect(names(block).names).toEqual(["auth_forgot", "auth_none", "auth_stay"]);
+    expect(names(block).names).toEqual(reachableNames("astryx", block, authCalls(block)));
+  });
+
   for (const ref of REF_IDS) {
     it(`${ref}: on the shipped auth-form, H1's names are exactly what the real expander and emitter dispatch over every call`, () => {
       const block = blockOf(ref, "auth-form");
       expect(templateActionNames(block, actionComponents(inputs(ref).profile)).names).toEqual(reachableNames(ref, block, authCalls(block)));
     });
   }
+});
+
+describe("H1: no action enters a surface but the emitter's own", () => {
+  const view = () => generationView(inputs("astryx").contract, inputs("astryx").profile);
+  const auth = (template: Json, overrides: Partial<BlockDefinition> = {}): BlockDefinition => ({ ...blockOf("astryx", "auth-form"), template: template as never, actions: ["auth_submit"], ...overrides });
+  const submit = { component: "button", id: "auth-submit", props: { label: "Go", variant: "primary" } };
+  const table = (data: unknown) => ({ component: "table", id: "auth-table", props: { columns: ["A"], data } });
+  const issues = (block: BlockDefinition) => b0Issues(block, view()).join("\n");
+
+  it("a template value shaped like an action event is refused at load, whoever names it", () => {
+    // Astryx passes a table's data through verbatim, so an event inside it would reach the messages.
+    const modelNamed = table([{ cells: ["x"], event: { name: { $prop: "title" }, context: {} } }]);
+    expect(issues(auth({ component: "card", id: "auth-card", children: [submit, modelNamed] }))).toMatch(/carries an action event/);
+    const ownerNamed = table([{ cells: ["x"], event: { name: "auth_submit", context: {} } }]);
+    expect(issues(auth({ component: "card", id: "auth-card", children: [submit, ownerNamed] }))).toMatch(/carries an action event/);
+  });
+
+  it("an event built by a $map is refused too", () => {
+    const mapped = table({ $map: "fields", as: "field", value: { cells: [{ $prop: "field" }], event: { name: "auth_x", context: {} } } });
+    expect(issues(auth({ component: "card", id: "auth-card", children: [submit, mapped] }))).toMatch(/carries an action event/);
+  });
+
+  it("a signature object with a field named event is refused, so no call can supply one", () => {
+    const props = [
+      ...blockOf("astryx", "auth-form").props,
+      { name: "extra", type: "array" as const, maxItems: 2, items: { type: "object" as const, props: [{ name: "event", required: true, type: "string" as const, maxLength: 10 }] } },
+    ];
+    expect(issues(auth({ component: "card", id: "auth-card", children: [submit] }, { props }))).toMatch(/'extra\.\*\.event'/);
+  });
+
+  it("the shipped templates carry no event of their own", () => {
+    for (const ref of REF_IDS) {
+      const { sidecar, contract, profile } = inputs(ref);
+      for (const block of parsed(sidecar).blocks) expect(b0Issues(block, generationView(contract, profile)), `${ref}/${block.id}`).toEqual([]);
+    }
+  });
 });
 
 describe("H1 on the shipped sidecars: the names each template can emit are the §7 table, and equal its declaration", () => {
