@@ -1,0 +1,95 @@
+{
+  "runId": "2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com",
+  "startedAt": "2026-10-15T00:22:24.340Z",
+  "provider": "hosted-ai:claude-haiku-4.5@https://composer.aesthetic-function.com",
+  "corpus": {
+    "id": "blocks-1b",
+    "version": 2,
+    "frozenAt": "2026-10-12",
+    "sha256": "0e4e4706e19ec92565fea2019258cd5d83f6bef0eca424a0634ccf4749b61ae9"
+  },
+  "references": [
+    {
+      "id": "shadcn-v3",
+      "status": "approved",
+      "baseSha256": "992b51b8215792bb71cad38af691bc07a01cacd7a4049e256cd20f11fea01e63",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "sidecarSha256": "c143c73746a6f5e8e71301e0f314f6242342c03f6d0c63242b4441ad9ed1daa3",
+      "contractSha256": "992b51b8215792bb71cad38af691bc07a01cacd7a4049e256cd20f11fea01e63",
+      "profileSha256": "ebe6b40f758a2c07d6bc487b3dc0f8f0d31fb1fc21f073453b9dd3561e447573"
+    }
+  ],
+  "code": {
+    "sha256": "51c80cec7a652216c3b9b28b1467e8c45eb0ecebe170969854bb1d49d3c8a229",
+    "packages": {
+      "@aestheticfunction/dspack-gen": "0.5.0",
+      "@aestheticfunction/dspack-emit": "0.7.0"
+    }
+  },
+  "model": null,
+  "deployment": {
+    "baseUrl": "https://composer.aesthetic-function.com",
+    "buildId": "Dyml8RSqfWynKU1KbVuZI",
+    "worker": "per-call-model"
+  },
+  "selection": {
+    "arms": [
+      "block",
+      "block-positional",
+      "capped",
+      "production"
+    ],
+    "conditions": [
+      "fresh",
+      "refine-content",
+      "refine-add",
+      "refine-remove",
+      "refine-structural"
+    ],
+    "promptIds": [
+      "rt-01",
+      "rt-02",
+      "rt-03",
+      "rt-04",
+      "rt-05",
+      "rt-06",
+      "af-01",
+      "af-02",
+      "af-03",
+      "af-04",
+      "af-05",
+      "af-06",
+      "gs-01",
+      "gs-02",
+      "gs-03",
+      "gs-04",
+      "gs-05",
+      "gs-06",
+      "nb-01",
+      "nb-02",
+      "nb-03",
+      "nb-04",
+      "nb-05",
+      "nb-06"
+    ],
+    "blocks": null,
+    "limit": null
+  },
+  "decision": {
+    "reduction": 0.3,
+    "margin": 0.05,
+    "minimum": 20
+  },
+  "limits": {
+    "maxTotalRequests": 1275,
+    "maxTotalUsd": 77
+  },
+  "servedModel": {
+    "id": "claude-haiku-4-5-20251001",
+    "at": "2026-10-15T00:22:31.936Z"
+  }
+}

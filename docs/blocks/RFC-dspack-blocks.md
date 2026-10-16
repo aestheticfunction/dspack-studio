@@ -2,7 +2,9 @@
 
 **Status: draft RFC, not proposed upstream.**
 
-This RFC moves to the dspack repository only if the Phase 1B decision rule passes (see [../BLOCKS.md](../BLOCKS.md), ADR-B3). Until then, blocks live in experimental sidecar files beside a packaged reference and never inside a synchronized contract. The reference implementation of everything structural below is `packages/composer-core/src/blocks/`; expansion semantics are implemented in Phase 1A against the goldens in `packages/block-bench/goldens/`.
+This RFC moves to the dspack repository only if the Phase 1B decision rule passes (see [../BLOCKS.md](../BLOCKS.md), ADR-B3).
+
+Phase 1B ended on 2026-10-16. Astryx passed clearly and shadcn/ui v3 passed, uncertain ([PHASE-1B-MILESTONE-REPORT.md](PHASE-1B-MILESTONE-REPORT.md)). The owner selected Phase 2 branch C, under which ratification waits until a second reference passes clearly ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md)). So the RFC stays here, not proposed upstream. Until then, blocks live in experimental sidecar files beside a packaged reference and never inside a synchronized contract. The reference implementation of everything structural below is `packages/composer-core/src/blocks/`; expansion semantics are implemented in Phase 1A against the goldens in `packages/block-bench/goldens/`.
 
 ## 1. Envelope
 
@@ -159,6 +161,7 @@ When it applies, the model receives the selected block's schema, the prior goal,
 
 ## 9. Open questions for ratification
 
-- Whether positional order becomes a compatibility commitment (1B evidence).
 - Whether `blocks` lives inside the contract or stays a sidecar artifact that the contract references.
 - A first-class audit-report field for block calls, replacing the Phase 1A turn-level trace.
+
+**Decided since:** positional order is not a compatibility commitment. Phase 1B measured it against the named call, and the owner chose the named encoding only ([../BLOCKS.md](../BLOCKS.md), ADR-B2).

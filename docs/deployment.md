@@ -46,8 +46,9 @@ nothing the exhibit consumes; evidence in #34). The owner disconnected it
 on 2026-08-04 (Workers & Pages → `dspack-studio` → Settings → Build →
 disconnect the Git repository); disconnecting stops future git-triggered
 builds only — the Worker, its versions, its route, and the custom domain
-are unaffected. The composer Worker never had such an integration; its
-deploys were always explicit.
+are unaffected. At the time the composer Worker had no such integration,
+and its deploys were explicit. By 2026-08-08 it had one: see the composer,
+below.
 
 The web build is self-sufficient on a clean checkout: `apps/web`'s `build`
 script generates the gated contract artifacts first (`packages/contracts/out`
@@ -63,7 +64,7 @@ Production smoke suite (agent-free specs against the deployed site):
 npx playwright test --config playwright.production.config.ts
 ```
 
-## The composer (second Worker, same posture)
+## The composer (second Worker)
 
 **https://composer.aesthetic-function.com** is the catalog composer
 (`apps/composer`), deployed as its **own** Worker so the exhibit and the
@@ -144,8 +145,8 @@ ever uploaded or executed, and the visitor's prompt is never logged
 (`collectLog: false`).
 
 The composer therefore has **two deploy paths**: the reconnected Workers
-Builds Git integration (auto-deploys the root `wrangler.jsonc` on push — the
-continuous integration environment), and the explicit **`deploy-composer`**
+Builds Git integration (auto-deploys the root `wrangler.jsonc` to the
+production composer from `main`, below), and the explicit **`deploy-composer`**
 GitHub Actions workflow for a dispatched, gate-checked deploy (same posture
 as `deploy-exhibit`): it re-verifies the composer, records the rollback
 anchor, deploys through `wrangler.jsonc`, and runs the production smoke. It
@@ -158,13 +159,25 @@ npx wrangler deploy --config wrangler.jsonc
 npx playwright test --config playwright.composer-production.config.ts   # smoke against the deployed URL
 ```
 
-For a **continuously-deployed integration environment** (auto-deploy on push
-to a branch), attach a Cloudflare Workers Builds Git integration to the
-composer Worker in the dashboard (Workers & Pages → the composer Worker →
-Settings → Build), build command `pnpm build:deploy:composer`, deploy command
-`npx wrangler deploy --config wrangler.jsonc`. That is a
-dashboard-only, owner action; the explicit `deploy-composer` workflow above
-is the checked-in alternative and does not require it.
+**The integration deploys `main`.** The three Phase 1B merges whose
+deployments were timed each redeployed the composer within minutes, with a
+new build id:
+- aestheticfunction/dspack-studio#100 about two minutes after its merge,
+  #101 about three and #102 about six;
+- the evidence branches' READMEs record each time: the Astryx Stage 3
+  branch for #100, and the `eaf6ae3` and `7e260c3` baseline branches for
+  #101 and #102, all linked from `docs/blocks/PHASE-1B-MILESTONE-REPORT.md`,
+  section 13;
+- the `deploy-composer` workflow has never been dispatched, so those deploys
+  came through the integration.
+
+So treat any merge to main, documentation included, as a composer redeploy.
+It changes the build id a hosted evaluation run is held to.
+
+The integration's settings live in the Cloudflare dashboard (Workers & Pages →
+the composer Worker → Settings → Build), and this repository does not record
+them. The build it needs is `pnpm build:deploy:composer`, deployed with
+`npx wrangler deploy --config wrangler.jsonc`, as the workflow does.
 
 **Stop any local agent on `localhost:8787` before running the composer
 production smoke.** The deployed page probes that port from the visitor's

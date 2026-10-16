@@ -1,6 +1,11 @@
 # Interface blocks (experimental)
 
-**Status: Phase 0.** Nothing here changes what Composer does today. The block format is an RFC that is not proposed upstream. The owner approved the three block definitions on each reference, and the frozen Phase 1B corpus, on 2026-10-11; their wording, templates, keywords and action names are owner-authored governance. The format specification is [blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). The measurements are in [packages/block-bench/RESULTS.md](../packages/block-bench/RESULTS.md).
+**Status: Phase 1B complete; Phase 2 selected but not started.**
+- **What is built.** Phases 0, 0.5 and 1A landed in aestheticfunction/dspack-studio#88. Blocks exist only in a private experimental build. The default build, the one that deploys, carries no block code, and its requests are unchanged (the byte-identity oracle checks them). What the deployed composer did gain is usage accounting: per-turn receipts, and Worker replies that report each provider call (#88, with later Worker changes in #98 and #101).
+- **What Phase 1B measured** on the hosted model: Astryx **pass, clear**; shadcn/ui v3 **pass, uncertain**. The record is [blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md).
+- **What follows.** The owner selected Phase 2 branch C, an Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4 ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)). Phase 2 code has not begun.
+
+The block format is an RFC that is not proposed upstream. The owner approved the three block definitions on each reference, and the frozen Phase 1B corpus, on 2026-10-11; their wording, templates, keywords and action names are owner-authored governance. The format specification is [blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). The measurements are in [packages/block-bench/RESULTS.md](../packages/block-bench/RESULTS.md).
 
 ## What an interface block is
 
@@ -29,6 +34,8 @@ These figures come from offline, deterministic runs of the real code paths. Toke
 - **Structural validity is not governance.** 5 of 6 recorded live attempts that fail S3 pass every structural check: A1 to A3 on both A2UI versions, and the json-render J2/J3 offline check. The sixth is refused by the emitter. The scope is narrow: local models, Astryx, recorded July 2026. This is not hosted evidence.
 
 So the input side is the first-order lever on hosted cost. The external research's output-token savings are real but second-order.
+
+Phase 1B then measured the hosted figures with the provider's own token counts: [blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md).
 
 ## Security boundary
 
@@ -60,9 +67,11 @@ So the input side is the first-order lever on hosted cost. The external research
 **Decision.**
 - The named canonical call (`{"block": "auth-form", "version": 1, "mode": "sign-in", ...}`) is what internal APIs, traces, provenance and docs use.
 - The compact positional call (`{"b": "auth-form", "v": 1, "p": [...]}`) is a decodable projection that records each prop's wire index.
-- Positional order is **not** yet a compatibility commitment. Phase 1B benchmarks named against positional before anyone relies on it.
+- Positional order is **not** a compatibility commitment. Phase 1B benchmarked named against positional before anyone relied on it (below).
 
 **Consequences.** Required props precede optional ones, and signatures are append-only within a version. A breaking change means a new version or a new block id.
+
+**Phase 1B result (2026-10-16).** Positional passed less often and cost more per success on both references ([blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md), section 4.6). The owner chose the named encoding only, so positional order carries no compatibility commitment.
 
 ### ADR-B3: metrics and decision rule, frozen before any run
 
@@ -140,11 +149,11 @@ Each phase is a separately reviewable change that must be green before the next 
 
 | Phase | Scope | Exit |
 |---|---|---|
-| **0** (this change) | This document, the RFC, the pure block schema module, the call-site refactor, draft sidecars and goldens, `packages/block-bench` | All tests green; request hashes recorded as the byte-identity oracle |
-| **0.5** (this change) | Usage accounting: canonical keys, every call recorded (including failures and the planning call), timings, receipts | Request hashes unchanged at the real call sites |
-| **1A** (this change) | Private PoC behind a build-time flag: B0/B1/B2, expander, selection with explicit `null`, block phase with budget, trace, compact refinement, provenance | Flag-off requests byte-identical; default builds contain no block code |
-| **1B** | The live evaluation, run by the owner, against frozen corpora; the harness is its own change (`packages/block-bench/live/`) | The ADR-B3 decision rule |
-| **2** | Only if 1B passes: ratify dspack `blocks` upstream-first, move expansion into dspack-gen, agent parity, a Blocks catalog | Upstream-first sync green |
+| **0** (landed, #88) | This document, the RFC, the pure block schema module, the call-site refactor, draft sidecars and goldens, `packages/block-bench` | All tests green; request hashes recorded as the byte-identity oracle |
+| **0.5** (landed, #88) | Usage accounting: canonical keys, every call recorded (including failures and the planning call), timings, receipts | Request hashes unchanged at the real call sites |
+| **1A** (landed, #88) | Private PoC behind a build-time flag: B0/B1/B2, expander, selection with explicit `null`, block phase with budget, trace, compact refinement, provenance | Flag-off requests byte-identical; default builds contain no block code |
+| **1B** (complete, 2026-10-16) | The live evaluation, run by the owner, against frozen corpora; the harness is its own change (`packages/block-bench/live/`) | The ADR-B3 decision rule. Astryx: pass, clear. shadcn/ui v3: pass, uncertain |
+| **2** (branch C selected; not started) | Track 1: an Astryx-only experimental beta ([blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md)). Track 2, held under branch C until a second reference passes clearly: ratify dspack `blocks` upstream-first, move expansion into dspack-gen, agent parity | Track 1: the release plan's acceptance criteria. Track 2: upstream-first sync green |
 
 ## The experimental build (Phase 1A)
 
@@ -153,7 +162,7 @@ Blocks exist only in an experimental build. The default build, the one every dep
 - **The flag is inlined.** `next.config.mjs` writes `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL` into the bundle as `"0"` or `"1"`. Every gated site spells the literal `process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"`, which Next folds away in the default build. There is no shared constant: a constant imported from another module is not folded, and a source ratchet (`apps/composer/lib/experimental-guard.test.mjs`) reads the syntax tree of every app source and fails on any `import()` of block code that is not enclosed by the literal check (the then-branch of an `if`, the true arm of a ternary, or the right side of an `&&` whose chain begins with the literal), and on any static import or re-export of block code from app code.
 - **The directory is aliased away.** Unless the flag is on, `apps/composer/experimental/` (the sidecars and the runtime) resolves to nothing.
 - **The flag and the output directory must agree.** `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1` builds only into `out-experimental/` (`pnpm --filter composer build:experimental`); the flag alone fails the build, as does the directory alone. `out-experimental/` is git-ignored and is never the deploy artifact.
-- **The artifact is scanned.** `scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key or any block id. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
+- **The artifact is scanned.** `apps/composer/scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key or any block id. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
 
 **Running it.**
 
@@ -221,7 +230,6 @@ The external research ranked twelve block families. Admission is not by rank. A 
 
 ## Open decisions
 
-- **Positional encoding.** Whether to commit to it is decided by 1B evidence, not before.
 - **Vocabulary gaps.** Input `autocomplete` purposes, row actions (dropdown-menu items), charts, calendars and maps each need upstream vocabulary first.
 - **OpenUI pin.** When to move the gate package from lang-core 0.3.x to 0.4.x, once 0.4.x is at least 14 days old.
 
@@ -237,9 +245,12 @@ For the "later, deliberately" list:
 
 ## Files
 
-- `packages/composer-core/src/blocks/` holds the sidecar schema, the call contract (named, positional, B1, constraints), the generation view (B0's oracle) and the binding digest. It is pure and not wired into the app.
+- `packages/composer-core/src/blocks/` holds the sidecar schema, the call contract (named, positional, B1, constraints), the generation view (B0's oracle) and the binding digest. It is pure. The app reaches it only through `apps/composer/experimental/blocks-runtime.ts`, loaded by dynamic import in the experimental build. The default build aliases that directory away and keeps only type-only imports, which compile to nothing.
 - `packages/composer-core/src/requests.ts` holds the request builders the app actually uses. They are the byte-identity oracle's source.
 - `apps/composer/experimental/blocks/*.blocks.json` holds the sidecars, approved by the owner. They are never statically imported.
 - `packages/block-bench/` holds the bench, its goldens and its committed results. `pnpm test` fails on any drift; `pnpm --filter @dspack-studio/block-bench bench` regenerates them.
 - `packages/block-bench/live/` holds the Phase 1B harness: the frozen corpus, the providers (hosted, Ollama, scripted), the arms, the metrics and decision rule, and the runner. `pnpm --filter @dspack-studio/block-bench eval:live` runs it; `baseline` records the deployment it compares against.
-- `docs/blocks/BASELINE.md` fixes the production configuration the evaluation compares against.
+- `docs/blocks/BASELINE.md` fixes the production configuration the evaluation compares against. `docs/blocks/baseline.json` is the committed record of the deployment the last Stage 3 run was held to, a historical run record.
+- `docs/blocks/stage3/` holds both completed Stage 3 runs' reports, manifests and preflights, copied byte for byte from their evidence commits.
+- `docs/blocks/PHASE-1B-MILESTONE-REPORT.md` is the Phase 1B record: method, results, cost, integrity, limits and evidence.
+- `docs/blocks/PHASE-2-DECISION-RECORD.md` and `docs/blocks/PHASE-2-RELEASE-PLAN.md` hold the owner's Phase 2 decisions and the plan they apply to.
