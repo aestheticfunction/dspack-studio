@@ -8,18 +8,23 @@
  *   2. that surface, played through the REAL runPipeline under the reference
  *      profile exactly as hosted-build.ts runs it, passes at attempt 0 with no
  *      representability refusal and every A-gate green on A2UI 0.9.1 and 1.0;
- *   3. the emitted action names are a subset of the block's declared actions;
+ *   3. the emitted action names are a subset of the block's declared actions,
+ *      and every action carries an empty context, so no credential or entered
+ *      value can ride along (docs/blocks/HOST-ACTIONS.md);
  *   4. boundary calls (minimum and maximum items, optional props omitted and
  *      present) satisfy B1 and B2 and survive the same pipeline;
  *   5. the sidecar binds to the packaged base (its baseSha256 equals the
- *      current digest), and a corrupted template or a B0 drift fails closed.
+ *      current digest), and a corrupted template or a B0 drift fails closed;
+ *   6. H1: the names each template can emit equal its declared actions.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { loadProfile } from "@aestheticfunction/dspack-emit";
+import { emitSurface, loadProfile } from "@aestheticfunction/dspack-emit";
 import { runPipeline, ScriptedAdapter } from "@aestheticfunction/dspack-gen/browser";
 import {
+  actionComponents,
+  actionEvents,
   checkActions,
   checkConstraints,
   emitCheck,
@@ -28,6 +33,7 @@ import {
   parseBlocksSidecar,
   rootScope,
   specAtPath,
+  templateActionNames,
   validateCall,
 } from "@dspack-studio/composer-core/blocks";
 
@@ -68,6 +74,18 @@ async function pipelinePasses(surface, contract, profile, intent) {
     versions: (report.emitted?.validations ?? []).map((v) => v.a2uiVersion),
     failedGates: gates.filter((g) => g.endsWith("FAIL")),
   };
+}
+
+/**
+ * Every action the surface dispatches is declared and carries an empty
+ * context: auth-form's credentials and entered values never enter one.
+ */
+function expectEmptyContexts(block, surface, contract, profile) {
+  const events = actionEvents(emitSurface(surface, contract, { profile }).messages);
+  for (const event of events) {
+    expect(block.actions).toContain(event.name);
+    expect(event.context).toEqual({});
+  }
 }
 
 /** A string at a prop's minimum or maximum length, read from the signature. */
@@ -156,6 +174,11 @@ for (const [ref, paths] of Object.entries(REFERENCES)) {
       expect(loaded.binding).toBe("ok");
       expect(loaded.disabled).toEqual([]);
       expect(loaded.usable.length).toBe(sidecar.blocks.length);
+      for (const block of sidecar.blocks) {
+        const proven = templateActionNames(block, actionComponents(profile));
+        expect(proven.issues, block.id).toEqual([]);
+        expect(proven.names, block.id).toEqual([...block.actions].sort());
+      }
     });
 
     for (const block of sidecar.blocks) {
@@ -168,6 +191,7 @@ for (const [ref, paths] of Object.entries(REFERENCES)) {
           const emitted = emitCheck(expanded.surface, contract, profile);
           if (!emitted.ok) throw new Error(emitted.refusal);
           expect(checkActions(block, emitted.actions)).toEqual([]);
+          expectEmptyContexts(block, expanded.surface, contract, profile);
 
           const run = await pipelinePasses(expanded.surface, contract, profile, example.intent);
           expect(run).toEqual({ outcome: "passed", attempts: 1, representability: undefined, versions: ["0.9.1", "1.0"], failedGates: [] });
@@ -186,6 +210,7 @@ for (const [ref, paths] of Object.entries(REFERENCES)) {
           const emitted = emitCheck(expanded.surface, contract, profile);
           if (!emitted.ok) throw new Error(emitted.refusal);
           expect(checkActions(block, emitted.actions)).toEqual([]);
+          expectEmptyContexts(block, expanded.surface, contract, profile);
           const run = await pipelinePasses(expanded.surface, contract, profile, intent);
           expect(run).toEqual({ outcome: "passed", attempts: 1, representability: undefined, versions: ["0.9.1", "1.0"], failedGates: [] });
         });

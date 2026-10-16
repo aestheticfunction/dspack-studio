@@ -651,6 +651,30 @@ test("a seeded experimental preference changes nothing in the default build: no 
   expect(planBodies[0]).not.toHaveProperty("maxCalls");
 });
 
+test("the Catalog export is today's: the catalog and each surface's messages, and no action manifest, even with the experimental preference seeded", async ({ page }) => {
+  // The action manifest is the beta's alone (docs/blocks/HOST-ACTIONS.md);
+  // app/catalog-export.test.ts holds these bytes to the export before it.
+  await page.addInitScript(() => {
+    localStorage.setItem("composer.experimental.v1", JSON.stringify({ blocks: true }));
+  });
+  await page.goto("/");
+  await newProject(page, "shadcn", "Catalog export");
+  await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await page.getByTestId("nav-preview").click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-catalog").click()]);
+  expect(download.suggestedFilename()).toMatch(/-catalog\.json$/);
+  const fs = await import("node:fs/promises");
+  const text = await fs.readFile((await download.path())!, "utf8");
+  const bundle = JSON.parse(text) as Record<string, any>;
+  expect(Object.keys(bundle)).toEqual(["a2uiCatalog", "surfaces", "exportedAt"]);
+  expect(bundle.surfaces.length).toBeGreaterThan(1);
+  for (const surface of bundle.surfaces) expect(Object.keys(surface)).toEqual(["name", "messages"]);
+  expect(text).not.toContain("actionManifest");
+  expect(text).toBe(JSON.stringify(bundle, null, 2));
+});
+
 test("the default build ships no interface-block code (docs/BLOCKS.md: blocks stay out of default builds)", () => {
   // Scans the served artifact on disk, so a lazily loaded chunk cannot hide it.
   const chunks = fileURLToPath(new URL("../apps/composer/out/_next/static/chunks/", import.meta.url));
@@ -665,7 +689,8 @@ test("the default build ships no interface-block code (docs/BLOCKS.md: blocks st
   expect(files.length).toBeGreaterThan(0);
   for (const file of files) {
     const body = readFileSync(file, "utf8");
-    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime", "reference-not-in-beta", "beta-switch-"]) {
+    // actionManifest: the beta's Catalog export key (docs/blocks/HOST-ACTIONS.md).
+    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime", "reference-not-in-beta", "beta-switch-", "actionManifest"]) {
       expect(body.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   }

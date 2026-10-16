@@ -118,6 +118,63 @@ test("scripted: a sign-in goal on shadcn expands auth-form at attempt 0, passes,
   await expect(row).toContainText(String(entry.expansionDigest).slice(0, 12));
 });
 
+test("the beta's Catalog export carries the action manifest: the accepted auth-form surface binds its actions by surface and name, and nothing else binds", async ({ page }) => {
+  await preferenceOn(page);
+  await scriptedSwitchOn(page);
+  await page.goto("/");
+  await newProject(page, "Blocks export");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-intent").selectOption("structured-input");
+  await page.getByTestId("build-prompt").fill("a sign-in form with email and password");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-block-1")).toContainText("expanded", { timeout: 30_000 });
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  const accepted = ((await page.getByTestId("build-accepted-1").textContent()) ?? "").match(/ex\.chat-\d+/)![0];
+  // Provenance is written after the accept, off the click's path.
+  await expect
+    .poll(() => page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("composer.project.blocks.")).length))
+    .toBe(1);
+
+  await page.getByTestId("nav-preview").click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-catalog").click()]);
+  const fs = await import("node:fs/promises");
+  const bundle = JSON.parse(await fs.readFile((await download.path())!, "utf8")) as Json;
+  expect(Object.keys(bundle)).toEqual(["a2uiCatalog", "surfaces", "actionManifest", "exportedAt"]);
+
+  const manifest = bundle.actionManifest as Json;
+  expect(manifest.v).toBe(1);
+  expect(manifest.surfaces.map((s: Json) => s.surface)).toEqual(bundle.surfaces.map((s: Json) => s.name));
+  const auth = (sidecar.blocks as Json[]).find((b) => b.id === "auth-form")!;
+  const mine = manifest.surfaces.find((s: Json) => s.surface === accepted);
+  expect(mine.surfaceId).toBe("structured_input");
+  expect(mine.block).toMatchObject({ id: "auth-form", version: 1, intent: "structured-input", declaredActions: auth.actions, streaming: "disable-actions-until-complete" });
+  expect(mine.block.expansionDigest).toMatch(/^[0-9a-f]{64}$/);
+  expect(mine.actions.map((a: Json) => a.name)).toContain("auth_submit");
+  for (const action of mine.actions) {
+    expect(action.declared).toBe(true);
+    expect(auth.actions).toContain(action.name);
+  }
+  // The reference's own surfaces were never block expansions: names alone grant nothing.
+  for (const other of manifest.surfaces.filter((s: Json) => s.surface !== accepted)) {
+    expect(other.block).toBeNull();
+    for (const action of other.actions) expect(action.declared).toBe(false);
+  }
+  // auth-form's actions carry no entered value: every context in what a host renders is empty.
+  const events: Json[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) value.forEach(walk);
+    else if (value && typeof value === "object") {
+      const event = (value as Json).event;
+      if (event && typeof event === "object") events.push(event as Json);
+      Object.values(value as Json).forEach(walk);
+    }
+  };
+  walk(bundle.surfaces.find((s: Json) => s.name === accepted).messages);
+  expect(events.length).toBeGreaterThan(0);
+  for (const event of events) expect(event.context).toEqual({});
+});
+
 test("scripted: a refinement whose prior turn has no trace stays a refinement; it never restarts as a fresh block build", async ({ page }) => {
   // T1 expands a block. T2 refines with the preference OFF (today's path, no
   // trace). T3 refines again with the preference back ON: its plan inherits
