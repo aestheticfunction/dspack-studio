@@ -57,7 +57,7 @@ test("scripted: the beta receipt states each turn's split, exact budget and refi
   await expect(page.getByTestId("build-beta-receipt-2")).toContainText("budget 1 of 3 calls, 1 reached no model");
 
   await scriptedBuild(page, 3, "add a phone number field", true);
-  await expect(page.getByTestId("build-beta-receipt-3")).toContainText("switched to a full-surface refinement: the model answered that the block cannot express the change");
+  await expect(page.getByTestId("build-beta-receipt-3")).toContainText("switched to a full-surface refinement: the reply said the block cannot express the change");
   await expect(page.getByTestId("build-beta-receipt-3")).toContainText("budget 2 of 3 calls, 2 reached no model");
 
   // The default receipt is unchanged, beside it.
@@ -108,7 +108,8 @@ test("the diagnostics export is user-initiated, holds shapes only, and sends not
     return route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ json, raw: JSON.stringify(json), model: HAIKU, calls: [{ inputTokens: 1000, outputTokens: 50, outcome: "ok", durationMs: 400, model: HAIKU }] }),
+      // As the Worker replies: its usage, and each call with its own.
+      body: JSON.stringify({ json, raw: JSON.stringify(json), model: HAIKU, usage: { inputTokens: 1000, outputTokens: 50 }, calls: [{ inputTokens: 1000, outputTokens: 50, outcome: "ok", durationMs: 400, model: HAIKU }] }),
     });
   });
   await page.goto("/");
@@ -143,6 +144,8 @@ test("the diagnostics export is user-initiated, holds shapes only, and sends not
     ["block", "provider", "ok", 1000, 50, HAIKU],
   ]);
   expect(turn.block).toMatchObject({ id: "records-table", version: 1, outcome: "block", providerCalls: 1 });
+  // An attempt's figures can be a re-issue's sum; the file keeps each call's own instead.
+  expect(Object.keys(turn.block.attempts[0]).sort()).toEqual(["b1Issues", "b2Issues", "durationMs", "index", "outcome"]);
   expect(typeof turn.timings.totalMs).toBe("number");
   expect((await scanOf(page, '[data-testid="diagnostics"]')).violations).toEqual([]);
 });
@@ -152,5 +155,7 @@ test("with no builds yet, the export says so and saves nothing", async ({ page }
   await page.goto("/");
   await page.getByTestId("nav-settings").click();
   await expect(page.getByTestId("diagnostics-export")).toBeDisabled();
-  await expect(page.getByTestId("diagnostics")).toContainText("no builds in this session yet");
+  await expect(page.getByTestId("diagnostics")).toContainText("There are no builds listed in Build yet.");
+  // What the file covers is the list Build shows, which opening, closing or importing a project starts afresh.
+  await expect(page.getByTestId("diagnostics")).toContainText("the builds listed in Build");
 });

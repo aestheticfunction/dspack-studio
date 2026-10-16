@@ -131,16 +131,32 @@ describe("the refinement mode, in words", () => {
     expect(describeBetaReceipt(r)).toContain("compact refinement: the block's call was revised");
   });
 
-  it("compact, then switched: the model said the block cannot express the change, or the revised call failed the block's checks", () => {
+  it("compact, then switched: the reply said the block cannot express the change, or the revised call failed the block's checks", () => {
     const unsupported = betaReceipt(refined(trace({ refinement: { applied: true }, outcome: "fallback", fallback: { classification: "unsupported-refinement", reason: "the model answered that this block cannot express the change" } })));
-    expect(describeBetaReceipt(unsupported)).toContain("switched to a full-surface refinement: the model answered that the block cannot express the change");
+    // A scripted twin answers too, so the words never claim a model did.
+    expect(describeBetaReceipt(unsupported)).toContain("switched to a full-surface refinement: the reply said the block cannot express the change");
+    expect(describeBetaReceipt(unsupported)).not.toContain("the model answered");
     const invalid = betaReceipt(refined(trace({ refinement: { applied: true }, outcome: "fallback", fallback: { classification: "invalid-call", reason: "B1: /title expected string" } })));
     expect(describeBetaReceipt(invalid)).toContain("switched to a full-surface refinement: the revised call did not pass the block's checks");
     expect(describeBetaReceipt(invalid)).not.toContain("B1:");
   });
 
-  it("compact, stopped by a provider failure or an invariant failure", () => {
-    expect(describeBetaReceipt(betaReceipt(refined(trace({ refinement: { applied: true }, outcome: "provider-failure", providerError: { classification: "provider", message: "down" } }))))).toContain("compact refinement, stopped by a provider failure");
+  it("compact, stopped: by a provider failure, an unusable output, a refusal or an invariant failure, each named as what it was", () => {
+    const stopped = (classification: string | undefined) =>
+      betaReceipt(refined(trace({ refinement: { applied: true }, outcome: "provider-failure", ...(classification ? { providerError: { classification, message: "down" } } : {}) })));
+    expect(stopped("provider").refinement).toEqual({ mode: "compact", outcome: "provider-failure" });
+    expect(describeBetaReceipt(stopped("provider"))).toContain("compact refinement, stopped by a provider failure");
+    // Two unusable outputs: the provider answered both times.
+    expect(stopped("output").refinement).toEqual({ mode: "compact", outcome: "unusable-output" });
+    expect(describeBetaReceipt(stopped("output"))).toContain("compact refinement, stopped: the model's output was unusable");
+    expect(describeBetaReceipt(stopped("output"))).not.toContain("provider failure");
+    // A refusal (a 429, a 4xx, an exhausted budget) reached no model.
+    expect(stopped("policy").refinement).toEqual({ mode: "compact", outcome: "refused" });
+    expect(describeBetaReceipt(stopped("policy"))).toContain("compact refinement, stopped: the request was refused");
+    expect(describeBetaReceipt(stopped("policy"))).not.toContain("provider failure");
+    // Unknown or missing: the safe reading, as the block phase classifies it.
+    expect(stopped("unknown").refinement).toEqual({ mode: "compact", outcome: "provider-failure" });
+    expect(stopped(undefined).refinement).toEqual({ mode: "compact", outcome: "provider-failure" });
     expect(describeBetaReceipt(betaReceipt(refined(trace({ refinement: { applied: true }, outcome: "invariant-failure", invariant: ["S2: x"] }))))).toContain("compact refinement, stopped: the expansion failed its invariant checks");
   });
 
@@ -242,7 +258,7 @@ describe("the diagnostics export holds shapes, never content", () => {
       invariantCount: 0,
       blockSchemaSha256: "a".repeat(64),
       blockSystemSha256: "b".repeat(64),
-      attempts: [{ index: 0, outcome: "ok", b1Issues: 0, b2Issues: 0, inputTokens: 1000, outputTokens: 50, durationMs: 400 }],
+      attempts: [{ index: 0, outcome: "ok", b1Issues: 0, b2Issues: 0, durationMs: 400 }],
     });
     expect(t!.receipt).toBe(describeBetaReceipt(betaReceipt(turn())));
     expect(JSON.parse(JSON.stringify(file))).toEqual(file);
@@ -261,7 +277,7 @@ describe("the diagnostics export holds shapes, never content", () => {
     expect(t!.calls[2]).toEqual({ operation: "other", source: "other", outcome: "other", model: "unrecognized" });
     expect(t!.block).toMatchObject({ id: "auth-form", outcome: "fallback", fallback: { classification: "invalid-call" }, providerError: { classification: "provider" }, invariantCount: 1 });
     expect(t!.block!.attempts).toEqual([
-      { index: 0, outcome: "invalid", b1Issues: 1, b2Issues: 0, inputTokens: 1000, outputTokens: 50, durationMs: 400 },
+      { index: 0, outcome: "invalid", b1Issues: 1, b2Issues: 0, durationMs: 400 },
       { index: 1, outcome: "other", b1Issues: 0, b2Issues: 1 },
     ]);
     expect(t!.block).not.toHaveProperty("blockSchemaSha256");
@@ -279,6 +295,48 @@ describe("the diagnostics export holds shapes, never content", () => {
     const codes = ["passed", "failed-lint-exhausted", "failed-gate", "failed-adapter", "invariant-failure"];
     const exported = diagnosticsExport(codes.map((outcome) => turn({ progress: { status: "finished", attempts: [], outcome } })), { exportedAt: "2026-10-16T22:00:00.000Z", knownBlocks: KNOWN.blocks });
     expect(exported.turns.map((t) => t.outcome)).toEqual(codes);
+  });
+
+  it("a block attempt's token figures stay out of the file: a re-issue sums them, and a missing figure would read as zero", () => {
+    // A block call answered unusably without an output figure, then its re-issue answered 900 + 40: the trace sums them to 1,800 + 40.
+    const reissued = turn({
+      calls: [call("plan"), call("block", { outcome: "unusable-output", inputTokens: 900, outputTokens: undefined }), call("block", { reissue: true, inputTokens: 900, outputTokens: 40 })],
+      progress: { status: "finished", attempts: [], outcome: "passed", block: trace({ attempts: [{ index: 0, outcome: "ok", b1: [], b2: [], inputTokens: 1800, outputTokens: 40, durationMs: 700 }] }) },
+    });
+    const [t] = diagnosticsExport([reissued], { exportedAt: "2026-10-16T22:00:00.000Z", knownBlocks: KNOWN.blocks }).turns;
+    expect(t!.block!.attempts).toEqual([{ index: 0, outcome: "ok", b1Issues: 0, b2Issues: 0, durationMs: 700 }]);
+    // Each call keeps exactly what the provider reported, and the receipt names the gap.
+    expect(t!.calls.filter((c) => c.operation === "block").map((c) => [c.inputTokens, c.outputTokens])).toEqual([
+      [900, undefined],
+      [900, 40],
+    ]);
+    expect(t!.receipt).toContain("output not reported for 1 call");
+  });
+
+  it("a turn on a local model or the local agent keeps no model name: a configured model's name is the user's own entry", () => {
+    const local = turn({
+      modelRef: "openai:ft:gpt-4o-mini:acme-corp:secret-project",
+      progress: { status: "finished", attempts: [], outcome: "passed" },
+      calls: [call("generate", { model: "ft:gpt-4o-mini:acme-corp:secret-project" }), call("repair", { attempt: 1, model: "acme-corp/secret-model" })],
+    });
+    const file = diagnosticsExport([local, turn()], { exportedAt: "2026-10-16T22:00:00.000Z", knownBlocks: KNOWN.blocks });
+    expect(JSON.stringify(file)).not.toMatch(/acme|secret/);
+    const [mine, hosted] = file.turns;
+    expect(mine!.modelRef).toBe("other");
+    for (const c of mine!.calls) expect(c).not.toHaveProperty("model");
+    expect(mine!.calls.map((c) => [c.operation, c.inputTokens, c.outputTokens])).toEqual([
+      ["generate", 1000, 50],
+      ["repair", 1000, 50],
+    ]);
+    // Withheld is not missing: the line says nothing about those names.
+    expect(mine!.receipt).toBe("");
+    // A hosted turn's models come from the provider's reply, and stay.
+    expect(hosted!.calls.map((c) => c.model)).toEqual([HAIKU, HAIKU]);
+  });
+
+  it("the notice names what the file covers: the builds listed in Build, in one browser session", () => {
+    expect(DIAGNOSTICS_NOTICE).toMatch(/the builds listed in Build/);
+    expect(DIAGNOSTICS_NOTICE).toMatch(/never ADR-B3 decision evidence/);
   });
 
   it("holds no estimate: a figure the provider did not report is absent, never zero", () => {
