@@ -84,6 +84,23 @@ export { gateBlocksBeta, parseBlocksBeta, type BlocksBetaKnown, type BlocksBetaO
 export { b0Issues, checkActions, emitCheck, emittedActionNames, loadBlocks, type EmitCheck, type LoadedBlocks } from "./load";
 export { actionComponents, actionEvents, actionIssues, MAX_ACTION_NAMES, templateActionNames } from "./actions";
 export {
+  betaReceipt,
+  describeBetaReceipt,
+  diagnosticsExport,
+  DIAGNOSTICS_FORMAT,
+  DIAGNOSTICS_NOTICE,
+  MODEL_ID_PATTERN,
+  SWITCH_REASON_TEXT,
+  type BetaReceipt,
+  type DiagnosticsAttempt,
+  type DiagnosticsBlock,
+  type DiagnosticsCall,
+  type DiagnosticsFile,
+  type DiagnosticsTurn,
+  type ReceiptGroup,
+  type RefinementMode,
+} from "./receipts";
+export {
   ACTION_MANIFEST_VERSION,
   actionManifest,
   type ActionManifest,

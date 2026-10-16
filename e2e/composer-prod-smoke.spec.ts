@@ -704,6 +704,42 @@ test("a default build ignores and drops block provenance: an imported file's pro
 
 /** Step 4's UI and runtime call; the experimental suite's positive control finds each in its artifact. */
 const STEP4_MARKERS = ["blocks-catalog", "preview-provenance", "preview-host-owned", "provenanceVerdicts"];
+/** Step 5's receipt, diagnostics export and operation header; the positive control finds each in the experimental artifact. */
+const STEP5_MARKERS = ["build-beta-receipt", "diagnostics-export", "composer-beta-diagnostics", "x-composer-operation"];
+
+test("the default build has no beta receipt and no diagnostics export, and its hosted requests name no operation", async ({ page }) => {
+  // Phase 2 step 5 lives in the experimental build only (docs/blocks/BETA-OPERATIONS.md).
+  await page.addInitScript(() => localStorage.setItem("composer.experimental.v1", JSON.stringify({ blocks: true })));
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  const headers: Array<Record<string, string>> = [];
+  await page.route("**/api/propose", (route) => {
+    headers.push(route.request().headers());
+    return route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "provider-unavailable", cause: "provider", message: "down", usage: null, calls: [{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: 1 }] }),
+    });
+  });
+  await page.goto("/");
+  await newProject(page, "shadcn", "No beta receipt");
+  await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
+  await expect(page.getByTestId("build-receipt-1")).toContainText("no model calls (scripted)");
+  await expect(page.getByTestId("build-beta-receipt-1")).toHaveCount(0);
+
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill("a table of orders");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-receipt-2")).toBeVisible({ timeout: 30_000 });
+  expect(headers.length).toBeGreaterThan(0);
+  for (const h of headers) expect(Object.keys(h)).not.toContain("x-composer-operation");
+  await expect(page.getByTestId("build-beta-receipt-2")).toHaveCount(0);
+
+  await page.getByTestId("nav-settings").click();
+  await expect(page.getByTestId("diagnostics")).toHaveCount(0);
+  await expect(page.getByTestId("diagnostics-export")).toHaveCount(0);
+});
 
 test("the default build ships no interface-block code (docs/BLOCKS.md: blocks stay out of default builds)", () => {
   // Scans the served artifact on disk, so a lazily loaded chunk cannot hide it.
@@ -721,7 +757,7 @@ test("the default build ships no interface-block code (docs/BLOCKS.md: blocks st
     const body = readFileSync(file, "utf8");
     // actionManifest: the beta's Catalog export key (docs/blocks/HOST-ACTIONS.md).
     // The rest: step 4's Blocks catalog and Preview provenance line, and the runtime call behind them.
-    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime", "reference-not-in-beta", "beta-switch-", "actionManifest", ...STEP4_MARKERS]) {
+    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime", "reference-not-in-beta", "beta-switch-", "actionManifest", ...STEP4_MARKERS, ...STEP5_MARKERS]) {
       expect(body.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   }

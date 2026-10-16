@@ -491,3 +491,70 @@ describe("Option B replies are additive: the app reads them as it read them befo
     expect(app.records).toEqual([{ operation: "generate", attempt: 0, subCall: 0, source: "provider", inputTokens: 900, outputTokens: 8000, outcome: "ok" }]);
   });
 });
+
+describe("step 5 (experimental): each call's own served model, and the operation named in a header", () => {
+  /** A fetch stub that keeps every request's headers and body. */
+  function stubFetchWithHeaders(answer: () => Response) {
+    const sent: Array<{ headers: Record<string, string>; body: string }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: { headers: Record<string, string>; body: string }) => {
+        sent.push({ headers: { ...init.headers }, body: init.body });
+        return answer();
+      }),
+    );
+    return sent;
+  }
+  const twoCalls = (top?: string) =>
+    reply(200, {
+      json: { ok: true },
+      ...(top ? { model: top } : {}),
+      calls: [
+        { inputTokens: 10, outputTokens: 1, outcome: "unusable-output", durationMs: 1, model: "claude-haiku-4-5-20251001" },
+        { inputTokens: 12, outputTokens: 2, outcome: "ok", durationMs: 1 },
+      ],
+    });
+
+  it("experimental: a record keeps its call's own model, and takes the reply's top-level model only when its call names none", async () => {
+    vi.stubEnv("NEXT_PUBLIC_COMPOSER_EXPERIMENTAL", "1");
+    stubFetchWithHeaders(() => twoCalls("claude-haiku-4-5-20260101"));
+    const recorder = createCallRecorder();
+    await gatewayAdapter({ recorder }).generate(REQUEST);
+    expect(recorder.calls.map((c) => c.model)).toEqual(["claude-haiku-4-5-20251001", "claude-haiku-4-5-20260101"]);
+  });
+
+  it("experimental: a call that names no model, in a reply that names none, has none", async () => {
+    vi.stubEnv("NEXT_PUBLIC_COMPOSER_EXPERIMENTAL", "1");
+    stubFetchWithHeaders(() => twoCalls());
+    const recorder = createCallRecorder();
+    await gatewayAdapter({ recorder }).generate(REQUEST);
+    expect(recorder.calls.map((c) => c.model)).toEqual(["claude-haiku-4-5-20251001", undefined]);
+  });
+
+  it("default build: every record keeps the reply's top-level model, as production does today", async () => {
+    stubFetchWithHeaders(() => twoCalls("claude-haiku-4-5-20260101"));
+    const recorder = createCallRecorder();
+    await gatewayAdapter({ recorder }).generate(REQUEST);
+    expect(recorder.calls.map((c) => c.model)).toEqual(["claude-haiku-4-5-20260101", "claude-haiku-4-5-20260101"]);
+  });
+
+  it("experimental: every request names its operation in x-composer-operation, and the body is byte-identical to the default build's", async () => {
+    const operations: string[] = [];
+    const bodies: Record<string, string[]> = { experimental: [], default: [] };
+    for (const build of ["experimental", "default"] as const) {
+      if (build === "experimental") vi.stubEnv("NEXT_PUBLIC_COMPOSER_EXPERIMENTAL", "1");
+      else vi.unstubAllEnvs();
+      const sent = stubFetchWithHeaders(() => reply(200, { json: {}, calls: [] }));
+      await gatewayAdapter().generate(REQUEST);
+      await gatewayAdapter({ refinement: true }).generate(REQUEST);
+      await gatewayAdapter({ maxCalls: 1 }).generate(REQUEST, { operation: "block" });
+      await runGatewayRequest(REQUEST, { operation: "plan" });
+      await runGatewayRequest(REQUEST, { operation: "flow-plan" });
+      bodies[build] = sent.map((s) => s.body);
+      if (build === "experimental") operations.push(...sent.map((s) => s.headers["x-composer-operation"]!));
+      else for (const s of sent) expect(s.headers).toEqual({ "content-type": "application/json" });
+    }
+    expect(operations).toEqual(["generate", "refine", "block", "plan", "flow-plan"]);
+    expect(bodies.experimental).toEqual(bodies.default);
+  });
+});

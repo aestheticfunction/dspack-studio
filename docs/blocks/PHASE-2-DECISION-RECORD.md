@@ -34,7 +34,7 @@ Decision 5 (branch B) does not arise. Decision 14 (Stage 4 for shadcn/ui v3) is 
 
 For context, not the owner's words: shadcn/ui v3 met every criterion on the rule's point estimates, and its decision is uncertain because one criterion's interval crosses its threshold ([PHASE-1B-MILESTONE-REPORT.md](PHASE-1B-MILESTONE-REPORT.md), section 4.1).
 
-**Still open,** for the owner during the beta: telemetry (decision 7), selection (8), the change policy after the decision (9), and provenance across re-binds (10). Under branch C the plan holds ratification (decision 11, and so the upstream form, 12) until a second reference passes clearly.
+**Still open,** for the owner during the beta: telemetry (decision 7), selection (8), the change policy after the decision (9), and provenance across re-binds (10). Step 5's authorization has since taken decision 7's recommended course ("Step 5, authorized", below). Under branch C the plan holds ratification (decision 11, and so the upstream form, 12) until a second reference passes clearly.
 
 ## Reconsidering shadcn/ui v3
 
@@ -58,6 +58,29 @@ After G1 merged (aestheticfunction/dspack-studio#103), the owner treated the gat
 - **Initial stop conditions:** disable blocks at once on any model mismatch, unmetered provider-reached call, integrity failure, or authorization or provenance failure. Pause on two consecutive non-busy provider errors; when busy or refusal responses reach 10% over at least 20 beta requests; and when the shared gateway's daily spend reaches $8, leaving headroom below the $10 hard limit.
 
 How these are applied is in [../deployment.md](../deployment.md), "The beta composer".
+
+## Step 5, authorized (2026-10-16)
+
+The owner authorized the plan's step 5, receipts and operator signals (§9), as its own PR. The owner limited it, in the owner's words, to:
+- "beta receipts that split block and surface tokens using provider-reported usage only;"
+- "each call's own served model, with the documented top-level fallback;"
+- "exact call-budget usage and the refinement mode in plain language;"
+- "beta-only, shape-only operator logging gated by a variable production does not set;"
+- "one structured record containing only status, error classification, `maxCalls`, call operation/outcome, token counts, served model and duration;"
+- "a user-initiated diagnostics export containing durable traces, call records, timings and outcomes, with no prompt or model-generated text;"
+- "documentation of the canary and alarm rules, without running a hosted canary."
+
+And preserved its scope: "no beta deploy, Cloudflare changes, accessibility work, shadcn, Stage 4, catalog changes, action execution or paid model calls."
+
+The owner's privacy and compatibility requirements, in the owner's words:
+- "never log or export prompts, schemas, generated output, surface content, credentials, entered values or action parameters;"
+- "no automatic beacon or client telemetry;"
+- "no estimated token values;"
+- "no production logging change when the beta variable is absent;"
+- "production request bytes and default artifact remain unchanged;"
+- "field data must never be presented as ADR-B3 decision evidence."
+
+This takes decision 7's recommended course: the canary plus a diagnostics export the user asks for, with no beacon. How it is applied is in [BETA-OPERATIONS.md](BETA-OPERATIONS.md).
 
 ## Operational record
 

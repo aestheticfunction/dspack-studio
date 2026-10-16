@@ -193,7 +193,9 @@ function callRecords(
         subCall,
         source: "provider",
         ...normalizeUsage(call),
-        ...model,
+        // Experimental builds keep each call's own served model; a call that
+        // names none (an older Worker) takes the reply's top-level model.
+        ...(process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && typeof call.model === "string" && call.model ? { model: call.model } : model),
         ...(typeof call.durationMs === "number" ? { durationMs: call.durationMs } : {}),
         outcome,
       };
@@ -247,7 +249,12 @@ async function propose(
   try {
     res = await fetch("/api/propose", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      // Experimental builds name the request's operation for the beta's
+      // operator log, in a header so the body stays byte-identical.
+      headers:
+        process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"
+          ? { "content-type": "application/json", "x-composer-operation": options.operation }
+          : { "content-type": "application/json" },
       body: proposeBody(request, options.maxCalls !== undefined ? { maxCalls: options.maxCalls } : {}),
     });
   } catch (error) {

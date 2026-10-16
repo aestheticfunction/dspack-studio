@@ -312,7 +312,7 @@ test("positive control: the experimental artifact really carries the block code 
   expect(carrying.length).toBeGreaterThan(0);
   // Step 4's markers, which the default scans look for, are really in the experimental artifact.
   const bodies = files.map((file) => readFileSync(file, "utf8"));
-  for (const marker of ["blocks-catalog", "preview-provenance", "preview-host-owned", "provenanceVerdicts"]) {
+  for (const marker of ["blocks-catalog", "preview-provenance", "preview-host-owned", "provenanceVerdicts", "build-beta-receipt", "diagnostics-export", "composer-beta-diagnostics", "x-composer-operation"]) {
     expect(bodies.some((body) => body.includes(marker)), marker).toBe(true);
   }
 });

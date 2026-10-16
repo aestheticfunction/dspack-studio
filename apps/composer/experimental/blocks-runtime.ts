@@ -40,6 +40,7 @@ import {
   buildProvenanceEntry,
   createBudget,
   decideRefinement,
+  diagnosticsExport,
   eligibleBlocks,
   gateBlocksBeta,
   liveBaseDigest,
@@ -63,6 +64,7 @@ import {
   type BlocksBetaReason,
   type BlocksBetaSwitch,
   type BlocksSidecar,
+  type DiagnosticsFile,
   type ErrorKind,
   type IneligibleReason,
   type LoadedBlocks,
@@ -690,4 +692,19 @@ export async function experimentalStatus(): Promise<ReferenceBlockStatus[]> {
     });
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Step 5 (docs/blocks/PHASE-2-RELEASE-PLAN.md, §9; docs/blocks/BETA-OPERATIONS.md):
+// the beta's receipt, and the diagnostics file a user asks to save. Both read
+// a turn's call records, timings and block trace, never what anyone wrote.
+
+export { betaReceipt, describeBetaReceipt } from "@dspack-studio/composer-core/blocks";
+
+/** The block-mode run's model-call budget, which the receipt counts against. */
+export const BLOCK_BUDGET = BUDGET;
+
+/** The diagnostics file for this session's builds, in the order they ran (composer-core diagnosticsExport). */
+export function diagnosticsFile(turns: readonly unknown[], exportedAt: string): DiagnosticsFile {
+  return diagnosticsExport(turns, { exportedAt, knownBlocks: BETA_KNOWN.blocks, limit: BUDGET });
 }
