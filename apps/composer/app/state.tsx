@@ -79,7 +79,7 @@ import {
 } from "./providers";
 import { planGoal } from "./planning";
 import { loadExperimental, saveExperimental, type ExperimentalPreferences } from "./experimental";
-import { loadBlockProvenance, saveBlockProvenance } from "./block-provenance";
+import { loadBlockProvenance } from "./block-provenance";
 import {
   bindStepSurface,
   emittedActionsBySurface,
@@ -589,9 +589,13 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     const delta = examplesDelta(base, live);
     const p = createProject({ name: `My ${ref.label} project`, description: "", source: { kind: "reference", referenceId: refId } });
     if (delta.length > 0) saveExamplesDelta(p.id, delta);
-    // Interface blocks (experimental): the session's provenance comes along too.
-    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && Object.keys(sessionProvenance.current).length > 0) {
-      saveBlockProvenance(p.id, sessionProvenance.current);
+    // Interface blocks (experimental): the session's provenance comes along
+    // too, once every write already queued for it has landed, pruned against
+    // the examples the duplicate keeps.
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      void import("../experimental/blocks-runtime")
+        .then((runtime) => runtime.copyProvenance(runtime.memoryProvenanceStore(sessionProvenance), runtime.projectProvenanceStore(p.id), live))
+        .catch(() => undefined);
     }
     setProjects(listProjects());
     openProject(p.id); // clears the example workspace, merges the delta
@@ -626,9 +630,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
         try {
           const raw = (JSON.parse(text) as { blockProvenance?: unknown }).blockProvenance;
+          const examples = ((parsed.vocab.contract.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
           if (raw && typeof raw === "object") {
             void import("../experimental/blocks-runtime")
-              .then((runtime) => runtime.importProvenance(runtime.projectProvenanceStore(p.id), raw))
+              .then((runtime) => runtime.importProvenance(runtime.projectProvenanceStore(p.id), raw, examples))
               .catch(() => undefined);
           }
         } catch {

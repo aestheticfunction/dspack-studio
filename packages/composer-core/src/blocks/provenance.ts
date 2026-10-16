@@ -9,7 +9,8 @@
  * state. An entry is written only when the accepted surface is exactly the
  * expansion; on import, anything that cannot be trusted is reduced to an
  * inert {block, version, status, reason} and the surface renders as an
- * ordinary one.
+ * ordinary one. A record that does not name a block id and version is
+ * dropped, so no imported text is ever shown as a block's name.
  *
  * What a surface's provenance means is the verdict (provenanceVerdict): a
  * surface is "made with block X vN" only by exact expansion identity, and a
@@ -19,7 +20,7 @@ import { checkConstraints, validateCall } from "./call";
 import { expandBlock, expansionDigest } from "./expand";
 import type { LoadedBlocks } from "./load";
 import type { BlockTrace } from "./phase";
-import type { BlocksSidecar } from "./schema";
+import { BLOCK_ID, type BlocksSidecar } from "./schema";
 
 type Json = Record<string, unknown>;
 
@@ -63,6 +64,10 @@ export interface InertProvenance {
 export type ProvenanceRecord = BlockProvenanceEntry | InertProvenance;
 
 const isObject = (value: unknown): value is Json => !!value && typeof value === "object" && !Array.isArray(value);
+
+/** A name a record may give its block: a block id, at most 64 characters. Anything else is never shown. */
+const isBlockName = (value: unknown): value is string => typeof value === "string" && value.length <= 64 && BLOCK_ID.test(value);
+const isBlockVersion = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 1;
 
 export async function buildProvenanceEntry(
   trace: BlockTrace,
@@ -142,7 +147,7 @@ export function parseProvenance(raw: unknown, sidecars: readonly BlocksSidecar[]
   if (!isObject(raw)) return {};
   const out: Record<string, ProvenanceRecord> = {};
   for (const [id, value] of Object.entries(raw)) {
-    if (!isObject(value) || typeof value.block !== "string" || !Number.isInteger(value.version)) continue;
+    if (!isObject(value) || !isBlockName(value.block) || !isBlockVersion(value.version)) continue;
     const inert = (reason: InertReason | undefined): InertProvenance => ({ block: value.block as string, version: value.version as number, status: "inert", ...(reason ? { reason } : {}) });
     if (value.status === "inert") {
       out[id] = inert(knownReason(value.reason));
@@ -208,16 +213,16 @@ export async function provenanceVerdict(input: {
   surface: unknown;
   /** Every bundled sidecar, as loaded (B0 and H1 applied). */
   loaded: readonly LoadedBlocks[];
-  /** A reference project names its packaged reference; an imported or repository project does not. */
+  /** A reference project names its packaged reference, and trusts no provenance without one; an imported or repository project names none. */
   project: { kind: "reference" | "imported" | "agent"; reference?: { name: string; dspack: string; version: string } };
 }): Promise<ProvenanceVerdict | null> {
   const { record, project } = input;
-  if (!isObject(record) || typeof record.block !== "string" || !Number.isInteger(record.version)) return null;
-  const named = { block: record.block, version: record.version as number };
+  if (!isObject(record) || !isBlockName(record.block) || !isBlockVersion(record.version)) return null;
+  const named = { block: record.block, version: record.version };
   const inert = (reason: InertReason, madeWith = false): ProvenanceVerdict => ({ ...named, madeWith, status: "inert", reason });
   if (record.status === "inert") return inert(knownReason(record.reason) ?? "stored");
   try {
-    if (project.kind === "reference" && project.reference && !sameReference(record.reference as Json | undefined, project.reference)) return inert("reference");
+    if (project.kind === "reference" && (!project.reference || !sameReference(record.reference as Json | undefined, project.reference))) return inert("reference");
     const sidecars = input.loaded.flatMap((l) => (l.sidecar ? [l.sidecar] : []));
     const untrusted = untrustedReason(record, sidecars);
     if (untrusted) return inert(untrusted);

@@ -195,8 +195,8 @@ Two rules apply in every experimental build. A block is offered only when it and
 
 **The Blocks catalog and provenance UI (step 4; [blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md), §7 H3 and §8).** Read-only, and only in an experimental build.
 - **Catalog.** A Blocks section lists every bundled block: its reference, version, status, intents, declared actions and streaming policy.
-- **Preview.** A surface's provenance reads "made with block X vN" only when its trusted call re-expands to exactly that surface (`provenanceVerdict` in `packages/composer-core/src/blocks/provenance.ts`). It is refinable, unavailable (an imported or repository project) or inert, and an inert record names its reason. A block surface also says its actions are host-owned and not executed here. A verdict grants nothing.
-- **Lifecycle.** Provenance follows a project through export, import, duplicate and delete as before. A save drops stale records, now in an Example session too.
+- **Preview.** A surface's provenance reads "made with block X vN" only when its trusted call re-expands to exactly that surface (`provenanceVerdict` in `packages/composer-core/src/blocks/provenance.ts`). It is refinable, unavailable (an imported or repository project) or inert, and an inert record names its reason. Refinable says what the record is: it verifies against an approved block this build loaded. It does not say a build will use the block; the beta switch, Settings and the project's eligibility decide that, as the Build view states. A record that names no block id is dropped, so an imported name is never shown. A block surface also says its actions are host-owned and not executed here. A verdict grants nothing.
+- **Lifecycle.** Provenance follows a project through export, import, duplicate and delete as before. A save drops stale records, now in an Example session too, and so does an import. Duplicating an Example session copies its provenance once every pending write has landed, pruned against the examples the duplicate keeps.
 
 ## The live evaluation (Phase 1B)
 

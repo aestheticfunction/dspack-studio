@@ -723,26 +723,41 @@ function BlockProvenanceNote({ surfaceName }: { surfaceName: string }) {
   const [note, setNote] = useState<Note | null>(null);
   useEffect(() => {
     let cancelled = false;
+    let unsubscribe = () => {};
     setNote(null);
-    const provenance = activeProject ? blockProvenanceFor(activeProject.id) : {};
-    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && activeProject && Object.hasOwn(provenance, surfaceName)) {
-      const source = activeProject.source;
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && activeProject) {
+      const project = activeProject;
+      const source = project.source;
       const examples = (contract?.examples as Array<{ id?: unknown; surface?: unknown }> | undefined) ?? [];
       void import("../../experimental/blocks-runtime")
-        .then(async (runtime) => {
-          const verdicts = await runtime.provenanceVerdicts({
-            provenance: { [surfaceName]: provenance[surfaceName] },
-            examples,
-            project: source.kind === "reference" ? { kind: "reference", referenceId: source.referenceId } : { kind: source.kind },
-          });
-          const verdict = verdicts[surfaceName];
-          if (cancelled || !verdict) return;
-          setNote({ ...verdict, ...(verdict.reason ? { reasonText: runtime.PROVENANCE_REASON_TEXT[verdict.reason] } : {}) });
+        .then((runtime) => {
+          // Read now, and again after every provenance write (an accept, a
+          // prune, an import or a duplicate's copy can land after this mounts);
+          // only the latest read may set the note.
+          let reads = 0;
+          const read = async () => {
+            const seq = ++reads;
+            const provenance = blockProvenanceFor(project.id);
+            const verdicts = Object.hasOwn(provenance, surfaceName)
+              ? await runtime.provenanceVerdicts({
+                  provenance: { [surfaceName]: provenance[surfaceName] },
+                  examples,
+                  project: source.kind === "reference" ? { kind: "reference", referenceId: source.referenceId } : { kind: source.kind },
+                })
+              : {};
+            if (cancelled || seq !== reads) return;
+            const verdict = verdicts[surfaceName];
+            setNote(verdict ? { ...verdict, ...(verdict.reason ? { reasonText: runtime.PROVENANCE_REASON_TEXT[verdict.reason] } : {}) } : null);
+          };
+          if (cancelled) return;
+          unsubscribe = runtime.onProvenanceChange(() => void read().catch(() => undefined));
+          return read();
         })
         .catch(() => undefined);
     }
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [activeProject, contract, surfaceName, blockProvenanceFor]);
   if (!note) return null;
@@ -754,7 +769,7 @@ function BlockProvenanceNote({ surfaceName }: { surfaceName: string }) {
           <>
             Made with {label}.{" "}
             {note.status === "refinable"
-              ? "Refinable: this build verifies the record and offers the block."
+              ? "Refinable: its record verifies against this build's approved block."
               : note.status === "unavailable"
                 ? `Unavailable: ${note.reasonText}.`
                 : `Inert: ${note.reasonText}.`}

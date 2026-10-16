@@ -456,11 +456,26 @@ export function memoryProvenanceStore(holder: { current: Record<string, unknown>
 }
 
 const chains = new Map<string, Promise<void>>();
+const listeners = new Set<(key: string) => void>();
 function serialized(key: string, work: () => Promise<void>): Promise<void> {
   const prev = chains.get(key) ?? Promise.resolve();
-  const next = prev.then(work, work);
+  const next = prev.then(work, work).finally(() => {
+    for (const listener of listeners) {
+      try {
+        listener(key);
+      } catch {
+        /* a listener never breaks the chain */
+      }
+    }
+  });
   chains.set(key, next);
   return next;
+}
+
+/** Called with the store's key after every provenance write, so an open view can re-read. Returns the unsubscribe. */
+export function onProvenanceChange(listener: (key: string) => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
 }
 
 async function sidecarsLoaded(): Promise<BlocksSidecar[]> {
@@ -494,11 +509,24 @@ export function gcProvenance(store: ProvenanceStore, examples: ReadonlyArray<{ i
   });
 }
 
-/** On import: keep only what the bundled sidecars can vouch for. */
-export function importProvenance(store: ProvenanceStore, raw: unknown): Promise<void> {
+/** On import: keep only what the bundled sidecars can vouch for, pruned against the imported project's examples as a save would. */
+export function importProvenance(store: ProvenanceStore, raw: unknown, examples: ReadonlyArray<{ id: string; surface?: unknown }>): Promise<void> {
   return serialized(store.key, async () => {
     const sidecars = await sidecarsLoaded();
-    store.save(parseProvenance(raw, sidecars));
+    store.save(await pruneProvenance(parseProvenance(raw, sidecars), examples));
+  });
+}
+
+/**
+ * Duplicating an Example session: its provenance comes along once every
+ * write already queued for it has landed, pruned against the examples the
+ * duplicate keeps, so nothing stale travels whatever the timing.
+ */
+export function copyProvenance(from: ProvenanceStore, to: ProvenanceStore, examples: ReadonlyArray<{ id: string; surface?: unknown }>): Promise<void> {
+  return serialized(from.key, async () => {
+    const map = await pruneProvenance({ ...from.load() }, examples);
+    if (Object.keys(map).length === 0) return;
+    await serialized(to.key, async () => to.save(map));
   });
 }
 
