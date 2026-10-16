@@ -1,0 +1,21 @@
+run 2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 6 invocations, 413 of 480 planned cells, 0 moved aside by re-runs
+ledger: 626 reserved, 626 finalized, reasons {'settled at the reported usage': 618, 'refused before any provider call': 8}, committed $29.552520900, by UTC day {'2026-10-15': 19.1800287, '2026-10-16': 10.3724922}
+invocation 1 (cap): 72 records (64 completed, 8 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.455322200; first block|rt-01|fresh, next shadcn-v3|capped|rt-04|refine-add
+invocation 2 (cap): 73 records (69 completed, 4 skipped), 0 moved aside at its start, 105 requests from cells vs 105 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.664056950; first capped|rt-04|refine-add, next shadcn-v3|block-positional|af-02|fresh
+invocation 3 (cap): 66 records (66 completed, 0 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.061161650; first block-positional|af-02|fresh, next shadcn-v3|capped|af-05|refine-content
+invocation 4 (cap): 68 records (68 completed, 0 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 1, backoffs [30000], exhausted [], committed $4.826011050; first capped|af-05|refine-content, next shadcn-v3|production|gs-02|refine-structural
+invocation 5 (cap): 67 records (63 completed, 4 skipped), 0 moved aside at its start, 105 requests from cells vs 105 in the ledger, orphans 0, released 0, backoffs [], exhausted [], committed $4.995707850; first production|gs-02|refine-structural, next shadcn-v3|block-positional|gs-06|refine-content
+invocation 6 (cap): 67 records (59 completed, 8 skipped), 0 moved aside at its start, 104 requests from cells vs 104 in the ledger, orphans 0, released 4, backoffs [30000, 30000, 30000, 30000], exhausted [], committed $6.550261200; first block-positional|gs-06|refine-content, next shadcn-v3|capped|nb-03|refine-remove
+orphans: []
+cost: {'listUsdLoggedCells': 28.145258, 'withFeeUsdLoggedCells': 29.5525209, 'heldUsd': 0.0, 'cellsPlusHeldUsd': 29.5525209, 'committedUsd': 29.5525209}
+history: [{'from': 0, 'to': 1, 'kept': 0, 'moved': 0, 'new': 72}, {'from': 1, 'to': 2, 'kept': 72, 'moved': 0, 'new': 73}, {'from': 2, 'to': 3, 'kept': 145, 'moved': 0, 'new': 66}, {'from': 3, 'to': 4, 'kept': 211, 'moved': 0, 'new': 68}, {'from': 4, 'to': 5, 'kept': 279, 'moved': 0, 'new': 67}, {'from': 5, 'to': 6, 'kept': 346, 'moved': 0, 'new': 67}]
+surfaces: {'digestMismatches': 0, 'operationMismatches': 0, 'changedMismatches': 0, 'operationsRecomputed': 145}
+shadcn-v3: decision pass (uncertain); tokens/success {'block': 40491.857142857145, 'capped': 109485.24418604652, 'production': 121147.92, 'reductionVsProduction': 0.6657651477395803, 'reductionVsCapped': 0.6301615122303607}; pass {'block': 0.8666666666666667, 'capped': 0.8686868686868687, 'production': 0.8152173913043478}; threads {'block': 21, 'capped': 21, 'production': 20}; cohort 20/20
+  reductionVsProduction: spec [0.606662, 0.771777]
+  reductionVsCapped: spec [0.557529, 0.751456]
+  passDiffVsProduction: spec [-0.030000, 0.165217]
+  passDiffVsCapped: spec [-0.090000, 0.128273]
+totals {'records': 413, 'completed': 389, 'providerCalls': 635, 'inputTokens': 25363413, 'outputTokens': 556369, 'requestBytes': 85949344}
+NOTES: 1
+ - 67 planned cells have no record yet, e.g. [('shadcn-v3', 'capped', 'nb-03', 'refine-remove'), ('shadcn-v3', 'capped', 'nb-03', 'refine-structural'), ('shadcn-v3', 'production', 'nb-03', 'fresh')]
+FINDINGS: 0

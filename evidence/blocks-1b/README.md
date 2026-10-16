@@ -400,6 +400,18 @@ There was no provider or policy failure. The nb prompts are the corpus's non-blo
 - It read the live build 45 times, always `Dyml8RSqfWynKU1KbVuZI`.
 - It allowed the four refusals within its schedule. Each was the only one in a row, and together they took 120 s of backoff, against its limits of 8 releases and 600 s of backoff in a window.
 
+**Verification** of window 6's copy, as origin holds it at `94cc6f9`:
+- **`verify_run.py`** (at `e3f57da`), with windows 1 to 5's copies as snapshots and all six monitor events logs:
+  - no findings;
+  - one note: 67 planned cells have no record yet.
+
+  It maps all 626 requests to their cells, with nothing held, and keeps the 346 earlier records.
+- **`reconcile_window.py`** agrees on every figure:
+  - 626 requests, 618 settled and 8 released at $0;
+  - $29.5525209 committed;
+  - every settlement and call on `claude-haiku-4-5-20251001`;
+  - 25,363,413 input and 556,369 output tokens, whose price equals the settled total to the nanodollar.
+
 **Next:** window 7 follows at once with `shadcn-window.sh launch 7 <this window's copy>` (`--preflights 7`), only if window 6's evidence verifies. 67 cells remain.
 
 ## Files of the run
