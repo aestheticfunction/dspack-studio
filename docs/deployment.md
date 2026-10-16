@@ -46,8 +46,9 @@ nothing the exhibit consumes; evidence in #34). The owner disconnected it
 on 2026-08-04 (Workers & Pages → `dspack-studio` → Settings → Build →
 disconnect the Git repository); disconnecting stops future git-triggered
 builds only — the Worker, its versions, its route, and the custom domain
-are unaffected. The composer Worker never had such an integration; its
-deploys were always explicit.
+are unaffected. At the time the composer Worker had no such integration,
+and its deploys were explicit. By 2026-08-08 it had one: see the composer,
+below.
 
 The web build is self-sufficient on a clean checkout: `apps/web`'s `build`
 script generates the gated contract artifacts first (`packages/contracts/out`
@@ -158,13 +159,22 @@ npx wrangler deploy --config wrangler.jsonc
 npx playwright test --config playwright.composer-production.config.ts   # smoke against the deployed URL
 ```
 
-For a **continuously-deployed integration environment** (auto-deploy on push
-to a branch), attach a Cloudflare Workers Builds Git integration to the
-composer Worker in the dashboard (Workers & Pages → the composer Worker →
-Settings → Build), build command `pnpm build:deploy:composer`, deploy command
-`npx wrangler deploy --config wrangler.jsonc`. That is a
-dashboard-only, owner action; the explicit `deploy-composer` workflow above
-is the checked-in alternative and does not require it.
+**The integration deploys `main`.** Every merge to main has redeployed the
+composer through it:
+- during Phase 1B, each merge produced a new build id within minutes:
+  aestheticfunction/dspack-studio#100 about two minutes after its merge, #101
+  about three and #102 about six. The zero-cost baselines on the evidence
+  branches record each time (`docs/blocks/PHASE-1B-MILESTONE-REPORT.md`,
+  section 13);
+- the `deploy-composer` workflow has never been dispatched.
+
+So treat any merge to main, documentation included, as a composer redeploy.
+It changes the build id a hosted evaluation run is held to.
+
+The integration's settings live in the Cloudflare dashboard (Workers & Pages →
+the composer Worker → Settings → Build), and this repository does not record
+them. The build it needs is `pnpm build:deploy:composer`, deployed with
+`npx wrangler deploy --config wrangler.jsonc`, as the workflow does.
 
 **Stop any local agent on `localhost:8787` before running the composer
 production smoke.** The deployed page probes that port from the visitor's

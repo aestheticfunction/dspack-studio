@@ -2,7 +2,9 @@
 
 **Status: draft RFC, not proposed upstream.**
 
-This RFC moves to the dspack repository only if the Phase 1B decision rule passes (see [../BLOCKS.md](../BLOCKS.md), ADR-B3). Until then, blocks live in experimental sidecar files beside a packaged reference and never inside a synchronized contract. The reference implementation of everything structural below is `packages/composer-core/src/blocks/`; expansion semantics are implemented in Phase 1A against the goldens in `packages/block-bench/goldens/`.
+This RFC moves to the dspack repository only if the Phase 1B decision rule passes (see [../BLOCKS.md](../BLOCKS.md), ADR-B3).
+
+Phase 1B ended on 2026-10-16. Astryx passed clearly and shadcn/ui v3 passed, uncertain ([PHASE-1B-MILESTONE-REPORT.md](PHASE-1B-MILESTONE-REPORT.md)). The owner selected Phase 2 branch C, under which ratification waits until a second reference passes clearly ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md)). So the RFC stays here, not proposed upstream. Until then, blocks live in experimental sidecar files beside a packaged reference and never inside a synchronized contract. The reference implementation of everything structural below is `packages/composer-core/src/blocks/`; expansion semantics are implemented in Phase 1A against the goldens in `packages/block-bench/goldens/`.
 
 ## 1. Envelope
 

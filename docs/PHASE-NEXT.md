@@ -147,10 +147,19 @@ Governed interface patterns with typed data, state, and host-owned actions:
 a block call the model fills, expanded deterministically into an ordinary
 surface before S1/S2/S3. Planned and measured in [BLOCKS.md](BLOCKS.md)
 (roadmap, ADRs, decision rule) with the format in
-[blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md). Phase 0 (docs,
-pure schema module, draft sidecars, the offline bench) is inert; Phase 0.5
-fixes usage accounting; Phase 1A is a private, build-flagged PoC; nothing is
-proposed upstream before the Phase 1B decision rule passes.
+[blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md).
+
+Status (2026-10-16):
+- **Phases 0, 0.5 and 1A** landed in aestheticfunction/dspack-studio#88: the
+  docs and pure schema module, usage accounting, and a private, build-flagged
+  PoC. The deployed composer is unchanged.
+- **Phase 1B is complete.** Astryx passed the decision rule clearly; shadcn/ui
+  v3 passed, uncertain ([blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md)).
+- **Phase 2 is selected but not started.** The owner chose branch C, an
+  Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4
+  ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)).
+- **Nothing is proposed upstream.** Under branch C, ratification waits for a
+  second reference to pass clearly.
 
 ## The first task
 

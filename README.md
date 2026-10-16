@@ -160,7 +160,7 @@ The proposal provider differs; **the deterministic authority does not**. Hosted 
 | `packages/agui-bridge` | lib | Pipeline events ↔ AG-UI events |
 | `packages/replay` | lib | Recorded-run fixtures, recorder, timeline player |
 | `packages/scenarios` | lib | Studio scenario configs and fixtures |
-| `packages/block-bench` | lib | Offline interface-blocks bench: request goldens, protocol sizes, the governance leak table ([docs/BLOCKS.md](docs/BLOCKS.md)) |
+| `packages/block-bench` | lib | Interface-blocks bench: the offline request goldens, protocol sizes and governance leak table, and the Phase 1B live evaluation harness (`live/`) ([docs/BLOCKS.md](docs/BLOCKS.md); results in [docs/blocks/PHASE-1B-MILESTONE-REPORT.md](docs/blocks/PHASE-1B-MILESTONE-REPORT.md)) |
 
 Published dependencies doing the heavy lifting: `@aestheticfunction/dspack-gen` (generation + gates), `@aestheticfunction/dspack-emit` (emission), `@aestheticfunction/dspack-export` (discovery), `@aestheticfunction/dspack-spec` (the validation harness).
 

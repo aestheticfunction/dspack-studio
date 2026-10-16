@@ -18,6 +18,15 @@ The pinned copy is byte-identical to that upstream commit — the same artifact 
 
 > **The pinned contract is not current shadcn/ui coverage.** It describes 8 of the 32 components the design system's contract now governs. Do not cite this repo's catalogs, scenario surfaces, or renderer coverage as a statement about shadcn/ui support.
 
+## What the pin covers, and what it does not
+
+- **It covers one file:** `packages/contracts/shadcn-ui.dspack.json`, the exhibit's shadcn/ui **v2.3.0** contract. `check-sync.mjs` holds that file to the pinned bytes.
+- **It does not cover the composer's shadcn/ui 3.2.0 reference.**
+  - That reference is authored in `apps/composer/shadcn-v3-project/` and byte-copied to `packages/contracts/shadcn-v3.dspack.json`.
+  - The interface blocks bind to it: the shadcn/ui v3 sidecar names version 3.2.0 and its digest (`docs/BLOCKS.md`), and the Phase 1B evaluation measured it.
+  - No pin and no upstream sync check covers it. The only guard is `apps/composer/lib/reference-sync.test.mjs`, which holds the two copies byte-identical to each other, not to any upstream commit.
+  - The upstream contract is recorded above at 3.0.0. This file does not claim that 3.2.0 exists upstream.
+
 ## Why the pin exists
 
 dspack#35 merged the production contract (a 4× vocabulary expansion) on 2026‑08‑05. The shadcn renderers, the emit profile, and the scenario surfaces here were all built against v2.3.0.
