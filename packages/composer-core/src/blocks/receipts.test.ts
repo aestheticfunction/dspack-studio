@@ -157,6 +157,15 @@ describe("the refinement mode, in words", () => {
     // Unknown or missing: the safe reading, as the block phase classifies it.
     expect(stopped("unknown").refinement).toEqual({ mode: "compact", outcome: "provider-failure" });
     expect(stopped(undefined).refinement).toEqual({ mode: "compact", outcome: "provider-failure" });
+    // A refusal sent before any provider call with a 503 (the kill switch, a limiter error) is classified
+    // by its status as a provider error, but its record shows it reached no model: it reads as refused.
+    const killSwitch = turn({
+      refinement: true,
+      progress: { status: "finished", attempts: [], outcome: "failed-adapter", block: trace({ refinement: { applied: true }, outcome: "provider-failure", providerError: { classification: "provider", message: "unavailable" } }) },
+      calls: [{ operation: "block", attempt: 0, source: "none", outcome: "refused", durationMs: 3 }],
+    });
+    expect(betaReceipt(killSwitch).refinement).toEqual({ mode: "compact", outcome: "refused" });
+    expect(describeBetaReceipt(betaReceipt(killSwitch))).toBe("block 1 request reached no model · surface no calls · budget 1 of 3 calls, 1 reached no model · compact refinement, stopped: the request was refused");
     expect(describeBetaReceipt(betaReceipt(refined(trace({ refinement: { applied: true }, outcome: "invariant-failure", invariant: ["S2: x"] }))))).toContain("compact refinement, stopped: the expansion failed its invariant checks");
   });
 
