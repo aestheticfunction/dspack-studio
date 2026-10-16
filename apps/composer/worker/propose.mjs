@@ -18,6 +18,7 @@
  */
 
 import { blocksBetaFor } from "./blocks-beta.mjs";
+import { operatorLogOn, operatorRecord } from "./operator-log.mjs";
 
 /* SINGLE AUTHORITY for the gateway + its mandatory privacy posture. Gateway log
    collection is ON by default and would retain the visitor's prompt; every call
@@ -361,6 +362,26 @@ async function rateLimited(env, request) {
 }
 
 export async function handlePropose(request, env) {
+  if (!operatorLogOn(env)) return proposeReply(request, env);
+  // The beta's operator log (operator-log.mjs): one shape-only line per
+  // request, written after the reply is made and never changing it.
+  const started = Date.now();
+  const note = {};
+  const operation = request.headers.get("x-composer-operation");
+  const response = await proposeReply(request, env, note);
+  let body;
+  try {
+    body = await response.clone().json();
+  } catch {
+    body = undefined;
+  }
+  console.log(JSON.stringify(operatorRecord({ status: response.status, body, maxCalls: note.maxCalls, operation, durationMs: Date.now() - started })));
+  return response;
+}
+
+/* The reply to one /api/propose request. `note`, given only when the beta's
+   operator log is on, learns the maxCalls the request was accepted with. */
+async function proposeReply(request, env, note) {
   if (request.method !== "POST") return refuse(405, { error: "method-not-allowed", message: "This endpoint accepts POST only." });
   if ((env?.HOSTED_AI ?? "on") !== "on" || !env?.AI) {
     return refuse(503, {
@@ -401,6 +422,7 @@ export async function handlePropose(request, env) {
   if (maxCalls !== 1 && maxCalls !== 2) {
     return refuse(400, { error: "invalid-request", message: "maxCalls must be 1 or 2." });
   }
+  if (note) note.maxCalls = maxCalls;
 
   let result;
   try {

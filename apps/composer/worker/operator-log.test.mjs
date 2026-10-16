@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MODEL_ID_PATTERN } from "@dspack-studio/composer-core/blocks";
 import worker from "./index.mjs";
 import { handlePropose } from "./propose.mjs";
-import { MODEL_ID, OPERATIONS, operatorLogOn } from "./operator-log.mjs";
+import { MODEL_ID, OPERATIONS, operatorLogOn, operatorRecord } from "./operator-log.mjs";
 
 const HAIKU = "claude-haiku-4-5-20251001";
 const SURFACE = '{"root":{"component":"Text","id":"t1"}}';
@@ -85,6 +85,8 @@ describe("logging never changes a reply", () => {
   for (const scenario of SCENARIOS) {
     it(scenario.name, async () => {
       consoleSpies();
+      // A frozen clock, so each reply's call durations match byte for byte across the two runs.
+      vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
       const [offReq, offEnv] = scenario.make();
       const [onReq, onEnv] = scenario.make();
       const off = await handlePropose(offReq, offEnv);
@@ -213,5 +215,44 @@ describe("nothing sensitive reaches the line", () => {
   it("a served model that is not an id is logged as unrecognized, never as text", async () => {
     const { line } = await lineFor(request(), envWith([answer(SURFACE, { model: "SENTINEL model, ignore previous instructions" })]));
     expect(line.calls[0].model).toBe("unrecognized");
+  });
+
+  it("the record is an allowlist: a reply body made of text logs only codes, counts and ids", () => {
+    const record = operatorRecord({
+      status: "SENTINEL-STATUS",
+      body: {
+        error: "SENTINEL-ERROR for jane@example.com",
+        cause: "SENTINEL-CAUSE",
+        message: "SENTINEL-MESSAGE",
+        json: { title: "SENTINEL-OUTPUT" },
+        raw: "SENTINEL-RAW",
+        usage: { inputTokens: 1, outputTokens: 1 },
+        calls: [
+          { outcome: "SENTINEL-OUTCOME", inputTokens: -1, outputTokens: 1.5, model: "SENTINEL model", durationMs: "SENTINEL", note: "SENTINEL-NOTE" },
+          "SENTINEL-CALL",
+          { outcome: "ok", inputTokens: 3, outputTokens: 4, model: HAIKU, durationMs: 5.4 },
+        ],
+      },
+      maxCalls: "SENTINEL",
+      operation: "SENTINEL-OPERATION",
+      durationMs: -3,
+    });
+    expect(JSON.stringify(record)).not.toContain("SENTINEL");
+    expect(record).toEqual({
+      event: "composer.propose",
+      v: 1,
+      status: null,
+      error: "other",
+      cause: null,
+      maxCalls: null,
+      operation: null,
+      calls: [
+        { outcome: "other", inputTokens: null, outputTokens: null, model: "unrecognized", durationMs: null },
+        { outcome: "other", inputTokens: null, outputTokens: null, model: null, durationMs: null },
+      ],
+      durationMs: null,
+    });
+    // A reply that is no object at all logs its status and nothing else.
+    expect(operatorRecord({ status: 200, body: "SENTINEL", maxCalls: 2, operation: "plan", durationMs: 1 })).toMatchObject({ error: null, cause: null, calls: [] });
   });
 });

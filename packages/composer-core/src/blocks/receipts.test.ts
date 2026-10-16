@@ -260,7 +260,7 @@ describe("the diagnostics export holds shapes, never content", () => {
     expect(t!.calls.map((c: Json) => c.operation)).toEqual(["plan", "block", "other"]);
     expect(t!.calls[2]).toEqual({ operation: "other", source: "other", outcome: "other", model: "unrecognized" });
     expect(t!.block).toMatchObject({ id: "auth-form", outcome: "fallback", fallback: { classification: "invalid-call" }, providerError: { classification: "provider" }, invariantCount: 1 });
-    expect(t!.block.attempts).toEqual([
+    expect(t!.block!.attempts).toEqual([
       { index: 0, outcome: "invalid", b1Issues: 1, b2Issues: 0, inputTokens: 1000, outputTokens: 50, durationMs: 400 },
       { index: 1, outcome: "other", b1Issues: 0, b2Issues: 1 },
     ]);
@@ -272,7 +272,13 @@ describe("the diagnostics export holds shapes, never content", () => {
     const odd = turn({ progress: { status: "finished", attempts: [], outcome: "Passed, I promise", block: trace({ selected: { id: "made-up-block", version: 1, intent: "x" } }) } });
     const [t] = diagnosticsExport([odd], { exportedAt: "2026-10-16T22:00:00.000Z", knownBlocks: KNOWN.blocks }).turns;
     expect(t!.outcome).toBe("other");
-    expect(t!.block.id).toBe("other");
+    expect(t!.block!.id).toBe("other");
+    // The outcome is one of the pipeline's codes and Composer's invariant failure, never a word that merely looks like one.
+    const word = turn({ progress: { status: "finished", attempts: [], outcome: "jane-example-com" } });
+    expect(diagnosticsExport([word], { exportedAt: "2026-10-16T22:00:00.000Z", knownBlocks: KNOWN.blocks }).turns[0]!.outcome).toBe("other");
+    const codes = ["passed", "failed-lint-exhausted", "failed-gate", "failed-adapter", "invariant-failure"];
+    const exported = diagnosticsExport(codes.map((outcome) => turn({ progress: { status: "finished", attempts: [], outcome } })), { exportedAt: "2026-10-16T22:00:00.000Z", knownBlocks: KNOWN.blocks });
+    expect(exported.turns.map((t) => t.outcome)).toEqual(codes);
   });
 
   it("holds no estimate: a figure the provider did not report is absent, never zero", () => {

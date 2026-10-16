@@ -249,10 +249,48 @@ function BlockRow({ turn }: { turn: BuildTurn }) {
  */
 function TurnReceipt({ turn }: { turn: BuildTurn }) {
   if (turn.planPending || turn.progress.status === "streaming") return null;
-  return (
+  const receipt = (
     <p data-testid={`build-receipt-${turn.id}`} style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--fg-dim)", margin: "4px 0" }}>
       {describeCalls(turn.calls)}
       {turn.timings ? ` · ${describeTimings(turn.timings)}` : ""}
+    </p>
+  );
+  if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+    return (
+      <>
+        {receipt}
+        <BetaReceipt turn={turn} />
+      </>
+    );
+  }
+  return receipt;
+}
+
+/**
+ * The beta's receipt (experimental; docs/blocks/BETA-OPERATIONS.md), beside
+ * the default one: block and surface calls apart, the exact model-call budget,
+ * the refinement mode in words and each call's served model. Provider-reported
+ * figures only, read through the guarded import.
+ */
+function BetaReceipt({ turn }: { turn: BuildTurn }) {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      void import("../../experimental/blocks-runtime")
+        .then((runtime) => {
+          if (!cancelled) setText(runtime.describeBetaReceipt(runtime.betaReceipt(turn, runtime.BLOCK_BUDGET)));
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [turn]);
+  if (!text) return null;
+  return (
+    <p data-testid={`build-beta-receipt-${turn.id}`} style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--fg-dim)", margin: "4px 0" }}>
+      {text}
     </p>
   );
 }

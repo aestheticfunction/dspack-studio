@@ -13,9 +13,10 @@
 // - workers_dev and preview_urls are off, so no workers.dev or preview URL
 //   bypasses Access;
 // - keep_vars keeps the switches set in the dashboard, and this file declares
-//   no vars: BLOCKS_BETA (the block switch, apps/composer/worker/blocks-beta.mjs)
-//   and HOSTED_AI (the kill switch; absent means on) live only in the dashboard,
-//   so a deploy never resets either.
+//   no vars: BLOCKS_BETA (the block switch, apps/composer/worker/blocks-beta.mjs),
+//   HOSTED_AI (the kill switch; absent means on) and BETA_OPERATOR_LOG (the
+//   operator log, apps/composer/worker/operator-log.mjs; on only when exactly
+//   "on") live only in the dashboard, so a deploy never resets any of them.
 //
 // Same Worker code and runtime as production: GET /api/models, POST /api/propose
 // through the shared ds-ai-gateway, every other request to the asset layer.

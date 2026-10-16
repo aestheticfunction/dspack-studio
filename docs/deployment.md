@@ -288,6 +288,20 @@ dashboard as type Text and never in the config, says what the beta offers:
 - Production has no `BLOCKS_BETA`, and its `/api/models` reply is byte-identical
   to before; a Worker test pins the bytes.
 
+**The operator log.** The beta Worker's `BETA_OPERATOR_LOG` variable, set in
+the dashboard as type Text to exactly `on`, writes one shape-only JSON line per
+`/api/propose` request to Workers Logs: the status, the error and cause codes,
+`maxCalls`, the operation, each call's outcome, tokens, served model and
+duration, and the request's duration
+([blocks/BETA-OPERATIONS.md](blocks/BETA-OPERATIONS.md), "The operator log").
+- Never the prompt, the schema, the output, an error's message, a header or an
+  address; and the reply is byte-identical with the log on or off.
+- Any other value, or none, writes nothing. Production never sets it, and
+  its `wrangler.jsonc` does not name it; a test holds both configs so.
+- The experimental client names each request's operation in an
+  `x-composer-operation` header, so the request body stays byte-identical. The
+  default build never sends the header.
+
 **Before the first dispatch (owner).**
 1. **Cloudflare Access.** A self-hosted Access application for
    `composer-beta.aesthetic-function.com` covering the whole hostname, with one
@@ -363,14 +377,20 @@ dashboard as type Text and never in the config, says what the beta offers:
   headroom below the $10 hard limit.
 
 A pause turns blocks off and sets `HOSTED_AI` to `off` on the beta until the
-owner decides to resume. Until the beta has operator signals (release plan step
-5), the owner reads these by hand:
-- the beta's receipts give each call's usage and outcome; a reply that
-  succeeded puts its model on each of its calls, and a failed one names none;
-- each `/api/propose` reply's `calls` list names the model that served every
-  call that got a response, an unusable output included (the browser's network
-  panel); a call the provider rejected got none, and names none;
-- the gateway's dashboard gives errors and spend.
+owner decides to resume. The owner reads these signals (release plan step 5;
+[blocks/BETA-OPERATIONS.md](blocks/BETA-OPERATIONS.md), "Alarms"); no alert is
+automated:
+- the operator log, when `BETA_OPERATOR_LOG` is `on`: each request's status and
+  codes, and each call's outcome, tokens and served model;
+- the beta's receipts: block and surface calls apart, the exact budget, the
+  refinement mode, and the model that served each call, which each call names
+  for itself (a call that got a response, an unusable output included); a call
+  the provider rejected got no response, and names none;
+- a diagnostics file a beta user chooses to save and share: call records,
+  timings, outcomes and the shape of each block trace;
+- the gateway's dashboard: errors and spend.
+
+None of these is ADR-B3 decision evidence; only the owner-run canary is.
 
 ## Recommended topology
 

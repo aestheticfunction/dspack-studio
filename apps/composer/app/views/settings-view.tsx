@@ -368,6 +368,73 @@ function ExperimentalSection({ experimental, setExperimental }: { experimental: 
           </li>
         ))}
       </ul>
+      <DiagnosticsExport />
+    </section>
+  );
+}
+
+/**
+ * The beta's diagnostics file (experimental; docs/blocks/BETA-OPERATIONS.md):
+ * saved only when the user asks, on this device, and sent nowhere. It holds
+ * each build's call records, timings, outcome and block-trace shape, built by
+ * composer-core diagnosticsExport, which carries nothing anyone wrote. The
+ * runtime is read when the section opens, so saving makes no request.
+ */
+function DiagnosticsExport() {
+  const { buildTurns } = useComposer();
+  type BlockRuntime = typeof import("../../experimental/blocks-runtime");
+  const [runtime, setRuntime] = useState<BlockRuntime | "loading" | "failed">("loading");
+  useEffect(() => {
+    let cancelled = false;
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      void import("../../experimental/blocks-runtime").then(
+        (loaded) => {
+          if (!cancelled) setRuntime(loaded);
+        },
+        () => {
+          if (!cancelled) setRuntime("failed");
+        },
+      );
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const save = () => {
+    if (typeof runtime !== "object") return;
+    const exportedAt = new Date().toISOString();
+    const blob = new Blob([`${JSON.stringify(runtime.diagnosticsFile(buildTurns, exportedAt), null, 2)}\n`], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `composer-beta-diagnostics-${exportedAt.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+  const builds = buildTurns.length;
+  return (
+    <section aria-labelledby="diagnostics-h" data-testid="diagnostics" style={{ marginTop: 18 }}>
+      <h3 id="diagnostics-h" style={{ fontSize: 14, fontWeight: 600, margin: "0 0 6px" }}>
+        Diagnostics
+      </h3>
+      <p style={{ fontSize: 13, color: "var(--fg-body)", maxWidth: 640 }}>
+        Save a file that describes this session&apos;s builds, to share with the beta&apos;s operator if you choose. It holds each build&apos;s
+        call records, timings, outcome and the shape of its block trace. It holds no prompt, schema, generated output, surface content,
+        credential, entered value or action parameter. Saving it sends nothing anywhere. It is field data from one session: descriptive only,
+        and never ADR-B3 decision evidence.
+      </p>
+      <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "8px 0" }} data-testid="diagnostics-status">
+        {runtime === "failed"
+          ? "The diagnostics could not be prepared in this session."
+          : builds === 0
+            ? "There are no builds in this session yet."
+            : `The file covers this session's ${builds} ${builds === 1 ? "build" : "builds"}.`}
+      </p>
+      <button type="button" className="st-btn" onClick={save} disabled={builds === 0 || typeof runtime !== "object"} data-testid="diagnostics-export">
+        Download build diagnostics
+      </button>
     </section>
   );
 }
