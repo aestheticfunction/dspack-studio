@@ -1,0 +1,99 @@
+(node:5579) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> @dspack-studio/block-bench@0.1.0 eval:live /home/user/dspack-studio/packages/block-bench
+> tsx live/run.ts -- --provider hosted --corpus 2 --reference shadcn-v3 --prompts rt-01,rt-02,rt-03,rt-04,rt-05,rt-06,af-01,af-02,af-03,af-04,af-05,af-06,gs-01,gs-02,gs-03,gs-04,gs-05,gs-06,nb-01,nb-02,nb-03,nb-04,nb-05,nb-06 --max-total-usd 77 --max-total-requests 1275 --max-requests 123 --spacing-ms 12000 --resume live/runs/1b-stage3-shadcn-2026-10-15
+
+(node:5591) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5607) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5607) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "at": "2026-10-16T00:49:32.432Z",
+  "sidecars": [
+    {
+      "reference": "shadcn-v3",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    }
+  ],
+  "drafts": false,
+  "baseUrl": "https://composer.aesthetic-function.com",
+  "buildId": "Dyml8RSqfWynKU1KbVuZI",
+  "worker": {
+    "shape": "per-call-model",
+    "status": 400,
+    "error": "invalid-request",
+    "calls": [],
+    "capabilities": [
+      "per-call-model"
+    ]
+  },
+  "models": [
+    "scripted",
+    "hosted-ai"
+  ]
+}
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-structural: failed-adapter via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-03|fresh: passed via primitive in 1 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-03|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-03|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-03|refine-structural: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-04|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-04|refine-structural: passed via primitive in 2 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-04|refine-structural: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-04|refine-structural: passed via primitive in 2 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-04|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-04|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-04|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-04|refine-remove: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-04|refine-structural: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-05|fresh: failed-adapter via primitive in 1 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-05|refine-content: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-05|refine-add: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-05|refine-remove: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-05|refine-structural: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-05|fresh: failed-lint-exhausted via primitive in 3 attempt(s), 4 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-content: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-add: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-remove: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-05|refine-structural: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-05|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-05|refine-structural: failed-lint-exhausted via primitive in 3 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-05|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-05|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+stopped on shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-05|refine-add, a call the run cannot trust: usage-missing: a refine call (provider-error) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it
+
+run 2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 457 of 480 cells (413 reused); report at live/runs/1b-stage3-shadcn-2026-10-15/REPORT.md
+shadcn-v3 on hosted-ai:claude-haiku-4.5: pass
+  tokens per success fell 63.7% against production (needs 30%)
+  pass rate 86.5% is within 5 points of production (80.8%)
+  pass rate 86.5% is within 5 points of capped (85.6%)
+stopped, a call the run cannot trust (not an arm result): usage-missing: a refine call (provider-error) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it
+No record was logged for the cell in flight, and what it spent is in requests.jsonl. Once the cause is understood, resume with: --resume live/runs/1b-stage3-shadcn-2026-10-15
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @dspack-studio/block-bench@0.1.0 eval:live: `tsx live/run.ts -- --provider hosted --corpus 2 --reference shadcn-v3 --prompts rt-01,rt-02,rt-03,rt-04,rt-05,rt-06,af-01,af-02,af-03,af-04,af-05,af-06,gs-01,gs-02,gs-03,gs-04,gs-05,gs-06,nb-01,nb-02,nb-03,nb-04,nb-05,nb-06 --max-total-usd 77 --max-total-requests 1275 --max-requests 123 --spacing-ms 12000 --resume live/runs/1b-stage3-shadcn-2026-10-15`
+Exit status 3

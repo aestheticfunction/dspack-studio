@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run is open.** Windows 1 to 6 are complete. Each stopped cleanly at its request cap, and together they cover 413 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
+**Status: the run is stopped, and waits for the owner.** Windows 1 to 6 each stopped cleanly at its request cap. Window 7 stopped on a hold: a reply the run could not meter (below). Together they cover 457 of 480 cells.
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -413,6 +413,78 @@ There was no provider or policy failure. The nb prompts are the corpus's non-blo
   - 25,363,413 input and 556,369 output tokens, whose price equals the settled total to the nanodollar.
 
 **Next:** window 7 follows at once with `shadcn-window.sh launch 7 <this window's copy>` (`--preflights 7`), only if window 6's evidence verifies. 67 cells remain.
+
+## Window 7 (2026-10-16): stopped on a hold
+
+**Under the owner's back-to-back authorization,** launched with `shadcn-window.sh launch 7 94cc6f9` once window 6's evidence had verified.
+
+**Before the first paid call:** every no-cost check was repeated from 00:49:23Z to 00:49:30Z, and all passed (`.window-7.preresume-checks.txt`):
+- main at `7e260c3` and clean, and no harness or monitor running;
+- 471 evidence checksum entries;
+- the run directory byte-identical to window 6's copy at `94cc6f9`:
+  - 626 requests, all finalized, nothing held;
+  - six windows, each stopped at its cap;
+- the frozen tooling and the monitor's configuration;
+- the probe equal to the baseline apart from `at`;
+- the resume command through the harness's parser and planner;
+- six preflights, so `--preflights 7`;
+- the operator record holding invocations 1 to 6.
+
+**The invocation:** 00:49:30Z to 01:02:59Z, exit 3.
+- **Its stop:** an integrity stop the harness made itself, at a reply it could not meter (below), after 61 requests.
+- **Not a cap stop:** window 7 is the first window not to end at its request cap.
+
+**The hold:** request #61, at 01:02:53.697Z, the first request of production nb-05's add refinement.
+- **The reply:** the Worker reported one call, a `provider-error` that had reached the provider, with no token counts.
+  - It was not the zero-cost busy refusal, which the harness releases and retries.
+  - So the harness could not show whether the provider charged for the call.
+- **What the harness did:**
+  - it settled the request conservatively, as "usage not verified", at $1.118208, the most a request can cost;
+  - it logged no record for the cell in flight;
+  - it stopped the run with `usage-missing: a refine call (provider-error) reached the provider without reporting its input tokens as a whole count, so the run cannot meter it`.
+- **What the Worker sends in that shape** (its code on main at `7e260c3`, which production serves): its 502 `provider-unavailable`, with cause `provider`. It sends that when the gateway or provider rejected the request's only call, and the Worker could not class the rejection as a busy 429:
+  - a status other than 429;
+  - a rejection carrying a model result, such as a usage figure;
+  - or a rejection whose status it could not read for this call, with a message that names no rate limit.
+
+  A timeout is ruled out: the whole request took 5.6 s, against the Worker's 45 s limit.
+- **What would show the cause:** the AI gateway's log for that request, at about 01:02:54Z on 2026-10-16. It records the status and anything charged.
+
+**Window 7's ledger:** 61 requests, each with one reservation and one final.
+- **56 settled** at the reported usage, every one on `claude-haiku-4-5-20251001`: $4.03608345, which is $3.843889 at list price.
+- **4 zero-cost busy refusals** (#8, #16, #30 and #42, each a 503 busy reply). Each was released at $0 and retried once, after 30 s, and each retry settled.
+- **1 hold:** #61, at $1.118208.
+- **Committed:** $5.15429145, the hold included, all of it on 2026-10-16 UTC.
+- **Nothing left open.**
+- **Window 6's records are unchanged.** Its ledger, records and pacing entries are byte-for-byte prefixes of the files as window 7 left them.
+
+**The run so far:**
+- **Requests:** 687 of its 1,275: 674 settled, 12 released at $0 and 1 held.
+- **Committed:** $34.70681235 of its $77 ceiling, the hold's $1.118208 included. The settled requests alone come to $33.58860435 ($31.989147 at list price).
+- **Cells:** 457 of 480. The 23 left are production nb-05's add, remove and structural refinements, and nb-06's 20 cells.
+- **Daily spend:** with the fee, $15.52678365 on 2026-10-16 UTC, the hold included, within the owner's $40 daily limit.
+
+**Window 7's cells:** 44, covering the rest of nb-03, then nb-04 and the first cells of nb-05. 36 completed, of which 28 passed, and 8 were skipped. Every failure is an ordinary arm result that is not re-run:
+- **unusable output, twice** (classified output): 6 cells:
+  - capped: nb-03's structural refinement;
+  - production: nb-03's and nb-04's structural refinements, and nb-04's remove;
+  - block: nb-05 fresh, so its four refinements were skipped;
+  - block-positional: nb-04's structural refinement;
+- **lint repairs ran out:** 2 cells:
+  - block-positional nb-05 fresh, so its four refinements were skipped;
+  - capped nb-05's structural refinement.
+
+No cell ended in a provider or policy failure. In all 12 block-arm cells of the nb prompts that ran, the plan selected no block, and the cell took the primitive path.
+
+**Window 7's tokens:** 62 provider calls in the window's records, 13 of which returned unusable output. They used 3,626,384 input and 43,501 output tokens. Priced at Claude Haiku 4.5's rates, they equal the window's settled total exactly. The held request's call reported no tokens, and is in no record.
+
+**The monitor:** exit 0, after a HOLD line.
+- It saw all 61 requests.
+- It read the live build 27 times, always `Dyml8RSqfWynKU1KbVuZI`.
+- It allowed the four refusals within its schedule. Each was the only one in a row, and together they took 120 s of backoff.
+- At the hold it logged `HOLD (settlement)` and waited, as its rules say, for the harness to stop by itself. The harness wrote its stop record and exited within the 15 s grace.
+
+**Next:** the run waits for the owner, and nothing more is sent until the owner decides. The operator's launch script refuses a run that holds a request, so a resume first needs the owner's decision on this hold.
 
 ## Files of the run
 

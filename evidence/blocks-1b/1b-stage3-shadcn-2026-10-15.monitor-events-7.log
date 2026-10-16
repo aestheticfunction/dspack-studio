@@ -1,0 +1,38 @@
+2026-10-16T00:49:30.430Z monitor up: window 7, run live/runs/1b-stage3-shadcn-2026-10-15, harness process group 5576, waiting for preflight.resume-6.json; limits {"backoffMs":[30000,60000,120000,240000],"maxReleased":8,"maxBackoffSeconds":600,"maxProviderFailures":1,"maxRequestsPerWindow":123,"openRequestSeconds":600,"buildCheckSeconds":30,"maxUnreadableBuildSeconds":300,"preflightWaitSeconds":180,"holdGraceSeconds":15,"spacingSeconds":12,"progressEvery":40}
+2026-10-16T00:49:34.445Z window opened 2026-10-16T00:49:32.432Z: build Dyml8RSqfWynKU1KbVuZI, code 51c80cec7a65, corpus blocks-1b v2, shadcn-v3
+2026-10-16T00:49:34.447Z the run's lock names pid 5607, inside --pgid 5576: the harness
+2026-10-16T00:49:36.515Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:50:06.548Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:50:38.582Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:50:58.601Z a refusal released at no cost: 2026-10-16T00:49:32.432Z~ddbd660d-7f85-486c-b98d-d9a44e2a4dd3#8, 1 in a row; the harness waits 30 s if it retries (1 released, 30 s of backoff in this window)
+2026-10-16T00:51:08.612Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:51:40.649Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:52:10.683Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:52:42.720Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:52:54.731Z a refusal released at no cost: 2026-10-16T00:49:32.432Z~ddbd660d-7f85-486c-b98d-d9a44e2a4dd3#16, 1 in a row; the harness waits 30 s if it retries (2 released, 60 s of backoff in this window)
+2026-10-16T00:53:12.753Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:53:42.796Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:54:14.832Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:54:44.866Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:55:16.901Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:55:46.931Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:56:00.943Z a refusal released at no cost: 2026-10-16T00:49:32.432Z~ddbd660d-7f85-486c-b98d-d9a44e2a4dd3#30, 1 in a row; the harness waits 30 s if it retries (3 released, 90 s of backoff in this window)
+2026-10-16T00:56:18.966Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:56:48.997Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:57:21.029Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:57:51.062Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:58:21.092Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:58:43.113Z a refusal released at no cost: 2026-10-16T00:49:32.432Z~ddbd660d-7f85-486c-b98d-d9a44e2a4dd3#42, 1 in a row; the harness waits 30 s if it retries (4 released, 120 s of backoff in this window)
+2026-10-16T00:58:53.124Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:59:23.154Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T00:59:55.188Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:00:25.219Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:00:55.250Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:01:07.262Z 40 cells, 52 requests sent, 48 settled, 4 released (120 s of backoff), 0 provider failures, outcomes {'passed': 25, 'failed-adapter': 6, 'skipped': 8, 'failed-lint-exhausted': 1}
+2026-10-16T01:01:27.285Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:01:59.319Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:02:29.351Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:02:59.378Z HOLD (settlement): 2026-10-16T00:49:32.432Z~ddbd660d-7f85-486c-b98d-d9a44e2a4dd3#61 held at $1.118208, its usage not verified (a reply the run cannot trust). The harness halts itself on such a reply, or carries on with one that passed its integrity checks: it has 5.3 s to show it is halting, and 15 s to exit from then
+2026-10-16T01:02:59.381Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:02:59.433Z its pacing entry is written: the harness is ending its window by itself, and has 15 s to exit
+2026-10-16T01:02:59.483Z the harness stopped itself after the hold: 44 cells, 61 requests sent, 56 settled, 4 released (120 s of backoff), 0 provider failures, outcomes {'passed': 28, 'failed-adapter': 6, 'skipped': 8, 'failed-lint-exhausted': 2}
