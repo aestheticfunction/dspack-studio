@@ -66,6 +66,7 @@ export {
   provenanceStatus,
   pruneProvenance,
   PROVENANCE_MAX_BYTES,
+  trustedProvenance,
   type BlockProvenanceEntry,
   type InertProvenance,
   type ProvenanceRecord,
@@ -75,3 +76,14 @@ export { recheckBlockChoice, reconcileBlockChoice, selectBlockDeterministic, wit
 export { eligibleBlocks, liveBaseDigest, type EligibilityInput, type IneligibleReason } from "./eligibility";
 export { gateBlocksBeta, parseBlocksBeta, type BlocksBetaKnown, type BlocksBetaOff, type BlocksBetaReason, type BlocksBetaSwitch } from "./beta";
 export { b0Issues, checkActions, emitCheck, emittedActionNames, loadBlocks, type EmitCheck, type LoadedBlocks } from "./load";
+export { actionComponents, actionEvents, actionIssues, MAX_ACTION_NAMES, templateActionNames } from "./actions";
+export {
+  ACTION_MANIFEST_VERSION,
+  actionManifest,
+  type ActionManifest,
+  type ActionManifestInput,
+  type ManifestAction,
+  type ManifestBlock,
+  type ManifestReference,
+  type ManifestSurface,
+} from "./manifest";

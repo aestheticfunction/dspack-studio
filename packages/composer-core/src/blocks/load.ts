@@ -10,12 +10,15 @@
  *   props only (none on sub-components or prop-less components), enum values
  *   from the contract, and an id wherever a profile join keys on it. (The
  *   schema's unroll depth constrains decoding, not the S1 surface gate, so it
- *   does not bind an expansion.) A block that fails B0 is disabled and reported; the others
- *   stay usable.
+ *   does not bind an expansion.) H1 belongs to B0 too: every node the profile
+ *   gives an action has an id built only from literals and enum props, and the
+ *   names the template can emit equal its declared actions (actions.ts). A
+ *   block that fails B0 is disabled and reported; the others stay usable.
  * - emitCheck: the representability check every expansion passes before the
  *   pipeline, and the source of B2's emitted action names.
  */
 import { emitSurface, type Profile } from "@aestheticfunction/dspack-emit";
+import { actionIssues } from "./actions";
 import type { CallIssue } from "./call";
 import { contractDigest } from "./digest";
 import { alwaysPresent, parseBlocksSidecar, rootScope, specAtPath, type BlockDefinition, type BlocksSidecar, type Scope, type TemplateChild } from "./schema";
@@ -100,6 +103,7 @@ export function b0Issues(block: BlockDefinition, view: GenerationView): string[]
   };
 
   walkNode(block.template as unknown as Json, "template", rootScope(block));
+  issues.push(...actionIssues(block, view.actionComponents));
   return issues;
 }
 

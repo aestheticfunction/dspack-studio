@@ -242,6 +242,8 @@ export interface ComposerState {
   importProject: (text: string) => { ok: true; name: string } | { ok: false; error: string };
   /** Export a project to a downloadable, portable file. */
   exportProject: (id: string) => void;
+  /** Interface blocks (experimental): a project's block provenance, which its project export and the beta's Catalog export carry. Always empty in default builds. */
+  blockProvenanceFor: (projectId: string) => Record<string, unknown>;
   /** Open a packaged reference as a read-only EXAMPLE workspace (ephemeral —
    *  never in "Your projects", pristine on every open, session edits only). */
   openExample: (referenceId: string) => void;
@@ -641,6 +643,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   );
 
   /**
+   * Interface blocks (experimental): a project's block provenance, for its
+   * project export and the beta's Catalog export (docs/blocks/HOST-ACTIONS.md).
+   * An Example session keeps its own in memory. Default builds read none.
+   */
+  const blockProvenanceFor = useCallback(
+    (id: string): Record<string, unknown> =>
+      process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" ? (exampleProject && id === exampleProject.id ? sessionProvenance.current : loadBlockProvenance(id)) : {},
+    [exampleProject],
+  );
+
+  /**
    * Export a project to a downloadable file — its identity plus its governed
    * vocabulary, nothing machine-specific. The OPEN project exports exactly
    * what's loaded (this session's edits included); a reference or imported
@@ -684,13 +697,12 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       const projectFlows = id === activeProjectId ? flows : loadFlowsStore(id);
       // Interface blocks (experimental): provenance is project data and rides
       // along, additive like flows. Default builds export none.
-      const blockProvenance =
-        process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" ? (exampleProject && id === exampleProject.id ? sessionProvenance.current : loadBlockProvenance(id)) : {};
+      const blockProvenance = blockProvenanceFor(id);
       downloadProjectExport(
         buildProjectExport({ name: p.name, description: p.description, vocab, exportedAt: new Date().toISOString(), flows: projectFlows, blockProvenance }),
       );
     },
-    [activeProjectId, contract, profile, manifest, flows, exampleProject],
+    [activeProjectId, contract, profile, manifest, flows, blockProvenanceFor],
   );
 
   /** Return to the hub without loading a project (ends an example session). */
@@ -1668,6 +1680,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       deleteProject,
       importProject,
       exportProject,
+      blockProvenanceFor,
       openExample,
       isExample: exampleProject !== null,
       duplicateExample,
@@ -1703,7 +1716,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       experimental,
       setExperimental,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread, flowComposition, experimental, setExperimental],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, blockProvenanceFor, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread, flowComposition, experimental, setExperimental],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

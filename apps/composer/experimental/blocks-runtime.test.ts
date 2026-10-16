@@ -9,8 +9,20 @@ import { createCallRecorder, foldBuildEvents, planDeterministic } from "@dspack-
 import { REFERENCES } from "../app/demo-data";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { BlocksBetaSwitch } from "@dspack-studio/composer-core/blocks";
-import { blockBinding, blockContext, blockRunFor, chooseBlock, planGoalWithBlocks, readBlocksBeta, runHostedBlockBuild, type BlockContext } from "./blocks-runtime";
+import { expandBlock, expansionDigest, type BlocksBetaSwitch } from "@dspack-studio/composer-core/blocks";
+import { catalogBundle } from "../app/catalog-export";
+import { browserEmit, contractSurfaces } from "../app/validation";
+import {
+  blockBinding,
+  blockContext,
+  blockRunFor,
+  chooseBlock,
+  planGoalWithBlocks,
+  readBlocksBeta,
+  runHostedBlockBuild,
+  withActionManifest,
+  type BlockContext,
+} from "./blocks-runtime";
 
 type Json = Record<string, any>;
 
@@ -412,5 +424,94 @@ describe("named calls only (Phase 2 plan, §5)", () => {
     const call = source.slice(start, source.indexOf("\n  });", start));
     expect(call).toContain('encoding: "named"');
     expect(source).not.toMatch(/positional/i);
+  });
+});
+
+describe("the beta's Catalog export carries the action manifest (docs/blocks/HOST-ACTIONS.md)", () => {
+  const AT = "2026-10-16T12:00:00.000Z";
+  const ACCEPTED = "ex.chat-1";
+
+  /** An Astryx project that accepted the auth-form example as a block surface, and its provenance entry. */
+  async function acceptedAuthForm() {
+    const base = (await blockBinding(reference))!;
+    const block = base.sidecar.blocks.find((b) => b.id === "auth-form")!;
+    const example = block.examples[0]!;
+    const expanded = expandBlock(block, example.call, { reference: base.sidecar.reference, intent: example.intent });
+    if (!expanded.ok) throw new Error(expanded.message);
+    const surface = expanded.surface as unknown as Json;
+    const live = { ...(astryx.contract as Json), examples: [...((astryx.contract as Json).examples as Json[]), { id: ACCEPTED, name: "Sign in", intent: example.intent, prompt: "a sign-in form", surface }] };
+    const entry = {
+      v: 1,
+      reference: base.sidecar.reference,
+      baseSha256: base.sidecar.baseSha256,
+      block: "auth-form",
+      version: 1,
+      intent: example.intent,
+      blockSchemaSha256: "a".repeat(64),
+      encoding: "named",
+      call: example.call,
+      expansionDigest: await expansionDigest(surface),
+    };
+    return { live, entry, surface };
+  }
+
+  /** Exactly what Preview exports: the app's own emit, today's bundle, then the manifest. */
+  async function exported(live: Json, provenance: Record<string, unknown>) {
+    const emit = browserEmit(live, astryx.profile as Json, contractSurfaces(live));
+    const bundle = catalogBundle(emit, AT);
+    const out = await withActionManifest(bundle, { surfaces: emit.surfaces ?? [], examples: (live.examples as Json[]) ?? [], provenance });
+    return { bundle, out: out as Json };
+  }
+
+  it("adds the manifest before exportedAt and changes nothing else; the accepted block surface binds, the reference's own examples bind nothing", async () => {
+    const { live, entry } = await acceptedAuthForm();
+    const { bundle, out } = await exported(live, { [ACCEPTED]: entry });
+    expect(Object.keys(out)).toEqual(["a2uiCatalog", "surfaces", "actionManifest", "exportedAt"]);
+    expect(out.a2uiCatalog).toEqual(bundle.a2uiCatalog);
+    expect(out.surfaces).toEqual(bundle.surfaces);
+    expect(out.exportedAt).toBe(AT);
+
+    const manifest = out.actionManifest as Json;
+    expect(manifest.v).toBe(1);
+    expect(manifest.surfaces.map((s: Json) => s.surface)).toEqual(bundle.surfaces.map((s) => s.name));
+    const accepted = manifest.surfaces.find((s: Json) => s.surface === ACCEPTED);
+    expect(accepted.block).toMatchObject({ id: "auth-form", version: 1, intent: "data-collection", streaming: "disable-actions-until-complete", expansionDigest: entry.expansionDigest });
+    expect(accepted.actions).toEqual([
+      { name: "auth_provider_github", declared: true },
+      { name: "auth_submit", declared: true },
+    ]);
+    for (const other of manifest.surfaces.filter((s: Json) => s.surface !== ACCEPTED)) {
+      expect(other.block).toBeNull();
+      expect(other.actions.every((a: Json) => a.declared === false)).toBe(true);
+    }
+  });
+
+  it("an accepted surface edited afterwards: the manifest is recomputed from its messages, with no binding and the new action undeclared", async () => {
+    const { live, entry, surface } = await acceptedAuthForm();
+    const edited = structuredClone(surface);
+    edited.root.children.push({ component: "button", id: "auth-delete-account", props: { label: "Delete account", variant: "secondary" } });
+    const examples = (live.examples as Json[]).map((e) => (e.id === ACCEPTED ? { ...e, surface: edited } : e));
+    const { out } = await exported({ ...live, examples }, { [ACCEPTED]: entry });
+    const accepted = (out.actionManifest as Json).surfaces.find((s: Json) => s.surface === ACCEPTED);
+    expect(accepted.block).toBeNull();
+    expect(accepted.actions).toContainEqual({ name: "auth_delete_account", declared: false });
+    expect(accepted.actions.every((a: Json) => a.declared === false)).toBe(true);
+  });
+
+  it("forged provenance on a reference example grants nothing", async () => {
+    const { live, entry } = await acceptedAuthForm();
+    const target = ((astryx.contract as Json).examples as Json[]).find((e) => e.surface)!.id as string;
+    const { out } = await exported(live, { [target]: { ...entry, expansionDigest: "f".repeat(64) }, [ACCEPTED]: entry });
+    const forged = (out.actionManifest as Json).surfaces.find((s: Json) => s.surface === target);
+    expect(forged.block).toBeNull();
+    expect(forged.actions.every((a: Json) => a.declared === false)).toBe(true);
+  });
+
+  it("no provenance at all: every surface is listed, and none binds", async () => {
+    const { live } = await acceptedAuthForm();
+    const { out } = await exported(live, {});
+    const surfaces = (out.actionManifest as Json).surfaces as Json[];
+    expect(surfaces.length).toBeGreaterThan(1);
+    for (const s of surfaces) expect(s.block).toBeNull();
   });
 });

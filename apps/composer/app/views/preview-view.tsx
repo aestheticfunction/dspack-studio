@@ -18,6 +18,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { A2uiCanvas, type A2uiClientAction, type Registry } from "@dspack-studio/a2ui-ingest";
+import { catalogBundle, downloadCatalog } from "../catalog-export";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
 import { isPendingStep, mintStepId, missingSurfaceMessage, nextFlowId, pendingStepMessage, type Flow, type FlowStep } from "../flows";
@@ -32,32 +33,6 @@ import {
 } from "../registries";
 
 type RegistryId = "wireframe" | PreviewRegistryId;
-
-/**
- * Export the emitted artifacts as a downloadable JSON bundle: the A2UI
- * catalog (the vocabulary an A2UI/AG-UI client consumes) plus every emitted
- * surface's messages (worked AG-UI payloads). Pure browser download — works
- * in demo mode and agent mode alike, with no filesystem round-trip, so a
- * hosted user can actually take the catalog away and use it.
- */
-function exportBundle(emit: NonNullable<ReturnType<typeof useComposer>["emit"]>, name: string): void {
-  const bundle = {
-    a2uiCatalog: emit.catalog,
-    surfaces: (emit.surfaces ?? [])
-      .filter((s) => s.messages)
-      .map((s) => ({ name: s.name, messages: s.messages })),
-    exportedAt: new Date().toISOString(),
-  };
-  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${name.replace(/[^a-z0-9-]+/gi, "-").toLowerCase() || "a2ui"}-catalog.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 const field = {
   fontFamily: "var(--mono)",
@@ -102,7 +77,7 @@ const draftFrom = (flow: Flow): FlowDraft => ({
 });
 
 export function PreviewView({ focus }: { focus?: "flows" } = {}) {
-  const { contract, emit, manifest, referenceExampleIds, isExample, mode, activeProject, projectPath, flows, saveFlows } = useComposer();
+  const { contract, emit, manifest, referenceExampleIds, isExample, mode, activeProject, projectPath, flows, saveFlows, blockProvenanceFor } = useComposer();
   // null = "no explicit choice yet" — the project's own design system draws
   // it. An explicit pick survives until the project changes (B5).
   const [registryId, setRegistryId] = useState<RegistryId | null>(null);
@@ -117,6 +92,27 @@ export function PreviewView({ focus }: { focus?: "flows" } = {}) {
 
   const catalog = emit?.catalog;
   const surfaces = (emit?.surfaces ?? []).filter((s) => s.messages);
+
+  /**
+   * The Catalog export (catalog-export.ts). The beta's experimental build adds
+   * its per-surface action manifest (docs/blocks/HOST-ACTIONS.md); if that
+   * cannot be built, today's export goes out instead, which binds nothing.
+   */
+  const exportCatalog = (current: NonNullable<typeof emit>, name: string) => {
+    const bundle = catalogBundle(current, new Date().toISOString());
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      const provenance = activeProject ? blockProvenanceFor(activeProject.id) : {};
+      const examples = (contract?.examples as Array<{ id?: unknown; surface?: unknown }> | undefined) ?? [];
+      void import("../../experimental/blocks-runtime")
+        .then((runtime) => runtime.withActionManifest(bundle, { surfaces: current.surfaces ?? [], examples, provenance }))
+        .then(
+          (withManifest) => downloadCatalog(withManifest, name),
+          () => downloadCatalog(bundle, name),
+        );
+      return;
+    }
+    downloadCatalog(bundle, name);
+  };
   // A surface a person reads by its TITLE — the goal that produced it, or the
   // name someone authored — with `ex.chat-1` kept beside it for audit (B7).
   const entriesById = useMemo(() => surfaceEntriesById(contract?.examples), [contract]);
@@ -394,7 +390,7 @@ export function PreviewView({ focus }: { focus?: "flows" } = {}) {
         <button
           className="st-btn st-btn--dashed"
           style={{ marginLeft: "auto" }}
-          onClick={() => emit && exportBundle(emit, manifest?.name ?? "a2ui")}
+          onClick={() => emit && exportCatalog(emit, manifest?.name ?? "a2ui")}
           data-testid="export-catalog"
           title="Download the emitted A2UI catalog + surface messages as JSON"
         >

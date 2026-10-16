@@ -16,7 +16,8 @@
  * phase, then the SAME runPipeline with its attempt 0 decided), provenance
  * for accepted block surfaces, and the status Settings shows. Phase 2 adds
  * the beta's runtime switch (docs/blocks/PHASE-2-RELEASE-PLAN.md, §6), read
- * from /api/models before every build.
+ * from /api/models before every build, and the action manifest the beta's
+ * Catalog export carries (§7; docs/blocks/HOST-ACTIONS.md).
  */
 import { loadProfile, type Profile } from "@aestheticfunction/dspack-emit";
 import { AdapterOutputError } from "@aestheticfunction/dspack-gen/adapter-types";
@@ -34,6 +35,7 @@ import {
   type ModelCallRecord,
 } from "@dspack-studio/composer-core";
 import {
+  actionManifest,
   budgetedInner,
   buildProvenanceEntry,
   createBudget,
@@ -52,6 +54,7 @@ import {
   scriptedBlockScript,
   selectBlockDeterministic,
   withBlockChoice,
+  type ActionManifest,
   type BlockDefinition,
   type BlockPhaseDeps,
   type BlockSeed,
@@ -62,11 +65,13 @@ import {
   type ErrorKind,
   type IneligibleReason,
   type LoadedBlocks,
+  type ManifestReference,
   type StructuralAdapter,
   type SwitchReason,
 } from "@dspack-studio/composer-core/blocks";
 import type { BuildRunInput } from "../app/agent-client";
 import { loadBlockProvenance, saveBlockProvenance } from "../app/block-provenance";
+import type { CatalogBundle } from "../app/catalog-export";
 import { REFERENCES } from "../app/demo-data";
 import { GatewayError, gatewayAdapter, recordedScripted, runGatewayRequest, scriptedRunAdapter } from "../app/hosted-build";
 import astryxSidecar from "./blocks/astryx.blocks.json";
@@ -497,6 +502,40 @@ export function importProvenance(store: ProvenanceStore, raw: unknown): Promise<
 
 export function exportProvenance(store: ProvenanceStore): Record<string, unknown> {
   return store.load();
+}
+
+// ---------------------------------------------------------------------------
+// The beta's Catalog export: the per-surface action manifest (§7, H2).
+
+/** Every packaged reference, as loaded (B0 and H1 applied), with the base contract and profile its surfaces emit under. */
+async function manifestReferences(): Promise<ManifestReference[]> {
+  return Promise.all(
+    Object.keys(SIDECARS).map(async (referenceId) => ({
+      loaded: await loadedFor(referenceId),
+      contract: REFERENCES[referenceId]!.contract as Json,
+      profile: baseProfile(referenceId).parsed,
+    })),
+  );
+}
+
+/**
+ * The Catalog export with its action manifest, placed before exportedAt;
+ * everything else in the bundle is untouched. A surface binds a block only
+ * when it verifiably is that block's expansion (composer-core actionManifest),
+ * whatever the switch says now: the manifest states what a surface is, and a
+ * host decides what to grant.
+ */
+export async function withActionManifest(
+  bundle: CatalogBundle,
+  input: {
+    surfaces: ReadonlyArray<{ name: string; messages?: unknown[] }>;
+    examples: ReadonlyArray<{ id?: unknown; surface?: unknown }>;
+    provenance: Record<string, unknown>;
+  },
+): Promise<Omit<CatalogBundle, "exportedAt"> & { actionManifest: ActionManifest; exportedAt: string }> {
+  const manifest = await actionManifest({ ...input, references: await manifestReferences() });
+  const { exportedAt, ...rest } = bundle;
+  return { ...rest, actionManifest: manifest, exportedAt };
 }
 
 // ---------------------------------------------------------------------------
