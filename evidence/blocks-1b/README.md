@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run is stopped, and waits for the owner.** Windows 1 to 6 each stopped cleanly at its request cap. Window 7 stopped on a hold: a reply the run could not meter (below). Together they cover 457 of 480 cells.
+**Status: the run resumes under the owner's exception.** Windows 1 to 6 each stopped cleanly at its request cap. Window 7 stopped on a hold: a reply the run could not meter. The owner authorized window 8 as an explicit exception for that hold (below). Together windows 1 to 7 cover 457 of 480 cells.
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -498,6 +498,29 @@ No cell ended in a provider or policy failure. In all 12 block-arm cells of the 
 
 **Next:** the run waits for the owner, and nothing more is sent until the owner decides. The operator's launch script refuses a run that holds a request, so a resume first needs the owner's decision on this hold.
 
+## The owner's decision on window 7's hold (2026-10-16)
+
+**The owner's check:** the AI Gateway entry for request #61 shows HTTP 502, with no recorded usage and no charge.
+
+**Authorized: window 8 only,** as an explicit exception for window 7's held request #61.
+- **The hold stays.** #61's $1.118208 stays in the ledger permanently, and the hold stays in the evidence. Nothing deletes, rewrites or reinterprets it, so the run's committed total keeps it.
+- **After a short cooldown,** every no-cost check is repeated, and the run resumes with `--preflights 8` under the unchanged frozen caps.
+- **The interrupted cell,** production nb-05's add refinement, re-runs from its beginning, as the harness's resume does for a cell that logged no record.
+- **Window 8 stops** on any new provider failure, hold, integrity issue, identity change or unexpected condition.
+- **If all 480 cells finish:** the final `--complete` verification, the complete evidence preserved and pushed, and the final decision results reported. Nothing merges, and Phase 2 does not begin.
+
+**The operator's scripts for window 8:**
+- **`.window-8.preresume-and-launch.sh`** is the window-k launch script with exactly the exception, and runs for window 8 only.
+  - Every check is the same, with two allowances. The run's state may hold window 7's #61, its two ledger lines exactly as window 7 left them. Window 7's pacing entry may end in its integrity stop, exactly as window 7 left it.
+  - Any other hold, or any other stop but a cap, fails the checks.
+  - It was tested offline against altered copies of the run: a second hold, #61 altered, window 7's stop made a cap, window 6's stop made an integrity stop, and another window number each fail.
+- **`.window-8.provider-failure-stop.sh`** carries out the owner's stop at a new provider failure.
+  - The frozen monitor allows one provider failure a window, and stops at the second. This script follows the monitor's events log and, at the first, sends SIGTERM to the harness's process group, as the monitor's own stops do.
+  - It signals only the group the monitor shows the harness inside, and never a harness already ending its window by itself.
+  - It was tested offline against a stand-in process group.
+
+**Nothing in the experiment changes:** the harness, corpus, sidecars, model, build, monitor and its configuration, verifier, caps and spacing are as they were.
+
 ## Files of the run
 
 - `1b-stage3-shadcn-2026-10-15/`: the run directory exactly as the harness left it (`packages/block-bench/live/runs/1b-stage3-shadcn-2026-10-15`), byte-identical. Each window's copy is the commit that preserved it:
@@ -517,6 +540,7 @@ No cell ended in a provider or policy failure. In all 12 block-arm cells of the 
 - `1b-stage3-shadcn-2026-10-15.window-1.verify.json` and `.txt`: the verifier's result and console for window 1's copy, as origin holds it at `1cc106b`.
 - `1b-stage3-shadcn-2026-10-15.window-1.reconcile.json` and `.txt`: the independent reconciliation of the same copy.
 - `1b-stage3-shadcn-2026-10-15.window-2.verify.json` and `.txt`, and `.window-2.reconcile.json` and `.txt`: the verifier's result and the reconciliation for window 2's copy, as origin holds it at `4c3db56`.
+- `1b-stage3-shadcn-2026-10-15.window-8.preresume-and-launch.sh` and `.window-8.provider-failure-stop.sh`: window 8's launch script and its stop at a new provider failure, under the owner's exception for window 7's hold (above).
 - `1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh` and `.window-k.preserve.sh`: the operator scripts for window 3 onward, under the owner's standing authorization.
   - **The launch script** generalizes window 2's. It takes the window number and the commit that preserved the previous window's copy, and reads the expected state from that copy:
     - the run directory byte-identical to it;

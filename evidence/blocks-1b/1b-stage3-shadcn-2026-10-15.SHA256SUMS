@@ -79,6 +79,8 @@ cbe4e2afd0c29285ffa12737f478cd928027865115817db239678816142f30b8  1b-stage3-shad
 3389cbeb1e4ffe2c24e81822d10e5848784277973c068608185e8446d837022a  1b-stage3-shadcn-2026-10-15.window-7.reconcile.txt
 6352f86ac99edb1ba490040de120b4063698a8d7e0b4d0010f5b09df9eee16fb  1b-stage3-shadcn-2026-10-15.window-7.verify.json
 6928922777d2531502e3b9d5f33d609a5cea249dedaa36b2a3fc1de367a3d1ca  1b-stage3-shadcn-2026-10-15.window-7.verify.txt
+1cd45074b71b368ced67f8cea71a4b4b8613d097373ce35751558bd10067c962  1b-stage3-shadcn-2026-10-15.window-8.preresume-and-launch.sh
+c8e438136ffc5514cb4a6530cfd718eed83754aeefade125aa3de7cd1132f727  1b-stage3-shadcn-2026-10-15.window-8.provider-failure-stop.sh
 fdd7d48195450f179e20efeb20955fdfc0bc4ee0ea40b40586cbd878103ed7b1  1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh
 05268b3b49fc66824a8ddb701e586b4067a5c15e1bef6bbef016580daef27321  1b-stage3-shadcn-2026-10-15.window-k.preserve.sh
 c3760143420f66cfc0d049ea28ea5c5ca4463e606665957a7c381ece63f307e6  reconcile_window.py
