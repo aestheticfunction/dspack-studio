@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run is open.** Windows 1 to 5 are complete. Each stopped cleanly at its request cap, and together they cover 346 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
+**Status: the run is open.** Windows 1 to 6 are complete. Each stopped cleanly at its request cap, and together they cover 413 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -344,6 +344,63 @@ There was no provider or policy failure.
   - 19,500,129 input and 481,357 output tokens, whose price equals the settled total to the nanodollar.
 
 **Next:** window 6 follows at once with `shadcn-window.sh launch 6 <this window's copy>` (`--preflights 6`), only if window 5's evidence verifies.
+
+## Window 6 (2026-10-16)
+
+**Under the owner's back-to-back authorization,** launched with `shadcn-window.sh launch 6 7a4f9a6` once window 5's evidence had verified.
+
+**Before the first paid call:** every no-cost check was repeated from 00:19:09Z to 00:19:15Z, and all passed (`.window-6.preresume-checks.txt`):
+- main at `7e260c3` and clean, and no harness or monitor running;
+- 461 evidence checksum entries;
+- the run directory byte-identical to window 5's copy at `7a4f9a6`:
+  - 522 requests, all finalized, nothing held;
+  - five windows, each stopped at its cap;
+- the frozen tooling and the monitor's configuration;
+- the probe equal to the baseline apart from `at`;
+- the resume command through the harness's parser and planner;
+- five preflights, so `--preflights 6`;
+- the operator record holding invocations 1 to 5.
+
+**The invocation:** 00:19:15Z to 00:42:27Z, exit 0.
+- **Its stop:** the pacing cap of 123 requests for the invocation.
+- **104 requests sent.**
+
+**Window 6's ledger:** 104 requests, each with one reservation and one final.
+- **100 settled** at the reported usage, every one on `claude-haiku-4-5-20251001`.
+- **4 zero-cost busy refusals** (#47, #61, #80 and #93, each a 503 busy reply). Each was released at $0 and retried once, after 30 s, and each retry settled.
+- **No hold,** and nothing left open.
+- **Committed:** $6.5502612, which is $6.238344 at list price, all of it on 2026-10-16 UTC.
+- **Window 5's records are unchanged.** Its ledger, records and pacing entries are byte-for-byte prefixes of the files as window 6 left them.
+
+**The run so far:**
+- **Requests:** 626 of its 1,275.
+- **Committed:** $29.5525209 ($28.145258 at list price) of its $77 ceiling.
+- **Cells:** 413 of 480.
+- **Daily spend:** with the fee, $10.3724922 on 2026-10-16 UTC so far, within the owner's $40 daily limit.
+
+**Window 6's cells:** 67, covering the rest of gs-06, then nb-01 and nb-02, and the first cells of nb-03. 59 completed, of which 47 passed, and 8 were skipped. Every failure is an ordinary arm result that is not re-run:
+- **capped and production gs-06 fresh:** each a failed gate, so each arm's four refinements were skipped;
+- **unusable output, twice** (classified output): 5 cells:
+  - capped: nb-01's and nb-02's add;
+  - production: nb-02's add;
+  - block: nb-03's structural refinement;
+  - block-positional: nb-02's add;
+- **a failed gate:** 4 structural refinements:
+  - capped: nb-01's;
+  - block: nb-02's;
+  - block-positional: nb-02's and nb-03's;
+- **production nb-02 structural refinement:** its lint repairs ran out.
+
+There was no provider or policy failure. The nb prompts are the corpus's non-block prompts: in all 30 of their block-arm cells the plan selected no block, and the cell took the primitive path.
+
+**Window 6's tokens:** 105 provider calls, 13 of which returned unusable output. They used 5,863,284 input and 75,012 output tokens, and priced at Claude Haiku 4.5's rates they equal the window's settled total exactly.
+
+**The monitor:** exit 0, with no STOP or HOLD line.
+- It saw all 104 requests.
+- It read the live build 45 times, always `Dyml8RSqfWynKU1KbVuZI`.
+- It allowed the four refusals within its schedule. Each was the only one in a row, and together they took 120 s of backoff, against its limits of 8 releases and 600 s of backoff in a window.
+
+**Next:** window 7 follows at once with `shadcn-window.sh launch 7 <this window's copy>` (`--preflights 7`), only if window 6's evidence verifies. 67 cells remain.
 
 ## Files of the run
 

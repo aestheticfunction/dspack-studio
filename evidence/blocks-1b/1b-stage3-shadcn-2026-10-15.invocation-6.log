@@ -1,0 +1,120 @@
+(node:4361) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> @dspack-studio/block-bench@0.1.0 eval:live /home/user/dspack-studio/packages/block-bench
+> tsx live/run.ts -- --provider hosted --corpus 2 --reference shadcn-v3 --prompts rt-01,rt-02,rt-03,rt-04,rt-05,rt-06,af-01,af-02,af-03,af-04,af-05,af-06,gs-01,gs-02,gs-03,gs-04,gs-05,gs-06,nb-01,nb-02,nb-03,nb-04,nb-05,nb-06 --max-total-usd 77 --max-total-requests 1275 --max-requests 123 --spacing-ms 12000 --resume live/runs/1b-stage3-shadcn-2026-10-15
+
+(node:4373) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4389) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4389) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "at": "2026-10-16T00:19:17.602Z",
+  "sidecars": [
+    {
+      "reference": "shadcn-v3",
+      "status": "approved",
+      "binding": "ok",
+      "usable": [
+        "records-table@1",
+        "auth-form@1",
+        "guide-steps@1"
+      ],
+      "disabled": []
+    }
+  ],
+  "drafts": false,
+  "baseUrl": "https://composer.aesthetic-function.com",
+  "buildId": "Dyml8RSqfWynKU1KbVuZI",
+  "worker": {
+    "shape": "per-call-model",
+    "status": 400,
+    "error": "invalid-request",
+    "calls": [],
+    "capabilities": [
+      "per-call-model"
+    ]
+  },
+  "models": [
+    "scripted",
+    "hosted-ai"
+  ]
+}
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|gs-06|refine-content: passed via block in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|gs-06|refine-add: passed via block in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|gs-06|refine-remove: passed via block in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|gs-06|refine-structural: passed via fallback in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|gs-06|fresh: failed-gate via primitive in 3 attempt(s), 4 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|gs-06|refine-content: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|gs-06|refine-add: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|gs-06|refine-remove: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|gs-06|refine-structural: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|gs-06|fresh: failed-gate via primitive in 3 attempt(s), 4 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|gs-06|refine-content: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|gs-06|refine-add: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|gs-06|refine-remove: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|gs-06|refine-structural: skipped (the arm's fresh build for this prompt did not pass)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-01|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-01|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-01|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-01|refine-structural: passed via primitive in 2 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-01|fresh: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-01|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-01|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-01|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-01|refine-structural: passed via primitive in 3 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-01|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-01|refine-add: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-01|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-01|refine-structural: failed-gate via primitive in 3 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-01|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-01|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-01|refine-add: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-01|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-01|refine-structural: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-02|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-02|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-02|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-02|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-02|refine-structural: failed-gate via primitive in 3 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-02|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-02|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-02|refine-add: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-02|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-02|refine-structural: failed-gate via primitive in 3 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-02|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-add: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-remove: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-02|refine-structural: passed via primitive in 2 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-02|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-02|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-02|refine-add: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-02|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|production|nb-02|refine-structural: failed-lint-exhausted via primitive in 3 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-03|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-03|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-03|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block|nb-03|refine-structural: failed-adapter via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-03|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-remove: passed via primitive in 2 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|block-positional|nb-03|refine-structural: failed-gate via primitive in 3 attempt(s), 3 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-03|fresh: passed via primitive in 1 attempt(s), 2 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-content: passed via primitive in 1 attempt(s), 1 provider call(s)
+shadcn-v3|hosted-ai:claude-haiku-4.5|capped|nb-03|refine-add: passed via primitive in 1 attempt(s), 1 provider call(s)
+stopped: the pacing cap of 123 requests for this invocation is reached; resume later
+
+run 2026-10-15T00-22-25-520Z-hosted-ai-claude-haiku-4-5-https-composer-aesthetic-function-com: 413 of 480 cells (346 reused); report at live/runs/1b-stage3-shadcn-2026-10-15/REPORT.md
+shadcn-v3 on hosted-ai:claude-haiku-4.5: pass
+  tokens per success fell 66.6% against production (needs 30%)
+  pass rate 86.7% is within 5 points of production (81.5%)
+  pass rate 86.7% is within 5 points of capped (86.9%)
+stopped: the pacing cap of 123 requests for this invocation is reached; resume later
+resume with: --resume live/runs/1b-stage3-shadcn-2026-10-15
