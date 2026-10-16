@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run resumes under the owner's exception.** Windows 1 to 6 each stopped cleanly at its request cap. Window 7 stopped on a hold: a reply the run could not meter. The owner authorized window 8 as an explicit exception for that hold (below). Together windows 1 to 7 cover 457 of 480 cells.
+**Status: the run is complete.** All 480 cells are done, in eight windows. Windows 1 to 6 each stopped at its request cap. Window 7 stopped on a hold, for which the owner made an explicit exception, and window 8 completed the run (below). The final verification follows.
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -521,6 +521,55 @@ No cell ended in a provider or policy failure. In all 12 block-arm cells of the 
 
 **Nothing in the experiment changes:** the harness, corpus, sidecars, model, build, monitor and its configuration, verifier, caps and spacing are as they were.
 
+## Window 8 (2026-10-16): the run's last window, under the owner's exception
+
+**Under the owner's exception for window 7's hold,** launched with `.window-8.preresume-and-launch.sh launch 8 d9fb3c9`, window 7's copy. It started 32 minutes after window 7's last request, the owner's short cooldown.
+
+**Before the first paid call:** every no-cost check was repeated from 01:35:09Z to 01:35:17Z, and all passed (`.window-8.preresume-checks.txt`):
+- main at `7e260c3` and clean, and no harness or monitor running;
+- 483 evidence checksum entries;
+- the run directory byte-identical to window 7's copy at `d9fb3c9`:
+  - 687 requests, all finalized;
+  - the one hold the owner's exception names, #61, exactly as window 7 left it, and nothing else held;
+  - six windows stopped at their caps, and window 7 at its integrity stop, exactly as it left it;
+- the frozen tooling and the monitor's configuration;
+- the probe equal to the baseline apart from `at`;
+- the resume command through the harness's parser and planner;
+- seven preflights, so `--preflights 8`;
+- the operator record holding invocations 1 to 7.
+
+A check-mode run of the same script, at 01:23:42Z, had passed every check too (`.window-8.check-mode-checks.txt`).
+
+**The invocation:** 01:35:17Z to 01:41:31Z, exit 0.
+- **Its end:** the run complete, with all 480 cells done. Its pacing entry records no stop.
+- **31 requests sent.**
+
+**Window 8's ledger:** 31 requests, each with one reservation and one final, all settled at the reported usage on `claude-haiku-4-5-20251001`.
+- **No refusal,** no hold, and nothing left open.
+- **Committed:** $2.1528549, which is $2.050338 at list price, all of it on 2026-10-16 UTC.
+- **Window 7's records are unchanged,** the hold included. Its ledger, records and pacing entries are byte-for-byte prefixes of the files as window 8 left them.
+
+**Window 8's cells:** 23, all completed and all passed:
+- production nb-05's add refinement, the cell window 7 stopped inside, re-run from its beginning;
+- production nb-05's remove and structural refinements;
+- nb-06's 20 cells.
+
+In nb-06's 10 block-arm cells, the plan selected no block, and each took the primitive path.
+
+**Window 8's tokens:** 32 provider calls, 2 of which returned unusable output. They used 1,923,043 input and 25,459 output tokens. Priced at Claude Haiku 4.5's rates, they equal the window's settled total exactly.
+
+**The monitor:** exit 0, with no STOP or HOLD line.
+- It saw all 31 requests.
+- It read the live build 12 times, always `Dyml8RSqfWynKU1KbVuZI`.
+
+**The owner's provider-failure stop:** exit 0 (`.window-8.provider-failure-stop.txt`). It saw the monitor show the harness inside its process group, saw no provider failure, and signalled nothing.
+
+**The run, complete:**
+- **Requests:** 718 of its 1,275: 705 settled, 12 released at $0, and window 7's hold.
+- **Committed:** $36.85966725 of its $77 ceiling, the hold's $1.118208 included. The settled requests come to $35.74145925 ($34.039485 at list price).
+- **Daily spend:** with the fee, $19.1800287 on 2026-10-15 and $17.67963855 on 2026-10-16 UTC, the hold included, each within the owner's $40 daily limit.
+- **Cells:** 480 of 480: 448 completed, of which 393 passed, and 32 skipped.
+
 ## Files of the run
 
 - `1b-stage3-shadcn-2026-10-15/`: the run directory exactly as the harness left it (`packages/block-bench/live/runs/1b-stage3-shadcn-2026-10-15`), byte-identical. Each window's copy is the commit that preserved it:
@@ -540,7 +589,7 @@ No cell ended in a provider or policy failure. In all 12 block-arm cells of the 
 - `1b-stage3-shadcn-2026-10-15.window-1.verify.json` and `.txt`: the verifier's result and console for window 1's copy, as origin holds it at `1cc106b`.
 - `1b-stage3-shadcn-2026-10-15.window-1.reconcile.json` and `.txt`: the independent reconciliation of the same copy.
 - `1b-stage3-shadcn-2026-10-15.window-2.verify.json` and `.txt`, and `.window-2.reconcile.json` and `.txt`: the verifier's result and the reconciliation for window 2's copy, as origin holds it at `4c3db56`.
-- `1b-stage3-shadcn-2026-10-15.window-8.preresume-and-launch.sh` and `.window-8.provider-failure-stop.sh`: window 8's launch script and its stop at a new provider failure, under the owner's exception for window 7's hold (above).
+- `1b-stage3-shadcn-2026-10-15.window-8.preresume-and-launch.sh` and `.window-8.provider-failure-stop.sh`: window 8's launch script and its stop at a new provider failure, under the owner's exception for window 7's hold (above). `.window-8.provider-failure-stop.txt` is that stop's log.
 - `1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh` and `.window-k.preserve.sh`: the operator scripts for window 3 onward, under the owner's standing authorization.
   - **The launch script** generalizes window 2's. It takes the window number and the commit that preserved the previous window's copy, and reads the expected state from that copy:
     - the run directory byte-identical to it;

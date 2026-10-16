@@ -1,6 +1,6 @@
-7e79a6341a88dffd7371a4cf94278b4471987637ff92fc2f6e7b4ce0dd8eaace  1b-stage3-shadcn-2026-10-15/REPORT.md
+d41f1ee03291092726de12a2a270146d61ea658945331245986ccb5190984781  1b-stage3-shadcn-2026-10-15/REPORT.md
 ed43b1e8ef93f1bdd8da18a6b9860f247063afb51e4bf50f387bc50096f8869b  1b-stage3-shadcn-2026-10-15/manifest.json
-cb0a68284334e6052b92ffe37e568f097eec5553823384444d8a2ac08e397aaa  1b-stage3-shadcn-2026-10-15/pacing.jsonl
+a7dbe7e8fc444bd4577d5211b0321b5aa740d4625331f48403b596b960159f72  1b-stage3-shadcn-2026-10-15/pacing.jsonl
 1d8ede7a241e1fd0692bcac6fd3061259b581b0cf707b287084de8cd4777eeba  1b-stage3-shadcn-2026-10-15/preflight.json
 f5fdd338a6cf80685aa2820b5eb983eb5615857583ae4c6bd13d05947edae825  1b-stage3-shadcn-2026-10-15/preflight.resume-1.json
 d8a39fd86192cf23fab38723210d08bcbcddd1a231270b87e6a7853697117f52  1b-stage3-shadcn-2026-10-15/preflight.resume-2.json
@@ -8,9 +8,10 @@ de5e2469bb078852346da1cd12173a20afa27d77dc875c7115ae5b00cd668846  1b-stage3-shad
 61366018a3658ca2d1111a8263939f4866a3c574505bfc77a7c5710294aca1d7  1b-stage3-shadcn-2026-10-15/preflight.resume-4.json
 824454ca0ed0433dc3dfd005aeb07478d2f535f102ff40313bb787975661948a  1b-stage3-shadcn-2026-10-15/preflight.resume-5.json
 9fbb6dbf5f90c8755d52b625a7fdd3fc7510ef9cc6ed2899fc6a86bb20de2376  1b-stage3-shadcn-2026-10-15/preflight.resume-6.json
-5a1a43f05cc752f0e73776882ee95d895dfd0854522e1c76268478e9afed2b6c  1b-stage3-shadcn-2026-10-15/requests.jsonl
-a41a5168c225c746e8775c3b0b256c34fd216b166a2e31d4afbad715f739c2bd  1b-stage3-shadcn-2026-10-15/runs.jsonl
-ae1f16d38fd7f5752c0e85ff8c6521663388e0ef4ec7350be541f41c3a551533  1b-stage3-shadcn-2026-10-15/summary.json
+241d97bbb143d95778e27861cfe8b0758618d88e6f447cb008b0b8fee7e6f17f  1b-stage3-shadcn-2026-10-15/preflight.resume-7.json
+4822e9699b6cb3e600ebab5330c7bfa28320b7ebe37ebec9f321994b67a75a84  1b-stage3-shadcn-2026-10-15/requests.jsonl
+cc793c9eeea05a6e75c692ea504b5f9cba9f1d5c9a42e4897c50b95074ec30c2  1b-stage3-shadcn-2026-10-15/runs.jsonl
+916b226714f4ecc55413ee0ae33d9420b6e3bd898bb06f3515471cc2610d2909  1b-stage3-shadcn-2026-10-15/summary.json
 e83470fd7ebb389587e6307d0133d24dbffb09b014b46b465d233c0c5f8bf2f1  1b-stage3-shadcn-2026-10-15.invocation-1.log
 a365789c13f59722a6ff3ba86378ed71463f1c00eb4bad254df8ba62d6a88d88  1b-stage3-shadcn-2026-10-15.invocation-2.log
 19bc670f1df828eaf01dfb6e7263935efe9a7bb5b04ecfa039b7b8f1346cde44  1b-stage3-shadcn-2026-10-15.invocation-3.log
@@ -18,7 +19,8 @@ e43b8a2692e85412f4eb16603d1779435da7e15c9867765849e5543c87e0612b  1b-stage3-shad
 7d6ca2448cb81dd1241a0c6dbc820923c8b1fb0da25b5e852c0a2be2c2318e4c  1b-stage3-shadcn-2026-10-15.invocation-5.log
 a44cfa67441814ee3e1c5687d96291a059347afcef6bda45c463c8daa909b1b8  1b-stage3-shadcn-2026-10-15.invocation-6.log
 db0af2940df305d730f21c489a500181e93514e8e12e4c2d8ed87ad05fc5822f  1b-stage3-shadcn-2026-10-15.invocation-7.log
-7ca5223eece618f72e4a5e3323d4ed2923329a52f447a3ee83826f8fe639d08a  1b-stage3-shadcn-2026-10-15.invocations.txt
+0fe571e74ccf26e1f0bb15d4ba00cb95a2ed1105ea1b975fa35f50dffd94cfee  1b-stage3-shadcn-2026-10-15.invocation-8.log
+c37564df0fbbada3216030709768e5dad6a82bcd0b36a19d083509c5899f53bd  1b-stage3-shadcn-2026-10-15.invocations.txt
 a3ebc228b1432b2cc686a9c1863943d1a5fca0ec785daa1338138af41b9d599f  1b-stage3-shadcn-2026-10-15.launch-console.txt
 806edec6394afffe14822335c81619f0451173d1912fa3e76e793bc5e3e62d0e  1b-stage3-shadcn-2026-10-15.monitor-events-1.log
 459b84c3431af27faab03dfc0c1e927513b41829e07ea71d63d4084ebccec202  1b-stage3-shadcn-2026-10-15.monitor-events-2.log
@@ -27,6 +29,7 @@ b699ab5cb441bb741759c3fa2c8555cd5e57c5d624077c2455937557e1020cbf  1b-stage3-shad
 f4b206e987480863433fd2a5c78f74e00304485e7e3f05b1627ae8d9e0781072  1b-stage3-shadcn-2026-10-15.monitor-events-5.log
 e9db2165dbba8e7164e800adde5785df6849f34edb606bf7ef21121257842ac4  1b-stage3-shadcn-2026-10-15.monitor-events-6.log
 b3c9a634d284122c137fc02a2f966eb48e700d9504ef95e95b1a12c411a6d4ed  1b-stage3-shadcn-2026-10-15.monitor-events-7.log
+74aeb2cbe9f45dbfb9024ddea25befbce8ced9b4cb6f1a2573a4e41939f2c324  1b-stage3-shadcn-2026-10-15.monitor-events-8.log
 26aa306d1eaaefd98dc0180502c830fd8199fda209eabbf68413ae1b8d5ec3bd  1b-stage3-shadcn-2026-10-15.plan-check.mts
 5ab940c74750bdad76bd15840760ef01e25e6b509183653043c90b451067bfa8  1b-stage3-shadcn-2026-10-15.prerun-and-launch.sh
 0ecbd0828988c775744f6260b10e0f6b1ed525c9b199ccd70179eca00a600b05  1b-stage3-shadcn-2026-10-15.prerun-checks.txt
@@ -79,8 +82,13 @@ cbe4e2afd0c29285ffa12737f478cd928027865115817db239678816142f30b8  1b-stage3-shad
 3389cbeb1e4ffe2c24e81822d10e5848784277973c068608185e8446d837022a  1b-stage3-shadcn-2026-10-15.window-7.reconcile.txt
 6352f86ac99edb1ba490040de120b4063698a8d7e0b4d0010f5b09df9eee16fb  1b-stage3-shadcn-2026-10-15.window-7.verify.json
 6928922777d2531502e3b9d5f33d609a5cea249dedaa36b2a3fc1de367a3d1ca  1b-stage3-shadcn-2026-10-15.window-7.verify.txt
+f2700050ecb09b1e548d83d0c8e40a6902e9f199db52933ef03d75cbec724a44  1b-stage3-shadcn-2026-10-15.window-8.check-mode-checks.txt
+976499ed7e55a2b7106826c0208ba7001d99e271d7292dba6d49e23253c1166d  1b-stage3-shadcn-2026-10-15.window-8.launch-console.txt
 1cd45074b71b368ced67f8cea71a4b4b8613d097373ce35751558bd10067c962  1b-stage3-shadcn-2026-10-15.window-8.preresume-and-launch.sh
+06b719c9b146f462ec3c12649470b0cb0dcef24a5517b81f9d1e746faa471705  1b-stage3-shadcn-2026-10-15.window-8.preresume-checks.txt
+3e220e5b5a43382aa2a95f4f69349ceec306780b10c726514692aa19efd02678  1b-stage3-shadcn-2026-10-15.window-8.preresume-probe.json
 c8e438136ffc5514cb4a6530cfd718eed83754aeefade125aa3de7cd1132f727  1b-stage3-shadcn-2026-10-15.window-8.provider-failure-stop.sh
+6ba871624942851ec9c2d83dbfbf29ed28f53d4ba01fb43f4177d7a9bb134465  1b-stage3-shadcn-2026-10-15.window-8.provider-failure-stop.txt
 fdd7d48195450f179e20efeb20955fdfc0bc4ee0ea40b40586cbd878103ed7b1  1b-stage3-shadcn-2026-10-15.window-k.preresume-and-launch.sh
 05268b3b49fc66824a8ddb701e586b4067a5c15e1bef6bbef016580daef27321  1b-stage3-shadcn-2026-10-15.window-k.preserve.sh
 c3760143420f66cfc0d049ea28ea5c5ca4463e606665957a7c381ece63f307e6  reconcile_window.py

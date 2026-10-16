@@ -1,0 +1,16 @@
+2026-10-16T01:35:17.708Z monitor up: window 8, run live/runs/1b-stage3-shadcn-2026-10-15, harness process group 1719, waiting for preflight.resume-7.json; limits {"backoffMs":[30000,60000,120000,240000],"maxReleased":8,"maxBackoffSeconds":600,"maxProviderFailures":1,"maxRequestsPerWindow":123,"openRequestSeconds":600,"buildCheckSeconds":30,"maxUnreadableBuildSeconds":300,"preflightWaitSeconds":180,"holdGraceSeconds":15,"spacingSeconds":12,"progressEvery":40}
+2026-10-16T01:35:21.733Z window opened 2026-10-16T01:35:19.796Z: build Dyml8RSqfWynKU1KbVuZI, code 51c80cec7a65, corpus blocks-1b v2, shadcn-v3
+2026-10-16T01:35:21.735Z the run's lock names pid 1757, inside --pgid 1719: the harness
+2026-10-16T01:35:23.845Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:35:53.880Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:36:25.918Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:36:55.951Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:37:27.986Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:37:58.017Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:38:28.047Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:39:00.085Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:39:30.118Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:40:02.154Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:40:32.187Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:41:02.217Z build Dyml8RSqfWynKU1KbVuZI
+2026-10-16T01:41:32.247Z the harness exited: 23 cells, 31 requests sent, 31 settled, 0 released (0 s of backoff), 0 provider failures, outcomes {'passed': 23}
