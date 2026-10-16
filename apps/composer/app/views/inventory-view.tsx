@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
 
@@ -26,7 +27,7 @@ export function InventoryView({ onOpen }: { onOpen: () => void }) {
     </span>
   );
 
-  return (
+  const catalog = (
     <>
       <ViewHeader
         eyebrow="Catalog"
@@ -100,5 +101,119 @@ export function InventoryView({ onOpen }: { onOpen: () => void }) {
       </tbody>
       </table>
     </>
+  );
+  // Interface blocks (experimental): the read-only Blocks catalog follows the
+  // components. The default build folds this branch away and returns the
+  // catalog exactly as before.
+  if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+    return (
+      <>
+        {catalog}
+        <BlocksCatalogSection />
+      </>
+    );
+  }
+  return catalog;
+}
+
+/**
+ * Interface blocks (experimental; docs/blocks/PHASE-2-RELEASE-PLAN.md, §7 H3):
+ * every block this build bundles, read-only. Rendered only in an experimental
+ * build: the literal flag check above folds this away in the default build,
+ * and the catalog is read through the guarded import. Nothing in it can be
+ * pressed: a block's actions are host-owned, and Composer executes none.
+ */
+function BlocksCatalogSection() {
+  const { activeProject } = useComposer();
+  const projectReferenceId = activeProject?.source.kind === "reference" ? activeProject.source.referenceId : null;
+  type Catalog = Array<{
+    referenceId: string;
+    label: string;
+    reference: { name: string; dspack: string; version: string } | null;
+    binding: string;
+    sidecarStatus: string | null;
+    withheld?: string;
+    issues: string[];
+    blocks: Array<{ id: string; name: string; version: number; status: string; disabled: string[]; intents: string[]; actions: string[]; streamingText: string }>;
+  }>;
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      void import("../../experimental/blocks-runtime")
+        .then(async (runtime) => {
+          const next = await runtime.blocksCatalog();
+          if (!cancelled) setCatalog(next);
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const cell = { padding: "6px 8px", verticalAlign: "top" } as const;
+  return (
+    <section aria-labelledby="blocks-catalog-h" data-testid="blocks-catalog" style={{ marginTop: "clamp(32px,5vw,52px)" }}>
+      <h2 id="blocks-catalog-h" className="af-h2" style={{ marginBottom: 6 }}>
+        Interface blocks
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--fg-body)", maxWidth: 720, margin: "0 0 12px" }}>
+        Every block this experimental build bundles, read-only. A block&rsquo;s declared actions are host-owned: Composer never executes them,
+        and a host binds and authorizes each one on its own server.
+      </p>
+      {catalog === null && <p style={{ fontSize: 12, color: "var(--fg-dim)" }}>Reading the blocks…</p>}
+      {(catalog ?? []).map((ref) => {
+        const headingId = `blocks-catalog-${ref.referenceId}-h`;
+        return (
+          <div key={ref.referenceId} data-testid={`blocks-catalog-ref-${ref.referenceId}`} style={{ marginTop: 18 }}>
+            <h3 id={headingId} style={{ fontSize: 14, margin: "0 0 4px", color: "var(--fg)" }}>
+              {ref.reference ? `${ref.reference.name} ${ref.reference.version}` : ref.label}
+              {ref.referenceId === projectReferenceId && <span style={{ fontWeight: 400, color: "var(--fg-body)" }}> · this project&rsquo;s reference</span>}
+            </h3>
+            <p style={{ fontSize: 12, color: "var(--fg-body)", margin: "0 0 6px" }}>
+              Sidecar {ref.sidecarStatus ?? "unreadable"} · binding {ref.binding}
+              {ref.withheld && <> · {ref.withheld}</>}
+            </p>
+            {ref.issues.map((issue) => (
+              <p key={issue} style={{ fontSize: 12, color: "var(--err)", margin: "0 0 6px" }}>
+                {issue}
+              </p>
+            ))}
+            {ref.blocks.length > 0 && (
+              <table aria-labelledby={headingId} style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ textAlign: "left", fontFamily: "var(--mono)", fontSize: 11, textTransform: "uppercase", color: "var(--fg-body)" }}>
+                    <th scope="col" style={cell}>Block</th>
+                    <th scope="col" style={cell}>Version</th>
+                    <th scope="col" style={cell}>Status</th>
+                    <th scope="col" style={cell}>Intents</th>
+                    <th scope="col" style={cell}>Declared actions (host-owned)</th>
+                    <th scope="col" style={cell}>Streaming policy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ref.blocks.map((b) => (
+                    <tr key={b.id} style={{ borderTop: "1px solid var(--line-soft)" }} data-testid={`blocks-catalog-${ref.referenceId}-${b.id}`}>
+                      <th scope="row" style={{ ...cell, textAlign: "left", fontWeight: 400 }}>
+                        <span style={{ fontFamily: "var(--mono)", color: "var(--fg)" }}>{b.id}</span>
+                        <span style={{ display: "block", fontSize: 12, color: "var(--fg-body)" }}>{b.name}</span>
+                      </th>
+                      <td style={{ ...cell, fontFamily: "var(--mono)", fontSize: 12 }}>v{b.version}</td>
+                      <td style={{ ...cell, fontSize: 12 }}>
+                        {b.status}
+                        {b.disabled.length > 0 && <span style={{ display: "block", color: "var(--err)" }}>disabled at load: {b.disabled.join("; ")}</span>}
+                      </td>
+                      <td style={{ ...cell, fontFamily: "var(--mono)", fontSize: 12 }}>{b.intents.join(", ")}</td>
+                      <td style={{ ...cell, fontFamily: "var(--mono)", fontSize: 12 }}>{b.actions.join(", ")}</td>
+                      <td style={{ ...cell, fontSize: 12 }}>{b.streamingText}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })}
+    </section>
   );
 }

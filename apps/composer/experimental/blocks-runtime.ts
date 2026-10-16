@@ -47,6 +47,7 @@ import {
   parseBlocksBeta,
   parseProvenance,
   preloadedAdapter,
+  provenanceVerdict,
   pruneProvenance,
   recheckBlockChoice,
   reconcileBlockChoice,
@@ -66,6 +67,7 @@ import {
   type IneligibleReason,
   type LoadedBlocks,
   type ManifestReference,
+  type ProvenanceVerdict,
   type StructuralAdapter,
   type SwitchReason,
 } from "@dspack-studio/composer-core/blocks";
@@ -536,6 +538,102 @@ export async function withActionManifest(
   const manifest = await actionManifest({ ...input, references: await manifestReferences() });
   const { exportedAt, ...rest } = bundle;
   return { ...rest, actionManifest: manifest, exportedAt };
+}
+
+// ---------------------------------------------------------------------------
+// Step 4 (docs/blocks/PHASE-2-RELEASE-PLAN.md, §7 H3 and §8): the read-only
+// Blocks catalog, and what each surface's provenance means. Data only: nothing
+// here can run an action, and a verdict grants nothing.
+
+/** The words Preview shows for each inert or unavailable reason. */
+export { PROVENANCE_REASON_TEXT } from "@dspack-studio/composer-core/blocks";
+
+/** How a streaming policy reads in the catalog. */
+const STREAMING_TEXT: Record<BlockDefinition["streaming"], string> = {
+  "disable-actions-until-complete": "disable actions until complete: a host keeps them off until the surface finishes streaming",
+  "static-safe": "static-safe: actions may be enabled once the surface renders",
+};
+
+export interface BlocksCatalogBlock {
+  id: string;
+  name: string;
+  version: number;
+  status: BlockDefinition["status"];
+  /** Whether this build offers it: approved in an approved sidecar that binds, and not disabled at load. */
+  offered: boolean;
+  /** Why it is disabled at load (B0, with H1), when it is. */
+  disabled: string[];
+  intents: string[];
+  /** The action names it declares: host-owned; Composer never executes them. */
+  actions: string[];
+  streaming: BlockDefinition["streaming"];
+  streamingText: string;
+}
+
+export interface BlocksCatalogReference {
+  referenceId: string;
+  label: string;
+  reference: { name: string; dspack: string; version: string } | null;
+  binding: LoadedBlocks["binding"];
+  sidecarStatus: BlocksSidecar["status"] | null;
+  /** Why the beta holds this reference out, when it does. */
+  withheld?: string;
+  issues: string[];
+  blocks: BlocksCatalogBlock[];
+}
+
+/** Every bundled block, by packaged reference, in sidecar order: the Blocks catalog (H3). */
+export async function blocksCatalog(): Promise<BlocksCatalogReference[]> {
+  const out: BlocksCatalogReference[] = [];
+  for (const referenceId of Object.keys(SIDECARS)) {
+    const loaded = await loadedFor(referenceId);
+    const sidecar = loaded.sidecar;
+    out.push({
+      referenceId,
+      label: String((REFERENCES[referenceId] as Json).label ?? REFERENCES[referenceId]!.contract.name ?? referenceId),
+      reference: sidecar ? { ...sidecar.reference } : null,
+      binding: loaded.binding,
+      sidecarStatus: sidecar?.status ?? null,
+      ...(WITHHELD[referenceId] ? { withheld: WITHHELD[referenceId] } : {}),
+      issues: [...loaded.issues],
+      blocks: (sidecar?.blocks ?? []).map((block) => ({
+        id: block.id,
+        name: block.name,
+        version: block.version,
+        status: block.status,
+        offered: loaded.binding === "ok" && sidecar?.status === "approved" && block.status === "approved" && loaded.usable.some((b) => b.id === block.id && b.version === block.version),
+        disabled: loaded.disabled.find((d) => d.block === block.id)?.issues ?? [],
+        intents: [...block.intents],
+        actions: [...block.actions],
+        streaming: block.streaming,
+        streamingText: STREAMING_TEXT[block.streaming],
+      })),
+    });
+  }
+  return out;
+}
+
+/**
+ * The verdict for each of a project's surfaces that its provenance names
+ * (composer-core provenanceVerdict). A record whose surface is gone has
+ * nothing to describe, and the next save drops it.
+ */
+export async function provenanceVerdicts(input: {
+  provenance: Record<string, unknown>;
+  examples: ReadonlyArray<{ id?: unknown; surface?: unknown }>;
+  project: { kind: "reference" | "imported" | "agent"; referenceId?: string };
+}): Promise<Record<string, ProvenanceVerdict>> {
+  const loaded = await Promise.all(Object.keys(SIDECARS).map((id) => loadedFor(id)));
+  const own = input.project.kind === "reference" && input.project.referenceId && SIDECARS[input.project.referenceId] ? (await loadedFor(input.project.referenceId)).sidecar : undefined;
+  const project = { kind: input.project.kind, ...(own ? { reference: own.reference } : {}) };
+  const out: Record<string, ProvenanceVerdict> = {};
+  for (const [id, record] of Object.entries(input.provenance)) {
+    const example = input.examples.find((e) => e.id === id);
+    if (!example) continue;
+    const verdict = await provenanceVerdict({ record, surface: example.surface, loaded, project });
+    if (verdict) out[id] = verdict;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------

@@ -860,6 +860,14 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
               .then((runtime) => runtime.gcProvenance(runtime.projectProvenanceStore(p.id), live))
               .catch(() => undefined);
           }
+        } else if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+          // No stored project: an Example session, which keeps its provenance
+          // in memory. A save prunes it the same way, so "duplicate to keep"
+          // carries nothing stale; outside a session the map is empty.
+          const live = ((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[];
+          void import("../experimental/blocks-runtime")
+            .then((runtime) => runtime.gcProvenance(runtime.memoryProvenanceStore(sessionProvenance), live))
+            .catch(() => undefined);
         }
         return { savedInMemory: true as const };
       }

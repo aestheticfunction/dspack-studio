@@ -538,8 +538,9 @@ describe("the Blocks catalog (Phase 2 plan, §7, H3): every bundled block, read-
       intents: ["data-collection"],
       actions: ["auth_submit", "auth_forgot", "auth_provider_google", "auth_provider_github", "auth_provider_microsoft", "auth_provider_apple"],
       streaming: "disable-actions-until-complete",
+      streamingText: "disable actions until complete: a host keeps them off until the surface finishes streaming",
     });
-    expect(astryxRef.blocks.find((b) => b.id === "guide-steps")).toMatchObject({ actions: ["guide_start", "guide_save"], streaming: "static-safe" });
+    expect(astryxRef.blocks.find((b) => b.id === "guide-steps")).toMatchObject({ actions: ["guide_start", "guide_save"], streaming: "static-safe", streamingText: "static-safe: actions may be enabled once the surface renders" });
     const shadcnRef = catalog.find((r) => r.referenceId === "shadcn")!;
     expect(shadcnRef.reference).toEqual({ name: "shadcn/ui", dspack: "0.4", version: "3.2.0" });
     expect(shadcnRef.withheld).toMatch(/withheld from this beta/);
