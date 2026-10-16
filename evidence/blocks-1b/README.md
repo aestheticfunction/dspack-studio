@@ -484,6 +484,18 @@ No cell ended in a provider or policy failure. In all 12 block-arm cells of the 
 - It allowed the four refusals within its schedule. Each was the only one in a row, and together they took 120 s of backoff.
 - At the hold it logged `HOLD (settlement)` and waited, as its rules say, for the harness to stop by itself. The harness wrote its stop record and exited within the 15 s grace.
 
+**Verification** of window 7's copy, as origin holds it at `d9fb3c9`:
+- **`verify_run.py`** (at `e3f57da`), with windows 1 to 6's copies as snapshots and all seven monitor events logs:
+  - no findings;
+  - one note: 23 planned cells have no record yet.
+
+  It maps 686 of the 687 requests to their cells. The one left is the held request #61: it belongs to the cell in flight at the stop, which logged no record. The verifier keeps the 413 earlier records, and counts the hold's $1.118208 in the committed total.
+- **`reconcile_window.py`** agrees on every figure:
+  - 687 requests: 674 settled, 12 released at $0 and 1 held;
+  - $34.70681235 committed, $33.58860435 of it settled;
+  - every settlement and call on `claude-haiku-4-5-20251001`;
+  - 28,989,797 input and 599,870 output tokens, whose price equals the settled total to the nanodollar.
+
 **Next:** the run waits for the owner, and nothing more is sent until the owner decides. The operator's launch script refuses a run that holds a request, so a resume first needs the owner's decision on this hold.
 
 ## Files of the run
