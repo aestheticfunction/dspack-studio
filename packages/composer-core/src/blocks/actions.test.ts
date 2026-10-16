@@ -170,7 +170,10 @@ describe("H1 at load: an action id is built only from literals and enum props", 
   });
 
   it("an alert dialog dispatches an action too, and is held to the same rule", () => {
-    expect(issues(auth(card({ component: "alert-dialog" }), { actions: ["auth_submit"] }))).toMatch(/'alert-dialog' dispatches an action, so it needs an id/);
+    const found = issues(auth(card({ component: "alert-dialog" }), { actions: ["auth_submit"] }));
+    expect(found).toMatch(/'alert-dialog' dispatches an action, so it needs an id/);
+    // The issue names everything the emitter would fall back to, a dialog's confirm label first.
+    expect(found).toMatch(/from a confirm label, the node's text or its component, and a model can write the first two/);
   });
 });
 

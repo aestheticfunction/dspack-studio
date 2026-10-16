@@ -11,6 +11,7 @@
  * forged provenance and edited surfaces included, binds nothing: a surface
  * name plus an action name alone grants nothing.
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -156,6 +157,25 @@ describe("each entry pins the exact messages it describes", () => {
     const altered = structuredClone(messages) as Json[];
     altered.find((m) => m.updateComponents)!.updateComponents.components[0].text = "Altered";
     expect(await sha256Hex(JSON.stringify(altered))).not.toBe(entryFor(manifest, NAME).messagesSha256);
+  });
+
+  it("a host recomputes it from the downloaded file as the guide says: lowercase hex sha256 of the UTF-8 bytes of JSON.stringify(messages), non-ASCII text unescaped", async () => {
+    const label = "Créez votre compte ✓";
+    const accented: Json = { ...primitive, root: { ...primitive.root, children: [{ ...primitive.root.children[0], props: { label, variant: "primary" } }] } };
+    const list = emit(accented);
+    const manifest = await actionManifest(input({ surfaces: [{ name: "ex.accented", messages: list }], examples: [{ id: "ex.accented", surface: accented }], provenance: {} }));
+    // The download is pretty-printed; the host parses it and serializes the entry's messages compactly.
+    const file = JSON.stringify({ surfaces: [{ name: "ex.accented", messages: list }], actionManifest: manifest }, null, 2);
+    expect(file).toContain(label);
+    const downloaded = JSON.parse(file) as Json;
+    const compact = JSON.stringify(downloaded.surfaces[0].messages);
+    const recomputed = createHash("sha256").update(Buffer.from(compact, "utf8")).digest("hex");
+    expect(downloaded.actionManifest.surfaces[0].messagesSha256).toBe(recomputed);
+    expect(recomputed).toMatch(/^[0-9a-f]{64}$/);
+    // A serializer that escapes non-ASCII (Python's json.dumps by default) writes other bytes, so another hash.
+    const escaped = compact.replace(/[\u0080-￿]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+    expect(escaped).not.toBe(compact);
+    expect(createHash("sha256").update(Buffer.from(escaped, "utf8")).digest("hex")).not.toBe(recomputed);
   });
 });
 
