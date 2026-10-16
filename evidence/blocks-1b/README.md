@@ -2,7 +2,7 @@
 
 This branch keeps the evidence of the shadcn/ui v3 Stage-3 run on corpus v2, and the zero-cost production baseline that run is held to (below). It is never merged: a commit to main redeploys the composer and changes the build id a run is held to.
 
-**Status: the run is open.** Windows 1 to 4 are complete. Each stopped cleanly at its request cap, and together they cover 279 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
+**Status: the run is open.** Windows 1 to 5 are complete. Each stopped cleanly at its request cap, and together they cover 346 of 480 cells. The remaining windows run back to back under the owner's authorization (below).
 
 ## Operational change: the daily spend limit (2026-10-15)
 
@@ -284,7 +284,54 @@ There was no provider or policy failure.
   - every settlement and call on `claude-haiku-4-5-20251001`;
   - 15,358,372 input and 358,145 output tokens, whose price equals the settled total to the nanodollar.
 
-**Next:** window 5 follows at once with `shadcn-window.sh launch 5 <this window's copy>` (`--preflights 5`), only if window 4's evidence verifies.
+## Window 5 (2026-10-15 to 2026-10-16)
+
+**Under the owner's back-to-back authorization,** launched with `shadcn-window.sh launch 5 85fbe36` once window 4's evidence had verified.
+
+**Before the first paid call:** every no-cost check was repeated from 23:53:45Z to 23:53:51Z, and all passed (`.window-5.preresume-checks.txt`):
+- main at `7e260c3` and clean, and no harness or monitor running;
+- 451 evidence checksum entries;
+- the run directory byte-identical to window 4's copy at `85fbe36`:
+  - 417 requests, all finalized, nothing held;
+  - four windows, each stopped at its cap;
+- the frozen tooling and the monitor's configuration;
+- the probe equal to the baseline apart from `at`;
+- the resume command through the harness's parser and planner;
+- four preflights, so `--preflights 5`;
+- the operator record holding invocations 1 to 4.
+
+**The invocation:** 23:53:51Z on 2026-10-15 to 00:17:32Z on 2026-10-16, exit 0.
+- **Its stop:** the pacing cap of 123 requests for the invocation.
+- **105 requests sent.**
+
+**Window 5's ledger:** 105 requests, all settled at the reported usage, every one on `claude-haiku-4-5-20251001`.
+- **No refusal,** no hold, and nothing left open.
+- **Committed:** $4.99570785, which is $4.757817 at list price. With the fee, $1.17347685 of it fell on 2026-10-15 and $3.822231 on 2026-10-16, UTC.
+- **Window 4's records are unchanged.** Its ledger, records and pacing entries are byte-for-byte prefixes of the files as window 5 left them.
+
+**The run so far:**
+- **Requests:** 522 of its 1,275.
+- **Committed:** $23.0022597 ($21.906914 at list price) of its $77 ceiling.
+- **Cells:** 346 of 480.
+
+**Window 5's cells:** 67, covering the rest of gs-02, then gs-03 to gs-05, and the first cells of gs-06. 63 completed, of which 54 passed, and 4 were skipped. Every failure is an ordinary arm result that is not re-run:
+- **unusable output, twice** (classified output): 6 cells:
+  - capped: gs-03's content, add and remove refinements;
+  - production: gs-03's remove and gs-05's structural refinement;
+  - block-positional: gs-05's content refinement;
+- **production gs-04 fresh:** a failed gate, so its four refinements were skipped;
+- **block gs-05 structural refinement:** a failed gate on the fallback path;
+- **block-positional gs-05 structural refinement:** its budget of 3 model calls ran out.
+
+There was no provider or policy failure.
+
+**Window 5's tokens:** 109 provider calls, 17 of which returned unusable output. They used 4,141,757 input and 123,212 output tokens, and priced at Claude Haiku 4.5's rates they equal the window's settled total exactly.
+
+**The monitor:** exit 0, with no STOP or HOLD line.
+- It saw all 105 requests.
+- It read the live build 46 times, always `Dyml8RSqfWynKU1KbVuZI`.
+
+**Next:** window 6 follows at once with `shadcn-window.sh launch 6 <this window's copy>` (`--preflights 6`), only if window 5's evidence verifies.
 
 ## Files of the run
 
