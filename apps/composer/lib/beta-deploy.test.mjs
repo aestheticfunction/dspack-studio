@@ -204,16 +204,39 @@ describe("the Access check", () => {
   });
 });
 
+/**
+ * The keys of a top-level mapping in a block-style workflow file, read by
+ * indentation: the lines indented two spaces under `key:`, up to the next
+ * top-level line. Null when the key is missing or not written as a block.
+ */
+function topLevelKeys(yml, key) {
+  const lines = yml.split("\n").filter((l) => !/^\s*(#|$)/.test(l));
+  const start = lines.indexOf(`${key}:`);
+  if (start < 0) return null;
+  const keys = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^\S/.test(line)) break;
+    const match = /^ {2}([^\s:#][^:]*):/.exec(line);
+    if (match) keys.push(match[1]);
+  }
+  return keys;
+}
+
 describe("the workflows", () => {
   const text = (rel) => readFileSync(repo(rel), "utf8");
   const beta = () => text(".github/workflows/deploy-composer-beta.yml");
   const lines = (yml) => yml.split("\n").filter((l) => !l.trim().startsWith("#"));
 
+  it("topLevelKeys reads a workflow's triggers, and refuses any other way of writing them", () => {
+    expect(topLevelKeys("name: x\non:\n  workflow_dispatch:\n    inputs:\n      confirm:\n  push:\n    tags: ['*']\njobs:\n  a:\n", "on")).toEqual(["workflow_dispatch", "push"]);
+    expect(topLevelKeys("name: x\non: [push, workflow_dispatch]\njobs:\n", "on")).toBeNull();
+    expect(topLevelKeys("name: x\non: workflow_dispatch\njobs:\n", "on")).toBeNull();
+  });
+
   it("the beta deploys only by a dispatch from main, through the protected composer-beta environment", () => {
     const yml = beta();
-    const on = yml.slice(yml.indexOf("\non:"), yml.indexOf("\nconcurrency:"));
-    expect(on).toMatch(/workflow_dispatch:/);
-    expect(on).not.toMatch(/\b(push|pull_request|pull_request_target|schedule|workflow_run|release|tags)\b/);
+    expect(topLevelKeys(yml, "on")).toEqual(["workflow_dispatch"]);
+    expect(topLevelKeys(yml, "jobs")).toEqual(["deploy"]);
     expect(yml).toMatch(/if: \$\{\{ inputs\.confirm == 'deploy-composer-beta' && github\.ref == 'refs\/heads\/main' \}\}/);
     expect(yml).toMatch(/\n    environment: composer-beta\n/);
     expect(yml).toMatch(/\n    permissions:\n      contents: read\n    env:/);

@@ -128,12 +128,39 @@ describe("the beta's allowlists", () => {
 });
 
 describe("/api/propose does not read the switch", () => {
-  it("the same refusal, byte for byte, with and without BLOCKS_BETA", async () => {
-    const post = () => new Request("https://composer.test/api/propose", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  const post = () => new Request("https://composer.test/api/propose", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  const states = [
+    ["on", OWNER],
+    ["disabled", '{"enabled":false,"references":["astryx"],"blocks":["auth-form"]}'],
+    ["malformed", "{"],
+    ["a JSON value", JSON.parse(OWNER)],
+  ];
+
+  it.each(states)("the same refusal, byte for byte, with the switch %s as without it", async (_name, value) => {
     const without = await worker.fetch(post(), { AI });
-    const withSwitch = await worker.fetch(post(), { AI, BLOCKS_BETA: OWNER });
+    const withSwitch = await worker.fetch(post(), { AI, BLOCKS_BETA: value });
     expect(without.status).toBe(400);
-    expect(await withSwitch.text()).toBe(await without.text());
     expect(withSwitch.status).toBe(400);
+    expect(Object.fromEntries(withSwitch.headers)).toEqual(Object.fromEntries(without.headers));
+    expect(await withSwitch.text()).toBe(await without.text());
+  });
+
+  it("a proposal makes the same provider call and gets the same reply, with the switch on as without it", async () => {
+    const SURFACE = '{"root":{"component":"Text","id":"t1"}}';
+    const body = JSON.stringify({ system: "sys", messages: [{ role: "user", content: "a login form" }], jsonSchema: { type: "object" } });
+    const request = () => new Request("https://composer.test/api/propose", { method: "POST", headers: { "content-type": "application/json" }, body });
+    const replies = [];
+    for (const extra of [{}, { BLOCKS_BETA: OWNER }]) {
+      const seen = [];
+      const run = async (...args) => {
+        seen.push(JSON.stringify(args));
+        return { content: [{ type: "text", text: SURFACE }], usage: { input_tokens: 10, output_tokens: 2 }, model: "claude-haiku-4-5-20251001" };
+      };
+      const res = await worker.fetch(request(), { AI: { run }, ...extra });
+      const json = await res.json();
+      replies.push({ status: res.status, seen, json: { ...json, calls: json.calls.map(({ durationMs: _d, ...call }) => call) } });
+    }
+    expect(replies[0].status).toBe(200);
+    expect(replies[1]).toEqual(replies[0]);
   });
 });

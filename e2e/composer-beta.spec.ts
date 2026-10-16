@@ -160,6 +160,43 @@ test("with blocks off, an Astryx generation request is today's, byte for byte", 
   expect(sha256(posts[1]!.raw)).toBe(generationGolden("astryx", "record-collection", TRIAGE));
 });
 
+test("an imported Astryx project under the owner's switch gets no blocks, the note says why, and the page posts today's bytes", async ({ page }) => {
+  await preferenceOn(page);
+  const { posts } = await stubBeta(page, json({ models: MODELS, blocks: OWNER }), (kind) => (kind === "plan" ? planFor("record-collection", null, TRIAGE) : providerDown()));
+  const contract = read("../apps/composer/astryx-project/astryx.dspack.json");
+  const profile = read("../apps/composer/astryx-project/astryx.profile.json");
+  const file = { composerProjectExport: "0.1", exportedAt: "2026-10-16T00:00:00.000Z", name: "Imported Astryx", description: "", previewRegistry: "astryx", contract, profile };
+  await page.goto("/");
+  await page.getByTestId("nav-projects").click();
+  await page.getByTestId("import-project-input").setInputFiles({ name: "imported.composerproject.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await build(page, TRIAGE);
+  await expect(page.getByTestId("build-failure-1")).toBeVisible({ timeout: 30_000 });
+
+  expect(posts.map((p) => p.kind)).toEqual(["plan", "generation"]);
+  expect(posts[0]!.body.jsonSchema.properties).not.toHaveProperty("block");
+  expect(sha256(posts[1]!.raw)).toBe(generationGolden("astryx", "record-collection", TRIAGE));
+  await expect(page.getByTestId("build-block-note-1")).toContainText("imported-project");
+  await expect(page.getByTestId("build-block-1")).toHaveCount(0);
+});
+
+test("opted in and eligible, a null selection still posts today's generation bytes", async ({ page }) => {
+  await preferenceOn(page);
+  const { posts } = await stubBeta(page, json({ models: MODELS, blocks: OWNER }), (kind) => (kind === "plan" ? planFor("record-collection", null, TRIAGE) : providerDown()));
+  await page.goto("/");
+  await newProject(page, "Beta null selection", "astryx");
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await build(page, TRIAGE);
+  await expect(page.getByTestId("build-failure-1")).toBeVisible({ timeout: 30_000 });
+
+  expect(posts.map((p) => p.kind)).toEqual(["plan", "generation"]);
+  // The planning request asks the block question, by design; the generation request does not change.
+  expect(posts[0]!.body.jsonSchema.properties.block.enum).toEqual([...BLOCKS, null]);
+  expect(sha256(posts[1]!.raw)).toBe(generationGolden("astryx", "record-collection", TRIAGE));
+  await expect(page.getByTestId("build-block-1")).toHaveCount(0);
+});
+
 test("a switch turned off applies to the next build, with no reload", async ({ page }) => {
   await preferenceOn(page);
   const { models, posts } = await stubBeta(page, json({ models: MODELS, blocks: OWNER }), (kind, n) =>
