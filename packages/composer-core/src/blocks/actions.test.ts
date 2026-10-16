@@ -174,6 +174,141 @@ describe("H1 at load: an action id is built only from literals and enum props", 
   });
 });
 
+/** Every subset of a list, the empty one included. */
+const subsets = <T,>(items: readonly T[]): T[][] => items.reduce<T[][]>((all, item) => [...all, ...all.map((s) => [...s, item])], [[]]);
+
+/**
+ * Every auth-form call that varies what can decide an action name: each mode,
+ * each set of fields the constraints allow, providers absent or any set of
+ * them, and recovery absent, on or off.
+ */
+function authCalls(block: BlockDefinition, extra: Json = {}): Json[] {
+  const values = (name: string) => block.props.find((p) => p.name === name)!.items!.values!;
+  const calls: Json[] = [];
+  for (const mode of block.props.find((p) => p.name === "mode")!.values!) {
+    for (const fields of subsets(values("fields")).filter((f) => f.length > 0)) {
+      for (const providers of [undefined, ...subsets(values("providers"))]) {
+        for (const recovery of [undefined, true, false]) {
+          const call: Json = { block: block.id, version: block.version, mode, title: "Welcome", fields, ...extra };
+          if (providers !== undefined) call.providers = providers;
+          if (recovery !== undefined) call.recovery = recovery;
+          if (validateCall(block, call).length === 0 && checkConstraints(block, call).length === 0) calls.push(call);
+        }
+      }
+    }
+  }
+  return calls;
+}
+
+/** The names the real expander and emitter produce over some calls: what a template can actually dispatch. */
+function reachableNames(ref: Ref, block: BlockDefinition, calls: readonly Json[]): string[] {
+  const { sidecar, contract, profile } = inputs(ref);
+  const reference = parsed(sidecar).reference;
+  const names = new Set<string>();
+  for (const call of calls) {
+    const expanded = expandBlock(block, call, { reference, intent: block.intents[0]! });
+    if (!expanded.ok) continue;
+    const emitted = emitCheck(expanded.surface, contract, profile);
+    if (!emitted.ok) throw new Error(emitted.refusal);
+    for (const name of emitted.actions) names.add(name);
+  }
+  return [...names].sort();
+}
+
+describe("H1 counts the names a call can reach, no more", () => {
+  const view = (ref: Ref) => generationView(inputs(ref).contract, inputs(ref).profile);
+  const auth = (template: Json, overrides: Partial<BlockDefinition> = {}): BlockDefinition => ({ ...blockOf("astryx", "auth-form"), template: template as never, ...overrides });
+  const card = (...children: Json[]) => ({ component: "card", id: "auth-card", children });
+  const submit = (id: unknown) => ({ component: "button", id, props: { label: "Go", variant: "primary" } });
+  const names = (block: BlockDefinition) => templateActionNames(block, view("astryx").actionComponents);
+  const issues = (block: BlockDefinition) => b0Issues(block, view("astryx")).join("\n");
+  const withEnum = (name: string, count: number, required = true) => [
+    ...blockOf("astryx", "auth-form").props,
+    { name, ...(required ? { required: true } : {}), type: "enum" as const, values: Array.from({ length: count }, (_, i) => `v${i}`) },
+  ];
+
+  it("a name read twice holds one value: a repeated reference is not two independent choices", () => {
+    const block = auth(card(submit({ $concat: [{ $prop: "mode" }, "-", { $prop: "mode" }] })));
+    expect(names(block).names).toEqual(["reset_reset", "sign_in_sign_in", "sign_up_sign_up"]);
+    expect(issues({ ...block, actions: ["reset_reset", "sign_in_sign_in", "sign_up_sign_up"] })).toBe("");
+    expect(issues({ ...block, actions: ["reset_reset", "reset_sign_in", "sign_in_sign_in", "sign_up_sign_up"] })).toMatch(/'reset_sign_in' is declared, but no node of the template can emit it/);
+  });
+
+  it("a branch no call can take counts nothing, and declaring its name is a declaration no node can emit", () => {
+    const template = card(submit("auth-submit"), { $if: { $eq: [1, 2] }, children: [submit("never")] });
+    expect(names(auth(template)).names).toEqual(["auth_submit"]);
+    expect(issues(auth(template, { actions: ["auth_submit"] }))).toBe("");
+    expect(issues(auth(template, { actions: ["auth_submit", "never"] }))).toMatch(/'never' is declared, but no node of the template can emit it/);
+  });
+
+  it("an $if on an enum narrows that enum in each branch", () => {
+    const template = card({
+      $if: { $eq: [{ $prop: "mode" }, "reset"] },
+      children: [submit({ $concat: ["auth-", { $prop: "mode" }] })],
+      else: [submit({ $concat: ["auth-go-", { $prop: "mode" }] })],
+    });
+    expect(names(auth(template)).names).toEqual(["auth_go_sign_in", "auth_go_sign_up", "auth_reset"]);
+  });
+
+  it("an $if on a boolean narrows a $case on it", () => {
+    const template = card({ $if: "recovery", children: [submit({ $case: "recovery", map: { true: "auth-forgot", false: "auth-never" } })] });
+    expect(names(auth(template)).names).toEqual(["auth_forgot"]);
+  });
+
+  it("an $if comparing an enum read with a default narrows it with the default", () => {
+    const props = withEnum("variant", 2, false);
+    const read = { $prop: "variant", default: "v0" };
+    const template = card({ $if: { $eq: [read, "v0"] }, children: [submit({ $concat: ["auth-", read] })] });
+    expect(names(auth(template, { props })).names).toEqual(["auth_v0"]);
+  });
+
+  it("an optional enum may name an action where an $if guarantees it, and nowhere else", () => {
+    const props = withEnum("variant", 2, false);
+    const guarded = card({ $if: "variant", children: [submit({ $concat: ["auth-", { $prop: "variant" }] })] });
+    expect(issues(auth(guarded, { props, actions: ["auth_v0", "auth_v1"] }))).toBe("");
+    expect(issues(auth(card(submit({ $prop: "variant" })), { props, actions: ["v0", "v1"] }))).toMatch(/'variant' may be absent/);
+  });
+
+  it("an id read straight from an enum is capped at 256 names, like a combination", () => {
+    const at = (count: number) => auth(card(submit({ $prop: "big" })), { props: withEnum("big", count), actions: Array.from({ length: count }, (_, i) => `v${i}`) });
+    expect(issues(at(256))).toBe("");
+    expect(issues(at(257))).toMatch(/more than 256 possible names/);
+  });
+
+  it("an id read through a $case is capped at 256 names too", () => {
+    const at = (count: number) => {
+      const map = Object.fromEntries(Array.from({ length: count }, (_, i) => [`v${i}`, `auth-k${i}`]));
+      return auth(card(submit({ $case: "big", map })), { props: withEnum("big", count), actions: Array.from({ length: count }, (_, i) => `auth_k${i}`) });
+    };
+    expect(issues(at(256))).toBe("");
+    expect(issues(at(257))).toMatch(/more than 256 possible names/);
+  });
+
+  it("an id with too many combinations to evaluate is refused before any is evaluated", () => {
+    const props = [...blockOf("astryx", "auth-form").props, ...["a", "b", "c", "d"].map((name) => ({ name, required: true, type: "enum" as const, values: Array.from({ length: 10 }, (_, i) => `${name}${i}`) }))];
+    const id = { $concat: [{ $prop: "a" }, { $prop: "b" }, { $prop: "c" }, { $prop: "d" }] };
+    expect(issues(auth(card(submit(id)), { props, actions: ["x"] }))).toMatch(/more than 4096 combinations/);
+  });
+
+  it("on templates that narrow, H1's names are exactly what the real expander and emitter dispatch over every call", () => {
+    const narrowing = card(
+      { $if: { $eq: [{ $prop: "mode" }, "reset"] }, children: [submit({ $concat: ["auth-", { $prop: "mode" }] })], else: [submit({ $concat: ["auth-go-", { $prop: "mode" }] })] },
+      { $if: "recovery", children: [submit({ $case: "recovery", map: { true: "auth-forgot", false: "auth-never" } })] },
+      { $each: "providers", as: "provider", children: [{ $if: { $eq: [{ $prop: "provider" }, "github"] }, children: [submit({ $concat: ["auth-", { $prop: "provider" }] })] }] },
+    );
+    const block = auth(narrowing);
+    expect(names(block).names).toEqual(reachableNames("astryx", block, authCalls(block)));
+    expect(names(block).names).toEqual(["auth_forgot", "auth_github", "auth_go_sign_in", "auth_go_sign_up", "auth_reset"]);
+  });
+
+  for (const ref of REF_IDS) {
+    it(`${ref}: on the shipped auth-form, H1's names are exactly what the real expander and emitter dispatch over every call`, () => {
+      const block = blockOf(ref, "auth-form");
+      expect(templateActionNames(block, actionComponents(inputs(ref).profile)).names).toEqual(reachableNames(ref, block, authCalls(block)));
+    });
+  }
+});
+
 describe("H1 on the shipped sidecars: the names each template can emit are the §7 table, and equal its declaration", () => {
   for (const ref of REF_IDS) {
     it(ref, () => {
