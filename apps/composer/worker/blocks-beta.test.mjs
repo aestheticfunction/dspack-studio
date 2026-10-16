@@ -51,8 +51,11 @@ describe("/api/models with BLOCKS_BETA: the switch, normalized", () => {
     );
   });
 
-  it("the same switch stored as a JSON value gives the same bytes", async () => {
-    expect((await text({ AI, BLOCKS_BETA: JSON.parse(OWNER) })).body).toBe((await text({ AI, BLOCKS_BETA: OWNER })).body);
+  it("a JSON-typed variable is malformed: Cloudflare parses it first, so a repeated field would already be gone", async () => {
+    // The dashboard's JSON type hands the Worker a parsed value, in which the
+    // last of two equal fields has already won. Only Text can be checked.
+    expect((await text({ AI, BLOCKS_BETA: JSON.parse(OWNER) })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"malformed"}}\n');
+    expect(blocksBetaFor({ BLOCKS_BETA: { enabled: false, references: [], blocks: [] } })).toEqual({ enabled: false, reason: "malformed" });
   });
 
   it("the switch does not depend on hosted generation: HOSTED_AI off keeps it, and the models say scripted only", async () => {

@@ -6,13 +6,15 @@
  * holds strict JSON naming what the beta offers, for example
  *   {"enabled":true,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}
  * GET /api/models reports it, normalized, as its `blocks` field, and the
- * experimental client reads that before every build. Exactly the three fields,
- * each once; references from BETA_REFERENCES and blocks from BETA_BLOCKS, each
- * named once, and at least one of each when enabled. Text must be exactly the
- * switch it parses to, whitespace aside, so a repeated field (JSON.parse keeps
- * the last) is malformed. Anything else is malformed, and malformed, like
- * enabled false, turns blocks off. Without the variable there is no field:
- * production's reply is unchanged.
+ * experimental client reads that before every build. The variable is Text:
+ * exactly the three fields, each once; references from BETA_REFERENCES and
+ * blocks from BETA_BLOCKS, each named once, and at least one of each when
+ * enabled. The text must be exactly the switch it parses to, whitespace
+ * aside, so a repeated field (JSON.parse keeps the last) is malformed. So is a
+ * variable of the dashboard's JSON type, which arrives already parsed, a
+ * repeated field already resolved. Anything else is malformed, and malformed,
+ * like enabled false, turns blocks off. Without the variable there is no
+ * field: production's reply is unchanged.
  *
  * The beta offers Astryx only: the owner chose branch C, which withholds
  * shadcn/ui v3 blocks while their evaluation is inconclusive
@@ -42,13 +44,12 @@ const allowedList = (value, allowed) =>
 export function blocksBetaFor(env) {
   const raw = env?.BLOCKS_BETA;
   if (raw === undefined) return undefined;
-  let value = raw;
-  if (typeof raw === "string") {
-    try {
-      value = JSON.parse(raw);
-    } catch {
-      return MALFORMED;
-    }
+  if (typeof raw !== "string") return MALFORMED;
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return MALFORMED;
   }
   if (!plainObject(value)) return MALFORMED;
   const keys = Reflect.ownKeys(value);
@@ -57,7 +58,7 @@ export function blocksBetaFor(env) {
   if (!allowedList(value.references, BETA_REFERENCES) || !allowedList(value.blocks, BETA_BLOCKS)) return MALFORMED;
   // The ids allowed hold no whitespace, so all whitespace in the text lies
   // between tokens; what remains must be the parsed switch, written back.
-  if (typeof raw === "string" && raw.replace(/\s+/g, "") !== JSON.stringify(value)) return MALFORMED;
+  if (raw.replace(/\s+/g, "") !== JSON.stringify(value)) return MALFORMED;
   if (!value.enabled) return DISABLED;
   if (value.references.length === 0 || value.blocks.length === 0) return MALFORMED;
   return { enabled: true, references: [...value.references], blocks: [...value.blocks] };

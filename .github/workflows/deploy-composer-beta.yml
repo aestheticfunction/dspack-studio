@@ -23,14 +23,15 @@ name: deploy-composer-beta
 # that Cloudflare Access sends an anonymous request to its login.
 #
 # Every deploy records its rollback anchor first, and refuses to deploy when
-# it cannot. Only the first deploy, when the beta Worker does not exist yet,
-# goes ahead without one, and only when the dispatch says so (first_deploy),
-# which is refused once the Worker exists. A first deploy also skips the
-# pre-deploy Access check: the hostname does not exist yet, and asking would
-# only leave its absence cached on the runner for the post-deploy check.
+# it cannot. Only the first deploy goes ahead without one: when the dispatch
+# says so (first_deploy) and wrangler reports that the beta Worker does not
+# exist (code 10007). first_deploy is refused once the Worker exists. A first
+# deploy also skips the pre-deploy Access check: the hostname does not exist
+# yet, and asking would only leave its absence cached on the runner for the
+# post-deploy check.
 #
-# The token reaches only the steps that run wrangler, never the install or
-# the build, which run third-party code.
+# The token reaches only the steps that call Cloudflare, never an install
+# (wrangler's own included) or the build, which run third-party code.
 #
 # Rollback (from any machine with wrangler auth for the beta):
 #   npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc
@@ -85,6 +86,8 @@ jobs:
       - name: Cloudflare Access already sends anonymous requests to its login
         if: ${{ !inputs.first_deploy }}
         run: node apps/composer/scripts/check-beta-deploy.mjs --access=before
+      - name: Install the pinned wrangler, with no credentials
+        run: npx --yes wrangler@4.146.0 --version
       - name: Record the rollback anchor (currently active version)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_BETA }}
@@ -101,12 +104,12 @@ jobs:
               exit 1
             fi
             printf '%s\n' "$listing" | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
-          elif [ "$FIRST_DEPLOY" = "true" ]; then
+          elif [ "$FIRST_DEPLOY" = "true" ] && printf '%s\n' "$listing" | grep -qF '[code: 10007]'; then
             printf '%s\n' "$listing" | tail -8
-            echo "first deploy, as dispatched: the beta Worker has no earlier version to anchor" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "first deploy, as dispatched: wrangler reports no beta Worker yet (code 10007), so there is no earlier version to anchor" | tee -a "$GITHUB_STEP_SUMMARY"
           else
             printf '%s\n' "$listing" | tail -20
-            echo "The rollback anchor could not be recorded, so nothing is deployed. Dispatch with first_deploy only when the beta Worker does not exist yet."
+            echo "The rollback anchor could not be recorded, so nothing is deployed. first_deploy goes ahead only when wrangler reports that the beta Worker does not exist (code 10007)."
             exit 1
           fi
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -124,5 +127,7 @@ jobs:
           npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
           echo 'rollback: npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc  (target = the anchor above; then set BLOCKS_BETA and HOSTED_AI again)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+      # On a first deploy, a check that still fails on DNS or TLS is run again
+      # later from any machine (docs/deployment.md), never by re-running this run.
       - name: Cloudflare Access sends anonymous requests for the deployed beta to its login
         run: node apps/composer/scripts/check-beta-deploy.mjs --access=after

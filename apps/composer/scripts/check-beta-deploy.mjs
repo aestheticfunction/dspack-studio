@@ -16,8 +16,8 @@
  *     An anonymous request to the beta hostname, for its page, its API and its
  *     static assets, must be sent to the Cloudflare Access login. Before a
  *     deploy the hostname may not exist yet (DNS not found), which passes; any
- *     other failure does not. After a deploy the hostname must resolve, within
- *     about five minutes for a new custom domain.
+ *     other failure does not. After a deploy the hostname must resolve: it is
+ *     retried 50 times, 6 seconds apart, for a new custom domain.
  *
  * Exits 1 on any problem, after printing every one.
  */
@@ -145,9 +145,9 @@ const PROBES = ["/", "/api/models", "/_next/static/access-probe"];
  * An anonymous request for the page, the API and the static assets must be
  * sent to the Cloudflare Access login. `phase` "before" (the deploy) lets only
  * a hostname that does not exist yet pass, and refuses every other failure;
- * "after" retries any failure for about five minutes, since a new custom
- * domain needs its DNS record and certificate, then fails. Every probe has a
- * timeout.
+ * "after" retries any failure 50 times, 6 seconds apart (about five minutes,
+ * longer when a probe hangs to its timeout), since a new custom domain needs
+ * its DNS record and certificate, then fails. Every probe has a timeout.
  */
 export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), attempts = 50, delayMs = 6000 } = {}) {
   if (phase !== "before" && phase !== "after") throw new Error('phase must be "before" or "after"');

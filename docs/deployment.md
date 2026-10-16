@@ -236,13 +236,16 @@ every merge. The workflow:
    that; any other failure does not, and neither does a bare 401 or 403, which
    a WAF rule or bot challenge could send this runner alone. A first deploy
    skips this check (below);
-5. records the rollback anchor, and refuses to deploy without one unless the
-   dispatch is marked `first_deploy`, which it refuses once the beta Worker
-   exists;
+5. records the rollback anchor, and refuses to deploy without one, unless
+   the dispatch is marked `first_deploy` and wrangler reports that the beta
+   Worker does not exist (code 10007). It refuses `first_deploy` once the
+   Worker exists. wrangler itself is installed first, with no credentials;
 6. deploys with the pinned wrangler 4.146.0, and records the new version;
 7. checks again that anonymous requests for the page, for `/api/models` and for
-   the static assets go to the Access login, retrying for about five minutes
-   while a new custom domain takes its DNS record and certificate.
+   the static assets go to the Access login. A hostname that cannot be reached
+   yet is retried 50 times, 6 seconds apart (about five minutes, longer if a
+   probe hangs to its 15-second timeout), while a new custom domain takes its
+   DNS record and certificate.
 
 The workflow sends no credentials to the beta, so it cannot test the app behind
 Access. An authenticated smoke is later work, with its Access service token
@@ -256,7 +259,7 @@ node apps/composer/scripts/check-beta-deploy.mjs --access=after   # Access, on t
 ```
 
 **The block switch.** The beta Worker's `BLOCKS_BETA` variable, set in the
-dashboard and never in the config, says what the beta offers:
+dashboard as type Text and never in the config, says what the beta offers:
 
 ```json
 {"enabled":true,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}
@@ -268,8 +271,10 @@ dashboard and never in the config, says what the beta offers:
   sidecar's approved blocks; each is named once, and an enabled switch names at
   least one of each. Anything else is malformed: an unknown field, reference or
   block id, and a repeated field too, since JSON keeps the last of two equal
-  fields. To turn blocks off, change `true` to `false` in place; never add a
-  second `enabled`.
+  fields. A variable of the dashboard's JSON type is malformed as well: it
+  reaches the Worker already parsed, a repeated field already resolved. To
+  turn blocks off, change `true` to `false` in place; never add a second
+  `enabled`.
 - `GET /api/models` reports it, normalized, as a `blocks` field. A malformed
   value, or `"enabled": false`, is reported as off with its reason, and the
   value itself is never echoed.
@@ -298,10 +303,12 @@ dashboard and never in the config, says what the beta offers:
    zone permission reaches every hostname in the zone, production's included,
    so the token lives only in the protected environment. A token can be scoped
    only to a Worker that exists, and creating a Worker takes Admin at the
-   Workers product scope. So either create the Worker once by hand before
-   making the token, or grant that Admin for the first deploy only and then
-   replace the token with the narrower one. These permissions follow
-   Cloudflare's Workers authorization guide; the first dispatch is their test.
+   Workers product scope. So grant that Admin for the first deploy only, which
+   creates the Worker, then replace the token with the narrower one.
+   (Creating the Worker by hand first also works, but then the first dispatch
+   is not a `first_deploy`; see the first deploy, below.) These permissions
+   follow Cloudflare's Workers authorization guide; the first dispatch is their
+   test.
 4. **Named, not yet used.** `CF_ACCESS_CLIENT_ID_BETA` and
    `CF_ACCESS_CLIENT_SECRET_BETA`, an Access service token for the later
    authenticated smoke.
@@ -311,17 +318,21 @@ dashboard and never in the config, says what the beta offers:
 
 **The first deploy.**
 1. Dispatch it with `first_deploy` checked: the beta Worker has no earlier
-   version to anchor. The workflow refuses `first_deploy` once the Worker
-   exists. A first deploy skips the pre-deploy Access check, because the
-   hostname does not exist yet and asking would only leave its absence cached
-   on the runner for the check after the deploy.
+   version to anchor, and wrangler reports it does not exist (code 10007). A
+   first deploy skips the pre-deploy Access check, because the hostname does
+   not exist yet and asking would only leave its absence cached on the runner
+   for the check after the deploy. If the Worker was created by hand first,
+   dispatch without `first_deploy`: the pre-deploy check then meets a hostname
+   that does not exist yet, and the check after the deploy may fail on DNS
+   (step 2).
 2. If the check after the deploy still fails on DNS or TLS, the custom domain
    is still provisioning: run
    `node apps/composer/scripts/check-beta-deploy.mjs --access=after` again a
-   few minutes later, from any machine. If it fails any other way, the beta may
-   be public: remove its custom domain at once (Workers & Pages →
-   `dspack-studio-composer-beta` → Settings → Domains & Routes), fix Access,
-   and dispatch again to re-attach it.
+   few minutes later, from any machine. Do not re-run the workflow run: the
+   Worker now exists, so it refuses `first_deploy`. If the check fails any other
+   way, the beta may be public: remove its custom domain at once (Workers &
+   Pages → `dspack-studio-composer-beta` → Settings → Domains & Routes), fix
+   Access, and dispatch again, without `first_deploy`, to re-attach it.
 3. Confirm by hand, in Zero Trust → Access → Applications, that the beta's
    application covers the whole hostname and has one Allow policy that
    includes only the owner's email.
@@ -354,8 +365,8 @@ dashboard and never in the config, says what the beta offers:
 A pause turns blocks off and sets `HOSTED_AI` to `off` on the beta until the
 owner decides to resume. Until the beta has operator signals (release plan step
 5), the owner reads these by hand:
-- the beta's receipts give each call's usage and outcome, but the model only for
-  a reply that succeeded, and none for a failed call;
+- the beta's receipts give each call's usage and outcome; a reply that
+  succeeded puts its model on each of its calls, and a failed one names none;
 - each `/api/propose` reply's `calls` list names the model that served every
   call that got a response, an unusable output included (the browser's network
   panel); a call the provider rejected got none, and names none;

@@ -296,10 +296,10 @@ describe("the workflows", () => {
 
   it("every wrangler command names the beta config and the pinned wrangler", () => {
     const commands = lines(beta()).filter((l) => /\bwrangler\b/.test(l) && !/^\s*-?\s*name:/.test(l) && !/^\s*echo /.test(l));
-    expect(commands.length).toBeGreaterThanOrEqual(3);
+    expect(commands.length).toBeGreaterThanOrEqual(4);
     for (const command of commands) {
       expect(command).toContain(`npx --yes ${WRANGLER} `);
-      expect(command).toContain("--config wrangler.composer-beta.jsonc");
+      if (!command.includes(`${WRANGLER} --version`)) expect(command).toContain("--config wrangler.composer-beta.jsonc");
     }
     expect(beta()).not.toMatch(/--config wrangler\.jsonc/);
   });
@@ -327,14 +327,18 @@ describe("the workflows", () => {
     expect(script).not.toMatch(/\$\{\{/);
     const dir = mkdtempSync(join(tmpdir(), "beta-anchor-"));
     try {
-      writeFileSync(join(dir, "npx"), '#!/bin/sh\necho "listing: $*"\nexit "${FAKE_NPX_EXIT:-0}"\n');
+      writeFileSync(join(dir, "npx"), '#!/bin/sh\necho "listing: $*"\necho "${FAKE_NPX_ERROR:-}"\nexit "${FAKE_NPX_EXIT:-0}"\n');
       chmodSync(join(dir, "npx"), 0o755);
+      // wrangler 4.146.0 prints an API error as "<message> [code: <n>]"; 10007 is its WORKER_NOT_FOUND_ERR_CODE.
+      const NOT_FOUND = "✘ [ERROR] A request to the Cloudflare API failed. This Worker does not exist on your account. [code: 10007]";
+      const AUTH = "✘ [ERROR] A request to the Cloudflare API failed. Authentication error [code: 10000]";
       const run = (listing, firstDeploy) => {
         const summary = join(dir, `summary-${listing}-${firstDeploy}`);
         writeFileSync(summary, "");
+        const error = { ok: "", missing: NOT_FOUND, auth: AUTH, outage: "✘ [ERROR] fetch failed" }[listing];
         // A run step with no shell set runs under `bash -e`, without pipefail.
         const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-c", script], {
-          env: { PATH: `${dir}:${process.env.PATH}`, FAKE_NPX_EXIT: listing === "ok" ? "0" : "1", FIRST_DEPLOY: String(firstDeploy), GITHUB_STEP_SUMMARY: summary, GITHUB_SHA: "abc123" },
+          env: { PATH: `${dir}:${process.env.PATH}`, FAKE_NPX_EXIT: listing === "ok" ? "0" : "1", FAKE_NPX_ERROR: error, FIRST_DEPLOY: String(firstDeploy), GITHUB_STEP_SUMMARY: summary, GITHUB_SHA: "abc123" },
           encoding: "utf8",
         });
         return { status: result.status, summary: readFileSync(summary, "utf8") };
@@ -342,10 +346,12 @@ describe("the workflows", () => {
       const listed = run("ok", false);
       expect(listed.status).toBe(0);
       expect(listed.summary).toMatch(/listing: --yes wrangler@4\.146\.0 deployments list --config wrangler\.composer-beta\.jsonc/);
-      expect(run("fails", false).status).not.toBe(0);
-      const first = run("fails", true);
+      for (const failure of ["missing", "auth", "outage"]) expect(run(failure, false).status, failure).not.toBe(0);
+      // first_deploy goes ahead only on wrangler's own "this Worker does not exist" (code 10007).
+      const first = run("missing", true);
       expect(first.status).toBe(0);
       expect(first.summary).toMatch(/first deploy/i);
+      for (const failure of ["auth", "outage"]) expect(run(failure, true).status, failure).not.toBe(0);
       // A first deploy only: once the Worker exists, first_deploy is refused, so it can never skip the pre-deploy check.
       expect(run("ok", true).status).not.toBe(0);
     } finally {
@@ -359,22 +365,29 @@ describe("the workflows", () => {
     return body.split(/\n(?=      - )/).slice(1).map((text) => ({ name: (/- (?:name|uses): (.+)/.exec(text) ?? [])[1] ?? "", text }));
   };
 
-  it("the token reaches only the steps that need it: never the install or the build", () => {
+  it("the token reaches only the steps that need it: never an install, wrangler's included, or the build", () => {
     const yml = beta();
     const job = yml.slice(yml.indexOf("\n  deploy:\n"), yml.indexOf("\n    steps:\n"));
     expect(job).not.toMatch(/CLOUDFLARE_/);
     const all = steps(yml);
     expect(all.length).toBeGreaterThan(8);
     for (const step of all) {
-      const runsWrangler = /\bwrangler@/.test(step.text.replace(/^\s*#.*$/gm, "")) && !/^Cloudflare Access/.test(step.name);
+      const code = step.text.replace(/^\s*#.*$/gm, "");
+      const callsCloudflare = /\bwrangler@\S+ (deployments|deploy|rollback)\b/.test(code);
       const checksCredential = step.name === "The beta deploys only with its own credential";
       const hasToken = /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN_BETA \}\}/.test(step.text);
-      expect(hasToken, step.name).toBe(runsWrangler || checksCredential);
+      expect(hasToken, step.name).toBe(callsCloudflare || checksCredential);
       if (hasToken) expect(step.text, step.name).toMatch(/CLOUDFLARE_ACCOUNT_ID: \$\{\{ vars\.CLOUDFLARE_ACCOUNT_ID \}\}/);
     }
     for (const name of ["Frozen-lockfile install", "Build the experimental artifact (apps/composer/out-experimental)"]) {
       expect(all.find((s) => s.name === name)?.text, name).not.toMatch(/CLOUDFLARE_/);
     }
+    // wrangler's own install runs its dependencies' install scripts: that happens first, with no credentials.
+    const warm = all.findIndex((s) => new RegExp(`npx --yes ${WRANGLER.replace(/[.@]/g, "\\$&")} --version`).test(s.text));
+    const anchor = all.findIndex((s) => s.name === "Record the rollback anchor (currently active version)");
+    expect(warm).toBeGreaterThan(-1);
+    expect(warm).toBeLessThan(anchor);
+    expect(all[warm].text).not.toMatch(/CLOUDFLARE_/);
   });
 
   it("a first deploy skips the pre-deploy Access check, which would only cache the hostname's absence on the runner", () => {
