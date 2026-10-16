@@ -365,9 +365,10 @@ duration, and the request's duration
 - Roll back: `npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc`,
   to the anchor the workflow recorded. A rollback deploys that version as it
   was, and may bring back the `BLOCKS_BETA`, `HOSTED_AI` and
-  `BETA_OPERATOR_LOG` it had. So roll back first, then set all three again, and
-  read the beta's `/api/models` to confirm the switches. A rollback never stops
-  blocks on its own. Production and the beta roll back independently.
+  `BETA_OPERATOR_LOG` it had. So roll back first, then set all three again.
+  The beta's `/api/models` confirms `BLOCKS_BETA` and `HOSTED_AI`; no endpoint
+  shows `BETA_OPERATOR_LOG`, so confirm it in the dashboard. A rollback never
+  stops blocks on its own. Production and the beta roll back independently.
 
 **Stop conditions (initial, set by the owner).**
 - Disable blocks at once (`BLOCKS_BETA` off) on any model mismatch, any

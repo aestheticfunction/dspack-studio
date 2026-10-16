@@ -91,7 +91,7 @@ That is the line itself. Whatever else Workers Logs records about each invocatio
   - its refinement mode and budget, and the receipt line;
   - its call records: operation, attempt, sub-call, source, outcome, provider-reported tokens, model (for a hosted turn only) and duration;
   - its timings: plan, first gated attempt, first valid preview, emit and total, in whole milliseconds;
-  - the shape of its block trace:
+  - the shape of its block trace. The durable trace keeps its validated call, which a model wrote, so the file keeps only:
     - the block id (a block this build bundles, else `other`), version, encoding, outcome, provider calls and expansion attempt;
     - the fallback classification, with its reason for a switch, and the provider error's classification;
     - the number of invariant failures, and the bundled block's schema and system digests;
@@ -102,7 +102,7 @@ That is the line itself. Whatever else Workers Logs records about each invocatio
 - the block call, any generated output or any surface content;
 - an issue's text, or a digest of model text;
 - a credential, an entered value or an action parameter;
-- a local model's or the local agent's model name. Only a hosted turn keeps its calls' model names, which the provider's replies give. A configured model's name is the user's own entry, so a local turn's calls keep none, and its receipt line says nothing of them.
+- a local model's or the local agent's model name. Only a hosted turn keeps its calls' model names, as its records hold them from the Worker's replies: with the receipt's fallback, so a call whose provider named nothing carries the top-level model, which can be the configured id. A configured model's name is the user's own entry, so a local turn's calls keep none, and its receipt line says nothing of them.
 
 The e2e spec `e2e/composer-blocks-receipts.spec.ts` and the composer-core tests (`receipts.test.ts`) inject sensitive-looking text into every field and prove none of it reaches the file.
 
@@ -140,7 +140,7 @@ The owner watches for these. No alert is automated yet, and nothing here acts on
 | Alarm | Where it shows | What the owner does |
 |---|---|---|
 | Any invariant failure | the turn's failure explanation; the diagnostics file (`block.outcome` `invariant-failure`, `invariantCount`); the canary's report | Disable blocks at once (`BLOCKS_BETA` off): an integrity failure |
-| Any served-model change: a per-call model other than the one the beta has been serving, compared as exact strings as the harness compares them, so a new snapshot or another spelling counts | the operator log's per-call `model`; a canary's integrity stop. The receipt's "served by" can show the configured id (above): a reason to look, not the signal | Disable blocks at once: a model mismatch |
+| Any served-model change: a per-call model other than the one the beta has been serving, compared as exact strings as the harness compares them, so a new snapshot or another spelling counts. A call that got a response (`ok` or `unusable-output`) but names no model (`model` `null`) cannot be shown to be the beta's model, and reads the same way, as the canary's `model-missing` stop does | the operator log's per-call `model`; a canary's integrity stop. The receipt's "served by" and the diagnostics file's `model` can show the configured id (above): a reason to look, not the signal | Disable blocks at once: a model mismatch |
 | A call that got a response without its usage | the operator log (a call with `outcome` `ok` or `unusable-output` and `inputTokens` or `outputTokens` `null`); the diagnostics file (such a call without a token figure); a canary's integrity stop | Disable blocks at once: an unmetered provider-reached call |
 | An authorization or provenance failure | a host's report ([HOST-ACTIONS.md](HOST-ACTIONS.md)) | Disable blocks at once |
 | Canary point estimates that cross an ADR-B3 threshold (tokens per success down less than 30%, or a pass rate more than 5 points below either primitive arm) | the canary's report | With at least 20 threads per arm, an alarm for the owner's decision; below 20, a warning only |
@@ -148,6 +148,6 @@ The owner watches for these. No alert is automated yet, and nothing here acts on
 | Busy or refusal responses at 10% over at least 20 beta requests | the operator log (`status` 503 `busy`, 429 and the other refusals) | Pause the beta |
 | The shared gateway's daily spend at $8 | the gateway's dashboard | Pause the beta |
 
-**Provider errors and the unmetered rule.** A `provider-error` call, where the provider returned nothing, has no usage and no model by nature. The table counts it under the provider-error rules: two consecutive non-busy errors pause the beta, and busy responses count toward the 10%. It does not count it as an unmetered call. Counting it there would disable blocks at the first provider error, and leave the owner's two-consecutive rule nothing to apply to. The canary is stricter: it stops at any call that reached, or may have reached, the provider without its usage (`live/integrity.ts`). This reading of the owner's rule is the owner's to confirm.
+**Provider errors and the unmetered rule.** A `provider-error` call, where the provider returned nothing, has no usage and no model by nature, and cannot show that it reached a model. The table counts it under the provider-error rules: two consecutive non-busy errors pause the beta, and busy responses count toward the 10%. It does not count it as an unmetered call: that would disable blocks at the first such error, where the owner's rules pause the beta at the second consecutive one. The canary is stricter: it stops at any call that reached, or may have reached, the provider without its usage (`live/integrity.ts`). This reading of the owner's rule is the owner's to confirm.
 
 The stop conditions are the owner's ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 2, authorized"). A pause turns blocks off and sets `HOSTED_AI` to `off` on the beta until the owner resumes it ([../deployment.md](../deployment.md), "Runbook"). A field signal that crosses a threshold is a reason to look, never a decision.

@@ -131,8 +131,11 @@ function refinementMode(turn: Json, trace: Json | undefined): RefinementMode | u
       };
     case "provider-failure": {
       // What stopped it, as the block phase classified the error: an unknown or missing kind reads as a provider failure.
+      // A refusal the client classifies by status (a 503 sent before any provider call) still shows in its record.
       const classification = isObject(trace.providerError) ? trace.providerError.classification : undefined;
-      return { mode: "compact", outcome: classification === "output" ? "unusable-output" : classification === "policy" ? "refused" : "provider-failure" };
+      const last = recordsOf(turn.calls).filter((r) => BLOCK_OPERATIONS.includes(r.operation as string)).at(-1);
+      const refused = classification === "policy" || (last?.source === "none" && last.outcome === "refused");
+      return { mode: "compact", outcome: refused ? "refused" : classification === "output" ? "unusable-output" : "provider-failure" };
     }
     case "invariant-failure":
       return { mode: "compact", outcome: "invariant-failure" };
@@ -377,9 +380,10 @@ function safeTrace(trace: Json, knownBlocks: readonly string[]): DiagnosticsBloc
  * The file a user saves from the beta: each turn's call records, timings,
  * outcome, receipt and block-trace shape, in the order the session ran them.
  * `knownBlocks` are the block ids this build bundles; any other id is "other".
- * Only a hosted turn keeps its calls' model names, which the provider's
- * replies give; a local model's or the local agent's name is the user's own
- * entry, so the file withholds it, and its receipt line says nothing of it.
+ * Only a hosted turn keeps its calls' model names, as its records hold them
+ * from the Worker's replies (with the top-level fallback); a local model's or
+ * the local agent's name is the user's own entry, so the file withholds it,
+ * and its receipt line says nothing of it.
  */
 export function diagnosticsExport(turns: readonly unknown[], options: { exportedAt: string; knownBlocks: readonly string[]; limit?: number }): DiagnosticsFile {
   return {

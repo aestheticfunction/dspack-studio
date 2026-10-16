@@ -61,7 +61,18 @@ How these are applied is in [../deployment.md](../deployment.md), "The beta comp
 
 ## Step 5, authorized (2026-10-16)
 
-The owner authorized the plan's step 5, receipts and operator signals (§9), as its own PR: no beta deploy, no Cloudflare change, no paid model call and no hosted canary. The owner's privacy and compatibility requirements, in the owner's words:
+The owner authorized the plan's step 5, receipts and operator signals (§9), as its own PR. The owner limited it, in the owner's words, to:
+- "beta receipts that split block and surface tokens using provider-reported usage only;"
+- "each call's own served model, with the documented top-level fallback;"
+- "exact call-budget usage and the refinement mode in plain language;"
+- "beta-only, shape-only operator logging gated by a variable production does not set;"
+- "one structured record containing only status, error classification, `maxCalls`, call operation/outcome, token counts, served model and duration;"
+- "a user-initiated diagnostics export containing durable traces, call records, timings and outcomes, with no prompt or model-generated text;"
+- "documentation of the canary and alarm rules, without running a hosted canary."
+
+And preserved its scope: "no beta deploy, Cloudflare changes, accessibility work, shadcn, Stage 4, catalog changes, action execution or paid model calls."
+
+The owner's privacy and compatibility requirements, in the owner's words:
 - "never log or export prompts, schemas, generated output, surface content, credentials, entered values or action parameters;"
 - "no automatic beacon or client telemetry;"
 - "no estimated token values;"
