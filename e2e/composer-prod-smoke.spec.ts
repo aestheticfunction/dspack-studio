@@ -702,6 +702,9 @@ test("a default build ignores and drops block provenance: an imported file's pro
   await expect(page.getByTestId("preview-host-owned")).toHaveCount(0);
 });
 
+/** Step 4's UI and runtime call; the experimental suite's positive control finds each in its artifact. */
+const STEP4_MARKERS = ["blocks-catalog", "preview-provenance", "preview-host-owned", "provenanceVerdicts"];
+
 test("the default build ships no interface-block code (docs/BLOCKS.md: blocks stay out of default builds)", () => {
   // Scans the served artifact on disk, so a lazily loaded chunk cannot hide it.
   const chunks = fileURLToPath(new URL("../apps/composer/out/_next/static/chunks/", import.meta.url));
@@ -717,7 +720,8 @@ test("the default build ships no interface-block code (docs/BLOCKS.md: blocks st
   for (const file of files) {
     const body = readFileSync(file, "utf8");
     // actionManifest: the beta's Catalog export key (docs/blocks/HOST-ACTIONS.md).
-    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime", "reference-not-in-beta", "beta-switch-", "actionManifest"]) {
+    // The rest: step 4's Blocks catalog and Preview provenance line, and the runtime call behind them.
+    for (const marker of ["blocksSidecar", "disable-actions-until-complete", "records-table", "auth-form", "guide-steps", "blocks-runtime", "reference-not-in-beta", "beta-switch-", "actionManifest", ...STEP4_MARKERS]) {
       expect(body.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   }

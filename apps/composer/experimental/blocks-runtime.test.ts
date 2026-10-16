@@ -18,8 +18,11 @@ import {
   blockRunFor,
   blocksCatalog,
   chooseBlock,
+  copyProvenance,
+  gcProvenance,
   importProvenance,
   memoryProvenanceStore,
+  onProvenanceChange,
   planGoalWithBlocks,
   provenanceVerdicts,
   readBlocksBeta,
@@ -599,6 +602,12 @@ describe("provenance verdicts for a project's surfaces (Phase 2 plan, §8)", () 
     expect(verdicts.a).toMatchObject({ madeWith: false, status: "inert", reason: "reference" });
   });
 
+  it("a project on a reference this build does not bundle trusts no provenance", async () => {
+    const { entry, surface } = await accepted();
+    const verdicts = await provenanceVerdicts({ provenance: { a: entry }, examples: [{ id: "a", surface }], project: { kind: "reference", referenceId: "retired-reference" } });
+    expect(verdicts.a).toEqual({ block: "auth-form", version: 1, madeWith: false, status: "inert", reason: "reference" });
+  });
+
   it("an imported project's provenance is unavailable; a repository project's too", async () => {
     const { entry, surface } = await accepted();
     for (const [kind, reason] of [["imported", "imported"], ["agent", "repository"]] as const) {
@@ -608,11 +617,62 @@ describe("provenance verdicts for a project's surfaces (Phase 2 plan, §8)", () 
   });
 
   it("an import keeps the reason each record was reduced to inert for", async () => {
-    const { entry } = await accepted();
+    const { entry, surface } = await accepted();
     const holder = { current: {} as Record<string, unknown> };
-    await importProvenance(memoryProvenanceStore(holder, "import-test"), { a: entry, b: { ...entry, version: 4 }, c: { ...entry, baseSha256: "1".repeat(64) } });
+    const examples = ["a", "b", "c"].map((id) => ({ id, surface }));
+    await importProvenance(memoryProvenanceStore(holder, "import-test"), { a: entry, b: { ...entry, version: 4 }, c: { ...entry, baseSha256: "1".repeat(64) } }, examples);
     expect(holder.current.a).toEqual(entry);
     expect(holder.current.b).toEqual({ block: "auth-form", version: 4, status: "inert", reason: "version" });
     expect(holder.current.c).toEqual({ block: "auth-form", version: 1, status: "inert", reason: "base" });
+  });
+
+  it("an import prunes against the imported project's examples: a record for a missing or edited surface is dropped", async () => {
+    const { entry, surface, edited } = await accepted();
+    const holder = { current: {} as Record<string, unknown> };
+    await importProvenance(memoryProvenanceStore(holder, "import-prune"), { kept: entry, gone: entry, changed: entry, stale: { ...entry, version: 4 } }, [
+      { id: "kept", surface },
+      { id: "changed", surface: edited },
+      { id: "stale", surface },
+    ]);
+    expect(holder.current).toEqual({ kept: entry, stale: { block: "auth-form", version: 4, status: "inert", reason: "version" } });
+  });
+
+  it("duplicating an Example session copies its provenance once every pending write has landed, pruned against the examples the duplicate keeps", async () => {
+    const { entry, surface, edited } = await accepted();
+    const session = { current: { stale: entry } as Record<string, unknown> };
+    const from = memoryProvenanceStore(session, "copy-test-session");
+    const saved: Array<Record<string, unknown>> = [];
+    const to = { key: "copy-test-project", load: () => ({}), save: (map: Record<string, unknown>) => void saved.push(map) };
+    // A write still on its way to the session's store: the copy waits for it.
+    void importProvenance(from, { stale: entry, late: entry }, [
+      { id: "stale", surface },
+      { id: "late", surface },
+    ]);
+    await copyProvenance(from, to, [
+      { id: "stale", surface: edited },
+      { id: "late", surface },
+    ]);
+    expect(saved).toEqual([{ late: entry }]);
+  });
+
+  it("a session with nothing that still verifies carries nothing", async () => {
+    const { entry, edited } = await accepted();
+    const saved: unknown[] = [];
+    const to = { key: "copy-empty-project", load: () => ({}), save: (map: Record<string, unknown>) => void saved.push(map) };
+    await copyProvenance(memoryProvenanceStore({ current: {} }, "copy-empty"), to, []);
+    await copyProvenance(memoryProvenanceStore({ current: { a: entry } }, "copy-stale"), to, [{ id: "a", surface: edited }]);
+    expect(saved).toEqual([]);
+  });
+
+  it("every provenance write tells its listeners, so an open Preview re-reads; unsubscribing stops it", async () => {
+    const { entry, surface } = await accepted();
+    const seen: string[] = [];
+    const off = onProvenanceChange((key) => seen.push(key));
+    await gcProvenance(memoryProvenanceStore({ current: { a: entry } }, "notify-1"), [{ id: "a", surface }]);
+    await importProvenance(memoryProvenanceStore({ current: {} }, "notify-2"), { a: entry }, [{ id: "a", surface }]);
+    expect(seen.filter((key) => key.startsWith("notify-"))).toEqual(["notify-1", "notify-2"]);
+    off();
+    await gcProvenance(memoryProvenanceStore({ current: { a: entry } }, "notify-3"), [{ id: "a", surface }]);
+    expect(seen.filter((key) => key.startsWith("notify-"))).toEqual(["notify-1", "notify-2"]);
   });
 });

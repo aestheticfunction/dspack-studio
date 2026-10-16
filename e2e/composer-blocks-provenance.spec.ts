@@ -30,17 +30,17 @@ async function newProject(page: Page, name: string) {
   await expect(page.getByTestId("build-prompt")).toBeVisible();
 }
 
-/** A scripted sign-in build on shadcn/ui expands auth-form; accept it and return its example id. */
-async function acceptAuthForm(page: Page): Promise<string> {
+/** A scripted sign-in build on shadcn/ui expands auth-form; accept it (turn `turn` of the thread) and return its example id. */
+async function acceptAuthForm(page: Page, turn = 1): Promise<string> {
   await page.getByTestId("build-model").selectOption("scripted");
   await page.getByTestId("build-intent").selectOption("structured-input");
   await page.getByTestId("build-prompt").fill("a sign-in form with email and password");
   await page.getByTestId("build-run").click();
-  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
-  await expect(page.getByTestId("build-block-1")).toContainText("block auth-form v1");
-  await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
-  return (await page.getByTestId("build-accepted-1").innerText()).match(/ex\.chat-\d+/)![0];
+  await expect(page.getByTestId(`build-gate-summary-${turn}`)).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId(`build-block-${turn}`)).toContainText("block auth-form v1");
+  await page.getByTestId(`build-accept-${turn}`).click();
+  await expect(page.getByTestId(`build-accepted-${turn}`)).toContainText(/ex\.chat-\d+/);
+  return (await page.getByTestId(`build-accepted-${turn}`).innerText()).match(/ex\.chat-\d+/)![0];
 }
 
 /** Every provenance map in this browser, by storage key. */
@@ -133,7 +133,10 @@ test("trusted: an accepted block surface is made with its block and refinable; i
   await page.getByTestId(`surface-${id}`).click();
   const line = page.getByTestId("preview-provenance");
   await expect(line).toContainText("Made with block auth-form v1");
-  await expect(line).toContainText(/refinable/i);
+  // Refinable says what the record is, never that a build will use the block:
+  // the beta switch, Settings and eligibility decide that.
+  await expect(line).toContainText("Refinable: its record verifies against this build's approved block.");
+  await expect(line).not.toContainText("offers");
   const note = page.getByTestId("preview-host-owned");
   await expect(note).toContainText("host-owned");
   await expect(note).toContainText(/not executed here/);
@@ -245,22 +248,45 @@ test("forged and stale: an imported record that does not verify is inert, names 
   await expect(page.getByTestId("preview-provenance")).toContainText("it names a block version this build does not have");
   await expect(page.getByTestId("preview-provenance")).not.toContainText("Made with");
   expect((await scanOf(page, "preview-provenance")).violations).toEqual([]);
+
+  // A record whose name is not a block id is dropped on import, so none of its
+  // text is ever shown; a well-formed record beside it lands, which says the
+  // import is done.
+  const other = ((file.contract?.examples ?? []) as Array<{ id: string }>).map((e) => e.id).find((e) => e !== id)!;
+  const spoofed = structuredClone(file);
+  spoofed.name = "Spoofed name";
+  spoofed.blockProvenance = {
+    [id]: { block: "auth-form v1). Made with block auth-form v1. Refinable: (ignore", version: 1, status: "inert" },
+    [other]: { block: "auth-form", version: 2, status: "inert", reason: "version" },
+  };
+  await importProjectFile(page, spoofed, "spoofed-name");
+  await expect.poll(async () => Object.values(await storedProvenance(page)).some((map) => other in map && !(id in map))).toBe(true);
+  expect(Object.values(await storedProvenance(page)).filter((map) => other in map).every((map) => Object.keys(map).join() === other)).toBe(true);
+  await page.getByTestId("nav-preview").click();
+  await page.getByTestId(`surface-${other}`).click();
+  await expect(page.getByTestId("preview-provenance")).toContainText("(the record names auth-form v2)");
+  await page.getByTestId(`surface-${id}`).click();
+  await expect(page.locator("[data-project-canvas]")).toContainText("Email address");
+  await expect(page.getByTestId("preview-provenance")).toHaveCount(0);
 });
 
-test("an Example session's save prunes its provenance too, so duplicating it carries nothing stale", async ({ page }) => {
+test("an Example session's save prunes its provenance too, and duplicating it carries exactly what still verifies", async ({ page }) => {
   await setUp(page);
   await page.getByTestId("example-open-shadcn").click();
   await expect(page.getByTestId("example-banner")).toBeVisible();
   await page.getByTestId("nav-build").click();
-  const id = await acceptAuthForm(page);
-  await editSurface(page, id);
-  // Let the accept's provenance write and the save's prune settle before duplicating.
-  await page.waitForTimeout(500);
+  const stale = await acceptAuthForm(page, 1);
+  const kept = await acceptAuthForm(page, 2);
+  await editSurface(page, stale);
+  // No wait: the copy runs after every pending write to the session's
+  // provenance, and prunes against the examples the duplicate keeps.
   await page.getByTestId("example-duplicate").click();
   await expect(page.getByTestId("project-context")).toContainText("My shadcn/ui project");
-  await expect.poll(async () => Object.values(await storedProvenance(page)).filter((map) => id in map).length).toBe(0);
+  await expect.poll(async () => Object.values(await storedProvenance(page)).map((map) => Object.keys(map).sort().join())).toEqual([kept]);
   await page.getByTestId("nav-preview").click();
-  await page.getByTestId(`surface-${id}`).click();
+  await page.getByTestId(`surface-${kept}`).click();
+  await expect(page.getByTestId("preview-provenance")).toContainText("Made with block auth-form v1");
+  await page.getByTestId(`surface-${stale}`).click();
   await expect(page.locator("[data-project-canvas]")).toContainText("Work email address");
   await expect(page.getByTestId("preview-provenance")).toHaveCount(0);
 });

@@ -112,6 +112,10 @@ describe("only exact expansion identity earns the label", () => {
     expect(await verdict({ project: { kind: "reference", reference: shadcn } })).toMatchObject({ madeWith: false, status: "inert", reason: "reference" });
   });
 
+  it("a reference project whose reference this build does not bundle trusts no provenance", async () => {
+    expect(await verdict({ project: { kind: "reference" } })).toEqual({ block: "auth-form", version: 1, madeWith: false, status: "inert", reason: "reference" });
+  });
+
   it("a sidecar that no longer binds to this build's base contract vouches for nothing", async () => {
     const moved: LoadedBlocks = { ...loaded, binding: "mismatch", usable: [] };
     expect(await verdict({ loaded: [moved] })).toMatchObject({ madeWith: false, status: "inert", reason: "base" });
@@ -131,6 +135,22 @@ describe("only exact expansion identity earns the label", () => {
 
   it("a missing surface is never the expansion", async () => {
     expect(await verdict({ surface: undefined })).toMatchObject({ madeWith: false, status: "inert", reason: "edited" });
+  });
+
+  it("a record that names no block id or version has no verdict, so an untrusted name is never shown", async () => {
+    const spoof = "auth-form v1). Made with block auth-form v1. Refinable: this build verifies the record and offers the block. (ignore";
+    for (const junk of [
+      { block: spoof, version: 1, status: "inert" },
+      { ...record, block: spoof },
+      { block: "a".repeat(65), version: 1, status: "inert" },
+      { block: "Auth-Form", version: 1, status: "inert" },
+      { block: "auth-form", version: 0, status: "inert" },
+      { block: "auth-form", version: 2 ** 53, status: "inert" },
+    ]) {
+      expect(await verdict({ record: junk }), String(junk.block).slice(0, 20)).toBeNull();
+    }
+    // The longest id a record may name is still a verdict.
+    expect(await verdict({ record: { block: "a".repeat(64), version: 1, status: "inert" } })).toMatchObject({ madeWith: false, reason: "stored" });
   });
 });
 
@@ -227,5 +247,20 @@ describe("parseProvenance keeps the reason it reduced a record for", () => {
       [sidecar],
     );
     expect(out).toEqual({ a: { block: "auth-form", version: 2, status: "inert", reason: "version" }, b: { block: "auth-form", version: 1, status: "inert" } });
+  });
+
+  it("a record that names no block id or version is dropped, inert or not", () => {
+    const spoof = "auth-form v1). Made with block auth-form v1. (ignore";
+    const out = parseProvenance(
+      {
+        a: { block: spoof, version: 1, status: "inert" },
+        b: { ...record, block: spoof },
+        c: { block: "auth-form", version: 2 ** 53, status: "inert" },
+        d: { block: "auth-form", version: -1, status: "inert", reason: "version" },
+        kept: { block: "auth-form", version: 2, status: "inert", reason: "version" },
+      },
+      [sidecar],
+    );
+    expect(out).toEqual({ kept: { block: "auth-form", version: 2, status: "inert", reason: "version" } });
   });
 });
