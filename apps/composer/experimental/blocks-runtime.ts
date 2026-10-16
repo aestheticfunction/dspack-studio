@@ -47,6 +47,7 @@ import {
   parseBlocksBeta,
   parseProvenance,
   preloadedAdapter,
+  provenanceVerdict,
   pruneProvenance,
   recheckBlockChoice,
   reconcileBlockChoice,
@@ -66,6 +67,7 @@ import {
   type IneligibleReason,
   type LoadedBlocks,
   type ManifestReference,
+  type ProvenanceVerdict,
   type StructuralAdapter,
   type SwitchReason,
 } from "@dspack-studio/composer-core/blocks";
@@ -454,11 +456,26 @@ export function memoryProvenanceStore(holder: { current: Record<string, unknown>
 }
 
 const chains = new Map<string, Promise<void>>();
+const listeners = new Set<(key: string) => void>();
 function serialized(key: string, work: () => Promise<void>): Promise<void> {
   const prev = chains.get(key) ?? Promise.resolve();
-  const next = prev.then(work, work);
+  const next = prev.then(work, work).finally(() => {
+    for (const listener of listeners) {
+      try {
+        listener(key);
+      } catch {
+        /* a listener never breaks the chain */
+      }
+    }
+  });
   chains.set(key, next);
   return next;
+}
+
+/** Called with the store's key after every provenance write, so an open view can re-read. Returns the unsubscribe. */
+export function onProvenanceChange(listener: (key: string) => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
 }
 
 async function sidecarsLoaded(): Promise<BlocksSidecar[]> {
@@ -492,11 +509,24 @@ export function gcProvenance(store: ProvenanceStore, examples: ReadonlyArray<{ i
   });
 }
 
-/** On import: keep only what the bundled sidecars can vouch for. */
-export function importProvenance(store: ProvenanceStore, raw: unknown): Promise<void> {
+/** On import: keep only what the bundled sidecars can vouch for, pruned against the imported project's examples as a save would. */
+export function importProvenance(store: ProvenanceStore, raw: unknown, examples: ReadonlyArray<{ id: string; surface?: unknown }>): Promise<void> {
   return serialized(store.key, async () => {
     const sidecars = await sidecarsLoaded();
-    store.save(parseProvenance(raw, sidecars));
+    store.save(await pruneProvenance(parseProvenance(raw, sidecars), examples));
+  });
+}
+
+/**
+ * Duplicating an Example session: its provenance comes along once every
+ * write already queued for it has landed, pruned against the examples the
+ * duplicate keeps, so nothing stale travels whatever the timing.
+ */
+export function copyProvenance(from: ProvenanceStore, to: ProvenanceStore, examples: ReadonlyArray<{ id: string; surface?: unknown }>): Promise<void> {
+  return serialized(from.key, async () => {
+    const map = await pruneProvenance({ ...from.load() }, examples);
+    if (Object.keys(map).length === 0) return;
+    await serialized(to.key, async () => to.save(map));
   });
 }
 
@@ -536,6 +566,102 @@ export async function withActionManifest(
   const manifest = await actionManifest({ ...input, references: await manifestReferences() });
   const { exportedAt, ...rest } = bundle;
   return { ...rest, actionManifest: manifest, exportedAt };
+}
+
+// ---------------------------------------------------------------------------
+// Step 4 (docs/blocks/PHASE-2-RELEASE-PLAN.md, §7 H3 and §8): the read-only
+// Blocks catalog, and what each surface's provenance means. Data only: nothing
+// here can run an action, and a verdict grants nothing.
+
+/** The words Preview shows for each inert or unavailable reason. */
+export { PROVENANCE_REASON_TEXT } from "@dspack-studio/composer-core/blocks";
+
+/** How a streaming policy reads in the catalog. */
+const STREAMING_TEXT: Record<BlockDefinition["streaming"], string> = {
+  "disable-actions-until-complete": "disable actions until complete: a host keeps them off until the surface finishes streaming",
+  "static-safe": "static-safe: actions may be enabled once the surface renders",
+};
+
+export interface BlocksCatalogBlock {
+  id: string;
+  name: string;
+  version: number;
+  status: BlockDefinition["status"];
+  /** Whether this build offers it: approved in an approved sidecar that binds, and not disabled at load. */
+  offered: boolean;
+  /** Why it is disabled at load (B0, with H1), when it is. */
+  disabled: string[];
+  intents: string[];
+  /** The action names it declares: host-owned; Composer never executes them. */
+  actions: string[];
+  streaming: BlockDefinition["streaming"];
+  streamingText: string;
+}
+
+export interface BlocksCatalogReference {
+  referenceId: string;
+  label: string;
+  reference: { name: string; dspack: string; version: string } | null;
+  binding: LoadedBlocks["binding"];
+  sidecarStatus: BlocksSidecar["status"] | null;
+  /** Why the beta holds this reference out, when it does. */
+  withheld?: string;
+  issues: string[];
+  blocks: BlocksCatalogBlock[];
+}
+
+/** Every bundled block, by packaged reference, in sidecar order: the Blocks catalog (H3). */
+export async function blocksCatalog(): Promise<BlocksCatalogReference[]> {
+  const out: BlocksCatalogReference[] = [];
+  for (const referenceId of Object.keys(SIDECARS)) {
+    const loaded = await loadedFor(referenceId);
+    const sidecar = loaded.sidecar;
+    out.push({
+      referenceId,
+      label: String((REFERENCES[referenceId] as Json).label ?? REFERENCES[referenceId]!.contract.name ?? referenceId),
+      reference: sidecar ? { ...sidecar.reference } : null,
+      binding: loaded.binding,
+      sidecarStatus: sidecar?.status ?? null,
+      ...(WITHHELD[referenceId] ? { withheld: WITHHELD[referenceId] } : {}),
+      issues: [...loaded.issues],
+      blocks: (sidecar?.blocks ?? []).map((block) => ({
+        id: block.id,
+        name: block.name,
+        version: block.version,
+        status: block.status,
+        offered: loaded.binding === "ok" && sidecar?.status === "approved" && block.status === "approved" && loaded.usable.some((b) => b.id === block.id && b.version === block.version),
+        disabled: loaded.disabled.find((d) => d.block === block.id)?.issues ?? [],
+        intents: [...block.intents],
+        actions: [...block.actions],
+        streaming: block.streaming,
+        streamingText: STREAMING_TEXT[block.streaming],
+      })),
+    });
+  }
+  return out;
+}
+
+/**
+ * The verdict for each of a project's surfaces that its provenance names
+ * (composer-core provenanceVerdict). A record whose surface is gone has
+ * nothing to describe, and the next save drops it.
+ */
+export async function provenanceVerdicts(input: {
+  provenance: Record<string, unknown>;
+  examples: ReadonlyArray<{ id?: unknown; surface?: unknown }>;
+  project: { kind: "reference" | "imported" | "agent"; referenceId?: string };
+}): Promise<Record<string, ProvenanceVerdict>> {
+  const loaded = await Promise.all(Object.keys(SIDECARS).map((id) => loadedFor(id)));
+  const own = input.project.kind === "reference" && input.project.referenceId && SIDECARS[input.project.referenceId] ? (await loadedFor(input.project.referenceId)).sidecar : undefined;
+  const project = { kind: input.project.kind, ...(own ? { reference: own.reference } : {}) };
+  const out: Record<string, ProvenanceVerdict> = {};
+  for (const [id, record] of Object.entries(input.provenance)) {
+    const example = input.examples.find((e) => e.id === id);
+    if (!example) continue;
+    const verdict = await provenanceVerdict({ record, surface: example.surface, loaded, project });
+    if (verdict) out[id] = verdict;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------

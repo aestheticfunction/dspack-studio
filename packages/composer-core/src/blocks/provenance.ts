@@ -8,12 +8,19 @@
  * has no slot for an entered value, a default, a credential or runtime
  * state. An entry is written only when the accepted surface is exactly the
  * expansion; on import, anything that cannot be trusted is reduced to an
- * inert {block, version, status} and the surface renders as an ordinary one.
+ * inert {block, version, status, reason} and the surface renders as an
+ * ordinary one. A record that does not name a block id and version is
+ * dropped, so no imported text is ever shown as a block's name.
+ *
+ * What a surface's provenance means is the verdict (provenanceVerdict): a
+ * surface is "made with block X vN" only by exact expansion identity, and a
+ * verdict says what a surface is, never what anyone may do with it.
  */
 import { checkConstraints, validateCall } from "./call";
-import { expansionDigest } from "./expand";
+import { expandBlock, expansionDigest } from "./expand";
+import type { LoadedBlocks } from "./load";
 import type { BlockTrace } from "./phase";
-import type { BlocksSidecar } from "./schema";
+import { BLOCK_ID, type BlocksSidecar } from "./schema";
 
 type Json = Record<string, unknown>;
 
@@ -32,15 +39,35 @@ export interface BlockProvenanceEntry {
   expansionDigest: string;
 }
 
+/**
+ * Why provenance is inert. Trust: the record names a reference this build
+ * does not bundle (or that is not the project's own), another base contract,
+ * a block or a version this build does not have, or fails validation (B1,
+ * constraints, intent, encoding). Identity: its call does not expand to the
+ * digest it recorded, or the surface is no longer that expansion (edited; the
+ * next save drops it). Offer: this build does not offer the block (draft, or
+ * disabled at load). Stored: it was reduced to inert before, without a
+ * reason this build can read.
+ */
+export const INERT_REASONS = ["reference", "base", "block", "version", "validation", "expansion", "edited", "not-offered", "stored"] as const;
+export type InertReason = (typeof INERT_REASONS)[number];
+/** Why verified provenance still cannot refine: the project is not a reference project. */
+export type UnavailableReason = "imported" | "repository";
+
 export interface InertProvenance {
   block: string;
   version: number;
   status: "inert";
+  reason?: InertReason;
 }
 
 export type ProvenanceRecord = BlockProvenanceEntry | InertProvenance;
 
 const isObject = (value: unknown): value is Json => !!value && typeof value === "object" && !Array.isArray(value);
+
+/** A name a record may give its block: a block id, at most 64 characters. Anything else is never shown. */
+const isBlockName = (value: unknown): value is string => typeof value === "string" && value.length <= 64 && BLOCK_ID.test(value);
+const isBlockVersion = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 1;
 
 export async function buildProvenanceEntry(
   trace: BlockTrace,
@@ -100,14 +127,33 @@ export function trustedProvenance(value: Json, sidecars: readonly BlocksSidecar[
   };
 }
 
-/** Stored or imported provenance, each record kept only as far as it can be trusted. */
+/** A reason as stored, kept only when it is one this build knows. */
+const knownReason = (value: unknown): InertReason | undefined => (INERT_REASONS as readonly unknown[]).includes(value) ? (value as InertReason) : undefined;
+
+/** Why a record cannot be trusted against the bundled sidecars, or null when it can (trustedProvenance). */
+function untrustedReason(value: Json, sidecars: readonly BlocksSidecar[]): Extract<InertReason, "reference" | "base" | "block" | "version" | "validation"> | null {
+  const sameRef = sidecars.filter((s) => sameReference(value.reference as Json | undefined, s.reference));
+  if (sameRef.length === 0) return "reference";
+  const sidecar = sameRef.find((s) => s.baseSha256 === value.baseSha256);
+  if (!sidecar) return "base";
+  const versions = sidecar.blocks.filter((b) => b.id === value.block);
+  if (versions.length === 0) return "block";
+  if (!versions.some((b) => b.version === value.version)) return "version";
+  return trustedProvenance(value, [sidecar]) ? null : "validation";
+}
+
+/** Stored or imported provenance, each record kept only as far as it can be trusted, and an inert one with why. */
 export function parseProvenance(raw: unknown, sidecars: readonly BlocksSidecar[]): Record<string, ProvenanceRecord> {
   if (!isObject(raw)) return {};
   const out: Record<string, ProvenanceRecord> = {};
   for (const [id, value] of Object.entries(raw)) {
-    if (!isObject(value) || typeof value.block !== "string" || !Number.isInteger(value.version)) continue;
-    const inert: InertProvenance = { block: value.block, version: value.version as number, status: "inert" };
-    out[id] = value.status === "inert" ? inert : (trustedProvenance(value, sidecars) ?? inert);
+    if (!isObject(value) || !isBlockName(value.block) || !isBlockVersion(value.version)) continue;
+    const inert = (reason: InertReason | undefined): InertProvenance => ({ block: value.block as string, version: value.version as number, status: "inert", ...(reason ? { reason } : {}) });
+    if (value.status === "inert") {
+      out[id] = inert(knownReason(value.reason));
+      continue;
+    }
+    out[id] = trustedProvenance(value, sidecars) ?? inert(untrustedReason(value, sidecars) ?? "validation");
   }
   return out;
 }
@@ -122,6 +168,81 @@ export function provenanceStatus(
   if (context.projectKind !== "reference") return "unavailable";
   if ("status" in record) return "inert";
   return trustedProvenance(record as unknown as Json, context.sidecars) ? "refinable" : "inert";
+}
+
+/**
+ * What a surface's provenance means here (docs/blocks/PHASE-2-RELEASE-PLAN.md,
+ * §8). `madeWith` is the label "made with block X vN", and only exact
+ * expansion identity earns it. The record must be trusted against a bundled
+ * sidecar that binds to this build's base contract. Its call must re-expand
+ * to the digest it recorded. The surface must be that expansion. Then it
+ * is refinable on a reference project whose build offers the block,
+ * unavailable on an imported or repository project, and inert, with its
+ * label, when this build does not offer the block. Anything less is inert
+ * with no label, and the surface renders as an ordinary one. A verdict says
+ * what a surface is; it never carries an action, a declaration or a grant.
+ */
+export interface ProvenanceVerdict {
+  block: string;
+  version: number;
+  madeWith: boolean;
+  status: ProvenanceStatus;
+  /** Why it is inert or unavailable; absent when refinable. */
+  reason?: InertReason | UnavailableReason;
+}
+
+/** Plain words for every reason, as Preview shows them. */
+export const PROVENANCE_REASON_TEXT: Record<InertReason | UnavailableReason, string> = {
+  reference: "it names a design-system reference that is not this project's, or not in this build",
+  base: "it was bound to another version of the reference's base contract",
+  block: "it names a block this build does not have",
+  version: "it names a block version this build does not have",
+  validation: "its call does not pass the block's checks",
+  expansion: "its call does not expand to this surface",
+  edited: "this surface was changed after it was accepted, and the next save drops the record",
+  "not-offered": "this build does not offer the block: it is a draft, or disabled at load",
+  stored: "it was reduced to inert when it was stored or imported",
+  imported: "imported projects never refine from provenance",
+  repository: "repository projects never refine from provenance",
+};
+
+export async function provenanceVerdict(input: {
+  /** The stored record, as the project holds it. */
+  record: unknown;
+  /** The surface the record's example holds now. */
+  surface: unknown;
+  /** Every bundled sidecar, as loaded (B0 and H1 applied). */
+  loaded: readonly LoadedBlocks[];
+  /** A reference project names its packaged reference, and trusts no provenance without one; an imported or repository project names none. */
+  project: { kind: "reference" | "imported" | "agent"; reference?: { name: string; dspack: string; version: string } };
+}): Promise<ProvenanceVerdict | null> {
+  const { record, project } = input;
+  if (!isObject(record) || !isBlockName(record.block) || !isBlockVersion(record.version)) return null;
+  const named = { block: record.block, version: record.version };
+  const inert = (reason: InertReason, madeWith = false): ProvenanceVerdict => ({ ...named, madeWith, status: "inert", reason });
+  if (record.status === "inert") return inert(knownReason(record.reason) ?? "stored");
+  try {
+    if (project.kind === "reference" && (!project.reference || !sameReference(record.reference as Json | undefined, project.reference))) return inert("reference");
+    const sidecars = input.loaded.flatMap((l) => (l.sidecar ? [l.sidecar] : []));
+    const untrusted = untrustedReason(record, sidecars);
+    if (untrusted) return inert(untrusted);
+    const loaded = input.loaded.find((l) => l.sidecar && sameReference(record.reference as Json | undefined, l.sidecar.reference) && l.sidecar.baseSha256 === record.baseSha256)!;
+    const sidecar = loaded.sidecar!;
+    if (loaded.binding !== "ok") return inert("base");
+    const entry = trustedProvenance(record, [sidecar])!;
+    const block = sidecar.blocks.find((b) => b.id === entry.block && b.version === entry.version)!;
+
+    // The proof: the trusted call re-expands to the digest it recorded, and the surface is that expansion.
+    const expanded = expandBlock(block, entry.call, { reference: sidecar.reference, intent: entry.intent });
+    if (!expanded.ok || (await expansionDigest(expanded.surface)) !== entry.expansionDigest) return inert("expansion");
+    if (!isObject(input.surface) || (await expansionDigest(input.surface)) !== entry.expansionDigest) return inert("edited");
+
+    if (project.kind !== "reference") return { ...named, madeWith: true, status: "unavailable", reason: project.kind === "imported" ? "imported" : "repository" };
+    const offered = sidecar.status === "approved" && block.status === "approved" && loaded.usable.some((b) => b.id === block.id && b.version === block.version);
+    return offered ? { ...named, madeWith: true, status: "refinable" } : inert("not-offered", true);
+  } catch {
+    return inert("validation");
+  }
 }
 
 /** Drop records whose example vanished or whose surface no longer equals the expansion. */

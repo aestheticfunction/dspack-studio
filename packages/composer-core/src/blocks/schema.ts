@@ -24,7 +24,8 @@ export const BLOCKS_SIDECAR_VERSION = "0.1";
 export const RESERVED_PROP_NAMES = new Set(["block", "version", "b", "v", "p"]);
 
 const PROP_NAME = /^[a-z][a-zA-Z0-9]*$/;
-const BLOCK_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+/** A block id: kebab-case. Provenance also holds a name it shows to this grammar. */
+export const BLOCK_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const ACTION_NAME = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
 export type ValueType = "string" | "enum" | "boolean" | "integer" | "array" | "object";

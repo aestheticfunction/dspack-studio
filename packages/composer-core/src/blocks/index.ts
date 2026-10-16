@@ -62,15 +62,21 @@ export {
 export { decideRefinement, type BlockSeed, type RefinementDecision, type SwitchReason } from "./refine";
 export {
   buildProvenanceEntry,
+  INERT_REASONS,
   parseProvenance,
+  PROVENANCE_REASON_TEXT,
   provenanceStatus,
+  provenanceVerdict,
   pruneProvenance,
   PROVENANCE_MAX_BYTES,
   trustedProvenance,
   type BlockProvenanceEntry,
   type InertProvenance,
+  type InertReason,
   type ProvenanceRecord,
   type ProvenanceStatus,
+  type ProvenanceVerdict,
+  type UnavailableReason,
 } from "./provenance";
 export { recheckBlockChoice, reconcileBlockChoice, selectBlockDeterministic, withBlockChoice } from "./select";
 export { eligibleBlocks, liveBaseDigest, type EligibilityInput, type IneligibleReason } from "./eligibility";

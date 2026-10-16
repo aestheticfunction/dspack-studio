@@ -318,33 +318,47 @@ export function PreviewView({ focus }: { focus?: "flows" } = {}) {
 
   /** The step's surface through the IDENTICAL single-surface path (same
    *  canvas, same key pattern, same registry scope) — used by both modes. */
-  const renderSurface = (surf: NonNullable<typeof active>) => (
-    <>
-      {!isExample && referenceExampleIds?.has(surf.name) && (
-        <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 6px" }}>
-          Reference surface from {manifest?.name ?? "the design system"} — teaching material, not part of your project&rsquo;s work.
-        </p>
-      )}
-      <div
-        {...canvasScopeFor(activeRegistryId, canvasMode).attrs}
-        data-project-canvas="composer"
-        style={{
-          border: "1px solid var(--line)",
-          borderRadius: 4,
-          padding: 20,
-          background: canvasScopeFor(activeRegistryId, canvasMode).background,
-        }}
-      >
-        <A2uiCanvas
-          key={`${surf.name}:${activeRegistryId}`}
-          catalog={catalog}
-          registry={registry}
-          messages={surf.messages!}
-          onAction={handleAction}
-        />
-      </div>
-    </>
-  );
+  const renderSurface = (surf: NonNullable<typeof active>) => {
+    const rendered = (
+      <>
+        {!isExample && referenceExampleIds?.has(surf.name) && (
+          <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: "0 0 6px" }}>
+            Reference surface from {manifest?.name ?? "the design system"} — teaching material, not part of your project&rsquo;s work.
+          </p>
+        )}
+        <div
+          {...canvasScopeFor(activeRegistryId, canvasMode).attrs}
+          data-project-canvas="composer"
+          style={{
+            border: "1px solid var(--line)",
+            borderRadius: 4,
+            padding: 20,
+            background: canvasScopeFor(activeRegistryId, canvasMode).background,
+          }}
+        >
+          <A2uiCanvas
+            key={`${surf.name}:${activeRegistryId}`}
+            catalog={catalog}
+            registry={registry}
+            messages={surf.messages!}
+            onAction={handleAction}
+          />
+        </div>
+      </>
+    );
+    // Interface blocks (experimental): what the surface's block provenance
+    // means, above it. The default build folds this branch away and renders
+    // the surface exactly as before.
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      return (
+        <>
+          <BlockProvenanceNote surfaceName={surf.name} />
+          {rendered}
+        </>
+      );
+    }
+    return rendered;
+  };
 
   return (
     <section>
@@ -691,5 +705,87 @@ export function PreviewView({ focus }: { focus?: "flows" } = {}) {
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * Interface blocks (experimental; docs/blocks/PHASE-2-RELEASE-PLAN.md, §7 H3
+ * and §8): what this surface's block provenance means here, and, for a block
+ * surface, that its actions are host-owned. Rendered only in an experimental
+ * build: the literal flag check above folds it away in the default build, and
+ * the verdict is read through the guarded import. Only exact expansion
+ * identity earns "made with"; a verdict grants no action anything, and
+ * Preview still only records what a surface dispatches.
+ */
+function BlockProvenanceNote({ surfaceName }: { surfaceName: string }) {
+  const { activeProject, contract, blockProvenanceFor } = useComposer();
+  type Note = { block: string; version: number; madeWith: boolean; status: string; reasonText?: string };
+  const [note, setNote] = useState<Note | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    let unsubscribe = () => {};
+    setNote(null);
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && activeProject) {
+      const project = activeProject;
+      const source = project.source;
+      const examples = (contract?.examples as Array<{ id?: unknown; surface?: unknown }> | undefined) ?? [];
+      void import("../../experimental/blocks-runtime")
+        .then((runtime) => {
+          // Read now, and again after every provenance write (an accept, a
+          // prune, an import or a duplicate's copy can land after this mounts);
+          // only the latest read may set the note.
+          let reads = 0;
+          const read = async () => {
+            const seq = ++reads;
+            const provenance = blockProvenanceFor(project.id);
+            const verdicts = Object.hasOwn(provenance, surfaceName)
+              ? await runtime.provenanceVerdicts({
+                  provenance: { [surfaceName]: provenance[surfaceName] },
+                  examples,
+                  project: source.kind === "reference" ? { kind: "reference", referenceId: source.referenceId } : { kind: source.kind },
+                })
+              : {};
+            if (cancelled || seq !== reads) return;
+            const verdict = verdicts[surfaceName];
+            setNote(verdict ? { ...verdict, ...(verdict.reason ? { reasonText: runtime.PROVENANCE_REASON_TEXT[verdict.reason] } : {}) } : null);
+          };
+          if (cancelled) return;
+          unsubscribe = runtime.onProvenanceChange(() => void read().catch(() => undefined));
+          return read();
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [activeProject, contract, surfaceName, blockProvenanceFor]);
+  if (!note) return null;
+  const label = `block ${note.block} v${note.version}`;
+  return (
+    <div style={{ margin: "0 0 8px", maxWidth: 720 }}>
+      <p data-testid="preview-provenance" style={{ fontSize: 12, color: "var(--fg-body)", margin: "0 0 4px" }}>
+        {note.madeWith ? (
+          <>
+            Made with {label}.{" "}
+            {note.status === "refinable"
+              ? "Refinable: its record verifies against this build's approved block."
+              : note.status === "unavailable"
+                ? `Unavailable: ${note.reasonText}.`
+                : `Inert: ${note.reasonText}.`}
+          </>
+        ) : (
+          <>
+            Block provenance inert: {note.reasonText} (the record names {note.block} v{note.version}). This surface previews as an ordinary one.
+          </>
+        )}
+      </p>
+      {note.madeWith && (
+        <p data-testid="preview-host-owned" style={{ fontSize: 12, color: "var(--fg-body)", margin: 0 }}>
+          Block actions are host-owned and not executed here: Composer records each one it dispatches, and a host binds and authorizes it on its
+          own server.
+        </p>
+      )}
+    </div>
   );
 }

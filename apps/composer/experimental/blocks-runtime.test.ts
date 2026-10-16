@@ -16,8 +16,15 @@ import {
   blockBinding,
   blockContext,
   blockRunFor,
+  blocksCatalog,
   chooseBlock,
+  copyProvenance,
+  gcProvenance,
+  importProvenance,
+  memoryProvenanceStore,
+  onProvenanceChange,
   planGoalWithBlocks,
+  provenanceVerdicts,
   readBlocksBeta,
   runHostedBlockBuild,
   withActionManifest,
@@ -513,5 +520,159 @@ describe("the beta's Catalog export carries the action manifest (docs/blocks/HOS
     const surfaces = (out.actionManifest as Json).surfaces as Json[];
     expect(surfaces.length).toBeGreaterThan(1);
     for (const s of surfaces) expect(s.block).toBeNull();
+  });
+});
+
+describe("the Blocks catalog (Phase 2 plan, §7, H3): every bundled block, read-only", () => {
+  it("each packaged reference lists its blocks with version, status, intents, declared actions and streaming policy", async () => {
+    const catalog = await blocksCatalog();
+    expect(catalog.map((r) => r.referenceId)).toEqual(["shadcn", "astryx"]);
+    const astryxRef = catalog.find((r) => r.referenceId === "astryx")!;
+    expect(astryxRef).toMatchObject({ label: "Astryx", reference: { name: "Astryx", dspack: "0.4", version: "0.1.4" }, binding: "ok", sidecarStatus: "approved", issues: [] });
+    expect(astryxRef.withheld).toBeUndefined();
+    expect(astryxRef.blocks.map((b) => b.id)).toEqual(["records-table", "auth-form", "guide-steps"]);
+    expect(astryxRef.blocks.find((b) => b.id === "auth-form")).toEqual({
+      id: "auth-form",
+      name: "Account access",
+      version: 1,
+      status: "approved",
+      offered: true,
+      disabled: [],
+      intents: ["data-collection"],
+      actions: ["auth_submit", "auth_forgot", "auth_provider_google", "auth_provider_github", "auth_provider_microsoft", "auth_provider_apple"],
+      streaming: "disable-actions-until-complete",
+      streamingText: "disable actions until complete: a host keeps them off until the surface finishes streaming",
+    });
+    expect(astryxRef.blocks.find((b) => b.id === "guide-steps")).toMatchObject({ actions: ["guide_start", "guide_save"], streaming: "static-safe", streamingText: "static-safe: actions may be enabled once the surface renders" });
+    const shadcnRef = catalog.find((r) => r.referenceId === "shadcn")!;
+    expect(shadcnRef.reference).toEqual({ name: "shadcn/ui", dspack: "0.4", version: "3.2.0" });
+    expect(shadcnRef.withheld).toMatch(/withheld from this beta/);
+  });
+
+  it("it is data only: no handler, no function, nothing that could run an action", async () => {
+    const catalog = await blocksCatalog();
+    expect(JSON.parse(JSON.stringify(catalog))).toEqual(catalog);
+  });
+});
+
+describe("provenance verdicts for a project's surfaces (Phase 2 plan, §8)", () => {
+  async function accepted() {
+    const base = (await blockBinding(reference))!;
+    const block = base.sidecar.blocks.find((b) => b.id === "auth-form")!;
+    const example = block.examples[0]!;
+    const expanded = expandBlock(block, example.call, { reference: base.sidecar.reference, intent: example.intent });
+    if (!expanded.ok) throw new Error(expanded.message);
+    const surface = expanded.surface as unknown as Json;
+    const entry = {
+      v: 1,
+      reference: base.sidecar.reference,
+      baseSha256: base.sidecar.baseSha256,
+      block: "auth-form",
+      version: 1,
+      intent: example.intent,
+      blockSchemaSha256: "a".repeat(64),
+      encoding: "named",
+      call: example.call,
+      expansionDigest: await expansionDigest(surface),
+    };
+    const edited = structuredClone(surface);
+    edited.root.children[0].text = "Edited by hand";
+    return { entry, surface, edited };
+  }
+
+  it("a reference project: the accepted block surface is made with auth-form v1 and refinable; an edited one is inert and unlabelled", async () => {
+    const { entry, surface, edited } = await accepted();
+    const verdicts = await provenanceVerdicts({
+      provenance: { "ex.chat-1": entry, "ex.chat-2": entry, "ex.gone": entry },
+      examples: [
+        { id: "ex.chat-1", surface },
+        { id: "ex.chat-2", surface: edited },
+      ],
+      project: { kind: "reference", referenceId: "astryx" },
+    });
+    expect(verdicts["ex.chat-1"]).toEqual({ block: "auth-form", version: 1, madeWith: true, status: "refinable" });
+    expect(verdicts["ex.chat-2"]).toEqual({ block: "auth-form", version: 1, madeWith: false, status: "inert", reason: "edited" });
+    // A record whose surface is gone has no surface to describe; the next save drops it.
+    expect(verdicts["ex.gone"]).toBeUndefined();
+  });
+
+  it("a shadcn/ui project trusts only shadcn/ui provenance", async () => {
+    const { entry, surface } = await accepted();
+    const verdicts = await provenanceVerdicts({ provenance: { a: entry }, examples: [{ id: "a", surface }], project: { kind: "reference", referenceId: "shadcn" } });
+    expect(verdicts.a).toMatchObject({ madeWith: false, status: "inert", reason: "reference" });
+  });
+
+  it("a project on a reference this build does not bundle trusts no provenance", async () => {
+    const { entry, surface } = await accepted();
+    const verdicts = await provenanceVerdicts({ provenance: { a: entry }, examples: [{ id: "a", surface }], project: { kind: "reference", referenceId: "retired-reference" } });
+    expect(verdicts.a).toEqual({ block: "auth-form", version: 1, madeWith: false, status: "inert", reason: "reference" });
+  });
+
+  it("an imported project's provenance is unavailable; a repository project's too", async () => {
+    const { entry, surface } = await accepted();
+    for (const [kind, reason] of [["imported", "imported"], ["agent", "repository"]] as const) {
+      const verdicts = await provenanceVerdicts({ provenance: { a: entry }, examples: [{ id: "a", surface }], project: { kind } });
+      expect(verdicts.a).toEqual({ block: "auth-form", version: 1, madeWith: true, status: "unavailable", reason });
+    }
+  });
+
+  it("an import keeps the reason each record was reduced to inert for", async () => {
+    const { entry, surface } = await accepted();
+    const holder = { current: {} as Record<string, unknown> };
+    const examples = ["a", "b", "c"].map((id) => ({ id, surface }));
+    await importProvenance(memoryProvenanceStore(holder, "import-test"), { a: entry, b: { ...entry, version: 4 }, c: { ...entry, baseSha256: "1".repeat(64) } }, examples);
+    expect(holder.current.a).toEqual(entry);
+    expect(holder.current.b).toEqual({ block: "auth-form", version: 4, status: "inert", reason: "version" });
+    expect(holder.current.c).toEqual({ block: "auth-form", version: 1, status: "inert", reason: "base" });
+  });
+
+  it("an import prunes against the imported project's examples: a record for a missing or edited surface is dropped", async () => {
+    const { entry, surface, edited } = await accepted();
+    const holder = { current: {} as Record<string, unknown> };
+    await importProvenance(memoryProvenanceStore(holder, "import-prune"), { kept: entry, gone: entry, changed: entry, stale: { ...entry, version: 4 } }, [
+      { id: "kept", surface },
+      { id: "changed", surface: edited },
+      { id: "stale", surface },
+    ]);
+    expect(holder.current).toEqual({ kept: entry, stale: { block: "auth-form", version: 4, status: "inert", reason: "version" } });
+  });
+
+  it("duplicating an Example session copies its provenance once every pending write has landed, pruned against the examples the duplicate keeps", async () => {
+    const { entry, surface, edited } = await accepted();
+    const session = { current: { stale: entry } as Record<string, unknown> };
+    const from = memoryProvenanceStore(session, "copy-test-session");
+    const saved: Array<Record<string, unknown>> = [];
+    const to = { key: "copy-test-project", load: () => ({}), save: (map: Record<string, unknown>) => void saved.push(map) };
+    // A write still on its way to the session's store: the copy waits for it.
+    void importProvenance(from, { stale: entry, late: entry }, [
+      { id: "stale", surface },
+      { id: "late", surface },
+    ]);
+    await copyProvenance(from, to, [
+      { id: "stale", surface: edited },
+      { id: "late", surface },
+    ]);
+    expect(saved).toEqual([{ late: entry }]);
+  });
+
+  it("a session with nothing that still verifies carries nothing", async () => {
+    const { entry, edited } = await accepted();
+    const saved: unknown[] = [];
+    const to = { key: "copy-empty-project", load: () => ({}), save: (map: Record<string, unknown>) => void saved.push(map) };
+    await copyProvenance(memoryProvenanceStore({ current: {} }, "copy-empty"), to, []);
+    await copyProvenance(memoryProvenanceStore({ current: { a: entry } }, "copy-stale"), to, [{ id: "a", surface: edited }]);
+    expect(saved).toEqual([]);
+  });
+
+  it("every provenance write tells its listeners, so an open Preview re-reads; unsubscribing stops it", async () => {
+    const { entry, surface } = await accepted();
+    const seen: string[] = [];
+    const off = onProvenanceChange((key) => seen.push(key));
+    await gcProvenance(memoryProvenanceStore({ current: { a: entry } }, "notify-1"), [{ id: "a", surface }]);
+    await importProvenance(memoryProvenanceStore({ current: {} }, "notify-2"), { a: entry }, [{ id: "a", surface }]);
+    expect(seen.filter((key) => key.startsWith("notify-"))).toEqual(["notify-1", "notify-2"]);
+    off();
+    await gcProvenance(memoryProvenanceStore({ current: { a: entry } }, "notify-3"), [{ id: "a", surface }]);
+    expect(seen.filter((key) => key.startsWith("notify-"))).toEqual(["notify-1", "notify-2"]);
   });
 });

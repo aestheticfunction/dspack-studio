@@ -16,9 +16,19 @@ const composer = fileURLToPath(new URL("..", import.meta.url));
 const out = join(composer, "out");
 const sidecars = join(composer, "experimental", "blocks");
 
-// The sidecar envelope key, a template directive, and the beta switch's reasons
-// (packages/composer-core/src/blocks/beta.ts).
-const markers = new Set(["blocksSidecar", "disable-actions-until-complete", "reference-not-in-beta", "beta-switch-"]);
+// The sidecar envelope key, a template directive, the beta switch's reasons
+// (packages/composer-core/src/blocks/beta.ts), and step 4's Blocks catalog and
+// Preview provenance line with the runtime call behind them.
+const markers = new Set([
+  "blocksSidecar",
+  "disable-actions-until-complete",
+  "reference-not-in-beta",
+  "beta-switch-",
+  "blocks-catalog",
+  "preview-provenance",
+  "preview-host-owned",
+  "provenanceVerdicts",
+]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));
   for (const block of doc.blocks ?? []) markers.add(block.id);
