@@ -161,6 +161,7 @@ When it applies, the model receives the selected block's schema, the prior goal,
 
 ## 9. Open questions for ratification
 
-- Whether positional order becomes a compatibility commitment (1B evidence).
 - Whether `blocks` lives inside the contract or stays a sidecar artifact that the contract references.
 - A first-class audit-report field for block calls, replacing the Phase 1A turn-level trace.
+
+**Decided since:** positional order is not a compatibility commitment. Phase 1B measured it against the named call, and the owner chose the named encoding only ([../BLOCKS.md](../BLOCKS.md), ADR-B2).

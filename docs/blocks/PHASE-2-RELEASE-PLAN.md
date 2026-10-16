@@ -1,7 +1,7 @@
 # Interface blocks: Phase 2 release plan
 
-> **Status on main (2026-10-16).** This is the final plan as the owner accepted it, preserved unedited below this note. Since then:
-> - On 2026-10-16 the owner accepted the shadcn/ui v3 result as valid (pass, uncertain), selected **branch C**, and answered §13's decisions 1 to 4, 6, 13 and 14 (5 does not arise under branch C). The answers are in [PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), which governs wherever it is more specific than this plan.
+> **Status on main (2026-10-16).** Below this note is the plan's final version of 2026-10-16, preserved unedited. The owner accepted the plan on 2026-10-15; the final version adds the owner's clarifications and the shadcn/ui v3 result. Since then:
+> - On 2026-10-16 the owner accepted the shadcn/ui v3 result as valid (pass, uncertain), selected **branch C**, and answered §13's decisions 1 to 4, 6, 13 and 14 (5 does not arise under branch C). The answers are in [PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md).
 > - G1 has landed: the records on main that §3 lists. So the plan's statements about what main holds describe `7e260c3`, before G1. For example, `docs/blocks/baseline.json` is now committed ([BASELINE.md](BASELINE.md)).
 > - Phase 2 code has not begun. Each Phase 2 change still needs the owner's authorization.
 

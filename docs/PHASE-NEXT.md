@@ -152,7 +152,9 @@ surface before S1/S2/S3. Planned and measured in [BLOCKS.md](BLOCKS.md)
 Status (2026-10-16):
 - **Phases 0, 0.5 and 1A** landed in aestheticfunction/dspack-studio#88: the
   docs and pure schema module, usage accounting, and a private, build-flagged
-  PoC. The deployed composer is unchanged.
+  PoC. The deployed composer gained the usage accounting (per-turn receipts,
+  and Worker replies that report each provider call) but no block code, and
+  its requests are unchanged (the byte-identity oracle checks them).
 - **Phase 1B is complete.** Astryx passed the decision rule clearly; shadcn/ui
   v3 passed, uncertain ([blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md)).
 - **Phase 2 is selected but not started.** The owner chose branch C, an

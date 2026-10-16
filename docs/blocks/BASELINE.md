@@ -29,7 +29,7 @@ It records, with no provider call, the deployed build id, the Worker's reply sha
 
 A test runs the command as its own process against the real Worker module with a model binding that counts calls, and holds it to exactly these requests and no model call. `--out` is resolved against the directory the command is typed in. The record is written only when it is whole: a Worker that names each call's model (`per-call-model`), a confirmed build id and the model list. Anything less exits 1, writes nothing and says what was missing.
 
-The build id is random per build. It names a deployment but does not say which commit it was built from: that link is in the Workers Builds deployment log. The harness repeats the same probe at the start of every run and writes it to `preflight.json`, and the report prints the build id it ran against. A run whose build id differs from the committed baseline's ran against a later deployment.
+The build id is random per build. It names a deployment but does not say which commit it was built from: that link is in the Workers Builds deployment log. The harness makes its own zero-cost probe at the start of every invocation and writes it to `preflight.json` (`preflight.resume-<k>.json` on a resume), and the report prints the build id it ran against. A run whose build id differs from the committed baseline's ran against another deployment: the Astryx run, for one, ran against an earlier one (below).
 
 ## The committed record
 
@@ -37,7 +37,7 @@ The build id is random per build. It names a deployment but does not say which c
 
 - **What it is.** The record the command above wrote for `main` at `7e260c3` (#102), captured at 2026-10-14T03:17:05Z: build `Dyml8RSqfWynKU1KbVuZI`, a Worker answering with `per-call-model`, the models `scripted` and `hosted-ai`, and both sidecars approved with all three blocks usable on each reference.
 - **Where it comes from.** It is a byte-for-byte copy of `evidence/blocks-1b/1b.baseline-7e260c3.json` on `claude/blocks-baseline-7e260c3-evidence`, at commit [`460cc81d7af794eadabb7da919dc4bd147c09c74`](https://github.com/aestheticfunction/dspack-studio/blob/460cc81d7af794eadabb7da919dc4bd147c09c74/evidence/blocks-1b/1b.baseline-7e260c3.json). That branch also keeps the capture's console and checksums. Its sha256 is `0e46f3c21f0507dd053758f60fc599413055eb95682f62ccaf37629a79d9e7ed`, checked by [stage3/SHA256SUMS](stage3/SHA256SUMS).
-- **What it was used for.** The shadcn/ui v3 run repeated the same probe before each of its eight invocations. Every probe equaled this record apart from its time (`at`).
+- **What it was used for.** Before each of the shadcn/ui v3 run's eight invocations, the operator ran the baseline command again. Those probes are on the run's evidence branch (`1b-stage3-shadcn-2026-10-15.prerun-probe.json` and `.window-<k>.preresume-probe.json`), and every one equaled this record apart from its time (`at`). The harness's own preflights, copied in [stage3/](stage3/README.md), hold the same fields for the run's own reference only, so they list one sidecar where this record lists two.
 - **The Astryx run's baseline.** That run was held to an earlier record, for `main` at `3aae0ea` (build `txDlHURTKv_S6yicLso97`): [stage3/1b-stage3-astryx.baseline-3aae0ea.json](stage3/1b-stage3-astryx.baseline-3aae0ea.json).
 
 The two Stage 3 runs and their results are in [stage3/README.md](stage3/README.md) and [PHASE-1B-MILESTONE-REPORT.md](PHASE-1B-MILESTONE-REPORT.md).

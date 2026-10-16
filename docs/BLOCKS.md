@@ -1,7 +1,7 @@
 # Interface blocks (experimental)
 
 **Status: Phase 1B complete; Phase 2 selected but not started.**
-- **What is built.** Phases 0, 0.5 and 1A landed in aestheticfunction/dspack-studio#88. The deployed composer is unchanged: blocks exist only in a private experimental build, and the default build carries no block code.
+- **What is built.** Phases 0, 0.5 and 1A landed in aestheticfunction/dspack-studio#88. Blocks exist only in a private experimental build. The default build, the one that deploys, carries no block code, and its requests are unchanged (the byte-identity oracle checks them). What the deployed composer did gain is usage accounting: per-turn receipts, and Worker replies that report each provider call (#88, with later Worker changes in #98 and #101).
 - **What Phase 1B measured** on the hosted model: Astryx **pass, clear**; shadcn/ui v3 **pass, uncertain**. The record is [blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md).
 - **What follows.** The owner selected Phase 2 branch C, an Astryx-only experimental beta, and deferred shadcn/ui v3 Stage 4 ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)). Phase 2 code has not begun.
 
@@ -67,9 +67,11 @@ Phase 1B then measured the hosted figures with the provider's own token counts: 
 **Decision.**
 - The named canonical call (`{"block": "auth-form", "version": 1, "mode": "sign-in", ...}`) is what internal APIs, traces, provenance and docs use.
 - The compact positional call (`{"b": "auth-form", "v": 1, "p": [...]}`) is a decodable projection that records each prop's wire index.
-- Positional order is **not** yet a compatibility commitment. Phase 1B benchmarks named against positional before anyone relies on it.
+- Positional order is **not** a compatibility commitment. Phase 1B benchmarked named against positional before anyone relied on it (below).
 
 **Consequences.** Required props precede optional ones, and signatures are append-only within a version. A breaking change means a new version or a new block id.
+
+**Phase 1B result (2026-10-16).** Positional passed less often and cost more per success on both references ([blocks/PHASE-1B-MILESTONE-REPORT.md](blocks/PHASE-1B-MILESTONE-REPORT.md), section 4.6). The owner chose the named encoding only, so positional order carries no compatibility commitment.
 
 ### ADR-B3: metrics and decision rule, frozen before any run
 
@@ -228,7 +230,6 @@ The external research ranked twelve block families. Admission is not by rank. A 
 
 ## Open decisions
 
-- **Positional encoding: decided.** Phase 1B found that it passed less often and cost more per success on both references. The owner chose the named encoding only (2026-10-16). Positional order carries no compatibility commitment.
 - **Vocabulary gaps.** Input `autocomplete` purposes, row actions (dropdown-menu items), charts, calendars and maps each need upstream vocabulary first.
 - **OpenUI pin.** When to move the gate package from lang-core 0.3.x to 0.4.x, once 0.4.x is at least 14 days old.
 

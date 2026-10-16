@@ -1,6 +1,6 @@
 # Governed interface blocks: the Phase 1B milestone report
 
-**2026-10-16. The record of Phase 1B, the live evaluation of governed interface blocks on both packaged references.** Every figure here comes from the preserved runs. Section 13 says where each one is kept, and how it was verified.
+**2026-10-16. The record of Phase 1B, the live evaluation of governed interface blocks on both packaged references.** Every measured figure here comes from the preserved runs. The few that do not, offline estimates and static audits, say where they come from. Section 13 says where the evidence is kept, and how this report was checked.
 
 ## 1. Executive summary
 
@@ -17,11 +17,11 @@ Composer can generate a surface two ways. In the **primitive** way, the model wr
 | Block minus capped, in points (95% interval) | -0.8 (-3.3 to +1.7) | +0.9 (-8.0 to +10.3) |
 
 - **Pass, clear** (Astryx): every criterion's 95% interval lies on the passing side of its threshold.
-- **Pass, uncertain** (shadcn/ui v3): the point estimates meet every criterion, but one interval crosses its threshold. The block arm's pass rate against the budget-matched primitive arm could be as much as 8.0 points lower, against a margin of 5. That is not a failure: the rule's verdict reads the point estimates, and both token criteria and the comparison with production are clear.
+- **Pass, uncertain** (shadcn/ui v3): the point estimates meet every criterion, but one interval crosses its threshold. Against the budget-matched primitive arm, the 95% interval for the difference in pass rate reaches -8.0 points, past the margin of -5. That is not a failure: the rule's verdict reads the point estimates, and the token criterion and the comparison with production are clear.
 - **The saving is real on both references.** It comes mostly from input: blocks avoid sending the full generation schema with every request.
 - **The named encoding is the contract.** The compact positional encoding passed less often and cost more per success on both references.
 - **Every run was verified independently.** Its ledger, cell records and decision were recomputed with no findings.
-- **The owner's decision (branch C):** an Astryx-only experimental beta. shadcn/ui v3 Stage 4 is deferred: in the owner's words, its results are promising, but the personal cost of the larger experiment is not worthwhile at this stage. That is a deferral, not a failure and not an exclusion ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md)).
+- **The owner's decision (branch C):** an Astryx-only experimental beta. shadcn/ui v3 Stage 4 is deferred: in the owner's words, its results are promising, but the personal cost of the larger experiment is not worthwhile at this stage. It is recorded as a deferral, not a shadcn/ui v3 failure or a permanent exclusion ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md)).
 - **Cost:** the two decision runs committed $7.6298649 (Astryx) and $36.85966725 (shadcn/ui v3) on the harness's ledger. Each figure includes one conservative hold of $1.118208, which the AI Gateway's log shows was never charged.
 
 ## 2. The research question
@@ -37,7 +37,10 @@ Why it matters: the offline Phase 0 bench showed that hosted input is dominated 
 
 ## 3. The frozen methodology
 
-Everything in this section was fixed before the first hosted result, in [../BLOCKS.md](../BLOCKS.md) (ADR-B3, ADR-B4), [ADR-B3-ADDENDUM.md](ADR-B3-ADDENDUM.md) and [ADR-B3-AMENDMENT-2.md](ADR-B3-AMENDMENT-2.md). None of it changed during the runs.
+The method is set out in [../BLOCKS.md](../BLOCKS.md) (ADR-B3, ADR-B4), [ADR-B3-ADDENDUM.md](ADR-B3-ADDENDUM.md) and [ADR-B3-AMENDMENT-2.md](ADR-B3-AMENDMENT-2.md). All of it was fixed before the Stage 3 run it governs began, and none of it changed during the runs. In order:
+- **ADR-B3 and ADR-B4** (Phases 0 to 1A) and **the addendum** (2026-10-11) came before any hosted result.
+- **Amendment 2 and corpus version 2** (2026-10-12) came after the two systems smokes had run fresh cells on corpus version 1, and before any refinement cell ran live (section 3.1).
+- **The shadcn/ui v3 monitor's rules** (section 3.7) were frozen on 2026-10-14, after the Astryx result and before the shadcn/ui v3 run.
 
 ### 3.1 The decision rule (ADR-B3)
 
@@ -52,7 +55,7 @@ Blocks pass for a reference only if both hold, with both boundaries inclusive:
 - **Arms are compared paired by prompt,** with 95% paired cluster-bootstrap intervals: 2,000 resamples over the prompts every decision arm evaluated.
 - **Clarity:**
   - a criterion is *clearly met* when its whole interval lies on the passing side of its threshold, and *uncertain* when the interval crosses it;
-  - the decision is *clear* when no outcome inside the intervals could flip it;
+  - the decision is *clear* when no outcome inside the intervals could flip it, that outcome is the verdict's, and the intervals rest on at least 20 prompts that every decision arm evaluated;
   - the verdict itself reads the point estimates.
 - **Stages:** the evaluation stops as soon as the decision is clear.
   - Stage 1 is a systems smoke, and Stage 2 a pilot.
@@ -83,7 +86,7 @@ Blocks pass for a reference only if both hold, with both boundaries inclusive:
 | --- | --- |
 | `block` | The experimental path. A planning call that also asks which block fits (or none), then the block phase: a block call, the B1 and B2 gates, deterministic expansion, and the governed pipeline. When no block is selected it runs today's path, as the app does. **The decision reads this arm.** |
 | `block-positional` | The same path with the model answering in the compact positional encoding (ADR-B2). It is decoded to the named call before B1. It is compared with `block` and decides nothing. |
-| `capped` | The budget-matched primitive arm: the same planning call, then primitive generation within the block arm's budget of 3 provider calls. |
+| `capped` | The budget-matched primitive arm: production's planning call, which does not ask about blocks, then primitive generation within the block arm's budget of 3 provider calls. |
 | `production` | Today's configuration, unchanged: one planning call, then primitive generation with up to 2 repairs and the Worker's own parse retry. |
 
 ### 3.4 The conditions
@@ -105,26 +108,29 @@ A refinement runs only on its arm's own passing fresh result. A failed fresh bui
 - **The block phase leaves the rest of the budget** to the governed pipeline: repairs after an expansion, or a primitive fallback.
 - **Both budgeted arms share one adapter,** so an unusable output is re-issued under the same rule in each.
 - **Ordinary arm results are never re-run:** budget exhaustion, fallback, unusable output twice and failed gates.
-- **Only a provider or policy failure** is re-run, and none occurred in either run.
+- **Only a cell that ended in a provider or policy failure** is re-run, and no cell in either run ended in one. The two replies the runs could not meter stopped their runs instead (section 6).
 
 ### 3.6 Model, deployment and accounting
 
 - **Model:** Claude Haiku 4.5, served as `claude-haiku-4-5-20251001` on every call of both runs. The hosted path goes through the composer's Worker and the account's AI Gateway.
 - **One deployment per run.**
   - Each run was held to a zero-cost baseline of its deployment: the build id, the Worker's reply shape and the sidecars.
-  - A deployment change would have stopped the run, and none happened.
+  - Every invocation's preflight matched it, and the harness refuses to resume across a deployment change. For shadcn/ui v3 the monitor also read the live build every 30 seconds, and it never changed.
+  - No merge to main fell inside either run.
 - **Tokens** are what the provider reported for each call. Nothing is estimated.
 - **Dollars** are the harness's ledger: each request is reserved at its worst case before it is sent, then settled at its reported usage. The price is Claude Haiku 4.5's ($1 per million input tokens, $5 per million output tokens) plus Cloudflare's 5% credit fee.
 - **A reply the run cannot meter** is held at the worst case one request can cost, $1.118208, and the run stops (section 6). The harness never reads the account's bill.
 
 ### 3.7 Run controls
 
-Each run was capped in requests and dollars, paced at 12 seconds between requests, and watched by an operator monitor. The monitor read the live build every 30 seconds. For shadcn/ui v3 it stopped a window at:
-- the 8th zero-cost refusal, or 600 s of refusal backoff, in the window;
-- a second provider failure;
-- any deployment, model or identity mismatch.
+Each run was capped in requests and dollars, paced at 12 seconds between requests, and watched by an operator monitor. The no-cost checks were repeated before every invocation, and each window's evidence was preserved and verified before the next began.
 
-The no-cost checks were repeated before every invocation, and each window's evidence was preserved and verified before the next began.
+- **On Astryx,** the monitor logged progress, refusals and the hold. Its log is preserved; the monitor's own script is not, and the log holds no build readings.
+- **On shadcn/ui v3,** the monitor's rules were frozen before the run (`monitor-shadcn.json`, section 13). It read the live build every 30 seconds. Among its rules, it stopped a window at:
+  - a hold, any other unexpected settlement, a policy failure or an invariant failure;
+  - the 8th zero-cost refusal, or 600 s of refusal backoff, in the window;
+  - a second provider failure;
+  - another build, model, corpus, reference or code identity, or a build it could not read for 5 minutes.
 
 ## 4. Results
 
@@ -176,7 +182,7 @@ The intervals are 95% paired cluster-bootstrap intervals, from 2,000 resamples o
   | Astryx | 19,075 bytes | 54,015 | 50,406 |
   | shadcn/ui v3 | 70,458 bytes | 331,168 | 362,136 |
 
-- **Output falls less on Astryx.** The Astryx decision packet's interval for the output-only cut is 16.1% to 31.2%, short of 30% on its own. The rule counts input and output together, so this does not affect the decision. No interval was computed for shadcn/ui v3's output-only cut. Its point figure, 55.0%, is a descriptive reading beside the rule, not a criterion.
+- **Output falls less on Astryx.** Its output-only cut, 24.2%, is short of 30% on its own, and the Astryx decision packet's interval for it, 16.1% to 31.2%, crosses 30%. The rule counts input and output together, so this does not affect the decision. No interval was computed for shadcn/ui v3's output-only cut. Its point figure, 55.0%, is a descriptive reading beside the rule, not a criterion.
 - **Fewer repairs.** The block arm needed far fewer repairs on shadcn/ui v3, where fresh primitive generation often failed its first attempt:
 
   | | First-attempt pass: block, capped, production | Repairs per success |
@@ -226,14 +232,14 @@ Pass rate (passed / evaluated) per condition. Skipped refinements of failed fres
 
 **Findings by condition:**
 - **Content, add and remove refinements mostly stay in block mode:** 52 of 54 on Astryx, and 54 of 54 on shadcn/ui v3.
-- **The block arm was strongest on removes on shadcn/ui v3:** 91.3% against 73.9% (capped) and 68.2% (production).
+- **The block arm's largest lead on shadcn/ui v3 was on removes:** 91.3% against 73.9% (capped) and 68.2% (production).
 - **Structural refinements are where the block arm is weakest on shadcn/ui v3:** 52.2%, against 78.3% for capped.
   - Every structural refinement of a block surface leaves block mode, by design: the model answers that the block cannot express the change. That held on 18 of 18 on each reference.
   - The primitive fallback then works with the budget the block phase left: 2 calls for all 18 on shadcn/ui v3. 9 of those 18 passed on shadcn/ui v3, against 16 of 18 on Astryx.
   - The capped arm spends its whole budget of 3 on the structural change itself.
   - It is the only condition in which the capped arm passed more cells than the block arm on shadcn/ui v3: 18 against 12.
 - **On Astryx the structural condition favoured blocks over production:** 91.7% against 75.0%. The Astryx decision packet traces most of block's lead over production to it.
-- **Some structural templates ask for what a reference cannot render,** because the corrections D1 to D3 were not adopted. On Astryx that is 18 of the 24 structural prompts; on shadcn/ui v3 the readiness packet counted 11 of 24. This affects every arm alike (section 8).
+- **Some structural templates ask for something the design system cannot render, or the prompt does not have,** because the corrections D1 to D3 were not adopted. Amendment 2's static audit counts 18 of the 24 structural prompts on Astryx, and 11 on shadcn/ui v3. Every arm receives the same templates, but amendment 2 records that the sign of their effect on the block arm is unknown (section 8).
 
 ### 4.5 Fallback, failures and invariants
 
@@ -254,12 +260,12 @@ The positional arm decides nothing. It tests whether the compact positional call
 | Pass rate, every condition | 94.2% (113/120), 90.5% (105/116) | 87.1% (101/116), 79.8% (83/104) |
 | Tokens per success | 7,573, 9,628 | 45,446, 56,785 |
 | Positional minus named pass rate, 95% interval | -8.2 to +0.0 points | -15.2 to +0.3 points |
-| Positional's token change against named, 95% interval | -54.4% to -6.1% | -49.3% to -6.0% |
+| Positional's token reduction against named, 95% interval (negative: positional cost more) | -54.4% to -6.1% | -49.3% to -6.0% |
 
 - **On both references positional cost more per success,** and passed no more often.
 - **Where positional lost:**
-  - On Astryx: three records-table fresh calls whose positional values did not fit the declared fields, which fell back; one fresh build with two unusable outputs; and two compact removes re-sent unchanged.
-  - On shadcn/ui v3: three fresh calls (rt-02, rt-03 and af-01) that returned no usable answer, which skipped their twelve refinements.
+  - On Astryx, as the Astryx decision packet lists: three records-table fresh calls whose positional values did not fit the declared fields, which fell back; one fresh build with two unusable outputs; and two compact removes re-sent unchanged.
+  - On shadcn/ui v3, positional's thread pass rate was lower on 10 prompts. Among them, three fresh calls (rt-02, rt-03 and af-01) returned no usable answer, which skipped their twelve refinements. With nb-05's fresh failure, which the named arm shared, positional skipped 16 refinements in all.
 - **This supports ADR-B2:** the named call is the contract. The owner chose named encoding only for the beta.
 
 ### 4.7 Robustness and sensitivity
@@ -277,7 +283,7 @@ The positional arm decides nothing. It tests whether the compact positional call
 
 ## 5. What the runs cost: requests, tokens and dollars
 
-These are the harness ledgers' figures. A **held** request is a conservative reservation at the worst case one request can cost, not a measured charge.
+The requests and dollars are the harness ledgers' figures (`requests.jsonl`). The provider calls and tokens come from the cell records (`runs.jsonl`). A **held** request is a conservative reservation at the worst case one request can cost, not a measured charge.
 
 | Run | Corpus | Cells | Requests: settled, released at $0, held | Provider calls | Input tokens | Output tokens | Settled at reported usage | Held | Committed |
 | --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -301,7 +307,7 @@ These are the harness ledgers' figures. A **held** request is a conservative res
 | shadcn/ui v3 Stage 3 | 718 | $36.85966725 |
 | **Total** | **1,487** | **$47.4820941** |
 
-Of that total, $44.1274701 settled at reported usage. The other $3.354624 is four conservative holds: two in the c154548 smoke and one in each Stage 3 run.
+Of that total, $44.1274701 settled at reported usage. The other $3.354624 is four conservative holds: two of $0.559104 in the c154548 smoke, at that harness's worst case for one provider call, and one of $1.118208 in each Stage 3 run.
 
 ## 6. Run integrity: the holds, and the controlled completion
 
@@ -319,7 +325,7 @@ Of that total, $44.1274701 settled at reported usage. The other $3.354624 is fou
 **shadcn/ui v3, window 7, request #61** (2026-10-16 01:02:59Z, after 457 of 480 cells):
 - **Where:** the first request of production nb-05's add refinement.
 - **The reply:** one `provider-error` call with no token counts. It was not the zero-cost busy shape, so the harness held it and stopped, and the monitor logged the hold.
-- **The cause:** the owner's AI Gateway log shows HTTP 502, with no recorded usage and no charge.
+- **What the gateway shows:** HTTP 502 in the owner's AI Gateway log, with no recorded usage and no charge.
 - **The owner's exception:** the owner authorized window 8 only, as an explicit exception for this hold.
   - The hold's $1.118208 stays in the ledger permanently, unchanged.
   - The operator's launch script accepted exactly this hold and window 7's stop, and still refused any other hold or stop. It was tested offline against altered copies of the run.
@@ -344,7 +350,7 @@ Of that total, $44.1274701 settled at reported usage. The other $3.354624 is fou
 
 - **The cap per window** was 123 requests.
 - **The run's caps** were 1,275 requests and $77.
-- **The daily spend limit:** the owner temporarily raised Cloudflare's daily limit from $10 to $40 so the windows could run back to back. It was restored to $10 after the run, with auto top-up off throughout.
+- **The daily spend limit:** the owner temporarily raised Cloudflare's daily limit from $10 to $40 so the windows could run back to back, with auto top-up off; the evidence branch records the raise. After the run, the owner reported restoring the limit to $10, with auto top-up still off.
 
 ## 7. Accessibility and product limitations
 
@@ -375,6 +381,7 @@ Of that total, $44.1274701 settled at reported usage. The other $3.354624 is fou
 ## 8. Threats to validity
 
 1. **The corpus is a purposive sample.** The 24 prompts per reference were written to cover each block and its near misses: 18 block prompts and 6 null prompts.
+   - They are the Stage 3 subset of the prompts that apply to each reference: 24 of 88 on Astryx, and 24 of 92 on shadcn/ui v3. The results describe that subset.
    - The intervals describe variation across these prompts, not across real users' goals.
    - The pooled token cut blends the two kinds of prompt. On Astryx, after the run, the block prompts alone gave a 69.8% cut, and the null prompts 10.1%, with an interval spanning zero. On null prompts the block arm runs production's path, so that is an A/A comparison.
    - A product whose real goals rarely fit a block would see less. The same split was not computed for shadcn/ui v3.
@@ -386,13 +393,17 @@ Of that total, $44.1274701 settled at reported usage. The other $3.354624 is fou
    - The two results are each internally controlled, but a comparison across the references is descriptive.
 4. **Time and load.** The runs were on different days, and the shared gateway's load varied: shadcn/ui v3's zero-cost refusals rose in windows 6 and 7.
    - Within a prompt the arms ran in a fixed order, not interleaved at random.
-   - Each cell is one draw from the model, with no repeat.
+   - Each logged cell is a single run, with no repeat to average over. The two cells in flight at the integrity stops ran again from their start on resume, and only the re-run is logged.
 5. **Template applicability.** Some refinements could not apply to the surface in front of them.
    - The null add and remove templates meet Astryx's single-node confirmation dialogs.
    - Some structural templates ask for elements a reference cannot render (D1 to D3 were not adopted).
-   - These fall on every arm alike. They can still move pass rates, and on Astryx they decide one sensitivity reading's clarity (section 4.7).
+   - Every arm receives the same templates, but their effect need not be the same in each. Of the structural ones, amendment 2 records that "the sign of their effect on the block arm is unknown", and that neither version "is a safe default for the block arm".
+   - They can move pass rates. On Astryx, two cells on nb-01, an add and a remove on a surface with no list to change, decide the clarity of the two sensitivity readings that excuse unchanged surfaces (section 4.7).
 6. **The add and remove check reads the direction of a change, not its content.**
-7. **A descriptive rule.** ADR-B3 is a product decision rule over 24 prompts. Its intervals are honest about the spread across those prompts, and it is not a statistical test.
+7. **A descriptive rule.** ADR-B3 is a product decision rule over 24 prompts, not a statistical test. The addendum lists the limits of its intervals, and "clear" rests on them:
+   - percentile bootstrap intervals run narrow when there are few clusters. The addendum treats fewer than about 20 prompts as indicative only, and Stage 3 had 24;
+   - a pass rate near 100% gives degenerate intervals: an interval of 0 to 0 points means no prompt disagreed, not that rare failures cannot happen;
+   - there is no correction for multiple comparisons across the references, the criteria and the positional comparison. The criteria are joint requirements, which limits this but does not remove it.
 8. **Accounting.** Tokens are provider-reported. Dollars are the harness's pricing of them, plus conservative holds. The account's bill was not read, except where the owner checked the two holds in the gateway log.
 9. **A measurement defect, reporting only.** Astryx's report read parity with a defect corrected after the run (an erratum on its evidence branch). Parity is not in the decision, and shadcn/ui v3 measured with the corrected reading.
 10. **Where the evidence lives.** The raw evidence sits on unmerged branches. The commit-pinned links here stay valid while those commits remain in the repository.
@@ -400,6 +411,7 @@ Of that total, $44.1274701 settled at reported usage. The other $3.354624 is fou
 ## 9. What the experiment does not establish
 
 - **That blocks pass clearly on shadcn/ui v3.** The decision is uncertain against the budget-matched arm.
+- **Results on the rest of the corpus.** Stage 3 ran 24 of the 88 prompts that apply to Astryx and 24 of the 92 that apply to shadcn/ui v3. The full corpus is Stage 4.
 - **Anything about other design systems,** other block families, other models or local models.
 - **How often real users' goals fit a block,** or how accurately real goals are routed. Field data has no labels.
 - **Accessibility conformance** of block surfaces.
@@ -421,25 +433,29 @@ The beta's other decisions (a separate origin, invite-only, a block-specific kil
 
 ## 11. Criteria for reconsidering shadcn/ui v3
 
-**Under branch C, shadcn/ui v3 joins only if an owner-authorized Stage 4 passes clearly** under the unchanged frozen rule: the same thresholds, the same scoring, and every criterion's interval on its passing side.
+**Under branch C as the release plan defines it, shadcn/ui v3 joins only if an owner-authorized Stage 4 passes clearly** under the unchanged frozen rule: the same thresholds, the same scoring, and every criterion's interval on its passing side.
 
-**What could make Stage 4 worth its cost, for the owner to weigh:**
+The rest of this section is this report's proposal, for the owner to weigh. None of it is an owner decision.
+
+**What could make Stage 4 worth its cost:**
 - **Cost.** A lower price per token, or a cheaper way to run the full corpus.
 - **Value.** Evidence from the Astryx beta that blocks are worth offering on the default reference.
-- **Change.** A change to the composer's shadcn/ui reference or its blocks. A re-bind or a new block version needs its own evaluation anyway.
+- **Change.** A change to the composer's shadcn/ui reference or its blocks. What such a change would need before it counts is the plan's change policy (§13, decision 9), which is still open.
 
 **What would not count:**
 - re-reading Stage 3, or a subset of its prompts chosen after the fact;
 - the Astryx beta's results on their own;
 - a relaxed threshold.
 
-**What a revision might target first:** structural refinements, where the block arm's fallback runs on a reduced budget and passed 9 of 18 on shadcn/ui v3. Any such change is a new block version, which needs its own evaluation before it counts (the plan's change policy, §13).
+**What a revision might target first:** structural refinements, where the block arm's fallback runs on a reduced budget and passed 9 of 18 on shadcn/ui v3.
+- A change to that budget would change ADR-B4, the frozen fairness rule, for every reference.
+- A change to a block falls under the change policy. Under the plan's recommendation, a change to a block's signature, actions, intents, summary or prompt is a new block version and needs a new evaluation stage.
 
 ## 12. Implications and recommended next steps
 
 **Implications:**
 - **Blocks reduce hosted tokens per success substantially on both references.** Both token cuts clear 30% with room: their intervals' lower ends are 39.0% and 50.6%.
-- **On Astryx, quality held clearly.** On shadcn/ui v3 it held against production, but against the budget-matched arm the evidence cannot exclude a deficit beyond the margin. Structural refinements are the one condition in which the budget-matched arm passed more cells.
+- **On Astryx, quality held clearly.** On shadcn/ui v3 it held against production, but against the budget-matched arm the evidence cannot exclude a deficit beyond the margin. On shadcn/ui v3, structural refinements are the one condition in which the budget-matched arm passed more cells.
 - **The named call is the contract.** Positional encoding is not worth a compatibility commitment.
 - **The integrity controls worked.** Two replies the runs could not meter were held and stopped, and both turned out uncharged. No figure in either decision depends on an unverified reply.
 
@@ -488,4 +504,4 @@ All evidence is in aestheticfunction/dspack-studio, on branches that are never m
 - **The figures.** Every figure was taken from the runs' summaries, ledgers and records at the commits above, by script.
 - **The numbers in the text.** Each was matched back to them.
 - **The links.** Every link was resolved against the repository.
-- **An independent review** fact-checked this report against the evidence before it merged.
+- **Independent review.** Two independent reviews fact-checked this report against the evidence before it merged. The description of the pull request that added it lists what they found and what was corrected.

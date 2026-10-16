@@ -23,8 +23,10 @@ The pinned copy is byte-identical to that upstream commit — the same artifact 
 - **It covers one file:** `packages/contracts/shadcn-ui.dspack.json`, the exhibit's shadcn/ui **v2.3.0** contract. `check-sync.mjs` holds that file to the pinned bytes.
 - **It does not cover the composer's shadcn/ui 3.2.0 reference.**
   - That reference is authored in `apps/composer/shadcn-v3-project/` and byte-copied to `packages/contracts/shadcn-v3.dspack.json`.
-  - The interface blocks bind to it: the shadcn/ui v3 sidecar names version 3.2.0 and its digest (`docs/BLOCKS.md`), and the Phase 1B evaluation measured it.
-  - No pin and no upstream sync check covers it. The only guard is `apps/composer/lib/reference-sync.test.mjs`, which holds the two copies byte-identical to each other, not to any upstream commit.
+  - The interface blocks bind to it: the shadcn/ui v3 sidecar, `apps/composer/experimental/blocks/shadcn-v3.blocks.json`, names version 3.2.0 and its digest (`baseSha256`), and the Phase 1B evaluation measured it.
+  - No pin and no upstream sync check covers it. Its guards are internal to this repository, and none compares it with an upstream commit:
+    - `apps/composer/lib/reference-sync.test.mjs` holds the two copies byte-identical to each other;
+    - the sidecar digest checks (`packages/composer-core/src/blocks/blocks-schema.test.ts` and `apps/composer/lib/blocks-ratchet.test.mjs`) fail on any change to the contract the sidecar binds, which forces an explicit re-bind.
   - The upstream contract is recorded above at 3.0.0. This file does not claim that 3.2.0 exists upstream.
 
 ## Why the pin exists
