@@ -106,17 +106,17 @@ describe("parseProvenance", () => {
     expect(parseProvenance({ "ex.chat-1": entry }, [sidecar])).toEqual({ "ex.chat-1": entry });
   });
 
-  it("an unknown block version keeps only {block, version, status: inert}: the call is stripped", async () => {
+  it("an unknown block version keeps only {block, version, status: inert} and why: the call is stripped", async () => {
     const entry = { ...(await valid()), version: 7 };
-    expect(parseProvenance({ "ex.chat-1": entry }, [sidecar])).toEqual({ "ex.chat-1": { block: "auth-form", version: 7, status: "inert" } });
+    expect(parseProvenance({ "ex.chat-1": entry }, [sidecar])).toEqual({ "ex.chat-1": { block: "auth-form", version: 7, status: "inert", reason: "version" } });
   });
 
   it("a binding to another base, or a call that fails B1, is inert too", async () => {
     const other = { ...(await valid()), baseSha256: "0".repeat(64) };
     const broken = { ...(await valid()), call: { ...example.call, mode: "sign-ip" } };
     expect(parseProvenance({ a: other, b: broken }, [sidecar])).toEqual({
-      a: { block: "auth-form", version: 1, status: "inert" },
-      b: { block: "auth-form", version: 1, status: "inert" },
+      a: { block: "auth-form", version: 1, status: "inert", reason: "base" },
+      b: { block: "auth-form", version: 1, status: "inert", reason: "validation" },
     });
   });
 

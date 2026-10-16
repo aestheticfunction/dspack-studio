@@ -675,6 +675,33 @@ test("the Catalog export is today's: the catalog and each surface's messages, an
   expect(text).toBe(JSON.stringify(bundle, null, 2));
 });
 
+test("a default build ignores and drops block provenance: an imported file's provenance is never stored, and no Blocks catalog or provenance line appears", async ({ page }) => {
+  // A beta export carries blockProvenance; production drops it on import and
+  // shows no block UI (docs/blocks/PHASE-2-RELEASE-PLAN.md, §8).
+  await page.addInitScript(() => {
+    localStorage.setItem("composer.experimental.v1", JSON.stringify({ blocks: true }));
+  });
+  await page.goto("/");
+  await newProject(page, "shadcn", "Beta file");
+  await page.getByTestId("nav-projects").click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.locator('[data-testid^="project-export-"]').first().click()]);
+  const file = JSON.parse(readFileSync((await download.path())!, "utf8")) as Record<string, any>;
+  expect(file).not.toHaveProperty("blockProvenance");
+  const id = String(((file.contract?.examples ?? []) as Array<{ id: string }>)[0]?.id ?? "ex.chat-1");
+  file.name = "Beta file with provenance";
+  file.blockProvenance = { [id]: { v: 1, reference: { name: "shadcn/ui", dspack: "0.4", version: "3.2.0" }, baseSha256: "0".repeat(64), block: "auth-form", version: 1, intent: "structured-input", blockSchemaSha256: "a".repeat(64), encoding: "named", call: {}, expansionDigest: "b".repeat(64) } };
+  await page.getByTestId("import-project-input").setInputFiles({ name: "beta.composerproject.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(file)) });
+  await expect(page.getByTestId("project-context")).toContainText("Beta file with provenance");
+  const keys = await page.evaluate(() => Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)!).filter((k) => k.startsWith("composer.project.blocks.")));
+  expect(keys).toEqual([]);
+  await page.getByTestId("nav-inventory").click();
+  await expect(page.getByTestId("catalog-summary")).toBeVisible();
+  await expect(page.getByTestId("blocks-catalog")).toHaveCount(0);
+  await page.getByTestId("nav-preview").click();
+  await expect(page.getByTestId("preview-provenance")).toHaveCount(0);
+  await expect(page.getByTestId("preview-host-owned")).toHaveCount(0);
+});
+
 test("the default build ships no interface-block code (docs/BLOCKS.md: blocks stay out of default builds)", () => {
   // Scans the served artifact on disk, so a lazily loaded chunk cannot hide it.
   const chunks = fileURLToPath(new URL("../apps/composer/out/_next/static/chunks/", import.meta.url));

@@ -24,7 +24,7 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     contextOptions: { reducedMotion: "reduce" },
   },
-  projects: [{ name: "composer-experimental", testMatch: ["composer-blocks.spec.ts", "composer-beta.spec.ts"] }],
+  projects: [{ name: "composer-experimental", testMatch: ["composer-blocks.spec.ts", "composer-blocks-provenance.spec.ts", "composer-beta.spec.ts"] }],
   webServer: [
     {
       command: "node e2e/serve-composer.mjs",
