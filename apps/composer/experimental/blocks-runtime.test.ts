@@ -287,6 +287,12 @@ describe("blockContext under the beta switch (Phase 2 plan, §6, layer 4)", () =
     expect(ctx.reason).toBe("no-blocks-in-beta");
   });
 
+  it("a refinement after the switch goes off takes today's refinement path, with no block call", async () => {
+    const off = await contextFor({ beta: { state: "off", reason: "disabled" } });
+    const prior = { prompt: "a sign-up form", progress: { block: { outcome: "block", selected: { id: "auth-form", version: 1, intent: "data-collection" } }, outcome: "passed", surface: { root: {} } } };
+    expect(await blockRunFor({ ctx: off, choice: { id: null, reason: "", source: "omitted" }, intent: "data-collection", goal: "make the title say Welcome", preferenceOn: true, prior })).toBeNull();
+  });
+
   it("eligibility answers first: an imported, local-model or edited project keeps its own reason under any switch", async () => {
     const edited = { ...(astryx.contract as Json), intents: [...(astryx.contract as Json).intents, { id: "x", description: "y" }] };
     for (const beta of [OWNER, { state: "off", reason: "disabled" } as const]) {

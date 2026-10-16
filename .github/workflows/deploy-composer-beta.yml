@@ -11,10 +11,12 @@ name: deploy-composer-beta
 # never connected to Workers Builds, which reads ./wrangler.jsonc and deploys
 # the production composer on every merge to main.
 #
-# Auth: CLOUDFLARE_API_TOKEN_BETA, a secret of the composer-beta environment,
-# scoped to this Worker's deployment only and never the production token, with
-# CLOUDFLARE_ACCOUNT_ID, a variable of the same environment (a token scoped to
-# one Worker cannot look the account up). Inert until both exist.
+# Auth: CLOUDFLARE_API_TOKEN_BETA, a secret of the composer-beta environment
+# and never the production token: Editor on this one Worker, plus Workers
+# Routes Write on the zone for its custom domain, a permission that reaches
+# every hostname in the zone (docs/deployment.md). With it, CLOUDFLARE_ACCOUNT_ID,
+# a variable of the same environment (a token scoped to one Worker cannot look
+# the account up). Inert until both exist.
 # CF_ACCESS_CLIENT_ID_BETA and
 # CF_ACCESS_CLIENT_SECRET_BETA are reserved for a later authenticated smoke;
 # this workflow sends no credentials, so its only check of the deployed beta is
@@ -22,12 +24,19 @@ name: deploy-composer-beta
 #
 # Every deploy records its rollback anchor first, and refuses to deploy when
 # it cannot. Only the first deploy, when the beta Worker does not exist yet,
-# goes ahead without one, and only when the dispatch says so (first_deploy).
+# goes ahead without one, and only when the dispatch says so (first_deploy),
+# which is refused once the Worker exists. A first deploy also skips the
+# pre-deploy Access check: the hostname does not exist yet, and asking would
+# only leave its absence cached on the runner for the post-deploy check.
+#
+# The token reaches only the steps that run wrangler, never the install or
+# the build, which run third-party code.
 #
 # Rollback (from any machine with wrangler auth for the beta):
 #   npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc
-# targeting the anchor version recorded in this run's summary. Production and
-# the beta roll back independently.
+# targeting the anchor version recorded in this run's summary. A rollback may
+# restore that version's BLOCKS_BETA and HOSTED_AI, so set both again after it
+# and check /api/models. Production and the beta roll back independently.
 
 on:
   workflow_dispatch:
@@ -51,11 +60,11 @@ jobs:
     environment: composer-beta
     permissions:
       contents: read
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_BETA }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: The beta deploys only with its own credential
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_BETA }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "CLOUDFLARE_API_TOKEN_BETA is not set in the composer-beta environment; refusing to deploy"; exit 1; }
           test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "CLOUDFLARE_ACCOUNT_ID is not set in the composer-beta environment; refusing to deploy"; exit 1; }
@@ -73,16 +82,24 @@ jobs:
         run: pnpm --filter composer build:experimental
       - name: Guards (the production and beta configs; an experimental artifact that carries the switch)
         run: node apps/composer/scripts/check-beta-deploy.mjs
-      - name: Cloudflare Access already sends anonymous requests to its login (before a first deploy the hostname may not exist yet)
+      - name: Cloudflare Access already sends anonymous requests to its login
+        if: ${{ !inputs.first_deploy }}
         run: node apps/composer/scripts/check-beta-deploy.mjs --access=before
       - name: Record the rollback anchor (currently active version)
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_BETA }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           FIRST_DEPLOY: ${{ inputs.first_deploy }}
         run: |
           echo '## Beta composer deployment' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "source commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
           if listing=$(npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc 2>&1); then
+            if [ "$FIRST_DEPLOY" = "true" ]; then
+              printf '%s\n' "$listing" | tail -8
+              echo "The beta Worker already exists, so this is not a first deploy. Dispatch again without first_deploy."
+              exit 1
+            fi
             printf '%s\n' "$listing" | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$FIRST_DEPLOY" = "true" ]; then
             printf '%s\n' "$listing" | tail -8
@@ -94,12 +111,18 @@ jobs:
           fi
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy (beta Worker only, checked-in config)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_BETA }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@4.146.0 deploy --config wrangler.composer-beta.jsonc
       - name: Record the deployed version
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_BETA }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
-          echo 'rollback: npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'rollback: npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc  (target = the anchor above; then set BLOCKS_BETA and HOSTED_AI again)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Cloudflare Access sends anonymous requests for the deployed beta to its login
         run: node apps/composer/scripts/check-beta-deploy.mjs --access=after

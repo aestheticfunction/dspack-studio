@@ -4,8 +4,10 @@
  * the page reads the switch from /api/models. These specs stub that reply as
  * the beta Worker sends it (apps/composer/worker/blocks-beta.mjs) and stub
  * /api/propose, so no model is called. With blocks off, or on a reference the
- * switch does not list, the page posts today's bytes: the bodies hash to the
- * request goldens in packages/block-bench/results.json.
+ * switch does not list, the page posts today's bytes: planning bodies hash to
+ * the request goldens in packages/block-bench/results.json, and so do
+ * generation bodies wherever the planner restates the goal verbatim (a fresh
+ * build generates for the restatement).
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -216,6 +218,34 @@ test("a switch turned off applies to the next build, with no reload", async ({ p
   expect(sha256(posts[2]!.raw)).toBe(planGolden("astryx", TICKETS));
   await expect(page.getByTestId("build-block-note-2")).toContainText("beta-switch-disabled");
   await expect(page.getByTestId("build-block-2")).toHaveCount(0);
+});
+
+test("a block surface accepted after the switch goes off still records its provenance", async ({ page }) => {
+  await preferenceOn(page);
+  const { models } = await stubBeta(page, json({ models: MODELS, blocks: OWNER }), (kind) =>
+    kind === "plan" ? planFor("record-collection", "records-table") : kind === "block" ? ok(exampleCall("records-table")) : providerDown(),
+  );
+  await page.goto("/");
+  await newProject(page, "Beta accept after off", "astryx");
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await build(page, TICKETS);
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-block-1")).toContainText("block records-table v1");
+
+  models.current = json({ models: MODELS, blocks: { enabled: false, reason: "disabled" } });
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  const provenance = () =>
+    page.evaluate(() => {
+      const entries: unknown[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)!;
+        if (key.startsWith("composer.project.blocks.")) entries.push(...Object.values(JSON.parse(localStorage.getItem(key)!) as Record<string, unknown>));
+      }
+      return entries as Array<Record<string, unknown>>;
+    });
+  await expect.poll(async () => (await provenance()).length, { timeout: 10_000 }).toBe(1);
+  expect((await provenance())[0]).toMatchObject({ v: 1, block: "records-table", version: 1, encoding: "named" });
 });
 
 test("a switch that lists two blocks offers only those, in sidecar order", async ({ page }) => {

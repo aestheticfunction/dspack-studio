@@ -98,8 +98,24 @@ describe("/api/models with BLOCKS_BETA: the switch, normalized", () => {
     ["blocks that are not a list", '{"enabled":true,"references":["astryx"],"blocks":{"auth-form":true}}'],
     ["an own __proto__ key", '{"enabled":true,"references":["astryx"],"blocks":["auth-form"],"__proto__":{}}'],
     ["a disabled switch that names an unknown block", '{"enabled":false,"references":["astryx"],"blocks":["data-grid"]}'],
+    // JSON.parse keeps the last of two equal keys, so a switch turned off by
+    // adding "enabled":false in front of the old field would stay on.
+    ["a repeated field, the last one turning blocks on", '{"enabled":false,"references":["astryx"],"blocks":["auth-form"],"enabled":true}'],
+    ["a repeated field with the same value", '{"enabled":true,"enabled":true,"references":["astryx"],"blocks":["auth-form"]}'],
+    ["a reference written with an escape", '{"enabled":true,"references":["\\u0061stryx"],"blocks":["auth-form"]}'],
+    ["an on switch with no references", '{"enabled":true,"references":[],"blocks":["auth-form"]}'],
+    ["an on switch with no blocks", '{"enabled":true,"references":["astryx"],"blocks":[]}'],
   ])("%s is malformed: blocks are off", async (_name, value) => {
     expect((await text({ AI, BLOCKS_BETA: value })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"malformed"}}\n');
+  });
+
+  it("whitespace is not a difference: the owner's switch, laid out over lines, reads the same", async () => {
+    const laidOut = '{\n  "enabled": true,\n  "references": ["astryx"],\n  "blocks": ["records-table", "auth-form", "guide-steps"]\n}\n';
+    expect((await text({ AI, BLOCKS_BETA: laidOut })).body).toBe((await text({ AI, BLOCKS_BETA: OWNER })).body);
+  });
+
+  it("a disabled switch may list nothing", async () => {
+    expect(blocksBetaFor({ BLOCKS_BETA: '{"enabled":false,"references":[],"blocks":[]}' })).toEqual({ enabled: false, reason: "disabled" });
   });
 
   it("a malformed switch never echoes what the variable held", async () => {

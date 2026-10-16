@@ -45,6 +45,8 @@ describe("parseBlocksBeta: the switch as the beta Worker reports it", () => {
     ["an unknown block id", { ...OWNER, blocks: ["records-table", "data-grid"] }],
     ["a repeated block id", { ...OWNER, blocks: ["auth-form", "auth-form"] }],
     ["a block id that is not a string", { ...OWNER, blocks: ["auth-form", 7] }],
+    ["an on switch with no references", { ...OWNER, references: [] }],
+    ["an on switch with no blocks", { ...OWNER, blocks: [] }],
     ["an off form with an unknown reason", { enabled: false, reason: "paused" }],
     ["an off form with another field", { enabled: false, reason: "disabled", references: [] }],
     ["an own __proto__ key", JSON.parse('{"enabled":true,"references":["astryx"],"blocks":["auth-form"],"__proto__":{}}')],

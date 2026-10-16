@@ -52,6 +52,8 @@ export function parseBlocksBeta(reply: unknown, known: BlocksBetaKnown): BlocksB
   if (!plainObject(value)) return malformed;
   if (value.enabled === true && hasExactly(value, ["enabled", "references", "blocks"])) {
     if (!knownList(value.references, known.references) || !knownList(value.blocks, known.blocks)) return malformed;
+    // An on switch that lists nothing is a mistake, never a way to turn blocks off.
+    if (value.references.length === 0 || value.blocks.length === 0) return malformed;
     return { state: "on", references: [...value.references], blocks: [...value.blocks] };
   }
   if (value.enabled === false && hasExactly(value, ["enabled", "reason"]) && OFF_REASONS.includes(value.reason as BlocksBetaOff)) {

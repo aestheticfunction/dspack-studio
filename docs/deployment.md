@@ -215,39 +215,44 @@ code, and a test holds it there.
 only; adding anyone needs an explicit later decision. Access protects the custom
 domain, so the beta config turns off the Worker's other entry points,
 `workers_dev: false` and `preview_urls: false`, and a guard refuses a config that
-turns either on.
+turns either on. The workflow's Access check proves that anonymous requests go
+to the Access login, not who that login lets in, so the owner confirms the
+policy by hand (below).
 
 **How it deploys.** Only the `deploy-composer-beta` GitHub Actions workflow
 deploys it: dispatched by hand from `main`, confirmed by typing
 `deploy-composer-beta`, and run in the protected `composer-beta` environment.
-Never connect this Worker to Workers Builds: that integration reads
-`./wrangler.jsonc` and deploys production on every merge. The workflow:
-1. refuses to run without the beta's own token and account id;
+There is no local deploy path: one would skip the required reviewer, the
+`main`-only rule and the dedicated token. Never connect this Worker to Workers
+Builds: that integration reads `./wrangler.jsonc` and deploys production on
+every merge. The workflow:
+1. refuses to run without the beta's own token and account id, which reach only
+   the steps that run wrangler, never the install or the build;
 2. installs from the frozen lockfile and builds the experimental artifact;
 3. runs the guards, `apps/composer/scripts/check-beta-deploy.mjs`: both configs,
    and an artifact that carries the block code and the switch;
-4. checks that an anonymous request already goes to the Cloudflare Access
-   login. Before the first deploy the hostname may not exist yet (DNS not
-   found), which passes; any other failure does not, and neither does a bare
-   401 or 403, which a WAF rule or bot challenge could send this runner alone;
+4. checks that anonymous requests already go to the Cloudflare Access login.
+   Only a hostname that does not exist yet (DNS not found) passes without
+   that; any other failure does not, and neither does a bare 401 or 403, which
+   a WAF rule or bot challenge could send this runner alone. A first deploy
+   skips this check (below);
 5. records the rollback anchor, and refuses to deploy without one unless the
-   dispatch is marked `first_deploy` (the beta Worker does not exist yet);
+   dispatch is marked `first_deploy`, which it refuses once the beta Worker
+   exists;
 6. deploys with the pinned wrangler 4.146.0, and records the new version;
-7. checks again that anonymous requests for the page and for `/api/models` go
-   to the Access login.
+7. checks again that anonymous requests for the page, for `/api/models` and for
+   the static assets go to the Access login, retrying for about five minutes
+   while a new custom domain takes its DNS record and certificate.
 
 The workflow sends no credentials to the beta, so it cannot test the app behind
 Access. An authenticated smoke is later work, with its Access service token
-already named (below). The same sequence, run locally with wrangler auth for the
-beta:
+already named (below). The checks need no credentials, and run from any
+checkout:
 
 ```sh
 pnpm --filter composer build:experimental
-node apps/composer/scripts/check-beta-deploy.mjs
-node apps/composer/scripts/check-beta-deploy.mjs --access=before
-npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-beta.jsonc   # record the rollback anchor FIRST
-npx --yes wrangler@4.146.0 deploy --config wrangler.composer-beta.jsonc
-node apps/composer/scripts/check-beta-deploy.mjs --access=after
+node apps/composer/scripts/check-beta-deploy.mjs                  # the configs and the artifact
+node apps/composer/scripts/check-beta-deploy.mjs --access=after   # Access, on the live hostname
 ```
 
 **The block switch.** The beta Worker's `BLOCKS_BETA` variable, set in the
@@ -257,11 +262,14 @@ dashboard and never in the config, says what the beta offers:
 {"enabled":true,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}
 ```
 
-- It is strict JSON with exactly these three fields. References come from the
-  beta's allowlist, which holds Astryx only
+- It is strict JSON with exactly these three fields, each once. References
+  come from the beta's allowlist, which holds Astryx only
   (`apps/composer/worker/blocks-beta.mjs`); block ids come from the Astryx
-  sidecar's approved blocks; each is named once. Anything else, an unknown
-  field, reference or block id included, is malformed.
+  sidecar's approved blocks; each is named once, and an enabled switch names at
+  least one of each. Anything else is malformed: an unknown field, reference or
+  block id, and a repeated field too, since JSON keeps the last of two equal
+  fields. To turn blocks off, change `true` to `false` in place; never add a
+  second `enabled`.
 - `GET /api/models` reports it, normalized, as a `blocks` field. A malformed
   value, or `"enabled": false`, is reported as off with its reason, and the
   value itself is never echoed.
@@ -286,13 +294,14 @@ dashboard and never in the config, says what the beta offers:
 3. **The token.** A new account-owned API token, never the production
    `CLOUDFLARE_API_TOKEN`. It needs only Editor on the one Worker
    `dspack-studio-composer-beta`, plus Workers Routes Write on the
-   `aesthetic-function.com` zone, which attaching the custom domain needs. A
-   token can be scoped only to a Worker that exists, and creating a Worker
-   takes Admin at the Workers product scope. So either create the Worker once
-   by hand before making the token, or grant that Admin for the first deploy
-   only and then replace the token with the narrower one. These permissions
-   follow Cloudflare's Workers authorization guide; the first dispatch is their
-   test.
+   `aesthetic-function.com` zone, which attaching the custom domain needs. That
+   zone permission reaches every hostname in the zone, production's included,
+   so the token lives only in the protected environment. A token can be scoped
+   only to a Worker that exists, and creating a Worker takes Admin at the
+   Workers product scope. So either create the Worker once by hand before
+   making the token, or grant that Admin for the first deploy only and then
+   replace the token with the narrower one. These permissions follow
+   Cloudflare's Workers authorization guide; the first dispatch is their test.
 4. **Named, not yet used.** `CF_ACCESS_CLIENT_ID_BETA` and
    `CF_ACCESS_CLIENT_SECRET_BETA`, an Access service token for the later
    authenticated smoke.
@@ -300,10 +309,24 @@ dashboard and never in the config, says what the beta offers:
    af-site theme generator. Keep the Cloudflare daily spend limit at $10 with
    auto top-up off, and keep the gateway settings above (Retry Requests off).
 
-**The first deploy.** Dispatch it with `first_deploy` checked, since the beta
-Worker has no earlier version to anchor; never check it again. Set
-`BLOCKS_BETA` only once that run's Access check is green. Until it is set, the
-switch reads as missing, and the beta offers no blocks.
+**The first deploy.**
+1. Dispatch it with `first_deploy` checked: the beta Worker has no earlier
+   version to anchor. The workflow refuses `first_deploy` once the Worker
+   exists. A first deploy skips the pre-deploy Access check, because the
+   hostname does not exist yet and asking would only leave its absence cached
+   on the runner for the check after the deploy.
+2. If the check after the deploy still fails on DNS or TLS, the custom domain
+   is still provisioning: run
+   `node apps/composer/scripts/check-beta-deploy.mjs --access=after` again a
+   few minutes later, from any machine. If it fails any other way, the beta may
+   be public: remove its custom domain at once (Workers & Pages →
+   `dspack-studio-composer-beta` → Settings → Domains & Routes), fix Access,
+   and dispatch again to re-attach it.
+3. Confirm by hand, in Zero Trust → Access → Applications, that the beta's
+   application covers the whole hostname and has one Allow policy that
+   includes only the owner's email.
+4. Only then set `BLOCKS_BETA`. Until it is set, the switch reads as missing,
+   and the beta offers no blocks.
 
 **Runbook.**
 - Stop blocks but keep hosted builds: set `"enabled": false` in `BLOCKS_BETA`,
@@ -312,8 +335,11 @@ switch reads as missing, and the beta offers no blocks.
   Worker. The beta config declares no vars and keeps the dashboard's
   (`keep_vars: true`), so no deploy resets either switch.
 - Roll back: `npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc`,
-  to the anchor the workflow recorded. Production and the beta roll back
-  independently.
+  to the anchor the workflow recorded. A rollback deploys that version as it
+  was, and may bring back the `BLOCKS_BETA` and `HOSTED_AI` it had. So roll
+  back first, then set both switches again, and read the beta's `/api/models`
+  to confirm. A rollback never stops blocks on its own. Production and the
+  beta roll back independently.
 
 **Stop conditions (initial, set by the owner).**
 - Disable blocks at once (`BLOCKS_BETA` off) on any model mismatch, any
@@ -327,8 +353,13 @@ switch reads as missing, and the beta offers no blocks.
 
 A pause turns blocks off and sets `HOSTED_AI` to `off` on the beta until the
 owner decides to resume. Until the beta has operator signals (release plan step
-5), the owner reads these from the beta's receipts, which name each call's
-model and usage, and from the gateway's dashboard.
+5), the owner reads these by hand:
+- the beta's receipts give each call's usage and outcome, but the model only for
+  a reply that succeeded, and none for a failed call;
+- each `/api/propose` reply's `calls` list names the model that served every
+  call that got a response, an unusable output included (the browser's network
+  panel); a call the provider rejected got none, and names none;
+- the gateway's dashboard gives errors and spend.
 
 ## Recommended topology
 

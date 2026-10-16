@@ -6,8 +6,9 @@
  * written behind the literal `process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL
  * === "1"` check, which a default build folds away; the default build also
  * aliases this whole directory to nothing (next.config.mjs). So nothing here
- * is in the deploy artifact, and the smoke suite and check-default-artifact
- * prove it on every build.
+ * is in production's deploy artifact, and the smoke suite and
+ * check-default-artifact prove it on every build; only the beta's
+ * experimental artifact carries it.
  *
  * What lives here (docs/BLOCKS.md, Phase 1A): eligibility against the
  * packaged references, the planning request with the block question, the

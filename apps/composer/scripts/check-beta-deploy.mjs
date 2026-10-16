@@ -13,10 +13,11 @@
  *     carries the beta switch.
  *
  *   node apps/composer/scripts/check-beta-deploy.mjs --access=before|after
- *     An anonymous request to the beta hostname, its page and its API, must be
- *     sent to the Cloudflare Access login. Before the first deploy the hostname
- *     may not exist yet (DNS not found), which passes; any other failure does
- *     not, and after a deploy the hostname must resolve.
+ *     An anonymous request to the beta hostname, for its page, its API and its
+ *     static assets, must be sent to the Cloudflare Access login. Before a
+ *     deploy the hostname may not exist yet (DNS not found), which passes; any
+ *     other failure does not. After a deploy the hostname must resolve, within
+ *     about five minutes for a new custom domain.
  *
  * Exits 1 on any problem, after printing every one.
  */
@@ -137,14 +138,18 @@ function accessVerdict(url, res) {
   return `${url} answered ${res.status}${mitigated ? ` (cf-mitigated: ${mitigated})` : ""} to an anonymous request, not the Cloudflare Access login`;
 }
 
+/** What each check requests: the page, the API, and a path under the static assets. */
+const PROBES = ["/", "/api/models", "/_next/static/access-probe"];
+
 /**
- * An anonymous request to the page and to the API must be sent to the
- * Cloudflare Access login. `phase` "before" (the deploy) lets only a hostname
- * that does not exist yet pass, and refuses every other failure; "after"
- * retries any failure, since a new custom domain can take a moment, and fails
- * once the attempts are spent. Every probe has a timeout.
+ * An anonymous request for the page, the API and the static assets must be
+ * sent to the Cloudflare Access login. `phase` "before" (the deploy) lets only
+ * a hostname that does not exist yet pass, and refuses every other failure;
+ * "after" retries any failure for about five minutes, since a new custom
+ * domain needs its DNS record and certificate, then fails. Every probe has a
+ * timeout.
  */
-export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), attempts = 10, delayMs = 6000 } = {}) {
+export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), attempts = 50, delayMs = 6000 } = {}) {
   if (phase !== "before" && phase !== "after") throw new Error('phase must be "before" or "after"');
   const base = baseUrl.replace(/\/+$/, "");
   const probe = (path) =>
@@ -154,7 +159,7 @@ export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (m
   for (let i = 0; i < (phase === "after" ? attempts : 1); i++) {
     if (i > 0) await wait(delayMs);
     try {
-      page = await probe("/");
+      page = await probe(PROBES[0]);
       break;
     } catch (error) {
       failure = error;
@@ -168,13 +173,15 @@ export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (m
     return [`${base} could not be reached ${phase} the deploy (${describe(failure)})`];
   }
   const problems = [];
-  const pageVerdict = accessVerdict(`${base}/`, page);
+  const pageVerdict = accessVerdict(`${base}${PROBES[0]}`, page);
   if (pageVerdict) problems.push(pageVerdict);
-  try {
-    const apiVerdict = accessVerdict(`${base}/api/models`, await probe("/api/models"));
-    if (apiVerdict) problems.push(apiVerdict);
-  } catch (error) {
-    problems.push(`${base}/api/models could not be reached (${describe(error)})`);
+  for (const path of PROBES.slice(1)) {
+    try {
+      const verdict = accessVerdict(`${base}${path}`, await probe(path));
+      if (verdict) problems.push(verdict);
+    } catch (error) {
+      problems.push(`${base}${path} could not be reached (${describe(error)})`);
+    }
   }
   return problems;
 }

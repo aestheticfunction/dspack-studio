@@ -150,7 +150,7 @@ describe("the Access check", () => {
   it("an anonymous request redirected to the Access login passes, for the page and the API alike", async () => {
     const { seen, fetchImpl } = respond(() => redirect(LOGIN));
     expect(await checkAccess(URL_, { phase: "after", fetchImpl, wait: noWait })).toEqual([]);
-    expect(seen.map((s) => new URL(s.url).pathname)).toEqual(["/", "/api/models"]);
+    expect(seen.map((s) => new URL(s.url).pathname)).toEqual(["/", "/api/models", "/_next/static/access-probe"]);
     for (const s of seen) {
       expect(s.init.redirect).toBe("manual");
       // A browser's navigation, so Access answers with its login redirect; and anonymous.
@@ -183,6 +183,7 @@ describe("the Access check", () => {
   it.each([
     ["the page served to anyone", () => new Response("<html>", { status: 200 })],
     ["the API served to anyone", (path) => (path === "/api/models" ? new Response("{}", { status: 200 }) : redirect(LOGIN))],
+    ["the static assets answered by the Worker, not Access", (path) => (path.startsWith("/_next/") ? new Response("not found", { status: 404 }) : redirect(LOGIN))],
     ["a redirect elsewhere", () => redirect("https://example.com/login")],
     ["a redirect to a look-alike host", () => redirect("https://aesthetic-function.cloudflareaccess.com.example.net/login")],
     ["a redirect to the hostname itself", () => redirect(`${URL_}/index.html`)],
@@ -227,6 +228,15 @@ describe("the Access check", () => {
     expect((await checkAccess(URL_, { phase: "before", fetchImpl, wait: noWait })).join("\n")).toMatch(/TimeoutError|timed? ?out/i);
   });
 
+  it("after the deploy, a new hostname gets about five minutes to resolve and take its certificate", async () => {
+    let waited = 0;
+    const { seen, fetchImpl } = respond(() => new TypeError("fetch failed"));
+    await checkAccess(URL_, { phase: "after", fetchImpl, wait: async (ms) => void (waited += ms) });
+    expect(seen.length).toBe(50);
+    expect(waited).toBeGreaterThanOrEqual(4 * 60_000);
+    expect(waited).toBeLessThanOrEqual(6 * 60_000);
+  });
+
   it("after the deploy, a hostname that starts resolving within the retries passes", async () => {
     let n = 0;
     const { fetchImpl } = respond(() => (n++ < 2 ? new TypeError("fetch failed") : redirect(LOGIN)));
@@ -269,7 +279,7 @@ describe("the workflows", () => {
     expect(topLevelKeys(yml, "jobs")).toEqual(["deploy"]);
     expect(yml).toMatch(/if: \$\{\{ inputs\.confirm == 'deploy-composer-beta' && github\.ref == 'refs\/heads\/main' \}\}/);
     expect(yml).toMatch(/\n    environment: composer-beta\n/);
-    expect(yml).toMatch(/\n    permissions:\n      contents: read\n    env:/);
+    expect(yml).toMatch(/\n    permissions:\n      contents: read\n    steps:/);
   });
 
   it("the beta authenticates with its own credential only, and refuses to run without it", () => {
@@ -336,10 +346,40 @@ describe("the workflows", () => {
       const first = run("fails", true);
       expect(first.status).toBe(0);
       expect(first.summary).toMatch(/first deploy/i);
-      expect(run("ok", true).status).toBe(0);
+      // A first deploy only: once the Worker exists, first_deploy is refused, so it can never skip the pre-deploy check.
+      expect(run("ok", true).status).not.toBe(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  /** Each step of the one job: its name and its full text. */
+  const steps = (yml) => {
+    const body = yml.slice(yml.indexOf("\n    steps:\n"));
+    return body.split(/\n(?=      - )/).slice(1).map((text) => ({ name: (/- (?:name|uses): (.+)/.exec(text) ?? [])[1] ?? "", text }));
+  };
+
+  it("the token reaches only the steps that need it: never the install or the build", () => {
+    const yml = beta();
+    const job = yml.slice(yml.indexOf("\n  deploy:\n"), yml.indexOf("\n    steps:\n"));
+    expect(job).not.toMatch(/CLOUDFLARE_/);
+    const all = steps(yml);
+    expect(all.length).toBeGreaterThan(8);
+    for (const step of all) {
+      const runsWrangler = /\bwrangler@/.test(step.text.replace(/^\s*#.*$/gm, "")) && !/^Cloudflare Access/.test(step.name);
+      const checksCredential = step.name === "The beta deploys only with its own credential";
+      const hasToken = /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN_BETA \}\}/.test(step.text);
+      expect(hasToken, step.name).toBe(runsWrangler || checksCredential);
+      if (hasToken) expect(step.text, step.name).toMatch(/CLOUDFLARE_ACCOUNT_ID: \$\{\{ vars\.CLOUDFLARE_ACCOUNT_ID \}\}/);
+    }
+    for (const name of ["Frozen-lockfile install", "Build the experimental artifact (apps/composer/out-experimental)"]) {
+      expect(all.find((s) => s.name === name)?.text, name).not.toMatch(/CLOUDFLARE_/);
+    }
+  });
+
+  it("a first deploy skips the pre-deploy Access check, which would only cache the hostname's absence on the runner", () => {
+    const pre = steps(beta()).find((s) => /--access=before/.test(s.text));
+    expect(pre?.text).toMatch(/\n        if: \$\{\{ !inputs\.first_deploy \}\}\n/);
   });
 
   it("builds the experimental artifact and runs every guard before the deploy, and the Access check after it", () => {
