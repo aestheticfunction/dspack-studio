@@ -296,8 +296,10 @@ duration, and the request's duration
 ([blocks/BETA-OPERATIONS.md](blocks/BETA-OPERATIONS.md), "The operator log").
 - Never the prompt, the schema, the output, an error's message, a header or an
   address; and the reply is byte-identical with the log on or off.
-- Any other value, or none, writes nothing. Production never sets it, and
-  its `wrangler.jsonc` does not name it; a test holds both configs so.
+- It is on only when the Worker sees exactly the string `on`. Keep it Text: a
+  JSON variable holding the string `"on"`, or a secret set to `on`, would turn
+  it on too. Anything else, or none, writes nothing. Production never sets it,
+  and its `wrangler.jsonc` does not name it; a test holds both configs so.
 - The experimental client names each request's operation in an
   `x-composer-operation` header, so the request body stays byte-identical. The
   default build never sends the header.
@@ -358,13 +360,14 @@ duration, and the request's duration
   or delete it. The next build offers none, with no deploy and no reload.
 - Stop hosted generation on the beta only: set `HOSTED_AI` to `off` on the beta
   Worker. The beta config declares no vars and keeps the dashboard's
-  (`keep_vars: true`), so no deploy resets either switch.
+  (`keep_vars: true`), so no deploy resets either switch, or the operator
+  log's `BETA_OPERATOR_LOG`.
 - Roll back: `npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc`,
   to the anchor the workflow recorded. A rollback deploys that version as it
-  was, and may bring back the `BLOCKS_BETA` and `HOSTED_AI` it had. So roll
-  back first, then set both switches again, and read the beta's `/api/models`
-  to confirm. A rollback never stops blocks on its own. Production and the
-  beta roll back independently.
+  was, and may bring back the `BLOCKS_BETA`, `HOSTED_AI` and
+  `BETA_OPERATOR_LOG` it had. So roll back first, then set all three again, and
+  read the beta's `/api/models` to confirm the switches. A rollback never stops
+  blocks on its own. Production and the beta roll back independently.
 
 **Stop conditions (initial, set by the owner).**
 - Disable blocks at once (`BLOCKS_BETA` off) on any model mismatch, any
@@ -381,11 +384,13 @@ owner decides to resume. The owner reads these signals (release plan step 5;
 [blocks/BETA-OPERATIONS.md](blocks/BETA-OPERATIONS.md), "Alarms"); no alert is
 automated:
 - the operator log, when `BETA_OPERATOR_LOG` is `on`: each request's status and
-  codes, and each call's outcome, tokens and served model;
+  codes, and each call's outcome, tokens and served model. Its per-call model is
+  the served-model signal: a call the provider rejected got no response, and
+  names none;
 - the beta's receipts: block and surface calls apart, the exact budget, the
-  refinement mode, and the model that served each call, which each call names
-  for itself (a call that got a response, an unusable output included); a call
-  the provider rejected got no response, and names none;
+  refinement mode, and each call's served model. A call that names none shows
+  the reply's top-level model, which can be the Worker's configured id, so the
+  receipt is a reason to look, not the served-model signal;
 - a diagnostics file a beta user chooses to save and share: call records,
   timings, outcomes and the shape of each block trace;
 - the gateway's dashboard: errors and spend.

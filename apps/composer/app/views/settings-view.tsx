@@ -376,9 +376,10 @@ function ExperimentalSection({ experimental, setExperimental }: { experimental: 
 /**
  * The beta's diagnostics file (experimental; docs/blocks/BETA-OPERATIONS.md):
  * saved only when the user asks, on this device, and sent nowhere. It holds
- * each build's call records, timings, outcome and block-trace shape, built by
- * composer-core diagnosticsExport, which carries nothing anyone wrote. The
- * runtime is read when the section opens, so saving makes no request.
+ * each build's call records, timings, outcome and block-trace shape for the
+ * builds Build lists, built by composer-core diagnosticsExport, which carries
+ * nothing anyone wrote. The runtime is read when the section opens, so saving
+ * makes no request.
  */
 function DiagnosticsExport() {
   const { buildTurns } = useComposer();
@@ -420,17 +421,18 @@ function DiagnosticsExport() {
         Diagnostics
       </h3>
       <p style={{ fontSize: 13, color: "var(--fg-body)", maxWidth: 640 }}>
-        Save a file that describes this session&apos;s builds, to share with the beta&apos;s operator if you choose. It holds each build&apos;s
-        call records, timings, outcome and the shape of its block trace. It holds no prompt, schema, generated output, surface content,
-        credential, entered value or action parameter. Saving it sends nothing anywhere. It is field data from one session: descriptive only,
-        and never ADR-B3 decision evidence.
+        Save a file that describes the builds listed in Build, to share with the beta&apos;s operator if you choose. Build starts a new list
+        whenever a project is opened or closed. The file holds each build&apos;s call records, timings, outcome and the shape of its block
+        trace. It holds no prompt, schema, generated output, surface content, credential, entered value or action parameter, and no local
+        model&apos;s name. Saving it sends nothing anywhere. It is field data from one browser session: descriptive only, and never ADR-B3
+        decision evidence.
       </p>
       <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "8px 0" }} data-testid="diagnostics-status">
         {runtime === "failed"
           ? "The diagnostics could not be prepared in this session."
           : builds === 0
-            ? "There are no builds in this session yet."
-            : `The file covers this session's ${builds} ${builds === 1 ? "build" : "builds"}.`}
+            ? "There are no builds listed in Build yet."
+            : `The file covers the ${builds} ${builds === 1 ? "build" : "builds"} listed in Build.`}
       </p>
       <button type="button" className="st-btn" onClick={save} disabled={builds === 0 || typeof runtime !== "object"} data-testid="diagnostics-export">
         Download build diagnostics

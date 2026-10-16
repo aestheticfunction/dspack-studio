@@ -274,7 +274,12 @@ describe("the diagnostics export holds shapes, never content", () => {
     const [t] = file.turns;
     expect(t!.modelRef).toBe("other");
     expect(t!.calls.map((c: Json) => c.operation)).toEqual(["plan", "block", "other"]);
-    expect(t!.calls[2]).toEqual({ operation: "other", source: "other", outcome: "other", model: "unrecognized" });
+    // Its model reference is no hosted one, so no call keeps a model name.
+    expect(t!.calls[2]).toEqual({ operation: "other", source: "other", outcome: "other" });
+    // As a hosted turn, a name that is not a model id is still never shown.
+    const [hosted] = diagnosticsExport([{ ...stuffedTurn(), modelRef: "hosted-ai" }], { exportedAt: "2026-10-16T22:00:00.000Z", knownBlocks: KNOWN.blocks }).turns;
+    expect(hosted!.calls.map((c) => c.model)).toEqual([HAIKU, HAIKU, "unrecognized"]);
+    expect(JSON.stringify(hosted)).not.toContain("SENTINEL");
     expect(t!.block).toMatchObject({ id: "auth-form", outcome: "fallback", fallback: { classification: "invalid-call" }, providerError: { classification: "provider" }, invariantCount: 1 });
     expect(t!.block!.attempts).toEqual([
       { index: 0, outcome: "invalid", b1Issues: 1, b2Issues: 0, durationMs: 400 },

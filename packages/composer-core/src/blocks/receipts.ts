@@ -58,7 +58,7 @@ export interface ReceiptGroup {
 }
 
 export type RefinementMode =
-  | { mode: "compact"; outcome: "expanded" | "unsupported" | "invalid" | "fallback" | "provider-failure" | "invariant-failure" }
+  | { mode: "compact"; outcome: "expanded" | "unsupported" | "invalid" | "fallback" | "provider-failure" | "unusable-output" | "refused" | "invariant-failure" }
   | { mode: "switch"; reason: SwitchReason | "unknown" }
   | { mode: "full-surface" };
 
@@ -87,10 +87,13 @@ export const SWITCH_REASON_TEXT: Record<SwitchReason, string> = {
 
 const COMPACT_TEXT: Record<Extract<RefinementMode, { mode: "compact" }>["outcome"], string> = {
   expanded: "compact refinement: the block's call was revised",
-  unsupported: "switched to a full-surface refinement: the model answered that the block cannot express the change",
+  // A scripted twin answers too, so this never claims a model did.
+  unsupported: "switched to a full-surface refinement: the reply said the block cannot express the change",
   invalid: "switched to a full-surface refinement: the revised call did not pass the block's checks",
   fallback: "switched to a full-surface refinement",
   "provider-failure": "compact refinement, stopped by a provider failure",
+  "unusable-output": "compact refinement, stopped: the model's output was unusable",
+  refused: "compact refinement, stopped: the request was refused",
   "invariant-failure": "compact refinement, stopped: the expansion failed its invariant checks",
 };
 
@@ -126,8 +129,11 @@ function refinementMode(turn: Json, trace: Json | undefined): RefinementMode | u
         mode: "compact",
         outcome: fallback?.classification === "unsupported-refinement" ? "unsupported" : fallback?.classification === "invalid-call" ? "invalid" : "fallback",
       };
-    case "provider-failure":
-      return { mode: "compact", outcome: "provider-failure" };
+    case "provider-failure": {
+      // What stopped it, as the block phase classified the error: an unknown or missing kind reads as a provider failure.
+      const classification = isObject(trace.providerError) ? trace.providerError.classification : undefined;
+      return { mode: "compact", outcome: classification === "output" ? "unusable-output" : classification === "policy" ? "refused" : "provider-failure" };
+    }
     case "invariant-failure":
       return { mode: "compact", outcome: "invariant-failure" };
     default:
@@ -218,8 +224,8 @@ export function describeBetaReceipt(receipt: BetaReceipt): string {
 export const DIAGNOSTICS_FORMAT = "composer-beta-diagnostics";
 
 export const DIAGNOSTICS_NOTICE =
-  "Field data from one browser session of the Composer beta: descriptive only, and never ADR-B3 decision evidence. " +
-  "It holds call records, timings, outcomes and the shape of each block trace; no prompt, schema, generated output, surface content, credential, entered value or action parameter.";
+  "Field data from the Composer beta: the builds listed in Build, in one browser session. It is descriptive only, and never ADR-B3 decision evidence. " +
+  "It holds call records, timings, outcomes and the shape of each block trace; no prompt, schema, generated output, surface content, credential, entered value or action parameter, and no local model's name.";
 
 /** A call record as the file keeps it: codes, indexes and provider-reported numbers. */
 export interface DiagnosticsCall {
@@ -236,13 +242,12 @@ export interface DiagnosticsCall {
   reissue?: true;
 }
 
+/** A block attempt's shape. Its token figures stay out: a re-issue sums them, reading a missing figure as zero, so the call records carry each call's own instead. */
 export interface DiagnosticsAttempt {
   index: number;
   outcome: "ok" | "invalid" | "unsupported" | "provider-error" | "other";
   b1Issues: number;
   b2Issues: number;
-  inputTokens?: number;
-  outputTokens?: number;
   durationMs?: number;
 }
 
@@ -287,6 +292,11 @@ export interface DiagnosticsFile {
   exportedAt: string;
   notice: string;
   turns: DiagnosticsTurn[];
+}
+
+function withoutModel(r: Json): Json {
+  const { model: _withheld, ...rest } = r;
+  return rest;
 }
 
 function safeCall(r: Json): DiagnosticsCall {
@@ -351,16 +361,12 @@ function safeTrace(trace: Json, knownBlocks: readonly string[]): DiagnosticsBloc
     ...(schemaSha ? { blockSchemaSha256: schemaSha } : {}),
     ...(systemSha ? { blockSystemSha256: systemSha } : {}),
     attempts: (Array.isArray(trace.attempts) ? trace.attempts.filter(isObject) : []).map((a, i): DiagnosticsAttempt => {
-      const input = tokens(a.inputTokens);
-      const output = tokens(a.outputTokens);
       const ms = millis(a.durationMs);
       return {
         index: index(a.index) ?? i,
         outcome: oneOf(a.outcome, ["ok", "invalid", "unsupported", "provider-error"] as const) ?? "other",
         b1Issues: Array.isArray(a.b1) ? a.b1.length : 0,
         b2Issues: Array.isArray(a.b2) ? a.b2.length : 0,
-        ...(input !== undefined ? { inputTokens: input } : {}),
-        ...(output !== undefined ? { outputTokens: output } : {}),
         ...(ms !== undefined ? { durationMs: ms } : {}),
       };
     }),
@@ -371,6 +377,9 @@ function safeTrace(trace: Json, knownBlocks: readonly string[]): DiagnosticsBloc
  * The file a user saves from the beta: each turn's call records, timings,
  * outcome, receipt and block-trace shape, in the order the session ran them.
  * `knownBlocks` are the block ids this build bundles; any other id is "other".
+ * Only a hosted turn keeps its calls' model names, which the provider's
+ * replies give; a local model's or the local agent's name is the user's own
+ * entry, so the file withholds it, and its receipt line says nothing of it.
  */
 export function diagnosticsExport(turns: readonly unknown[], options: { exportedAt: string; knownBlocks: readonly string[]; limit?: number }): DiagnosticsFile {
   return {
@@ -382,7 +391,11 @@ export function diagnosticsExport(turns: readonly unknown[], options: { exported
       const t = isObject(turn) ? turn : {};
       const progress = isObject(t.progress) ? t.progress : {};
       const trace = isObject(progress.block) ? progress.block : undefined;
-      const receipt = betaReceipt(t, options.limit);
+      const hosted = t.modelRef === "hosted-ai";
+      const records = recordsOf(t.calls).map((r) => (hosted ? r : withoutModel(r)));
+      const counted = betaReceipt({ ...t, calls: records }, options.limit);
+      // Withheld is not missing: a local turn's receipt line says nothing of its names.
+      const receipt = hosted ? counted : { ...counted, unnamed: 0 };
       return {
         turn: i + 1,
         modelRef: oneOf(t.modelRef, ["hosted-ai", "scripted"] as const) ?? "other",
@@ -391,7 +404,7 @@ export function diagnosticsExport(turns: readonly unknown[], options: { exported
         refinement: receipt.refinement ?? null,
         budget: receipt.budget ?? null,
         receipt: describeBetaReceipt(receipt),
-        calls: recordsOf(t.calls).map(safeCall),
+        calls: records.map(safeCall),
         timings: safeTimings(t.timings),
         block: trace ? safeTrace(trace, options.knownBlocks) : null,
       };
