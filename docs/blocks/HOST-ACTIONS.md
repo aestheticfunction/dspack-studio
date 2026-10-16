@@ -18,7 +18,9 @@ Composer composes and governs interface surfaces. It never executes an action ([
 
 The emitter (dspack-emit 0.7.0) gives a node an action only where the reference profile says so. On both packaged references, that is a `button` or an `alert-dialog`. The action is `{"event": {"name": <slug of the node id>, "context": {}}}`: the id lowercased, with every run of other characters turned into `_`. When a user activates it, the A2UI client reports `{name, surfaceId, sourceComponentId, timestamp, context}` to the host.
 
-Without an id, the emitter would name the action from the node's text or component, and a model can write text. So H1 refuses any action node whose id is missing or depends on anything but literals and enum props: no string the model fills, no position (`$index`), no optional enum without a default. The model fills content; it never names an action.
+Without an id, the emitter would name the action from the node's text or component, and a model can write text. So H1 refuses any action node whose id is missing or depends on anything but literals and enum props: no string the model fills, no position (`$index`), and no optional enum where it may be absent. The model fills content; it never names an action.
+
+H1 then counts the names a call can make each id produce, at most 256 per id. It evaluates the id as the expander does, over every combination of the enum and boolean props it reads, along the branches each `$if` allows: a test of a prop's truthiness, or of its equality with a literal, narrows that prop, and a branch no call can take counts nothing. Those names must equal the block's declared `actions`. Where a condition or a cross-field constraint is beyond that reading, H1 counts the name anyway, so it may count a name no call reaches, but never misses one a call can emit.
 
 | Block | Action names, the same on both references | Present when | Streaming policy |
 |---|---|---|---|
