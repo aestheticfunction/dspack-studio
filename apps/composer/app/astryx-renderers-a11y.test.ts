@@ -5,11 +5,12 @@ import { astryxRegistry } from "@dspack-studio/astryx-renderers";
 
 /**
  * The Astryx preview renderers' semantics on the beta path (Phase 2 step 6,
- * docs/blocks/ACCESSIBILITY.md): a heading variant is a heading, a table's
+ * docs/blocks/ACCESSIBILITY.md): a display variant is a heading, a table's
  * scroll region is named by its columns, header text wraps instead of being
- * cut off, and a long word or label wraps instead of overflowing. These
- * renderers are shared with the default build. Server-rendered, so no browser
- * is needed; e2e/composer-blocks-a11y.spec.ts checks the rendered blocks.
+ * cut off, a column keeps a minimum width, and a long word or label wraps
+ * instead of overflowing. These renderers are shared with the default build.
+ * Server-rendered, so no browser is needed; e2e/composer-blocks-a11y.spec.ts
+ * checks the rendered blocks.
  */
 const custom = astryxRegistry.custom as Record<string, FC<any>>;
 const render = (name: string, props: Record<string, unknown>, children: Record<string, ReactNode> = {}) =>
@@ -19,10 +20,29 @@ const render = (name: string, props: Record<string, unknown>, children: Record<s
 const tagWith = (html: string, cls: string) => html.match(new RegExp(`<[a-z0-9]+[^>]*class="[^"]*\\b${cls}\\b[^"]*"[^>]*>`))?.[0] ?? "";
 
 describe("Text", () => {
-  it("renders the heading variants as h1, h2 and h3, keeping Astryx's display type", () => {
+  it("renders the display variants as h1 and h2, keeping Astryx's display type", () => {
     expect(render("Text", { variant: "h1", text: "Title" })).toMatch(/<h1 class="astryx-text display-2[^"]*"[^>]*>Title<\/h1>/);
     expect(render("Text", { variant: "h2", text: "Section" })).toMatch(/<h2 class="astryx-text display-3[^"]*"[^>]*>Section<\/h2>/);
-    expect(render("Text", { variant: "h3", text: "Group" })).toMatch(/<h3 class="astryx-text large[^"]*"[^>]*>Group<\/h3>/);
+  });
+
+  it("keeps h3 a paragraph: it comes from Astryx's large type, body text in the contract, whose headings are its display types", () => {
+    const html = render("Text", { variant: "h3", text: "Group" });
+    expect(html).toMatch(/<p class="astryx-text large[^"]*"[^>]*>Group<\/p>/);
+    expect(html).not.toMatch(/<h[1-6]|role="heading"/);
+    const container = render("Text", { variant: "h3", text: "Group", children: ["c1"] }, { c1: "Child" });
+    expect(container).not.toMatch(/<h[1-6]|role="heading"/);
+  });
+
+  it("gives a display variant without text no heading, which a screen reader would announce blank", () => {
+    for (const variant of ["h1", "h2"]) {
+      for (const text of [undefined, "", "   "]) {
+        const html = render("Text", { variant, text });
+        expect(html, `${variant} ${JSON.stringify(text)}`).not.toMatch(/<h[1-6]/);
+        expect(html, `${variant} ${JSON.stringify(text)}`).toMatch(/<p class="astryx-text display-[^"]*"[^>]*>[^<]*<\/p>/);
+      }
+    }
+    // A container's blank text gets no heading either.
+    expect(render("Text", { variant: "h2", text: " ", children: ["c1"] }, { c1: "Child" })).not.toContain('role="heading"');
   });
 
   it("keeps body text a paragraph and a caption inline text", () => {
@@ -76,12 +96,15 @@ describe("Table", () => {
     expect(html.match(/<table [^>]*>/)?.[0]).toContain("min-width:768px");
   });
 
-  it("names and wraps a children-mode table the same way", () => {
+  it("names and wraps a children-mode table the same way, with the same column floor", () => {
     const html = render("Table", { columns: ["Step", "Instruction"], children: ["a", "b"] }, { a: "1", b: "Boil water" });
     expect(tagWith(html, "astryx-table-scroll-wrapper")).toContain('aria-label="Table: Step, Instruction"');
     const headers = html.match(/<th [^>]*>/g) ?? [];
     expect(headers).toHaveLength(2);
-    for (const th of headers) expect(th).toContain("white-space:normal");
+    for (const th of headers) {
+      expect(th).toContain("white-space:normal");
+      expect(th).toContain("min-width:96px");
+    }
   });
 
   it("keeps Astryx's name for a table without columns", () => {
