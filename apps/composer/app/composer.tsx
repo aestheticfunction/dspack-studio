@@ -58,6 +58,27 @@ function Shell() {
     applyTheme(getStoredTheme());
   }, []);
 
+  // Keep keyboard focus clear of the sticky header (WCAG 2.2 SC 2.4.11): the
+  // browser scrolls a focused control into view below the root's
+  // scroll-padding. The header's height changes with the viewport and with
+  // how its nav wraps (about 60 px wide, 255 px at 320 px), so it is measured.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header || typeof ResizeObserver === "undefined") return;
+    const root = document.documentElement;
+    const pad = () => {
+      root.style.scrollPaddingTop = `${header.offsetHeight + 8}px`;
+    };
+    pad();
+    const observer = new ResizeObserver(pad);
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      root.style.scrollPaddingTop = "";
+    };
+  }, []);
+
   // Follow the project lifecycle: opening a project lands on Build; closing (or
   // first run with none) lands on the hub. Fires only when the identity changes,
   // so navigation within a project is never yanked away.
@@ -87,7 +108,7 @@ function Shell() {
 
   return (
     <div>
-      <header className="af-top">
+      <header className="af-top" ref={headerRef}>
         <div className="af-top__in">
           {/* Quiet ecosystem identity: the canonical Aesthetic Function mark
               beside the app name. [ AF ] COMPOSER, not "Aesthetic Function Composer". */}

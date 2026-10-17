@@ -902,12 +902,13 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
         </div>
       )}
 
+      {/* Each option wraps under its label instead of widening the page at 320 px (WCAG 1.4.10). */}
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", margin: "2px 0 8px", fontSize: 12, color: "var(--fg-dim)" }}>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <label style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 6, maxWidth: "100%" }}>
           <span className="af-label" style={{ margin: 0 }}>
             provider
           </span>
-          <select value={activeModel} onChange={(e) => setActiveModel(e.target.value)} data-testid="build-model" aria-label="Provider" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2 }}>
+          <select value={activeModel} onChange={(e) => setActiveModel(e.target.value)} data-testid="build-model" aria-label="Provider" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2, maxWidth: "100%" }}>
             {selectableModels.map((m) => (
               <option key={m} value={m}>
                 {providerLabel(m)}
@@ -915,11 +916,11 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
             ))}
           </select>
         </label>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }} title="Advanced: force a governed context instead of inferring it from your goal.">
+        <label style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 6, maxWidth: "100%" }} title="Advanced: force a governed context instead of inferring it from your goal.">
           <span className="af-label" style={{ margin: 0 }}>
             context
           </span>
-          <select value={intentOverride} onChange={(e) => setIntentOverride(e.target.value)} data-testid="build-intent" aria-label="Governance context (advanced override)" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2 }}>
+          <select value={intentOverride} onChange={(e) => setIntentOverride(e.target.value)} data-testid="build-intent" aria-label="Governance context (advanced override)" style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2, maxWidth: "100%" }}>
             <option value="">auto — inferred from your goal</option>
             {intents.map((i) => (
               <option key={i} value={i}>
@@ -930,7 +931,7 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
         </label>
         {flows.some((f) => f.steps.length > 0) && (
           <label
-            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 6, maxWidth: "100%" }}
             title="Optional: accepting the next build also re-points this flow step at the accepted surface. Cleared after each accept."
           >
             <span className="af-label" style={{ margin: 0 }}>
@@ -941,7 +942,7 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
               onChange={(e) => setIntoStepKey(e.target.value)}
               data-testid="build-flow-step"
               aria-label="Flow step to re-bind on accept (optional)"
-              style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2 }}
+              style={{ fontFamily: "var(--mono)", fontSize: 12, background: "var(--bg-1)", color: "var(--fg)", border: "1px solid var(--line)", padding: "4px 6px", borderRadius: 2, maxWidth: "100%" }}
             >
               <option value="">none — accept without binding</option>
               {flows.flatMap((f) =>
