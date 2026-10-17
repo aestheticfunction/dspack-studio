@@ -16,9 +16,10 @@
  *
  * The calls are each block's approved example and three boundary calls: the
  * smallest valid call, every optional prop at its maximum length and count,
- * and the same with every string one unbroken token (a URL, an id). Preview
- * gets the same checks, for an accepted block and for every Astryx reference
- * surface, since the canvas rules reach all of them.
+ * and the same with every string one unbroken token (a URL, an id). Preview,
+ * which the canvas rules reach too, gets a subset: an accepted block's
+ * heading, axe, focus ring, layout and keyboard pass, and every Astryx
+ * reference surface's axe and layout at every size.
  *
  * The shadcn/ui v3 scans at the end only report and never fail: shadcn/ui v3
  * blocks are withheld from the beta.
@@ -207,7 +208,60 @@ const INSTALL_HELPERS = () => {
     const [x, y] = [lum(over(c, bg)), lum(bg)];
     return Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100;
   };
-  (window as any).__a11y = { contrastOver };
+  /**
+   * Every line of text in a canvas, sampled across its width and height:
+   * text that another element in the canvas draws over, or that a box which
+   * does not scroll cuts off. Text in a scroll container (a table's region)
+   * may be scrolled out of view; text a screen-reader-only style hides is
+   * skipped. Each text is scrolled into view first.
+   */
+  const coveredText = (sel: string): string[] => {
+    const canvas = document.querySelector(sel)!;
+    const describe = (el: Element) => `${el.tagName.toLowerCase()}.${String(el.className).split(" ")[0]} "${(el.textContent ?? "").trim().slice(0, 20)}"`;
+    const visuallyHidden = (el: Element) => {
+      for (let a: Element | null = el; a && a !== canvas; a = a.parentElement) {
+        if (getComputedStyle(a).display === "contents") continue;
+        const r = a.getBoundingClientRect();
+        if (r.width <= 1 || r.height <= 1) return true;
+      }
+      return false;
+    };
+    const out = new Set<string>();
+    const walker = document.createTreeWalker(canvas, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const text = (n.textContent ?? "").trim().slice(0, 30);
+      const p = n.parentElement;
+      if (!text || !p || visuallyHidden(p)) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      const lines = () => Array.from(range.getClientRects()).filter((r) => r.width > 2 && r.height > 2);
+      const first = lines()[0];
+      if (!first) continue;
+      if (first.top < 0 || first.bottom > innerHeight || first.left < 0 || first.right > innerWidth) p.scrollIntoView({ block: "center", inline: "nearest" });
+      for (const r of lines())
+        for (const fx of [0.1, 0.5, 0.9])
+          for (const fy of [0.25, 0.5, 0.75]) {
+            const [x, y] = [r.left + r.width * fx, r.top + r.height * fy];
+            if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+            const hit = document.elementFromPoint(x, y);
+            if (!hit || hit === p || p.contains(hit)) continue;
+            if (hit.contains(p)) {
+              // The point shows an ancestor: the text is cut off there, by the nearest box that clips it.
+              for (let a: Element | null = p; a && a !== hit; a = a.parentElement) {
+                const cs = getComputedStyle(a);
+                const box = a.getBoundingClientRect();
+                if ((cs.overflowX === "visible" && cs.overflowY === "visible") || (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom)) continue;
+                if (!/auto|scroll/.test(cs.overflowX + cs.overflowY)) out.add(`"${text}" is cut off by ${describe(a)}`);
+                break;
+              }
+              continue;
+            }
+            if (canvas.contains(hit)) out.add(`"${text}" is drawn over by ${describe(hit)}`);
+          }
+    }
+    return [...out].slice(0, 12);
+  };
+  (window as any).__a11y = { contrastOver, coveredText };
 };
 
 /** axe over one canvas, with violations made readable. */
@@ -357,10 +411,11 @@ async function traverse(page: Page, stops: Array<string | RegExp>, { names, at, 
 /**
  * What would make a reader scroll sideways or lose content: the page wider
  * than the viewport; anything in the canvas outside the canvas, except what a
- * table's own scroll region holds; text cut off by an element that hides its
- * overflow; one part of a surface drawn over the next (each Astryx stack's
- * children, through display: contents wrappers); and a table column crushed
- * below its floor.
+ * table's own scroll region holds; an element that hides its overflow and
+ * cuts content off; a box other than a table's region that scrolls its own
+ * content; one part of a surface drawn over the next (each Astryx stack's
+ * children, through display: contents wrappers); text drawn over or cut off,
+ * line by line; and a table column crushed below its floor.
  */
 async function reflow(page: Page, sel = CANVAS) {
   return page.evaluate((sel) => {
@@ -371,15 +426,19 @@ async function reflow(page: Page, sel = CANVAS) {
     const describe = (el: Element) => `${el.tagName.toLowerCase()}.${String(el.className).split(" ")[0]} "${(el.textContent ?? "").trim().slice(0, 30)}"`;
     const outside: string[] = [];
     const clipped: string[] = [];
+    const scrollers: string[] = [];
     for (const el of Array.from(canvas.querySelectorAll<HTMLElement>("*"))) {
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) continue;
       if (!inRegion(el) && (r.right > c.right + 1 || r.left < c.left - 1)) outside.push(describe(el));
       const cs = getComputedStyle(el);
       if (regions.includes(el)) continue; // the region scrolls; its content is checked by the rules above and below
-      const hidesX = cs.overflowX === "hidden" || cs.overflowX === "clip";
-      const hidesY = cs.overflowY === "hidden" || cs.overflowY === "clip";
-      if ((hidesX && el.scrollWidth > el.clientWidth + 1) || (hidesY && el.scrollHeight > el.clientHeight + 1)) clipped.push(describe(el));
+      const overX = el.scrollWidth > el.clientWidth + 1;
+      const overY = el.scrollHeight > el.clientHeight + 1;
+      const hides = (o: string) => o === "hidden" || o === "clip";
+      const scrolls = (o: string) => o === "auto" || o === "scroll";
+      if ((hides(cs.overflowX) && overX) || (hides(cs.overflowY) && overY)) clipped.push(describe(el));
+      if ((scrolls(cs.overflowX) && overX) || (scrolls(cs.overflowY) && overY)) scrollers.push(describe(el));
     }
     const laidOut = (el: Element): Element[] =>
       Array.from(el.children).flatMap((k) => (getComputedStyle(k).display === "contents" ? laidOut(k) : [k]));
@@ -401,22 +460,33 @@ async function reflow(page: Page, sel = CANVAS) {
       canvasOverflow: canvas.scrollWidth - canvas.clientWidth,
       outside: outside.slice(0, 8),
       clipped: clipped.slice(0, 8),
+      scrollers: scrollers.slice(0, 8),
       overlaps: overlaps.slice(0, 8),
       crushed: crushed.slice(0, 8),
+      // Last, since it scrolls each text into view.
+      covered: (window as any).__a11y.coveredText(sel) as string[],
     };
   }, sel);
 }
-const FITS = { pageOverflow: 0, canvasOverflow: 0, outside: [], clipped: [], overlaps: [], crushed: [] };
+const FITS = { pageOverflow: 0, canvasOverflow: 0, outside: [], clipped: [], scrollers: [], overlaps: [], crushed: [], covered: [] };
 
 /** WCAG's text-spacing test values (SC 1.4.12). */
 const TEXT_SPACING = "* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }";
 
-/** Reflow with WCAG's text spacing applied: nothing cut off, pushed out or drawn over. */
+/** Reflow with WCAG's text spacing applied: nothing cut off, pushed out, scrolled in a box or drawn over. */
 async function spaced(page: Page, sel = CANVAS) {
   const style = await page.addStyleTag({ content: TEXT_SPACING });
   const r = await reflow(page, sel);
   await style.evaluate((e) => (e as Element).remove());
-  return { clipped: r.clipped, outside: r.outside, overlaps: r.overlaps };
+  return { clipped: r.clipped, outside: r.outside, scrollers: r.scrollers, overlaps: r.overlaps, covered: r.covered };
+}
+const SPACED_FITS = { clipped: [], outside: [], scrollers: [], overlaps: [], covered: [] };
+
+/** axe's violations, and every contrast it left undecided, decided here (see undecidedContrast). */
+async function axeAndContrast(page: Page, at: string, include = CANVAS) {
+  const scan = await axeOn(page, include);
+  expect.soft(scan.violations, `axe ${at}`).toEqual([]);
+  for (const node of await undecidedContrast(page, scan.incomplete as never, include)) expect.soft(node.ratio, `contrast axe left undecided ${at}: ${node.sel}`).toBeGreaterThanOrEqual(node.needed);
 }
 
 /** Every keyboard stop's target, at least 24 by 24 px; a field's target is the field around its input, and pressing it focuses the input. */
@@ -469,9 +539,7 @@ for (const blockId of ["records-table", "auth-form", "guide-steps"]) {
       expect.soft(regions, "table names").toEqual(stops.filter((s): s is string => typeof s === "string" && s.startsWith("Table: ")));
 
       // axe at 1280 px, every contrast it could not decide, and layout.
-      const desktop = await axeOn(page);
-      expect.soft(desktop.violations, "axe at 1280 px").toEqual([]);
-      for (const node of await undecidedContrast(page, desktop.incomplete as never)) expect.soft(node.ratio, `contrast axe left undecided: ${node.sel}`).toBeGreaterThanOrEqual(node.needed);
+      await axeAndContrast(page, "at 1280 px");
       expect.soft(await reflow(page), "layout at 1280 px").toEqual(FITS);
 
       // Keyboard: every stop in order, a visible indicator with 3:1, no trap; targets of 24 px.
@@ -480,7 +548,7 @@ for (const blockId of ["records-table", "auth-form", "guide-steps"]) {
 
       // Astryx's reset declares light and dark, so the surface follows a reader's dark preference: axe and focus again.
       await page.emulateMedia({ colorScheme: "dark" });
-      expect.soft((await axeOn(page)).violations, "axe in dark").toEqual([]);
+      await axeAndContrast(page, "in dark");
       await traverse(page, stops, { names: false, at: "1280 px, dark" });
       // Forced colors (Windows high contrast): every stop keeps an indicator the system can draw.
       await page.emulateMedia({ colorScheme: "light", forcedColors: "active" });
@@ -488,7 +556,7 @@ for (const blockId of ["records-table", "auth-form", "guide-steps"]) {
       await page.emulateMedia({ forcedColors: "none" });
 
       // Text spacing (SC 1.4.12) at 1280 px.
-      expect.soft(await spaced(page), "text spacing at 1280 px").toEqual({ clipped: [], outside: [], overlaps: [] });
+      expect.soft(await spaced(page), "text spacing at 1280 px").toEqual(SPACED_FITS);
 
       // 200% and 400% zoom, and a tall 320 px screen: no sideways scrolling outside a table's region, nothing
       // cut off or drawn over (with text spacing too), axe still clean, and focus never hidden under the header.
@@ -496,8 +564,8 @@ for (const blockId of ["records-table", "auth-form", "guide-steps"]) {
         const at = `${width} x ${height}`;
         await resize(page, width, height);
         expect.soft(await reflow(page), `reflow at ${at}`).toEqual(FITS);
-        expect.soft(await spaced(page), `text spacing at ${at}`).toEqual({ clipped: [], outside: [], overlaps: [] });
-        expect.soft((await axeOn(page)).violations, `axe at ${at}`).toEqual([]);
+        expect.soft(await spaced(page), `text spacing at ${at}`).toEqual(SPACED_FITS);
+        await axeAndContrast(page, `at ${at}`);
         await traverse(page, stops, { names: false, at });
       }
     });
@@ -535,12 +603,17 @@ test("Astryx: an accepted block surface keeps its heading, its names and its foc
     const at = `Preview at ${width} x ${height}`;
     await resize(page, width, height);
     expect.soft(await reflow(page, PREVIEW), at).toEqual(FITS);
+    expect.soft(await spaced(page, PREVIEW), `${at}, text spacing`).toEqual(SPACED_FITS);
+    await axeAndContrast(page, at, PREVIEW);
     await traverse(page, stops, { names: false, at, sel: PREVIEW });
   }
 });
 
-test("Astryx: every reference surface in Preview fits 1280 and 320 px, with nothing cut off or drawn over", async ({ page }) => {
-  test.setTimeout(180_000);
+/** A violation outside the blocks that predates step 6, recorded in docs/blocks/ACCESSIBILITY.md ("Outside the blocks"). */
+const KNOWN: Record<string, string[]> = { "ex.plan-comparison": ["aria-required-children"] };
+
+test("Astryx: every reference surface in Preview, at every size: axe, and nothing cut off, scrolled in a box or drawn over", async ({ page }) => {
+  test.setTimeout(240_000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await openProject(page, "astryx", "astryx references");
   await page.getByTestId("nav-preview").click();
@@ -551,10 +624,15 @@ test("Astryx: every reference surface in Preview fits 1280 and 320 px, with noth
     await page.getByTestId(`surface-${id}`).click();
     await expect(page.locator(PREVIEW)).toBeVisible();
     for (const [width, height] of [[1280, 900], ...NARROW] as const) {
+      const at = `${id} at ${width} x ${height}`;
       await resize(page, width, height);
-      // A data table may scroll inside its region; this checks only that nothing is lost or drawn over.
+      // A data table may scroll inside its region; nothing else may scroll, be cut off or be drawn over.
       const r = await reflow(page, PREVIEW);
-      expect.soft({ outside: r.outside, clipped: r.clipped, overlaps: r.overlaps, pageOverflow: r.pageOverflow }, `${id} at ${width} x ${height}`).toEqual({ outside: [], clipped: [], overlaps: [], pageOverflow: 0 });
+      expect.soft({ pageOverflow: r.pageOverflow, outside: r.outside, clipped: r.clipped, scrollers: r.scrollers, overlaps: r.overlaps, covered: r.covered }, at).toEqual({ pageOverflow: 0, outside: [], clipped: [], scrollers: [], overlaps: [], covered: [] });
+      expect.soft(await spaced(page, PREVIEW), `${at}, text spacing`).toEqual(SPACED_FITS);
+      const scan = await axeOn(page, PREVIEW);
+      expect.soft(scan.violations.filter((v) => !(KNOWN[id] ?? []).includes(v.id)), `${at}: axe`).toEqual([]);
+      for (const node of await undecidedContrast(page, scan.incomplete as never, PREVIEW)) expect.soft(node.ratio, `${at}: contrast axe left undecided: ${node.sel}`).toBeGreaterThanOrEqual(node.needed);
     }
   }
 });
