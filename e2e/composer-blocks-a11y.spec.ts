@@ -462,8 +462,10 @@ async function reflow(page: Page, sel = CANVAS) {
       const kids = laidOut(stack).filter((k) => k.getBoundingClientRect().height > 0);
       for (let i = 1; i < kids.length; i++) {
         const [a, b] = [kids[i - 1]!.getBoundingClientRect(), kids[i]!.getBoundingClientRect()];
-        const by = across ? a.right - b.left : a.bottom - b.top;
-        if (by > 0.5) overlaps.push(`${describe(kids[i - 1]!)} overlaps ${describe(kids[i]!)} by ${Math.round(by)}px`);
+        // Neighbours overlap where their boxes intersect: a row that wraps puts the next one on a line below.
+        const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (w > 0.5 && h > 0.5) overlaps.push(`${describe(kids[i - 1]!)} overlaps ${describe(kids[i]!)} by ${Math.round(across ? w : h)}px`);
       }
     }
     const crushed = Array.from(canvas.querySelectorAll("th"))
