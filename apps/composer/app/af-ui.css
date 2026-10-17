@@ -611,12 +611,13 @@ button.af-choice {
   }
 }
 
-/* A narrow or short window lets the header scroll away. At 720 px or
-   less its nav takes a row of its own (over 200 px tall at 320 px wide);
-   kept sticky, it covered most of a short window, and nearly all of one at
-   320 x 256 (400% zoom of 1280 x 1024), hiding every control focus moved
-   to (WCAG 2.2 SC 2.4.11). */
-@media (max-width: 720px), (max-height: 600px) {
+/* A narrow or short window lets the header scroll away. At 960 px or
+   less its nav wraps: at 720 px or less onto a row of its own (over 200 px
+   tall at 320 px wide), and above that onto rows as it fits (up to 325 px
+   tall at 721 px with a project open). Kept sticky, it covered half of a
+   short window, and nearly all of one at 320 x 256 (400% zoom of
+   1280 x 1024), hiding every control focus moved to (WCAG 2.2 SC 2.4.11). */
+@media (max-width: 960px), (max-height: 600px) {
   .af-top {
     position: static;
   }

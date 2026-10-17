@@ -258,27 +258,42 @@ input[type="range"] {
 
 /* What narrows with the canvas must fit it. Astryx draws an inline dialog
    400 px wide, capped at 90% of the viewport, wider than a 320 px canvas:
-   its edge and buttons were cut off. And Astryx keeps a button's label on
-   one line, cut off with an ellipsis: with WCAG's text spacing at 320 px,
-   "Continue with Microsoft" lost its last word (SC 1.4.12). Here a dialog
-   fits its container, and a label wraps. Astryx fixes a button's height
-   for its size; here that height is a minimum, and the vertical padding is
-   what one line leaves of it, so a one-line button keeps Astryx's height
-   and a wrapped one grows by its extra lines. */
+   its edge and buttons were cut off. It also caps the dialog's height at
+   75% of the viewport and scrolls what does not fit: at 320 x 256 the
+   delete-project dialog showed 108 px of its content in a scroll box of its
+   own, which axe flags as not keyboard-focusable. An inline dialog in the
+   canvas is part of the page, so here it fits its container's width and
+   takes its content's height.
+   And Astryx keeps a button's label on one line, cut off with an ellipsis:
+   with WCAG's text spacing at 320 px, "Continue with Microsoft" lost its
+   last word (SC 1.4.12). Here a label wraps, and a word too long for its
+   line breaks (break-word, not anywhere, so a row of buttons never splits
+   a short word to squeeze them in). Astryx fixes a button's height for its size; here that height is a
+   minimum, and the vertical padding is what one line leaves of it, so a
+   one-line button keeps Astryx's height and a wrapped one grows by its
+   extra lines. Only a button named by its visible label: Astryx gives an
+   icon-only button (or one with custom content) an aria-label and sizes it
+   itself, so those keep Astryx's fixed size. */
 [data-astryx-canvas] .astryx-dialog {
   max-width: 100%;
 }
-[data-astryx-canvas] .astryx-button {
+[data-astryx-canvas] .astryx-dialog,
+[data-astryx-canvas] .astryx-dialog > * {
+  max-height: none;
+  --container-max-height: none;
+}
+[data-astryx-canvas] .astryx-button:not([aria-label]) {
   --af-button-height: var(--size-element-md, 32px);
   white-space: normal;
+  overflow-wrap: break-word;
   height: auto;
   min-height: var(--af-button-height);
   padding-block: max(0px, (var(--af-button-height) - 1lh) / 2);
 }
-[data-astryx-canvas] .astryx-button[data-size="sm"] {
+[data-astryx-canvas] .astryx-button:not([aria-label])[data-size="sm"] {
   --af-button-height: var(--size-element-sm, 28px);
 }
-[data-astryx-canvas] .astryx-button[data-size="lg"] {
+[data-astryx-canvas] .astryx-button:not([aria-label])[data-size="lg"] {
   --af-button-height: var(--size-element-lg, 36px);
 }
 
