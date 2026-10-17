@@ -25,21 +25,29 @@ The sizes are 1280 x 900, then 640 x 512 and 320 x 256 (200% and 400% zoom of a 
 | No focused control is entirely hidden, at every size | 2.4.11 | Hit-testing at each stop |
 | Targets are 24 by 24 px or larger, and pressing a field's edge focuses its input | 2.5.8 | Bounding boxes and clicks |
 | With text spacing, at every size, nothing is cut off, pushed outside the canvas, scrolled in a box or drawn over, line by line | 1.4.12 | WCAG's test values |
-| At every size, nothing scrolls sideways or is cut off, no box but a table's region scrolls its own content, no line of text is drawn over or cut off, and no table column is narrower than 90 px. A data table may scroll inside its own focusable region | 1.4.4, 1.4.10 | Layout measurement. Each Astryx stack's children, through `display: contents` wrappers, must not overlap. Every line of text is sampled across its width and height, after scrolling it into view: another element in the canvas drawn over it, or a box that does not scroll cutting it off, fails |
+| At every size, nothing scrolls sideways or is cut off, no box but a table's region scrolls its own content, no line of text is drawn over or cut off, and no table column is narrower than 90 px. A data table may scroll inside its own focusable region | 1.4.4, 1.4.10 | Layout measurement. Each Astryx stack's children, through `display: contents` wrappers, must not overlap: their boxes must not intersect. Every line of text is scrolled into view and sampled across its width and height, with every element in the canvas hit-tested, even one that ignores the pointer. Another element drawn over the line, or a box that does not scroll cutting it off, fails |
 
-Two further specs check Preview, which the canvas rules reach too. One checks an accepted block: its heading, axe and Astryx's focus ring at 1280 px, and at the narrow sizes the layout checks, text spacing, axe and the keyboard pass. The other checks every Astryx reference surface at every size: axe, the undecided contrast, the layout checks and text spacing. One violation outside the blocks that predates this step is allowed there by name ("Outside the blocks", below). Every check is soft, so one run reports every defect.
+Two further specs check Preview, which the canvas rules reach too. One checks an accepted block: its heading, axe and Astryx's focus ring at 1280 px, and at the narrow sizes the layout checks, text spacing, axe and the keyboard pass. The other checks every Astryx reference surface at every size: axe, the undecided contrast, the layout checks and text spacing. One violation outside the blocks that predates this step is allowed there by name ("Outside the blocks", below). A third imports two model-shaped surfaces the blocks never produce, and checks them the same way, with their headings:
+- a standard, a fullscreen and an alert dialog with long labels;
+- a children-mode table, Astryx's `large` type and display text with no words.
+
+Every check is soft, so one run reports every defect.
 
 The checks were shown to catch what they claim. Against the reviewed builds they failed, as "What changed" records. With defects injected into a page, the text check caught each one:
 - a table row moved over the next;
 - a covered lower half of a caption;
 - text cut off by a box;
-- a dialog's footer pulled over its description.
+- a dialog's footer pulled over its description;
+- a cover over the last two lines of a 2,529 px table cell at 320 x 256;
+- a cover that ignores the pointer.
+
+The check before the verification missed the last two: it sampled only the lines in view, and hit-tested only elements that take the pointer.
 
 `apps/composer/app/astryx-renderers-a11y.test.ts` server-renders the Astryx renderers: heading elements (h1 and h2, never an empty one, and h3 a paragraph), table names, header and badge wrapping, long-word wrapping, and the column floor in both table modes.
 
 ## What changed
 
-Run against main first, the e2e failed all 13 Astryx specs, and the renderer tests failed 8 of 10; a column-floor test and the dark pass were then added, and failed before their fixes. An independent accessibility review of that work found defects the checks could not see. Checks for them were added, and failed against the reviewed head (all 14 Astryx specs, and 3 of 13 renderer tests), before the fixes the table marks "review". A second independent review then found an inline dialog cut off at 320 x 256, and the checks' claims broader than their reach. The strengthened checks failed the reference spec against that head before the fixes marked "second review". Each defect and its fix:
+Run against main first, the e2e failed all 13 Astryx specs, and the renderer tests failed 8 of 10; a column-floor test and the dark pass were then added, and failed before their fixes. An independent accessibility review of that work found defects the checks could not see. Checks for them were added, and failed against the reviewed head (all 14 Astryx specs, and 3 of 13 renderer tests), before the fixes the table marks "review". A second independent review then found an inline dialog cut off at 320 x 256, and the checks' claims broader than their reach. The strengthened checks failed the reference spec against that head before the fixes marked "second review". A verification of those fixes found two defects outside the blocks: a fullscreen dialog's height, and an alert dialog's footer with long labels. A new spec failed on both before the fixes marked "verification". Each defect and its fix:
 
 | Defect on main | WCAG 2.2 | Fix | Where |
 |---|---|---|---|
@@ -50,7 +58,7 @@ Run against main first, the e2e failed all 13 Astryx specs, and the renderer tes
 | Long words and labels ran out of the card (titles, intros, a guide's facts) | 1.4.10 | A word breaks when it must; a badge's label wraps | `TextRender.tsx`, `BadgeRender.tsx` |
 | guide-steps' two tables overlapped by 20 px, hiding a row of the first behind the second's header, and every table region overlapped the elements next to it by 4 px. A rule removing Astryx's vertical table bleed matched only the Studio's canvas | 1.4.3, 1.4.10 | The rule matches the Astryx canvas too (review) | `apps/composer/app/globals.css` |
 | The auth form's inputs held the surface 24 px past a 320 px viewport | 1.4.10 | A surface narrows with the canvas | `globals.css`, Astryx canvas only |
-| An inline dialog made the page wider than a 320 px viewport (by 43 px for the delete-project reference, as the review measured it); once surfaces narrowed with the canvas, it was cut off instead. Narrowed, its 75vh height cap then showed 108 px of its content at 320 x 256, in a scroll box of its own that axe flags as not keyboard-focusable (Chromium makes it an unnamed tab stop; Safari does not make it focusable) | 1.4.10, 2.1.1 | A dialog fits its container's width (review), and takes its content's height (second review) | `globals.css` |
+| An inline dialog made the page wider than a 320 px viewport (by 43 px for the delete-project reference, as the review measured it); once surfaces narrowed with the canvas, it was cut off instead. Narrowed, its 75vh height cap then showed 108 px of its content at 320 x 256, in a scroll box of its own that axe flags as not keyboard-focusable (Chromium makes it an unnamed tab stop; Safari does not make it focusable) | 1.4.10, 2.1.1 | A dialog fits its container's width (review), and takes its content's height (second review; a fullscreen one's viewport height too, in the verification). Its footer's buttons wrap onto rows of their own when together they are too wide: with text spacing at 320 px, "Keep my archived projects" was cut off (verification) | `globals.css` |
 | A button's label stayed on one line, cut off with an ellipsis: with text spacing at 320 px, "Continue with Microsoft" lost a word | 1.4.12 | A label wraps, and its button grows; a one-line button keeps Astryx's height (review). A word too long for its line breaks (second review). The rule spares icon-only buttons, which Astryx sizes itself (second review) | `globals.css` |
 | The studio's green focus ring was 2.41:1 against the canvas white | 1.4.11 | Astryx's own indicators (#0064E0, 5.4:1), and an inset accent ring on the table region, for which Astryx draws none | `globals.css` |
 | In forced colors a focused field showed only its caret: Astryx marks focus with a border color and a shadow, which forced colors replace | 2.4.7 | A focused field gets an outline in forced colors (review) | `globals.css` |
@@ -112,10 +120,13 @@ The contrast nodes are the wireframe fallback's Separator chips (1.19:1 and 1.26
   - Its Astryx list, a `ul` with the role `list`, holds checkboxes and a definition list's `dt` and `dd`, where a list allows only list items.
   - The List, SelectableCard and MetadataList renderers are unchanged here.
   - It is not a block, so it is left for a separate change. The reference spec allows it by name.
-- **A word wider than its row of buttons.** A model-written label whose single word is wider than its whole row of buttons still overflows that row.
+- **A row of buttons too wide for its line.** Outside a dialog's footer, which wraps, a row of buttons still overflows when the longest words of its labels together are wider than the row.
   - A word wider than its own line breaks (`overflow-wrap: break-word`).
   - Breaking anywhere would also split short labels: it split "Cancel" in a dialog's two-button row at 320 px.
-  - The blocks' labels are fixed template text.
+  - Only a model-written row could overflow. The blocks' labels are fixed template text, and their rows fit at every size, with text spacing too.
+- **The button rule's scoping.** The label-wrapping rule applies only to a button named by its visible text, which Astryx marks by giving every other button an `aria-label`. That has two latent edges; neither occurs today, since ButtonRender renders neither:
+  - An icon-only button with an empty label gets no `aria-label` from Astryx, and so would still get the rule. It would have no accessible name at all.
+  - Astryx gives a button an `aria-label` while it is loading, so a wrapped label would drop back to one line while it loads.
 
 ## Re-running
 
