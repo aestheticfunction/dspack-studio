@@ -85,7 +85,7 @@ unchanged. The one runtime binding is the **AI binding** (`"ai": {"binding":
 **`ds-ai-gateway`** — the SAME gateway the af-site theme generator uses (shared
 zone ⇒ shared account) — over Unified Billing, so there is **no provider key, no
 BYOK credential, and no gateway secret**. No KV, Durable Objects, or databases.
-A `HOSTED_AI` var is the kill switch.
+A `HOSTED_AI` var is the kill switch. Production's `wrangler.jsonc` sets it to `on` without `keep_vars`, so a change made in the dashboard lasts only until the next deploy from `main` sets it back; for a stop that must last, change it in `wrangler.jsonc` too, or merge nothing until it is lifted. (The beta keeps its dashboard values: below.)
 
 **Cost protection (measured 2026-08-09).** The **enforced** cap is the
 `ds-ai-gateway` zone rate limit — a concurrent burst to `/api/propose` is
@@ -211,8 +211,11 @@ and the visitors' browser storage (a separate origin). Production's
 `wrangler.jsonc` still serves `apps/composer/out`, which never carries block
 code, and a test holds it there.
 
-**Who can reach it.** Cloudflare Access protects the hostname, for the owner
-only; adding anyone needs an explicit later decision. Access protects the custom
+**Who can reach it.** Cloudflare Access is to protect the hostname with the
+owner's invite allowlist: one policy, which also protects production's
+`composer.aesthetic-function.com` (the owner's decision of 2026-10-17, which
+supersedes step 2's "the owner only"; not applied yet,
+[blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md)). Access protects the custom
 domain, so the beta config turns off the Worker's other entry points,
 `workers_dev: false` and `preview_urls: false`, and a guard refuses a config that
 turns either on. The workflow's Access check proves that anonymous requests go
@@ -305,9 +308,12 @@ duration, and the request's duration
   default build never sends the header.
 
 **Before the first dispatch (owner).**
-1. **Cloudflare Access.** A self-hosted Access application for
-   `composer-beta.aesthetic-function.com` covering the whole hostname, with one
-   Allow policy that includes only the owner's email.
+1. **Cloudflare Access.** Self-hosted Access applications for
+   `composer.aesthetic-function.com` and `composer-beta.aesthetic-function.com`,
+   each covering the whole hostname, with one reusable Allow policy that
+   includes exactly the invited people's email addresses
+   ([blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md)). First confirm that
+   production's Worker has workers.dev and Preview URLs turned off.
 2. **The `composer-beta` GitHub environment.** A required reviewer (the owner),
    deployment branches limited to `main`, the secret `CLOUDFLARE_API_TOKEN_BETA`,
    and the variable `CLOUDFLARE_ACCOUNT_ID` (a token scoped to one Worker cannot
@@ -335,12 +341,12 @@ duration, and the request's duration
 **The first deploy.**
 1. Dispatch it with `first_deploy` checked: the beta Worker has no earlier
    version to anchor, and wrangler reports it does not exist (code 10007). A
-   first deploy skips the pre-deploy Access check, because the hostname does
-   not exist yet and asking would only leave its absence cached on the runner
-   for the check after the deploy. If the Worker was created by hand first,
-   dispatch without `first_deploy`: the pre-deploy check then meets a hostname
-   that does not exist yet, and the check after the deploy may fail on DNS
-   (step 2).
+   first deploy skips the pre-deploy Access check. The zone's wildcard record
+   already answers the beta hostname (HTTP 522 from Cloudflare on 2026-10-17,
+   with no Worker behind it), so apply Access to the hostname before the first
+   deploy: anonymous requests then go to the Access login from the start. If
+   the Worker was created by hand first, dispatch without `first_deploy`: the
+   pre-deploy check then meets the Access login and passes.
 2. If the check after the deploy still fails on DNS or TLS, the custom domain
    is still provisioning: run
    `node apps/composer/scripts/check-beta-deploy.mjs --access=after` again a
@@ -350,8 +356,9 @@ duration, and the request's duration
    Pages → `dspack-studio-composer-beta` → Settings → Domains & Routes), fix
    Access, and dispatch again, without `first_deploy`, to re-attach it.
 3. Confirm by hand, in Zero Trust → Access → Applications, that the beta's
-   application covers the whole hostname and has one Allow policy that
-   includes only the owner's email.
+   application covers the whole hostname and has the one Allow policy that
+   lists exactly the invited people's addresses, and, if the owner approved
+   it, the beta-only Service Auth policy for the canary's service token.
 4. Only then set `BLOCKS_BETA`. Until it is set, the switch reads as missing,
    and the beta offers no blocks.
 
@@ -362,9 +369,11 @@ duration, and the request's duration
   Worker. The beta config declares no vars and keeps the dashboard's
   (`keep_vars: true`), so no deploy resets either switch, or the operator
   log's `BETA_OPERATOR_LOG`.
-- Roll back: `npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc`,
-  to the anchor the workflow recorded. A rollback deploys that version as it
-  was, and may bring back the `BLOCKS_BETA`, `HOSTED_AI` and
+- Roll back: `npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc <anchor version id>`,
+  naming the anchor the workflow recorded, or roll back to it in the dashboard
+  (Deployments). Always name it: changing a variable in the dashboard deploys a
+  new version, so "the previous version" may not be the anchor. A rollback
+  deploys that version as it was, and may bring back the `BLOCKS_BETA`, `HOSTED_AI` and
   `BETA_OPERATOR_LOG` it had. So roll back first, then set all three again.
   The beta's `/api/models` confirms `BLOCKS_BETA` and `HOSTED_AI`; no endpoint
   shows `BETA_OPERATOR_LOG`, so confirm it in the dashboard. A rollback never

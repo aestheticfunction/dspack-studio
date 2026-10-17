@@ -118,7 +118,7 @@ pnpm --filter @dspack-studio/block-bench eval:live -- --provider hosted \
   --max-total-requests <n> --max-total-usd <dollars> --max-requests <n> --spacing-ms 3000
 ```
 
-**Prerequisite, not built yet.** The beta sits behind Cloudflare Access, and the harness sends no Access credentials. A canary cannot reach the beta until the harness can send the Access service token reserved for this, `CF_ACCESS_CLIENT_ID_BETA` and `CF_ACCESS_CLIENT_SECRET_BETA` ([../deployment.md](../deployment.md), "The beta composer"). That support is a later, separately authorized change; until it lands, no canary runs.
+**Prerequisite, not built yet.** The beta is to sit behind Cloudflare Access ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md); not applied yet), and the harness sends no Access credentials. A canary cannot reach the beta until the harness can send the Access service token reserved for this, `CF_ACCESS_CLIENT_ID_BETA` and `CF_ACCESS_CLIENT_SECRET_BETA` ([../deployment.md](../deployment.md), "The beta composer"). That support is a later, separately authorized change; until it lands, no canary runs.
 
 **Rules.**
 - **Caps.** Every run has a request cap and a dollar ceiling across all its invocations (`--max-total-requests`, `--max-total-usd`), and a per-invocation cap and spacing. They are recorded in the run's manifest ([../../packages/block-bench/live/README.md](../../packages/block-bench/live/README.md)).

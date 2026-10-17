@@ -1,6 +1,6 @@
 # Accessibility on the Astryx beta path
 
-**Phase 2, step 6** ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §10), authorized by the owner on 2026-10-16 ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 6, authorized"). The target is WCAG 2.2 AA. This page records what the automated checks prove, what was fixed, what this environment could and could not check by hand, and what still needs a person.
+**Phase 2, step 6** ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §10), authorized by the owner on 2026-10-16 ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 6, authorized"). The target is WCAG 2.2 AA. The beta does not claim full conformance: two exceptions are accepted for the invite-only beta only ("Waivers", below). This page records what the automated checks prove, what was fixed, what this environment could and could not check by hand, and what still needs a person.
 
 It covers the three approved blocks (records-table, auth-form and guide-steps) as Composer renders them natively in Astryx, in the Build canvas and in Preview, and the parts of the Build page a reader uses with them. A host's own renderer is the host's ([HOST-ACTIONS.md](HOST-ACTIONS.md)). shadcn/ui v3 blocks are withheld from the beta, so their scans are information only (below).
 
@@ -80,6 +80,8 @@ All of these ship in the default build too, and every Astryx surface in Preview 
 
 ## Still needs a person
 
+None of these has been done. [MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md) turns them into one packet: the minimum before the release is called an official beta (a keyboard pass in Safari and in Firefox, and a screen-reader pass with VoiceOver and with NVDA, on the three blocks), who or what device runs each check, and what may wait until the audience expands.
+
 1. A screen-reader pass per block: NVDA with Firefox or Chrome on Windows, VoiceOver with Safari on macOS and iOS, and TalkBack with Chrome on Android. Listen for the heading, the table regions' names, table navigation, each field's name and required state, and the buttons. A maximum call names its table region with about 330 characters, and two tables with the same columns share a name: judge both by ear.
 2. A keyboard pass in Firefox and Safari. Safari reaches buttons with Tab only when its "Press Tab to highlight each item" setting is on.
 3. Real browser zoom at 200% and 400% in more than one browser, at desktop window heights as well as the sizes above, and text spacing with a bookmarklet. Text-only zoom to 200% (Firefox's "Zoom text only", or a browser's minimum font size), which viewport sizes do not reproduce (SC 1.4.4).
@@ -92,15 +94,15 @@ All of these ship in the default build too, and every Astryx surface in Preview 
 10. Astryx surfaces that are not blocks: model-generated and imported ones. They share the renderers and the canvas rules; only the reference surfaces are checked automatically.
 11. The composer shell at sizes the checks skip: a tablet in portrait, and windows from 721 to 1000 px wide.
 12. The Studio exhibit's heading outline, now that its surface titles are h1 and h2.
-13. The judgements in "Proposed waivers".
+13. The judgements behind the waivers (below), which the owner has now made.
 
-## Proposed waivers
+## Waivers
 
-For the owner to accept or reject:
-1. **auth-form input purpose (SC 1.3.5).** The recorded exception with its host mitigation, in [BETA.md](BETA.md). GA stays blocked on it (decision 4).
-2. **Field boundaries (SC 1.4.11).** Astryx 0.1.4 draws a field's resting border in `#CCD3DB`, 1.5:1 against white. Each field has a visible label above it, and focus turns the border to the accent (5.4:1). Whether the resting border must reach 3:1 is a judgement. The preview renders the design system as it is, and a host owns its theme. The alternative is a Composer override of the border color inside the Astryx canvas.
-3. **Generic action names (SC 2.4.6).** "Start" and "Save guide" are template text, and templates do not change in this step (the plan's §10).
-4. **shadcn/ui v3 findings.** Not fixed, since shadcn/ui v3 is withheld from the beta (below).
+Proposed by step 6 and decided by the owner on 2026-10-17 ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "The release candidate and the waivers"):
+1. **auth-form input purpose (SC 1.3.5).** The recorded exception with its host mitigation, in [BETA.md](BETA.md). **Accepted** as a documented invite-only beta exception with the existing host mitigation. It remains a blocker for GA.
+2. **Field boundaries (SC 1.4.11).** Astryx 0.1.4 draws a field's resting border in `#CCD3DB`, 1.5:1 against white. Each field has a visible label above it, and focus turns the border to the accent (5.4:1). The preview renders the design system as it is, and a host owns its theme. **Accepted temporarily** for the invite-only beta. The beta does not claim full WCAG 2.2 AA conformance, and a 3:1 treatment is required before public expansion or GA ([POST-BETA-BACKLOG.md](POST-BETA-BACKLOG.md)).
+3. **Generic action names (SC 2.4.6).** "Start" and "Save guide" are template text, and templates do not change in this step (the plan's §10). **Accepted** for the invite-only beta in their current context.
+4. **shadcn/ui v3 findings.** Not fixed, since shadcn/ui v3 is withheld from the beta (below). **Deferred**, because shadcn/ui v3 is withheld and not part of this beta.
 
 ## shadcn/ui v3 scans (information only)
 

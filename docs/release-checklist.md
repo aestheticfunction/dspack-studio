@@ -47,3 +47,15 @@ Smoke test (on the deployed artifact)
 Launch
 - [ ] link from aesthetic-function.com (owner)
 - [ ] announcement copy in brand voice (declarative, unhyped, no em-dashes)
+
+Interface blocks beta (Phase 2; docs/blocks/PHASE-2-RELEASE-PLAN.md §12)
+- [ ] the release review's matrix passes, apart from the items only the deployed beta can meet (docs/blocks/RELEASE-REVIEW.md)
+- [ ] main is the frozen release candidate, or a documentation-only successor the owner approved
+- [ ] Cloudflare Access protects composer.aesthetic-function.com and composer-beta.aesthetic-function.com with the one invite allowlist, and anonymous requests to both go to the Access login (docs/blocks/BETA-DEPLOY-PLAN.md)
+- [ ] the beta is deployed with the block switch off; its rollback anchor and baseline are recorded
+- [ ] rollback rehearsed once on the beta: anchor recorded, rolled back, smoke green
+- [ ] the zero-cost smoke passes on both hostnames
+- [ ] the Stage 1 canary, authorized by the owner, is clean: integrity holds, the served model is recorded, the preflight matches the baseline
+- [ ] a metrics report in the form of the plan's §9 table, with counts
+- [ ] the minimum manual accessibility checks are recorded: a keyboard pass in Safari and in Firefox, and a screen-reader pass on the three Astryx blocks (docs/blocks/MANUAL-A11Y-PACKET.md)
+- [ ] the release is labelled an experimental beta wherever it appears; GA stays blocked on the vocabulary and host semantics (plan §10)

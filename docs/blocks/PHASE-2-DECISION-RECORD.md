@@ -103,6 +103,46 @@ The owner authorized step 6 in the message that directed step 5's merge, to begi
 
 How it is applied, and what still needs a person, is in [ACCESSIBILITY.md](ACCESSIBILITY.md). The auth-form exception and its host mitigation are in [BETA.md](BETA.md).
 
+## The release candidate and the waivers (2026-10-17)
+
+The owner directed step 6's merge and a bounded release-candidate closeout on 2026-10-17: "Do not begin another open-ended hardening cycle." In the owner's words:
+
+**Step 6's merge** (aestheticfunction/dspack-studio#110, squash-merged as `7ff13c9`): "I accept the shared renderer, canvas and Composer shell accessibility changes; do not split them into another PR."
+
+**The waivers** that step 6 proposed ([ACCESSIBILITY.md](ACCESSIBILITY.md), "Waivers"):
+1. auth-form SC 1.3.5: "Accept as a documented invite-only beta exception with the existing host mitigation. It remains a blocker for GA."
+2. Astryx resting field border: "Accept temporarily for the invite-only beta, but do not claim full WCAG 2.2 AA conformance. Record a 3:1 treatment as required before public expansion or GA."
+3. "Start" and "Save guide": "Accept for the invite-only beta in their current context."
+4. shadcn/ui findings: "Accept as deferred because shadcn is withheld and is not part of this beta."
+
+**The freeze.** "Then freeze the resulting main SHA as the release candidate. From that point until the first beta deploy, do not merge opportunistic improvements or nits." The release candidate is `main` at `7ff13c96c7b0ef6d8d7bacc91b9e3c2d839a771c` ([RELEASE-REVIEW.md](RELEASE-REVIEW.md)). "A new finding may block the beta only if it involves:
+- an authentication or invite-access bypass;
+- security, privacy or sensitive-data exposure;
+- data loss or corruption;
+- provider spending or model/usage integrity;
+- a broken kill switch or rollback path;
+- inability to complete a core task with keyboard or screen-reader access;
+- a regression in production isolation or request-byte invariants.
+
+Everything else must be recorded in a post-beta backlog instead of starting another fix-and-review cycle." The backlog is [POST-BETA-BACKLOG.md](POST-BETA-BACKLOG.md).
+
+**Step 7.** "Next, perform Phase 2 Step 7 as a release review against the existing §12 acceptance criteria. Produce one pass/fail matrix with evidence links. Do not implement new work merely because an item could be improved." The review is [RELEASE-REVIEW.md](RELEASE-REVIEW.md).
+
+**The official beta.** "At minimum, require a real keyboard pass in Safari and Firefox and a real screen-reader pass for the three Astryx blocks before calling the release an official beta. Do not claim NVDA, VoiceOver or TalkBack evidence that was not actually collected." The packet is [MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md).
+
+**The audience.** "Because composer.aesthetic-function.com is currently publicly reachable and I want AF Composer itself to be invite-only, the Access plan must protect: 1. composer.aesthetic-function.com; and 2. the separate beta Composer hostname. Use one explicit allowlist policy for both. Do not infer the allowed users or domains; stop for that list before applying Access." This supersedes step 2's audience, "the owner only" (above). The deployment design stays as step 2 set it: "a separate beta Worker and hostname serving the experimental artifact; Astryx only; the user preference off by default; the block runtime switch initially off; the existing production artifact kept free of block code; independent rollback anchors and kill switches." The plan is [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md); no Access change is applied until the owner provides the invite identities.
+
+**The sequence.** "Once the release matrix passes, the human checks are recorded, and Access is confirmed:
+- deploy the beta with the block switch off;
+- record its baseline and rollback anchor;
+- rehearse rollback;
+- run the zero-cost smoke checks;
+- propose the exact capped Stage 1 canary command and expected maximum cost;
+- do not make the paid calls until I explicitly authorize that canary;
+- if the canary is clean, recommend enabling Astryx blocks for invited users."
+
+**The UI redesign.** "UI redesign is deliberately outside this closeout. Record it as the next planning phase, informed by invite-only beta feedback." It is recorded in [POST-BETA-BACKLOG.md](POST-BETA-BACKLOG.md).
+
 ## Operational record
 
 - **The daily spend limit.** For the shadcn/ui v3 run the owner raised the Cloudflare daily spend limit from $10 to $40, from 2026-10-15 22:47Z. Auto top-up stayed off. The change is recorded on the run's evidence branch. On 2026-10-16, after the run closed, the owner reported restoring the limit to $10, with auto top-up still off. No evidence branch records the restoration; this record does.
