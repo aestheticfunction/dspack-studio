@@ -94,7 +94,7 @@ The owner's decisions, recorded in [PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION
 
 ## Remaining decisions for the owner
 
-1. **One screen-reader pairing or two.** The plan's §10 names VoiceOver and NVDA, so M3 and M4 are both in the minimum. If only one can be done before the official beta, the owner decides whether one is enough and which.
+1. **One screen-reader pairing or two.** The owner's minimum is one real screen-reader pass; the plan's §10 names VoiceOver and NVDA, so this packet recommends both, M3 and M4. If only one can be done before the official beta, the owner decides whether one is enough and which (decision D7 in [RELEASE-REVIEW.md](RELEASE-REVIEW.md)).
 2. **The plan-comparison reference's axe violation** (`aria-required-children`, critical, on `ex.plan-comparison`). It is not a block and predates the beta, but beta users can open it in Preview. Recommended: record it in the post-beta backlog; screen-reader testers note what they hear if they open it.
 3. **Who tests.** The testers' exact email addresses, which the owner adds to the Access policy for the test window.
 

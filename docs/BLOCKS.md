@@ -157,11 +157,11 @@ Each phase is a separately reviewable change that must be green before the next 
 
 ## The experimental build (Phase 1A)
 
-Blocks exist only in an experimental build. The default build, the one every deploy path produced until the single-host cutover, is today's artifact byte for byte, and four things keep it that way.
+Blocks exist only in an experimental build. The default build, the one every deploy path produces until step F of the single-host cutover, is today's artifact byte for byte, and four things keep it that way.
 
 - **The flag is inlined.** `next.config.mjs` writes `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL` into the bundle as `"0"` or `"1"`. Every gated site spells the literal `process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"`, which Next folds away in the default build. There is no shared constant: a constant imported from another module is not folded, and a source ratchet (`apps/composer/lib/experimental-guard.test.mjs`) reads the syntax tree of every app source and fails on any `import()` of block code that is not enclosed by the literal check (the then-branch of an `if`, the true arm of a ternary, or the right side of an `&&` whose chain begins with the literal), and on any static import or re-export of block code from app code.
 - **The directory is aliased away.** Unless the flag is on, `apps/composer/experimental/` (the sidecars and the runtime) resolves to nothing.
-- **The flag and the output directory must agree.** `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1` builds only into `out-experimental/` (`pnpm --filter composer build:experimental`); the flag alone fails the build, as does the directory alone. `out-experimental/` is git-ignored, and was never production's artifact until the cutover; only the beta's dispatched workflow deploys it ("The beta (Phase 2)", below).
+- **The flag and the output directory must agree.** `NEXT_PUBLIC_COMPOSER_EXPERIMENTAL=1` builds only into `out-experimental/` (`pnpm --filter composer build:experimental`); the flag alone fails the build, as does the directory alone. `out-experimental/` is git-ignored, and is not production's artifact until step F of the single-host cutover; only a dispatched workflow deploys it ("The beta (Phase 2)", below).
 - **The artifact is scanned.** `apps/composer/scripts/check-default-artifact.mjs` runs at the end of the app's own `build` script, on every path that builds the deploy artifact, and fails on the sidecar key, any block id, or the beta switch's reasons. The composer smoke suite scans the served chunks the same way, and a seeded preference key is proven to change nothing. `deploy-composer.yml` refuses to run when the variable is set.
 
 **Running it.**

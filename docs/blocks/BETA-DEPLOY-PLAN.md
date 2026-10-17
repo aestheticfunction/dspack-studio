@@ -66,10 +66,10 @@ node --input-type=module -e '
   const problems = await checkAccess("https://composer.aesthetic-function.com", { phase: "after", attempts: 1 });
   console.log(problems.length ? problems.join("\n") : "GET: anonymous requests go to the Cloudflare Access login");
   process.exit(problems.length ? 1 : 0);'
-curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' -X POST -H 'content-type: application/json' -d '{}' https://composer.aesthetic-function.com/api/propose
+curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' -X POST -H 'accept: text/html' -H 'content-type: application/json' -d '{}' https://composer.aesthetic-function.com/api/propose
 ```
 
-The first probes `/`, `/api/models` and a static-asset path, and passes only on a redirect to the Access login. The POST passes by the same rule: a redirect (301, 302, 303, 307 or 308) to `https://<team>.cloudflareaccess.com/cdn-cgi/access/login/…`, or to `/cdn-cgi/access/` on the hostname itself. A bare 401 or 403 is no proof, since a WAF rule or a bot challenge could stop this machine alone. The Worker's `400` JSON means the request reached the Worker: an empty body reaches no model, but the Worker must not answer at all. (The cutover change adds this POST to `checkAccess`, under the same rule, and renames the script; the command above is the one that works on `main` today.)
+The first probes `/`, `/api/models` and a static-asset path, and passes only on a redirect to the Access login. The POST asks as a browser would, as the GET probes do, so that Access answers with its login redirect, and passes by the same rule: a redirect (301, 302, 303, 307 or 308) to `https://<team>.cloudflareaccess.com/cdn-cgi/access/login/…`, or to `/cdn-cgi/access/` on the hostname itself. A bare 401 or 403 is no proof, since a WAF rule or a bot challenge could stop this machine alone. The Worker's `400` JSON means the request reached the Worker: an empty body reaches no model, but the Worker must not answer at all. (The cutover change adds this POST to `checkAccess`, under the same rule, and renames the script; the command above is the one that works on `main` today.)
 
 **D. Confirm that workers.dev and Preview URLs cannot bypass Access** (owner, dashboard):
 - Workers & Pages → `dspack-studio-composer` → Settings → Domains & Routes: **workers.dev disabled** and **Preview URLs disabled**. Disable either that is not.
@@ -110,7 +110,7 @@ The first probes `/`, `/api/models` and a static-asset path, and passes only on 
 - an Example session's export and import keep working;
 - then, with the switch turned on for the test window only, the minimum manual accessibility checks ([MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md)), still in scripted mode. Turning the switch on is the owner's decision at that point. Scripted mode reaches no model.
 
-**I. Stop before any hosted canary or paid provider call.** Hosted builds are possible once a person is signed in, because `HOSTED_AI` stays on, so the beta's own testing uses scripted mode until the owner decides otherwise. A fresh browser profile defaults to the hosted model, so each tester first chooses Settings → Scripted → "Use scripted". To make that a guarantee rather than an instruction, the owner can set `HOSTED_AI` to `off` until hosted builds are allowed: scripted mode is unaffected.
+**I. Stop before any hosted canary or paid provider call.** Hosted builds are possible once a person is signed in, because `HOSTED_AI` stays on, so the beta's own testing uses scripted mode until the owner decides otherwise. A fresh browser profile defaults to the hosted model, so each tester first chooses Settings → Scripted → "Use scripted". To make that a guarantee rather than an instruction, the owner can set `HOSTED_AI` to `off` once G is recorded, until hosted builds are allowed: scripted mode is unaffected. Set it on again before the harness baseline and the canary: with it off, `/api/models` lists only scripted and the Worker answers an empty body with `unavailable`, so both refuse.
 
 ## The cutover change (prepared, not merged)
 
@@ -148,7 +148,7 @@ If step 2's `composer-beta` environment or its `CLOUDFLARE_API_TOKEN_BETA` was e
 ## Rollback
 
 - **To the anchor, exactly:** the dashboard's Deployments, or `npx --yes wrangler@4.146.0 rollback <anchor version id> --config wrangler.jsonc`. It restores the block-free release candidate on the same hostname within seconds.
-- **Then set the switches again.** A rollback restores the variables the target version had: for the anchor, `HOSTED_AI` on, and no `BLOCKS_BETA` or `BETA_OPERATOR_LOG`. So after any rollback or roll-forward, set all three again, `HOSTED_AI` to `off` if hosted generation was paused, and check `/api/models` in a signed-in browser. Otherwise a rollback after a pause turns hosted generation, and its cost, back on for every signed-in user.
+- **Then set the switches again.** A rollback restores the variables the target version had: for the anchor, `HOSTED_AI` on, and no `BLOCKS_BETA` or `BETA_OPERATOR_LOG`. So after any rollback or roll-forward, set all three again, `HOSTED_AI` to `off` if hosted generation was paused. Check `HOSTED_AI` and `BLOCKS_BETA` in `/api/models` in a signed-in browser, and `BETA_OPERATOR_LOG` in the dashboard, since no endpoint shows it. Otherwise a rollback after a pause turns hosted generation, and its cost, back on for every signed-in user.
 - **To stay rolled back:** with Workers Builds connected, any later merge deploys the block-free default artifact from `main` anyway. Dispatch the experimental workflow only when the beta should return.
 - **To end the beta for good:** a forward change that deletes the experimental config and workflow, and keeps `wrangler.jsonc`'s `workers_dev: false`, `preview_urls: false` and `keep_vars: true`. Never revert the cutover change: a revert restores the superseded separate-Worker files, and redeclares `HOSTED_AI` `on` without `keep_vars`, so its own deploy would turn a paused kill switch back on and drop the other two switches.
 - **Browser data survives a rollback.** The preference key and block provenance written by the experimental build stay in each browser. The default build ignores the preference (a seeded preference changes nothing, `e2e/composer-prod-smoke.spec.ts`) and never reads the provenance store. Removing a project deletes its provenance in every build.
@@ -175,6 +175,7 @@ If option 1 is authorized, the harness baseline comes first, with the same crede
 ```sh
 read -rs CF_ACCESS_CLIENT_ID && export CF_ACCESS_CLIENT_ID
 read -rs CF_ACCESS_CLIENT_SECRET && export CF_ACCESS_CLIENT_SECRET
+pnpm --filter @dspack-studio/block-bench baseline --out <new file beside the run>
 pnpm --filter @dspack-studio/block-bench eval:live -- --provider hosted \
   --base-url https://composer.aesthetic-function.com \
   --reference astryx --conditions fresh --prompts rt-01,af-01,gs-01,nb-01 \
@@ -185,7 +186,7 @@ unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 - **Caps.** At most 80 requests, and a $5.00 hard ceiling: the smallest whole-dollar ceiling the harness accepts, since it admits a cell only while the committed spend plus the cell's absolute worst case ($4.472832) fits.
 - **Expected cost: about $0.20.** The Option B systems smoke's 16 Astryx cells settled at $0.1833 (2026-10-12).
 - **Time:** about 10 minutes.
-- **Clean means:** 16 cells; no integrity stop; one served model; and the preflight equal to the beta's baseline apart from its time.
+- **Clean means:** 16 cells; no integrity stop; one served model; and the preflight equal to the harness baseline taken just before it, apart from its time and the sidecars the run omits: an Astryx run's preflight lists Astryx's only ([BASELINE.md](BASELINE.md)).
 
 ## The invitation
 
