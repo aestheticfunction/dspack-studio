@@ -233,6 +233,32 @@ input[type="range"] {
   margin-bottom: 0;
 }
 
+/* The Astryx canvas draws light, on its white background, whatever the
+   reader's OS preference. Astryx's reset declares `color-scheme: light dark`
+   on the root, which retinted the canvas's tokens dark inside a white
+   canvas for a reader who prefers dark; Astryx 0.1.4's dark primary button
+   (white on #2694FE) is 3.1:1 there, below WCAG 1.4.3's 4.5:1. */
+[data-astryx-canvas] {
+  color-scheme: light;
+}
+
+/* Keyboard focus in the rendered Astryx canvas keeps Astryx's own
+   indicators: its accent ring on buttons and its accent border on fields
+   (#0064E0, 5.4:1 against the canvas white). The studio's green ring above
+   (#97B063) is 2.4:1 against that white, below WCAG 2.2 SC 1.4.11's 3:1,
+   and as an unlayered rule it replaced them; revert-layer hands each
+   focused element back to Astryx's layer. Astryx's table scroll region has
+   no indicator of its own, so it gets the same accent ring, drawn inside its
+   edge because the region bleeds to its card's edge. */
+[data-astryx-canvas] :focus-visible {
+  outline: revert-layer;
+  outline-offset: revert-layer;
+}
+[data-astryx-canvas] .astryx-table-scroll-wrapper:focus-visible {
+  outline: 2px solid var(--color-accent, #0064e0);
+  outline-offset: -2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .st-btn,
   .st-link {
