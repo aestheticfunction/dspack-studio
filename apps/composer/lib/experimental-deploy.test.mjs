@@ -518,12 +518,29 @@ describe("the workflows", () => {
   it("the token is never in the workflow's or the job's env, so it never reaches the install or the build", () => {
     const yml = workflow();
     expect(topLevelKeys(yml, "env")).toBeNull();
+    // Block or flow style: no workflow-level env at all.
+    expect(yml).not.toMatch(/^env\s*:/m);
     expect(yml.slice(yml.indexOf("\n  deploy:\n"), yml.indexOf("\n    steps:\n"))).not.toMatch(/\n {4}env:/);
     expect(yml).toMatch(/- uses: actions\/checkout@v4\n {8}with:\n {10}persist-credentials: false\n/);
     // No expression inside any script: the dispatch's own input reaches only the job's if.
     for (const step of steps(yml)) {
       const run = step.text.indexOf("run:");
       if (run >= 0) expect(step.text.slice(run), step.name).not.toMatch(/\$\{\{/);
+    }
+  });
+
+  it("exactly one step deploys, and after the guard only the two post-deploy steps carry a condition", () => {
+    const all = steps(workflow());
+    const code = (step) => step.text.replace(/^\s*#.*$/gm, "").replace(/^\s*echo .*$/gm, "");
+    const deploying = all.filter((s) => /\bwrangler@\S+ (deploy|versions deploy|versions upload|triggers deploy|rollback)\b/.test(code(s)));
+    expect(deploying.map((s) => s.name)).toEqual(["Deploy (the experimental artifact to the composer Worker, checked-in config)"]);
+    const guard = all.findIndex((s) => /check-experimental-deploy\.mjs(\n|$)/.test(s.text));
+    expect(guard).toBeGreaterThan(-1);
+    const POST_DEPLOY = "${{ !cancelled() && steps.deploy.outcome != 'skipped' }}";
+    const postDeploy = ["Record the deployed version", "Cloudflare Access still sends anonymous requests, GET and POST, to its login"];
+    for (const step of all.slice(guard)) {
+      const conditions = [...step.text.matchAll(/\n {8}if: (.*)/g)].map((m) => m[1]);
+      expect(conditions, step.name).toEqual(postDeploy.includes(step.name) ? [POST_DEPLOY] : []);
     }
   });
 
