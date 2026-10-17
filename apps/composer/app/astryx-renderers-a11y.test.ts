@@ -67,6 +67,15 @@ describe("Table", () => {
     }
   });
 
+  it("gives every data column a minimum width, so a narrow table scrolls in its region instead of crushing its words", () => {
+    const columns = Array.from({ length: 8 }, (_, i) => `Column ${i + 1}`);
+    const html = render("Table", { columns, data: [{ cells: columns.map((c) => `${c} value`) }] });
+    const headers = html.match(/<th [^>]*>/g) ?? [];
+    expect(headers).toHaveLength(8);
+    for (const th of headers) expect(th).toContain("min-width:96px");
+    expect(html.match(/<table [^>]*>/)?.[0]).toContain("min-width:768px");
+  });
+
   it("names and wraps a children-mode table the same way", () => {
     const html = render("Table", { columns: ["Step", "Instruction"], children: ["a", "b"] }, { a: "1", b: "Boil water" });
     expect(tagWith(html, "astryx-table-scroll-wrapper")).toContain('aria-label="Table: Step, Instruction"');

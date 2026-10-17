@@ -268,6 +268,7 @@ const focusInCanvas = (page: Page) => page.evaluate((sel) => document.querySelec
  * with an indicator a reader can see, and focus leaves at both ends (no trap).
  */
 async function traverse(page: Page, stops: Array<string | RegExp>, { names, at }: { names: boolean; at: string }) {
+  await startAtCanvas(page); // also takes focus off any field, so its border reads unfocused
   const unfocused = await fieldBorders(page);
   const failures: string[] = [];
   const check = async (label: string) => {
@@ -279,7 +280,6 @@ async function traverse(page: Page, stops: Array<string | RegExp>, { names, at }
     if (f.kind === "outline" && f.width < 2) failures.push(`${label}: outline is ${f.width}px`);
     if (f.kind === "field-border" && unfocused.includes(f.color)) failures.push(`${label}: the field border does not change on focus`);
   };
-  await startAtCanvas(page);
   for (const [i, stop] of stops.entries()) {
     await page.keyboard.press("Tab");
     if (names) await expect.soft(page.locator(":focus"), `${at}: stop ${i + 1}`).toHaveAccessibleName(stop);
@@ -381,6 +381,12 @@ for (const blockId of ["records-table", "auth-form", "guide-steps"]) {
       // Keyboard: every stop in order, a visible indicator with 3:1, no trap; targets of 24 px.
       await traverse(page, stops, { names: true, at: "1280 px" });
       expect.soft(await targets(page), "target size").toEqual([]);
+
+      // Astryx's reset declares light and dark, so the surface follows a reader's dark preference: axe and focus again.
+      await page.emulateMedia({ colorScheme: "dark" });
+      expect.soft((await axeOn(page)).violations, "axe in dark").toEqual([]);
+      await traverse(page, stops, { names: false, at: "1280 px, dark" });
+      await page.emulateMedia({ colorScheme: "light" });
 
       // Text spacing (SC 1.4.12): nothing cut off or pushed out.
       const spacing = await page.addStyleTag({ content: TEXT_SPACING });
