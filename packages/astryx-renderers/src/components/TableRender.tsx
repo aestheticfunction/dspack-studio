@@ -12,10 +12,10 @@
  * one surface are told apart (2.4.6, 4.1.2). Astryx header cells always
  * truncate with an ellipsis; here header text wraps, so no heading is cut
  * off at 200% zoom or 320 px (1.4.4, 1.4.10). Body cells already wrap. A
- * data column gets a minimum width, as Astryx advises (proportional widths
- * with a floor), so a table narrower than its columns scrolls inside its
- * focusable region, the reflow exception for two-dimensional content,
- * instead of crushing each column below a letter's width at 320 px.
+ * column gets a minimum width, as Astryx advises (proportional widths with a
+ * floor), so a table narrower than its columns scrolls inside its focusable
+ * region, the reflow exception for two-dimensional content, instead of
+ * crushing each column below a letter's width at 320 px.
  */
 import { useMemo, type CSSProperties, type FC } from "react";
 import { Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow, proportional } from "@astryxdesign/core/Table";
@@ -31,6 +31,8 @@ interface Row {
 const HEADER_WRAP: CSSProperties = { whiteSpace: "normal", overflow: "visible", textOverflow: "clip", overflowWrap: "anywhere" };
 /** Eight columns of this still fit the composer's canvas at 1280 px. */
 const COLUMN_FLOOR = 96;
+/** A children-mode header cell: its table lays out automatically, so the floor goes on the cell. */
+const CHILD_HEADER: CSSProperties = { ...HEADER_WRAP, minWidth: COLUMN_FLOOR };
 
 /** Names the scroll region by the table's columns, and wraps header text. */
 function accessibleTable(headers: string[]) {
@@ -60,7 +62,7 @@ export const TableRender: FC<any> = ({ props, buildChild }) => {
           <TableHeader>
             <TableRow isHeaderRow>
               {headers.map((header, i) => (
-                <TableHeaderCell key={i} style={HEADER_WRAP}>
+                <TableHeaderCell key={i} style={CHILD_HEADER}>
                   {header}
                 </TableHeaderCell>
               ))}
