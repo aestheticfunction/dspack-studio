@@ -82,9 +82,15 @@ The owner's privacy and compatibility requirements, in the owner's words:
 
 This takes decision 7's recommended course: the canary plus a diagnostics export the user asks for, with no beacon. How it is applied is in [BETA-OPERATIONS.md](BETA-OPERATIONS.md).
 
+**Confirmed by the owner (2026-10-16),** when the owner directed step 5's merge, in the owner's words:
+1. "In the invite-only live beta, a provider error that produces no usable response or result counts toward the 'pause after two consecutive provider errors' rule. It does not trigger immediate disable on the first transient failure."
+2. "Immediate disable still applies when: a provider-reached call returns a completed or usable result without mandatory usage accounting; or the served model is missing or does not match the expected model."
+3. "The canary remains fail-fast on any missing usage or model identity."
+4. "I accept the decision-record wording and the documented minifier-only runtime rename. Neither changes the frozen experiment conclusion or public contract."
+
 ## Step 6, authorized (2026-10-16)
 
-The owner authorized step 6 when step 5 merged: "accessibility hardening for the Astryx beta path" (the plan's §10), on a fresh branch, as its own PR, not deployed or merged automatically. Its scope, in the owner's words:
+The owner authorized step 6 in the message that directed step 5's merge, to begin once step 5's post-merge checks passed: "accessibility hardening for the Astryx beta path" (the plan's §10), on a fresh branch, as its own PR, neither deployed nor merged automatically. Its scope, in the owner's words:
 - "Treat WCAG 2.2 AA as the target."
 - "Test native rendered surfaces for authentication, recipe/guide, and analytics/table blocks using example and boundary payloads."
 - "Add automated axe coverage for wcag2a, wcag2aa, wcag21a, wcag21aa, and wcag22aa."
