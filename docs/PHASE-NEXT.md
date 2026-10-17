@@ -149,7 +149,7 @@ surface before S1/S2/S3. Planned and measured in [BLOCKS.md](BLOCKS.md)
 (roadmap, ADRs, decision rule) with the format in
 [blocks/RFC-dspack-blocks.md](blocks/RFC-dspack-blocks.md).
 
-Status (2026-10-16):
+Status (2026-10-17):
 - **Phases 0, 0.5 and 1A** landed in aestheticfunction/dspack-studio#88: the
   docs and pure schema module, usage accounting, and a private, build-flagged
   PoC. The deployed composer gained the usage accounting (per-turn receipts,
@@ -160,8 +160,10 @@ Status (2026-10-16):
 - **Phase 2 is under way.** The owner chose branch C, an Astryx-only
   experimental beta, and deferred shadcn/ui v3 Stage 4
   ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md)).
-  The beta's delivery path, guards and switches are built; no beta is
-  deployed ([BLOCKS.md](BLOCKS.md), "The beta (Phase 2)").
+  The release plan's steps 2 to 6 are built and merged (#105 to #110), and
+  `main` at `7ff13c9` is frozen as the release candidate. Step 7, the release
+  review, is under way ([blocks/RELEASE-REVIEW.md](blocks/RELEASE-REVIEW.md)).
+  No beta is deployed ([BLOCKS.md](BLOCKS.md), "The beta (Phase 2)").
 - **Nothing is proposed upstream.** Under branch C, ratification waits for a
   second reference to pass clearly.
 

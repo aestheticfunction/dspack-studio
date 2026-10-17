@@ -85,7 +85,9 @@ unchanged. The one runtime binding is the **AI binding** (`"ai": {"binding":
 **`ds-ai-gateway`** — the SAME gateway the af-site theme generator uses (shared
 zone ⇒ shared account) — over Unified Billing, so there is **no provider key, no
 BYOK credential, and no gateway secret**. No KV, Durable Objects, or databases.
-A `HOSTED_AI` var is the kill switch.
+A `HOSTED_AI` var is the kill switch. Production's `wrangler.jsonc` sets it to `on` without `keep_vars`, so a change made in the dashboard lasts only until the next deploy from `main` sets it back; for a stop that must last, change it in `wrangler.jsonc` too, or merge nothing until it is lifted. The single-host cutover change moves it to the dashboard, with `keep_vars`, so that it lasts.
+
+**Cloudflare Access (planned, not applied).** Under the owner's single-host amendment, Access is to protect this hostname with email one-time PIN, admitting at first only the owner's exact email. Applying it removes anonymous access: the existing public Composer becomes the invite-only beta, and this repository's anonymous checks of production (the build id, `/api/models`, the live-artifact scan, the production smoke) meet the Access login. The order of the cutover, the experimental deploy and the rollback to the block-free release candidate is in [blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md).
 
 **Cost protection (measured 2026-08-09).** The **enforced** cap is the
 `ds-ai-gateway` zone rate limit — a concurrent burst to `/api/propose` is
@@ -193,7 +195,9 @@ spec exists to protect.
 Rollback: `npx wrangler rollback --config wrangler.jsonc` (or
 redeploy the previous commit); the exhibit Worker is untouched either way.
 
-## The beta composer (third Worker)
+## The beta composer (third Worker): superseded
+
+> **Superseded on 2026-10-17** by the owner's single-host amendment ([blocks/PHASE-2-DECISION-RECORD.md](blocks/PHASE-2-DECISION-RECORD.md), "The single-host amendment"). No beta hostname or Worker is to be created: the invite-only beta will run on `composer.aesthetic-function.com` and its existing Worker, behind Cloudflare Access, after a cutover change ([blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md)). This section records the separate-Worker design step 2 built. Its config and workflow stay on `main` only until the cutover change replaces them, and were never deployed. **Never dispatch `deploy-composer-beta`.** The present tense below describes those files, not a plan.
 
 **https://composer-beta.aesthetic-function.com** is where the interface-blocks
 beta will run ([blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md),

@@ -47,3 +47,16 @@ Smoke test (on the deployed artifact)
 Launch
 - [ ] link from aesthetic-function.com (owner)
 - [ ] announcement copy in brand voice (declarative, unhyped, no em-dashes)
+
+Interface blocks beta (Phase 2; docs/blocks/PHASE-2-RELEASE-PLAN.md §12; single host, docs/blocks/BETA-DEPLOY-PLAN.md)
+- [ ] the release review's matrix passes, apart from the items only the cutover, a person or the canary can meet, and each FAIL is accepted by the owner (decisions D2 and D6, docs/blocks/RELEASE-REVIEW.md)
+- [ ] main is the frozen release candidate, or an owner-approved successor that changes no application, Worker or block code
+- [ ] A, B: Cloudflare Access protects composer.aesthetic-function.com, allowing only the owner's exact email through one-time PIN; no new hostname or Worker exists
+- [ ] C: anonymous GET and POST requests to composer.aesthetic-function.com, /api/propose included, go to the Access login before reaching the Worker
+- [ ] D: workers.dev and Preview URLs are disabled for dspack-studio-composer, its only route is the custom domain, and that domain has no Preview URLs
+- [ ] E: the owner signs in and runs a scripted build
+- [ ] F: the cutover change merged; the experimental artifact deployed through the Access-gated workflow, with the block switch off; the rollback anchor recorded
+- [ ] G: the baseline recorded; rollback rehearsed to the block-free release candidate and forward again
+- [ ] H: the zero-cost scripted checks pass, and the minimum manual accessibility checks are recorded: a keyboard pass in Safari and in Firefox, and a screen-reader pass on the three Astryx blocks (docs/blocks/MANUAL-A11Y-PACKET.md)
+- [ ] I: no hosted canary or paid call until the owner authorizes a temporary machine credential; then the Stage 1 canary is clean and the metrics report follows
+- [ ] the release is labelled an experimental beta wherever it appears; no full WCAG 2.2 AA conformance is claimed; GA stays blocked on the vocabulary and host semantics (plan §10)
