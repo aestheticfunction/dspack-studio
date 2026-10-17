@@ -261,9 +261,13 @@ input[type="range"] {
    its edge and buttons were cut off. It also caps the dialog's height at
    75% of the viewport and scrolls what does not fit: at 320 x 256 the
    delete-project dialog showed 108 px of its content in a scroll box of its
-   own, which axe flags as not keyboard-focusable. An inline dialog in the
-   canvas is part of the page, so here it fits its container's width and
-   takes its content's height.
+   own, which axe flags as not keyboard-focusable; a fullscreen one keeps
+   the viewport's height and cut its content off at 320 x 256. An inline
+   dialog in the canvas is part of the page, so here it fits its
+   container's width and takes its content's height, and its footer's
+   buttons wrap onto a row of their own when together they are too wide
+   (with WCAG's text spacing at 320 px, "Keep my archived projects" was
+   cut off).
    And Astryx keeps a button's label on one line, cut off with an ellipsis:
    with WCAG's text spacing at 320 px, "Continue with Microsoft" lost its
    last word (SC 1.4.12). Here a label wraps, and a word too long for its
@@ -276,11 +280,15 @@ input[type="range"] {
    itself, so those keep Astryx's fixed size. */
 [data-astryx-canvas] .astryx-dialog {
   max-width: 100%;
+  height: auto;
 }
 [data-astryx-canvas] .astryx-dialog,
 [data-astryx-canvas] .astryx-dialog > * {
   max-height: none;
   --container-max-height: none;
+}
+[data-astryx-canvas] .astryx-layout-footer .astryx-stack.horizontal {
+  flex-wrap: wrap;
 }
 [data-astryx-canvas] .astryx-button:not([aria-label]) {
   --af-button-height: var(--size-element-md, 32px);
