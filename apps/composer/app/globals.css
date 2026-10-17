@@ -225,10 +225,14 @@ input[type="range"] {
    affordance so a lone table spans a padded Card edge to edge. The
    horizontal bleed is wanted; the vertical bleed is not, because two
    tables stacked in a Column (VStack gap 12px) then compute 12 - 16 - 16
-   = -20px and overlap (the recipe's ingredients and instructions tables).
+   = -20px and overlap (the recipe's ingredients and instructions tables),
+   and the element after a table covers its last 4px (WCAG 1.4.10).
    This zeroes only the vertical bleed, keeping the horizontal full-bleed.
-   globals.css is loaded unlayered so it wins over Astryx's layered sheets. */
-[data-canvas] .astryx-table-scroll-wrapper {
+   The Studio's canvas is [data-canvas]; Composer's Astryx canvas is
+   [data-astryx-canvas]. globals.css is loaded unlayered so it wins over
+   Astryx's layered sheets. */
+[data-canvas] .astryx-table-scroll-wrapper,
+[data-astryx-canvas] .astryx-table-scroll-wrapper {
   margin-top: 0;
   margin-bottom: 0;
 }
@@ -251,6 +255,32 @@ input[type="range"] {
   min-width: 0;
 }
 
+/* What narrows with the canvas must fit it. Astryx draws an inline dialog
+   400 px wide, capped at 90% of the viewport, wider than a 320 px canvas:
+   its edge and buttons were cut off. And Astryx keeps a button's label on
+   one line, cut off with an ellipsis: with WCAG's text spacing at 320 px,
+   "Continue with Microsoft" lost its last word (SC 1.4.12). Here a dialog
+   fits its container, and a label wraps. Astryx fixes a button's height
+   for its size; here that height is a minimum, and the vertical padding is
+   what one line leaves of it, so a one-line button keeps Astryx's height
+   and a wrapped one grows by its extra lines. */
+[data-astryx-canvas] .astryx-dialog {
+  max-width: 100%;
+}
+[data-astryx-canvas] .astryx-button {
+  --af-button-height: var(--size-element-md, 32px);
+  white-space: normal;
+  height: auto;
+  min-height: var(--af-button-height);
+  padding-block: max(0px, (var(--af-button-height) - 1lh) / 2);
+}
+[data-astryx-canvas] .astryx-button[data-size="sm"] {
+  --af-button-height: var(--size-element-sm, 28px);
+}
+[data-astryx-canvas] .astryx-button[data-size="lg"] {
+  --af-button-height: var(--size-element-lg, 36px);
+}
+
 /* Keyboard focus in the rendered Astryx canvas keeps Astryx's own
    indicators: its accent ring on buttons and its accent border on fields
    (#0064E0, 5.4:1 against the canvas white). The studio's green ring above
@@ -266,6 +296,17 @@ input[type="range"] {
 [data-astryx-canvas] .astryx-table-scroll-wrapper:focus-visible {
   outline: 2px solid var(--color-accent, #0064e0);
   outline-offset: -2px;
+}
+
+/* In forced colors (Windows high contrast) the system draws every color
+   and drops shadows, so an Astryx field's focus, an accent border and an
+   inset shadow, no longer showed: only the caret did (WCAG 2.4.7). There
+   a focused field gets an outline, which forced colors keep. */
+@media (forced-colors: active) {
+  [data-astryx-canvas] .astryx-text-input:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
