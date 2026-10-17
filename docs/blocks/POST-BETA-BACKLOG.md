@@ -1,6 +1,6 @@
 # Post-beta backlog
 
-**Phase 2, step 7.** From the release-candidate freeze on 2026-10-17 until the first beta deploy, nothing merges for an improvement or a nit ([RELEASE-REVIEW.md](RELEASE-REVIEW.md), "The freeze"). A finding blocks the beta only if it falls in one of the owner's blocking classes. Everything else is recorded here instead of starting another fix-and-review cycle. Nothing on this page blocks the invite-only beta.
+**Phase 2, step 7**, revised for the owner's single-host amendment. From the release-candidate freeze on 2026-10-17 until the first beta deploy (the cutover), nothing merges for an improvement or a nit ([RELEASE-REVIEW.md](RELEASE-REVIEW.md), "The freeze"). A finding blocks the beta only if it falls in one of the owner's blocking classes. Everything else is recorded here instead of starting another fix-and-review cycle. Nothing on this page blocks the invite-only beta.
 
 Each item says where it came from and when it is due: **before public expansion** (public opt-in or any audience beyond the invite list), **before GA**, or **when convenient**.
 
@@ -34,18 +34,18 @@ The UI redesign is deliberately outside the release closeout. It is the next pla
 
 | # | Item | Source | Due |
 |---|---|---|---|
-| O1 | The harness sends no Access credentials, so neither the beta baseline nor the canary can reach the beta behind Access. A harness-only change, separately authorized; it does not touch either artifact | [BETA-OPERATIONS.md](BETA-OPERATIONS.md) | **before the beta baseline and canary** (a prerequisite, not deferred) |
-| O2 | Production's `wrangler.jsonc` does not set `workers_dev` and `preview_urls`. Wrangler's defaults turn both off for a Worker with a custom-domain route, but an explicit `false`, held by a test as the beta's config is, would make the Access boundary checkable in code. If the dashboard shows either enabled, that is not backlog: it is a bypass, to fix in the dashboard at once | [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md) | when convenient (after the dashboard check) |
-| O3 | Production verification behind Access: the post-merge build-id read, `/api/models` comparison and live-artifact scan all run anonymously today. Decide whether to give them a production service token, or to verify in a signed-in browser | BETA-DEPLOY-PLAN.md | before the next merge after Access |
-| O4 | The `deploy-composer` workflow's production smoke runs anonymously and would fail behind Access (the workflow has never been dispatched) | BETA-DEPLOY-PLAN.md | before it is next needed |
-| O5 | An authenticated beta smoke in the deploy workflow, with the reserved service token | [../deployment.md](../deployment.md) | when convenient |
+| O1 | The harness sends no Access credentials, so neither the harness baseline nor the hosted canary can reach Composer behind Access. The owner has not authorized a machine credential: the canary stays blocked until a short-lived service token (with the harness-only change that sends it) or another secure method is authorized | [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md), "The hosted canary" | **before the canary** (decision D4; not deferred) |
+| O2 | Production's `wrangler.jsonc` does not set `workers_dev` and `preview_urls`. The cutover change sets both `false` in both configs, held by a test; until then the dashboard check (step D) is the proof | [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md), step D | with the cutover change |
+| O3 | Verification behind Access: the post-merge build-id read, `/api/models` comparison and live-artifact scan all run anonymously today, and will meet the login. Decide whether a short-lived credential may serve them too, or whether they move to a signed-in browser | the step 7 review | before the next merge after Access |
+| O4 | The `deploy-composer` workflow's production smoke runs anonymously and would fail behind Access (the workflow has never been dispatched) | the step 7 review | before it is next needed |
+| O5 | An authenticated smoke in the experimental deploy workflow, once a machine credential is authorized | the step 7 review | after decision D4 |
 | O6 | Automated alerts: every alarm is read by the owner by hand today | BETA-OPERATIONS.md, "Alarms" | before public expansion |
-| O7 | Telling beta traffic apart in the shared `ds-ai-gateway`, or a separate gateway (the plan's §13, decision 6) | the plan's §9 | during the beta |
+| O7 | After the cutover all Composer traffic is beta traffic on the shared `ds-ai-gateway`; a separate gateway (the plan's §13, decision 6) only if its spend needs telling apart from the af-site theme generator's | the plan's §9 | during the beta |
 | O8 | Workers Logs keeps its own per-invocation record beside the operator log's line. Check what it holds for the beta (request metadata) and whether invocation logs or sampling should be narrowed | the step 7 review | before public expansion |
 | O9 | The Worker does not check the Access token itself; the boundary is Access covering the whole hostname. A Worker-side check of the `Cf-Access-Jwt-Assertion` header would add depth | the step 7 review | before public expansion |
-| O10 | Production's `HOSTED_AI` is declared in `wrangler.jsonc` without `keep_vars`, so a dashboard flip is undone by the next deploy from `main` (now noted in `docs/deployment.md`). Consider `keep_vars`, as the beta has, with a test | the step 7 review (kill-switch class, pre-existing, production only) | before public expansion |
+| O10 | Production's `HOSTED_AI` is declared in `wrangler.jsonc` without `keep_vars`, so a dashboard flip is undone by the next deploy from `main`. The cutover change moves the switches to the dashboard with `keep_vars` on both configs (noted in `docs/deployment.md` until then) | the step 7 review (kill-switch class, pre-existing) | with the cutover change |
 | O11 | Repository, local-model and edited projects get no blocks: unit-tested, and the note's text is built in `state.tsx`, but only imported projects have an Astryx e2e (§12 criterion 4) | the step 7 review | before public expansion |
-| O12 | The beta workflow's header and summary name `BLOCKS_BETA` and `HOSTED_AI` but not `BETA_OPERATOR_LOG` as variables to set again after a rollback | the step 7 review | with the next workflow change |
+| O12 | The superseded beta workflow's header and summary name `BLOCKS_BETA` and `HOSTED_AI` but not `BETA_OPERATOR_LOG` as variables to set again after a rollback; the cutover change's retargeted workflow names all three | the step 7 review | with the cutover change |
 | O13 | The local agent accepts any origin unless `AGENT_ALLOWED_ORIGINS` is set (pre-existing, by design for the hosted page); the beta origin reaches a running local agent as production does | the step 7 review | when convenient |
 
 ## Blocks: provenance, host actions and tests

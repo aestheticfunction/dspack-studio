@@ -40,10 +40,10 @@ None of these blocks the invite-only beta. Each must be done before public opt-i
 
 ## Where and how to test
 
-**Where.** The deployed beta, signed in through Cloudflare Access, once its block switch is on ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md), "After a clean canary"). Until the minimum checks pass, the allowlist holds only the owner and the testers. Use **scripted** mode: it builds each block's approved example with no model call and no cost.
+**Where.** `https://composer.aesthetic-function.com` after the cutover: the existing Composer, signed in through Cloudflare Access with a one-time code, with the block switch turned on for the test window ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md), steps F to H). There is no separate beta hostname. The Access policy holds only the owner's address at first; the owner adds each tester's exact address for the window. Use **scripted** mode: it builds each block's approved example with no model call and no cost.
 
 **Getting each block.**
-1. Open `https://composer-beta.aesthetic-function.com` in a fresh browser profile, and sign in.
+1. Open `https://composer.aesthetic-function.com` in a fresh browser profile, and sign in with the one-time code. The origin's storage is shared with the Composer testers may have used before, so start fresh: a new profile, then a packaged reference project or a fresh Example session.
 2. Settings → Experimental: turn on interface blocks.
 3. Open the Astryx reference project (or an Astryx Example session), and choose the scripted model.
 4. In Build, enter the goal below. The build's note says which block it used. If it used none, check the note's reason; if it names the intent, choose the intent shown and build again.
@@ -96,7 +96,7 @@ The owner's decisions, recorded in [PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION
 
 1. **One screen-reader pairing or two.** The plan's §10 names VoiceOver and NVDA, so M3 and M4 are both in the minimum. If only one can be done before the official beta, the owner decides whether one is enough and which.
 2. **The plan-comparison reference's axe violation** (`aria-required-children`, critical, on `ex.plan-comparison`). It is not a block and predates the beta, but beta users can open it in Preview. Recommended: record it in the post-beta backlog; screen-reader testers note what they hear if they open it.
-3. **Who tests.** The testers' names, so the owner can add them to the allowlist for the test window.
+3. **Who tests.** The testers' exact email addresses, which the owner adds to the Access policy for the test window.
 
 ## Results
 

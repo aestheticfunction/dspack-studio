@@ -130,9 +130,9 @@ Everything else must be recorded in a post-beta backlog instead of starting anot
 
 **The official beta.** "At minimum, require a real keyboard pass in Safari and Firefox and a real screen-reader pass for the three Astryx blocks before calling the release an official beta. Do not claim NVDA, VoiceOver or TalkBack evidence that was not actually collected." The packet is [MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md).
 
-**The audience.** "Because composer.aesthetic-function.com is currently publicly reachable and I want AF Composer itself to be invite-only, the Access plan must protect: 1. composer.aesthetic-function.com; and 2. the separate beta Composer hostname. Use one explicit allowlist policy for both. Do not infer the allowed users or domains; stop for that list before applying Access." This supersedes step 2's audience, "the owner only" (above). The deployment design stays as step 2 set it: "a separate beta Worker and hostname serving the experimental artifact; Astryx only; the user preference off by default; the block runtime switch initially off; the existing production artifact kept free of block code; independent rollback anchors and kill switches." The plan is [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md); no Access change is applied until the owner provides the invite identities.
+**The audience.** "Because composer.aesthetic-function.com is currently publicly reachable and I want AF Composer itself to be invite-only, the Access plan must protect: 1. composer.aesthetic-function.com; and 2. the separate beta Composer hostname. Use one explicit allowlist policy for both. Do not infer the allowed users or domains; stop for that list before applying Access." This superseded step 2's audience, "the owner only" (above), and was itself superseded the same day by the single-host amendment (below), which drops the separate beta hostname and Worker. As first stated, the deployment design stayed as step 2 set it: "a separate beta Worker and hostname serving the experimental artifact; Astryx only; the user preference off by default; the block runtime switch initially off; the existing production artifact kept free of block code; independent rollback anchors and kill switches." No Access change is applied until the owner provides the invite identities.
 
-**The sequence.** "Once the release matrix passes, the human checks are recorded, and Access is confirmed:
+**The sequence** (replaced by the single-host amendment's order A to I, below). "Once the release matrix passes, the human checks are recorded, and Access is confirmed:
 - deploy the beta with the block switch off;
 - record its baseline and rollback anchor;
 - rehearse rollback;
@@ -142,6 +142,52 @@ Everything else must be recorded in a post-beta backlog instead of starting anot
 - if the canary is clean, recommend enabling Astryx blocks for invited users."
 
 **The UI redesign.** "UI redesign is deliberately outside this closeout. Record it as the next planning phase, informed by invite-only beta feedback." It is recorded in [POST-BETA-BACKLOG.md](POST-BETA-BACKLOG.md).
+
+## The single-host amendment (2026-10-17)
+
+Later on 2026-10-17 the owner changed the deployment decision. This is a deliberate amendment to the release plan's recommendation of a separate beta origin (§6 and §13, decision 1, as decided on 2026-10-16). The owner's decisions, in the owner's words:
+
+1. "Do not create composer-beta.aesthetic-function.com or any other new subdomain."
+2. "Do not create dspack-studio-composer-beta or another Worker."
+3. "Use the existing composer.aesthetic-function.com hostname and existing Composer Worker for the invite-only beta."
+4. "The existing public Composer will become the invite-only beta at cutover."
+5. "Do not implement a client-side password screen or store a shared password in application code."
+6. "Use Cloudflare Access on composer.aesthetic-function.com, with email one-time PIN and initially only the owner's exact email."
+7. "Additional tester email addresses can be added later."
+8. "Do not create a service token yet. Record that the hosted canary remains blocked until a temporary machine credential is explicitly authorized."
+9. "UI redesign remains the next planning phase and does not block this beta closeout."
+
+**The consequences the owner accepted**, in the owner's words:
+- "production and beta no longer have independent hostnames, Workers or rollback controls;"
+- "applying Access will remove anonymous access to the existing Composer;"
+- "the experimental artifact will eventually replace the default artifact on the current live origin;"
+- "the default block-free artifact and release candidate must remain available as the rollback anchor;"
+- "browser storage is shared with the existing origin, so the beta instructions must tell testers to start from packaged references or fresh Example sessions;"
+- "Access must be active and verified before the experimental artifact is deployed;"
+- "workers.dev and preview URLs must be disabled or proven inaccessible so they cannot bypass Access;"
+- "rollback restores the block-free release candidate for the same hostname;"
+- "no claim of full WCAG 2.2 AA conformance is made during this invite-only beta."
+
+**The cutover order**, in the owner's words. A cutover change is prepared and not deployed; it "must preserve the current release candidate 7ff13c9 as the rollback anchor and enforce this order:
+- A. Configure Cloudflare Access on composer.aesthetic-function.com.
+- B. Allow only the owner's exact email through one-time PIN.
+- C. Confirm anonymous GET requests and anonymous POST requests to the hosted endpoint are denied before reaching the Worker or provider.
+- D. Confirm workers.dev and preview URLs cannot bypass Access.
+- E. Confirm the owner can sign in and use the existing application.
+- F. Only then deploy the experimental artifact to the existing Worker with the block runtime switch off.
+- G. Record the deployed baseline and rehearse rollback to 7ff13c9.
+- H. Run zero-cost scripted-mode and accessibility checks.
+- I. Stop before any hosted canary or paid provider call."
+
+"Do not implement shared-password authentication unless Cloudflare Access OTP is shown to be unworkable. If that happens, stop and propose a separate edge-auth design; never use a cosmetic client-side password gate." The owner's exact email is the only human-access value still needed; it is not inferred, and it is not recorded in this repository.
+
+**The canary**, two future options, as the owner set them:
+- recommended: "create a narrowly scoped, short-lived Access service token immediately before the canary and revoke it immediately afterward;"
+- alternative: "remain at CONDITIONAL GO and do not call the release an official live beta until another secure harness-authentication method is approved."
+
+"Do not start another general hardening cycle. Only release blockers from the previously frozen severity classes may generate additional implementation work."
+
+How these are applied: [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md). Until the cutover change merges, `main` still carries the separate beta Worker's config and workflow (`wrangler.composer-beta.jsonc`, `.github/workflows/deploy-composer-beta.yml`). They are superseded: no beta Worker or hostname is to be created, and that workflow is never to be dispatched.
 
 ## Operational record
 

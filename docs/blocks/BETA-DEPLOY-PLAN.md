@@ -1,206 +1,199 @@
-# The invite-only beta: deployment plan
+# The invite-only beta: single-host deployment plan
 
-**Phase 2, step 7** ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §4 and §12). Prepared on 2026-10-17. **Nothing in it has been applied.** No Cloudflare setting has changed, nothing has been deployed to the beta, and no paid model call has been made. Cloudflare Access waits on the owner's invite list; the deploy waits on the release review ([RELEASE-REVIEW.md](RELEASE-REVIEW.md)), the manual checks ([MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md)) and Access; the canary waits on the owner's explicit authorization.
+**Phase 2, step 7** ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §4 and §12), revised on 2026-10-17 for the owner's single-host amendment ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "The single-host amendment"). **Nothing in it has been applied.** No Cloudflare setting has changed, the experimental artifact has not been deployed, and no paid model call has been made.
 
-The design is unchanged from steps 2 to 6 ([../deployment.md](../deployment.md), "The beta composer"):
-- a separate beta Worker and hostname serving the experimental artifact;
-- Astryx only;
-- the user preference off by default;
-- the block runtime switch off at first;
-- the production artifact kept free of block code;
-- independent rollback anchors and kill switches.
+## The decision
 
-What is new is the audience: the owner wants AF Composer itself to be invite-only, so Access protects production's hostname as well as the beta's, under one allowlist.
+The invite-only beta runs on the existing Composer: the hostname `composer.aesthetic-function.com` and its Worker `dspack-studio-composer`. **No new hostname, subdomain or Worker is created.** At cutover the existing public Composer becomes the invite-only beta, behind Cloudflare Access with email one-time PIN, admitting at first only the owner's exact email. There is no shared password and no client-side password screen.
 
-## What deploys
+This amends the release plan's recommendation of a separate beta origin. The owner accepted these consequences:
+- **No independent controls.** Production and the beta no longer have independent hostnames, Workers or rollback controls: they are one.
+- **No anonymous Composer.** Applying Access removes anonymous access to the existing Composer.
+- **The experimental artifact takes the origin.** The experimental artifact will replace the default artifact on the current live origin.
+- **The block-free anchor stays.** The default block-free artifact and the release candidate remain available as the rollback anchor, and rollback restores the block-free release candidate on the same hostname.
+- **Shared storage.** Browser storage is shared with the existing origin, so testers start from packaged reference projects or fresh Example sessions.
+- **Access first.** Access must be active and verified before the experimental artifact is deployed.
+- **No bypass.** workers.dev and Preview URLs must be disabled or proven inaccessible, so they cannot bypass Access.
+- **No conformance claim.** No claim of full WCAG 2.2 AA conformance is made during this invite-only beta.
 
-| | Production | Beta |
-|---|---|---|
-| Hostname | `composer.aesthetic-function.com` | `composer-beta.aesthetic-function.com` (the owner's choice, 2026-10-16) |
-| Worker | `dspack-studio-composer` | `dspack-studio-composer-beta` |
-| Config | `wrangler.jsonc` | `wrangler.composer-beta.jsonc` |
-| Artifact | `apps/composer/out`, the default build: no block code (`check-default-artifact`, 15 markers) | `apps/composer/out-experimental`: the block code, behind the preference and the switch |
-| Deploys by | Workers Builds, on every merge to `main` | only the dispatched `deploy-composer-beta` workflow, from `main`, through the protected `composer-beta` environment |
-| Other entry points | workers.dev and Preview URLs: confirm off (below) | `workers_dev: false`, `preview_urls: false`, held by `check-beta-deploy` |
-| References offered | n/a | Astryx only (`BETA_REFERENCES` in `apps/composer/worker/blocks-beta.mjs`; shadcn/ui v3 would need a code change) |
-| Block switch | none (`/api/models` byte-identical, pinned by a test) | `BLOCKS_BETA`, Text, set in the dashboard; off at first |
-| Hosted kill switch | `HOSTED_AI` in `wrangler.jsonc` (`on`) | `HOSTED_AI` in the dashboard (absent means on) |
-| Rollback | `npx wrangler rollback --config wrangler.jsonc <version id>`, or the dashboard | `npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc <anchor version id>`, or the dashboard |
+## What can proceed now, and what is blocked
 
-**The release candidate.** `main` at `7ff13c96c7b0ef6d8d7bacc91b9e3c2d839a771c` (tree `2c89ef980b27938f64a29687b0056aed45fe4097`), frozen on 2026-10-17 ([RELEASE-REVIEW.md](RELEASE-REVIEW.md)). The workflow deploys whatever `main` holds when it is dispatched, so nothing merges to `main` before the first beta deploy, except a documentation-only commit the owner approves (below).
-
-## Cloudflare Access (proposed, not applied)
-
-### Before applying it
-
-1. **Confirm that no other entry point bypasses Access.** Access protects hostnames. A Worker's `workers.dev` URL or a Preview URL would reach the same Worker without it.
-   - The beta's config turns both off, and `check-beta-deploy` refuses a config that turns either on.
-   - Production's `wrangler.jsonc` sets neither. Wrangler 4.146.0, on each deploy of a Worker whose config has a custom-domain route and no `workers_dev`, turns workers.dev off and leaves Preview URLs to follow it (`subdomainDeploy` in wrangler's `cli.js`). The Workers Builds comments on pull requests show no Preview URL. That is inference, not proof: **in the dashboard, Workers & Pages → `dspack-studio-composer` → Settings → Domains & Routes, confirm that workers.dev and Preview URLs are both disabled**, and disable either that is not. If either was enabled, Composer was reachable without Access, and that is a blocking finding (an invite-access bypass).
-2. **The zone already answers the beta's hostname.** On 2026-10-17, `composer-beta.aesthetic-function.com` and a made-up name under the zone both answered HTTP 522 from Cloudflare: the zone has a proxied wildcard record, and no Worker serves the beta hostname. So an Access application can protect the beta hostname before the beta Worker exists, and should ([../deployment.md](../deployment.md), "The first deploy").
-
-### The configuration
-
-**One allowlist policy for people, used by both hostnames.** In Zero Trust → Access → Policies, a reusable policy:
-
-| Setting | Value |
+| Can proceed now (no cost) | Blocked |
 |---|---|
-| Name | `AF Composer invite allowlist` |
-| Action | Allow |
-| Include | **Emails**: exactly the addresses the owner provides, one per invited person, the owner's own included. No email-domain rule, no "Everyone", no identity-provider group, no IP range, no country rule. |
-| Require | none, unless the owner chooses a login method to require (below) |
-| Exclude | none |
-| Session duration | 24 hours (recommended) |
+| This documentation, merged | **Access (A, B)** waits on the owner, who enters their own exact email in the policy. It is not recorded in this repository |
+| The cutover change, prepared for review and not merged or deployed (below) | **The experimental deploy (F)** waits on A to E, then on merging the cutover change |
+| The manual accessibility packet, ready for testers ([MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md)) | **The beta baseline by the harness, and the hosted canary**, wait on a temporary machine credential, which the owner has not authorized (below) |
+| | **Calling it an official beta** waits on the canary and on the minimum manual checks |
 
-**Two self-hosted applications, each with only that policy:**
+## Before and after the cutover
 
-| Application | Destination | Path | Policies |
-|---|---|---|---|
-| `AF Composer` | `composer.aesthetic-function.com` | empty (the whole hostname, `/api/*` and the static assets included) | `AF Composer invite allowlist` |
-| `AF Composer beta` | `composer-beta.aesthetic-function.com` | empty (the whole hostname) | `AF Composer invite allowlist` (and, if approved, the machine policy below) |
+| | Today, at the release candidate | After the cutover |
+|---|---|---|
+| Hostname | `composer.aesthetic-function.com`, public | the same hostname, behind Access |
+| Worker | `dspack-studio-composer` | the same Worker |
+| Artifact served | `apps/composer/out`, the default build, with no block code | `apps/composer/out-experimental`, with the block code behind the per-user preference (off by default) and the block switch (off) |
+| How it deploys | Workers Builds, from `main`, through `wrangler.jsonc` | the experimental artifact only through the dispatched, Access-gated workflow the cutover change adds; Workers Builds keeps deploying the block-free default artifact from `main` |
+| Switches | `HOSTED_AI` declared in `wrangler.jsonc` | `BLOCKS_BETA`, `HOSTED_AI` and `BETA_OPERATOR_LOG` in the dashboard, kept across every deploy |
+| Rollback | `wrangler rollback` to a previous version, or a redeploy of a previous commit ([../deployment.md](../deployment.md)) | to the recorded anchor: the block-free deployment of the release candidate's code, on the same hostname |
 
-Two applications keep each hostname's Access settings and logs apart, and match the workflow's expectation that the beta's application covers the whole hostname. One application with both hostnames as destinations would also satisfy "one policy for both". Either way there is exactly one policy for people. Keep the applications out of the App Launcher, and leave CORS settings off: the app calls only its own origin.
+**The release candidate** is `main` at `7ff13c96c7b0ef6d8d7bacc91b9e3c2d839a771c` ([RELEASE-REVIEW.md](RELEASE-REVIEW.md)). Its block-free artifact is what production serves today, and the rollback anchor is that artifact's deployment. Until the cutover change merges, `main` still carries a separate beta Worker's config and workflow (`wrangler.composer-beta.jsonc`, `.github/workflows/deploy-composer-beta.yml`). They are superseded: the workflow must never be dispatched.
 
-**Machine access (a separate decision).** The canary harness and the zero-cost baseline capture call the beta without a browser, so they need an Access service token. Access admits a service token through a policy whose action is Service Auth, not through an Allow policy for people. Proposed, for the owner to approve or refuse:
-- a service token `composer-beta-canary`, with the shortest duration the dashboard offers, revoked once the canary is done, and stored only as `CF_ACCESS_CLIENT_ID_BETA` and `CF_ACCESS_CLIENT_SECRET_BETA` on the machine that runs the harness;
-- a policy `composer-beta canary token`, action Service Auth, Include: that service token only, attached to `AF Composer beta` only. Never to production.
+## The cutover order
 
-Without it, nothing automated can reach the beta: not the baseline, not the canary. The alternative is a manual baseline in a signed-in browser, and no canary.
+Each step has its owner and its check. A step starts only when the one before it passed.
 
-**Login method.** One-time PIN works for any email address with no identity provider. If a GitHub or Google identity provider is already set up in Zero Trust, it can be used instead; the allowlist matches the email the provider returns.
+**A. Configure Cloudflare Access on `composer.aesthetic-function.com`** (owner, dashboard). Zero Trust → Access → Applications → Add an application → Self-hosted:
+- application name `AF Composer`;
+- one public hostname, `composer.aesthetic-function.com`, with the path empty, so the whole hostname is covered, `/api/*` and the static assets included;
+- keep it out of the App Launcher, and leave CORS settings off: the app calls only its own origin.
 
-### What changes for production when Access is on
+**B. Allow only the owner's exact email, through one-time PIN** (owner, dashboard):
+- Zero Trust → Settings → Authentication → Login methods: add **One-time PIN**.
+- On the application, one policy:
+  - action **Allow**;
+  - Include: **Emails**, holding exactly the owner's own address;
+  - no email-domain rule, no "Everyone", no group, no IP range;
+  - session duration 24 hours.
+- Choose One-time PIN as the application's login method. If it is the only one, Access skips the identity-provider picker.
+- Tester addresses are added to the same Include list later.
+- No service token, and no Service Auth policy.
 
-- Anyone not on the allowlist gets the Access login instead of Composer, including from public links to `composer.aesthetic-function.com`. That is the owner's intent.
-- `/api/models` and `/api/propose` sit behind Access too, so hosted generation becomes invite-only as well. The app's own requests are same-origin and carry the Access cookie.
-- The Studio exhibit, the af-site and the local agent are other hostnames or the visitor's own machine, and are unaffected.
-- Anonymous checks of production stop working: the build-id read, the `/api/models` comparison and the live-artifact scan used after each merge (this review's post-merge record) all meet the login. Production verification after Access needs a signed-in browser, or a production service token, which is not proposed now (backlog).
-- The `deploy-composer` workflow's production smoke (never dispatched) would fail behind Access for the same reason (backlog).
-
-### Verify after applying (no credentials, no cost)
-
-From any machine whose Node reaches the internet directly:
+**C. Confirm that anonymous GET and POST requests are denied before they reach the Worker or the provider** (anyone; no cost). From a machine whose Node reaches the internet directly:
 
 ```sh
-node apps/composer/scripts/check-beta-deploy.mjs --access=after       # the beta hostname
 node --input-type=module -e '
   import { checkAccess } from "./apps/composer/scripts/check-beta-deploy.mjs";
   const problems = await checkAccess("https://composer.aesthetic-function.com", { phase: "after", attempts: 1 });
-  console.log(problems.length ? problems.join("\n") : "production: anonymous requests go to the Cloudflare Access login");
+  console.log(problems.length ? problems.join("\n") : "GET: anonymous requests go to the Cloudflare Access login");
   process.exit(problems.length ? 1 : 0);'
+curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' -X POST -H 'content-type: application/json' -d '{}' https://composer.aesthetic-function.com/api/propose
 ```
 
-Each probes `/`, `/api/models` and a static-asset path anonymously, and passes only on a redirect to the Access login. The paid endpoint is a POST, which those probes do not send, so check it too; the Worker would answer an empty body with its own 400 JSON, and Access must answer first:
+The first probes `/`, `/api/models` and a static-asset path, and passes only on a redirect to the Access login. The POST must answer with a redirect to the Access login, or Access's own 401 or 403, never the Worker's `400` JSON: an empty body reaches no model even when the Worker answers, but the Worker must not answer at all. (The cutover change adds the POST to `checkAccess`, and renames the script; this command is the one that works on `main` today.)
+
+**D. Confirm that workers.dev and Preview URLs cannot bypass Access** (owner, dashboard):
+- Workers & Pages → `dspack-studio-composer` → Settings → Domains & Routes: **workers.dev disabled** and **Preview URLs disabled**. Disable either that is not.
+- Today's `wrangler.jsonc` sets neither. Wrangler 4.146.0, on a deploy of a Worker whose config has a custom-domain route and no `workers_dev`, turns workers.dev off and lets Preview URLs follow it, and the Workers Builds comments on pull requests show no Preview URL. That is inference, not proof; the dashboard is the proof.
+- The cutover change then sets `workers_dev: false` and `preview_urls: false` in both configs, held by a test, so every deploy keeps them off.
+
+**E. Confirm that the owner can sign in and use the existing application** (owner). In a private window:
+- open `https://composer.aesthetic-function.com`, receive the one-time PIN, sign in, and run a **scripted** build (no model call);
+- `/api/models` still reads exactly `{"models":["scripted","hosted-ai"]}`;
+- an address not on the list is refused.
+
+**F. Only then deploy the experimental artifact to the existing Worker, with the block switch off.**
+1. **Merge the cutover change** (owner's approval). Workers Builds redeploys the block-free default artifact from `main`, now with the hardened config. Record that deployment's version id: it is the rollback anchor, built from the release candidate's application code.
+2. **Dispatch the experimental workflow** from `main` (owner). Before it deploys, it:
+   - re-runs C and refuses unless anonymous GET and POST requests already go to the Access login;
+   - records the active version as the anchor, and refuses to deploy without one;
+   - checks both configs, and that the built artifact carries the block code and the switch.
+
+   It deploys `apps/composer/out-experimental` to `dspack-studio-composer` with pinned wrangler, then checks Access again.
+3. **Leave `BLOCKS_BETA` unset, or set it as Text to the disabled value:** `{"enabled":false,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}`. Either way no block is offered, and the build's note says why.
+
+**G. Record the deployed baseline, and rehearse rollback to the release candidate** (owner):
+- **Baseline, by hand.** The harness cannot pass Access without a machine credential, so in the signed-in browser record:
+  - the build id: the page source's flight payload `"b":"…"`;
+  - `/api/models`;
+  - the Worker's refusal of an empty body: in the console, `await (await fetch("/api/propose",{method:"POST",headers:{"content-type":"application/json"},body:"{}"})).json()`. It reaches no model; expect `invalid-request`, `calls: []` and `capabilities` naming `per-call-model`;
+  - Settings → Experimental's sidecar status lines.
+- **Rehearsal.**
+  1. Roll back to the anchor: Workers & Pages → `dspack-studio-composer` → Deployments → the anchor version → Rollback, or `npx --yes wrangler@4.146.0 rollback --config wrangler.jsonc <anchor version id>`. Always name the anchor: each variable change in the dashboard deploys a new version.
+  2. Confirm the page is the default build: Settings has no Experimental section.
+  3. Roll forward to the experimental version the same way, and set the switches again: a rollback can restore the variables a version had.
+  4. Record both version ids and times.
+
+**H. Run the zero-cost checks** (owner, then the testers):
+- scripted builds only;
+- with the preference on and the switch off, the build's note says blocks are switched off;
+- an Example session's export and import keep working;
+- then, with the switch turned on for the test window only, the minimum manual accessibility checks ([MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md)), still in scripted mode. Turning the switch on is the owner's decision at that point. Scripted mode reaches no model.
+
+**I. Stop before any hosted canary or paid provider call.** Hosted builds are possible once a person is signed in, because `HOSTED_AI` stays on, so the beta's own testing uses scripted mode until the owner decides otherwise.
+
+## The cutover change (prepared, not merged)
+
+A pull request, opened for review and never deployed by itself. Its merge redeploys only the block-free default artifact. It:
+- **retargets the experimental deploy at the existing Worker.** `wrangler.composer-beta.jsonc` becomes `wrangler.composer-experimental.jsonc`:
+  - name `dspack-studio-composer` and route `composer.aesthetic-function.com`;
+  - assets `./apps/composer/out-experimental`;
+  - `workers_dev: false`, `preview_urls: false` and `keep_vars: true`;
+  - no vars;
+  - production's rate-limit namespace.
+- **hardens `wrangler.jsonc`.** It keeps the default artifact, the Workers Builds path and the rollback anchor's source, and adds `workers_dev: false`, `preview_urls: false` and `keep_vars: true`. It moves `HOSTED_AI` to the dashboard: absent means on, and the value already set there is kept.
+- **retargets the workflow.** `deploy-composer-beta.yml` becomes `deploy-composer-experimental.yml`:
+  - dispatch-only, from `main`, through a protected `composer-experimental` environment;
+  - no `first_deploy`: the Worker exists, so an anchor is always required;
+  - the Access check before the deploy, which now fails on a hostname that does not resolve.
+- **retargets the guard.** `check-beta-deploy.mjs` becomes `check-experimental-deploy.mjs`:
+  - both configs target the same Worker and hostname;
+  - the default config serves `out/` and the experimental config serves `out-experimental/`;
+  - both keep workers.dev and Preview URLs off, both keep vars and declare none, and neither declares `BLOCKS_BETA`;
+  - the Access check also POSTs to `/api/propose`.
+- **retargets the tests and the code-describing docs.** It updates the guard's tests and `operator-log.test.mjs` (neither config declares vars), and rewrites the beta's runbook in `docs/deployment.md` for the single host.
+
+Nothing in the application, the Worker's code, the block code or the request builders changes. The experimental artifact it deploys is the release candidate's.
+
+**Workers Builds and the beta.** Workers Builds keeps deploying the block-free default artifact on every merge to `main`. Once the beta is live, a merge therefore replaces it with the block-free artifact, an automatic rollback, until the experimental workflow is dispatched again. For the beta's duration the owner can turn off automatic production-branch builds in the Worker's build settings, so that `main` deploys only when dispatched.
+
+**The owner's GitHub and Cloudflare setup for F.** The `composer-experimental` GitHub environment needs:
+- the owner as required reviewer;
+- deployment branches limited to `main`;
+- the secret `CLOUDFLARE_API_TOKEN_EXPERIMENTAL`: a new account-owned token, never the repository's production `CLOUDFLARE_API_TOKEN`, as step 2 decided. It needs only Editor on the one Worker `dspack-studio-composer`, plus Workers Routes Write on the `aesthetic-function.com` zone, which the custom domain needs. The distinct name makes the workflow refuse when the secret is missing, instead of reaching the repository-level token;
+- the variable `CLOUDFLARE_ACCOUNT_ID` (a token scoped to one Worker cannot look the account up).
+
+If step 2's `composer-beta` environment or its `CLOUDFLARE_API_TOKEN_BETA` was ever created, delete both: nothing uses them after the cutover change.
+
+## Rollback
+
+- **To the anchor, exactly:** the dashboard's Deployments, or `wrangler rollback <anchor version id>`. It restores the block-free release candidate on the same hostname within seconds.
+- **To stay rolled back:** with Workers Builds connected, any later merge deploys the block-free default artifact from `main` anyway. Dispatch the experimental workflow only when the beta should return. Reverting the cutover change removes the experimental path altogether.
+- **Browser data survives a rollback.** The preference key and block provenance written by the experimental build stay in each browser. The default build ignores the preference (a seeded preference changes nothing, `e2e/composer-prod-smoke.spec.ts`) and never reads the provenance store. Removing a project deletes its provenance in every build.
+- **Stopping without a rollback:**
+  - blocks only: `BLOCKS_BETA` disabled;
+  - hosted generation: `HOSTED_AI` set to `off`.
+
+  Both are kept across deploys after the cutover change.
+
+## Storage
+
+The beta shares the existing origin's browser storage. A tester who used Composer before keeps their projects. The beta instructions therefore tell testers to start from a packaged reference project or a fresh Example session: imported projects are never offered blocks, and a project edited before the beta may not be eligible.
+
+## The hosted canary (blocked)
+
+The canary is the only decision-grade check of the beta ([BETA-OPERATIONS.md](BETA-OPERATIONS.md), "The canary"). It needs the harness to pass Access, which needs a machine credential. The owner has not authorized one, so **the hosted canary is blocked**, and the release cannot be called an official live beta. Two future options, as the owner recorded them:
+1. **Recommended:** create a narrowly scoped, short-lived Access service token immediately before the canary, and revoke it immediately afterward. This needs:
+   - a Service Auth policy on the `AF Composer` application that includes only that token;
+   - the small harness-only change that sends `CF-Access-Client-Id` and `CF-Access-Client-Secret` from the environment. It is never logged or recorded, and touches neither artifact.
+2. **Alternative:** stay at CONDITIONAL GO, and do not call the release an official live beta, until another secure harness-authentication method is approved.
+
+If option 1 is authorized, the Stage 1 command is the systems smoke on the beta's one reference: 16 cells, all four arms, fresh prompts.
 
 ```sh
-for h in composer.aesthetic-function.com composer-beta.aesthetic-function.com; do
-  curl -sS -o /dev/null -w "$h %{http_code} %{redirect_url}\n" -X POST -H 'content-type: application/json' -d '{}' "https://$h/api/propose"
-done
-```
-
-Each must answer with a redirect to the Access login (or Access's own 401 or 403), never the Worker's 400. The Worker does not check Access's token itself; Access covering the whole hostname is the boundary. Then, in a private browser window:
-- sign in with an allowlisted address: Composer loads on both hostnames;
-- sign in with an address not on the list: Access refuses it on both.
-
-## The invite information needed from the owner
-
-1. **The exact email addresses to allow**, the owner's included. Not domains: the policy lists people.
-2. **The login method:** One-time PIN, or a named identity provider already configured in Zero Trust.
-3. **Session duration**, if not 24 hours.
-4. **The machine policy:** approve or refuse the beta-only service token for the baseline and the canary.
-5. **The test window's list,** if different: who is on the allowlist while the manual checks and the canary run, before the wider invitations ([MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md)).
-6. **Confirmation of the dashboard check above** (workers.dev and Preview URLs off on production's Worker).
-
-## Prerequisites before the first dispatch
-
-1. Access applied and verified on both hostnames, as above.
-2. The `composer-beta` GitHub environment, as `docs/deployment.md` lists: the owner as required reviewer, deployment branches limited to `main`, the secret `CLOUDFLARE_API_TOKEN_BETA` and the variable `CLOUDFLARE_ACCOUNT_ID`. The token is account-owned and never production's. It needs Admin at the Workers scope for the first deploy only (which creates the Worker), then Editor on `dspack-studio-composer-beta` plus Workers Routes Write on the zone.
-3. The gateway: Cloudflare's daily spend limit at $10 with auto top-up off, and `ds-ai-gateway`'s Retry Requests off.
-4. The release review passes, apart from the items that need the deployed beta.
-5. `main` is still the release candidate, or a documentation-only successor the owner approved. Check: `git diff --stat 7ff13c9 origin/main -- . ':(exclude)docs'` prints nothing.
-6. For the baseline and the canary: the harness can send the beta's service token. Today it cannot (`packages/block-bench/live/preflight.ts` and `providers/hosted.ts` send no Access headers); [BETA-OPERATIONS.md](BETA-OPERATIONS.md) records this as a later, separately authorized change. It is harness-only, never part of either artifact, and can run from its own branch, so it does not touch the release candidate.
-
-## Deploy, with the block switch off
-
-0. **Access first, proved before the dispatch.** A first deploy skips the workflow's pre-deploy Access check, the Worker answers hosted requests as soon as it exists (`HOSTED_AI` absent means on), and nothing undoes a deploy whose post-deploy check fails. So with Access applied, run `node apps/composer/scripts/check-beta-deploy.mjs --access=before` and the POST probe above: both must show the Access login. Today, before Access, the first fails on the zone's 522, as it should.
-1. Dispatch `deploy-composer-beta` from `main`: `confirm` = `deploy-composer-beta`, `first_deploy` checked. It builds the experimental artifact, runs `check-beta-deploy` (both configs, and an artifact that carries the block code and the switch), deploys with wrangler 4.146.0, records the new version, and checks that anonymous requests go to the Access login.
-2. In the dashboard, on `dspack-studio-composer-beta`, set `BLOCKS_BETA` as type **Text** to:
-   ```json
-   {"enabled":false,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}
-   ```
-   Off on purpose: the beta's `/api/models` then reports `"blocks":{"enabled":false,"reason":"disabled"}` instead of no field at all.
-3. Leave `HOSTED_AI` unset (on): the baseline's zero-cost probe needs the Worker to reach its 400 refusal, which `HOSTED_AI=off` would pre-empt with a 503.
-4. Set `BETA_OPERATOR_LOG` to exactly `on`, as type **Text**. The stop conditions read the served model, the usage and the provider errors from this shape-only log ([BETA-OPERATIONS.md](BETA-OPERATIONS.md), "Alarms"), and no endpoint shows whether it is on. The baseline's refused probe (below) writes one line, which confirms it in Workers Logs at no cost. Production never sets it.
-
-## Baseline and rollback anchors
-
-- **Beta anchor.** The first deploy has none: the workflow records the version it created. The second deploy (the rehearsal, below) records the first as its anchor.
-- **Production anchor.** Production's current version is the deployment of `7ff13c9` (build `gKkER1t3h4vi7NqRO7_Yh`, live from 2026-10-17T12:37:01Z). The owner records its version id from the dashboard or `npx wrangler deployments list --config wrangler.jsonc`. Production and the beta roll back independently.
-- **Beta baseline.** With the service token:
-  ```sh
-  CF_ACCESS_CLIENT_ID_BETA=… CF_ACCESS_CLIENT_SECRET_BETA=… \
-    pnpm --filter @dspack-studio/block-bench baseline --base-url https://composer-beta.aesthetic-function.com --out <file>
-  ```
-  Four requests, none of which reaches a model ([BASELINE.md](BASELINE.md)). Keep the record beside the canary's run, never over `docs/blocks/baseline.json`.
-
-## Rollback rehearsal (once)
-
-1. Dispatch `deploy-composer-beta` again, without `first_deploy`: same release candidate, a second version, with the first recorded as its anchor.
-2. Roll back to the anchor: Workers & Pages → `dspack-studio-composer-beta` → Deployments → the anchor version → Rollback; or `npx --yes wrangler@4.146.0 rollback --config wrangler.composer-beta.jsonc <anchor version id>` with the beta token. Always name the anchor: each variable change in the dashboard deploys a new version, so "the previous version" may be another one.
-3. Set `BLOCKS_BETA` (off), `HOSTED_AI` and `BETA_OPERATOR_LOG` again as above: a rollback can bring back the variables the anchor had.
-4. Run the zero-cost smoke. Record the anchor, the rollback time and the smoke result.
-
-## Zero-cost smoke
-
-No model call, no cost:
-1. The two Access checks above: anonymous requests go to the login on both hostnames.
-2. Signed in, on the beta:
-   - `/api/models` is exactly `{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"disabled"}}`;
-   - the page loads; in a fresh browser profile, Settings → Experimental shows the blocks preference off;
-   - a scripted build completes; with the preference on, the build's note says blocks are switched off.
-3. Signed in, on production: the page loads, and `/api/models` is exactly `{"models":["scripted","hosted-ai"]}`.
-4. The beta baseline above.
-5. Workers Logs shows the baseline probe's operator-log line: `"event":"composer.propose"`, `status` 400, `calls` empty.
-
-## The Stage 1 canary (proposed; not authorized)
-
-ADR-B3's systems smoke ([ADR-B3-ADDENDUM.md](ADR-B3-ADDENDUM.md), "The stages"), on the beta's one reference: fresh prompts `rt-01`, `af-01`, `gs-01` and `nb-01`, all four arms, Astryx only, 16 cells. It is systems evidence, never decision evidence. It needs the harness's service-token support (prerequisite 6), and runs only on the owner's explicit authorization:
-
-```sh
-CF_ACCESS_CLIENT_ID_BETA=… CF_ACCESS_CLIENT_SECRET_BETA=… \
+CF_ACCESS_CLIENT_ID=… CF_ACCESS_CLIENT_SECRET=… \
 pnpm --filter @dspack-studio/block-bench eval:live -- --provider hosted \
-  --base-url https://composer-beta.aesthetic-function.com \
+  --base-url https://composer.aesthetic-function.com \
   --reference astryx --conditions fresh --prompts rt-01,af-01,gs-01,nb-01 \
   --max-total-requests 80 --max-requests 80 --max-total-usd 5 --spacing-ms 12000
 ```
 
-- **Caps.** At most 80 requests. A dollar ceiling of $5.00, the smallest whole-dollar ceiling the harness accepts: it admits a cell only while the committed spend plus the cell's absolute worst case ($4.472832) fits under the ceiling, and a request only while the committed spend plus $1.118208 fits. 80 requests leave room for every cell at four requests each.
-- **Expected cost: about $0.20.** The Option B systems smoke's 16 Astryx cells settled at $0.1833 at reported usage (2026-10-12, corpus v1, served by `claude-haiku-4-5-20251001`). **Maximum: $5.00**, the harness's hard ceiling, inside the beta's $8 pause line and the $10 daily limit.
-- **Time:** about 10 minutes at 12-second spacing.
-- **Clean means:** the run completes 16 cells; no integrity stop (every provider-reached call reports usage and its served model; one model throughout, Claude Haiku 4.5); the preflight equals the beta baseline apart from its time; and no request leaves the reservation it was priced at.
-- **Stops:** any integrity stop ends the run and is an alarm ([BETA-OPERATIONS.md](BETA-OPERATIONS.md)): disable blocks, keep them off, and report. The run is never resumed without the owner.
+- **Caps.** At most 80 requests, and a $5.00 hard ceiling: the smallest whole-dollar ceiling the harness accepts, since it admits a cell only while the committed spend plus the cell's absolute worst case ($4.472832) fits.
+- **Expected cost: about $0.20.** The Option B systems smoke's 16 Astryx cells settled at $0.1833 (2026-10-12).
+- **Time:** about 10 minutes.
+- **Clean means:** 16 cells; no integrity stop; one served model; and the preflight equal to the beta's baseline apart from its time.
 
 ## The invitation
 
-Settings in the release candidate calls the build "experimental" but never "beta", and lists no known gaps (the release review, criteria 25 and 26). Until that copy changes, the invitation carries both. A draft, in AF voice:
+Settings at the release candidate says "experimental build", never "beta", and lists no known gaps (the release review, criteria 25 and 26), so the invitation carries both. A draft:
 
 > You are invited to the AF Composer experimental beta. It is invite-only and not generally available.
 >
-> Composer: https://composer.aesthetic-function.com. The beta, with interface blocks on Astryx: https://composer-beta.aesthetic-function.com. Sign in with this email address.
+> Open https://composer.aesthetic-function.com and sign in with this email address; you will receive a one-time code. To try interface blocks, go to Settings, Experimental, and turn on "Use interface blocks when a goal matches one". Start from the Astryx reference project or a fresh Example session: projects you made before, and imported projects, may not be offered blocks.
 >
-> To try blocks, open the beta, go to Settings, Experimental, and turn on "Use interface blocks when a goal matches one". Start from the Astryx reference project or an Example session. Imported projects, local models and shadcn/ui projects are not offered blocks.
->
-> Known gaps: the auth-form block does not state its fields' input purpose (WCAG 2.2 SC 1.3.5), so a host must restore it; never type a real password into a preview. Fields' resting borders are low contrast. The beta does not claim full WCAG 2.2 AA conformance. Its storage is separate from Composer's. The full list: https://github.com/aestheticfunction/dspack-studio/blob/main/docs/blocks/BETA.md
+> Known gaps: the auth-form block does not state its fields' input purpose (WCAG 2.2 SC 1.3.5), so a host must restore it; never type a real password into a preview. Fields' resting borders are low contrast. The beta does not claim full WCAG 2.2 AA conformance. The full list: https://github.com/aestheticfunction/dspack-studio/blob/main/docs/blocks/BETA.md
 >
 > Reply to this email with anything that confuses you or gets in your way.
 
-## After a clean canary
-
-Recommend enabling Astryx blocks, in two moves the owner controls:
-1. Turn the switch on, as Text: `{"enabled":true,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}`. Every user still opts in through the preference. If the owner wants criterion 25 met literally before the in-product copy changes ("the beta does not ship auth-form without" its exception shown), list only `"records-table","guide-steps"` until it does.
-2. While the allowlist holds only the owner and the testers, run the minimum manual checks ([MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md)). Only when they pass is the release an official beta, and only then does the allowlist grow.
-
-The stop conditions and alarms stay as the owner set them ([../deployment.md](../deployment.md), "Stop conditions"; [BETA-OPERATIONS.md](BETA-OPERATIONS.md), "Alarms").
-
 ## Not part of this closeout
 
-The UI redesign is the next planning phase, informed by the invite-only beta's feedback ([POST-BETA-BACKLOG.md](POST-BETA-BACKLOG.md)).
+The UI redesign is the next planning phase, informed by the invite-only beta's feedback ([POST-BETA-BACKLOG.md](POST-BETA-BACKLOG.md)). It does not block this closeout.

@@ -50,6 +50,7 @@ The top-level `model` is not always a served model. The Worker sets it to the mo
 **The variable.** `BETA_OPERATOR_LOG` on the beta Worker. The log is on only when the Worker sees exactly the string `on`, so set it in the dashboard as type Text. A JSON variable holding the string `"on"`, or a secret set to `on`, would turn it on too, so use neither. Anything else (`ON`, `true`, `1`, an empty value) or no variable at all writes nothing:
 - **Production never sets it.** Production's `wrangler.jsonc` does not name it, and a test holds it there.
 - **The beta's config declares no vars.** `wrangler.composer-beta.jsonc` keeps the dashboard's (`keep_vars: true`), so a deploy never resets the variable. To stop the log, delete the variable or set it to anything else; the next request writes nothing.
+- **Under the single-host amendment** the beta is production's Worker, `dspack-studio-composer`, so after the cutover the variable lives there, set by the owner in the dashboard. The cutover change makes both of that Worker's configs keep the dashboard's vars and declare none, so no deploy sets or resets it, and a test holds both configs so. The separate beta Worker the line above names is superseded and never existed ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md)).
 
 **The line.** One JSON line per `/api/propose` request, written with `console.log` after the reply is made, which Workers Logs keeps (`observability` is on in both configs). The fields, in this order:
 
@@ -114,11 +115,11 @@ The canary is the only source of decision-grade numbers about the beta. The owne
 
 ```sh
 pnpm --filter @dspack-studio/block-bench eval:live -- --provider hosted \
-  --base-url https://composer-beta.aesthetic-function.com \
+  --base-url https://composer.aesthetic-function.com \
   --max-total-requests <n> --max-total-usd <dollars> --max-requests <n> --spacing-ms 3000
 ```
 
-**Prerequisite, not built yet.** The beta is to sit behind Cloudflare Access ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md); not applied yet), and the harness sends no Access credentials. A canary cannot reach the beta until the harness can send the Access service token reserved for this, `CF_ACCESS_CLIENT_ID_BETA` and `CF_ACCESS_CLIENT_SECRET_BETA` ([../deployment.md](../deployment.md), "The beta composer"). That support is a later, separately authorized change; until it lands, no canary runs.
+**Blocked: no machine credential.** Under the owner's single-host amendment the beta is the existing Composer, which is to sit behind Cloudflare Access ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md); not applied yet). The harness sends no Access credentials, and the owner has not authorized a service token. So no canary runs until the owner authorizes a temporary machine credential: recommended, a narrowly scoped, short-lived service token created just before the canary and revoked just after, with the harness-only change that sends it. The exact Stage 1 command and its caps are in [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md), "The hosted canary".
 
 **Rules.**
 - **Caps.** Every run has a request cap and a dollar ceiling across all its invocations (`--max-total-requests`, `--max-total-usd`), and a per-invocation cap and spacing. They are recorded in the run's manifest ([../../packages/block-bench/live/README.md](../../packages/block-bench/live/README.md)).
@@ -150,4 +151,4 @@ The owner watches for these. No alert is automated yet, and nothing here acts on
 
 **Provider errors and the unmetered rule.** A `provider-error` call, where the provider returned nothing, has no usage and no model by nature, and cannot show that it reached a model. The table counts it under the provider-error rules: two consecutive non-busy errors pause the beta, and busy responses count toward the 10%. It does not count it as an unmetered call: that would disable blocks at the first such error, where the owner's rules pause the beta at the second consecutive one. The canary is stricter: it stops at any call that reached, or may have reached, the provider without its usage (`live/integrity.ts`). The owner confirmed this reading on 2026-10-16 ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 5, authorized").
 
-The stop conditions are the owner's ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 2, authorized"). A pause turns blocks off and sets `HOSTED_AI` to `off` on the beta until the owner resumes it ([../deployment.md](../deployment.md), "Runbook"). A field signal that crosses a threshold is a reason to look, never a decision.
+The stop conditions are the owner's ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 2, authorized"). A pause turns blocks off and sets `HOSTED_AI` to `off` on the beta until the owner resumes it ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md), "Rollback"). Under the single-host amendment the beta is the Composer Worker, so a pause stops hosted generation for every user of Composer. A field signal that crosses a threshold is a reason to look, never a decision.

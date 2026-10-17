@@ -2,16 +2,16 @@
 
 **An experimental beta: invite-only, on Astryx only, and not generally available.**
 
-This page is what the release plan asks the beta's own page to hold ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §11): who can use it, opting in, eligibility, storage per origin, the runbook, the metrics and the known gaps. **The beta is not deployed yet.** Its deployment, Cloudflare Access and the canary wait on the owner ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md)). How it is built is in [../BLOCKS.md](../BLOCKS.md) ("The beta (Phase 2)").
+This page is what the release plan asks the beta's own page to hold ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §11): who can use it, opting in, eligibility, storage per origin, the runbook, the metrics and the known gaps. **The beta is not deployed yet.** Under the owner's single-host amendment it runs on the existing Composer, `composer.aesthetic-function.com` and its Worker, with no separate beta hostname or Worker. Cloudflare Access, the cutover and the canary wait on the owner ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md)). How it is built is in [../BLOCKS.md](../BLOCKS.md) ("The beta (Phase 2)").
 
 ## Who can use it
 
-- **Invite-only.** Cloudflare Access is to protect both `composer.aesthetic-function.com` and `composer-beta.aesthetic-function.com` with one allowlist of people the owner names (the owner's decision of 2026-10-17, [PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md)). It is not applied yet.
+- **Invite-only.** Cloudflare Access is to protect `composer.aesthetic-function.com`, with email one-time PIN, admitting at first only the owner's exact email; tester addresses are added later ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "The single-host amendment"). It is not applied yet. Once it is, the existing public Composer is no longer reachable anonymously: it becomes the invite-only beta.
 - **Not a conformance claim.** The target is WCAG 2.2 AA, but the beta does not claim full conformance: two exceptions are accepted for the invite-only beta only (below).
 
 ## Opting in
 
-1. Open `https://composer-beta.aesthetic-function.com` and sign in through Cloudflare Access.
+1. After the cutover, open `https://composer.aesthetic-function.com` and sign in through Cloudflare Access with the one-time code sent to your address.
 2. In Settings → Experimental, turn on "Use interface blocks when a goal matches one". It is off on a fresh origin.
 3. The beta's own switch must be on too. When it is off, missing or unreadable, a build offers no blocks, and the build's note says why.
 
@@ -30,22 +30,23 @@ Not in the beta (the plan's §5): positional encoding, local models, repository 
 
 ## Storage per origin
 
-- The beta is its own origin, so its browser storage is its own. Projects, worked examples, provenance and preferences saved on production do not appear in the beta, and the other way round.
-- Production projects reach the beta only by export and import, and an imported project is never offered blocks. Start from a packaged reference project or an Example session.
-- A beta export imported into production loses its block provenance: a default build drops the field.
+- **The beta shares the existing origin's browser storage.** It is the same origin as the public Composer was, so the projects, worked examples and preferences a tester saved there before are still there.
+- **Start from a packaged reference project or a fresh Example session.** An imported project is never offered blocks, and a project edited before the beta may not be eligible.
+- **Exports leave block provenance behind outside the beta.** A beta export imported into a default build, or read after a rollback to the block-free release candidate, loses its block provenance: a default build drops the field.
+- **A rollback leaves beta-only data in the browser,** the experimental preference and the provenance records. The default build ignores both.
 - A contract re-bind makes every existing provenance record for that reference inert, and its surfaces then render as ordinary surfaces (the plan's §8).
 - Clearing the beta origin's site data deletes everything the beta stored in that browser.
 
 ## The runbook
 
-For operators, in [../deployment.md](../deployment.md) ("The beta composer": the switches, the rollback and the stop conditions) and [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md) (the first deploy, the rehearsal and the canary). In short:
+For operators: [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md) (the cutover order, the rollback and the canary) and [PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md) ("Step 2, authorized": the stop conditions, which still apply). In short:
 - **Stop blocks, keep hosted builds:** set `"enabled": false` in `BLOCKS_BETA`. The next build offers none.
-- **Stop hosted generation on the beta:** set `HOSTED_AI` to `off` on the beta Worker.
-- **Roll back:** to the recorded anchor, then set both switches again. Production and the beta roll back independently.
+- **Stop hosted generation:** set `HOSTED_AI` to `off` on the Composer Worker.
+- **Roll back:** to the recorded anchor, the block-free release candidate on the same hostname, then set the switches again. There is one Worker, so a rollback affects every user of Composer.
 
 ## The metrics
 
-- **Decision-grade numbers come only from the owner-run canary,** under ADR-B3's definitions, with counts beside every rate ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §9, "Metrics the beta reports"; [BETA-OPERATIONS.md](BETA-OPERATIONS.md), "The canary").
+- **Decision-grade numbers come only from the owner-run canary,** which is blocked until the owner authorizes a temporary machine credential; it runs under ADR-B3's definitions, with counts beside every rate ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §9, "Metrics the beta reports"; [BETA-OPERATIONS.md](BETA-OPERATIONS.md), "The canary").
 - **Receipts, the operator log and diagnostics files are field data.** They can raise an alarm ([BETA-OPERATIONS.md](BETA-OPERATIONS.md), "Alarms"). They never decide anything.
 
 ## Known gaps
