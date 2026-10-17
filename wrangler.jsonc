@@ -9,9 +9,15 @@
 // (apps/composer/out); the custom domain is declared so wrangler attaches it.
 //
 // The exhibit lives in wrangler.exhibit.jsonc and deploys on its own explicit
-// cadence — the two Workers never share a config. So does the beta composer
-// (wrangler.composer-beta.jsonc), deployed only by its own dispatched workflow:
-// this config always serves the default artifact, apps/composer/out.
+// cadence — the two Workers never share a config. The invite-only beta is THIS
+// Worker serving the experimental artifact, through
+// wrangler.composer-experimental.jsonc, which only the dispatched
+// deploy-composer-experimental workflow deploys, and only once Cloudflare
+// Access protects the hostname (docs/blocks/BETA-DEPLOY-PLAN.md). This config
+// always serves the default artifact, apps/composer/out, so a merge to main
+// replaces an experimental deploy with the block-free artifact. The two configs
+// differ only in the assets directory, and a test holds them so
+// (apps/composer/lib/experimental-deploy.test.mjs).
 //
 // STATIC-FIRST with ONE governed API namespace. The composer ships the
 // pre-emitted demo project and runs the whole DETERMINISTIC pipeline
@@ -32,6 +38,16 @@
   "routes": [
     { "pattern": "composer.aesthetic-function.com", "custom_domain": true }
   ],
+  // Cloudflare Access protects the custom domain, and only it: no workers.dev
+  // or Preview URL may bypass it.
+  "workers_dev": false,
+  "preview_urls": false,
+  // No vars: keep_vars keeps the switches set in the dashboard, so no deploy
+  // resets them. HOSTED_AI is the kill switch: set it to "off" there to disable
+  // hosted AI generation (absent means on; scripted mode and the local agent are
+  // unaffected). BLOCKS_BETA and BETA_OPERATOR_LOG matter only to the
+  // experimental artifact and the operator log (docs/deployment.md).
+  "keep_vars": true,
   "assets": {
     "directory": "./apps/composer/out",
     "not_found_handling": "404-page",
@@ -52,8 +68,5 @@
   // See worker/propose.mjs rateLimited() and docs/deployment.md.
   "ratelimits": [
     { "name": "PROPOSE_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
-  ],
-  // Kill switch — flip to "off" to disable hosted AI generation without a deploy
-  // topology change (scripted mode and the local agent are unaffected).
-  "vars": { "HOSTED_AI": "on" }
+  ]
 }

@@ -1,0 +1,51 @@
+// Cloudflare Workers Static Assets: the EXPERIMENTAL artifact on the existing
+// composer Worker (dspack-studio-composer, composer.aesthetic-function.com),
+// for the invite-only beta under the owner's single-host amendment
+// (docs/blocks/BETA-DEPLOY-PLAN.md; docs/deployment.md, "The invite-only
+// beta"). It serves apps/composer/out-experimental (interface blocks behind the
+// per-user preference and the BLOCKS_BETA switch). Build it with
+// `pnpm --filter composer build:experimental`.
+//
+// Deployed ONLY by the dispatched deploy-composer-experimental workflow, from
+// main, through the protected composer-experimental environment, and only once
+// Cloudflare Access already sends anonymous requests to its login. Workers
+// Builds never reads this file: it deploys ./wrangler.jsonc, the block-free
+// default artifact, on every merge to main, which replaces an experimental
+// deploy until the workflow is dispatched again.
+//
+// This is wrangler.jsonc with one difference, the assets directory, and a test
+// holds the two so (apps/composer/lib/experimental-deploy.test.mjs):
+// - workers_dev and preview_urls are off, so no workers.dev or Preview URL
+//   bypasses Access;
+// - keep_vars keeps the switches set in the dashboard, and this file declares
+//   no vars: HOSTED_AI (the kill switch; absent means on), BLOCKS_BETA (the
+//   block switch, apps/composer/worker/blocks-beta.mjs) and BETA_OPERATOR_LOG
+//   (the operator log, apps/composer/worker/operator-log.mjs; on only when
+//   exactly "on") live only in the dashboard, so a deploy never resets any of
+//   them.
+{
+  "name": "dspack-studio-composer",
+  "compatibility_date": "2026-08-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "apps/composer/worker/index.mjs",
+  "observability": { "enabled": true },
+  "routes": [
+    { "pattern": "composer.aesthetic-function.com", "custom_domain": true }
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "keep_vars": true,
+  "assets": {
+    "directory": "./apps/composer/out-experimental",
+    "not_found_handling": "404-page",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  // The shared ds-ai-gateway, as wrangler.jsonc (worker/propose.mjs).
+  "ai": { "binding": "AI" },
+  // The composer's own per-client limit, as wrangler.jsonc: one Worker, one
+  // namespace (it does not enforce on this account yet; see wrangler.jsonc).
+  "ratelimits": [
+    { "name": "PROPOSE_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ]
+}

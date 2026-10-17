@@ -21,7 +21,7 @@ This amends the release plan's recommendation of a separate beta origin. The own
 | Can proceed now (no cost) | Blocked |
 |---|---|
 | This documentation, merged | **Access (A, B)** waits on the owner, who enters their own exact email in the policy. It is not recorded in this repository |
-| The cutover change, prepared for review and not merged or deployed (below) | **The experimental deploy (F)** waits on A to E, then on merging the cutover change |
+| The cutover change, prepared for review; the owner merges it at step F.1, after A to E (below) | **The experimental deploy (F)** waits on A to E, then on merging the cutover change |
 | The manual accessibility packet, ready for testers ([MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md)) | **The beta baseline by the harness, and the hosted canary**, wait on a temporary machine credential, which the owner has not authorized (below) |
 | | **Calling it an official beta** waits on the canary and on the minimum manual checks |
 
@@ -36,7 +36,7 @@ This amends the release plan's recommendation of a separate beta origin. The own
 | Switches | `HOSTED_AI` declared in `wrangler.jsonc` | `BLOCKS_BETA`, `HOSTED_AI` and `BETA_OPERATOR_LOG` in the dashboard, kept across every deploy but not across a rollback, which restores the variables the target version had |
 | Rollback | `wrangler rollback` to a previous version, or a redeploy of a previous commit ([../deployment.md](../deployment.md)) | to the recorded anchor: the block-free deployment of the release candidate's code, on the same hostname |
 
-**The release candidate** is `main` at `7ff13c96c7b0ef6d8d7bacc91b9e3c2d839a771c` ([RELEASE-REVIEW.md](RELEASE-REVIEW.md)). Its block-free artifact is what production serves today. The rollback anchor is a block-free deployment of the release candidate's application code: the one Workers Builds makes when the cutover change merges, whose version id the owner records then (F.1). Until then every merge to `main`, this documentation's included, redeploys the same block-free artifact. Until the cutover change merges, `main` still carries a separate beta Worker's config and workflow (`wrangler.composer-beta.jsonc`, `.github/workflows/deploy-composer-beta.yml`). They are superseded: the workflow must never be dispatched.
+**The release candidate** is `main` at `7ff13c96c7b0ef6d8d7bacc91b9e3c2d839a771c` ([RELEASE-REVIEW.md](RELEASE-REVIEW.md)). Its block-free artifact is what production serves today. The rollback anchor is a block-free deployment of the release candidate's application code: the one Workers Builds makes when the cutover change merges, whose version id the owner records then (F.1). Until then every merge to `main`, this documentation's included, redeploys the same block-free artifact. The cutover change removed the separate beta Worker's config and workflow from `main`; no beta Worker or hostname was ever created.
 
 ## The cutover order
 
@@ -61,15 +61,10 @@ Each step has its owner and its check. A step starts only when the one before it
 **C. Confirm that anonymous GET and POST requests are denied before they reach the Worker or the provider** (anyone; no cost). From the repository root of a checkout of `main`, after `pnpm install --frozen-lockfile`, on a machine whose Node reaches the internet directly:
 
 ```sh
-node --input-type=module -e '
-  import { checkAccess } from "./apps/composer/scripts/check-beta-deploy.mjs";
-  const problems = await checkAccess("https://composer.aesthetic-function.com", { phase: "after", attempts: 1 });
-  console.log(problems.length ? problems.join("\n") : "GET: anonymous requests go to the Cloudflare Access login");
-  process.exit(problems.length ? 1 : 0);'
-curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' -X POST -H 'accept: text/html' -H 'content-type: application/json' -d '{}' https://composer.aesthetic-function.com/api/propose
+node apps/composer/scripts/check-experimental-deploy.mjs --access=before
 ```
 
-The first probes `/`, `/api/models` and a static-asset path, and passes only on a redirect to the Access login. The POST asks as a browser would, as the GET probes do, so that Access answers with its login redirect, and passes by the same rule: a redirect (301, 302, 303, 307 or 308) to `https://<team>.cloudflareaccess.com/cdn-cgi/access/login/…`, or to `/cdn-cgi/access/` on the hostname itself. A bare 401 or 403 is no proof, since a WAF rule or a bot challenge could stop this machine alone. The Worker's `400` JSON means the request reached the Worker: an empty body reaches no model, but the Worker must not answer at all. (The cutover change adds this POST to `checkAccess`, under the same rule, and renames the script; the command above is the one that works on `main` today.)
+It sends anonymous GET requests for `/`, `/api/models` and a static-asset path, and an anonymous POST with an empty body to `/api/propose`, each asking as a browser would (`accept: text/html`) so that Access answers with its login redirect, and passes only when every answer is a redirect (301, 302, 303, 307 or 308) to `https://<team>.cloudflareaccess.com/cdn-cgi/access/login/…`, or to `/cdn-cgi/access/` on the hostname itself. A bare 401 or 403 is no proof, since a WAF rule or a bot challenge could stop this machine alone. The Worker's `400` JSON means the request reached the Worker: an empty body reaches no model, but the Worker must not answer at all. (Before the cutover change merges, `main` holds the earlier script: run the `checkAccess` one-liner from `check-beta-deploy.mjs` and the `curl` POST in this plan as aestheticfunction/dspack-studio#111 merged it.)
 
 **D. Confirm that workers.dev and Preview URLs cannot bypass Access** (owner, dashboard):
 - Workers & Pages → `dspack-studio-composer` → Settings → Domains & Routes: **workers.dev disabled** and **Preview URLs disabled**. Disable either that is not.
@@ -112,9 +107,9 @@ The first probes `/`, `/api/models` and a static-asset path, and passes only on 
 
 **I. Stop before any hosted canary or paid provider call.** Hosted builds are possible once a person is signed in, because `HOSTED_AI` stays on, so the beta's own testing uses scripted mode until the owner decides otherwise. A fresh browser profile defaults to the hosted model, so each tester first chooses Settings → Scripted → "Use scripted". To make that a guarantee rather than an instruction, the owner can set `HOSTED_AI` to `off` once G is recorded, until hosted builds are allowed: scripted mode is unaffected. Set it on again before the harness baseline and the canary: with it off, `/api/models` lists only scripted and the Worker answers an empty body with `unavailable`, so both refuse.
 
-## The cutover change (prepared, not merged)
+## The cutover change
 
-A pull request, opened for review and never deployed by itself. Its merge redeploys only the block-free default artifact. It:
+A pull request the owner merges at step F.1; it deploys nothing by itself. Its merge redeploys only the block-free default artifact, through Workers Builds. It:
 - **retargets the experimental deploy at the existing Worker.** `wrangler.composer-beta.jsonc` becomes `wrangler.composer-experimental.jsonc`:
   - name `dspack-studio-composer` and route `composer.aesthetic-function.com`;
   - assets `./apps/composer/out-experimental`;
@@ -123,15 +118,15 @@ A pull request, opened for review and never deployed by itself. Its merge redepl
   - production's rate-limit namespace.
 - **hardens `wrangler.jsonc`.** It keeps the default artifact, the Workers Builds path and the rollback anchor's source, and adds `workers_dev: false`, `preview_urls: false` and `keep_vars: true`. It moves `HOSTED_AI` to the dashboard: absent means on, and the value already set there is kept.
 - **retargets the workflow.** `deploy-composer-beta.yml` becomes `deploy-composer-experimental.yml`:
-  - dispatch-only, from `main`, through a protected `composer-experimental` environment;
-  - no `first_deploy`: the Worker exists, so an anchor is always required;
-  - the Access check before the deploy, which now fails on a hostname that does not resolve.
+  - dispatch-only, from `main`, through a protected `composer-experimental` environment, with its own token, `CLOUDFLARE_API_TOKEN_EXPERIMENTAL`;
+  - no `first_deploy`: the Worker exists, so an anchor is always required, and a listing that names no version refuses;
+  - the Access check, GET and POST, before every deploy, with no exception: the hostname always exists, so any failure refuses.
 - **retargets the guard.** `check-beta-deploy.mjs` becomes `check-experimental-deploy.mjs`:
-  - both configs target the same Worker and hostname;
-  - the default config serves `out/` and the experimental config serves `out-experimental/`;
-  - both keep workers.dev and Preview URLs off, both keep vars and declare none, and neither declares `BLOCKS_BETA`;
+  - both configs target the same Worker and hostname, with one route, the custom domain, and no custom-domain Preview URLs;
+  - the default config serves `out/`, the experimental config serves `out-experimental/`, and apart from that the two must be equal;
+  - both keep workers.dev and Preview URLs off, and both keep vars and declare none;
   - the Access check also POSTs to `/api/propose`.
-- **retargets the tests and the code-describing docs.** It updates the guard's tests and `operator-log.test.mjs` (neither config declares vars), and rewrites the beta's runbook in `docs/deployment.md` for the single host.
+- **retargets the tests and the code-describing docs.** `beta-deploy.test.mjs` becomes `experimental-deploy.test.mjs`, `operator-log.test.mjs` checks that neither config declares vars, and `docs/deployment.md` gets the single host's runbook ("The invite-only beta").
 
 Nothing in the application, the Worker's code, the block code or the request builders changes. The experimental artifact it deploys is the release candidate's.
 

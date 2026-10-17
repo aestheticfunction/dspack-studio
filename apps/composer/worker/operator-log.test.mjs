@@ -72,12 +72,14 @@ describe("off unless BETA_OPERATOR_LOG is exactly on: production logs nothing", 
     });
   }
 
-  it("the production config never sets it, and the beta config declares no vars (it lives in the beta's dashboard)", () => {
+  it("neither composer config sets it: both declare no vars and keep the dashboard's, where it lives", () => {
     const read = (config) => readFileSync(new URL(`../../../${config}`, import.meta.url), "utf8");
-    expect(read("wrangler.jsonc")).not.toContain("BETA_OPERATOR_LOG");
-    const beta = JSON.parse(read("wrangler.composer-beta.jsonc").replace(/^\s*\/\/.*$/gm, ""));
-    expect(beta).not.toHaveProperty("vars");
-    expect(beta.keep_vars).toBe(true);
+    for (const config of ["wrangler.jsonc", "wrangler.composer-experimental.jsonc"]) {
+      const parsed = JSON.parse(read(config).replace(/^\s*\/\/.*$/gm, ""));
+      expect(parsed, config).not.toHaveProperty("vars");
+      expect(parsed, config).not.toHaveProperty("env");
+      expect(parsed.keep_vars, config).toBe(true);
+    }
   });
 });
 
