@@ -242,6 +242,15 @@ input[type="range"] {
   color-scheme: light;
 }
 
+/* A surface in the Astryx canvas narrows with the canvas. A2uiCanvas wraps
+   each surface in a grid item, which otherwise keeps its content's minimum
+   width: a form's inputs pushed the auth form 24 px past a 320 px viewport
+   (WCAG 1.4.10). Astryx only: a wide shadcn/ui table would then scroll in a
+   container shadcn does not make focusable (its fix is deferred). */
+[data-astryx-canvas] [data-a2ui-surface] {
+  min-width: 0;
+}
+
 /* Keyboard focus in the rendered Astryx canvas keeps Astryx's own
    indicators: its accent ring on buttons and its accent border on fields
    (#0064E0, 5.4:1 against the canvas white). The studio's green ring above

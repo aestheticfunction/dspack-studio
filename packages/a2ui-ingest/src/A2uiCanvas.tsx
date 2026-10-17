@@ -62,13 +62,11 @@ export const A2uiCanvas: FC<A2uiCanvasProps> = ({ catalog, registry, messages, o
   if (surfaces.length === 0) return null;
   // One shared grid spaces the surfaces; the per-surface wrapper exists only
   // to carry the data-a2ui-surface attribute (a gap on a single-child
-  // wrapper would space nothing). minWidth 0 lets a surface narrow with the
-  // canvas (a grid item otherwise keeps its content's minimum width, so a
-  // form's inputs pushed it past a 320 px viewport, WCAG 1.4.10).
+  // wrapper would space nothing).
   return (
     <div style={{ display: "grid", gap: 16 }}>
       {surfaces.map(({ id, surface }) => (
-        <div key={id} data-a2ui-surface={id} style={{ minWidth: 0 }}>
+        <div key={id} data-a2ui-surface={id}>
           <A2uiSurface surface={surface} />
         </div>
       ))}
