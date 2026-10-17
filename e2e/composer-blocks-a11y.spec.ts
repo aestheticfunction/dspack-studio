@@ -19,7 +19,8 @@
  * and the same with every string one unbroken token (a URL, an id). Preview,
  * which the canvas rules reach too, gets a subset: an accepted block's
  * heading, axe, focus ring, layout and keyboard pass, and every Astryx
- * reference surface's axe and layout at every size.
+ * reference surface's axe and layout at every size, as do two model-shaped
+ * surfaces the blocks never produce (dialogs, a children-mode table).
  *
  * The shadcn/ui v3 scans at the end only report and never fail: shadcn/ui v3
  * blocks are withheld from the beta.
@@ -213,10 +214,15 @@ const INSTALL_HELPERS = () => {
    * text that another element in the canvas draws over, or that a box which
    * does not scroll cuts off. Text in a scroll container (a table's region)
    * may be scrolled out of view; text a screen-reader-only style hides is
-   * skipped. Each text is scrolled into view first.
+   * skipped. Each line is scrolled into view before it is sampled, and every
+   * element in the canvas is hit-tested, even one that ignores the pointer
+   * (a cover that lets clicks through still hides what is under it).
    */
   const coveredText = (sel: string): string[] => {
     const canvas = document.querySelector(sel)!;
+    const hitTestAll = document.createElement("style");
+    hitTestAll.textContent = `${sel} * { pointer-events: auto !important; }`;
+    document.head.append(hitTestAll);
     const describe = (el: Element) => `${el.tagName.toLowerCase()}.${String(el.className).split(" ")[0]} "${(el.textContent ?? "").trim().slice(0, 20)}"`;
     const visuallyHidden = (el: Element) => {
       for (let a: Element | null = el; a && a !== canvas; a = a.parentElement) {
@@ -238,7 +244,13 @@ const INSTALL_HELPERS = () => {
       const first = lines()[0];
       if (!first) continue;
       if (first.top < 0 || first.bottom > innerHeight || first.left < 0 || first.right > innerWidth) p.scrollIntoView({ block: "center", inline: "nearest" });
-      for (const r of lines())
+      for (let i = 0; lines()[i]; i++) {
+        let r = lines()[i]!;
+        // A text taller than the window runs past it: bring each of its lines to the middle.
+        if (r.top < 0 || r.bottom > innerHeight) {
+          window.scrollBy(0, r.top + r.height / 2 - innerHeight / 2);
+          r = lines()[i]!;
+        }
         for (const fx of [0.1, 0.5, 0.9])
           for (const fy of [0.25, 0.5, 0.75]) {
             const [x, y] = [r.left + r.width * fx, r.top + r.height * fy];
@@ -258,7 +270,9 @@ const INSTALL_HELPERS = () => {
             }
             if (canvas.contains(hit)) out.add(`"${text}" is drawn over by ${describe(hit)}`);
           }
+      }
     }
+    hitTestAll.remove();
     return [...out].slice(0, 12);
   };
   (window as any).__a11y = { contrastOver, coveredText };
@@ -633,6 +647,78 @@ test("Astryx: every reference surface in Preview, at every size: axe, and nothin
       const scan = await axeOn(page, PREVIEW);
       expect.soft(scan.violations.filter((v) => !(KNOWN[id] ?? []).includes(v.id)), `${at}: axe`).toEqual([]);
       for (const node of await undecidedContrast(page, scan.incomplete as never, PREVIEW)) expect.soft(node.ratio, `${at}: contrast axe left undecided: ${node.sel}`).toBeGreaterThanOrEqual(node.needed);
+    }
+  }
+});
+
+// ---- Astryx surfaces beyond the blocks ----------------------------------------
+
+/**
+ * Model-shaped surfaces the blocks never produce, which Preview renders under
+ * the same renderers and canvas rules: inline dialogs taller than a short
+ * window, an alert dialog with long labels, a children-mode table, Astryx's
+ * `large` type and display text with no words. They come in as an imported
+ * project's examples.
+ */
+const said = (value: string, type = "body") => ({ component: "text", props: { type }, text: value });
+const press = (label: string, variant: string) => ({ component: "button", props: { label, variant } });
+const paragraphs = (n: number) => Array.from({ length: n }, (_, i) => said(`Paragraph ${i + 1}. ${LOREM.trim()}.`));
+const surface = (id: string, intent: string, name: string, children: Json[]) => ({
+  id,
+  intent,
+  name,
+  prompt: name,
+  description: name,
+  surface: { dspackSurface: "0.1", system: "Astryx", intent, root: { component: "card", children } },
+});
+const BEYOND: Json[] = [
+  surface("ex.a11y-dialogs", "destructive-action", "Dialogs", [
+    said("Dialogs", "display-3"),
+    { component: "dialog", props: { variant: "standard", purpose: "form" }, children: [said("A standard dialog"), ...paragraphs(4), press("The standard dialog's last button", "primary")] },
+    { component: "dialog", props: { variant: "fullscreen", purpose: "info" }, children: [said("A fullscreen dialog"), ...paragraphs(4), press("The fullscreen dialog's last button", "secondary")] },
+    {
+      component: "alert-dialog",
+      props: { title: "Permanently delete every archived project in this workspace?", description: "This cannot be undone.", actionLabel: "Delete every archived project permanently", cancelLabel: "Keep my archived projects", actionVariant: "destructive" },
+    },
+  ]),
+  surface("ex.a11y-structure", "record-collection", "Structure", [
+    said("Structure", "display-3"),
+    said("Large text is body text", "large"),
+    said("", "display-3"),
+    {
+      component: "table",
+      props: { columns: ["Ticket", "Subject", "Requester", "Status", "Priority", "Updated"], data: [] },
+      children: Array.from({ length: 12 }, (_, i) => said(["#4812", "Cannot export session receipts", "Ada Lovelace", "Waiting on support", "Urgent", "2026-10-16"][i % 6]!)),
+    },
+  ]),
+];
+
+test("Astryx: surfaces beyond the blocks in Preview, at every size: axe, and nothing cut off, scrolled in a box or drawn over", async ({ page }) => {
+  test.setTimeout(240_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openProject(page, "astryx", "export source");
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("project-export").click()]);
+  const exported = JSON.parse(readFileSync((await download.path())!, "utf8")) as Json;
+  exported.name = "astryx beyond the blocks";
+  exported.contract.examples = [...(exported.contract.examples as Json[]), ...BEYOND];
+  await page.getByTestId("nav-projects").click();
+  await page.getByTestId("import-project-input").setInputFiles({ name: "beyond.composerproject.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(exported)) });
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  await page.getByTestId("nav-preview").click();
+  for (const { id } of BEYOND as Array<{ id: string }>) {
+    await resize(page, 1280, 900);
+    await page.getByTestId(`surface-${id}`).click();
+    await expect(page.locator(PREVIEW)).toBeVisible();
+    if (id === "ex.a11y-structure") {
+      // Astryx's large type is body text, and display text with no words is no heading.
+      await expect.soft(page.locator(PREVIEW).getByRole("heading"), `${id}: headings`).toHaveText(["Structure"]);
+    }
+    for (const [width, height] of [[1280, 900], ...NARROW] as const) {
+      const at = `${id} at ${width} x ${height}`;
+      await resize(page, width, height);
+      expect.soft(await reflow(page, PREVIEW), at).toEqual(FITS);
+      expect.soft(await spaced(page, PREVIEW), `${at}, text spacing`).toEqual(SPACED_FITS);
+      await axeAndContrast(page, at, PREVIEW);
     }
   }
 });
