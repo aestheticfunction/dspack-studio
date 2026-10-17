@@ -225,12 +225,112 @@ input[type="range"] {
    affordance so a lone table spans a padded Card edge to edge. The
    horizontal bleed is wanted; the vertical bleed is not, because two
    tables stacked in a Column (VStack gap 12px) then compute 12 - 16 - 16
-   = -20px and overlap (the recipe's ingredients and instructions tables).
+   = -20px and overlap (the recipe's ingredients and instructions tables;
+   guide-steps' tables, where a row hid behind the next header), and a
+   table overlaps the elements next to it by 4px.
    This zeroes only the vertical bleed, keeping the horizontal full-bleed.
-   globals.css is loaded unlayered so it wins over Astryx's layered sheets. */
-[data-canvas] .astryx-table-scroll-wrapper {
+   The Studio's canvas is [data-canvas]; Composer's Astryx canvas is
+   [data-astryx-canvas]. globals.css is loaded unlayered so it wins over
+   Astryx's layered sheets. */
+[data-canvas] .astryx-table-scroll-wrapper,
+[data-astryx-canvas] .astryx-table-scroll-wrapper {
   margin-top: 0;
   margin-bottom: 0;
+}
+
+/* The Astryx canvas draws light, on its white background, whatever the
+   reader's OS preference. Astryx's reset declares `color-scheme: light dark`
+   on the root, which retinted the canvas's tokens dark inside a white
+   canvas for a reader who prefers dark; Astryx 0.1.4's dark primary button
+   (white on #2694FE) is 3.1:1 there, below WCAG 1.4.3's 4.5:1. */
+[data-astryx-canvas] {
+  color-scheme: light;
+}
+
+/* A surface in the Astryx canvas narrows with the canvas. A2uiCanvas wraps
+   each surface in a grid item, which otherwise keeps its content's minimum
+   width: a form's inputs pushed the auth form 24 px past a 320 px viewport
+   (WCAG 1.4.10). Astryx only: a wide shadcn/ui table would then scroll in a
+   container shadcn does not make focusable (its fix is deferred). */
+[data-astryx-canvas] [data-a2ui-surface] {
+  min-width: 0;
+}
+
+/* What narrows with the canvas must fit it. Astryx draws an inline dialog
+   400 px wide, capped at 90% of the viewport, wider than a 320 px canvas:
+   its edge and buttons were cut off. It also caps the dialog's height at
+   75% of the viewport and scrolls what does not fit: at 320 x 256 the
+   delete-project dialog showed 108 px of its content in a scroll box of its
+   own, which axe flags as not keyboard-focusable; a fullscreen one keeps
+   the viewport's height and cut its content off at 320 x 256. An inline
+   dialog in the canvas is part of the page, so here it fits its
+   container's width and takes its content's height, and its footer's
+   buttons wrap onto a row of their own when together they are too wide
+   (with WCAG's text spacing at 320 px, "Keep my archived projects" was
+   cut off).
+   And Astryx keeps a button's label on one line, cut off with an ellipsis:
+   with WCAG's text spacing at 320 px, "Continue with Microsoft" lost its
+   last word (SC 1.4.12). Here a label wraps, and a word too long for its
+   line breaks (break-word, not anywhere, so a row of buttons never splits
+   a short word to squeeze them in). Astryx fixes a button's height for its size; here that height is a
+   minimum, and the vertical padding is what one line leaves of it, so a
+   one-line button keeps Astryx's height and a wrapped one grows by its
+   extra lines. Only a button named by its visible label: Astryx gives an
+   icon-only button (or one with custom content) an aria-label and sizes it
+   itself, so those keep Astryx's fixed size. */
+[data-astryx-canvas] .astryx-dialog {
+  max-width: 100%;
+  height: auto;
+}
+[data-astryx-canvas] .astryx-dialog,
+[data-astryx-canvas] .astryx-dialog > * {
+  max-height: none;
+  --container-max-height: none;
+}
+[data-astryx-canvas] .astryx-layout-footer .astryx-stack.horizontal {
+  flex-wrap: wrap;
+}
+[data-astryx-canvas] .astryx-button:not([aria-label]) {
+  --af-button-height: var(--size-element-md, 32px);
+  white-space: normal;
+  overflow-wrap: break-word;
+  height: auto;
+  min-height: var(--af-button-height);
+  padding-block: max(0px, (var(--af-button-height) - 1lh) / 2);
+}
+[data-astryx-canvas] .astryx-button:not([aria-label])[data-size="sm"] {
+  --af-button-height: var(--size-element-sm, 28px);
+}
+[data-astryx-canvas] .astryx-button:not([aria-label])[data-size="lg"] {
+  --af-button-height: var(--size-element-lg, 36px);
+}
+
+/* Keyboard focus in the rendered Astryx canvas keeps Astryx's own
+   indicators: its accent ring on buttons and its accent border on fields
+   (#0064E0, 5.4:1 against the canvas white). The studio's green ring above
+   (#97B063) is 2.4:1 against that white, below WCAG 2.2 SC 1.4.11's 3:1,
+   and as an unlayered rule it replaced them; revert-layer hands each
+   focused element back to Astryx's layer. Astryx's table scroll region has
+   no indicator of its own, so it gets the same accent ring, drawn inside its
+   edge because the region bleeds to its card's edge. */
+[data-astryx-canvas] :focus-visible {
+  outline: revert-layer;
+  outline-offset: revert-layer;
+}
+[data-astryx-canvas] .astryx-table-scroll-wrapper:focus-visible {
+  outline: 2px solid var(--color-accent, #0064e0);
+  outline-offset: -2px;
+}
+
+/* In forced colors (Windows high contrast) the system draws every color
+   and drops shadows, so an Astryx field's focus, an accent border and an
+   inset shadow, no longer showed: only the caret did (WCAG 2.4.7). There
+   a focused field gets an outline, which forced colors keep. */
+@media (forced-colors: active) {
+  [data-astryx-canvas] .astryx-text-input:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

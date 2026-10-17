@@ -82,6 +82,27 @@ The owner's privacy and compatibility requirements, in the owner's words:
 
 This takes decision 7's recommended course: the canary plus a diagnostics export the user asks for, with no beacon. How it is applied is in [BETA-OPERATIONS.md](BETA-OPERATIONS.md).
 
+**Confirmed by the owner (2026-10-16),** when the owner directed step 5's merge, in the owner's words:
+1. "In the invite-only live beta, a provider error that produces no usable response or result counts toward the 'pause after two consecutive provider errors' rule. It does not trigger immediate disable on the first transient failure."
+2. "Immediate disable still applies when: a provider-reached call returns a completed or usable result without mandatory usage accounting; or the served model is missing or does not match the expected model."
+3. "The canary remains fail-fast on any missing usage or model identity."
+4. "I accept the decision-record wording and the documented minifier-only runtime rename. Neither changes the frozen experiment conclusion or public contract."
+
+## Step 6, authorized (2026-10-16)
+
+The owner authorized step 6 in the message that directed step 5's merge, to begin once step 5's post-merge checks passed: "accessibility hardening for the Astryx beta path" (the plan's §10), on a fresh branch, as its own PR, neither deployed nor merged automatically. Its scope, in the owner's words:
+- "Treat WCAG 2.2 AA as the target."
+- "Test native rendered surfaces for authentication, recipe/guide, and analytics/table blocks using example and boundary payloads."
+- "Add automated axe coverage for wcag2a, wcag2aa, wcag21a, wcag21aa, and wcag22aa."
+- "Fix Astryx heading semantics and any relevant contrast, keyboard, focus, target-size, 200% zoom, or 320px reflow defects."
+- "Record manual keyboard and screen-reader evidence where the environment supports it. Clearly identify any checks still requiring human verification; do not claim unsupported NVDA or VoiceOver testing."
+- "Document the auth-form SC 1.3.5 limitation and beta host mitigation. Do not expand the upstream component vocabulary in this PR."
+- "Run shadcn accessibility scans for information only. They do not gate this Astryx-only beta, and shadcn renderer fixes should be deferred unless essential to the shared test harness."
+- "Do not change block signatures, templates, prompts, model selection, frozen evaluation evidence, or release-admission decisions."
+- "Preserve default production request and artifact invariants."
+
+How it is applied, and what still needs a person, is in [ACCESSIBILITY.md](ACCESSIBILITY.md). The auth-form exception and its host mitigation are in [BETA.md](BETA.md).
+
 ## Operational record
 
 - **The daily spend limit.** For the shadcn/ui v3 run the owner raised the Cloudflare daily spend limit from $10 to $40, from 2026-10-15 22:47Z. Auto top-up stayed off. The change is recorded on the run's evidence branch. On 2026-10-16, after the run closed, the owner reported restoring the limit to $10, with auto top-up still off. No evidence branch records the restoration; this record does.

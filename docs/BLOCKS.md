@@ -204,6 +204,8 @@ Two rules apply in every experimental build. A block is offered only when it and
 - **The diagnostics export.** Settings saves, only when asked, a file of the call records, timings, outcomes and block-trace shape of the builds listed in Build, with no prompt, schema, model text, surface content, credential, entered value, action parameter or local model name. It sends nothing.
 - **The canary and alarms** are documented, not run. Field data is never ADR-B3 decision evidence.
 
+**Accessibility (step 6; [blocks/PHASE-2-RELEASE-PLAN.md](blocks/PHASE-2-RELEASE-PLAN.md), §10).** The target is WCAG 2.2 AA. `e2e/composer-blocks-a11y.spec.ts` checks each Astryx block surface on example and boundary calls: axe with the WCAG 2.0, 2.1 and 2.2 A and AA tags, headings, table names, keyboard order and focus (in forced colors too), target size, text spacing, overlapping content, and reflow at 200% and 400% zoom and 320 px. The fixes are in the shared Astryx renderers and the composer, so the default build carries them too. What the checks prove, what changed, and what still needs a person (every screen-reader pass among them) are in [blocks/ACCESSIBILITY.md](blocks/ACCESSIBILITY.md). auth-form ships under its SC 1.3.5 exception and host mitigation ([blocks/BETA.md](blocks/BETA.md)).
+
 ## The live evaluation (Phase 1B)
 
 The harness lives in `packages/block-bench/live/` and is run by the owner; nothing in it runs in CI except its own tests and a dry run on the scripted provider. It measures the real code paths, never a re-implementation: composer-core's block phase, budget and refinement decision; dspack-gen's `runPipeline`; the request bytes the app posts (`proposeBody`); the app's fold (`foldBuildEvents`). The hosted client is held to the app's gateway adapter by a parity test over every reply shape.
@@ -284,3 +286,4 @@ For the "later, deliberately" list:
 - `docs/blocks/stage3/` holds both completed Stage 3 runs' reports, manifests and preflights, copied byte for byte from their evidence commits.
 - `docs/blocks/PHASE-1B-MILESTONE-REPORT.md` is the Phase 1B record: method, results, cost, integrity, limits and evidence.
 - `docs/blocks/PHASE-2-DECISION-RECORD.md` and `docs/blocks/PHASE-2-RELEASE-PLAN.md` hold the owner's Phase 2 decisions and the plan they apply to.
+- `docs/blocks/ACCESSIBILITY.md` is the beta path's accessibility record, and `docs/blocks/BETA.md` holds the beta's known gaps, the auth-form exception first.
