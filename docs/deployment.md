@@ -218,7 +218,8 @@ in [blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md).
 the one Worker and differ only in the assets directory: `apps/composer/out`
 and `apps/composer/out-experimental`. Both set `workers_dev: false`,
 `preview_urls: false` and `keep_vars: true`, declare no vars, and have one
-route, the custom domain, with no custom-domain Preview URLs.
+route, the custom domain, with `previews_enabled: false`, so every deploy turns
+the custom domain's own Preview URLs off too.
 `apps/composer/scripts/check-experimental-deploy.mjs` refuses any other
 config, and `apps/composer/lib/experimental-deploy.test.mjs` holds the
 committed configs to it.
@@ -250,13 +251,20 @@ dedicated token and the Access check. The workflow:
    so any failure to reach it refuses, and so does a bare 401 or 403, which a
    WAF rule or bot challenge could send this runner alone. The POST's empty
    body would reach no model even if the Worker answered it;
-5. records the rollback anchor, the currently active version, and refuses to
-   deploy when the listing fails or names no version. wrangler itself is
-   installed first, with no credentials;
-6. deploys with the pinned wrangler 4.146.0, and records the new version;
+5. records the rollback anchor: the one version the latest deployment serves
+   at 100% (`wrangler deployments status --json`). It refuses to deploy
+   without one, a gradual split included. wrangler itself is installed first,
+   with no credentials;
+6. deploys with the pinned wrangler 4.146.0, and records the version now live;
 7. checks Access again, retrying for about five minutes. A failure there means
    the hostname answered an anonymous request: roll back to the anchor at
    once.
+
+   wrangler makes the new version live before it publishes the custom
+   domain's settings, so a deploy step that fails may already have deployed.
+   Steps 6 and 7 therefore run whenever the deploy step ran, even when it
+   failed: read the version they record, and roll back to the anchor if it is
+   not the one intended.
 
 The workflow sends no Access credential, so it cannot test the app behind
 Access; that waits on the machine credential the owner has not authorized

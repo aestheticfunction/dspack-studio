@@ -29,10 +29,15 @@ name: deploy-composer-experimental
 # until both exist. The workflow sends no Access credential: its only checks of
 # the hostname are anonymous.
 #
-# Every deploy records its rollback anchor first, the currently active version,
-# and refuses to deploy when it cannot: the Worker exists, so there is always
-# one. The block-free anchor the owner recorded before the first experimental
-# deploy is the one a rollback to the release candidate targets.
+# Every deploy records its rollback anchor first: the one version the latest
+# deployment serves at 100% (wrangler deployments status --json). It refuses to
+# deploy without one: the Worker exists, so there is always one, and a gradual
+# split names none. The block-free anchor the owner recorded before the first
+# experimental deploy is the one a rollback to the release candidate targets.
+#
+# wrangler makes the new version live before it publishes the custom domain's
+# settings, so a failed deploy step may already have deployed. The version is
+# recorded and Access checked again whenever the deploy step ran.
 #
 # The token reaches only the steps that call Cloudflare, never an install
 # (wrangler's own included) or the build, which run third-party code.
@@ -96,33 +101,36 @@ jobs:
           echo '## Composer experimental deployment' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "source commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-          if ! listing=$(npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-experimental.jsonc 2>&1); then
-            printf '%s\n' "$listing" | tail -20
-            echo "The rollback anchor could not be recorded, so nothing is deployed."
+          if ! status=$(npx --yes wrangler@4.146.0 deployments status --json --config wrangler.composer-experimental.jsonc); then
+            echo "The active deployment could not be read, so there is no rollback anchor, and nothing is deployed."
             exit 1
           fi
-          if ! printf '%s\n' "$listing" | grep -qE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'; then
-            printf '%s\n' "$listing" | tail -20
-            echo "The listing names no version, so there is no rollback anchor, and nothing is deployed."
+          if ! anchor=$(printf '%s' "$status" | node apps/composer/scripts/check-experimental-deploy.mjs --active-version); then
+            echo "The active deployment does not serve one version at 100%, so there is no rollback anchor, and nothing is deployed."
             exit 1
           fi
-          printf '%s\n' "$listing" | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "anchor: $anchor" | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy (the experimental artifact to the composer Worker, checked-in config)
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_EXPERIMENTAL }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@4.146.0 deploy --config wrangler.composer-experimental.jsonc
       - name: Record the deployed version
+        if: ${{ !cancelled() && steps.deploy.outcome != 'skipped' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_EXPERIMENTAL }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          npx --yes wrangler@4.146.0 deployments list --config wrangler.composer-experimental.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=$(npx --yes wrangler@4.146.0 deployments status --json --config wrangler.composer-experimental.jsonc)
+          live=$(printf '%s' "$status" | node apps/composer/scripts/check-experimental-deploy.mjs --active-version)
+          echo "live: $live" | tee -a "$GITHUB_STEP_SUMMARY"
           echo 'rollback: npx --yes wrangler@4.146.0 rollback <anchor version id> --config wrangler.jsonc  (the block-free anchor recorded before the first experimental deploy, or the one above; then set BLOCKS_BETA, HOSTED_AI and BETA_OPERATOR_LOG again)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       # A check that fails here means the hostname answered an anonymous request
       # without Access: roll back to the anchor at once (docs/deployment.md).
       - name: Cloudflare Access still sends anonymous requests, GET and POST, to its login
+        if: ${{ !cancelled() && steps.deploy.outcome != 'skipped' }}
         run: node apps/composer/scripts/check-experimental-deploy.mjs --access=after

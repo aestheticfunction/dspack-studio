@@ -70,7 +70,7 @@ It sends anonymous GET requests for `/`, `/api/models` and a static-asset path, 
 - Workers & Pages → `dspack-studio-composer` → Settings → Domains & Routes: **workers.dev disabled** and **Preview URLs disabled**. Disable either that is not.
 - Today's `wrangler.jsonc` sets neither. Wrangler 4.146.0, on a deploy of a Worker whose config has a custom-domain route and no `workers_dev`, turns workers.dev off and lets Preview URLs follow it, and the Workers Builds comments on pull requests show no Preview URL. That is inference, not proof; the dashboard is the proof.
 - In the same place: the Worker has **one entry, the custom domain `composer.aesthetic-function.com`**, with no other route or custom domain, since a deploy never removes a route attached in the dashboard; and **no Preview URLs on that custom domain**. Wrangler 4.146.0 can give a custom domain its own Preview URLs, `https://<preview-name>.composer.aesthetic-function.com`, which an Access application for the exact hostname does not cover.
-- The cutover change then sets `workers_dev: false` and `preview_urls: false` in both configs, held by a test, so every deploy keeps them off, and its guard refuses a route that turns on custom-domain Preview URLs.
+- The cutover change then sets `workers_dev: false` and `preview_urls: false` in both configs, held by a test, so every deploy keeps them off, and sets `previews_enabled: false` on the custom-domain route, so every deploy turns the custom domain's own Preview URLs off too.
 
 **E. Confirm that the owner can sign in and use the existing application** (owner). In a private window:
 - open `https://composer.aesthetic-function.com`, receive the one-time PIN, sign in, and run a **scripted** build (no model call);
@@ -113,16 +113,17 @@ A pull request the owner merges at step F.1; it deploys nothing by itself. Its m
 - **retargets the experimental deploy at the existing Worker.** `wrangler.composer-beta.jsonc` becomes `wrangler.composer-experimental.jsonc`:
   - name `dspack-studio-composer` and route `composer.aesthetic-function.com`;
   - assets `./apps/composer/out-experimental`;
-  - `workers_dev: false`, `preview_urls: false` and `keep_vars: true`;
+  - `workers_dev: false`, `preview_urls: false` and `keep_vars: true`, and `previews_enabled: false` on the route;
   - no vars;
   - production's rate-limit namespace.
 - **hardens `wrangler.jsonc`.** It keeps the default artifact, the Workers Builds path and the rollback anchor's source, and adds `workers_dev: false`, `preview_urls: false` and `keep_vars: true`. It moves `HOSTED_AI` to the dashboard: absent means on, and the value already set there is kept.
 - **retargets the workflow.** `deploy-composer-beta.yml` becomes `deploy-composer-experimental.yml`:
   - dispatch-only, from `main`, through a protected `composer-experimental` environment, with its own token, `CLOUDFLARE_API_TOKEN_EXPERIMENTAL`;
-  - no `first_deploy`: the Worker exists, so an anchor is always required, and a listing that names no version refuses;
+  - no `first_deploy`: the Worker exists, so an anchor is always required: the one version the latest deployment serves at 100%, read as JSON;
+  - the version is recorded and Access checked again whenever the deploy step ran, even when it failed, since wrangler makes the new version live before it publishes the custom domain's settings;
   - the Access check, GET and POST, before every deploy, with no exception: the hostname always exists, so any failure refuses.
 - **retargets the guard.** `check-beta-deploy.mjs` becomes `check-experimental-deploy.mjs`:
-  - both configs target the same Worker and hostname, with one route, the custom domain, and no custom-domain Preview URLs;
+  - both configs target the same Worker and hostname, with one route, the custom domain, with `previews_enabled: false`, and refuses a `__proto__` key anywhere in either config;
   - the default config serves `out/`, the experimental config serves `out-experimental/`, and apart from that the two must be equal;
   - both keep workers.dev and Preview URLs off, and both keep vars and declare none;
   - the Access check also POSTs to `/api/propose`.

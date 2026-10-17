@@ -36,10 +36,11 @@
   "main": "apps/composer/worker/index.mjs",
   "observability": { "enabled": true },
   "routes": [
-    { "pattern": "composer.aesthetic-function.com", "custom_domain": true }
+    { "pattern": "composer.aesthetic-function.com", "custom_domain": true, "previews_enabled": false }
   ],
   // Cloudflare Access protects the custom domain, and only it: no workers.dev
-  // or Preview URL may bypass it.
+  // or Preview URL may bypass it, the custom domain's own included
+  // (previews_enabled above, which every deploy sends).
   "workers_dev": false,
   "preview_urls": false,
   // No vars: keep_vars keeps the switches set in the dashboard, so no deploy

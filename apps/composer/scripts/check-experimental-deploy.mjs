@@ -22,12 +22,18 @@
  *     after; after a deploy a failing check is retried 50 times, 6 seconds
  *     apart.
  *
+ *   wrangler deployments status --json ... | node apps/composer/scripts/check-experimental-deploy.mjs --active-version
+ *     Prints the one version the latest deployment serves at 100%, the
+ *     rollback anchor before a deploy, and refuses anything else.
+ *
+ * The --access and --active-version modes load nothing from node_modules.
+ *
  * Exits 1 on any problem, after printing every one.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import ts from "typescript";
 
 /** The wrangler the experimental workflow runs, pinned. */
 export const WRANGLER = "wrangler@4.146.0";
@@ -49,13 +55,44 @@ const canonical = (value) =>
   JSON.stringify(value, (_key, v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v));
 const same = (a, b) => canonical(a) === canonical(b);
 
+/**
+ * Every object in a parsed config is plain. The parser turns a "__proto__" key,
+ * escaped or not, into the object's prototype, which Object.keys never shows
+ * and wrangler still reads.
+ */
+function assertPlain(value, at) {
+  if (Array.isArray(value)) value.forEach((item, i) => assertPlain(item, `${at}[${i}]`));
+  else if (value !== null && typeof value === "object") {
+    if (Object.getPrototypeOf(value) !== Object.prototype) throw new Error(`${at}: a "__proto__" key is refused`);
+    for (const [key, item] of Object.entries(value)) assertPlain(item, `${at}.${key}`);
+  }
+}
+
 /** A wrangler JSONC config, comments and trailing commas allowed. */
 export function readConfig(path) {
+  // Loaded only here, so the --access and --active-version modes run no code from node_modules.
+  const ts = createRequire(import.meta.url)("typescript");
   const { config, error } = ts.parseConfigFileTextToJson(path, readFileSync(path, "utf8"));
   if (error || config === undefined) {
     throw new Error(`${path}: ${error ? ts.flattenDiagnosticMessageText(error.messageText, "\n") : "no config"}`);
   }
+  assertPlain(config, path);
   return config;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * The one version the latest deployment serves at 100%, from
+ * `wrangler deployments status --json`. Anything else, a gradual split
+ * included, names no single rollback anchor.
+ */
+export function activeVersion(deployment) {
+  const versions = deployment !== null && typeof deployment === "object" && !Array.isArray(deployment) ? deployment.versions : undefined;
+  if (!Array.isArray(versions) || versions.length !== 1) throw new Error("the latest deployment does not serve exactly one version");
+  const [{ version_id: id, percentage } = {}] = versions;
+  if (percentage !== 100 || typeof id !== "string" || !UUID.test(id)) throw new Error("the latest deployment does not serve one version at 100%");
+  return id;
 }
 
 /** Every way the two configs depart from the one composer Worker, each serving its own artifact. */
@@ -65,7 +102,9 @@ export function checkConfigs({ production, experimental }) {
     const say = (message) => problems.push(`${file}: ${message}`);
     for (const key of Object.keys(config)) if (!KEYS.includes(key)) say(`declares ${key}, which neither config may (vars belong in the dashboard, kept by keep_vars)`);
     if (config.name !== WORKER.name) say(`name must be ${WORKER.name}: the beta is the composer Worker, never another`);
-    if (!same(config.routes, [{ pattern: WORKER.hostname, custom_domain: true }])) say(`its one route must be the custom domain ${WORKER.hostname}, which Cloudflare Access protects, with no custom-domain Preview URLs`);
+    if (!same(config.routes, [{ pattern: WORKER.hostname, custom_domain: true, previews_enabled: false }])) {
+      say(`its one route must be the custom domain ${WORKER.hostname}, which Cloudflare Access protects, with previews_enabled false, so every deploy turns its custom-domain Preview URLs off`);
+    }
     if (config.workers_dev !== false) say("workers_dev must be false: a workers.dev URL would bypass Cloudflare Access");
     if (config.preview_urls !== false) say("preview_urls must be false: a Preview URL would bypass Cloudflare Access");
     if (config.keep_vars !== true) say("keep_vars must be true, so a deploy keeps HOSTED_AI, BLOCKS_BETA and BETA_OPERATOR_LOG as set in the dashboard");
@@ -200,6 +239,10 @@ export async function checkAccess(baseUrl, { phase, fetchImpl = fetch, wait = (m
 
 async function main(argv) {
   const repo = fileURLToPath(new URL("../../../", import.meta.url));
+  if (argv.includes("--active-version")) {
+    console.log(activeVersion(JSON.parse(readFileSync(0, "utf8"))));
+    return;
+  }
   const access = argv.find((a) => a.startsWith("--access="))?.slice("--access=".length);
   let problems;
   if (access !== undefined) {

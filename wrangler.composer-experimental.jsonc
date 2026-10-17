@@ -15,8 +15,9 @@
 //
 // This is wrangler.jsonc with one difference, the assets directory, and a test
 // holds the two so (apps/composer/lib/experimental-deploy.test.mjs):
-// - workers_dev and preview_urls are off, so no workers.dev or Preview URL
-//   bypasses Access;
+// - workers_dev and preview_urls are off, and the route's previews_enabled is
+//   false, so no workers.dev, Preview or custom-domain Preview URL bypasses
+//   Access;
 // - keep_vars keeps the switches set in the dashboard, and this file declares
 //   no vars: HOSTED_AI (the kill switch; absent means on), BLOCKS_BETA (the
 //   block switch, apps/composer/worker/blocks-beta.mjs) and BETA_OPERATOR_LOG
@@ -30,7 +31,7 @@
   "main": "apps/composer/worker/index.mjs",
   "observability": { "enabled": true },
   "routes": [
-    { "pattern": "composer.aesthetic-function.com", "custom_domain": true }
+    { "pattern": "composer.aesthetic-function.com", "custom_domain": true, "previews_enabled": false }
   ],
   "workers_dev": false,
   "preview_urls": false,

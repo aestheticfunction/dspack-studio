@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { WRANGLER, checkAccess, checkArtifact, checkConfigs, readConfig } from "../scripts/check-experimental-deploy.mjs";
+import { WRANGLER, activeVersion, checkAccess, checkArtifact, checkConfigs, readConfig } from "../scripts/check-experimental-deploy.mjs";
 
 const repo = (rel) => fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
 const production = () => readConfig(repo("wrangler.jsonc"));
@@ -40,12 +40,27 @@ describe("the configs", () => {
     }
   });
 
+  it("readConfig refuses a __proto__ key at any depth, which would hide what it carries from every check", () => {
+    const dir = mkdtempSync(join(tmpdir(), "experimental-config-"));
+    try {
+      // The parser turns "__proto__" into the object's prototype: Object.keys never sees it, wrangler does.
+      writeFileSync(join(dir, "top.jsonc"), '{ "name": "dspack-studio-composer", "__proto__": { "vars": { "HOSTED_AI": "on" } } }');
+      expect(() => readConfig(join(dir, "top.jsonc"))).toThrow(/__proto__/);
+      writeFileSync(join(dir, "nested.jsonc"), '{ "assets": { "directory": "./apps/composer/out", "__proto__": { "run_worker_first": true } } }');
+      expect(() => readConfig(join(dir, "nested.jsonc"))).toThrow(/__proto__/);
+      writeFileSync(join(dir, "escaped.jsonc"), '{ "\\u005f_proto__": { "vars": { "HOSTED_AI": "on" } } }');
+      expect(() => readConfig(join(dir, "escaped.jsonc"))).toThrow(/__proto__/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("both are the one composer Worker on its one hostname, and differ only in the artifact they serve", () => {
     const d = production();
     const e = experimental();
     for (const c of [d, e]) {
       expect(c.name).toBe("dspack-studio-composer");
-      expect(c.routes).toEqual([{ pattern: "composer.aesthetic-function.com", custom_domain: true }]);
+      expect(c.routes).toEqual([{ pattern: "composer.aesthetic-function.com", custom_domain: true, previews_enabled: false }]);
     }
     expect(d.assets.directory).toBe("./apps/composer/out");
     expect(e.assets.directory).toBe("./apps/composer/out-experimental");
@@ -73,10 +88,11 @@ describe("the configs", () => {
   ])("%s", (file, which) => {
     it.each([
       ["names another Worker", (c) => ({ ...c, name: "dspack-studio-composer-beta" }), /name/],
-      ["moves to another hostname", (c) => ({ ...c, routes: [{ pattern: "composer-beta.aesthetic-function.com", custom_domain: true }] }), /route/],
+      ["moves to another hostname", (c) => ({ ...c, routes: [{ ...c.routes[0], pattern: "composer-beta.aesthetic-function.com" }] }), /route/],
       ["adds a second route", (c) => ({ ...c, routes: [...c.routes, { pattern: "beta.aesthetic-function.com", custom_domain: true }] }), /route/],
       ["routes without a custom domain", (c) => ({ ...c, routes: [{ pattern: "composer.aesthetic-function.com/*", zone_name: "aesthetic-function.com" }] }), /route/],
       ["turns on custom-domain Preview URLs", (c) => ({ ...c, routes: [{ ...c.routes[0], previews_enabled: true }] }), /route/],
+      ["leaves custom-domain Preview URLs to the dashboard", (c) => ({ ...c, routes: [{ pattern: "composer.aesthetic-function.com", custom_domain: true }] }), /route/],
       ["turns on workers.dev", (c) => ({ ...c, workers_dev: true }), /workers_dev/],
       ["leaves workers.dev to the default", ({ workers_dev: _w, ...c }) => c, /workers_dev/],
       ["turns on Preview URLs", (c) => ({ ...c, preview_urls: true }), /preview_urls/],
@@ -148,6 +164,24 @@ describe("the artifact", () => {
   it("an experimental build without the beta switch is refused", () => {
     const dir = artifact({ "index.html": "<html></html>", "_next/static/chunks/a.js": 'x="blocksSidecar"' });
     expect(checkArtifact(dir).join("\n")).toMatch(/reference-not-in-beta/);
+  });
+});
+
+describe("the active version", () => {
+  const ID = "5c409786-97fa-4ed8-a82a-b882608aac79";
+  it("is the one version the latest deployment serves at 100%", () => {
+    expect(activeVersion({ id: "d1", versions: [{ version_id: ID, percentage: 100 }] })).toBe(ID);
+  });
+
+  it.each([
+    ["no deployment", null],
+    ["no versions", { id: "d1", versions: [] }],
+    ["a gradual split, which names no single anchor", { id: "d1", versions: [{ version_id: ID, percentage: 50 }, { version_id: "6d409786-97fa-4ed8-a82a-b882608aac79", percentage: 50 }] }],
+    ["one version below 100%", { id: "d1", versions: [{ version_id: ID, percentage: 90 }] }],
+    ["a version id that is not a UUID", { id: "d1", versions: [{ version_id: "latest", percentage: 100 }] }],
+    ["a listing instead of a deployment", [{ id: "d1", versions: [{ version_id: ID, percentage: 100 }] }]],
+  ])("refuses %s", (_name, deployment) => {
+    expect(() => activeVersion(deployment)).toThrow();
   });
 });
 
@@ -365,41 +399,46 @@ describe("the workflows", () => {
     return body.join("\n");
   };
 
-  it("every deploy needs a recorded rollback anchor: the Worker exists, so there is no first deploy", () => {
+  it("every deploy needs a recorded rollback anchor, the one version live at 100%: the Worker exists, so there is no first deploy", () => {
     const yml = workflow();
     expect(yml).not.toMatch(/first_deploy|FIRST_DEPLOY|10007/);
     const script = stepScript(yml, "Record the rollback anchor (currently active version)");
     expect(script).not.toMatch(/\$\{\{/);
     const dir = mkdtempSync(join(tmpdir(), "experimental-anchor-"));
     try {
-      writeFileSync(join(dir, "npx"), '#!/bin/sh\necho "listing: $*"\necho "${FAKE_NPX_OUT:-}"\nexit "${FAKE_NPX_EXIT:-0}"\n');
+      writeFileSync(join(dir, "npx"), '#!/bin/sh\necho "$*" >> "$FAKE_NPX_ARGS"\nprintf "%s\\n" "${FAKE_NPX_OUT:-}"\nexit "${FAKE_NPX_EXIT:-0}"\n');
       chmodSync(join(dir, "npx"), 0o755);
-      const VERSION = "Version(s):  (100%) 5c409786-97fa-4ed8-a82a-b882608aac79";
+      const ID = "5c409786-97fa-4ed8-a82a-b882608aac79";
+      const deployment = (versions) => JSON.stringify({ id: "d1", source: "wrangler", strategy: "percentage", versions });
       const outputs = {
-        ok: [VERSION, 0],
-        // A listing that names no version records no anchor.
-        empty: ["No deployments found", 0],
+        ok: [deployment([{ version_id: ID, percentage: 100 }]), 0],
+        // A gradual split names no single anchor.
+        split: [deployment([{ version_id: ID, percentage: 50 }, { version_id: "6d409786-97fa-4ed8-a82a-b882608aac79", percentage: 50 }]), 0],
+        empty: [deployment([]), 0],
+        garbage: ["Version(s):  (100%) " + ID, 0],
         // wrangler 4.146.0 prints an API error as "<message> [code: <n>]".
         missing: ["✘ [ERROR] A request to the Cloudflare API failed. This Worker does not exist on your account. [code: 10007]", 1],
         auth: ["✘ [ERROR] A request to the Cloudflare API failed. Authentication error [code: 10000]", 1],
-        outage: ["✘ [ERROR] fetch failed", 1],
       };
       const run = (listing) => {
         const summary = join(dir, `summary-${listing}`);
+        const args = join(dir, `args-${listing}`);
         writeFileSync(summary, "");
+        writeFileSync(args, "");
         const [out, exit] = outputs[listing];
-        // A run step with no shell set runs under `bash -e`, without pipefail.
+        // A run step with no shell set runs under `bash -e`, without pipefail, from the repository root.
         const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-c", script], {
-          env: { PATH: `${dir}:${process.env.PATH}`, FAKE_NPX_OUT: out, FAKE_NPX_EXIT: String(exit), GITHUB_STEP_SUMMARY: summary, GITHUB_SHA: "abc123" },
+          cwd: repo(""),
+          env: { PATH: `${dir}:${process.env.PATH}`, FAKE_NPX_OUT: out, FAKE_NPX_EXIT: String(exit), FAKE_NPX_ARGS: args, GITHUB_STEP_SUMMARY: summary, GITHUB_SHA: "abc123" },
           encoding: "utf8",
         });
-        return { status: result.status, summary: readFileSync(summary, "utf8") };
+        return { status: result.status, summary: readFileSync(summary, "utf8"), args: readFileSync(args, "utf8") };
       };
       const listed = run("ok");
-      expect(listed.status).toBe(0);
-      expect(listed.summary).toMatch(/listing: --yes wrangler@4\.146\.0 deployments list --config wrangler\.composer-experimental\.jsonc/);
-      expect(listed.summary).toContain("5c409786-97fa-4ed8-a82a-b882608aac79");
-      for (const failure of ["empty", "missing", "auth", "outage"]) expect(run(failure).status, failure).not.toBe(0);
+      expect(listed.status, listed.summary).toBe(0);
+      expect(listed.args).toMatch(/--yes wrangler@4\.146\.0 deployments status --json --config wrangler\.composer-experimental\.jsonc/);
+      expect(listed.summary).toContain(`anchor: ${ID}`);
+      for (const failure of ["split", "empty", "garbage", "missing", "auth"]) expect(run(failure).status, failure).not.toBe(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -455,9 +494,48 @@ describe("the workflows", () => {
     expect(at("pnpm install --frozen-lockfile")).toBeLessThan(at("pnpm --filter composer build:experimental"));
     expect(at("pnpm --filter composer build:experimental")).toBeLessThan(at("node apps/composer/scripts/check-experimental-deploy.mjs\n"));
     expect(at("node apps/composer/scripts/check-experimental-deploy.mjs\n")).toBeLessThan(at("node apps/composer/scripts/check-experimental-deploy.mjs --access=before"));
-    expect(at("node apps/composer/scripts/check-experimental-deploy.mjs --access=before")).toBeLessThan(at(`npx --yes ${WRANGLER} deployments list --config wrangler.composer-experimental.jsonc`));
-    expect(at(`npx --yes ${WRANGLER} deployments list --config wrangler.composer-experimental.jsonc`)).toBeLessThan(deploy);
+    expect(at("node apps/composer/scripts/check-experimental-deploy.mjs --access=before")).toBeLessThan(at(`npx --yes ${WRANGLER} deployments status --json --config wrangler.composer-experimental.jsonc`));
+    expect(at(`npx --yes ${WRANGLER} deployments status --json --config wrangler.composer-experimental.jsonc`)).toBeLessThan(deploy);
     expect(at("node apps/composer/scripts/check-experimental-deploy.mjs --access=after")).toBeGreaterThan(deploy);
+  });
+
+  it("nothing from the guard to the deploy can be skipped, softened or widened", () => {
+    const all = steps(workflow());
+    const guard = all.findIndex((s) => /check-experimental-deploy\.mjs(\n|$)/.test(s.text));
+    const deploy = all.findIndex((s) => /\bwrangler@\S+ deploy\b/.test(s.text));
+    expect(guard).toBeGreaterThan(-1);
+    expect(deploy).toBeGreaterThan(guard);
+    for (const step of all.slice(guard, deploy + 1)) {
+      expect(step.text, step.name).not.toMatch(/\n {8}if:/);
+      expect(step.text, step.name).not.toMatch(/continue-on-error/);
+      expect(step.text, step.name).not.toMatch(/\|\||; *true\b|exit 0/);
+    }
+    // Exactly these commands: no extra route, var or flag, and no fallback.
+    expect(all.filter((s) => /--access=before/.test(s.text)).map((s) => /\n {8}run: (.*)/.exec(s.text)?.[1])).toEqual(["node apps/composer/scripts/check-experimental-deploy.mjs --access=before"]);
+    expect(/\n {8}run: (.*)/.exec(all[deploy].text)?.[1]).toBe(`npx --yes ${WRANGLER} deploy --config wrangler.composer-experimental.jsonc`);
+  });
+
+  it("the token is never in the workflow's or the job's env, so it never reaches the install or the build", () => {
+    const yml = workflow();
+    expect(topLevelKeys(yml, "env")).toBeNull();
+    expect(yml.slice(yml.indexOf("\n  deploy:\n"), yml.indexOf("\n    steps:\n"))).not.toMatch(/\n {4}env:/);
+    expect(yml).toMatch(/- uses: actions\/checkout@v4\n {8}with:\n {10}persist-credentials: false\n/);
+    // No expression inside any script: the dispatch's own input reaches only the job's if.
+    for (const step of steps(yml)) {
+      const run = step.text.indexOf("run:");
+      if (run >= 0) expect(step.text.slice(run), step.name).not.toMatch(/\$\{\{/);
+    }
+  });
+
+  it("once the deploy step has run, the version is recorded and Access is checked even when that step failed", () => {
+    const all = steps(workflow());
+    const deploy = all.find((s) => /\bwrangler@\S+ deploy\b/.test(s.text));
+    expect(deploy?.text).toMatch(/\n {8}id: deploy\n/);
+    // wrangler makes the new version live before it publishes the custom domain, so a failed step may have deployed.
+    for (const name of ["Record the deployed version", "Cloudflare Access still sends anonymous requests, GET and POST, to its login"]) {
+      const step = all.find((s) => s.name === name);
+      expect(step?.text, name).toMatch(/\n {8}if: \$\{\{ !cancelled\(\) && steps\.deploy\.outcome != 'skipped' \}\}\n/);
+    }
   });
 
   it("production's workflow still deploys only the default artifact, with production's credential", () => {
