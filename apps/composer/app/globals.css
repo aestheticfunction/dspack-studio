@@ -225,8 +225,9 @@ input[type="range"] {
    affordance so a lone table spans a padded Card edge to edge. The
    horizontal bleed is wanted; the vertical bleed is not, because two
    tables stacked in a Column (VStack gap 12px) then compute 12 - 16 - 16
-   = -20px and overlap (the recipe's ingredients and instructions tables),
-   and the element after a table covers its last 4px (WCAG 1.4.10).
+   = -20px and overlap (the recipe's ingredients and instructions tables;
+   guide-steps' tables, where a row hid behind the next header), and a
+   table overlaps the elements next to it by 4px.
    This zeroes only the vertical bleed, keeping the horizontal full-bleed.
    The Studio's canvas is [data-canvas]; Composer's Astryx canvas is
    [data-astryx-canvas]. globals.css is loaded unlayered so it wins over

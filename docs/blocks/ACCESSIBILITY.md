@@ -12,42 +12,47 @@ It covers the three approved blocks (records-table, auth-form and guide-steps) a
 - every optional prop at its maximum length and count;
 - the same, with every string one unbroken token (a URL, an id).
 
-For each of the 12 surfaces it checks:
+The sizes are 1280 x 900, then 640 x 512 and 320 x 256 (200% and 400% zoom of a 1280 x 1024 window) and 320 x 720 (a tall phone). For each of the 12 surfaces it checks:
 
 | Check | WCAG 2.2 | How |
 |---|---|---|
-| axe at 1280, 640 and 320 px, and with a dark preference, over the whole canvas | A and AA, through the tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa` (target size included) | Contrast that axe leaves undecided (scrolled or overlapping content, a decorative separator) is decided from computed colors, by the same thresholds |
+| axe at every size, and with a dark preference, over the whole canvas | A and AA, through the tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa` (target size included) | Contrast that axe leaves undecided (scrolled content, a decorative separator) is decided from computed colors, by the same thresholds, compositing a translucent color over what lies beneath it. Text that another element in the canvas covers fails |
 | The title is the surface's one heading, at level 2 | 1.3.1, 2.4.6 | The accessibility tree |
-| Each table's scrollable region is named by its columns | 2.4.6, 4.1.2 | The accessibility tree |
+| Each table's scrollable region is named by its columns | 2.4.6 | The accessibility tree |
 | Tab and Shift+Tab reach every control in order, by name, and leave the surface at both ends | 2.1.1, 2.1.2, 2.4.3 | Key presses |
 | Every focused control shows an indicator of its own, of 3:1 or more against what it touches | 1.4.11, 2.4.7 | Computed styles at each stop, never the browser's default ring |
-| No focused control is entirely hidden, at 1280, 640 and 320 px | 2.4.11 | Hit-testing at each stop |
+| In forced colors, at 1280 px, every focused control keeps an outline, which the system can draw | 2.4.7 | Chromium's forced-colors emulation |
+| No focused control is entirely hidden, at every size | 2.4.11 | Hit-testing at each stop |
 | Targets are 24 by 24 px or larger, and pressing a field's edge focuses its input | 2.5.8 | Bounding boxes and clicks |
-| Text spacing cuts nothing off and pushes nothing out | 1.4.12 | WCAG's test values |
-| At 640 px (200% zoom) and 320 px, nothing scrolls sideways or is cut off; a data table may scroll inside its own focusable region | 1.4.4, 1.4.10 | Layout measurement |
+| Text spacing, at every size, cuts nothing off, pushes nothing out and draws nothing over other content | 1.4.12 | WCAG's test values |
+| At every size, nothing scrolls sideways, is cut off or is drawn over other content, and no table column is narrower than 90 px; a data table may scroll inside its own focusable region | 1.4.4, 1.4.10 | Layout measurement: each Astryx stack's children, through `display: contents` wrappers, must not overlap |
 
-A further spec checks an accepted block in Preview: its heading, axe, and Astryx's focus ring. Every check is soft, so one run reports every defect.
+Two further specs check Preview, which the canvas rules reach too. One checks an accepted block: its heading, axe, Astryx's focus ring, and reflow and the keyboard pass at the narrow sizes. The other checks every Astryx reference surface, for layout only: nothing cut off, outside the canvas or drawn over, at every size. Every check is soft, so one run reports every defect.
 
-`apps/composer/app/astryx-renderers-a11y.test.ts` server-renders the Astryx renderers: heading elements, table names, header and badge wrapping, long-word wrapping and the column floor.
+`apps/composer/app/astryx-renderers-a11y.test.ts` server-renders the Astryx renderers: heading elements (h1 and h2, never an empty one, and h3 a paragraph), table names, header and badge wrapping, long-word wrapping, and the column floor in both table modes.
 
 ## What changed
 
-Run against main first, the e2e failed all 13 Astryx specs, and the renderer tests failed 8 of 10; a column-floor test and the dark pass were then added, and failed before their fixes. Each defect and its fix:
+Run against main first, the e2e failed all 13 Astryx specs, and the renderer tests failed 8 of 10; a column-floor test and the dark pass were then added, and failed before their fixes. An independent accessibility review of that work found defects the checks could not see. Checks for them were added, and failed against the reviewed head (all 14 Astryx specs, and 3 of 13 renderer tests), before the fixes the table marks "review". Each defect and its fix:
 
 | Defect on main | WCAG 2.2 | Fix | Where |
 |---|---|---|---|
-| Block titles were `<p>`, so no surface had a heading | 1.3.1, 2.4.6 | Heading variants render h1 to h3; a container heading keeps `role="heading"` on its own text | `packages/astryx-renderers/src/components/TextRender.tsx` |
-| Every table region was named "Table" | 2.4.6, 4.1.2 | Each region is named by its columns | `TableRender.tsx` |
+| Block titles were `<p>`, so no surface had a heading | 1.3.1, 2.4.6 | The display variants render h1 and h2, and a container heading keeps `role="heading"` on its own text. Without text, a variant stays a paragraph (review). h3 stays a paragraph too (review): it is Astryx's `large`, which the contract keeps body text, its headings being the display types | `packages/astryx-renderers/src/components/TextRender.tsx` |
+| Every table region was named "Table" | 2.4.6 | Each region is named by its columns | `TableRender.tsx` |
 | Header text was cut off with an ellipsis at 320 px | 1.4.4, 1.4.10 | Header text wraps | `TableRender.tsx` |
-| An 8-column table crushed its columns below a letter's width at 320 px, cutting text off | 1.4.10 | A 96 px column floor, through Astryx's `proportional()` widths, so the table scrolls inside its focusable region | `TableRender.tsx` |
+| An 8-column table crushed its columns below a letter's width at 320 px, cutting text off; a children-mode table (a model's nested cells; no block uses one) did the same | 1.4.10 | A 96 px column floor, so the table scrolls inside its focusable region: Astryx's `proportional()` widths in a data table, and the header cells' minimum width in a children-mode one (review) | `TableRender.tsx` |
 | Long words and labels ran out of the card (titles, intros, a guide's facts) | 1.4.10 | A word breaks when it must; a badge's label wraps | `TextRender.tsx`, `BadgeRender.tsx` |
-| The auth form's inputs held the surface 24 px past a 320 px viewport | 1.4.10 | A surface narrows with the canvas | `apps/composer/app/globals.css`, Astryx canvas only |
-| The studio's green focus ring was 2.41:1 against the canvas white | 1.4.11 | Astryx's own indicators (#0064E0, 5.4:1), and the same ring on the table region, which had none | `globals.css` |
+| guide-steps' two tables overlapped by 20 px, hiding a row of the first behind the second's header, and every table region overlapped the elements next to it by 4 px. A rule removing Astryx's vertical table bleed matched only the Studio's canvas | 1.4.3, 1.4.10 | The rule matches the Astryx canvas too (review) | `apps/composer/app/globals.css` |
+| The auth form's inputs held the surface 24 px past a 320 px viewport | 1.4.10 | A surface narrows with the canvas | `globals.css`, Astryx canvas only |
+| An inline dialog made the page wider than a 320 px viewport (by 43 px for the delete-project reference, as the review measured it); once surfaces narrowed with the canvas, it was cut off instead | 1.4.10 | A dialog fits its container (review) | `globals.css` |
+| A button's label stayed on one line, cut off with an ellipsis: with text spacing at 320 px, "Continue with Microsoft" lost a word | 1.4.12 | A label wraps, and its button grows; a one-line button keeps Astryx's height (review) | `globals.css` |
+| The studio's green focus ring was 2.41:1 against the canvas white | 1.4.11 | Astryx's own indicators (#0064E0, 5.4:1), and an inset accent ring on the table region, for which Astryx draws none | `globals.css` |
+| In forced colors a focused field showed only its caret: Astryx marks focus with a border color and a shadow, which forced colors replace | 2.4.7 | A focused field gets an outline in forced colors (review) | `globals.css` |
 | With a dark OS preference, Astryx's dark tokens drew inside the white canvas, where its primary button is 3.11:1 | 1.4.3 | The Astryx canvas draws light | `globals.css` |
-| Shift+Tab left focused fields, buttons and short table regions entirely under the sticky header at 640 and 320 px | 2.4.11 | The root's scroll padding follows the header's measured height | `apps/composer/app/composer.tsx` |
+| The sticky header hid focused controls: with Shift+Tab at 640 x 450 and 320 x 720, and every one at 320 x 256, where the header filled nearly all of the viewport | 2.4.11 | At 720 px wide or less, or 600 px tall or less, the header scrolls away (review); otherwise the root's scroll padding follows its measured height | `apps/composer/app/af-ui.css`, `composer.tsx` |
 | The Build options made the page 11 px too wide at 320 px | 1.4.10 | Each option wraps under its label | `apps/composer/app/views/build-view.tsx` |
 
-All of these ship in the default build too: every Astryx surface in Preview gains them, and the shared renderer fixes reach the Studio exhibit, whose suite passes. None changes a block signature, a template, a prompt, model selection, a request or any evaluation evidence.
+All of these ship in the default build too, and every Astryx surface in Preview gains them. The Studio exhibit (apps/web) gets the renderer changes only, not Composer's canvas CSS or shell; its suite passes. None changes a block signature, a template, a prompt, model selection, a request or any evaluation evidence.
 
 ## What this environment could and could not check by hand
 
@@ -56,17 +61,21 @@ All of these ship in the default build too: every Astryx surface in Preview gain
   - records-table: the level-2 heading "Open support tickets"; the focusable group "Table: Ticket, Subject, Status, Priority", holding a table with its column headers; the button "Refresh".
   - auth-form: the level-2 heading "Create your account"; the textboxes "Full name Required", "Email address Required" and "Password Required", each marked required; the buttons "Create account" and "Continue with GitHub".
   - guide-steps: the level-2 heading "Weeknight pasta"; the groups "Table: Ingredients" and "Table: Step, Instruction"; the buttons "Start" and "Save guide".
-- **Keyboard,** in Chromium only, by the test runner's key events rather than a person. A screenshot of each focused control was inspected: buttons show Astryx's 2 px blue ring, fields their blue border, and table regions an inset blue ring.
+- **Keyboard,** in Chromium only, by the test runner's key events rather than a person. A screenshot of each focused control was inspected: buttons show Astryx's 2 px blue ring, fields their blue border, and table regions an inset blue ring. In Chromium's forced-colors emulation, a focused field shows its outline.
+- **Narrow sizes,** in screenshots: at 320 px with text spacing, "Continue with Microsoft" wraps onto two lines inside its button, and the delete-project reference's dialog fits the canvas, its button label wrapping.
 
 ## Still needs a person
 
-1. A screen-reader pass per block: NVDA with Firefox or Chrome on Windows, and VoiceOver with Safari on macOS and iOS. Listen for the heading, the table regions' names, table navigation, each field's name and required state, and the buttons.
+1. A screen-reader pass per block: NVDA with Firefox or Chrome on Windows, VoiceOver with Safari on macOS and iOS, and TalkBack with Chrome on Android. Listen for the heading, the table regions' names, table navigation, each field's name and required state, and the buttons.
 2. A keyboard pass in Firefox and Safari. Safari reaches buttons with Tab only when its "Press Tab to highlight each item" setting is on.
-3. Real browser zoom at 200% and 400%, and text spacing with a bookmarklet, in more than one browser.
-4. Windows forced colors (high contrast): that focus indicators and field boundaries survive.
-5. Touch: target size, and scrolling a wide table's region, on a phone.
-6. Input purpose by hand (SC 1.3.5): it fails today, under the exception in [BETA.md](BETA.md), and a host's mitigation must be checked in that host.
-7. The judgements in "Proposed waivers".
+3. Real browser zoom at 200% and 400% in more than one browser, at desktop window heights as well as the sizes above, and text spacing with a bookmarklet. Text-only zoom to 200% (Firefox's "Zoom text only", or a browser's minimum font size), which viewport sizes do not reproduce (SC 1.4.4).
+4. Windows forced colors (high contrast), on Windows: that focus indicators and field boundaries survive. The automated pass uses Chromium's emulation.
+5. Touch: target size, and scrolling a wide table's region, on a phone, in portrait and landscape (SC 1.3.4).
+6. Speech input (Voice Control, Dragon): each control can be operated by saying its visible label (SC 2.5.3).
+7. Input purpose by hand (SC 1.3.5): it fails today, under the exception in [BETA.md](BETA.md), and a host's mitigation must be checked in that host.
+8. By eye, in Build and in Preview: guide-steps' two tables sit apart, and no row hides behind the next header.
+9. Astryx surfaces that are not blocks: model-generated, imported and the reference surfaces. They share the renderers and the canvas rules, and only the reference surfaces' layout is checked automatically (below).
+10. The judgements in "Proposed waivers".
 
 ## Proposed waivers
 
@@ -87,6 +96,10 @@ The same spec scans each shadcn/ui v3 block's example and maximum call, records 
 | guide-steps | color-contrast, 3 nodes | fits |
 
 The contrast nodes are the wireframe fallback's Separator chips (1.19:1 and 1.26:1): shadcn/ui has no Separator renderer (the plan's §10). Narrowing the surface, as the Astryx canvas now does, would move shadcn's wide table into its own table container, which is not keyboard-focusable. That renderer fix is deferred.
+
+## Outside the blocks (information)
+
+axe over each Astryx reference surface in Preview (the tags above, at 1280 px) finds one violation, unchanged by this step: on `ex.plan-comparison`, `aria-required-children` (critical). Its Astryx list, a `ul` with the role `list`, holds checkboxes and a definition list's `dt` and `dd`, where a list allows only list items. The List, SelectableCard and MetadataList renderers are unchanged here. It is not a block, so it is left for a separate change.
 
 ## Re-running
 
