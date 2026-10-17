@@ -57,7 +57,7 @@ After G1 merged (aestheticfunction/dspack-studio#103), the owner treated the gat
 - **Gateway:** the shared gateway at first, with its $10 daily limit and auto top-up off.
 - **Initial stop conditions:** disable blocks at once on any model mismatch, unmetered provider-reached call, integrity failure, or authorization or provenance failure. Pause on two consecutive non-busy provider errors; when busy or refusal responses reach 10% over at least 20 beta requests; and when the shared gateway's daily spend reaches $8, leaving headroom below the $10 hard limit.
 
-How these are applied is in [../deployment.md](../deployment.md), "The beta composer".
+How these were applied is in step 2's change (aestheticfunction/dspack-studio#105); the single-host cutover change later replaced its separate beta Worker ([../deployment.md](../deployment.md), "The invite-only beta").
 
 ## Step 5, authorized (2026-10-16)
 
@@ -187,7 +187,7 @@ Later on 2026-10-17 the owner changed the deployment decision. This is a deliber
 
 "Do not start another general hardening cycle. Only release blockers from the previously frozen severity classes may generate additional implementation work."
 
-How these are applied: [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md). Until the cutover change merges, `main` still carries the separate beta Worker's config and workflow (`wrangler.composer-beta.jsonc`, `.github/workflows/deploy-composer-beta.yml`). They are superseded: no beta Worker or hostname is to be created, and that workflow is never to be dispatched.
+How these are applied: [BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md) and [../deployment.md](../deployment.md), "The invite-only beta". The cutover change removed the separate beta Worker's config and workflow from `main`: no beta Worker or hostname was ever created.
 
 ## Operational record
 

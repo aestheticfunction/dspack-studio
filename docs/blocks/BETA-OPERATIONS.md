@@ -48,9 +48,8 @@ The top-level `model` is not always a served model. The Worker sets it to the mo
 ## The operator log
 
 **The variable.** `BETA_OPERATOR_LOG` on the beta Worker. The log is on only when the Worker sees exactly the string `on`, so set it in the dashboard as type Text. A JSON variable holding the string `"on"`, or a secret set to `on`, would turn it on too, so use neither. Anything else (`ON`, `true`, `1`, an empty value) or no variable at all writes nothing:
-- **Production does not set it, until the cutover.** Production's `wrangler.jsonc` does not name it, and a test holds it there.
-- **The beta's config declares no vars.** `wrangler.composer-beta.jsonc` keeps the dashboard's (`keep_vars: true`), so a deploy never resets the variable. To stop the log, delete the variable or set it to anything else; the next request writes nothing.
-- **Under the single-host amendment** the beta is production's Worker, `dspack-studio-composer`, so after the cutover the variable lives there, set by the owner in the dashboard. The cutover change makes both of that Worker's configs keep the dashboard's vars and declare none, so no deploy sets or resets it, and a test holds both configs so. The separate beta Worker the line above names is superseded and never existed ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md)).
+- **No config sets it.** `wrangler.jsonc` and `wrangler.composer-experimental.jsonc` declare no vars and keep the dashboard's (`keep_vars: true`), so a deploy never sets or resets the variable, and a test holds both configs so. To stop the log, delete the variable or set it to anything else; the next request writes nothing. A rollback restores the value the target version had, so confirm it in the dashboard after one.
+- **The beta is production's Worker.** Under the single-host amendment the variable lives on `dspack-studio-composer`, set by the owner in the dashboard ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md)).
 
 **The line.** One JSON line per `/api/propose` request, written with `console.log` after the reply is made, which Workers Logs keeps (`observability` is on in both configs). The fields, in this order:
 
