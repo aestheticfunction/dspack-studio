@@ -611,6 +611,16 @@ button.af-choice {
   }
 }
 
+/* A narrow or short window lets the header scroll away. Under 720 px its
+   nav wraps (255 px tall at 320 px wide); kept sticky, it covered most of a
+   short window, and all of one at 320 x 256 (400% zoom of 1280 x 1024),
+   hiding every control focus moved to (WCAG 2.2 SC 2.4.11). */
+@media (max-width: 720px), (max-height: 600px) {
+  .af-top {
+    position: static;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .af-nav__link::after,
   .af-card,
