@@ -49,11 +49,11 @@ Launch
 - [ ] announcement copy in brand voice (declarative, unhyped, no em-dashes)
 
 Interface blocks beta (Phase 2; docs/blocks/PHASE-2-RELEASE-PLAN.md §12; single host, docs/blocks/BETA-DEPLOY-PLAN.md)
-- [ ] the release review's matrix passes, apart from the items only the cutover, a person or the canary can meet (docs/blocks/RELEASE-REVIEW.md)
+- [ ] the release review's matrix passes, apart from the items only the cutover, a person or the canary can meet, and each FAIL is accepted by the owner (decisions D2 and D6, docs/blocks/RELEASE-REVIEW.md)
 - [ ] main is the frozen release candidate, or an owner-approved successor that changes no application, Worker or block code
 - [ ] A, B: Cloudflare Access protects composer.aesthetic-function.com, allowing only the owner's exact email through one-time PIN; no new hostname or Worker exists
 - [ ] C: anonymous GET and POST requests to composer.aesthetic-function.com, /api/propose included, go to the Access login before reaching the Worker
-- [ ] D: workers.dev and Preview URLs are disabled for dspack-studio-composer
+- [ ] D: workers.dev and Preview URLs are disabled for dspack-studio-composer, its only route is the custom domain, and that domain has no Preview URLs
 - [ ] E: the owner signs in and runs a scripted build
 - [ ] F: the cutover change merged; the experimental artifact deployed through the Access-gated workflow, with the block switch off; the rollback anchor recorded
 - [ ] G: the baseline recorded; rollback rehearsed to the block-free release candidate and forward again

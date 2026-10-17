@@ -1,7 +1,7 @@
 # The beta's receipts and operator signals
 
 Phase 2, step 5 ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §9). The owner authorized it on 2026-10-16, limited to what this page describes. It is built in the experimental artifact and in the Worker that production and the beta share. Nothing is deployed, no hosted canary has run, and production behaves as before:
-- **Production's Worker** writes no new log line, because the variable that turns the log on is never set there.
+- **Production's Worker** writes no new log line, because the variable that turns the log on is not set there. Under the single-host amendment the beta is that Worker, so after the cutover the owner may set it there ("The operator log", below).
 - **Production's requests** are byte-identical. The Phase 0 oracle in `apps/composer/app/hosted-build.test.ts` still hashes every body.
 - **Production's client** carries none of this code. `check-default-artifact` and the smoke suite scan for its markers in every build.
 
@@ -48,7 +48,7 @@ The top-level `model` is not always a served model. The Worker sets it to the mo
 ## The operator log
 
 **The variable.** `BETA_OPERATOR_LOG` on the beta Worker. The log is on only when the Worker sees exactly the string `on`, so set it in the dashboard as type Text. A JSON variable holding the string `"on"`, or a secret set to `on`, would turn it on too, so use neither. Anything else (`ON`, `true`, `1`, an empty value) or no variable at all writes nothing:
-- **Production never sets it.** Production's `wrangler.jsonc` does not name it, and a test holds it there.
+- **Production does not set it, until the cutover.** Production's `wrangler.jsonc` does not name it, and a test holds it there.
 - **The beta's config declares no vars.** `wrangler.composer-beta.jsonc` keeps the dashboard's (`keep_vars: true`), so a deploy never resets the variable. To stop the log, delete the variable or set it to anything else; the next request writes nothing.
 - **Under the single-host amendment** the beta is production's Worker, `dspack-studio-composer`, so after the cutover the variable lives there, set by the owner in the dashboard. The cutover change makes both of that Worker's configs keep the dashboard's vars and declare none, so no deploy sets or resets it, and a test holds both configs so. The separate beta Worker the line above names is superseded and never existed ([BETA-DEPLOY-PLAN.md](BETA-DEPLOY-PLAN.md)).
 

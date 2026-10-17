@@ -1,6 +1,6 @@
 # Accessibility on the Astryx beta path
 
-**Phase 2, step 6** ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §10), authorized by the owner on 2026-10-16 ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 6, authorized"). The target is WCAG 2.2 AA. The beta does not claim full conformance: two exceptions are accepted for the invite-only beta only ("Waivers", below). This page records what the automated checks prove, what was fixed, what this environment could and could not check by hand, and what still needs a person.
+**Phase 2, step 6** ([PHASE-2-RELEASE-PLAN.md](PHASE-2-RELEASE-PLAN.md), §10), authorized by the owner on 2026-10-16 ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "Step 6, authorized"). The target is WCAG 2.2 AA. The beta does not claim full conformance: three waivers are accepted for the invite-only beta only: SC 1.3.5 and SC 1.4.11, both failures, and SC 2.4.6, whose names "Start" and "Save guide" are accepted in their current context ("Waivers", below). This page records what the automated checks prove, what was fixed, what this environment could and could not check by hand, and what still needs a person.
 
 It covers the three approved blocks (records-table, auth-form and guide-steps) as Composer renders them natively in Astryx, in the Build canvas and in Preview, and the parts of the Build page a reader uses with them. A host's own renderer is the host's ([HOST-ACTIONS.md](HOST-ACTIONS.md)). shadcn/ui v3 blocks are withheld from the beta, so their scans are information only (below).
 
@@ -80,7 +80,7 @@ All of these ship in the default build too, and every Astryx surface in Preview 
 
 ## Still needs a person
 
-None of these has been done. [MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md) turns them into one packet: the minimum before the release is called an official beta (a keyboard pass in Safari and in Firefox, and a screen-reader pass with VoiceOver and with NVDA, on the three blocks), who or what device runs each check, and what may wait until the audience expands.
+None of these has been done. [MANUAL-A11Y-PACKET.md](MANUAL-A11Y-PACKET.md) turns them into one packet: the minimum before the release is called an official beta (a keyboard pass in Safari and in Firefox, and a real screen-reader pass on the three blocks, with VoiceOver and NVDA both recommended), who or what device runs each check, and what may wait until the audience expands.
 
 1. A screen-reader pass per block: NVDA with Firefox or Chrome on Windows, VoiceOver with Safari on macOS and iOS, and TalkBack with Chrome on Android. Listen for the heading, the table regions' names, table navigation, each field's name and required state, and the buttons. A maximum call names its table region with about 330 characters, and two tables with the same columns share a name: judge both by ear.
 2. A keyboard pass in Firefox and Safari. Safari reaches buttons with Tab only when its "Press Tab to highlight each item" setting is on.

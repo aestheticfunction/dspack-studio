@@ -23,7 +23,7 @@ The plan's §3 defines the branches by the shadcn/ui v3 result. An uncertain res
 2. **Do not authorize shadcn/ui v3 Stage 4 now.** In the owner's words: its results are promising, but the personal cost of the larger experiment is not worthwhile at this stage.
 3. **Record this as a deferral,** not a shadcn/ui v3 failure or a permanent exclusion.
 4. **Withhold shadcn/ui v3 blocks from the beta,** and explain that its evaluation remains inconclusive.
-5. **Delivery:** a separate beta origin and Worker (plan §13, decision 1).
+5. **Delivery:** a separate beta origin and Worker (plan §13, decision 1). Superseded by the single-host amendment (below).
 6. **Audience:** invite-only first. Public opt-in is considered after the first clean beta window (decision 2).
 7. **Kill switch:** a block-specific runtime kill switch with reference and block allowlists, in addition to `HOSTED_AI` and rollback (decision 3).
 8. **auth-form:** included under the documented accessibility exception and its host mitigation. GA remains blocked on the vocabulary gap (decision 4; the release plan §10).
@@ -50,7 +50,7 @@ Under branch C, shadcn/ui v3 joins the beta only if an owner-authorized Stage 4 
 
 After G1 merged (aestheticfunction/dspack-studio#103), the owner treated the gate as open and authorized the plan's step 2, the beta's delivery path, guards and switches, as its own PR: no deploy, no Cloudflare change, no paid model call. The owner's inputs:
 
-- **Hostname:** `composer-beta.aesthetic-function.com`.
+- **Hostname:** `composer-beta.aesthetic-function.com`. Superseded by the single-host amendment (below): no such hostname is created.
 - **Audience:** Cloudflare Access, the owner only. Anyone more needs an explicit later decision.
 - **The switch:** the variable `BLOCKS_BETA`, strict JSON: `{"enabled":true,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}`. Unknown fields, references or block ids are rejected. Missing, malformed, unreadable or disabled configuration fails closed and offers no blocks.
 - **Credentials:** a dedicated least-privilege deploy token, `CLOUDFLARE_API_TOKEN_BETA`, never the production token. `CF_ACCESS_CLIENT_ID_BETA` and `CF_ACCESS_CLIENT_SECRET_BETA` are reserved for a later authenticated smoke.

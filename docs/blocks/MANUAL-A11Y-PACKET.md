@@ -2,7 +2,7 @@
 
 **Phase 2, step 7.** One packet for every accessibility check the automated suite cannot do ([ACCESSIBILITY.md](ACCESSIBILITY.md), "Still needs a person"). **None of these checks has been done.** No screen-reader pass has been run with NVDA, VoiceOver, TalkBack or any other screen reader, and no keyboard pass has been run in Firefox or Safari. The automated suite runs in Chromium only, with scripted key events. Record results only for checks a person actually ran, with the device, browser, assistive technology and versions.
 
-The target is WCAG 2.2 AA. The beta does not claim full conformance: two exceptions are accepted for the invite-only beta only (below).
+The target is WCAG 2.2 AA. The beta does not claim full conformance: three waivers are accepted for the invite-only beta only: SC 1.3.5 and SC 1.4.11, both failures, and SC 2.4.6, whose names "Start" and "Save guide" are accepted in their current context (below).
 
 ## The minimum before the release is called an official beta
 
@@ -15,7 +15,7 @@ The owner's rule (2026-10-17): at minimum, a real keyboard pass in Safari and Fi
 | M3 | Screen-reader pass with **VoiceOver and Safari** on macOS | A person who uses VoiceOver, or who has practised its basic commands (VO keys, rotor, table navigation), on a Mac | the same | Script B passes for each block |
 | M4 | Screen-reader pass with **NVDA** and Firefox (or Chrome) on Windows | A person who uses NVDA, or who has practised its browse and focus modes and table commands, on a Windows PC. NVDA is free. | the same | Script B passes for each block |
 
-The plan names VoiceOver and NVDA for the screen-reader check (the release plan, §10), so the minimum is both desktop pairings. If only one tester and one machine are available, the owner decides whether one pairing is enough to start; that is a remaining decision (below).
+The owner's minimum is a real screen-reader pass on the three blocks. The plan names VoiceOver and NVDA for it (the release plan, §10), so this packet recommends both desktop pairings. If only one tester and one machine are available, the owner decides whether one pairing is enough to start; that is a remaining decision (below, and decision D7 in [RELEASE-REVIEW.md](RELEASE-REVIEW.md)).
 
 **Recommended in the same sittings,** because they cost minutes with the same people and machines:
 - R1. Browser zoom to 200% (Cmd or Ctrl and +) in Safari and Firefox, with the window at a normal desktop height, during M1 and M2: nothing is cut off, overlaps or scrolls sideways, apart from a table scrolling inside its own region.

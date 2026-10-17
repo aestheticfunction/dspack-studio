@@ -7,7 +7,7 @@ This page is what the release plan asks the beta's own page to hold ([PHASE-2-RE
 ## Who can use it
 
 - **Invite-only.** Cloudflare Access is to protect `composer.aesthetic-function.com`, with email one-time PIN, admitting at first only the owner's exact email; tester addresses are added later ([PHASE-2-DECISION-RECORD.md](PHASE-2-DECISION-RECORD.md), "The single-host amendment"). It is not applied yet. Once it is, the existing public Composer is no longer reachable anonymously: it becomes the invite-only beta.
-- **Not a conformance claim.** The target is WCAG 2.2 AA, but the beta does not claim full conformance: two exceptions are accepted for the invite-only beta only (below).
+- **Not a conformance claim.** The target is WCAG 2.2 AA, but the beta does not claim full conformance: three waivers are accepted for the invite-only beta only: SC 1.3.5 and SC 1.4.11, both failures, and SC 2.4.6, whose names "Start" and "Save guide" are accepted in their current context (below).
 
 ## Opting in
 
@@ -35,7 +35,7 @@ Not in the beta (the plan's §5): positional encoding, local models, repository 
 - **Exports leave block provenance behind outside the beta.** A beta export imported into a default build, or read after a rollback to the block-free release candidate, loses its block provenance: a default build drops the field.
 - **A rollback leaves beta-only data in the browser,** the experimental preference and the provenance records. The default build ignores both.
 - A contract re-bind makes every existing provenance record for that reference inert, and its surfaces then render as ordinary surfaces (the plan's §8).
-- Clearing the beta origin's site data deletes everything the beta stored in that browser.
+- Clearing the origin's site data deletes everything Composer stored on it in that browser, projects saved before the beta included.
 
 ## The runbook
 
