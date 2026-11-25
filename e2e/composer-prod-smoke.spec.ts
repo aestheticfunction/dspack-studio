@@ -450,6 +450,74 @@ test("a generated build is titled and saved under the request that produced it",
   expect(saved).not.toHaveProperty("description");
 });
 
+/**
+ * M0 trust fix (b): passing the design system's rules is not the same as doing
+ * what was asked, and whether anything can generate is said before typing.
+ */
+test("with only the scripted twin, the hub and Build say generation is unavailable before anyone types", async ({ page }) => {
+  // /api/models is stubbed to scripted only, as production answers while its
+  // kill switch is off, so this holds wherever the spec runs: this spec also
+  // runs against production after a deploy, where hosted AI may be on. The
+  // answer is delayed: until it arrives nothing is claimed either way.
+  let answer!: () => void;
+  const answered = new Promise<void>((resolve) => (answer = resolve));
+  await page.route("**/api/models", async (route) => {
+    await answered;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted"] }) });
+  });
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await expect(page.getByTestId("availability-hub")).toHaveCount(0);
+  answer();
+  await expect(page.getByTestId("availability-hub")).toContainText("AI generation is not available here right now");
+  await newProject(page, "astryx", "Availability");
+  await expect(page.getByTestId("availability-build")).toContainText("do not answer what you type");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-prompt").fill("a booking for a hotel room");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  // One notice per turn: the replay notice says it does not answer the
+  // request, so no second fulfilment line repeats it.
+  await expect(page.getByTestId("build-replay-1")).toContainText("Demo replay, not generated from your request");
+  await expect(page.getByTestId("build-fulfilment-1")).toHaveCount(0);
+  // A scripted edit is no answer either, and says so once.
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-replay-2")).toContainText("your instruction was not applied");
+  await expect(page.getByTestId("build-fulfilment-2")).toHaveCount(0);
+});
+
+test("a passing hosted build separates rule checks from doing what was asked, and no availability warning shows", async ({ page }) => {
+  const contract = JSON.parse(
+    readFileSync(fileURLToPath(new URL("../apps/composer/shadcn-v3-project/shadcn-ui.dspack.json", import.meta.url)), "utf8"),
+  ) as { examples: Array<{ intent: string; surface: unknown }> };
+  const surface = contract.examples.find((e) => e.intent === "destructive-action")!.surface;
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  await page.route("**/api/propose", (route) => {
+    const request = JSON.parse(route.request().postData() ?? "{}") as { jsonSchema?: Record<string, unknown> };
+    const generation = !!request.jsonSchema && "$defs" in request.jsonSchema;
+    const json = generation ? surface : { intent: "destructive-action", feasible: true, restated: "Let people permanently delete their account." };
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ json, model: "claude-haiku-4.5", usage: { inputTokens: 100, outputTokens: 10 }, calls: [{ inputTokens: 100, outputTokens: 10, outcome: "ok", durationMs: 10 }] }),
+    });
+  });
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await expect(page.getByTestId("availability-hub")).toHaveCount(0);
+  await newProject(page, "shadcn", "Fulfilment");
+  await expect(page.getByTestId("availability-build")).toHaveCount(0);
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill("let people permanently delete their account");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-fulfilment-1")).toContainText("They do not confirm it does what you asked");
+});
+
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
   await page.goto("/");
   // The hub separates Examples from Your projects.

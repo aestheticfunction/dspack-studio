@@ -13,6 +13,7 @@
 import { useRef, useState } from "react";
 import { useComposer } from "../state";
 import { Marks, Eyebrow, relativeTime } from "../ui";
+import { GenerationAvailability } from "./availability";
 import type { StoredProject } from "../projects";
 
 type SourceChoice = { kind: "reference"; id: string } | { kind: "connect" } | null;
@@ -103,6 +104,7 @@ export function ProjectsView({ onOpen, onConnect }: { onOpen: () => void; onConn
           end. Binding them to live data, running the workflow, and carrying state between steps is where this is going
           next.
         </p>
+        <GenerationAvailability where="hub" />
       </header>
 
       {/* New project */}

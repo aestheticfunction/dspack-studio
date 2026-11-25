@@ -33,6 +33,7 @@ import type { BuildTurn, FlowBuildState } from "../state";
 import { useComposer } from "../state";
 import { blockingFindings, surfaceEntriesById, surfaceTitle } from "../surface-identity";
 import { Eyebrow } from "../ui";
+import { GenerationAvailability } from "./availability";
 import { browserEmit } from "../validation";
 
 const GATE_COLOR: Record<string, string> = { PASS: "var(--ok)", FAIL: "var(--err)", SKIPPED: "var(--fg-dim)" };
@@ -401,6 +402,15 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       ) : (
         <>
           <GateSummary turn={turn} />
+          {/* One notice per turn: a scripted turn's replay notice already says
+              it does not answer the request, so the fulfilment line is for a
+              model's result only. */}
+          {turn.progress.outcome === "passed" && turn.modelRef !== "scripted" && (
+            <p data-testid={`build-fulfilment-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-body)", margin: "0 0 6px" }}>
+              These checks confirm the result follows your design system. They do not confirm it does what you asked: compare it with your
+              request before you save it.
+            </p>
+          )}
           <details style={{ marginBottom: 4 }}>
             <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--fg-dim)" }}>validation detail (gates, repairs, emit)</summary>
             <ol data-testid={`build-pipeline-${turn.id}`} style={{ listStyle: "none", padding: "4px 0 0", fontSize: 12, fontFamily: "var(--mono)" }}>
@@ -823,6 +833,7 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
         Describe what you want, in your own words. Composer works out the governed context, builds it from this
         project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
       </p>
+      <GenerationAvailability where="build" />
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
         <button
           className={`st-btn st-btn--dashed${buildMode === "flow" ? " st-btn--active" : ""}`}
