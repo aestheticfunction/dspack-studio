@@ -1,0 +1,536 @@
+{
+ "run": {
+  "id": "hotel-single-3",
+  "kind": "single",
+  "source": "hotel",
+  "sample": 3
+ },
+ "goal": "Create a hotel reservation experience where a user can search for hotels by destination, check-in date, check-out date and number of guests, compare available hotels, select a hotel and room, review the reservation details, and confirm the booking.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:03:25.768Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "destination",
+   "check-in date",
+   "check-out date",
+   "guest count",
+   "a comparison of at least two hotels",
+   "a room choice",
+   "a review of the reservation",
+   "an explicit confirmation"
+  ]
+ },
+ "builds": [
+  {
+   "plan": {
+    "intent": "transactional-review",
+    "source": "model",
+    "durationMs": 21285.041341000004
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12788,
+    "output": 2618,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.027171900000000002,
+   "timings": {
+    "planMs": 21285.041341000004,
+    "firstGatedAttemptMs": 63449.835221999994,
+    "emitMs": 105.06522099999711,
+    "totalMs": 63555.474265,
+    "pacingMs": 47710.33958700001,
+    "execution": {
+     "planMs": 2299.706686000005,
+     "firstGatedAttemptMs": 15739.495634999985,
+     "emitMs": 105.06522099999711,
+     "totalMs": 15845.134677999988
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text",
+     "TextField"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text",
+     "TextField"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1037,
+     "outputTokens": 155,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2141,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11751,
+     "outputTokens": 2463,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 13233,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "transactional-review",
+    "root": {
+     "component": "card",
+     "id": "hotel-reservation",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Hotel Reservation"
+      },
+      {
+       "component": "card",
+       "id": "search-section",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "search-title",
+         "props": {
+          "type": "label"
+         },
+         "text": "Search Hotels"
+        },
+        {
+         "component": "text-input",
+         "id": "destination",
+         "props": {
+          "label": "Destination",
+          "placeholder": "City or hotel name",
+          "size": "md"
+         }
+        },
+        {
+         "component": "text-input",
+         "id": "checkin-date",
+         "props": {
+          "label": "Check-in Date",
+          "type": "text",
+          "placeholder": "MM/DD/YYYY",
+          "size": "md"
+         }
+        },
+        {
+         "component": "text-input",
+         "id": "checkout-date",
+         "props": {
+          "label": "Check-out Date",
+          "type": "text",
+          "placeholder": "MM/DD/YYYY",
+          "size": "md"
+         }
+        },
+        {
+         "component": "text-input",
+         "id": "guests",
+         "props": {
+          "label": "Number of Guests",
+          "type": "text",
+          "placeholder": "1",
+          "size": "md"
+         }
+        },
+        {
+         "component": "button",
+         "id": "search-btn",
+         "props": {
+          "label": "Search Hotels",
+          "variant": "primary"
+         }
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "results-title",
+       "props": {
+        "type": "label"
+       },
+       "text": "Available Hotels"
+      },
+      {
+       "component": "list",
+       "id": "hotels-list",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "hotel-grandview",
+         "props": {
+          "label": "Grand View Hotel",
+          "isSelected": false,
+          "variant": "default"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "grandview-attrs",
+           "props": {
+            "items": [
+             {
+              "label": "Location",
+              "value": "Downtown"
+             },
+             {
+              "label": "Rating",
+              "value": "4.5/5 (320 reviews)"
+             },
+             {
+              "label": "Price per night",
+              "value": "$185"
+             },
+             {
+              "label": "Room types",
+              "value": "Standard, Deluxe, Suite"
+             },
+             {
+              "label": "Amenities",
+              "value": "WiFi, Pool, Gym, Restaurant"
+             }
+            ],
+            "orientation": "vertical"
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "hotel-oceanside",
+         "props": {
+          "label": "Oceanside Resort",
+          "isSelected": true,
+          "variant": "blue"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "oceanside-attrs",
+           "props": {
+            "items": [
+             {
+              "label": "Location",
+              "value": "Beachfront"
+             },
+             {
+              "label": "Rating",
+              "value": "4.8/5 (547 reviews)"
+             },
+             {
+              "label": "Price per night",
+              "value": "$225"
+             },
+             {
+              "label": "Room types",
+              "value": "Ocean View, Deluxe, Penthouse"
+             },
+             {
+              "label": "Amenities",
+              "value": "WiFi, Beach, Spa, Restaurant, Bar"
+             }
+            ],
+            "orientation": "vertical"
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "hotel-boutique",
+         "props": {
+          "label": "Boutique Urban Hotel",
+          "isSelected": false,
+          "variant": "default"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "boutique-attrs",
+           "props": {
+            "items": [
+             {
+              "label": "Location",
+              "value": "Arts District"
+             },
+             {
+              "label": "Rating",
+              "value": "4.6/5 (198 reviews)"
+             },
+             {
+              "label": "Price per night",
+              "value": "$155"
+             },
+             {
+              "label": "Room types",
+              "value": "Classic, Contemporary, Loft"
+             },
+             {
+              "label": "Amenities",
+              "value": "WiFi, Rooftop Bar, Gallery"
+             }
+            ],
+            "orientation": "vertical"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "room-title",
+       "props": {
+        "type": "label"
+       },
+       "text": "Room Selection"
+      },
+      {
+       "component": "list",
+       "id": "rooms-list",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "room-oceanview",
+         "props": {
+          "label": "Ocean View Room",
+          "isSelected": true,
+          "variant": "blue"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "oceanview-details",
+           "props": {
+            "items": [
+             {
+              "label": "Occupancy",
+              "value": "2 guests"
+             },
+             {
+              "label": "Size",
+              "value": "350 sq ft"
+             },
+             {
+              "label": "Bed",
+              "value": "King"
+             },
+             {
+              "label": "Price",
+              "value": "$225/night"
+             },
+             {
+              "label": "Total (3 nights)",
+              "value": "$675"
+             }
+            ],
+            "orientation": "vertical"
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "room-deluxe",
+         "props": {
+          "label": "Deluxe Ocean Room",
+          "isSelected": false,
+          "variant": "default"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "deluxe-details",
+           "props": {
+            "items": [
+             {
+              "label": "Occupancy",
+              "value": "2-4 guests"
+             },
+             {
+              "label": "Size",
+              "value": "500 sq ft"
+             },
+             {
+              "label": "Bed",
+              "value": "King + Sofa"
+             },
+             {
+              "label": "Price",
+              "value": "$285/night"
+             },
+             {
+              "label": "Total (3 nights)",
+              "value": "$855"
+             }
+            ],
+            "orientation": "vertical"
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "room-penthouse",
+         "props": {
+          "label": "Penthouse Suite",
+          "isSelected": false,
+          "variant": "default"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "penthouse-details",
+           "props": {
+            "items": [
+             {
+              "label": "Occupancy",
+              "value": "2-6 guests"
+             },
+             {
+              "label": "Size",
+              "value": "1200 sq ft"
+             },
+             {
+              "label": "Bed",
+              "value": "2 Kings + Living Area"
+             },
+             {
+              "label": "Price",
+              "value": "$450/night"
+             },
+             {
+              "label": "Total (3 nights)",
+              "value": "$1350"
+             }
+            ],
+            "orientation": "vertical"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "review-title",
+       "props": {
+        "type": "label"
+       },
+       "text": "Reservation Summary"
+      },
+      {
+       "component": "metadata-list",
+       "id": "booking-summary",
+       "props": {
+        "items": [
+         {
+          "label": "Hotel",
+          "value": "Oceanside Resort"
+         },
+         {
+          "label": "Room Type",
+          "value": "Ocean View Room"
+         },
+         {
+          "label": "Check-in",
+          "value": "December 15, 2024"
+         },
+         {
+          "label": "Check-out",
+          "value": "December 18, 2024"
+         },
+         {
+          "label": "Duration",
+          "value": "3 nights"
+         },
+         {
+          "label": "Guests",
+          "value": "2 adults"
+         },
+         {
+          "label": "Rate per night",
+          "value": "$225"
+         },
+         {
+          "label": "Subtotal",
+          "value": "$675"
+         },
+         {
+          "label": "Taxes & fees",
+          "value": "$81"
+         },
+         {
+          "label": "Total cost",
+          "value": "$756"
+         }
+        ],
+        "orientation": "vertical",
+        "columns": "single"
+       }
+      },
+      {
+       "component": "button",
+       "id": "confirm-btn",
+       "props": {
+        "label": "Confirm Booking",
+        "variant": "primary",
+        "size": "lg"
+       }
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "durationMs": 63560,
+ "pilotUsdAfter": 0.0800037
+}

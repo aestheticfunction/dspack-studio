@@ -1,6 +1,6 @@
 # Live pilot runbook
 
-**Status:** prepared 2026-11-25. Nothing in this document has been done. No Cloudflare setting is changed, hosted AI stays off, and no money is spent until the owner authorizes the run. The pilot's scope is [LIVE-EVALUATION-PROPOSAL.md](LIVE-EVALUATION-PROPOSAL.md) "Pilot": twelve runs on Astryx with the production model, under a cumulative $5 ceiling.
+**Status:** executed 2026-11-25; results in [LIVE-PILOT-REPORT.md](LIVE-PILOT-REPORT.md). As run, the temporary Access application was removed at cleanup (section 2 action 9 kept it) and requests were paced 31 s apart for the gateway's 5-per-minute limit. Written before the run:
 
 ## 1. Recommended restricted environment
 

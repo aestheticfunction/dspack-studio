@@ -1,0 +1,201 @@
+{
+ "run": {
+  "id": "corpus-10-1",
+  "kind": "single",
+  "source": "corpus",
+  "corpusN": 10,
+  "sample": 1
+ },
+ "goal": "A reusable document and artifact card for files associated with\nestimates, projects, orders, or other Gateway resources.\nMake the filename the primary element.\nShow available metadata such as document type, media type, and file\nsize beneath it. Do not show empty metadata labels when those values\nare unavailable.\nProvide a clear Download or Open action when the artifact is retrievable.\nSupport a compact document-list layout where several artifact cards\nappear together.\nInclude states for:\nAvailable for download\nMetadata available but file unavailable\nDownloading\nDownload failed\nThe design should work for PDFs, Word documents, spreadsheets, and\nunknown file types without assuming that MIME type or file extension\nis always supplied.\nThe interface should look like a professional business-document\nattachment, not a consumer cloud-storage tile.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:26:42.380Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "the filename and type",
+   "the associated resource",
+   "what the user can do with the file",
+   "as EXPECTED.md row 10 describes (classified Partial)"
+  ]
+ },
+ "builds": [
+  {
+   "plan": {
+    "intent": "record-collection",
+    "source": "model",
+    "durationMs": 21376.66770800017
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": false,
+   "attempts": 2,
+   "repairs": 1,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 26907,
+    "output": 2603,
+    "providerCalls": 3,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.0419181,
+   "timings": {
+    "planMs": 21376.66770800017,
+    "firstGatedAttemptMs": 57873.75306300004,
+    "emitMs": 58.75316999992356,
+    "totalMs": 84467.96169100003,
+    "pacingMs": 68866.37594499998,
+    "execution": {
+     "planMs": 3013.17392200022,
+     "firstGatedAttemptMs": 11516.285608000122,
+     "emitMs": 58.75316999992356,
+     "totalMs": 15601.585746000055
+    }
+   },
+   "renderer": {
+    "used": [
+     "Card",
+     "Column",
+     "Table",
+     "Text"
+    ],
+    "native": [
+     "Card",
+     "Column",
+     "Table",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1165,
+     "outputTokens": 179,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2843,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11664,
+     "outputTokens": 1847,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 8114,
+     "outcome": "ok"
+    },
+    {
+     "operation": "repair",
+     "attempt": 1,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 14078,
+     "outputTokens": 577,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 3798,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "record-collection",
+    "root": {
+     "component": "card",
+     "id": "document-list-container",
+     "props": {
+      "variant": "default"
+     },
+     "children": [
+      {
+       "component": "text",
+       "id": "list-title",
+       "props": {
+        "type": "display-3",
+        "as": "div"
+       },
+       "text": "Documents"
+      },
+      {
+       "component": "table",
+       "id": "document-table",
+       "props": {
+        "columns": [
+         "Filename",
+         "Type",
+         "Size",
+         "Created",
+         "Status",
+         "Action"
+        ],
+        "data": [
+         {
+          "cells": [
+           "Project_Estimate_2024_Q1.pdf",
+           "PDF",
+           "2.4 MB",
+           "Jan 15, 2024",
+           "Available",
+           "Download"
+          ]
+         },
+         {
+          "cells": [
+           "Order_Details_INV-8847.xlsx",
+           "Spreadsheet",
+           "1.1 MB",
+           "Jan 20, 2024",
+           "Available",
+           "Download"
+          ]
+         },
+         {
+          "cells": [
+           "Contract_Amendment_v3.docx",
+           "Word Document",
+           "580 KB",
+           "Jan 18, 2024",
+           "Available",
+           "Download"
+          ]
+         },
+         {
+          "cells": [
+           "Receipt_scan.dat",
+           "Unknown",
+           "3.2 MB",
+           "Jan 22, 2024",
+           "Available",
+           "Download"
+          ]
+         },
+         {
+          "cells": [
+           "Signed_Agreement_archived.pdf",
+           "PDF",
+           "1.8 MB",
+           "Dec 10, 2023",
+           "Unavailable",
+           "—"
+          ]
+         }
+        ],
+        "density": "compact",
+        "dividers": "rows"
+       }
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "durationMs": 84469,
+ "pilotUsdAfter": 0.50984115
+}

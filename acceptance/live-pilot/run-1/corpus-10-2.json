@@ -1,0 +1,203 @@
+{
+ "run": {
+  "id": "corpus-10-2",
+  "kind": "single",
+  "source": "corpus",
+  "corpusN": 10,
+  "sample": 2
+ },
+ "goal": "A reusable document and artifact card for files associated with\nestimates, projects, orders, or other Gateway resources.\nMake the filename the primary element.\nShow available metadata such as document type, media type, and file\nsize beneath it. Do not show empty metadata labels when those values\nare unavailable.\nProvide a clear Download or Open action when the artifact is retrievable.\nSupport a compact document-list layout where several artifact cards\nappear together.\nInclude states for:\nAvailable for download\nMetadata available but file unavailable\nDownloading\nDownload failed\nThe design should work for PDFs, Word documents, spreadsheets, and\nunknown file types without assuming that MIME type or file extension\nis always supplied.\nThe interface should look like a professional business-document\nattachment, not a consumer cloud-storage tile.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:28:06.851Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "the filename and type",
+   "the associated resource",
+   "what the user can do with the file",
+   "as EXPECTED.md row 10 describes (classified Partial)"
+  ]
+ },
+ "builds": [
+  {
+   "plan": {
+    "intent": "record-collection",
+    "source": "model",
+    "durationMs": 30036.638050999958
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": false,
+   "attempts": 2,
+   "repairs": 1,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 26156,
+    "output": 1584,
+    "providerCalls": 3,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.0357798,
+   "timings": {
+    "planMs": 30036.638050999958,
+    "firstGatedAttemptMs": 64269.744741,
+    "emitMs": 60.34360700007528,
+    "totalMs": 92265.79647900001,
+    "pacingMs": 79568.85815400002,
+    "execution": {
+     "planMs": 3100.464042000007,
+     "firstGatedAttemptMs": 9411.107507999986,
+     "emitMs": 60.34360700007528,
+     "totalMs": 12696.938324999996
+    }
+   },
+   "renderer": {
+    "used": [
+     "Card",
+     "Column",
+     "Table",
+     "Text"
+    ],
+    "native": [
+     "Card",
+     "Column",
+     "Table",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1165,
+     "outputTokens": 192,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2946,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11664,
+     "outputTokens": 1096,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 6120,
+     "outcome": "ok"
+    },
+    {
+     "operation": "repair",
+     "attempt": 1,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 13327,
+     "outputTokens": 296,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2987,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "record-collection",
+    "root": {
+     "component": "card",
+     "id": "document-list-container",
+     "props": {
+      "variant": "default"
+     },
+     "children": [
+      {
+       "component": "text",
+       "id": "list-title",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Associated Documents"
+      },
+      {
+       "component": "table",
+       "id": "documents",
+       "props": {
+        "columns": [
+         "Filename",
+         "Type",
+         "Size",
+         "Status",
+         "Action"
+        ],
+        "data": [
+         {
+          "cells": [
+           "Q4-2024-Estimate-Final.pdf",
+           "Portable Document Format",
+           "2.4 MB",
+           "Ready",
+           "Download"
+          ]
+         },
+         {
+          "cells": [
+           "Project-Scope-Statement.docx",
+           "Word Document",
+           "1.1 MB",
+           "Ready",
+           "Download"
+          ]
+         },
+         {
+          "cells": [
+           "Budget-Breakdown.xlsx",
+           "Excel Spreadsheet",
+           "847 KB",
+           "File unavailable",
+           "View details"
+          ]
+         },
+         {
+          "cells": [
+           "Signed-Agreement.pdf",
+           "Portable Document Format",
+           "3.2 MB",
+           "Download failed",
+           "Retry download"
+          ]
+         },
+         {
+          "cells": [
+           "Specification-Sheet.txt",
+           "Text File",
+           "156 KB",
+           "Downloading",
+           "45% complete"
+          ]
+         },
+         {
+          "cells": [
+           "vendor-invoice.bin",
+           "Unknown file type",
+           "512 KB",
+           "Ready",
+           "Download"
+          ]
+         }
+        ],
+        "density": "compact",
+        "dividers": "rows"
+       }
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "durationMs": 92267,
+ "pilotUsdAfter": 0.54562095
+}

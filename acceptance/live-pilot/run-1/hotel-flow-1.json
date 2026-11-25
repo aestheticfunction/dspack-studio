@@ -1,0 +1,1296 @@
+{
+ "run": {
+  "id": "hotel-flow-1",
+  "kind": "flow",
+  "source": "hotel",
+  "sample": 1
+ },
+ "goal": "Create a hotel reservation experience where a user can search for hotels by destination, check-in date, check-out date and number of guests, compare available hotels, select a hotel and room, review the reservation details, and confirm the booking.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:04:29.329Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "destination",
+   "check-in date",
+   "check-out date",
+   "guest count",
+   "a comparison of at least two hotels",
+   "a room choice",
+   "a review of the reservation",
+   "an explicit confirmation"
+  ]
+ },
+ "flowPlan": {
+  "source": "model",
+  "raw": {
+   "name": "Hotel Reservation Flow",
+   "steps": [
+    {
+     "title": "Search Criteria",
+     "goal": "Collect destination, check-in date, check-out date, and number of guests.",
+     "intent": "data-collection"
+    },
+    {
+     "title": "Hotel Results",
+     "goal": "Display available hotels matching the search criteria with key details for comparison.",
+     "intent": "record-collection"
+    },
+    {
+     "title": "Hotel Details & Rooms",
+     "goal": "Show selected hotel's full details and available room options with pricing.",
+     "intent": "transactional-review"
+    },
+    {
+     "title": "Room Selection",
+     "goal": "Confirm the chosen room type and rate for the reservation dates.",
+     "intent": "structured-editing"
+    },
+    {
+     "title": "Reservation Review",
+     "goal": "Present complete reservation summary including guest info, hotel, room, dates, and total cost.",
+     "intent": "transactional-review"
+    },
+    {
+     "title": "Confirm Booking",
+     "goal": "Execute the reservation and display confirmation details.",
+     "intent": "destructive-action"
+    }
+   ]
+  },
+  "name": "Hotel Reservation Flow",
+  "steps": [
+   {
+    "title": "Search Criteria",
+    "goal": "Collect destination, check-in date, check-out date, and number of guests.",
+    "intent": "data-collection"
+   },
+   {
+    "title": "Hotel Results",
+    "goal": "Display available hotels matching the search criteria with key details for comparison.",
+    "intent": "record-collection"
+   },
+   {
+    "title": "Hotel Details & Rooms",
+    "goal": "Show selected hotel's full details and available room options with pricing.",
+    "intent": "transactional-review"
+   },
+   {
+    "title": "Room Selection",
+    "goal": "Confirm the chosen room type and rate for the reservation dates.",
+    "intent": "structured-editing"
+   },
+   {
+    "title": "Reservation Review",
+    "goal": "Present complete reservation summary including guest info, hotel, room, dates, and total cost.",
+    "intent": "transactional-review"
+   },
+   {
+    "title": "Confirm Booking",
+    "goal": "Execute the reservation and display confirmation details.",
+    "intent": "destructive-action"
+   }
+  ],
+  "durationMs": 21784,
+  "calls": [
+   {
+    "operation": "plan",
+    "subCall": 0,
+    "source": "provider",
+    "inputTokens": 677,
+    "outputTokens": 313,
+    "model": "claude-haiku-4-5-20251001",
+    "durationMs": 4180,
+    "outcome": "ok"
+   }
+  ],
+  "usd": 0.0023541
+ },
+ "builds": [
+  {
+   "step": {
+    "index": 1,
+    "title": "Search Criteria",
+    "intent": "data-collection"
+   },
+   "plan": {
+    "intent": "data-collection",
+    "source": "model",
+    "durationMs": 28525.122245000006
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12285,
+    "output": 413,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.015067500000000001,
+   "timings": {
+    "planMs": 28525.122245000006,
+    "firstGatedAttemptMs": 60284.350209,
+    "emitMs": 130.52866199999698,
+    "totalMs": 60415.56806399999,
+    "pacingMs": 55903.73842000001,
+    "execution": {
+     "planMs": 1823.1463870000152,
+     "firstGatedAttemptMs": 4380.611788999988,
+     "emitMs": 130.52866199999698,
+     "totalMs": 4511.829643999983
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "Text",
+     "TextField"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "Text",
+     "TextField"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1007,
+     "outputTokens": 123,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1680,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11278,
+     "outputTokens": 290,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2368,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "data-collection",
+    "root": {
+     "component": "card",
+     "id": "booking-card",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-3"
+       },
+       "text": "Find your stay"
+      },
+      {
+       "component": "text",
+       "id": "intro",
+       "props": {
+        "type": "body"
+       },
+       "text": "Tell us where you're going and when. We'll show you available options."
+      },
+      {
+       "component": "text-input",
+       "id": "destination-input",
+       "props": {
+        "label": "Destination",
+        "placeholder": "City, region, or property",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "text-input",
+       "id": "checkin-input",
+       "props": {
+        "type": "text",
+        "label": "Check-in date",
+        "placeholder": "MM/DD/YYYY",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "text-input",
+       "id": "checkout-input",
+       "props": {
+        "type": "text",
+        "label": "Check-out date",
+        "placeholder": "MM/DD/YYYY",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "text-input",
+       "id": "guests-input",
+       "props": {
+        "type": "text",
+        "label": "Number of guests",
+        "placeholder": "1",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "button",
+       "id": "search",
+       "props": {
+        "label": "Search availability",
+        "variant": "primary"
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 2,
+    "title": "Hotel Results",
+    "intent": "record-collection"
+   },
+   "plan": {
+    "intent": "record-collection",
+    "source": "model",
+    "durationMs": 30625.186308000004
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12501,
+    "output": 461,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.0155463,
+   "timings": {
+    "planMs": 30625.186308000004,
+    "firstGatedAttemptMs": 63016.02881800002,
+    "emitMs": 79.72119799995562,
+    "totalMs": 63096.25023099998,
+    "pacingMs": 57057.552069000056,
+    "execution": {
+     "planMs": 2295.943928999972,
+     "firstGatedAttemptMs": 5958.476748999965,
+     "emitMs": 79.72119799995562,
+     "totalMs": 6038.698161999928
+    }
+   },
+   "renderer": {
+    "used": [
+     "Card",
+     "Column",
+     "Table",
+     "Text"
+    ],
+    "native": [
+     "Card",
+     "Column",
+     "Table",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1001,
+     "outputTokens": 130,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1956,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11500,
+     "outputTokens": 331,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 3466,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "record-collection",
+    "root": {
+     "component": "card",
+     "id": "hotels-card",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-3"
+       },
+       "text": "Available hotels"
+      },
+      {
+       "component": "text",
+       "id": "search-criteria",
+       "props": {
+        "type": "body"
+       },
+       "text": "Sorted by relevance. Check-in Dec 15, check-out Dec 18, 2 guests."
+      },
+      {
+       "component": "table",
+       "id": "hotels-table",
+       "props": {
+        "columns": [
+         "Hotel",
+         "Location",
+         "Price/Night",
+         "Rating",
+         "Availability"
+        ],
+        "data": [
+         {
+          "cells": [
+           "The Grand Plaza",
+           "Downtown, 0.5 mi",
+           "$189",
+           "4.8★",
+           "3 rooms"
+          ]
+         },
+         {
+          "cells": [
+           "Riverside Inn",
+           "Waterfront, 1.2 mi",
+           "$145",
+           "4.5★",
+           "8 rooms"
+          ]
+         },
+         {
+          "cells": [
+           "Mountain View Resort",
+           "Hillside, 3.4 mi",
+           "$120",
+           "4.3★",
+           "12 rooms"
+          ]
+         },
+         {
+          "cells": [
+           "Boutique Elegance",
+           "Arts District, 0.8 mi",
+           "$210",
+           "4.9★",
+           "2 rooms"
+          ]
+         },
+         {
+          "cells": [
+           "Budget Lodge",
+           "Near Airport, 5.1 mi",
+           "$89",
+           "3.9★",
+           "15 rooms"
+          ]
+         }
+        ],
+        "density": "balanced",
+        "dividers": "rows",
+        "isStriped": true
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 3,
+    "title": "Hotel Details & Rooms",
+    "intent": "transactional-review"
+   },
+   "plan": {
+    "intent": "transactional-review",
+    "source": "model",
+    "durationMs": 29440.240705000004
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12716,
+    "output": 1387,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.02063355,
+   "timings": {
+    "planMs": 29440.240705000004,
+    "firstGatedAttemptMs": 65495.554764,
+    "emitMs": 81.50745500001358,
+    "totalMs": 65577.49109299999,
+    "pacingMs": 56113.557006999996,
+    "execution": {
+     "planMs": 2175.9039679999987,
+     "firstGatedAttemptMs": 9381.997757000005,
+     "emitMs": 81.50745500001358,
+     "totalMs": 9463.934085999994
+    }
+   },
+   "renderer": {
+    "used": [
+     "Badge",
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text"
+    ],
+    "native": [
+     "Badge",
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1001,
+     "outputTokens": 135,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2036,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11715,
+     "outputTokens": 1252,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 7015,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "transactional-review",
+    "root": {
+     "component": "card",
+     "id": "hotel-details-card",
+     "children": [
+      {
+       "component": "text",
+       "id": "hotel-name",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Grand Plaza Hotel"
+      },
+      {
+       "component": "metadata-list",
+       "id": "hotel-info",
+       "props": {
+        "items": [
+         {
+          "label": "Location",
+          "value": "Downtown, Central District"
+         },
+         {
+          "label": "Rating",
+          "value": "4.8/5 (1,240 reviews)"
+         },
+         {
+          "label": "Amenities",
+          "value": "Pool, Spa, Gym, Restaurant, WiFi"
+         },
+         {
+          "label": "Check-in",
+          "value": "3:00 PM"
+         },
+         {
+          "label": "Check-out",
+          "value": "11:00 AM"
+         }
+        ],
+        "columns": "multi"
+       }
+      },
+      {
+       "component": "text",
+       "id": "rooms-title",
+       "props": {
+        "type": "large"
+       },
+       "text": "Available rooms"
+      },
+      {
+       "component": "list",
+       "id": "room-options",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "room-standard",
+         "props": {
+          "label": "Standard Room",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "standard-details",
+           "props": {
+            "items": [
+             {
+              "label": "Size",
+              "value": "250 sq ft"
+             },
+             {
+              "label": "Beds",
+              "value": "1 Queen"
+             },
+             {
+              "label": "Occupancy",
+              "value": "Up to 2 guests"
+             },
+             {
+              "label": "Price per night",
+              "value": "$89"
+             }
+            ]
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "room-deluxe",
+         "props": {
+          "label": "Deluxe Room",
+          "isSelected": true,
+          "variant": "blue"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "deluxe-details",
+           "props": {
+            "items": [
+             {
+              "label": "Size",
+              "value": "400 sq ft"
+             },
+             {
+              "label": "Beds",
+              "value": "1 King"
+             },
+             {
+              "label": "Occupancy",
+              "value": "Up to 2 guests"
+             },
+             {
+              "label": "Price per night",
+              "value": "$139"
+             }
+            ]
+           }
+          },
+          {
+           "component": "badge",
+           "id": "deluxe-badge",
+           "props": {
+            "variant": "success",
+            "label": "Best value"
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "room-suite",
+         "props": {
+          "label": "Executive Suite",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "suite-details",
+           "props": {
+            "items": [
+             {
+              "label": "Size",
+              "value": "600 sq ft"
+             },
+             {
+              "label": "Beds",
+              "value": "1 King + Sofa"
+             },
+             {
+              "label": "Occupancy",
+              "value": "Up to 4 guests"
+             },
+             {
+              "label": "Price per night",
+              "value": "$229"
+             }
+            ]
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "button",
+       "id": "book-room",
+       "props": {
+        "label": "Book selected room",
+        "variant": "primary"
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 4,
+    "title": "Room Selection",
+    "intent": "structured-editing"
+   },
+   "plan": {
+    "intent": "structured-editing",
+    "source": "model",
+    "durationMs": 25610.33436799998
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12256,
+    "output": 803,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.01708455,
+   "timings": {
+    "planMs": 25610.33436799998,
+    "firstGatedAttemptMs": 60329.47542099998,
+    "emitMs": 104.89400600001682,
+    "totalMs": 60434.77234899998,
+    "pacingMs": 52876.741020999965,
+    "execution": {
+     "planMs": 1878.8891239999793,
+     "firstGatedAttemptMs": 7452.734400000016,
+     "emitMs": 104.89400600001682,
+     "totalMs": 7558.031328000012
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text",
+     "TextField"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text",
+     "TextField"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1001,
+     "outputTokens": 132,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1737,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11255,
+     "outputTokens": 671,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 5373,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "structured-editing",
+    "root": {
+     "component": "card",
+     "id": "reservation-confirmation",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Confirm your reservation"
+      },
+      {
+       "component": "metadata-list",
+       "id": "reservation-details",
+       "props": {
+        "items": [
+         {
+          "label": "Check-in",
+          "value": "March 15, 2025"
+         },
+         {
+          "label": "Check-out",
+          "value": "March 18, 2025"
+         },
+         {
+          "label": "Room type",
+          "value": "Deluxe Ocean View"
+         },
+         {
+          "label": "Nightly rate",
+          "value": "$189"
+         },
+         {
+          "label": "Total nights",
+          "value": "3"
+         },
+         {
+          "label": "Total cost",
+          "value": "$567"
+         }
+        ],
+        "columns": "single",
+        "orientation": "vertical"
+       }
+      },
+      {
+       "component": "text",
+       "id": "description",
+       "props": {
+        "type": "body"
+       },
+       "text": "Review your booking details below. Modify your room type or dates if needed."
+      },
+      {
+       "component": "list",
+       "id": "room-options",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "room-deluxe",
+         "props": {
+          "label": "Deluxe Ocean View",
+          "isSelected": true,
+          "variant": "blue"
+         },
+         "children": [
+          {
+           "component": "text",
+           "props": {
+            "type": "supporting"
+           },
+           "text": "$189/night - King bed, balcony, ocean view"
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "room-standard",
+         "props": {
+          "label": "Standard Room",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "text",
+           "props": {
+            "type": "supporting"
+           },
+           "text": "$129/night - Queen bed, city view"
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "room-suite",
+         "props": {
+          "label": "Presidential Suite",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "text",
+           "props": {
+            "type": "supporting"
+           },
+           "text": "$349/night - King bed, two bathrooms, suite amenities"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "text-input",
+       "id": "checkin-date",
+       "props": {
+        "label": "Check-in date",
+        "type": "text",
+        "placeholder": "YYYY-MM-DD"
+       }
+      },
+      {
+       "component": "text-input",
+       "id": "checkout-date",
+       "props": {
+        "label": "Check-out date",
+        "type": "text",
+        "placeholder": "YYYY-MM-DD"
+       }
+      },
+      {
+       "component": "text",
+       "id": "confirmation-note",
+       "props": {
+        "type": "supporting"
+       },
+       "text": "Cancellation allowed up to 48 hours before check-in."
+      },
+      {
+       "component": "list",
+       "id": "actions",
+       "props": {
+        "density": "compact"
+       },
+       "children": [
+        {
+         "component": "button",
+         "id": "confirm-btn",
+         "props": {
+          "label": "Confirm reservation",
+          "variant": "primary",
+          "size": "lg"
+         }
+        },
+        {
+         "component": "button",
+         "id": "modify-btn",
+         "props": {
+          "label": "Modify dates or room",
+          "variant": "secondary",
+          "size": "lg"
+         }
+        },
+        {
+         "component": "button",
+         "id": "cancel-btn",
+         "props": {
+          "label": "Cancel",
+          "variant": "ghost",
+          "size": "lg"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 5,
+    "title": "Reservation Review",
+    "intent": "transactional-review"
+   },
+   "plan": {
+    "intent": "transactional-review",
+    "source": "model",
+    "durationMs": 27167.751957
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": false,
+   "attempts": 2,
+   "repairs": 1,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 26476,
+    "output": 2155,
+    "providerCalls": 3,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.039113550000000004,
+   "timings": {
+    "planMs": 27167.751957,
+    "firstGatedAttemptMs": 64092.39628799999,
+    "emitMs": 67.18867599999066,
+    "totalMs": 92457.07130999997,
+    "pacingMs": 77836.96883599996,
+    "execution": {
+     "planMs": 1825.0103419999941,
+     "firstGatedAttemptMs": 9550.066892999981,
+     "emitMs": 67.18867599999066,
+     "totalMs": 14620.102474000014
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1006,
+     "outputTokens": 111,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1537,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11720,
+     "outputTokens": 1315,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 7522,
+     "outcome": "ok"
+    },
+    {
+     "operation": "repair",
+     "attempt": 1,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 13750,
+     "outputTokens": 729,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 4831,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "transactional-review",
+    "root": {
+     "component": "card",
+     "id": "reservation-summary",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-3"
+       },
+       "text": "Reservation Summary"
+      },
+      {
+       "component": "text",
+       "id": "instruction",
+       "props": {
+        "type": "body"
+       },
+       "text": "Review your booking details and choose to confirm or modify your reservation."
+      },
+      {
+       "component": "list",
+       "id": "reservation-options",
+       "props": {
+        "density": "balanced"
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "reservation-confirm",
+         "props": {
+          "label": "Confirm This Reservation",
+          "isSelected": true,
+          "variant": "blue"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "guest-info",
+           "props": {
+            "items": [
+             {
+              "label": "Guest",
+              "value": "Sarah Chen"
+             },
+             {
+              "label": "Hotel",
+              "value": "Oceanview Resort & Spa"
+             },
+             {
+              "label": "Room",
+              "value": "Deluxe Ocean View, King Bed"
+             },
+             {
+              "label": "Check-in",
+              "value": "June 15, 2024"
+             },
+             {
+              "label": "Check-out",
+              "value": "June 20, 2024"
+             },
+             {
+              "label": "Duration",
+              "value": "5 nights"
+             },
+             {
+              "label": "Total Cost",
+              "value": "$2,587.50"
+             }
+            ],
+            "columns": "multi"
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "reservation-modify",
+         "props": {
+          "label": "Modify Reservation",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "modify-info",
+           "props": {
+            "items": [
+             {
+              "label": "Option",
+              "value": "Edit guest information"
+             },
+             {
+              "label": "Change dates",
+              "value": "Available"
+             },
+             {
+              "label": "Change room type",
+              "value": "Available"
+             },
+             {
+              "label": "Review pricing",
+              "value": "Updated on save"
+             },
+             {
+              "label": "Action",
+              "value": "Go back to edit form"
+             }
+            ],
+            "columns": "multi"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "button",
+       "id": "confirm-btn",
+       "props": {
+        "label": "Confirm Reservation",
+        "variant": "primary"
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 6,
+    "title": "Confirm Booking",
+    "intent": "destructive-action"
+   },
+   "plan": {
+    "intent": "destructive-action",
+    "source": "model",
+    "durationMs": 30056.96974999993
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12142,
+    "output": 227,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.01394085,
+   "timings": {
+    "planMs": 30056.96974999993,
+    "firstGatedAttemptMs": 59269.45188100007,
+    "emitMs": 70.89396299992222,
+    "totalMs": 59341.11575300002,
+    "pacingMs": 52867.18636499997,
+    "execution": {
+     "planMs": 4105.347085999907,
+     "firstGatedAttemptMs": 6402.265516000101,
+     "emitMs": 70.89396299992222,
+     "totalMs": 6473.929388000048
+    }
+   },
+   "renderer": {
+    "used": [
+     "AlertDialog"
+    ],
+    "native": [
+     "AlertDialog"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 996,
+     "outputTokens": 132,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 3948,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11146,
+     "outputTokens": 95,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2081,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "destructive-action",
+    "root": {
+     "component": "alert-dialog",
+     "props": {
+      "title": "Confirm reservation execution?",
+      "description": "This will finalize the reservation and charge the payment method on file. This action cannot be reversed.",
+      "actionLabel": "Execute reservation",
+      "cancelLabel": "Cancel",
+      "actionVariant": "destructive"
+     }
+    }
+   }
+  }
+ ],
+ "durationMs": 423117,
+ "pilotUsdAfter": 0.2037441
+}
