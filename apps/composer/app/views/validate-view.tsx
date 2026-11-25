@@ -59,9 +59,19 @@ function FindingRow({ f }: { f: ComposerFinding }) {
   );
 }
 
+/** Findings carry long ids and JSON paths. At phone width the table scrolls
+ *  inside its own region instead of pushing the page sideways (M0 trust fix
+ *  d); the region is focusable so a keyboard user can scroll it too. */
 function FindingsTable({ rows }: { rows: ComposerFinding[] }) {
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+    <div
+      role="region"
+      aria-label="Findings"
+      tabIndex={0}
+      data-testid="findings-scroll"
+      style={{ maxWidth: "100%", overflowX: "auto" }}
+    >
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, overflowWrap: "anywhere" }}>
       <thead>
         <tr style={{ textAlign: "left", fontFamily: "var(--mono)", fontSize: 11, textTransform: "uppercase", color: "var(--fg-dim)" }}>
           <th style={{ padding: "4px 8px" }}>gate</th>
@@ -76,6 +86,7 @@ function FindingsTable({ rows }: { rows: ComposerFinding[] }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 

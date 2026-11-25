@@ -290,6 +290,18 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await expect(page.getByTestId("flows-empty")).toBeVisible();
 });
 
+/** M0 trust fix (d): Checks reflows at phone width; long findings scroll in their own region. */
+test("Checks does not scroll the page sideways at 390 px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await page.getByTestId("nav-validate").click();
+  await expect(page.locator("main table").first()).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow, "page scrolls sideways by this many pixels").toBeLessThanOrEqual(0);
+  await expect(page.getByTestId("findings-scroll").first()).toBeVisible();
+});
+
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
   await page.goto("/");
   // The hub separates Examples from Your projects.
