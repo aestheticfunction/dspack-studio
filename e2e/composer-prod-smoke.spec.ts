@@ -271,9 +271,12 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await expect(page.locator('[data-testid^="surface-ex."]').first()).toHaveAttribute("data-testid", "surface-ex.chat-1");
   await expect(own).toHaveClass(/st-btn--active/);
 
-  // B7 — it reads as what the person asked for; the canonical id stays beside
-  // it as metadata, never as the headline.
-  await expect(own).toContainText("let people permanently delete their account");
+  // B7 — it reads as what it is; the canonical id stays beside it as
+  // metadata, never as the headline. A scripted build is a demo replay of a
+  // saved surface, so it is named for that surface, never for the words typed
+  // (M0 trust fix: a replay must not read as the answer to a request).
+  await expect(own).toContainText("(demo replay)");
+  await expect(own).not.toContainText("let people permanently delete their account");
   await expect(own).toContainText("ex.chat-1");
   await expect(page.getByTestId("preview-your-surfaces")).toContainText("Your surfaces");
 
@@ -288,6 +291,45 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await page.getByTestId("nav-flows").click();
   await expect(page.getByTestId("preview-flows")).toBeVisible();
   await expect(page.getByTestId("flows-empty")).toBeVisible();
+});
+
+/**
+ * M0 trust fix (a): a demo replay is never presented, or saved, as the answer
+ * to an unrelated request. The hotel request is the case found in the live
+ * audit: scripted mode replays the project's plan-comparison surface for it.
+ */
+test("a demo replay names what it replays, and is saved under that example, never under the typed request", async ({ page }) => {
+  const hotel =
+    "Create a hotel reservation experience where a user can search for hotels by destination, check-in date, check-out date and number of guests, compare available hotels, select a hotel and room, review the reservation details, and confirm the booking.";
+  await page.goto("/");
+  await newProject(page, "astryx", "Replay honesty");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-prompt").fill(hotel);
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+
+  // Before the result: what it is, and what it is not.
+  const notice = page.getByTestId("build-replay-1");
+  await expect(notice).toContainText("Demo replay, not generated from your request");
+  await expect(notice).toContainText("Plan comparison");
+  await expect(notice).toContainText("ex.plan-comparison");
+  await expect(page.getByTestId("build-accept-1")).toHaveText("Add this sample to project");
+
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText("Plan comparison (demo replay)");
+
+  // The saved record: the replayed example's own prompt, a description of
+  // where it came from, and no trace of the typed request.
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("project-export").click()]);
+  const exported = JSON.parse(readFileSync((await download.path())!, "utf8")) as {
+    contract: { examples: Array<{ id: string; name?: string; prompt?: string; description?: string }> };
+  };
+  const source = exported.contract.examples.find((e) => e.id === "ex.plan-comparison")!;
+  const saved = exported.contract.examples.find((e) => e.id === "ex.chat-1")!;
+  expect(saved.name).toBe("Plan comparison (demo replay)");
+  expect(saved.prompt).toBe(source.prompt);
+  expect(saved.description).toContain("demo replay of ex.plan-comparison");
+  expect(JSON.stringify(saved)).not.toContain("hotel");
 });
 
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {

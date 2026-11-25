@@ -27,6 +27,7 @@ import { createPipelineEventMapper } from "@dspack-studio/agui-bridge";
 import {
   normalizeUsage,
   proposeBody,
+  scriptedReplaySource,
   type CallOperation,
   type CallRecorder,
   type ModelCallRecord,
@@ -458,12 +459,12 @@ export function streamHostedBuild(
         // Managed Claude Haiku through the governed AI Gateway Worker.
         adapter = gatewayAdapter({ ...(options.recorder ? { recorder: options.recorder } : {}), refinement });
       } else if (modelRef === "scripted") {
-        const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
         // LAST match for THIS intent (accepted results join the corpus at the
         // end): the scripted twin plays the owner's latest worked example, never
         // another intent's — a screen built for a different intent is a wrong
-        // answer reported as a right one (#43).
-        const example = examples.filter((e) => e.intent === intent).at(-1);
+        // answer reported as a right one (#43). One selection function for the
+        // browser, the agent and the turn's replay label.
+        const example = scriptedReplaySource(contract.examples as Array<{ intent: string; surface: unknown }> | undefined, intent)?.example;
         if (!example) {
           handlers.onError(
             `Scripted mode replays this governed context's own surface, and '${intent || "(none)"}' has none yet. ` +

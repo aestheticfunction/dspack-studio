@@ -446,3 +446,70 @@ export function examplePromptFor(chain: string[]): string {
   if (!original) return "";
   return refinements.length === 0 ? original : `${original} — refined: ${refinements.join("; ")}`;
 }
+
+/**
+ * The saved surface a Demo replay (scripted mode) plays for an intent: the
+ * LAST worked example of that intent, because accepted results join the
+ * corpus at the end. One function for the browser, the agent and the
+ * experimental runtime, so all three replay the same surface and the turn
+ * can name what it replayed.
+ */
+export interface ReplaySource {
+  /** The replayed worked example's id (or `block:<id>` for a block's example call). */
+  id: string;
+  name?: string;
+  prompt?: string;
+}
+
+export function scriptedReplaySource<E extends { id?: unknown; intent?: unknown; name?: unknown; prompt?: unknown }>(
+  examples: readonly E[] | undefined,
+  intent: string,
+): (ReplaySource & { example: E }) | null {
+  const example = (examples ?? []).filter((e) => e.intent === intent).at(-1);
+  if (!example) return null;
+  return {
+    id: String(example.id ?? ""),
+    ...(typeof example.name === "string" && example.name.trim() ? { name: example.name } : {}),
+    ...(typeof example.prompt === "string" && example.prompt.trim() ? { prompt: example.prompt } : {}),
+    example,
+  };
+}
+
+/** How a saved surface is named in the UI when it came from a replay. */
+export function replayLabel(source: ReplaySource): string {
+  return source.name ?? source.id;
+}
+
+/**
+ * The worked-example entry an accepted build turn becomes.
+ *
+ * A generated surface is recorded under the request that produced it (its
+ * goal, plus the refinements that shaped it). A Demo replay was NOT produced
+ * from the typed request, so it must never be filed under it: the typed words
+ * would become a few-shot pairing (dspack-gen uses `prompt ?? description ??
+ * id` as the example's user turn) between a request and a surface that does
+ * not answer it. A replay is recorded under the replayed example's own name
+ * and prompt, with a description saying where it came from.
+ */
+export function acceptedExampleEntry(input: {
+  id: string;
+  intent: string;
+  chain: string[];
+  surface: unknown;
+  replayOf?: ReplaySource;
+}): { id: string; intent: string; name: string; prompt: string; description?: string; surface: unknown } {
+  const { id, intent, chain, surface, replayOf } = input;
+  if (!replayOf) {
+    return { id, intent, name: (chain[0] ?? "").slice(0, 80), prompt: examplePromptFor(chain), surface };
+  }
+  return {
+    id,
+    intent,
+    name: `${replayLabel(replayOf)} (demo replay)`.slice(0, 80),
+    // The replayed example's own prompt; failing that, its own name. Both
+    // describe the replayed surface, never the typed request.
+    prompt: replayOf.prompt ?? replayLabel(replayOf),
+    description: `Saved from a demo replay of ${replayOf.id}. It was not generated from a request.`,
+    surface,
+  };
+}

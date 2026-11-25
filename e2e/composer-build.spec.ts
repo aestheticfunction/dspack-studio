@@ -114,8 +114,16 @@ test("Accept persists the worked example, survives reload, and the next run rece
   const doc = project.contract();
   const saved = doc.examples.find((e: any) => /^ex\.chat-\d+$/.test(e.id));
   expect(saved.intent).toBe("status-report");
-  // Truthful provenance: the ORIGINAL ask leads, the refinement is recorded.
-  expect(saved.prompt).toBe("a deployment status screen — refined: make the title clearer");
+  // Truthful provenance. Scripted mode is a demo replay: the surface is the
+  // project's own status-report example (plus a scripted edit), not an answer
+  // to the words typed, so it is recorded under that example's prompt and
+  // says where it came from (M0 trust fix a). The typed words never become
+  // its few-shot pairing.
+  const source = doc.examples.filter((e: any) => e.intent === "status-report" && e.id !== saved.id).at(-1);
+  expect(saved.prompt).toBe(source.prompt);
+  expect(saved.name).toMatch(/\(demo replay\)$/);
+  expect(saved.description).toContain(`demo replay of ${source.id}`);
+  expect(JSON.stringify(saved)).not.toContain("a deployment status screen");
   expect(JSON.stringify(saved.surface)).toContain("(refined)");
   expect(doc.metadata["x-bootstrap"]).toBeDefined();
 

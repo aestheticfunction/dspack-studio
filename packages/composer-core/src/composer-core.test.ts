@@ -38,6 +38,8 @@ import {
   canAcceptTurn,
   canRefineTurn,
   examplePromptFor,
+  acceptedExampleEntry,
+  scriptedReplaySource,
   foldBuildEvents,
   vocabularyGap,
 } from "./build";
@@ -844,5 +846,51 @@ describe("interface blocks: the dspack.block event and the invariant failure (Ph
     expect(failure?.stoppedAt).toBe("block · call 2");
     expect(failure?.reasons.map((r) => r.code)).toContain("policy");
     expect(failure?.reasons.map((r) => r.message).join(" ")).toMatch(/2 model calls used: 2 block, 0 surface/);
+  });
+});
+
+describe("demo replay integrity (M0 trust fix a)", () => {
+  const examples = [
+    { id: "ex.basic", intent: "transactional-review", name: "Basic plan", prompt: "compare two plans", surface: { a: 1 } },
+    { id: "ex.other", intent: "data-collection", name: "Signup", prompt: "a signup form", surface: { b: 1 } },
+    { id: "ex.plan-comparison", intent: "transactional-review", name: "Plan comparison", prompt: "Compare our plans.", surface: { c: 1 } },
+  ];
+
+  it("replays the LAST example of the intent, and names it", () => {
+    const source = scriptedReplaySource(examples, "transactional-review");
+    expect(source?.id).toBe("ex.plan-comparison");
+    expect(source?.name).toBe("Plan comparison");
+    expect(source?.prompt).toBe("Compare our plans.");
+    expect(source?.example).toBe(examples[2]);
+    expect(scriptedReplaySource(examples, "scheduling")).toBeNull();
+    expect(scriptedReplaySource(undefined, "scheduling")).toBeNull();
+  });
+
+  it("a generated surface is recorded under the request that produced it (unchanged)", () => {
+    const entry = acceptedExampleEntry({ id: "ex.chat-1", intent: "transactional-review", chain: ["a hotel search", "make it shorter"], surface: { c: 1 } });
+    expect(entry).toEqual({
+      id: "ex.chat-1",
+      intent: "transactional-review",
+      name: "a hotel search",
+      prompt: "a hotel search — refined: make it shorter",
+      surface: { c: 1 },
+    });
+  });
+
+  it("a replay is recorded under the replayed example, never under the typed request", () => {
+    const hotel = "Create a hotel reservation experience where a user can search for hotels";
+    const replayOf = { id: "ex.plan-comparison", name: "Plan comparison", prompt: "Compare our plans." };
+    const entry = acceptedExampleEntry({ id: "ex.chat-1", intent: "transactional-review", chain: [hotel], surface: { c: 1 }, replayOf });
+    expect(entry.name).toBe("Plan comparison (demo replay)");
+    expect(entry.prompt).toBe("Compare our plans.");
+    expect(entry.description).toBe("Saved from a demo replay of ex.plan-comparison. It was not generated from a request.");
+    expect(JSON.stringify(entry)).not.toContain("hotel");
+  });
+
+  it("a replay of an example with no prompt falls back to the example's own name, not the request", () => {
+    const entry = acceptedExampleEntry({ id: "ex.chat-2", intent: "x", chain: ["typed words"], surface: {}, replayOf: { id: "ex.bare" } });
+    expect(entry.prompt).toBe("ex.bare");
+    expect(entry.name).toBe("ex.bare (demo replay)");
+    expect(JSON.stringify(entry)).not.toContain("typed words");
   });
 });

@@ -29,7 +29,9 @@ import {
   callsFromReport,
   canRefineTurn,
   createCallRecorder,
-  examplePromptFor,
+  acceptedExampleEntry,
+  scriptedReplaySource,
+  type ReplaySource,
   foldBuildEvents,
   ledgerStatus,
   refinementConversation,
@@ -194,6 +196,11 @@ export interface BuildTurn {
   timings?: TurnTimings;
   /** Interface blocks (experimental): why this build was, or was not, offered blocks. */
   blockNote?: string;
+  /** Demo replay (scripted mode): the saved surface this turn played instead of
+   *  generating from the request. Set for every scripted turn, inherited by
+   *  refinements, so the turn is never presented, or saved, as an answer to
+   *  the words typed. */
+  replayOf?: ReplaySource;
 }
 
 export interface ComposerState {
@@ -1316,7 +1323,21 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         }
       }
       const intent = input.intentOverride ?? plan.intent;
-      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, plan, intent, planPending: false, calls: planCalls, ...(blockNote ? { blockNote } : {}) } : t)));
+      // Demo replay: name the saved surface scripted mode will play, before it
+      // plays. A refinement keeps the thread's original replay source.
+      let replayOf: ReplaySource | undefined;
+      if (input.modelRef === "scripted") {
+        if (prior) replayOf = prior.replayOf;
+        else {
+          const source = scriptedReplaySource(contract.examples as Array<Record<string, unknown>> | undefined, intent);
+          if (source) replayOf = { id: source.id, ...(source.name ? { name: source.name } : {}), ...(source.prompt ? { prompt: source.prompt } : {}) };
+        }
+      }
+      setBuildTurns((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...t, plan, intent, planPending: false, calls: planCalls, ...(blockNote ? { blockNote } : {}), ...(replayOf ? { replayOf } : {}) } : t,
+        ),
+      );
 
       // --- GAP: the approved vocabulary cannot express this goal. No generation
       // is attempted (inventing a component would violate governance); the gap
@@ -1431,7 +1452,16 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       const final = foldBuildEvents(events);
       const timings = turnTimings(stamped, { totalMs: performance.now() - t0, ...(planMs !== undefined ? { planMs } : {}) });
       const finalCalls = turnCalls(final);
-      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, calls: finalCalls, timings } : t)));
+      // Experimental block mode replays the block's own example call when
+      // scripted: the surface is that example's expansion, so name it.
+      const blockReplay: ReplaySource | undefined =
+        input.modelRef === "scripted" && !prior && final.block?.outcome === "block"
+          ? (() => {
+              const blockId = String((final.block as { selected?: { id?: string } }).selected?.id ?? "");
+              return { id: `block:${blockId}`, name: `The ${blockId} block's example` };
+            })()
+          : undefined;
+      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, calls: finalCalls, timings, ...(blockReplay ? { replayOf: blockReplay } : {}) } : t)));
       // A block whose template failed a deterministic check is disabled for
       // the rest of the page session: the defect is in the data, not the goal.
       if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && final.block?.outcome === "invariant-failure") {
@@ -1468,7 +1498,12 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         for (let t: BuildTurn | undefined = turn; t; t = t.parentId ? buildTurns.find((x) => x.id === t!.parentId) : undefined) {
           chain.unshift(t.prompt);
         }
-        const prompt = examplePromptFor(chain);
+        // A Demo replay is recorded under the example it replayed, never under
+        // the typed request (acceptedExampleEntry): the typed words did not
+        // produce it, and the few-shot corpus pairs an example's prompt with
+        // its surface.
+        const recorded = (savedId: string) =>
+          acceptedExampleEntry({ id: savedId, intent: turn.intent, chain, surface: turn.progress.surface, ...(turn.replayOf ? { replayOf: turn.replayOf } : {}) });
 
         /**
          * Accept-into-step (P4 Phase B), applied INSIDE the decision lock at
@@ -1519,13 +1554,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           // The surface's TITLE is the goal that produced it — what a person
           // reads in Preview, Surfaces, and flow pickers. Provenance is not
           // lost: the minted `ex.chat-N` id carries it (B7).
-          const entry: ExampleEntry = {
-            id,
-            intent: turn.intent,
-            name: chain[0].slice(0, 80),
-            prompt,
-            surface: turn.progress.surface,
-          };
+          const entry: ExampleEntry = recorded(id);
           const doc = structuredClone(contract);
           doc.examples = [...(((doc.examples as ExampleEntry[] | undefined) ?? []) as ExampleEntry[]), entry];
           await saveContract(doc);
@@ -1567,12 +1596,11 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const { id: _unused, ...fields } = recorded(exampleId ?? "");
         const result = await agentSaveExample(projectPath, {
           ...(exampleId ? { id: exampleId } : {}), // omitted ⇒ the agent mints a collision-free id
-          intent: turn.intent,
-          name: chain[0].slice(0, 80), // the goal IS the surface's title (B7)
-          prompt,
-          surface: turn.progress.surface,
+          ...fields, // the goal IS the surface's title (B7); a replay is named for its source
+          surface: turn.progress.surface as Record<string, unknown>,
         });
         if (!result.ok) {
           // Structured gate reasons, never a bare HTTP status (#41).

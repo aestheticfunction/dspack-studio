@@ -23,6 +23,7 @@ import {
   describeTimings,
   flowPlanSourceNote,
   intentLabel,
+  replayLabel,
   type FlowPlan,
 } from "@dspack-studio/composer-core";
 import { mintStepId, nextFlowId, type StepBinding } from "../flows";
@@ -133,12 +134,6 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
           {turn.blockNote ? ` ${turn.blockNote}` : ""}
         </span>
       )}
-      {turn.modelRef === "scripted" && !turn.refinement && (
-        <span style={{ display: "block", color: "var(--warn)", marginTop: 2 }}>
-          Scripted mode replays a surface this project already has for this context — switch to a hosted or local model
-          to generate for your exact words.
-        </span>
-      )}
       {onChange && (
         <>
           {" "}
@@ -154,6 +149,45 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
         </>
       )}
     </p>
+  );
+}
+
+/**
+ * Demo replay (scripted mode) never answers the words typed: it plays a
+ * surface the project already has. Say which one, before the result, so the
+ * gate checks below are not read as "this is what you asked for".
+ */
+function ReplayNotice({ turn }: { turn: BuildTurn }) {
+  if (turn.modelRef !== "scripted") return null;
+  const source = turn.replayOf;
+  return (
+    <div
+      data-testid={`build-replay-${turn.id}`}
+      role="note"
+      style={{ border: "1px solid var(--warn)", borderRadius: 2, padding: "8px 10px", margin: "4px 0 8px", fontSize: 13 }}
+    >
+      <p style={{ margin: 0, color: "var(--warn)" }}>
+        <strong>Demo replay, not generated from your request.</strong>
+      </p>
+      <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
+        {source ? (
+          <>
+            This is &ldquo;{replayLabel(source)}&rdquo;
+            {source.id.startsWith("block:") ? "" : (
+              <>
+                {" "}
+                (<code>{source.id}</code>)
+              </>
+            )}
+            , a surface this project already had for the same purpose
+            {turn.refinement ? ", with a scripted edit" : ""}.
+          </>
+        ) : (
+          <>This is a surface this project already had for the same purpose.</>
+        )}{" "}
+        To build from your own words, choose a hosted or local model.
+      </p>
+    </div>
   );
 }
 
@@ -329,6 +363,7 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       </p>
 
       <ContextChip turn={turn} />
+      <ReplayNotice turn={turn} />
 
       {turn.kind === "vocab-gap" ? (
         <VocabGap turn={turn} />
@@ -469,10 +504,16 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
               onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined, binding)}
               data-testid={`build-accept-${turn.id}`}
             >
-              Add to project
+              {turn.replayOf ? "Add this sample to project" : "Add to project"}
             </button>
           </div>
           <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 6 }}>
+            {turn.replayOf && (
+              <>
+                It is saved as &ldquo;{replayLabel(turn.replayOf)} (demo replay)&rdquo; under that example&rsquo;s own
+                description, never under your request.{" "}
+              </>
+            )}
             {mode === "agent"
               ? "Saves this surface into your repository's contract on disk."
               : isExample
