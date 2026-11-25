@@ -13,6 +13,7 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [HOSTED-AI-AVAILABILITY.md](HOSTED-AI-AVAILABILITY.md) | Why production offers only demo replay |
 | [EXAMPLE-INTEGRITY.md](EXAMPLE-INTEGRITY.md) | Replays saved under the wrong request: audit, detector, remedy |
 | [M0-TRUST-FIXES.md](M0-TRUST-FIXES.md) | The four fixes and their pull requests |
+| [INTEGRATION.md](INTEGRATION.md) | Combined verification of #113 to #117: dependencies, conflicts, merge order, results |
 | [UX-EXPLORATION.md](UX-EXPLORATION.md) | Three workspace approaches compared ([clickable source](prototypes/composer-explorations.html)) |
 | [LIVE-EVALUATION-PROPOSAL.md](LIVE-EVALUATION-PROPOSAL.md) | A costed pilot; nothing run |
 | [ASTRYX-D5B.md](ASTRYX-D5B.md) | Astryx for the hotel vertical, and what a contract extension would take |

@@ -22,4 +22,4 @@ Every branch passed, locally, the full CI sequence: unit tests, type checks, the
 
 ## Merge order
 
-The four branches are independent and each is based on `main`. (a) and (b) both touch `build-view.tsx` and `state.tsx` and `composer-prod-smoke.spec.ts`, in different places; whichever merges second may need a trivial rebase. When both are merged, a scripted result shows the replay notice from (a) and the fulfilment line from (b); they say compatible things.
+Verified in combination: see [INTEGRATION.md](INTEGRATION.md). The four fixes have no functional dependencies. Every pair conflicts only in `e2e/composer-prod-smoke.spec.ts` (adjacent new tests), and the resolution needs care. INTEGRATION.md gives the correct resolution, the combined results (all green) and a recommended order.

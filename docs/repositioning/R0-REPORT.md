@@ -95,6 +95,13 @@ For every fix:
 - Trust fixes: #113 to #116 above.
 - Documents, the baseline and the corpus pin: [aestheticfunction/dspack-studio#117](https://github.com/aestheticfunction/dspack-studio/pull/117), from `claude/vibrant-shannon-v2fuf0`.
 - All are drafts and unmerged.
+- **Combined verification** ([INTEGRATION.md](INTEGRATION.md)). All five were merged together on a local, temporary branch, and every CI step passed:
+  - unit tests: 1,377;
+  - exhibit: 106 passed, 4 skipped;
+  - Composer smoke: 44; agent: 49; experimental: 57.
+- **Dependencies:** none.
+- **Conflicts:** only in the smoke spec, between every pair of fix PRs. A naive "keep both" resolution breaks the file, and the correct resolution is documented.
+- **Recommended:** #117 first, then the four fixes as one combined change, for a single production deploy.
 - Possible side effect: opening a PR may trigger a Workers Builds branch build. `preview_urls` is off, so no preview should be reachable. **Assumed, not checked.**
 
 ## 8. Protocol compatibility
