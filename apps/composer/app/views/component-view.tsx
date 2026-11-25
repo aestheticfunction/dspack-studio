@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { enumMembers, parseEnumValues } from "../contract-enums";
 import { useComposer } from "../state";
+import { ViewMessage } from "../ui";
 
 const field = {
   width: "100%",
@@ -29,7 +30,7 @@ export function ComponentView() {
   const [saved, setSaved] = useState<string | null>(null);
 
   if (!contract || !selected || !contract.components?.[selected]) {
-    return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>Pick a component in the Catalog.</p>;
+    return <ViewMessage title="Component">Pick a component in the Catalog.</ViewMessage>;
   }
   const entry = contract.components[selected];
 
@@ -57,9 +58,10 @@ export function ComponentView() {
 
   return (
     <section style={{ maxWidth: 720 }}>
-      <h2 style={{ fontFamily: "var(--mono)", fontSize: 15, color: "var(--fg)" }}>
+      {/* The view's one h1, styled as the h2 it replaced (M0 trust fix c). */}
+      <h1 style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: "bold", color: "var(--fg)", margin: "0.83em 0" }}>
         {selected} <span style={{ color: "var(--fg-dim)" }}>· {entry.name}</span>
-      </h2>
+      </h1>
 
       {(["description", "whenToUse", "whenNotToUse"] as const).map((key) => (
         <div key={key} style={{ margin: "10px 0" }}>

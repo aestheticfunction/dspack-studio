@@ -317,6 +317,16 @@ test("every working view has one h1, the navigation marks the current view, and 
     await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("aria-current", "page");
     await expect(page.locator('nav[aria-label="Primary"] [aria-current="page"], [data-testid="nav-settings"][aria-current="page"]')).toHaveCount(1);
   }
+  // Views opened from inside a view are named too: a component from the
+  // Catalog, and the Surfaces editor for a new and an existing surface.
+  await page.getByTestId("nav-inventory").click();
+  await page.locator('[data-testid^="inventory-"]').first().click();
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await page.getByTestId("nav-surfaces").click();
+  await page.locator('[data-testid^="edit-ex."], [data-testid^="copy-ex."]').first().click();
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await expect(page.locator("main h1")).toHaveText(/(Edit|New) surface/);
+
   // From a fresh load, the first Tab stop is the skip link.
   await page.goto("/");
   await expect(page.getByTestId("new-project")).toBeVisible();

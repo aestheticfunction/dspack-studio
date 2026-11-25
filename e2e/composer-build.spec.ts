@@ -52,6 +52,12 @@ test("Build is disabled with the exact setup reason when readiness fails", async
   await expect(nav).toHaveAttribute("aria-label", /no intents authored/);
   await page.getByTestId("nav-repository").click();
   await expect(page.getByTestId("start-building")).toHaveCount(0);
+  // Agent-only views name themselves with one h1 too (M0 trust fix c).
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await expect(page.locator("main h1")).toHaveText(/repository/i);
+  await page.getByTestId("progress-mapper-mapping").click();
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await expect(page.locator("main h1")).toHaveText("Mapping");
 });
 
 test("Build unlocks when readiness passes, becomes the default view, and the home gains Start building", async ({ page }) => {

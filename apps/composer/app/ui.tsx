@@ -65,6 +65,17 @@ export function Eyebrow({ children, as = "p" }: { children: ReactNode; as?: "p" 
   return <Tag className="af-eyebrow">{children}</Tag>;
 }
 
+/** A view with nothing to show yet: still named by its one h1, so a
+ *  screen-reader user always knows where they are (M0 trust fix c). */
+export function ViewMessage({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <Eyebrow as="h1">{title}</Eyebrow>
+      <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>{children}</p>
+    </section>
+  );
+}
+
 /** The shared editorial header for a working view: an eyebrow naming the view,
  *  and one plain line saying what it is. Keeps the inner views in the same
  *  Aesthetic Function voice and rhythm as the hub, Build, and Settings. */

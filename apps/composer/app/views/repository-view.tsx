@@ -207,7 +207,8 @@ export function RepositoryView({ onNavigate }: { onNavigate: (view: View) => voi
   return (
     <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(280px, 1fr) minmax(280px, 1fr)" }}>
       <div>
-        <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Repository</h2>
+        {/* The view's one h1, styled as the h2 it replaced (M0 trust fix c). */}
+        <h1 style={{ fontFamily: "var(--hl)", fontSize: 15, fontWeight: "bold", textTransform: "uppercase", color: "var(--fg)", margin: "0.83em 0" }}>Repository</h1>
         <p style={{ fontSize: 13, color: "var(--fg-body)" }}>
           This project reads and writes files in your repository through the local agent. Refresh the discovered catalog,
           and decide what happens to entries you have edited or removed &mdash; nothing leaves your machine.
