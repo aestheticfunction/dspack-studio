@@ -30,6 +30,7 @@ import {
   canRefineTurn,
   createCallRecorder,
   acceptedExampleEntry,
+  existingExampleFor,
   scriptedReplaySource,
   type ReplaySource,
   foldBuildEvents,
@@ -175,6 +176,9 @@ export interface BuildTurn {
   accepted?: string; // the saved example id
   /** The flow step this accept re-bound, by title (P4 Phase B). */
   acceptedIntoStep?: string;
+  /** The turn was a demo replay of a surface the project already had: nothing
+   *  was saved, and `accepted` names that existing surface. */
+  acceptedExisting?: boolean;
   /** "Build a flow" (Phase C): the step this turn was built FOR. Accept
    *  pre-targets it (the Phase B binding); the header select still wins. */
   flowStepHint?: { flowId: string; stepId: string; title: string };
@@ -196,11 +200,15 @@ export interface BuildTurn {
   timings?: TurnTimings;
   /** Interface blocks (experimental): why this build was, or was not, offered blocks. */
   blockNote?: string;
-  /** Demo replay (scripted mode): the saved surface this turn played instead of
-   *  generating from the request. Set for every scripted turn, inherited by
-   *  refinements, so the turn is never presented, or saved, as an answer to
-   *  the words typed. */
+  /** Demo replay (scripted mode): the ROOT sample this turn's thread played
+   *  instead of generating from the request. Set on scripted turns that have
+   *  one (a fresh replay, or a scripted edit of a replay thread). A scripted
+   *  turn never applies its own words, whatever this holds. */
   replayOf?: ReplaySource;
+  /** Replay ancestry: a model produced this turn's surface, but its thread
+   *  began with a Demo replay of this sample. The turn is not a replay; the
+   *  request typed before that replay is still not one it answers. */
+  replayAncestor?: ReplaySource;
 }
 
 export interface ComposerState {
@@ -331,6 +339,12 @@ export const useComposer = (): ComposerState => {
   if (!state) throw new Error("useComposer outside provider");
   return state;
 };
+
+/** The sample a fresh Demo replay plays for `intent`, as the turn names it. */
+function sampleFor(contract: Record<string, unknown>, intent: string): ReplaySource | undefined {
+  const source = scriptedReplaySource(contract.examples as Array<Record<string, unknown>> | undefined, intent);
+  return source ? { id: source.id, ...(source.name ? { name: source.name } : {}), ...(source.prompt ? { prompt: source.prompt } : {}) } : undefined;
+}
 
 export function ComposerProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>("demo");
@@ -1323,19 +1337,25 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
         }
       }
       const intent = input.intentOverride ?? plan.intent;
-      // Demo replay: name the saved surface scripted mode will play, before it
-      // plays. A refinement keeps the thread's original replay source.
+      // Demo replay: name the sample scripted mode will play, before it plays.
+      // A refinement carries the thread's root sample: as `replayOf` when the
+      // refinement is itself scripted (a replay), as `replayAncestor` when a
+      // model applies it (not a replay, but its thread began with one). When
+      // a block may be chosen, the sample is only known once the run ends.
+      const threadRoot = prior ? (prior.replayOf ?? prior.replayAncestor) : undefined;
+      const mayPlayBlock = !!runtime && !!blockCtx && !blockCtx.reason;
       let replayOf: ReplaySource | undefined;
+      let replayAncestor: ReplaySource | undefined;
       if (input.modelRef === "scripted") {
-        if (prior) replayOf = prior.replayOf;
-        else {
-          const source = scriptedReplaySource(contract.examples as Array<Record<string, unknown>> | undefined, intent);
-          if (source) replayOf = { id: source.id, ...(source.name ? { name: source.name } : {}), ...(source.prompt ? { prompt: source.prompt } : {}) };
-        }
+        replayOf = prior ? threadRoot : mayPlayBlock ? undefined : sampleFor(contract, intent);
+      } else if (threadRoot) {
+        replayAncestor = threadRoot;
       }
       setBuildTurns((prev) =>
         prev.map((t) =>
-          t.id === id ? { ...t, plan, intent, planPending: false, calls: planCalls, ...(blockNote ? { blockNote } : {}), ...(replayOf ? { replayOf } : {}) } : t,
+          t.id === id
+            ? { ...t, plan, intent, planPending: false, calls: planCalls, ...(blockNote ? { blockNote } : {}), ...(replayOf ? { replayOf } : {}), ...(replayAncestor ? { replayAncestor } : {}) }
+            : t,
         ),
       );
 
@@ -1452,16 +1472,19 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       const final = foldBuildEvents(events);
       const timings = turnTimings(stamped, { totalMs: performance.now() - t0, ...(planMs !== undefined ? { planMs } : {}) });
       const finalCalls = turnCalls(final);
-      // Experimental block mode replays the block's own example call when
-      // scripted: the surface is that example's expansion, so name it.
-      const blockReplay: ReplaySource | undefined =
-        input.modelRef === "scripted" && !prior && final.block?.outcome === "block"
-          ? (() => {
-              const blockId = String((final.block as { selected?: { id?: string } }).selected?.id ?? "");
-              return { id: `block:${blockId}`, name: `The ${blockId} block's example` };
-            })()
+      // A fresh scripted build whose sample waited on the block choice: the
+      // block's own example call when a block played, the purpose's sample
+      // otherwise.
+      const lateReplay: ReplaySource | undefined =
+        input.modelRef === "scripted" && !prior && mayPlayBlock
+          ? final.block?.outcome === "block"
+            ? (() => {
+                const blockId = String((final.block as { selected?: { id?: string } }).selected?.id ?? "");
+                return { id: `block:${blockId}`, name: `The ${blockId} block's example` };
+              })()
+            : sampleFor(contract, intent)
           : undefined;
-      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, calls: finalCalls, timings, ...(blockReplay ? { replayOf: blockReplay } : {}) } : t)));
+      setBuildTurns((prev) => prev.map((t) => (t.id === id ? { ...t, calls: finalCalls, timings, ...(lateReplay ? { replayOf: lateReplay } : {}) } : t)));
       // A block whose template failed a deterministic check is disabled for
       // the rest of the page session: the defect is in the data, not the goal.
       if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && final.block?.outcome === "invariant-failure") {
@@ -1492,18 +1515,18 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       decisionLock.current = true;
       setBusy("accepting build result");
       try {
-        // Truthful provenance: walk back to the ORIGINAL ask and record the
-        // refinements that shaped this surface (#42).
-        const chain: string[] = [];
+        // Truthful provenance: walk back to the ORIGINAL ask and record only
+        // the words a model applied (#42). A Demo replay never reads the
+        // words typed; a thread that began with one is recorded under its
+        // root sample (acceptedExampleEntry), because the few-shot corpus
+        // pairs an example's prompt with its surface.
+        const thread: Array<{ prompt: string; applied: boolean }> = [];
         for (let t: BuildTurn | undefined = turn; t; t = t.parentId ? buildTurns.find((x) => x.id === t!.parentId) : undefined) {
-          chain.unshift(t.prompt);
+          thread.unshift({ prompt: t.prompt, applied: t.modelRef !== "scripted" });
         }
-        // A Demo replay is recorded under the example it replayed, never under
-        // the typed request (acceptedExampleEntry): the typed words did not
-        // produce it, and the few-shot corpus pairs an example's prompt with
-        // its surface.
+        const root = turn.replayOf ?? turn.replayAncestor;
         const recorded = (savedId: string) =>
-          acceptedExampleEntry({ id: savedId, intent: turn.intent, chain, surface: turn.progress.surface, ...(turn.replayOf ? { replayOf: turn.replayOf } : {}) });
+          acceptedExampleEntry({ id: savedId, intent: turn.intent, thread, surface: turn.progress.surface, ...(root ? { root } : {}) });
 
         /**
          * Accept-into-step (P4 Phase B), applied INSIDE the decision lock at
@@ -1520,6 +1543,31 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
           saveFlows(bound.flows);
           return { note: ` Flow step '${bound.step.title}' now shows this surface.`, stepTitle: bound.step.title };
         };
+
+        // A demo replay of a surface this project already has would only add
+        // a second prompt for the same surface (a duplicate few-shot pairing):
+        // nothing is saved. A flow step it was built for is pointed at the
+        // existing surface instead, so a flow can still be completed.
+        if (turn.modelRef === "scripted") {
+          const already = existingExampleFor(contract.examples as ExampleEntry[] | undefined, turn.intent, turn.progress.surface);
+          if (already) {
+            const label = already.name ? `“${already.name}” (${already.id})` : already.id;
+            if (!intoFlowStep) {
+              setNotice(`Nothing added: this demo replay is already in your project as ${label}.`);
+              return;
+            }
+            const bound = bindStep(already.id);
+            setBuildTurns((prev) =>
+              prev.map((t) =>
+                t.id === turnId
+                  ? { ...t, accepted: already.id, acceptedExisting: true, acceptFindings: undefined, ...(bound.stepTitle ? { acceptedIntoStep: bound.stepTitle } : {}) }
+                  : t,
+              ),
+            );
+            setNotice(`Nothing new saved: this demo replay is already in your project as ${label}.${bound.note.replace("this surface", "it")}`);
+            return;
+          }
+        }
 
         if (mode !== "agent") {
           // Browser projects accept in the browser: the same deterministic

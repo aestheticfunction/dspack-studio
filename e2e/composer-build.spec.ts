@@ -37,6 +37,17 @@ async function runScripted(page: Page, prompt: string) {
   await expect(page.getByTestId("build-status")).toContainText(/latest outcome/, { timeout: 30_000 });
 }
 
+/**
+ * A scripted edit of the latest turn, producing turn `turn`. A Demo replay of
+ * a sample the project already has is never saved (a duplicate few-shot
+ * pairing: M0 trust fix a); the scripted edit is a new surface to accept.
+ */
+async function scriptedEdit(page: Page, turn = 2) {
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId(`build-canvas-${turn}`)).toContainText("(refined", { timeout: 30_000 });
+}
+
 test("Build is disabled with the exact setup reason when readiness fails", async ({ page }) => {
   const project = demoProject();
   // Break readiness for real: strip the intents the owner authored.
@@ -192,17 +203,20 @@ test("double submission and double acceptance are locked", async ({ page }) => {
   await expect(page.getByTestId("build-refine")).toBeDisabled();
   await expect(page.getByTestId("build-status")).toContainText(/latest outcome/, { timeout: 30_000 });
   await expect(page.getByTestId("build-turn-2")).toHaveCount(0); // one turn, not two
+  // The unedited replay is already in the project: nothing to accept.
+  await expect(page.getByTestId("build-accept-1")).toHaveCount(0);
+  await scriptedEdit(page);
 
   // Accept locks itself while the save round-trips.
   await page.route("**/project/save-example", async (route) => {
     await new Promise((r) => setTimeout(r, 400));
     await route.continue();
   });
-  const accept = page.getByTestId("build-accept-1");
+  const accept = page.getByTestId("build-accept-2");
   await accept.dispatchEvent("click");
   await expect(accept).toBeDisabled();
   await accept.dispatchEvent("click").catch(() => undefined);
-  await expect(page.getByTestId("build-accepted-1")).toBeVisible();
+  await expect(page.getByTestId("build-accepted-2")).toBeVisible();
   const doc = project.contract();
   expect(doc.examples.filter((e: any) => /^ex\.chat-\d+$/.test(e.id))).toHaveLength(1); // exactly once
 });
@@ -292,14 +306,15 @@ test("an adapter failure explains itself actionably (#41)", async ({ page }) => 
 test("a refused Accept renders the agent's findings, not an HTTP status (#41)", async ({ page }) => {
   const project = await ready(page);
   await runScripted(page, "a deployment status screen");
+  await scriptedEdit(page);
   // Sabotage the corpus AFTER generating: the accept gate re-lints and refuses.
   const doc = project.contract();
   doc.components["not-approved-anymore"] = undefined;
   delete doc.components["tag-pill"]; // the generated surface now references unknown vocabulary
   project.writeContract(doc);
 
-  await page.getByTestId("build-accept-1").click();
-  const findings = page.getByTestId("build-accept-findings-1");
+  await page.getByTestId("build-accept-2").click();
+  const findings = page.getByTestId("build-accept-findings-2");
   await expect(findings).toBeVisible();
   await expect(findings).toContainText(/S2|S1|document/);
   await expect(page.getByTestId("notice")).not.toContainText("agent replied");
@@ -310,17 +325,20 @@ test("two accepts across a reload mint distinct ids and preserve both examples (
   const project = await ready(page);
   const before = project.contract().examples.map((e: any) => e.id);
   await runScripted(page, "a deployment status screen");
-  await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toBeVisible();
+  await scriptedEdit(page);
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toBeVisible();
   const first = project.contract().examples.at(-1).id;
 
   // A reload resets every page-local counter — identity must not depend on it.
+  // (The replay now plays the surface just saved, so it is edited again.)
   await page.reload();
   await connect(page, project.root);
   await page.getByTestId("nav-build").click();
   await runScripted(page, "another status screen");
-  await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toBeVisible();
+  await scriptedEdit(page);
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toBeVisible();
 
   const ids = project.contract().examples.map((e: any) => e.id);
   const second = ids.at(-1);
@@ -334,11 +352,12 @@ test("an explicit id collision is refused, never an overwrite (#42)", async ({ p
   const existing = project.contract().examples[0];
   const before = JSON.stringify(existing);
   await runScripted(page, "a deployment status screen");
-  await page.getByTestId("build-example-id-1").fill(existing.id);
-  await page.getByTestId("build-accept-1").click();
+  await scriptedEdit(page);
+  await page.getByTestId("build-example-id-2").fill(existing.id);
+  await page.getByTestId("build-accept-2").click();
 
-  await expect(page.getByTestId("build-accept-findings-1")).toContainText(existing.id);
-  await expect(page.getByTestId("build-accepted-1")).toHaveCount(0);
+  await expect(page.getByTestId("build-accept-findings-2")).toContainText(existing.id);
+  await expect(page.getByTestId("build-accepted-2")).toHaveCount(0);
   expect(JSON.stringify(project.contract().examples[0])).toBe(before); // byte-identical
 });
 

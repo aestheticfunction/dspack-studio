@@ -455,22 +455,43 @@ export function examplePromptFor(chain: string[]): string {
  * can name what it replayed.
  */
 export interface ReplaySource {
-  /** The replayed worked example's id (or `block:<id>` for a block's example call). */
+  /** The ROOT sample's id (or `block:<id>` for a block's example call): never a saved copy of a replay. */
   id: string;
   name?: string;
   prompt?: string;
 }
 
-export function scriptedReplaySource<E extends { id?: unknown; intent?: unknown; name?: unknown; prompt?: unknown }>(
+/** The description every saved demo replay carries, and how it is read back. */
+const REPLAY_DESCRIPTION = /^Saved from a demo replay of (\S+?)\. It was not generated from a request\.$/;
+export function replayDescription(rootId: string): string {
+  return `Saved from a demo replay of ${rootId}. It was not generated from a request.`;
+}
+/** The root sample a saved replay copy names in its description, if any. */
+export function replayRootOf(description: unknown): string | null {
+  return typeof description === "string" ? (REPLAY_DESCRIPTION.exec(description)?.[1] ?? null) : null;
+}
+
+export function scriptedReplaySource<E extends { id?: unknown; intent?: unknown; name?: unknown; prompt?: unknown; description?: unknown }>(
   examples: readonly E[] | undefined,
   intent: string,
 ): (ReplaySource & { example: E }) | null {
-  const example = (examples ?? []).filter((e) => e.intent === intent).at(-1);
+  const all = examples ?? [];
+  const example = all.filter((e) => e.intent === intent).at(-1);
   if (!example) return null;
+  // The PLAYED example may itself be a saved replay copy. Name the sample it
+  // copies instead, so a replay of a replay neither stacks "(demo replay)"
+  // nor points at the copy. Bounded: a cycle cannot loop.
+  let root: E = example;
+  for (let hops = 0; hops < all.length; hops++) {
+    const rootId = replayRootOf(root.description);
+    const next = rootId ? all.find((e) => e.id === rootId) : undefined;
+    if (!next || next === root) break;
+    root = next;
+  }
   return {
-    id: String(example.id ?? ""),
-    ...(typeof example.name === "string" && example.name.trim() ? { name: example.name } : {}),
-    ...(typeof example.prompt === "string" && example.prompt.trim() ? { prompt: example.prompt } : {}),
+    id: String(root.id ?? ""),
+    ...(typeof root.name === "string" && root.name.trim() ? { name: root.name } : {}),
+    ...(typeof root.prompt === "string" && root.prompt.trim() ? { prompt: root.prompt } : {}),
     example,
   };
 }
@@ -480,38 +501,114 @@ export function replayLabel(source: ReplaySource): string {
   return source.name ?? source.id;
 }
 
+/** `text` cut so that `suffix` always fits inside `max` characters. */
+function withSuffix(text: string, suffix: string, max = 80): string {
+  return `${text.slice(0, Math.max(0, max - suffix.length))}${suffix}`;
+}
+
+/** One turn of a build thread, oldest first, as recorded when it is accepted. */
+export interface ThreadTurn {
+  /** The words typed: the goal for the first turn, an instruction for a refinement. */
+  prompt: string;
+  /** Whether a model applied those words. False for Demo replay (scripted mode), which never reads them. */
+  applied: boolean;
+}
+
 /**
  * The worked-example entry an accepted build turn becomes.
  *
- * A generated surface is recorded under the request that produced it (its
- * goal, plus the refinements that shaped it). A Demo replay was NOT produced
- * from the typed request, so it must never be filed under it: the typed words
- * would become a few-shot pairing (dspack-gen uses `prompt ?? description ??
- * id` as the example's user turn) between a request and a surface that does
- * not answer it. A replay is recorded under the replayed example's own name
- * and prompt, with a description saying where it came from.
+ * dspack-gen uses an example's `prompt ?? description ?? id` as the few-shot
+ * user turn paired with its surface, so the prompt must only contain words
+ * that actually produced the surface. Two facts decide the record:
+ *
+ * - whether each turn's words were APPLIED (a model read them) or not (Demo
+ *   replay never reads them: a fresh replay plays a saved surface, a scripted
+ *   "refinement" only marks the previous result);
+ * - the ROOT sample, when the thread began with a Demo replay.
+ *
+ * Cases:
+ * - generated from a request: the request plus the applied refinements (as before);
+ * - a replay with no applied words since: the root sample's own prompt, named
+ *   "<sample> (demo replay)", described as a replay;
+ * - a model refined a replay: the root sample's prompt plus the applied
+ *   instructions, named "<sample> (refined)", described as refined from that
+ *   sample. It is a model's work, so it is not labelled a replay; the request
+ *   typed before the replay is never recorded.
+ * Instructions a replay skipped are never recorded as applied; the
+ * description says how many were skipped.
  */
 export function acceptedExampleEntry(input: {
   id: string;
   intent: string;
-  chain: string[];
+  thread: ThreadTurn[];
   surface: unknown;
-  replayOf?: ReplaySource;
+  /** The sample a Demo replay at the start of the thread played. */
+  root?: ReplaySource;
 }): { id: string; intent: string; name: string; prompt: string; description?: string; surface: unknown } {
-  const { id, intent, chain, surface, replayOf } = input;
-  if (!replayOf) {
-    return { id, intent, name: (chain[0] ?? "").slice(0, 80), prompt: examplePromptFor(chain), surface };
+  const { id, intent, thread, surface, root } = input;
+  const later = thread.slice(1);
+  const applied = later.filter((t) => t.applied).map((t) => t.prompt);
+  const skipped = later.filter((t) => !t.applied).length;
+  const skippedNote = skipped === 0 ? "" : ` ${skipped === 1 ? "One demo-replay edit" : `${skipped} demo-replay edits`} did not apply ${skipped === 1 ? "its instruction" : "their instructions"}.`;
+  const first = thread[0];
+  if (!root && first && first.applied) {
+    return {
+      id,
+      intent,
+      name: first.prompt.slice(0, 80),
+      prompt: examplePromptFor([first.prompt, ...applied]),
+      ...(skippedNote ? { description: skippedNote.trim() } : {}),
+      surface,
+    };
+  }
+  const sample = root ?? { id: "an earlier surface" };
+  const label = replayLabel(sample);
+  const base = sample.prompt ?? label;
+  if (applied.length === 0) {
+    return { id, intent, name: withSuffix(label, " (demo replay)"), prompt: base, description: replayDescription(sample.id), surface };
   }
   return {
     id,
     intent,
-    name: `${replayLabel(replayOf)} (demo replay)`.slice(0, 80),
-    // The replayed example's own prompt; failing that, its own name. Both
-    // describe the replayed surface, never the typed request.
-    prompt: replayOf.prompt ?? replayLabel(replayOf),
-    description: `Saved from a demo replay of ${replayOf.id}. It was not generated from a request.`,
+    name: withSuffix(label, " (refined)"),
+    prompt: examplePromptFor([base, ...applied]),
+    description: `Refined by a model from the demo sample ${sample.id}. The request typed before that sample was not applied.${skippedNote}`,
     surface,
   };
+}
+
+/**
+ * Canonical JSON for comparing surfaces: key order and undefined values do
+ * not matter. With `stripMarkers`, the scripted refinement marker that
+ * scripted mode APPENDS to the first text node (" (refined)", " (refined N)")
+ * is removed from the end of strings, and a top-level `id` that scripted
+ * mode set to "refined"/"refined N" (a surface with no text node) is ignored.
+ */
+function canonical(value: unknown, stripMarkers = false, top = true): string {
+  if (Array.isArray(value)) return `[${value.map((v) => canonical(v, stripMarkers, false)).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([k, v]) => v !== undefined && !(stripMarkers && top && k === "id" && typeof v === "string" && /^refined(?: \d+)?$/.test(v)))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v, stripMarkers, false)}`).join(",")}}`;
+  }
+  if (typeof value === "string" && stripMarkers) return JSON.stringify(value.replace(/ \(refined(?: \d+)?\)$/, ""));
+  return JSON.stringify(value);
+}
+
+/**
+ * The example of `intent` whose surface is exactly `surface`, if the project
+ * already has one. Saving a Demo replay of it would add the same surface
+ * again under a second prompt: a duplicate few-shot pairing (dspack-gen does
+ * not de-duplicate), so the caller offers nothing to save.
+ */
+export function existingExampleFor<E extends { id?: unknown; intent?: unknown; surface?: unknown }>(
+  examples: readonly E[] | undefined,
+  intent: string,
+  surface: unknown,
+): E | null {
+  const key = canonical(surface);
+  return (examples ?? []).find((e) => e.intent === intent && canonical(e.surface) === key) ?? null;
 }
 
 /**
@@ -519,12 +616,18 @@ export function acceptedExampleEntry(input: {
  *
  * Before the replay fix, accepting a scripted build saved a copy of an
  * existing example under the typed request. Such an entry is recognisable
- * without guessing at wording: its surface, once scripted-refinement markers
- * ("(refined)", "(refined N)") are removed, is canonically identical to an
- * EARLIER example of the same purpose, and its prompt differs. Entries saved
- * after the fix carry a "demo replay of" description and are reported as
- * labelled, never flagged. Packaged reference examples are never examined.
- * Pure and read-only: it reports, the person decides.
+ * without guessing at wording. All of these hold:
+ * - its surface, with scripted-refinement markers removed, is canonically
+ *   identical to an EARLIER example of the same purpose;
+ * - it carries Build's accept signature: an id Build minted (`ex.chat-N`),
+ *   or a prompt that begins with its name (Build records the goal as both);
+ * - its prompt differs from that earlier example's.
+ * An author who deliberately pairs one surface with a second wording (a
+ * paraphrase example with its own id and name) is therefore not flagged.
+ * Entries saved after the fix carry a "demo replay of" description and are
+ * reported as labelled, never flagged. Packaged reference examples are never
+ * examined. Accepted examples are appended, so a copy always follows its
+ * source. Pure and read-only: it reports, the person decides.
  */
 export interface ReplayFinding {
   id: string;
@@ -533,33 +636,23 @@ export interface ReplayFinding {
   kind: "probable-replay" | "labelled-replay";
 }
 
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (value && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
-  }
-  if (typeof value === "string") return JSON.stringify(value.replace(/ \(refined(?: \d+)?\)/g, ""));
-  return JSON.stringify(value);
-}
-
 export function findProbableReplays(
-  examples: ReadonlyArray<{ id: string; intent?: unknown; prompt?: unknown; description?: unknown; surface?: unknown }>,
+  examples: ReadonlyArray<{ id: string; intent?: unknown; name?: unknown; prompt?: unknown; description?: unknown; surface?: unknown }>,
   baseIds: Iterable<string> = [],
 ): ReplayFinding[] {
   const base = new Set(baseIds);
   const seen: Array<{ id: string; intent: unknown; prompt: unknown; key: string }> = [];
   const findings: ReplayFinding[] = [];
   for (const example of examples) {
-    const key = canonical(example.surface);
+    const key = canonical(example.surface, true);
     if (!base.has(example.id)) {
       const source = seen.find((s) => s.intent === example.intent && s.key === key);
       if (source) {
-        const labelled = typeof example.description === "string" && example.description.includes("demo replay of");
-        if (labelled) findings.push({ id: example.id, source: source.id, kind: "labelled-replay" });
-        else if (example.prompt !== source.prompt) findings.push({ id: example.id, source: source.id, kind: "probable-replay" });
+        const fromBuild =
+          /^ex\.chat-\d+$/.test(example.id) ||
+          (typeof example.name === "string" && example.name.length > 0 && typeof example.prompt === "string" && example.prompt.startsWith(example.name));
+        if (replayRootOf(example.description)) findings.push({ id: example.id, source: source.id, kind: "labelled-replay" });
+        else if (fromBuild && example.prompt !== source.prompt) findings.push({ id: example.id, source: source.id, kind: "probable-replay" });
       }
     }
     seen.push({ id: example.id, intent: example.intent, prompt: example.prompt, key });

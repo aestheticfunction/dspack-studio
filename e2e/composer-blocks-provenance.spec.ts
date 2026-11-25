@@ -276,8 +276,13 @@ test("an Example session's save prunes its provenance too, and duplicating it ca
   await expect(page.getByTestId("example-banner")).toBeVisible();
   await page.getByTestId("nav-build").click();
   const stale = await acceptAuthForm(page, 1);
-  const kept = await acceptAuthForm(page, 2);
+  // Edit the first before building the second: an unedited second expansion
+  // would be the same surface again, which Build never saves twice (a
+  // duplicate few-shot pairing: M0 trust fix a). The edit's save prunes the
+  // first one's provenance, which no longer verifies.
   await editSurface(page, stale);
+  await page.getByTestId("nav-build").click();
+  const kept = await acceptAuthForm(page, 2);
   // No wait: the copy runs after every pending write to the session's
   // provenance, and prunes against the examples the duplicate keeps.
   await page.getByTestId("example-duplicate").click();

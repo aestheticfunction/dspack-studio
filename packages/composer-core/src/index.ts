@@ -76,6 +76,8 @@ export {
   scriptedReplaySource,
   replayLabel,
   findProbableReplays,
+  existingExampleFor,
+  replayRootOf,
   foldBuildEvents,
   vocabularyGap,
   type BuildReadiness,
@@ -87,6 +89,7 @@ export {
   type TurnGate,
   type ReplaySource,
   type ReplayFinding,
+  type ThreadTurn,
 } from "./build";
 export {
   buildPlanRequest,

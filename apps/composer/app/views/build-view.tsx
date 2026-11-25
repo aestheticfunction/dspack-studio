@@ -23,6 +23,7 @@ import {
   describeTimings,
   flowPlanSourceNote,
   intentLabel,
+  existingExampleFor,
   replayLabel,
   type FlowPlan,
 } from "@dspack-studio/composer-core";
@@ -153,43 +154,68 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
 }
 
 /**
- * Demo replay (scripted mode) never answers the words typed: it plays a
- * surface the project already has. Say which one, before the result, so the
- * gate checks below are not read as "this is what you asked for".
+ * Demo replay (scripted mode) never reads the words typed. A fresh replay plays
+ * a surface the project already has; a scripted "refinement" only marks the
+ * previous result. Say which, before the result, so the gate checks below are
+ * not read as "this is what you asked for". A model's refinement of a replay
+ * is not a replay, but says where its thread began.
  */
 function ReplayNotice({ turn }: { turn: BuildTurn }) {
-  if (turn.modelRef !== "scripted") return null;
   const source = turn.replayOf;
-  return (
-    <div
-      data-testid={`build-replay-${turn.id}`}
-      role="note"
-      style={{ border: "1px solid var(--warn)", borderRadius: 2, padding: "8px 10px", margin: "4px 0 8px", fontSize: 13 }}
-    >
-      <p style={{ margin: 0, color: "var(--warn)" }}>
-        <strong>Demo replay, not generated from your request.</strong>
-      </p>
-      <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
-        {source ? (
-          <>
-            This is &ldquo;{replayLabel(source)}&rdquo;
-            {source.id.startsWith("block:") ? "" : (
-              <>
-                {" "}
-                (<code>{source.id}</code>)
-              </>
-            )}
-            , a surface this project already had for the same purpose
-            {turn.refinement ? ", with a scripted edit" : ""}.
-          </>
-        ) : (
-          <>This is a surface this project already had for the same purpose.</>
-        )}{" "}
-        To build from your own words, choose a hosted or local model.
-      </p>
-    </div>
+  const sample = (s: NonNullable<BuildTurn["replayOf"]>) => (
+    <>
+      &ldquo;{replayLabel(s)}&rdquo;
+      {s.id.startsWith("block:") ? "" : (
+        <>
+          {" "}
+          (<code>{s.id}</code>)
+        </>
+      )}
+    </>
   );
+  if (turn.modelRef === "scripted" && !turn.refinement) {
+    return (
+      <div data-testid={`build-replay-${turn.id}`} role="note" style={replayBox("var(--warn)")}>
+        <p style={{ margin: 0, color: "var(--warn)" }}>
+          <strong>Demo replay, not generated from your request.</strong>
+        </p>
+        <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
+          {source ? <>This is {sample(source)}, a surface this project already has for the same purpose.</> : <>This is a surface this project already has for the same purpose.</>}{" "}
+          To build from your own words, choose a hosted or local model.
+        </p>
+      </div>
+    );
+  }
+  if (turn.modelRef === "scripted") {
+    return (
+      <div data-testid={`build-replay-${turn.id}`} role="note" style={replayBox("var(--warn)")}>
+        <p style={{ margin: 0, color: "var(--warn)" }}>
+          <strong>Demo replay: your instruction was not applied.</strong>
+        </p>
+        <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
+          Scripted mode only marks the previous result as refined{source ? <>; this thread started from {sample(source)}</> : null}. To apply an
+          instruction, choose a hosted or local model.
+        </p>
+      </div>
+    );
+  }
+  if (turn.replayAncestor) {
+    return (
+      <div data-testid={`build-replay-${turn.id}`} role="note" style={replayBox("var(--line)")}>
+        <p style={{ margin: 0, color: "var(--fg)" }}>
+          <strong>Refined from a demo sample.</strong>
+        </p>
+        <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
+          A model applied your instruction to {sample(turn.replayAncestor)}, which a demo replay showed earlier in this thread. The request typed
+          before that replay was not applied.
+        </p>
+      </div>
+    );
+  }
+  return null;
 }
+
+const replayBox = (border: string) => ({ border: `1px solid ${border}`, borderRadius: 2, padding: "8px 10px", margin: "4px 0 8px", fontSize: 13 });
 
 /** A vocabulary gap: the goal is understood, but the approved catalog cannot
  *  express it. Surfaced conversationally (never a silent generation failure),
@@ -344,6 +370,11 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
   // Blank by default: identity is minted from the contract ON DISK, so a
   // reload or a second tab can never collide with saved work (#42).
   const [exampleId, setExampleId] = useState("");
+  // A demo replay of a surface the project already has: nothing new to save.
+  const already =
+    turn.modelRef === "scripted" && turn.progress.surface
+      ? existingExampleFor((contract?.examples as Array<{ id: string; name?: string; intent?: string; surface?: unknown }> | undefined) ?? [], turn.intent, turn.progress.surface)
+      : null;
   const locked = buildBusy || busy !== null;
   // The Accept button unmounts on success; a keyboard user's focus must
   // land on the confirmation, never fall to the document body.
@@ -486,7 +517,27 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
 
       <TurnCanvas turn={turn} />
 
-      {canAcceptTurn(turn.progress) && !turn.accepted && (
+      {canAcceptTurn(turn.progress) && !turn.accepted && already && (
+        <div style={{ marginTop: 10 }}>
+          <p data-testid={`build-already-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", margin: 0 }}>
+            Already in your project as {already.name ? <>&ldquo;{already.name}&rdquo; </> : null}
+            <code>{already.id}</code>. A demo replay of it adds nothing new, so nothing is saved.
+            {binding ? " The flow step can show the existing surface." : ""}
+          </p>
+          {binding && (
+            <button
+              className="st-btn"
+              style={{ marginTop: 6 }}
+              disabled={locked}
+              onClick={() => void acceptBuildTurn(turn.id, undefined, binding)}
+              data-testid={`build-accept-${turn.id}`}
+            >
+              Use it for this flow step
+            </button>
+          )}
+        </div>
+      )}
+      {canAcceptTurn(turn.progress) && !turn.accepted && !already && (
         <div style={{ marginTop: 10 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
@@ -504,14 +555,21 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
               onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined, binding)}
               data-testid={`build-accept-${turn.id}`}
             >
-              {turn.replayOf ? "Add this sample to project" : "Add to project"}
+              {turn.modelRef === "scripted" ? "Add this sample to project" : "Add to project"}
             </button>
           </div>
           <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 6 }}>
-            {turn.replayOf && (
+            {turn.modelRef === "scripted" && turn.replayOf && (
               <>
-                It is saved as &ldquo;{replayLabel(turn.replayOf)} (demo replay)&rdquo; under that example&rsquo;s own
-                description, never under your request.{" "}
+                It is saved as &ldquo;{replayLabel(turn.replayOf)} (demo replay)&rdquo; under that sample&rsquo;s own description, never under
+                your request.{" "}
+              </>
+            )}
+            {turn.modelRef === "scripted" && !turn.replayOf && <>It is saved under the words a model applied; this edit&rsquo;s instruction is not recorded. </>}
+            {turn.modelRef !== "scripted" && turn.replayAncestor && (
+              <>
+                It is saved as &ldquo;{replayLabel(turn.replayAncestor)} (refined)&rdquo; under that sample&rsquo;s description and the
+                instructions a model applied, never under the request typed before the replay.{" "}
               </>
             )}
             {mode === "agent"
@@ -527,9 +585,18 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       )}
       {turn.accepted && (
         <p ref={accepted} tabIndex={-1} data-testid={`build-accepted-${turn.id}`} style={{ fontSize: 12, color: "var(--ok)" }}>
-          Saved as &ldquo;{savedTitle}&rdquo; <code>{turn.accepted}</code>
-          {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows this surface</>} — it is one of
-          your project&rsquo;s surfaces, and context the next build learns from.
+          {turn.acceptedExisting ? (
+            <>
+              Already in your project as &ldquo;{savedTitle}&rdquo; <code>{turn.accepted}</code>; nothing new was saved
+              {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows it</>}.
+            </>
+          ) : (
+            <>
+              Saved as &ldquo;{savedTitle}&rdquo; <code>{turn.accepted}</code>
+              {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows this surface</>} — it is one of
+              your project&rsquo;s surfaces, and context the next build learns from.
+            </>
+          )}
         </p>
       )}
     </article>

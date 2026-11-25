@@ -41,6 +41,8 @@ import {
   acceptedExampleEntry,
   scriptedReplaySource,
   findProbableReplays,
+  existingExampleFor,
+  replayRootOf,
   foldBuildEvents,
   vocabularyGap,
 } from "./build";
@@ -856,6 +858,8 @@ describe("demo replay integrity (M0 trust fix a)", () => {
     { id: "ex.other", intent: "data-collection", name: "Signup", prompt: "a signup form", surface: { b: 1 } },
     { id: "ex.plan-comparison", intent: "transactional-review", name: "Plan comparison", prompt: "Compare our plans.", surface: { c: 1 } },
   ];
+  const hotel = "Create a hotel reservation experience where a user can search for hotels";
+  const sample = { id: "ex.plan-comparison", name: "Plan comparison", prompt: "Compare our plans." };
 
   it("replays the LAST example of the intent, and names it", () => {
     const source = scriptedReplaySource(examples, "transactional-review");
@@ -867,8 +871,28 @@ describe("demo replay integrity (M0 trust fix a)", () => {
     expect(scriptedReplaySource(undefined, "scheduling")).toBeNull();
   });
 
+  it("a replay of a saved replay names the ROOT sample, never the copy", () => {
+    const copy = acceptedExampleEntry({ id: "ex.chat-1", intent: "transactional-review", thread: [{ prompt: hotel, applied: false }], surface: { c: 2 }, root: sample });
+    const withCopy = [...examples, copy];
+    const source = scriptedReplaySource(withCopy, "transactional-review");
+    expect(source?.example).toBe(copy); // the copy is what plays (it is the last)…
+    expect(source?.id).toBe("ex.plan-comparison"); // …but the sample it names is the root
+    expect(source?.name).toBe("Plan comparison");
+    // Saving a replay of the copy does not stack the suffix or point at the copy.
+    const again = acceptedExampleEntry({ id: "ex.chat-2", intent: "transactional-review", thread: [{ prompt: "x", applied: false }], surface: { c: 3 }, root: source! });
+    expect(again.name).toBe("Plan comparison (demo replay)");
+    expect(again.description).toBe("Saved from a demo replay of ex.plan-comparison. It was not generated from a request.");
+    expect(replayRootOf(again.description)).toBe("ex.plan-comparison");
+    expect(replayRootOf("Something else")).toBeNull();
+  });
+
   it("a generated surface is recorded under the request that produced it (unchanged)", () => {
-    const entry = acceptedExampleEntry({ id: "ex.chat-1", intent: "transactional-review", chain: ["a hotel search", "make it shorter"], surface: { c: 1 } });
+    const entry = acceptedExampleEntry({
+      id: "ex.chat-1",
+      intent: "transactional-review",
+      thread: [{ prompt: "a hotel search", applied: true }, { prompt: "make it shorter", applied: true }],
+      surface: { c: 1 },
+    });
     expect(entry).toEqual({
       id: "ex.chat-1",
       intent: "transactional-review",
@@ -879,20 +903,80 @@ describe("demo replay integrity (M0 trust fix a)", () => {
   });
 
   it("a replay is recorded under the replayed example, never under the typed request", () => {
-    const hotel = "Create a hotel reservation experience where a user can search for hotels";
-    const replayOf = { id: "ex.plan-comparison", name: "Plan comparison", prompt: "Compare our plans." };
-    const entry = acceptedExampleEntry({ id: "ex.chat-1", intent: "transactional-review", chain: [hotel], surface: { c: 1 }, replayOf });
+    const entry = acceptedExampleEntry({ id: "ex.chat-1", intent: "transactional-review", thread: [{ prompt: hotel, applied: false }], surface: { c: 1 }, root: sample });
     expect(entry.name).toBe("Plan comparison (demo replay)");
     expect(entry.prompt).toBe("Compare our plans.");
     expect(entry.description).toBe("Saved from a demo replay of ex.plan-comparison. It was not generated from a request.");
     expect(JSON.stringify(entry)).not.toContain("hotel");
   });
 
+  it("a scripted refinement of a replay is still a replay: its instruction is not recorded", () => {
+    const entry = acceptedExampleEntry({
+      id: "ex.chat-1",
+      intent: "transactional-review",
+      thread: [{ prompt: hotel, applied: false }, { prompt: "make the title clearer", applied: false }],
+      surface: { c: 1 },
+      root: sample,
+    });
+    expect(entry.name).toBe("Plan comparison (demo replay)");
+    expect(entry.prompt).toBe("Compare our plans.");
+    expect(JSON.stringify(entry)).not.toContain("clearer");
+    expect(JSON.stringify(entry)).not.toContain("hotel");
+  });
+
+  it("a MODEL's refinement of a replay keeps the replay ancestry, is not labelled a replay, and never records the typed request", () => {
+    const entry = acceptedExampleEntry({
+      id: "ex.chat-1",
+      intent: "transactional-review",
+      thread: [{ prompt: hotel, applied: false }, { prompt: "add a yearly price", applied: true }, { prompt: "shorter title", applied: true }],
+      surface: { c: 9 },
+      root: sample,
+    });
+    expect(entry.name).toBe("Plan comparison (refined)");
+    expect(entry.prompt).toBe("Compare our plans. — refined: add a yearly price; shorter title");
+    expect(entry.description).toBe("Refined by a model from the demo sample ex.plan-comparison. The request typed before that sample was not applied.");
+    expect(entry.name).not.toContain("demo replay");
+    expect(replayRootOf(entry.description)).toBeNull(); // a model's work, not a replay copy
+    expect(JSON.stringify(entry)).not.toContain("hotel");
+  });
+
+  it("a scripted edit inside a generated thread is not recorded as applied", () => {
+    const entry = acceptedExampleEntry({
+      id: "ex.chat-1",
+      intent: "transactional-review",
+      thread: [{ prompt: "a hotel search", applied: true }, { prompt: "make it blue", applied: false }, { prompt: "shorter", applied: true }],
+      surface: { c: 1 },
+    });
+    expect(entry.name).toBe("a hotel search");
+    expect(entry.prompt).toBe("a hotel search — refined: shorter");
+    expect(entry.description).toBe("One demo-replay edit did not apply its instruction.");
+    expect(JSON.stringify(entry)).not.toContain("blue");
+  });
+
   it("a replay of an example with no prompt falls back to the example's own name, not the request", () => {
-    const entry = acceptedExampleEntry({ id: "ex.chat-2", intent: "x", chain: ["typed words"], surface: {}, replayOf: { id: "ex.bare" } });
+    const entry = acceptedExampleEntry({ id: "ex.chat-2", intent: "x", thread: [{ prompt: "typed words", applied: false }], surface: {}, root: { id: "ex.bare" } });
     expect(entry.prompt).toBe("ex.bare");
     expect(entry.name).toBe("ex.bare (demo replay)");
     expect(JSON.stringify(entry)).not.toContain("typed words");
+  });
+
+  it("the suffix always survives the 80-character cut", () => {
+    const long = { id: "ex.long", name: "A".repeat(120), prompt: "p" };
+    const replay = acceptedExampleEntry({ id: "ex.chat-3", intent: "x", thread: [{ prompt: "w", applied: false }], surface: {}, root: long });
+    expect(replay.name).toHaveLength(80);
+    expect(replay.name.endsWith(" (demo replay)")).toBe(true);
+    const refined = acceptedExampleEntry({ id: "ex.chat-4", intent: "x", thread: [{ prompt: "w", applied: false }, { prompt: "r", applied: true }], surface: {}, root: long });
+    expect(refined.name).toHaveLength(80);
+    expect(refined.name.endsWith(" (refined)")).toBe(true);
+  });
+
+  it("existingExampleFor finds an exact same-purpose surface and nothing else", () => {
+    expect(existingExampleFor(examples, "transactional-review", { c: 1 })?.id).toBe("ex.plan-comparison");
+    expect(existingExampleFor(examples, "data-collection", { c: 1 })).toBeNull(); // other purpose
+    expect(existingExampleFor(examples, "transactional-review", { c: 2 })).toBeNull(); // different surface
+    // Key order does not matter; a scripted marker does (that surface is new).
+    expect(existingExampleFor([{ id: "ex.k", intent: "i", surface: { a: 1, b: "t" } }], "i", { b: "t", a: 1 })?.id).toBe("ex.k");
+    expect(existingExampleFor([{ id: "ex.k", intent: "i", surface: { b: "t" } }], "i", { b: "t (refined)" })).toBeNull();
   });
 });
 
@@ -920,8 +1004,27 @@ describe("findProbableReplays (M0 example integrity)", () => {
     expect(findProbableReplays([...astryx.examples, saved], baseIds)).toEqual([{ id: "ex.chat-2", source: "ex.plan-comparison", kind: "probable-replay" }]);
   });
 
+  it("flags a scripted refinement that marked the surface's top-level id (a surface with no text)", () => {
+    const source = { id: "ex.textless", intent: "i", name: "Textless", prompt: "a textless one", surface: { id: "orig", root: { component: "card" } } };
+    const saved = { id: "ex.chat-7", intent: "i", prompt: "unrelated words", surface: { id: "refined 2", root: { component: "card" } } };
+    expect(findProbableReplays([source, saved], ["ex.textless"])).toEqual([]); // the original id was replaced, not marked…
+    const sourceWithoutId = { ...source, surface: { root: { component: "card" } } };
+    expect(findProbableReplays([sourceWithoutId, saved], ["ex.textless"])).toEqual([{ id: "ex.chat-7", source: "ex.textless", kind: "probable-replay" }]);
+  });
+
+  it("only strips the marker scripted mode appends, at the end of a string", () => {
+    const source = { id: "ex.s", intent: "i", name: "S", prompt: "s", surface: { text: "Plan (refined) options" } };
+    const other = { id: "ex.chat-8", intent: "i", prompt: "other", surface: { text: "Plan options" } };
+    expect(findProbableReplays([source, other], ["ex.s"])).toEqual([]);
+  });
+
+  it("does not flag an author's deliberate paraphrase example (no Build accept signature)", () => {
+    const paraphrase = { id: "ex.plan-comparison-short", intent: plan.intent, name: "Plan comparison, short ask", prompt: "Which plan?", surface: structuredClone(plan.surface) };
+    expect(findProbableReplays([...astryx.examples, paraphrase], baseIds)).toEqual([]);
+  });
+
   it("reports a labelled replay (the post-fix shape) without flagging it", () => {
-    const saved = acceptedExampleEntry({ id: "ex.chat-3", intent: plan.intent, chain: ["hotels"], surface: structuredClone(plan.surface), replayOf: { id: plan.id, name: plan.name, prompt: plan.prompt } });
+    const saved = acceptedExampleEntry({ id: "ex.chat-3", intent: plan.intent, thread: [{ prompt: "hotels", applied: false }], surface: structuredClone(plan.surface), root: { id: plan.id, name: plan.name, prompt: plan.prompt } });
     expect(findProbableReplays([...astryx.examples, saved], baseIds)).toEqual([{ id: "ex.chat-3", source: "ex.plan-comparison", kind: "labelled-replay" }]);
   });
 

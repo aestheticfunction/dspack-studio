@@ -42,10 +42,19 @@ export async function scriptedBuild(page: Page, intent: string, goal: string, tu
 }
 
 /** Build one surface and accept it into the project, returning its minted id. */
+/**
+ * Build in Demo replay, make one scripted edit, and accept the edited turn.
+ * A Demo replay of a sample the project already has is never saved (it would
+ * only add a second prompt for the same surface: M0 trust fix a), so the
+ * scripted edit is what makes a new surface to keep. Returns the minted id.
+ */
 export async function buildAndAccept(page: Page, intent: string, goal: string, turn = 1): Promise<string> {
   await scriptedBuild(page, intent, goal, turn);
-  await page.getByTestId(`build-accept-${turn}`).click();
-  const accepted = page.getByTestId(`build-accepted-${turn}`);
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId(`build-gate-summary-${turn + 1}`)).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await page.getByTestId(`build-accept-${turn + 1}`).click();
+  const accepted = page.getByTestId(`build-accepted-${turn + 1}`);
   await expect(accepted).toContainText(/ex\.chat-\d+/);
   return (await accepted.innerText()).match(/ex\.chat-\d+/)![0];
 }
