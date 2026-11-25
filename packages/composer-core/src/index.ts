@@ -72,6 +72,12 @@ export {
   canAcceptTurn,
   canRefineTurn,
   examplePromptFor,
+  acceptedExampleEntry,
+  scriptedReplaySource,
+  replayLabel,
+  findProbableReplays,
+  existingExampleFor,
+  replayRootOf,
   foldBuildEvents,
   vocabularyGap,
   type BuildReadiness,
@@ -81,6 +87,9 @@ export {
   type BuildFailureReason,
   type TurnAttempt,
   type TurnGate,
+  type ReplaySource,
+  type ReplayFinding,
+  type ThreadTurn,
 } from "./build";
 export {
   buildPlanRequest,

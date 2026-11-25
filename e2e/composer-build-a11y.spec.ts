@@ -46,12 +46,20 @@ test("Build, Refine, and Accept carry unambiguous accessible names; keyboard ope
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("build-status")).toContainText(/latest outcome/, { timeout: 30_000 });
 
-  const accept = page.getByRole("button", { name: /Accept turn 1 into the project/ });
+  // The unedited replay is already in the project, and says so in text.
+  await expect(page.getByTestId("build-already-1")).toContainText("Already in your project");
+  // Keyboard: type an instruction, operate Refine from the keyboard.
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByRole("button", { name: "Refine the previous surface with this instruction" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("build-canvas-2")).toContainText("(refined", { timeout: 30_000 });
+
+  const accept = page.getByRole("button", { name: /Accept turn 2 into the project/ });
   await expect(accept).toBeVisible();
   await accept.focus();
   await expect(accept).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.getByTestId("build-accepted-1")).toBeVisible();
+  await expect(page.getByTestId("build-accepted-2")).toBeVisible();
   const active = await page.evaluate(() => document.activeElement?.tagName.toLowerCase() ?? "");
   expect(active, "focus fell to body after Accept").not.toBe("body");
 });
