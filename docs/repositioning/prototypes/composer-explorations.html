@@ -1,0 +1,495 @@
+<title>Composer Workspace Explorations</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Oswald:wght@500;600&display=swap">
+<style>
+/* Layout: an exploration bar (approach + moment + what to judge) above a framed mock of the product.
+   Chrome follows Composer's own identity (dark ground, condensed display, mono labels, one green);
+   the design-system canvas inside it is light, as in the product. */
+:root {
+  --bg: #f3f1ea; --bg-1: #eae7dd; --bg-2: #e0dcd0; --line: #cfc9b9; --fg: #1d1c17; --fg-body: #3d3a31; --fg-dim: #6e695b;
+  --accent: #5d7536; --accent-strong: #4a5e2a; --accent-soft: rgba(93,117,54,.12);
+  --warn: #9a6216; --warn-soft: rgba(154,98,22,.10); --err: #b3261e; --ok: #4a6b22; --info: #1f6f99;
+  --canvas: #ffffff; --canvas-fg: #1a1c21; --canvas-dim: #5c6270; --canvas-line: #d9dce3; --ds: #1463d8; --ds-soft: #e3eefc;
+  --hl: "Oswald", "Arial Narrow", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131310; --bg-1: #191915; --bg-2: #20201a; --line: #2e2e26; --fg: #e7dfd2; --fg-body: #c4bdb0; --fg-dim: #908a7c;
+  --accent: #97b063; --accent-strong: #b0c87c; --accent-soft: rgba(151,176,99,.14);
+  --warn: #d9a05b; --warn-soft: rgba(217,160,91,.12); --err: #f2867f; --ok: #97b063; --info: #7dd3fc;
+  --canvas: #fbfbfc; --canvas-line: #d9dce3; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #131310; --bg-1: #191915; --bg-2: #20201a; --line: #2e2e26; --fg: #e7dfd2; --fg-body: #c4bdb0; --fg-dim: #908a7c;
+  --accent: #97b063; --accent-strong: #b0c87c; --accent-soft: rgba(151,176,99,.14);
+  --warn: #d9a05b; --warn-soft: rgba(217,160,91,.12); --err: #f2867f; --ok: #97b063; --info: #7dd3fc;
+  --canvas: #fbfbfc; --canvas-line: #d9dce3; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 18px; }
+.eyebrow { font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--fg-dim); }
+h1 { font: 600 clamp(26px, 4vw, 38px)/1.05 var(--hl); text-transform: uppercase; letter-spacing: .01em; margin: 6px 0 6px; text-wrap: balance; }
+.lede { color: var(--fg-body); max-width: 68ch; margin: 0; }
+
+/* Exploration bar */
+.bar { display: grid; gap: 12px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--bg-1); padding: 8px 12px; border-radius: 2px; cursor: pointer; text-align: left; }
+.seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.seg .k { font: 500 11px/1 var(--mono); color: var(--fg-dim); letter-spacing: .08em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+.seg .t { font-weight: 600; }
+.moments button { padding: 6px 10px; }
+.moments button .n { font-family: var(--mono); color: var(--fg-dim); margin-right: 6px; }
+.judge { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.judge div { border-left: 2px solid var(--line); padding: 2px 0 2px 10px; color: var(--fg-body); font-size: 13px; min-width: 0; }
+.judge b { display: block; font: 500 11px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 2px; }
+
+/* Product frame */
+.frame { border: 1px solid var(--line); background: var(--bg-1); border-radius: 3px; overflow: hidden; }
+.topnav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.brand { font: 600 15px/1 var(--hl); letter-spacing: .04em; text-transform: uppercase; margin-right: 8px; }
+.nav { display: flex; flex-wrap: wrap; gap: 2px; }
+.nav span { padding: 4px 8px; border-radius: 2px; color: var(--fg-dim); font-size: 13px; }
+.nav span[aria-current="page"] { color: var(--fg); background: var(--bg-2); }
+.navright { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { font: 500 12px/1 var(--mono); padding: 5px 8px; border-radius: 99px; border: 1px solid var(--line); white-space: nowrap; }
+.chip.ok { color: var(--ok); border-color: var(--ok); }
+.chip.warn { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+.chip.sim { color: var(--info); border-color: var(--info); }
+.stage { min-height: 520px; }
+
+/* Shared panels */
+.cols { display: grid; gap: 0; }
+.panel { padding: 14px; min-width: 0; }
+.panel + .panel { border-left: 1px solid var(--line); }
+.ph { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 10px; }
+.msg { margin: 0 0 12px; }
+.msg .who { font: 500 11px/1 var(--mono); color: var(--fg-dim); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.msg p { margin: 0; color: var(--fg-body); }
+.msg.you p { color: var(--fg); }
+.plan { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 4px; }
+.plan li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
+.plan .tag { font: 500 10px/1.6 var(--mono); padding: 0 5px; border-radius: 2px; border: 1px solid var(--line); color: var(--fg-dim); white-space: nowrap; }
+.plan .tag.reuse { color: var(--accent); border-color: var(--accent); }
+.composer-input { display: flex; gap: 6px; margin-top: 10px; }
+.composer-input input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); padding: 8px 10px; border-radius: 2px; }
+.btn { border: 1px solid var(--line); background: var(--bg); padding: 7px 12px; border-radius: 2px; cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.note { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--fg-body); padding: 8px 10px; border-radius: 2px; font-size: 13px; }
+.note b { color: var(--warn); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 0; }
+.kv dt { color: var(--fg-dim); }
+.kv dd { margin: 0; font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.rule { font-size: 12px; color: var(--fg-body); border-left: 2px solid var(--ok); padding-left: 8px; margin: 6px 0; }
+.rule.bad { border-color: var(--warn); }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 10px; }
+.tabs button { border: 0; background: none; padding: 4px 8px; border-radius: 2px; cursor: pointer; color: var(--fg-dim); font-size: 13px; }
+.tabs button[aria-selected="true"] { background: var(--bg-2); color: var(--fg); }
+
+/* Design-system canvas (light, like Astryx on the product's canvas) */
+.canvaswrap { background: var(--bg-2); padding: 14px; border-radius: 2px; }
+.canvasbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
+.canvasbar select { background: var(--bg); border: 1px solid var(--line); border-radius: 2px; padding: 3px 6px; max-width: 100%; }
+.ds { background: var(--canvas); color: var(--canvas-fg); border-radius: 10px; padding: 18px; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; border: 1px solid var(--canvas-line); }
+.ds h3 { margin: 0 0 4px; font-size: 20px; }
+.ds .sub { color: var(--canvas-dim); margin: 0 0 14px; font-size: 14px; }
+.ds .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.ds label { display: grid; gap: 4px; font-size: 13px; font-weight: 500; min-width: 0; }
+.ds .grid2 > div { min-width: 0; }
+.ds input { width: 100%; min-width: 0; border: 1px solid #9aa1ae; border-radius: 6px; padding: 8px 10px; color: var(--canvas-fg); background: #fff; font-size: 14px; }
+.ds .err { color: #b3261e; font-size: 12px; font-weight: 400; }
+.ds .dsbtn { background: var(--ds); color: #fff; border: 0; border-radius: 6px; padding: 9px 14px; font-weight: 600; cursor: pointer; margin-top: 14px; width: 100%; font-size: 14px; }
+.ds .dsbtn.ghost { background: transparent; color: var(--ds); border: 1px solid var(--canvas-line); width: auto; }
+.ds .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.ds .row .dsbtn { width: auto; }
+.ds .opt { border: 1px solid var(--canvas-line); border-radius: 8px; padding: 12px; margin-top: 8px; cursor: pointer; text-align: left; width: 100%; background: #fff; color: var(--canvas-fg); display: grid; gap: 6px; }
+.ds .opt[aria-checked="true"] { border: 2px solid var(--ds); background: var(--ds-soft); padding: 11px; }
+.ds .opt b { font-size: 15px; }
+.ds .meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; font-size: 13px; }
+.ds .meta span:nth-child(odd) { color: var(--canvas-dim); }
+.ds .badge { display: inline-block; background: var(--ds); color: #fff; border-radius: 99px; font-size: 12px; padding: 1px 8px; justify-self: start; }
+.ds .badge.muted { background: #e8eaee; color: #3a404c; }
+.ds .skel { height: 64px; border-radius: 8px; background: linear-gradient(90deg, #eef0f3, #f6f7f9, #eef0f3); margin-top: 8px; }
+.ds .alert { border: 1px solid #f0b8b4; background: #fdf1f0; border-radius: 8px; padding: 12px; font-size: 14px; }
+.ds .ok { border: 1px solid #b6d7a8; background: #f2f8ee; border-radius: 8px; padding: 12px; font-size: 14px; }
+.ds [data-sel] { outline: 2px dashed transparent; outline-offset: 3px; border-radius: 4px; }
+.ds.selectable [data-sel] { cursor: pointer; }
+.ds.selectable [data-sel]:hover { outline-color: #9aa1ae; }
+.ds [data-sel].picked { outline: 2px solid var(--ds); }
+@media (prefers-reduced-motion: no-preference) { .ds .skel { background-size: 200% 100%; animation: shimmer 1.4s linear infinite; } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Flow map */
+.flowmap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.node { border: 1px solid var(--line); background: var(--bg); border-radius: 3px; padding: 6px 10px; cursor: pointer; display: grid; gap: 2px; text-align: left; }
+.node[aria-current="step"] { border-color: var(--accent); background: var(--accent-soft); }
+.node .nm { font-weight: 600; font-size: 13px; }
+.node .st { font: 500 10px/1.4 var(--mono); color: var(--fg-dim); }
+.arrow { color: var(--fg-dim); font-family: var(--mono); font-size: 12px; }
+.branch { font: 12px/1.5 var(--mono); color: var(--fg-dim); margin-top: 8px; }
+.ribbon { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 12px; }
+.ribbon span { font-family: var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 2px; padding: 2px 6px; }
+
+/* Playground log */
+.sim-banner { background: repeating-linear-gradient(-45deg, var(--accent-soft) 0 10px, transparent 10px 20px); border-bottom: 1px solid var(--line); padding: 6px 14px; font: 500 12px/1.4 var(--mono); color: var(--fg-body); letter-spacing: .04em; }
+.log { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 13px; max-height: 360px; overflow: auto; }
+.log li { display: grid; grid-template-columns: 52px 64px 1fr; gap: 6px; align-items: baseline; min-width: 0; }
+.log .t { font-family: var(--mono); color: var(--fg-dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+.log .who { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.log .who.user { color: var(--info); } .log .who.agent { color: var(--accent); } .log .who.tool { color: var(--warn); } .log .who.rule { color: var(--err); }
+.log code { font-size: 11px; color: var(--fg-dim); overflow-wrap: anywhere; }
+pre.json { font: 12px/1.45 var(--mono); background: var(--bg); border: 1px solid var(--line); padding: 10px; margin: 0; overflow: auto; max-height: 360px; border-radius: 2px; }
+.injects { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13px; }
+
+/* Publish */
+.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.checks li { display: flex; gap: 8px; align-items: baseline; }
+.mark { font-family: var(--mono); width: 1.2em; flex: none; }
+.mark.ok { color: var(--ok); } .mark.warn { color: var(--warn); }
+.files { font: 12px/1.7 var(--mono); color: var(--fg-body); margin: 0; padding-left: 18px; }
+
+@media (min-width: 860px) {
+  .cols.a { grid-template-columns: minmax(260px, 340px) 1fr minmax(220px, 260px); }
+  .cols.b { grid-template-columns: minmax(180px, 210px) 1fr minmax(240px, 290px); }
+  .cols.c { grid-template-columns: 1fr minmax(240px, 290px); }
+  .cols.play { grid-template-columns: 1fr minmax(300px, 400px); }
+  .cols.pub { grid-template-columns: minmax(220px, 280px) 1fr; }
+  .cols.hub { grid-template-columns: 1.4fr 1fr; }
+}
+@media (max-width: 859px) { .panel + .panel { border-left: 0; border-top: 1px solid var(--line); } }
+.hubq { font: 600 clamp(22px, 3vw, 30px)/1.1 var(--hl); text-transform: uppercase; margin: 0 0 10px; text-wrap: balance; }
+.starts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.starts button { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 2px; padding: 10px; cursor: pointer; }
+.starts button b { display: block; }
+.starts button span { color: var(--fg-dim); font-size: 12px; }
+.choice { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 13px; }
+.choice label { border: 1px solid var(--line); padding: 5px 8px; border-radius: 2px; display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.palette { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.palette li { border: 1px solid var(--line); border-radius: 2px; padding: 6px 8px; background: var(--bg); }
+.palette li small { display: block; color: var(--fg-dim); }
+.diff { background: var(--accent-soft); border-radius: 2px; padding: 0 3px; }
+.foot { color: var(--fg-dim); font-size: 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Aesthetic Function · Composer · M0 design exploration</div>
+    <h1>Three ways to compose the same hotel task</h1>
+    <p class="lede">Each approach below walks the same five moments for the hotel reservation request, on the Astryx design system. They share Compose, Library, Playground and Publish; they differ in where a person starts and what stays in view. Everything is mocked: no model, no data leaves this page, and the Playground's agent is simulated.</p>
+  </header>
+
+  <section class="bar" aria-label="Choose an approach and a moment">
+    <div class="seg" role="group" aria-label="Approach" id="approaches"></div>
+    <div class="seg moments" role="group" aria-label="Moment" id="moments"></div>
+    <div class="judge" id="judge" aria-live="polite"></div>
+  </section>
+
+  <section class="frame" aria-label="Product mock">
+    <div class="topnav">
+      <span class="brand">Composer</span>
+      <nav class="nav" aria-label="Product navigation (mock)" id="pnav"></nav>
+      <div class="navright" id="pstatus"></div>
+    </div>
+    <div class="stage" id="stage"></div>
+  </section>
+  <p class="foot">Built for the M0 review. Approaches and moments are addressable: the link in the address bar keeps your place. Compare the approaches on the questions shown above the frame, and on the Convert Estimate scenario described in the written comparison.</p>
+</div>
+
+<script>
+const APPROACHES = {
+  a: { key: "A", title: "Conversation-led", desc: "Start from the request; the canvas follows the conversation." },
+  b: { key: "B", title: "Canvas-led", desc: "Start from the composition; select an element to edit it." },
+  c: { key: "C", title: "Flow-led", desc: "Start from the journey's stages; open a stage to edit it." },
+};
+const MOMENTS = [
+  ["onboard", "First run"], ["compose", "Author"], ["refine", "Refine"], ["test", "Test"], ["publish", "Publish"],
+];
+const JUDGE = {
+  a: ["A newcomer knows what to type and what came back.", "Data and actions can hide behind chat; check the inspector carries them.", "Refinement is natural; check that direct edits are still possible."],
+  b: ["Data, action and state sit on the element they belong to.", "A blank canvas is a poor start; check the entry points carry it.", "Multi-step tasks may feel scattered across separate canvases."],
+  c: ["Stages, transitions and task state are legible at a glance.", "Heavy for a single composition; check it collapses to one stage.", "Risk of becoming a diagramming tool; check the canvas stays primary."],
+};
+const HOTEL = "Create a hotel reservation experience where a user can search for hotels by destination, check-in date, check-out date and number of guests, compare available hotels, select a hotel and room, review the reservation details, and confirm the booking.";
+const STAGES = [
+  { id: "search", name: "Hotel search", purpose: "Collect input", reuse: false },
+  { id: "results", name: "Hotel results", purpose: "Review and choose", reuse: true },
+  { id: "rooms", name: "Room picker", purpose: "Review and choose", reuse: true },
+  { id: "review", name: "Reservation review", purpose: "Confirm a change", reuse: true },
+  { id: "done", name: "Booking result", purpose: "Show status", reuse: false },
+];
+const HOTELS = [
+  { id: "h1", name: "The Larkspur Loop", area: "The Loop", rate: 219, rating: "4.6", tag: "Best value" },
+  { id: "h2", name: "Harbor House Chicago", area: "Streeterville", rate: 264, rating: "4.8" },
+  { id: "h3", name: "Wicker Park Inn", area: "Wicker Park", rate: 172, rating: "4.3" },
+];
+const ROOMS = { h1: [["King, city view", 219], ["Two queens", 239]], h2: [["King, lake view", 264], ["Junior suite", 341]], h3: [["Queen", 172], ["King", 189]] };
+
+let state = { approach: "a", moment: "onboard", sel: "search-btn", stage: "search", tab: "content" };
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function readHash() {
+  const m = /^#([abc])-(onboard|compose|refine|test|publish)$/.exec(location.hash);
+  if (m) { state.approach = m[1]; state.moment = m[2]; }
+}
+function go(patch) {
+  Object.assign(state, patch);
+  const h = `#${state.approach}-${state.moment}`;
+  if (location.hash !== h) history.replaceState(null, "", h);
+  render();
+}
+
+function bar() {
+  $("#approaches").innerHTML = Object.entries(APPROACHES).map(([id, a]) =>
+    `<button type="button" aria-pressed="${state.approach === id}" data-ap="${id}"><span class="k">Approach ${a.key}</span><span class="t">${a.title}</span><br><span style="font-size:12px;color:var(--fg-dim)">${a.desc}</span></button>`).join("");
+  $("#moments").innerHTML = MOMENTS.map(([id, label], i) =>
+    `<button type="button" aria-pressed="${state.moment === id}" data-mo="${id}"><span class="n">${i + 1}</span>${label}</button>`).join("");
+  $("#judge").innerHTML = JUDGE[state.approach].map((t, i) => `<div><b>${["Strength to confirm", "Weakness to test", "Watch for"][i]}</b>${t}</div>`).join("");
+  const navFor = { onboard: "Home", compose: "Compose", refine: "Compose", test: "Playground", publish: "Publish" };
+  $("#pnav").innerHTML = ["Home", "Compose", "Library", "Playground", "Publish"].map((n) => `<span ${navFor[state.moment] === n ? 'aria-current="page"' : ""}>${n}</span>`).join("") + `<span>Design system</span>`;
+  const sim = state.moment === "test" ? `<span class="chip sim">Simulated agent</span>` : "";
+  const valid = state.moment === "onboard" ? "" : `<span class="chip ok" title="Meets the Astryx rules">✓ Meets Astryx rules</span>`;
+  $("#pstatus").innerHTML = `${sim}${valid}<span class="chip">Hotel reservation · Astryx</span>`;
+}
+
+/* ---------- design-system surfaces (mock Astryx) ---------- */
+function dsSearch(opts = {}) {
+  const s = (id, html) => `<div data-sel="${id}" class="${state.sel === id && opts.selectable ? "picked" : ""}">${html}</div>`;
+  const guests = opts.refined ? `<span>Guests <span class="diff">(1 to 8)</span></span>` : "<span>Guests</span>";
+  return `<div class="ds ${opts.selectable ? "selectable" : ""}" aria-label="Hotel search preview">
+    ${s("search-title", `<h3>Find a hotel</h3>`)}
+    <p class="sub">Where and when are you staying?</p>
+    <div class="grid2">
+      ${s("dest", `<label><span>Destination</span><input value="${esc(opts.dest ?? "Chicago")}" ${opts.live ? 'id="f-dest"' : "readonly"}></label>`)}
+      ${s("guests", `<label>${guests}<input value="${opts.guests ?? 2}" ${opts.live ? 'id="f-guests"' : "readonly"}></label>`)}
+      ${s("checkin", `<label><span>Check-in</span><input value="${opts.checkin ?? "2026-12-11"}" ${opts.live ? 'id="f-in"' : "readonly"}></label>`)}
+      ${s("checkout", `<label><span>Check-out</span><input value="${opts.checkout ?? "2026-12-13"}" ${opts.live ? 'id="f-out"' : "readonly"}>${opts.dateErr ? `<span class="err">${opts.dateErr}</span>` : ""}</label>`)}
+    </div>
+    ${s("search-btn", `<button class="dsbtn" type="button" ${opts.live ? 'id="do-search"' : 'tabindex="-1"'}>Search hotels</button>`)}
+  </div>`;
+}
+function dsResults(opts = {}) {
+  if (opts.loading) return `<div class="ds"><h3>Hotels in ${esc(opts.dest || "Chicago")}</h3><p class="sub">Searching available hotels…</p><div class="skel"></div><div class="skel"></div></div>`;
+  if (opts.empty) return `<div class="ds"><h3>No hotels match those dates</h3><p class="sub">Try different dates or a nearby area.</p><div class="row"><button class="dsbtn ghost" type="button" id="do-change">Change search</button></div></div>`;
+  const list = HOTELS.map((h) => `<button type="button" class="opt" role="radio" aria-checked="${opts.chosen === h.id}" data-hotel="${h.id}" ${opts.live ? "" : 'tabindex="-1"'}>
+      <b>${h.name}</b>
+      <span class="meta"><span>Area</span><span>${h.area}</span><span>Nightly</span><span>$${h.rate}</span><span>Rating</span><span>${h.rating}</span></span>
+      ${h.tag ? `<span class="badge">${h.tag}</span>` : ""}</button>`).join("");
+  return `<div class="ds"><h3>Hotels in ${esc(opts.dest || "Chicago")}</h3><p class="sub">${opts.nights || 2} nights · ${opts.guests || 2} guests. Compared on area, nightly rate and rating.</p>
+    <div role="radiogroup" aria-label="Hotels">${list}</div>
+    <div class="row" style="margin-top:12px"><button class="dsbtn ghost" type="button" ${opts.live ? 'id="do-change"' : 'tabindex="-1"'}>Change search</button><button class="dsbtn" type="button" ${opts.live ? 'id="do-choose"' : 'tabindex="-1"'} ${opts.live && !opts.chosen ? "disabled" : ""}>Choose hotel</button></div></div>`;
+}
+function dsRooms(o) {
+  const h = HOTELS.find((x) => x.id === o.chosen);
+  const rooms = ROOMS[o.chosen].map(([n, r], i) => `<button type="button" class="opt" role="radio" aria-checked="${o.room === i}" data-room="${i}"><b>${n}</b><span class="meta"><span>Nightly</span><span>$${r}</span><span>Cancel</span><span>Free until 48 h before</span></span></button>`).join("");
+  return `<div class="ds"><h3>${h.name}</h3><p class="sub">Choose a room.</p><div role="radiogroup" aria-label="Rooms">${rooms}</div>
+    <div class="row" style="margin-top:12px"><button class="dsbtn ghost" type="button" id="do-back-results">Other hotels</button><button class="dsbtn" type="button" id="do-room" ${o.room == null ? "disabled" : ""}>Review reservation</button></div></div>`;
+}
+function dsReview(o) {
+  const h = HOTELS.find((x) => x.id === o.chosen); const [rn, rate] = ROOMS[o.chosen][o.room];
+  return `<div class="ds"><h3>Review your reservation</h3><p class="sub">Nothing is booked until you confirm.</p>
+    <div class="meta" style="font-size:14px"><span>Hotel</span><span>${h.name}</span><span>Room</span><span>${rn}</span><span>Dates</span><span>${o.checkin} to ${o.checkout}</span><span>Guests</span><span>${o.guests}</span><span>Total</span><span><b>$${rate * o.nights}</b> for ${o.nights} nights</span></div>
+    ${o.failed ? `<div class="alert" style="margin-top:12px"><b>The booking did not go through.</b> The room was not reserved and you were not charged. Try again, or choose another room.</div>` : ""}
+    <div class="row" style="margin-top:12px"><button class="dsbtn ghost" type="button" id="do-back-rooms">Change room</button><button class="dsbtn" type="button" id="do-confirm">${o.failed ? "Try again" : "Confirm booking"}</button></div></div>`;
+}
+function dsDone(o) {
+  const h = HOTELS.find((x) => x.id === o.chosen);
+  return `<div class="ds"><div class="ok"><b>Booked (simulated).</b> Confirmation SIM-48213 for ${h.name}, ${o.checkin} to ${o.checkout}.</div><div class="row" style="margin-top:12px"><button class="dsbtn ghost" type="button" id="do-restart">Start over</button></div></div>`;
+}
+
+/* ---------- shared pieces ---------- */
+function canvasBar(label, extra = "") {
+  return `<div class="canvasbar"><span><b>${label}</b> <span class="chip" style="margin-left:4px">draft v1</span></span>
+    <span style="display:flex;gap:8px;flex-wrap:wrap">${extra}<label>Scenario <select aria-label="Scenario"><option>Chicago, 3 results</option><option>No availability</option><option>Search fails</option></select></label><label>State <select aria-label="State"><option>ready</option><option>invalid dates</option></select></label></span></div>`;
+}
+function inspector(compact) {
+  const SEL = {
+    "search-btn": { what: "Search button", rows: [["Action", "search_hotels"], ["Sends", "destination, checkIn, checkOut, guests"], ["Then", "→ Hotel results"]], rules: [["Buttons carry a label", true]] },
+    dest: { what: "Destination field", rows: [["Writes", "/query/destination"], ["Type", "text, required"]], rules: [["Inputs carry a label", true]] },
+    guests: { what: "Guests field", rows: [["Writes", "/query/guests"], ["Type", "number shown as text"], ["Check", state.moment === "refine" ? "1 to 8 (new)" : "required"]], rules: [["Inputs carry a label", true]] },
+    checkin: { what: "Check-in field", rows: [["Writes", "/query/checkIn"], ["Type", "date shown as text"]], rules: [["Inputs carry a label", true]] },
+    checkout: { what: "Check-out field", rows: [["Writes", "/query/checkOut"], ["Check", "after check-in"]], rules: [["Inputs carry a label", true]] },
+    "search-title": { what: "Heading", rows: [["Content", "parameter: title"]], rules: [] },
+  }[state.sel] || { what: "Composition", rows: [], rules: [] };
+  const tabs = ["content", "data", "action", "rules"];
+  const body = state.tab === "rules"
+    ? (SEL.rules.length ? SEL.rules.map(([r, ok]) => `<div class="rule ${ok ? "" : "bad"}">${ok ? "✓" : "!"} ${r}</div>`).join("") : `<p class="foot">No rule reads this element.</p>`)
+    : `<dl class="kv">${SEL.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
+  return `<p class="ph">Inspector</p><p style="margin:0 0 8px;font-weight:600">${SEL.what}</p>
+    ${compact ? "" : `<div class="tabs" role="tablist">${tabs.map((t) => `<button role="tab" aria-selected="${state.tab === t}" data-tab="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join("")}</div>`}
+    ${body}
+    <p class="foot" style="margin-top:12px">Dates are text fields: Astryx 0.1.4 has no date input. <a href="#" style="color:var(--accent)" onclick="return false">Details</a></p>`;
+}
+function conversation(moment) {
+  const plan = `<ol class="plan">${STAGES.map((s) => `<li><span class="tag ${s.reuse ? "reuse" : ""}">${s.reuse ? "reuse" : "new"}</span>${s.name}<span class="foot">· ${s.purpose}</span></li>`).join("")}</ol>`;
+  let msgs = `<div class="msg you"><div class="who">You</div><p>${esc(HOTEL.slice(0, 120))}…</p></div>
+    <div class="msg"><div class="who">Composer</div><p>I planned five stages. Three reuse compositions from your library; two are new. Booking is a change, so it gets a confirmation step.</p>${plan}</div>`;
+  if (moment === "refine") msgs += `<div class="msg you"><div class="who">You</div><p>Limit guests to between 1 and 8.</p></div>
+    <div class="msg"><div class="who">Composer</div><p>Added a check on <b>Guests</b>: 1 to 8. Still meets the Astryx rules. Nothing else changed.</p></div>`;
+  return `<p class="ph">Conversation</p>${msgs}<div class="composer-input"><input aria-label="Refine or ask" placeholder="Refine or ask…"><button class="btn" type="button">Send</button></div>`;
+}
+
+/* ---------- moments ---------- */
+function onboard() {
+  const ap = state.approach;
+  const q = { a: "What should your agent help someone do?", b: "Start from a composition or a blank canvas", c: "Describe the journey; Composer outlines the stages" }[ap];
+  const starts = {
+    a: [["Hotel reservation", "search, compare, confirm"], ["Support ticket triage", "browse records, act"], ["Confirm a delete", "a destructive change"]],
+    b: [["Option compare", "approved composition"], ["Records table", "approved composition"], ["Blank canvas", "start from components"]],
+    c: [["Hotel reservation", "5 stages"], ["Convert estimate to project", "4 stages, one confirmation"], ["Single surface", "one stage, no flow"]],
+  }[ap];
+  return `<div class="cols hub">
+    <div class="panel"><div class="eyebrow">Design for agents, not just screens</div>
+      <p class="hubq">${q}</p>
+      ${ap === "b" ? "" : `<div class="composer-input"><input aria-label="Describe the task" value="${ap === "a" ? "Book a hotel: search, compare, pick a room, review, confirm" : "Search hotels → compare → room → review → confirm"}"><button class="btn primary" type="button" data-mo="compose">Start composing</button></div>`}
+      <div class="choice" role="radiogroup" aria-label="Design system"><label><input type="radio" name="ds" checked> Astryx sample</label><label><input type="radio" name="ds"> shadcn/ui sample</label><label><input type="radio" name="ds"> Bring your own</label></div>
+      <p class="ph" style="margin-top:16px">${ap === "b" ? "Start from" : "Or try one"}</p>
+      <div class="starts">${starts.map(([t, s]) => `<button type="button" data-mo="compose"><b>${t}</b><span>${s}</span></button>`).join("")}</div>
+    </div>
+    <div class="panel">
+      <div class="note"><b>AI generation is not available here right now.</b> You can explore finished samples, or connect a model in Settings. A typed request is never answered with a replay.</div>
+      <p class="ph" style="margin-top:16px">What happens next</p>
+      <ol class="plan">${{ a: ["You describe the task", "Composer proposes a plan you can edit", "Each stage is built and checked", "Try it with a simulated agent"], b: ["Pick a composition or component", "Fill its content and sample data", "Wire its actions", "Try it with a simulated agent"], c: ["You describe the journey", "Composer outlines stages and what passes between them", "Open a stage to build it", "Run the whole journey"] }[ap].map((s, i) => `<li><span class="tag">${i + 1}</span>${s}</li>`).join("")}</ol>
+      <p class="foot">Your projects: <b>Hotel reservation</b> · Astryx · edited 2 h ago</p>
+    </div></div>`;
+}
+function author(refine) {
+  const ap = state.approach;
+  const canvas = `<div class="canvaswrap">${canvasBar(STAGES.find((s) => s.id === state.stage)?.name || "Hotel search")}${stageSurface(state.stage, refine, ap === "b")}</div>`;
+  if (ap === "a") return `<div class="cols a"><div class="panel">${conversation(refine ? "refine" : "compose")}</div><div class="panel">${outlineStrip()}${canvas}</div><div class="panel">${inspector(true)}</div></div>`;
+  if (ap === "b") return `<div class="cols b"><div class="panel"><p class="ph">Add</p><ul class="palette">
+      <li>Option compare<small>composition · approved</small></li><li>Records table<small>composition · approved</small></li><li>Text input<small>component</small></li><li>Button<small>component</small></li><li>Selectable card<small>component</small></li></ul>
+      <p class="ph" style="margin-top:14px">Ask</p><div class="composer-input" style="margin-top:0"><input aria-label="Ask Composer" placeholder="${refine ? "Limit guests to 1–8" : "Generate a hotel search"}"></div>
+      ${refine ? `<div class="msg" style="margin-top:10px"><div class="who">Composer</div><p>Added a 1 to 8 check on Guests.</p></div>` : ""}</div>
+    <div class="panel">${outlineStrip()}${canvas}<p class="foot">Select an element in the preview to edit what it shows, writes and sends.</p></div><div class="panel">${inspector(false)}</div></div>`;
+  return `<div class="cols c"><div class="panel">${flowMap()}<div style="margin-top:14px">${canvas}</div></div><div class="panel">${state.stage === "search" ? inspector(true) : stageNotes()}<details style="margin-top:14px"><summary class="ph" style="cursor:pointer">Conversation</summary>${conversation(refine ? "refine" : "compose")}</details></div></div>`;
+}
+function stageNotes() {
+  const s = STAGES.find((x) => x.id === state.stage);
+  return `<p class="ph">Stage</p><p style="margin:0 0 6px;font-weight:600">${s.name}</p><dl class="kv"><dt>Purpose</dt><dd>${s.purpose}</dd><dt>Composition</dt><dd>${s.reuse ? "reused from library" : "new"}</dd><dt>Reads</dt><dd>${{ results: "/results, /query", rooms: "/selection/hotel", review: "/selection, /query", done: "/booking" }[s.id] || "-"}</dd><dt>Sends</dt><dd>${{ results: "select_hotel(hotelId)", rooms: "select_room(roomId)", review: "confirm_booking (needs confirmation)", done: "start_over" }[s.id] || "-"}</dd></dl>`;
+}
+function outlineStrip() {
+  return `<div class="flowmap" style="margin-bottom:10px" aria-label="Stages">${STAGES.map((s, i) => `${i ? '<span class="arrow" aria-hidden="true">→</span>' : ""}<button type="button" class="node" data-stage="${s.id}" ${state.stage === s.id ? 'aria-current="step"' : ""}><span class="nm">${s.name}</span></button>`).join("")}</div>`;
+}
+function flowMap() {
+  return `<p class="ph">Journey</p><div class="flowmap" aria-label="Stages">${STAGES.map((s, i) => `${i ? '<span class="arrow" aria-hidden="true">→</span>' : ""}<button type="button" class="node" data-stage="${s.id}" ${state.stage === s.id ? 'aria-current="step"' : ""}><span class="nm">${s.name}</span><span class="st">${s.reuse ? "reused" : "new"} · ✓ rules</span></button>`).join("")}</div>
+    <div class="branch">Hotel results ⤳ no results → "Change search" → Hotel search · Review ⤳ booking fails → Review (retry) · Back keeps the query</div>
+    <div class="ribbon" aria-label="Task state"><span>query</span><span>results[]</span><span>selection.hotel</span><span>selection.room</span><span>booking</span></div>`;
+}
+function stageSurface(id, refine, selectable) {
+  const o = { chosen: "h1", room: 0, checkin: "2026-12-11", checkout: "2026-12-13", guests: 2, nights: 2 };
+  if (id === "search") return dsSearch({ refined: refine, selectable });
+  if (id === "results") return dsResults({ chosen: "h1" });
+  if (id === "rooms") return dsRooms(o);
+  if (id === "review") return dsReview(o);
+  return dsDone(o);
+}
+
+/* ---------- Playground (functional simulation, shared by all approaches) ---------- */
+let sim;
+function resetSim() { sim = { scenario: "results", view: "search", query: { dest: "Chicago", checkin: "2026-12-11", checkout: "2026-12-13", guests: 2 }, chosen: null, room: null, failed: false, failNext: true, log: [], t: 0, tab: "timeline", dm: {} }; logIt("agent", "show Hotel search", "createSurface search"); }
+function logIt(who, text, code) { sim.t += 0.4 + Math.random() * 0.3; sim.log.push({ t: sim.t.toFixed(1), who, text, code }); }
+function nights() { const a = Date.parse(sim.query.checkin), b = Date.parse(sim.query.checkout); return Math.round((b - a) / 864e5); }
+function playground() {
+  const v = sim.view; let surface;
+  const o = { ...sim.query, nights: nights(), chosen: sim.chosen, room: sim.room, failed: sim.failed, live: true };
+  if (v === "search") surface = dsSearch({ ...o, live: true, dateErr: sim.dateErr });
+  else if (v === "loading") surface = dsResults({ loading: true, dest: o.dest });
+  else if (v === "results") surface = dsResults({ ...o, empty: sim.scenario === "none" });
+  else if (v === "rooms") surface = dsRooms(o);
+  else if (v === "review") surface = dsReview(o);
+  else surface = dsDone(o);
+  const lead = { a: "Opened from the conversation: “Try it”.", b: "Opened from the canvas: the selected composition runs inside its flow.", c: "Opened from the journey map: every stage runs in order." }[state.approach];
+  const stageName = { search: "Hotel search", loading: "Hotel results", results: "Hotel results", rooms: "Room picker", review: "Reservation review", done: "Booking result" }[v];
+  const dm = { query: sim.query, results: v === "search" ? [] : sim.scenario === "none" ? [] : HOTELS.map((h) => h.id), selection: { hotel: sim.chosen, room: sim.room }, booking: v === "done" ? { id: "SIM-48213", status: "confirmed" } : sim.failed ? { status: "failed" } : null };
+  const panel = sim.tab === "timeline"
+    ? `<ol class="log" aria-label="Timeline">${sim.log.map((l) => `<li><span class="t">${l.t}s</span><span class="who ${l.who}">${l.who}</span><span>${esc(l.text)}${l.code ? `<br><code>${esc(l.code)}</code>` : ""}</span></li>`).join("")}</ol>`
+    : sim.tab === "data" ? `<pre class="json" aria-label="Task state">${esc(JSON.stringify(dm, null, 2))}</pre>`
+    : `<pre class="json" aria-label="Last messages">${esc(JSON.stringify(lastMessages(), null, 2))}</pre>`;
+  return `<div class="sim-banner">SIMULATED AGENT · sample data · nothing leaves this page · ${lead}</div>
+    <div class="cols play"><div class="panel"><div class="canvasbar"><span><b>${stageName}</b></span>
+      <span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label>Scenario <select id="scen" aria-label="Scenario"><option value="results" ${sim.scenario === "results" ? "selected" : ""}>Chicago, 3 results</option><option value="none" ${sim.scenario === "none" ? "selected" : ""}>No availability</option><option value="fail" ${sim.scenario === "fail" ? "selected" : ""}>Booking fails once</option></select></label><button class="btn" type="button" id="restart">Restart</button></span></div>
+      <div class="canvaswrap">${surface}</div>
+      <p class="foot">Back keeps: ${esc(sim.query.dest)}, ${esc(sim.query.checkin)} to ${esc(sim.query.checkout)}, ${esc(sim.query.guests)} guests${sim.chosen ? ", " + HOTELS.find((h) => h.id === sim.chosen).name : ""}.</p></div>
+    <div class="panel"><div class="tabs" role="tablist">${["timeline", "data", "messages"].map((t) => `<button role="tab" aria-selected="${sim.tab === t}" data-stab="${t}">${t === "data" ? "Task state" : t[0].toUpperCase() + t.slice(1)}</button>`).join("")}</div>${panel}</div></div>
+    <div class="injects"><span class="ph" style="margin:0">Agent sends</span><button class="btn" type="button" id="inj-price" ${sim.view === "results" && sim.scenario !== "none" ? "" : "disabled"}>A price change</button><button class="btn" type="button" id="inj-bad">An update the rules refuse</button><span id="sim-status" class="sr" aria-live="polite"></span></div>`;
+}
+function lastMessages() {
+  const v = sim.view;
+  if (v === "results") return [{ version: "v0.9", updateDataModel: { surfaceId: "hotel_results_1", path: "/results", value: sim.scenario === "none" ? [] : "[3 hotels]" } }];
+  if (v === "review") return [{ version: "v0.9", createSurface: { surfaceId: "reservation_review_1", catalogId: "…/astryx/v0_9_1/catalog.json" } }, { version: "v0.9", updateComponents: { surfaceId: "reservation_review_1", components: "[12 components]" } }];
+  return [{ version: "v0.9", createSurface: { surfaceId: `hotel_${v}_1`, catalogId: "…/astryx/v0_9_1/catalog.json" } }];
+}
+function wirePlayground() {
+  const val = (id) => document.getElementById(id)?.value;
+  $("#scen").onchange = (e) => { resetSim(); sim.scenario = e.target.value; render(); };
+  $("#restart").onclick = () => { const s = sim.scenario; resetSim(); sim.scenario = s; render(); };
+  document.querySelectorAll("[data-stab]").forEach((b) => (b.onclick = () => { sim.tab = b.dataset.stab; render(); }));
+  const search = $("#do-search");
+  if (search) search.onclick = () => {
+    sim.query = { dest: val("f-dest"), checkin: val("f-in"), checkout: val("f-out"), guests: val("f-guests") };
+    logIt("user", "search_hotels", JSON.stringify(sim.query));
+    if (!(nights() > 0)) { sim.dateErr = "Check-out must be after check-in."; logIt("agent", "refused: check-out is not after check-in; surface kept, field error shown", "updateDataModel /errors/checkOut"); render(); return; }
+    sim.dateErr = null; sim.view = "loading"; logIt("agent", "results: loading", "updateComponents results (state: loading)"); render();
+    setTimeout(() => { logIt("tool", `searchHotels → ${sim.scenario === "none" ? 0 : 3} results (mock)`); logIt("agent", sim.scenario === "none" ? "show state: empty" : "set /results", sim.scenario === "none" ? "re-instantiate results (state: empty), checked: ✓" : "updateDataModel /results"); sim.view = "results"; render(); }, 700);
+  };
+  document.querySelectorAll("[data-hotel]").forEach((b) => (b.onclick = () => { sim.chosen = b.dataset.hotel; logIt("user", "writes /selection/hotel", sim.chosen); render(); }));
+  const ch = $("#do-change"); if (ch) ch.onclick = () => { sim.view = "search"; logIt("user", "change_search"); logIt("agent", "back to Hotel search, query kept"); render(); };
+  const choose = $("#do-choose"); if (choose) choose.onclick = () => { logIt("user", "select_hotel", `{"hotelId":"${sim.chosen}"}`); logIt("agent", "show Room picker", "createSurface rooms"); sim.view = "rooms"; sim.room = null; render(); };
+  document.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => { sim.room = Number(b.dataset.room); render(); }));
+  const br = $("#do-back-results"); if (br) br.onclick = () => { sim.view = "results"; logIt("user", "back"); logIt("agent", "Hotel results, selection kept"); render(); };
+  const rm = $("#do-room"); if (rm) rm.onclick = () => { logIt("user", "select_room", `{"roomId":${sim.room}}`); logIt("agent", "show Reservation review", "createSurface review"); sim.view = "review"; render(); };
+  const bk = $("#do-back-rooms"); if (bk) bk.onclick = () => { sim.view = "rooms"; logIt("user", "back"); render(); };
+  const cf = $("#do-confirm"); if (cf) cf.onclick = () => {
+    logIt("user", "confirm_booking (consequential, confirmed by the user)");
+    if (sim.scenario === "fail" && sim.failNext) { sim.failNext = false; sim.failed = true; logIt("tool", "createBooking → error 503 (mock)"); logIt("agent", "show the failure on Review; nothing booked", "updateDataModel /booking {status: failed}"); render(); return; }
+    logIt("tool", "createBooking → SIM-48213 (mock)"); logIt("agent", "show Booking result", "createSurface done"); sim.failed = false; sim.view = "done"; render();
+  };
+  const rs = $("#do-restart"); if (rs) rs.onclick = () => { const s = sim.scenario; resetSim(); sim.scenario = s; render(); };
+  const ip = $("#inj-price"); if (ip) ip.onclick = () => { HOTELS[0].rate = HOTELS[0].rate === 219 ? 199 : 219; logIt("agent", `price change: ${HOTELS[0].name} now $${HOTELS[0].rate}`, "re-instantiate results, checked ✓, updateComponents (1 changed)"); render(); };
+  $("#inj-bad").onclick = () => { logIt("rule", "refused: an update leaving one option breaks “offer at least two alternatives”; previous surface kept", "rule.review-offers-alternatives"); sim.tab = "timeline"; render(); $("#sim-status").textContent = "An agent update was refused by the design-system rules."; };
+}
+
+/* ---------- Publish ---------- */
+function publish() {
+  return `<div class="cols pub"><div class="panel"><p class="ph">1 · Choose</p>
+      <ul class="checks">${STAGES.map((s) => `<li><span class="mark ok">☑</span>${s.name} v1</li>`).join("")}<li><span class="mark ok">☑</span>Flow: Hotel reservation</li></ul>
+      <p class="ph" style="margin-top:14px">2 · Check · 3 · Deliver</p><p class="foot">Package version 0.1.0. Publishing stops at a failed check.</p></div>
+    <div class="panel"><p class="ph">Ready to publish: 5 compositions, 1 flow</p>
+      <ul class="checks"><li><span class="mark ok">✓</span>Meets the Astryx rules, every state of every composition</li><li><span class="mark ok">✓</span>Data and actions consistent with the interaction contract</li><li><span class="mark ok">✓</span>Valid A2UI 0.9.1, checked by an independent implementation</li><li><span class="mark warn">!</span>A2UI 1.0 not yet supported: bindings are verified for 0.9.1 only</li><li><span class="mark warn">!</span>Dates are text fields: Astryx 0.1.4 has no date input</li></ul>
+      <p class="ph" style="margin-top:16px">What an agent gets</p>
+      <ul class="files"><li>manifest.json, every file hashed</li><li>contract.dspack.json · mapping.profile.json · catalogs/</li><li>interaction.json · compositions/ · flows/ <span class="foot">(Aesthetic Function extension)</span></li><li>examples/ one A2UI message stream per scenario</li><li>AGENTS.md · reports/validation.json · reports/compatibility.json</li></ul>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px"><button class="btn primary" type="button">Download package</button><button class="btn" type="button">Copy MCP config</button><button class="btn" type="button">Run independent host check</button></div>
+      <p class="foot" style="margin-top:8px">The project backup stays under the project menu as “Back up project”.</p></div></div>`;
+}
+
+function render() {
+  bar();
+  const m = state.moment; let html;
+  if (m === "onboard") html = onboard();
+  else if (m === "compose") html = author(false);
+  else if (m === "refine") html = author(true);
+  else if (m === "test") html = playground();
+  else html = publish();
+  $("#stage").innerHTML = html;
+  document.querySelectorAll("[data-ap]").forEach((b) => (b.onclick = () => go({ approach: b.dataset.ap })));
+  document.querySelectorAll("[data-mo]").forEach((b) => (b.onclick = () => go({ moment: b.dataset.mo })));
+  document.querySelectorAll("[data-stage]").forEach((b) => (b.onclick = () => go({ stage: b.dataset.stage, sel: b.dataset.stage === "search" ? state.sel : "" })));
+  document.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => go({ tab: b.dataset.tab })));
+  document.querySelectorAll(".ds.selectable [data-sel]").forEach((el) => {
+    el.tabIndex = 0; el.setAttribute("role", "button"); el.setAttribute("aria-label", "Select " + el.dataset.sel);
+    const pick = () => go({ sel: el.dataset.sel });
+    el.onclick = pick; el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
+  });
+  if (m === "test") wirePlayground();
+}
+readHash(); resetSim(); render();
+window.addEventListener("hashchange", () => { readHash(); render(); });
+</script>

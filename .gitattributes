@@ -1,0 +1,4 @@
+# The gateway corpus is pinned by sha256 (packages/composer-core/src/corpus-pin.test.ts),
+# which hashes the checked-out bytes. Keep them LF on every platform.
+acceptance/gateway-corpus/corpus.mjs text eol=lf
+acceptance/gateway-corpus/paraphrases.mjs text eol=lf

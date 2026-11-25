@@ -87,7 +87,7 @@ zone ⇒ shared account) — over Unified Billing, so there is **no provider key
 BYOK credential, and no gateway secret**. No KV, Durable Objects, or databases.
 A `HOSTED_AI` var is the kill switch. It lives in the dashboard: `wrangler.jsonc` declares no vars and keeps the dashboard's (`keep_vars: true`), so a flip there lasts across deploys, though not across a rollback ("The invite-only beta", Runbook, below). Absent means on.
 
-**Cloudflare Access.** Under the owner's single-host amendment, Access protects this hostname with email one-time PIN, admitting the owner's exact email and the testers the owner adds. The owner applies it in the dashboard; nothing in this repository applies it, and the experimental workflow refuses to deploy until anonymous requests go to its login. Applying it removes anonymous access: the existing public Composer becomes the invite-only beta, and this repository's anonymous checks of production (the build id, `/api/models`, the live-artifact scan, the production smoke) meet the Access login. The order of the cutover, the experimental deploy and the rollback to the block-free release candidate is in [blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md).
+**Cloudflare Access.** **Current state (checked 2026-11-25): Access does not cover this hostname.** An anonymous request is served ([repositioning/HOSTED-AI-AVAILABILITY.md](repositioning/HOSTED-AI-AVAILABILITY.md)); whether it was removed after the beta's rollback or never applied is not recorded. What follows is the intended state. Under the owner's single-host amendment, Access is to protect this hostname with email one-time PIN, admitting the owner's exact email and the testers the owner adds. The owner applies it in the dashboard; nothing in this repository applies it, and the experimental workflow refuses to deploy until anonymous requests go to its login. Applying it removes anonymous access: the existing public Composer becomes the invite-only beta, and this repository's anonymous checks of production (the build id, `/api/models`, the live-artifact scan, the production smoke) meet the Access login. The order of the cutover, the experimental deploy and the rollback to the block-free release candidate is in [blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md).
 
 **Cost protection (measured 2026-08-09).** The **enforced** cap is the
 `ds-ai-gateway` zone rate limit — a concurrent burst to `/api/propose` is
@@ -224,7 +224,7 @@ the custom domain's own Preview URLs off too.
 config, and `apps/composer/lib/experimental-deploy.test.mjs` holds the
 committed configs to it.
 
-**Who can reach it.** Cloudflare Access protects the whole hostname, the page,
+**Who can reach it.** (Intended state; as of 2026-11-25 Access does not cover the hostname: see "Cloudflare Access" above.) Cloudflare Access protects the whole hostname, the page,
 `/api/*` and the static assets alike, with email one-time PIN, admitting the
 owner's exact email and the testers the owner adds. The owner applies it in
 the dashboard; nothing in this repository applies it. The workflow's check
@@ -285,6 +285,29 @@ recorded, the owner can turn off automatic production-branch builds for the
 beta's duration (Workers & Pages → `dspack-studio-composer` → Settings →
 Build). Branch builds upload versions of the default artifact only, and with
 Preview URLs off they get no URL.
+
+**Non-production branch builds (owner decision 12, 2026-11-25).** Every push
+to a branch other than `main` makes Workers Builds build the default artifact
+and upload a version to the production Worker, `dspack-studio-composer`. The
+version is not deployed and, with `preview_urls` and `workers_dev` off in
+`wrangler.jsonc`, has no address; the build posts a "Workers Builds:
+dspack-studio-composer" check on the commit. Observed during M0: one upload per
+branch push, none deployed. The owner keeps this configuration for the
+current milestone; pushes are kept to those with something to verify.
+
+If it is to be turned off later, the place is the Worker's build settings
+(Workers & Pages → `dspack-studio-composer` → Settings → Build), where branch
+control sets the production branch and whether other branches build. Turning
+off non-production branch builds would:
+- leave production as it is: `main` still builds and deploys on merge, and the
+  manual `deploy-composer` workflow does not use Workers Builds at all;
+- leave required CI as it is: the `test` job is GitHub Actions (`ci.yml`), not
+  Workers Builds;
+- remove the "Workers Builds" check from pull-request commits, so first
+  confirm no branch-protection rule requires that check.
+The exact name of the control was not verified: Cloudflare's documentation was
+not reachable when this was written. Confirm it in the dashboard. No
+Cloudflare setting has been changed.
 
 **The switches.** All three live in the dashboard, as type Text, and both
 configs keep them (`keep_vars: true`), so no deploy resets them. A rollback

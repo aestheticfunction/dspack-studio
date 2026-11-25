@@ -1,0 +1,1215 @@
+<title>Composer Unified Workspace</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Oswald:wght@500;600&display=swap">
+<style>
+/* Layout: one working document. The canvas is the centre and always visible; conversation, structure,
+   history (left dock) and inspector (right dock) are panels around it; the journey outline sits above it.
+   Chrome keeps the Aesthetic Function identity (warm dark ground, one green, condensed wordmark);
+   the design-system surface inside the canvas is light in both themes, as in the product. */
+:root {
+  --bg: #f3f1ea; --bg-1: #ebe8de; --bg-2: #e1ddd1; --line: #cfc9b9; --fg: #1d1c17; --fg-body: #3d3a31; --fg-dim: #696455;
+  --accent: #55702c; --accent-strong: #435a20; --accent-soft: rgba(85,112,44,.13); --on-accent: #ffffff;
+  --warn: #8f5a10; --warn-soft: rgba(154,98,22,.12); --err: #a8231c; --err-soft: rgba(168,35,28,.09); --info: #1b6088; --info-soft: rgba(27,96,136,.10);
+  --canvas: #ffffff; --canvas-fg: #1a1c21; --canvas-dim: #5a606e; --canvas-line: #d6d9e0; --canvas-soft: #f3f5f8;
+  --ds: #1459c4; --ds-soft: #e4edfb; --ds-err: #b3261e; --ds-ok: #1e6b3a; --ds-warn: #8a5a00; --sel: #c2410c;
+  --display: "Oswald", "Arial Narrow", system-ui, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --lw: 256px; --rw: 288px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131310; --bg-1: #1a1a16; --bg-2: #22221c; --line: #33332a; --fg: #ece5d8; --fg-body: #cbc4b6; --fg-dim: #9a9485;
+  --accent: #9db868; --accent-strong: #b5cd82; --accent-soft: rgba(157,184,104,.15); --on-accent: #14170c;
+  --warn: #dba45f; --warn-soft: rgba(219,164,95,.13); --err: #f28b84; --err-soft: rgba(242,139,132,.12); --info: #86cdf2; --info-soft: rgba(134,205,242,.12);
+  --canvas: #fcfcfd; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #131310; --bg-1: #1a1a16; --bg-2: #22221c; --line: #33332a; --fg: #ece5d8; --fg-body: #cbc4b6; --fg-dim: #9a9485;
+  --accent: #9db868; --accent-strong: #b5cd82; --accent-soft: rgba(157,184,104,.15); --on-accent: #14170c;
+  --warn: #dba45f; --warn-soft: rgba(219,164,95,.13); --err: #f28b84; --err-soft: rgba(242,139,132,.12); --info: #86cdf2; --info-soft: rgba(134,205,242,.12);
+  --canvas: #fcfcfd; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px;
+  display: flex; flex-direction: column; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip { position: absolute; left: -999px; top: 4px; background: var(--accent); color: var(--on-accent); padding: 6px 10px; border-radius: 4px; z-index: 20; }
+.skip:focus { left: 16px; }
+
+/* Shell */
+.app { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-1); overflow: hidden; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.brand { font: 600 16px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.proj { border: 1px solid var(--line); background: var(--bg-1); border-radius: 4px; padding: 5px 8px; max-width: 100%; }
+.nav { display: flex; flex-wrap: wrap; gap: 2px; }
+.nav a { padding: 6px 10px; border-radius: 4px; color: var(--fg-body); text-decoration: none; font-weight: 500; }
+.nav a:hover { background: var(--bg-2); }
+.nav a[aria-current="page"] { color: var(--fg); background: var(--bg-2); box-shadow: inset 0 -2px 0 var(--accent); }
+.nav a.quiet { font-weight: 400; color: var(--fg-dim); }
+.topright { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--line); white-space: nowrap; background: transparent; }
+.pill.ok { color: var(--accent-strong); border-color: var(--accent); }
+.pill.warn { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+.pill.err { color: var(--err); border-color: var(--err); background: var(--err-soft); }
+.pill.info { color: var(--info); border-color: var(--info); background: var(--info-soft); }
+.tag { font-size: 11.5px; padding: 1px 6px; border-radius: 3px; border: 1px dashed var(--fg-dim); color: var(--fg-dim); white-space: nowrap; }
+.btn { border: 1px solid var(--line); background: var(--bg-1); border-radius: 4px; padding: 5px 10px; }
+.btn:hover:not(:disabled) { background: var(--bg-2); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btn.primary:hover:not(:disabled) { background: var(--accent-strong); }
+.btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.btn.small { padding: 3px 8px; font-size: 13px; }
+.main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.main:focus { outline: none; }
+.viewhead { padding: 10px 14px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.viewhead h1 { font: 600 18px/1.3 var(--sans); }
+.viewhead p { color: var(--fg-dim); }
+.page { padding: 12px 14px 20px; overflow: auto; min-height: 0; flex: 1; }
+
+/* Compose workspace */
+.ws { flex: 1; min-height: 0; display: grid; }
+.pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--bg-1); }
+.pane.side { background: var(--bg); }
+.panehead { display: flex; align-items: center; gap: 6px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); min-height: 40px; }
+.panehead h2 { font: 600 13px/1.2 var(--sans); margin-right: auto; }
+.panebody { flex: 1; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+.sep { width: 7px; cursor: col-resize; background: var(--line); background-clip: content-box; padding: 0 3px; }
+.sep:hover, .sep:focus-visible { background-color: var(--accent); }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+.tabs button { border: 0; background: transparent; padding: 5px 9px; border-radius: 4px; color: var(--fg-dim); font-weight: 500; }
+.tabs button[aria-selected="true"] { color: var(--fg); background: var(--bg-2); }
+.centre { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.outline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.steps { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.steps li { display: flex; align-items: center; gap: 4px; }
+.steps li + li::before { content: "›"; color: var(--fg-dim); }
+.steps button { border: 1px solid transparent; background: transparent; padding: 4px 9px; border-radius: 4px; color: var(--fg-body); }
+.steps button[aria-current="step"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.outline .panels { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px; }
+.map { border-bottom: 1px solid var(--line); background: var(--bg); padding: 10px 12px; overflow-x: auto; }
+.map ol { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; min-width: min-content; }
+.mapstep { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 220px; background: var(--bg-1); display: grid; gap: 6px; align-content: start; }
+.mapstep[data-cur] { border-color: var(--accent); }
+.mapstep h3 { font: 600 13px/1.3 var(--sans); }
+.mapstep ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 12.5px; color: var(--fg-body); }
+.mapnote { margin-top: 8px; font-size: 12.5px; color: var(--fg-dim); }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.bar .title { font-weight: 600; }
+.bar label { color: var(--fg-dim); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.bar select { border: 1px solid var(--line); background: var(--bg-1); border-radius: 4px; padding: 3px 6px; max-width: 220px; }
+.bar .grow { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px; }
+.stage { flex: 1; min-height: 0; overflow: auto; padding: 20px 16px 28px; background: var(--bg-2); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.modeband { align-self: stretch; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--fg-body); }
+.surface { width: 100%; max-width: 560px; }
+.notice { align-self: stretch; border: 1px solid var(--err); background: var(--err-soft); border-radius: 6px; padding: 10px 12px; display: grid; gap: 4px; }
+.notice.warn { border-color: var(--warn); background: var(--warn-soft); }
+.notice h3 { font: 600 14px/1.3 var(--sans); }
+.notice p { color: var(--fg-body); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12.5px; color: var(--fg-dim); align-items: center; }
+.mtabs { display: none; }
+
+/* Design-system surface (always light) */
+.surface { color: var(--canvas-fg); font: 14px/1.45 var(--sans); }
+.ds-card { background: var(--canvas); border: 1px solid var(--canvas-line); border-radius: 10px; padding: 20px; display: grid; gap: 14px; position: relative; }
+.ds-h { font: 600 20px/1.25 var(--sans); color: var(--canvas-fg); text-wrap: balance; }
+.ds-h:focus { outline: none; }
+.ds-p { color: var(--canvas-dim); }
+.ds-p.t-error { color: var(--ds-err); }
+.ds-badge { justify-self: start; font-size: 12.5px; font-weight: 500; padding: 2px 9px; border-radius: 99px; background: var(--canvas-soft); color: var(--canvas-dim); border: 1px solid var(--canvas-line); position: relative; }
+.ds-badge.t-ok { color: var(--ds-ok); border-color: var(--ds-ok); background: #eaf5ee; }
+.ds-badge.t-error { color: var(--ds-err); border-color: var(--ds-err); background: #fbeceb; }
+.ds-badge.t-warn { color: var(--ds-warn); border-color: var(--ds-warn); background: #fbf3df; }
+.ds-badge.t-info { color: var(--ds); border-color: var(--ds); background: var(--ds-soft); }
+.ds-field { display: grid; gap: 4px; position: relative; }
+.ds-field label { font-size: 13px; font-weight: 500; color: var(--canvas-fg); }
+.ds-input { height: 36px; border: 1px solid #aab0bd; border-radius: 6px; padding: 0 10px; background: var(--canvas); color: var(--canvas-fg); width: 100%; }
+.ds-input:focus-visible { outline: 2px solid var(--ds); outline-offset: 1px; }
+.ds-input[readonly] { background: var(--canvas-soft); }
+.ds-btn { min-height: 36px; border-radius: 6px; padding: 6px 14px; border: 1px solid #aab0bd; background: var(--canvas); color: var(--canvas-fg); font-weight: 500; position: relative; justify-self: start; }
+.ds-btn.v-primary { background: var(--ds); border-color: var(--ds); color: #fff; }
+.ds-btn.v-ghost { border-color: transparent; color: var(--ds); padding-inline: 4px; }
+.ds-btn:focus-visible { outline: 2px solid var(--ds); outline-offset: 2px; }
+.ds-list { display: grid; gap: 10px; position: relative; }
+.ds-option { border: 1px solid var(--canvas-line); border-radius: 8px; padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; position: relative; }
+.ds-option-main { display: grid; gap: 2px; flex: 1 1 200px; min-width: 0; }
+.ds-option-main .d { color: var(--canvas-dim); font-size: 13px; }
+.ds-option-main .m { font-size: 13px; font-variant-numeric: tabular-nums; }
+.ds-meta { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; position: relative; }
+.ds-meta dt { color: var(--canvas-dim); }
+.ds-meta dd { margin: 0; font-variant-numeric: tabular-nums; }
+.ds-alert { border: 1px solid #aab0bd; border-radius: 10px; padding: 16px; display: grid; gap: 8px; background: var(--canvas); box-shadow: 0 6px 18px rgba(20,24,34,.10); position: relative; }
+.ds-alert-t { font-size: 16px; }
+.ds-alert-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.selable { cursor: pointer; }
+.selable:hover { outline: 1px dashed var(--sel); outline-offset: 2px; }
+.selable[data-selected] { outline: 2px solid var(--sel); outline-offset: 2px; }
+.selable[data-changed] { box-shadow: 0 0 0 3px #fde8c8; }
+.wire { position: absolute; top: -9px; right: 6px; font: 500 10.5px/1 var(--mono); padding: 2px 5px; border-radius: 3px; background: #fff; border: 1px solid; z-index: 1; pointer-events: none; }
+.wire.w-param { color: #7a3aa8; } .wire.w-data { color: #0a6c74; } .wire.w-typed { color: #8a5a00; }
+.dimmed { opacity: .55; }
+
+/* Side panel content */
+.chat { display: grid; gap: 10px; }
+.msg { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg-1); display: grid; gap: 4px; }
+.msg.you { background: var(--accent-soft); border-color: transparent; }
+.msg.refused { border-color: var(--err); background: var(--err-soft); }
+.msg .who { font-size: 12px; color: var(--fg-dim); display: flex; gap: 6px; align-items: center; }
+.suggest { display: grid; gap: 6px; }
+.suggest button { text-align: left; }
+.chatform { display: flex; gap: 6px; }
+.chatform input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--bg-1); border-radius: 4px; padding: 6px 8px; }
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree ul { padding-left: 14px; border-left: 1px solid var(--line); margin-left: 8px; }
+.tree [role="treeitem"] { display: flex; align-items: baseline; gap: 6px; padding: 3px 6px; border-radius: 4px; cursor: pointer; }
+.tree [role="treeitem"]:hover { background: var(--bg-2); }
+.tree [role="treeitem"][aria-selected="true"] { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.tree .k { font-weight: 500; white-space: nowrap; }
+.tree .s { color: var(--fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hist li { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; display: grid; gap: 4px; background: var(--bg-1); }
+.hist li[data-cur] { border-color: var(--accent); }
+.hist .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hist .row .lab { font-weight: 500; margin-right: auto; min-width: 0; }
+.sect { display: grid; gap: 6px; }
+.sect > h3 { font: 600 13px/1.3 var(--sans); color: var(--fg); }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; }
+.kv dt { color: var(--fg-dim); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+.field { display: grid; gap: 3px; }
+.field label { font-size: 13px; color: var(--fg-dim); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.field .rowi { display: flex; gap: 6px; }
+.field input, .field select { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--bg-1); border-radius: 4px; padding: 5px 8px; }
+.field .errtxt { color: var(--err); font-size: 13px; }
+.src { font-size: 11.5px; padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line); }
+.crumbs { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; font-size: 13px; }
+.crumbs button { border: 0; background: transparent; padding: 2px 4px; border-radius: 3px; color: var(--fg-dim); }
+.crumbs button:hover { background: var(--bg-2); color: var(--fg); }
+.crumbs span { color: var(--fg-dim); }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.rules li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 4px; }
+.rules .y { color: var(--accent-strong); } .rules .n { color: var(--err); font-weight: 600; }
+details > summary { cursor: pointer; color: var(--fg-dim); }
+details[open] > summary { color: var(--fg); }
+pre { margin: 0; font: 12px/1.5 var(--mono); background: var(--bg-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; white-space: pre; }
+.muted { color: var(--fg-dim); }
+
+/* Compare */
+.cmp { align-self: stretch; display: grid; gap: 12px; }
+.cmpcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.cmpcols h3 { font: 600 13px/1.3 var(--sans); margin-bottom: 6px; color: var(--fg); }
+.changes { margin: 0; padding-left: 18px; color: var(--fg-body); }
+
+/* Playground */
+.pg { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); }
+.pg .side { border-left: 1px solid var(--line); }
+.simband { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 12px; background: var(--info-soft); color: var(--info); border-bottom: 1px solid var(--line); font-weight: 500; }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.timeline li { display: grid; grid-template-columns: 44px 58px minmax(0, 1fr); gap: 6px; align-items: baseline; padding: 4px 6px; border-radius: 4px; }
+.timeline li.refused { background: var(--err-soft); }
+.timeline .t { font: 12px var(--mono); color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+.timeline .w { font-size: 12px; color: var(--fg-dim); }
+.timeline .w.user { color: var(--accent-strong); } .timeline .w.rule { color: var(--err); } .timeline .w.tool { color: var(--info); }
+.tools { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--bg); align-items: center; }
+.tools .grp { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tools .grp > span { color: var(--fg-dim); font-size: 13px; }
+
+/* Cards, tables for the other views */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--bg); display: grid; gap: 6px; align-content: start; }
+.card h3 { font: 600 15px/1.3 var(--sans); }
+.card .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--fg-dim); background: var(--bg); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.stack { display: grid; gap: 14px; max-width: 1040px; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.callout { border: 1px dashed var(--fg-dim); border-radius: 6px; padding: 8px 10px; color: var(--fg-body); }
+.search { border: 1px solid var(--line); background: var(--bg-1); border-radius: 4px; padding: 6px 10px; width: min(360px, 100%); }
+.steplist { counter-reset: s; display: grid; gap: 14px; list-style: none; margin: 0; padding: 0; }
+.steplist > li { counter-increment: s; display: grid; gap: 8px; }
+.steplist > li > h3 { font: 600 15px/1.3 var(--sans); }
+.steplist > li > h3::before { content: counter(s) ". "; color: var(--fg-dim); }
+
+dialog { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); padding: 0; width: min(680px, calc(100% - 32px)); max-height: calc(100% - 32px); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+.dlg { padding: 16px 18px; display: grid; gap: 12px; }
+.dlg h2 { font: 600 17px/1.3 var(--sans); }
+.dlg h3 { font: 600 14px/1.3 var(--sans); }
+.dlg ul { margin: 4px 0 0; padding-left: 18px; color: var(--fg-body); }
+
+@media (max-width: 899px) {
+  html, body { height: auto; }
+  .app { overflow: visible; }
+  .ws { display: block; }
+  .sep { display: none; }
+  .stage { overflow: visible; }
+  .pane { border-top: 1px solid var(--line); }
+  .panebody { overflow: visible; }
+  .outline .panels { display: none; }
+  .top { gap: 6px 10px; }
+  .proj { flex: 1 1 150px; min-width: 0; }
+  .nav { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
+  .nav a { white-space: nowrap; }
+  .modeband > span:nth-child(2) { order: 3; flex-basis: 100%; }
+  .stage { padding: 12px 12px 20px; }
+  .timeline li { grid-template-columns: 40px 52px minmax(0, 1fr); }
+  .mtabs { display: flex; padding: 6px 10px; border-top: 1px solid var(--line); background: var(--bg); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; }
+  .cmpcols, .two { grid-template-columns: minmax(0, 1fr); }
+  .pg { display: block; }
+  .pg .side { border-left: 0; border-top: 1px solid var(--line); }
+  .page { overflow: visible; }
+  .topright { margin-left: 0; }
+}
+@media (prefers-reduced-motion: no-preference) { .btn, .nav a, .steps button { transition: background-color .12s; } }
+</style>
+
+<a class="skip" href="#main">Skip to the workspace</a>
+<div class="app">
+  <header class="top">
+    <span class="brand">Composer</span>
+    <label class="sr" for="proj">Project</label>
+    <select class="proj" id="proj"></select>
+    <nav class="nav" aria-label="Main" id="nav"></nav>
+    <div class="topright">
+      <span id="health"></span>
+      <button class="btn small" id="aboutbtn" type="button">About this prototype</button>
+    </div>
+  </header>
+  <main class="main" id="main" tabindex="-1"></main>
+</div>
+<div class="sr" aria-live="polite" id="live"></div>
+<dialog id="about" aria-labelledby="about-h"><div class="dlg">
+  <h2 id="about-h">About this prototype</h2>
+  <p>A design exploration of one unified, canvas-first workspace. It is a single page with no production code, no model and no network calls.</p>
+  <div><h3>Functioning</h3><ul>
+    <li>Panel layout: collapse, resize by pointer or keyboard, one side panel at a time below 1440 px, canvas first on a phone.</li>
+    <li>One selection shared by canvas, structure tree and inspector.</li>
+    <li>Edits to text and parameters, with undo, redo, history and a comparison of any two versions.</li>
+    <li>Scenario switching: a small expander on this page rebuilds the surface from data and picks the state.</li>
+    <li>Rule checks computed on this page. An edit or a data set that breaks a rule is refused and the last valid surface stays.</li>
+    <li>Playground: every change is a new surface; entered values and focus are carried across; stale and repeated consequential actions are refused.</li>
+    <li>Publish checks and the Agent view's instantiate step, both computed by the same expander.</li>
+  </ul></div>
+  <div><h3>Simulated</h3><ul>
+    <li>The agent and its tools in the Playground. Responses are fixed per scenario, as they will be in the product's Playground.</li>
+  </ul></div>
+  <div><h3>Staged</h3><ul>
+    <li>The conversation. Suggested refinements apply prepared edits; nothing is generated.</li>
+    <li>The plan, the package download, the MCP configuration and the verification levels.</li>
+    <li>Tool names and message shapes. They follow the proposal and A2UI 0.9.1 in outline only.</li>
+    <li>Library and Design system are thin stubs that show what lives there.</li>
+  </ul></div>
+  <p class="muted">The expander and rules here were written for this page and are modelled on the Astryx sample. They prove nothing about dspack-gen, dspack-emit or any renderer.</p>
+  <div><button class="btn primary" id="aboutclose" type="button">Close</button></div>
+</div></dialog>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- tiny DOM helper ---------- */
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'fk') n.dataset.fk = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v === true) n.setAttribute(k, '');
+    else n.setAttribute(k, v);
+  }
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false) continue;
+    n.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return n;
+}
+const say = msg => { const r = document.getElementById('live'); r.textContent = ''; setTimeout(() => { r.textContent = msg; }, 40); };
+const get = (o, p) => p === '' ? o : p.split('.').reduce((a, k) => a == null ? undefined : a[k], o);
+const clone = o => JSON.parse(JSON.stringify(o));
+const money = n => '$' + n;
+
+/* ---------- design system (modelled on the Astryx sample) ---------- */
+const PLAIN = { card: 'Card', text: 'Text', 'text-input': 'Text field', button: 'Button', list: 'List', 'selectable-card': 'Option', badge: 'Badge', 'metadata-list': 'Details list', 'alert-dialog': 'Confirmation' };
+const A2UI = { card: 'Card', text: 'Text', 'text-input': 'TextField', button: 'Button', list: 'List', 'selectable-card': 'SelectableCard', badge: 'Badge', 'metadata-list': 'MetadataList', 'alert-dialog': 'AlertDialog' };
+const COMPONENTS = ['alert-dialog', 'dialog', 'button', 'badge', 'card', 'text-input', 'dropdown-menu', 'table', 'text', 'list', 'selectable-card', 'metadata-list'];
+const PURPOSES = {
+  'data-collection': { label: 'Collect information' },
+  'transactional-review': { label: 'Review and choose' },
+  'destructive-action': { label: 'Confirm a high-consequence action' },
+  'status': { label: 'Report status', project: true }
+};
+const walk = (nodes, fn) => nodes.forEach(n => { fn(n); walk(n.kids, fn); });
+const all = (tree, c) => { const out = []; walk(tree, n => { if (n.c === c) out.push(n); }); return out; };
+const GENERIC = ['ok', 'okay', 'yes', 'confirm', 'submit', 'continue', 'done', 'go'];
+const RULES = [
+  { id: 'rule.data-collection-requires-input-and-action', purpose: 'data-collection', touches: ['text-input', 'button'], title: 'A form has a field and a way to submit it',
+    why: 'A surface that asks for information needs at least one field and one button.',
+    test: t => (all(t, 'text-input').length && all(t, 'button').length) ? true : 'No field, or no button, was found.' },
+  { id: 'rule.input-carries-label', purpose: '*', touches: ['text-input'], title: 'Every field has a visible label',
+    why: 'A person must be able to tell what a field is for.',
+    test: t => all(t, 'text-input').every(n => (n.props.label || '').trim()) ? true : 'A field has no label.' },
+  { id: 'rule.button-carries-label', purpose: '*', touches: ['button'], title: 'Every button says what it does',
+    why: 'A button with no label cannot be announced or understood.',
+    test: t => all(t, 'button').every(n => (n.props.label || '').trim()) ? true : 'A button has no label.' },
+  { id: 'rule.review-presents-options', purpose: 'transactional-review', touches: ['list', 'selectable-card', 'button'], title: 'A review shows its options as a list with an action',
+    why: 'Options to compare belong in a list of selectable cards, each with a way to choose it.',
+    test: t => (all(t, 'list').length && all(t, 'selectable-card').length && all(t, 'button').length) ? true : 'The list, the options or the action is missing.' },
+  { id: 'rule.review-offers-alternatives', purpose: 'transactional-review', touches: ['list', 'selectable-card'], title: 'A review offers at least two alternatives',
+    why: 'A choice of one is not a comparison. With a single option, use a different surface.',
+    test: t => { const n = all(t, 'selectable-card').length; return n >= 2 ? true : 'Found ' + n + (n === 1 ? ' option' : ' options') + '. At least 2 are required.'; } },
+  { id: 'rule.option-carries-label', purpose: 'transactional-review', touches: ['selectable-card'], title: 'Every option is named',
+    why: 'The label is how an option is identified, compared and announced.',
+    test: t => all(t, 'selectable-card').every(n => (n.props.label || '').trim()) ? true : 'An option has no name.' },
+  { id: 'rule.destructive-requires-alertdialog', purpose: 'destructive-action', touches: ['alert-dialog'], title: 'A high-consequence action is confirmed in an alert dialog',
+    why: 'Something that cannot be undone needs an explicit, interrupting confirmation.',
+    test: t => all(t, 'alert-dialog').length ? true : 'No confirmation was found.' },
+  { id: 'rule.alertdialog-carries-content', purpose: 'destructive-action', touches: ['alert-dialog'], title: 'The confirmation says what will happen',
+    why: 'A title and a description are required so the consequence is stated before it happens.',
+    test: t => all(t, 'alert-dialog').every(n => (n.props.title || '').trim() && (n.props.description || '').trim()) ? true : 'The confirmation is missing its title or description.' },
+  { id: 'rule.alertdialog-action-label-specific', purpose: 'destructive-action', touches: ['button', 'alert-dialog'], title: 'The confirming button names the action',
+    why: '"Confirm booking" tells a person what they are agreeing to. "OK" does not.',
+    test: t => { let bad = null; walk(t, n => { if (n.c === 'button' && n.role === 'confirm' && GENERIC.includes((n.props.label || '').trim().toLowerCase())) bad = n.props.label; });
+      return bad ? 'The label "' + bad + '" does not say what will happen.' : true; } },
+  { id: 'project.status-offers-next-step', purpose: 'status', touches: ['button', 'badge'], title: 'A status that reports a problem offers a next step', project: true,
+    why: 'When something went wrong, a person needs a way forward on the same surface.',
+    test: t => { let problem = false; walk(t, n => { if (n.tone === 'error' || n.tone === 'warn') problem = true; }); return (!problem || all(t, 'button').length) ? true : 'A problem is reported with no action offered.'; } }
+];
+const rulesFor = purpose => RULES.filter(r => r.purpose === '*' || r.purpose === purpose);
+
+/* ---------- sample data ---------- */
+const HOTELS = [
+  { id: 'h-204', name: 'Marlowe House', facts: 'River North · rated 4.6 · breakfast included', price: 206 },
+  { id: 'h-118', name: 'Loop Central Hotel', facts: 'The Loop · rated 4.2 · free cancellation', price: 164 },
+  { id: 'h-377', name: 'Lakeshore Inn', facts: 'Streeterville · rated 4.4 · lake view', price: 189 }
+];
+const withPrice = hs => hs.map(h => ({ ...h, priceText: money(h.price) + ' a night' }));
+const resultsData = (hs, dest) => ({ status: 'ready', destination: dest || 'Chicago', hotels: withPrice(hs),
+  summary: hs.length + (hs.length === 1 ? ' hotel' : ' hotels') + ' in ' + (dest || 'Chicago') + ', 1 to 3 December' });
+const reviewData = (h, total, stay, note) => ({ hotel: { id: h.id, name: h.name }, total,
+  confirmTitle: 'Book ' + h.name + ' for ' + money(total) + '?',
+  facts: [{ label: 'Hotel', value: h.name }, { label: 'Stay', value: stay || '1 to 3 December, 2 nights, 2 guests' }, { label: 'Total', value: money(total) }],
+  priceNote: note || null });
+const SEARCH_FILLED = { destination: 'Chicago', checkIn: '2026-12-01', checkOut: '2026-12-03', guests: '2' };
+
+/* ---------- compositions: closed templates with parameters, data and typed input ---------- */
+const errLine = (id, path) => ({ $if: path, then: { c: 'text', id, tone: 'error', text: { $data: path } } });
+const COMPS = {
+  'hotel-search': { id: 'hotel-search', name: 'Hotel search', project: 'hotel', version: 2, status: 'Approved',
+    summary: 'Collects where, when and how many before a search.',
+    useWhen: 'Search criteria are needed before options can be shown.', avoidWhen: 'The options are already known.',
+    note: 'Dates are plain text fields. This design system has no date input yet.',
+    params: { title: { label: 'Title', value: 'Find a hotel' }, submitLabel: { label: 'Search button label', value: 'Search hotels' } },
+    data: [{ name: 'errors', type: 'object, optional', note: 'Messages per field, sent by the agent when a search is refused' }],
+    actions: [{ name: 'search_hotels', kind: 'Query', sends: ['destination', 'checkIn', 'checkOut', 'guests'] }],
+    states: [
+      { id: 'invalid', purpose: 'data-collection', whenText: 'the agent sent field messages', when: d => !!d.errors },
+      { id: 'idle', purpose: 'data-collection', whenText: 'otherwise', when: () => true }],
+    template: [{ c: 'card', id: 'search', kids: [
+      { c: 'text', id: 'search-title', role: 'heading', text: { $param: 'title' } },
+      { c: 'text-input', id: 'search-destination', input: 'destination', props: { label: 'Destination', hint: 'City or area' } }, errLine('search-destination-error', 'errors.destination'),
+      { c: 'text-input', id: 'search-checkin', input: 'checkIn', props: { label: 'Check-in', hint: 'YYYY-MM-DD' } }, errLine('search-checkin-error', 'errors.checkIn'),
+      { c: 'text-input', id: 'search-checkout', input: 'checkOut', props: { label: 'Check-out', hint: 'YYYY-MM-DD' } }, errLine('search-checkout-error', 'errors.checkOut'),
+      { c: 'text-input', id: 'search-guests', input: 'guests', props: { label: 'Guests', hint: '1 to 8' } }, errLine('search-guests-error', 'errors.guests'),
+      { c: 'button', id: 'search-submit', props: { label: { $param: 'submitLabel' }, variant: 'primary' }, action: 'search_hotels',
+        payload: { destination: { $input: 'destination' }, checkIn: { $input: 'checkIn' }, checkOut: { $input: 'checkOut' }, guests: { $input: 'guests' } } }
+    ] }],
+    scenarios: [
+      { id: 'filled', name: 'Chicago, two nights', data: {}, inputs: SEARCH_FILLED },
+      { id: 'empty', name: 'Empty form', data: {}, inputs: {} },
+      { id: 'invalid', name: 'Check-out before check-in', data: { errors: { checkOut: 'Check-out must be after check-in.' } }, inputs: { ...SEARCH_FILLED, checkOut: '2026-11-30' } }],
+    suggest: [
+      { say: 'Make the title friendlier', label: 'Title: "Where are you going?"', edit: s => { s.params.title = 'Where are you going?'; } },
+      { say: 'Shorten the button to "Search"', label: 'Button: "Search"', edit: s => { s.params.submitLabel = 'Search'; } }]
+  },
+  'hotel-results': { id: 'hotel-results', name: 'Hotel results', project: 'hotel', version: 1, status: 'Approved',
+    summary: 'Options returned by a search, compared on stated attributes, one chosen.',
+    useWhen: 'A search returned two or more comparable options.', avoidWhen: 'There is exactly one option; the design system does not treat that as a choice.',
+    params: { title: { label: 'Title', value: 'Choose a hotel' }, chooseLabel: { label: 'Choose button label', value: 'Choose' } },
+    data: [{ name: 'status', type: 'loading, error or ready' }, { name: 'destination', type: 'text' }, { name: 'summary', type: 'text' },
+      { name: 'hotels', type: 'list of 0 to 20', note: 'Each has id, name, facts, priceText' }],
+    actions: [{ name: 'choose_hotel', kind: 'Navigate', sends: ['hotelId'], perItem: true }, { name: 'change_search', kind: 'Navigate', sends: [] }, { name: 'retry_search', kind: 'Query', sends: [] }],
+    states: [
+      { id: 'loading', purpose: 'status', whenText: 'status is loading', when: d => d.status === 'loading', template: [{ c: 'card', id: 'results', kids: [
+        { c: 'text', id: 'results-title', role: 'heading', text: 'Searching hotels' },
+        { c: 'badge', id: 'results-badge', tone: 'info', text: 'In progress' },
+        { c: 'text', id: 'results-note', text: { $data: 'loadingNote' } }] }] },
+      { id: 'error', purpose: 'status', whenText: 'status is error', when: d => d.status === 'error', template: [{ c: 'card', id: 'results', kids: [
+        { c: 'text', id: 'results-title', role: 'heading', text: 'We could not search just now' },
+        { c: 'badge', id: 'results-badge', tone: 'error', text: 'Search failed' },
+        { c: 'text', id: 'results-note', text: 'Nothing was booked. Try again, or change your search.' },
+        { c: 'button', id: 'results-retry', props: { label: 'Try again', variant: 'primary' }, action: 'retry_search' },
+        { c: 'button', id: 'results-back', props: { label: 'Change search', variant: 'ghost' }, action: 'change_search' }] }] },
+      { id: 'empty', purpose: 'status', whenText: 'hotels is empty', when: d => (d.hotels || []).length === 0, template: [{ c: 'card', id: 'results', kids: [
+        { c: 'text', id: 'results-title', role: 'heading', text: 'No hotels match those dates' },
+        { c: 'text', id: 'results-note', text: 'Try different dates or a nearby area.' },
+        { c: 'button', id: 'results-back', props: { label: 'Change search', variant: 'primary' }, action: 'change_search' }] }] },
+      { id: 'ready', purpose: 'transactional-review', whenText: 'hotels has one or more items', when: d => (d.hotels || []).length >= 1, template: [{ c: 'card', id: 'results', kids: [
+        { c: 'text', id: 'results-title', role: 'heading', text: { $param: 'title' } },
+        { c: 'text', id: 'results-summary', text: { $data: 'summary' } },
+        { c: 'list', id: 'results-list', kids: [{ $each: 'hotels', as: 'h', kids: [
+          { c: 'selectable-card', id: 'results-option', props: { label: { $data: 'h.name' }, description: { $data: 'h.facts' }, meta: { $data: 'h.priceText' } }, kids: [
+            { c: 'button', id: 'results-choose', props: { label: { $param: 'chooseLabel' }, variant: 'secondary' }, action: 'choose_hotel', payload: { hotelId: { $data: 'h.id' } } }] }] }] },
+        { c: 'button', id: 'results-back', props: { label: 'Change search', variant: 'ghost' }, action: 'change_search' }] }] }],
+    scenarios: [
+      { id: 'three', name: 'Three hotels', data: resultsData(HOTELS) },
+      { id: 'two', name: 'Two hotels', data: resultsData(HOTELS.slice(0, 2)) },
+      { id: 'one', name: 'One hotel (the rules refuse it)', data: resultsData(HOTELS.slice(0, 1)), expect: 'refused' },
+      { id: 'none', name: 'No availability', data: resultsData([]) },
+      { id: 'loading', name: 'Search in progress', data: { status: 'loading', loadingNote: 'Looking in Chicago for 1 to 3 December.' } },
+      { id: 'error', name: 'Search failed', data: { status: 'error' } }],
+    suggest: [
+      { say: 'Ask a question in the title', label: 'Title: "Which hotel suits you?"', edit: s => { s.params.title = 'Which hotel suits you?'; } },
+      { say: 'Use "Select" on the buttons', label: 'Buttons: "Select"', edit: s => { s.params.chooseLabel = 'Select'; } }]
+  },
+  'booking-confirm': { id: 'booking-confirm', name: 'Booking review', project: 'hotel', version: 1, status: 'Approved',
+    summary: 'States what will be booked and charged, and asks for explicit confirmation.',
+    useWhen: 'A booking is about to be made and paid for.', avoidWhen: 'Nothing is charged or changed by continuing.',
+    params: { actionLabel: { label: 'Confirm button label', value: 'Confirm booking' }, cancelLabel: { label: 'Cancel button label', value: 'Back to results' } },
+    data: [{ name: 'hotel', type: 'id and name' }, { name: 'total', type: 'whole number' }, { name: 'facts', type: 'list of label and value' }, { name: 'confirmTitle', type: 'text' }, { name: 'priceNote', type: 'text, optional' }],
+    actions: [{ name: 'confirm_booking', kind: 'Change', sends: ['hotelId', 'total'], consequential: true }, { name: 'back_to_results', kind: 'Navigate', sends: [] }],
+    states: [{ id: 'ready', purpose: 'destructive-action', whenText: 'always', when: () => true }],
+    template: [{ c: 'card', id: 'review', kids: [
+      { c: 'text', id: 'review-title', role: 'heading', text: 'Review your booking' },
+      { $if: 'priceNote', then: { c: 'badge', id: 'review-price-badge', tone: 'warn', text: 'Price updated' } },
+      { $if: 'priceNote', then: { c: 'text', id: 'review-price-note', text: { $data: 'priceNote' } } },
+      { c: 'metadata-list', id: 'review-facts', props: { items: { $data: 'facts' } } },
+      { c: 'alert-dialog', id: 'review-confirm', props: { title: { $data: 'confirmTitle' }, description: 'Your card is charged now. You can cancel free of charge until 29 November.' }, kids: [
+        { c: 'button', id: 'review-cancel', props: { label: { $param: 'cancelLabel' }, variant: 'secondary' }, action: 'back_to_results' },
+        { c: 'button', id: 'review-submit', role: 'confirm', props: { label: { $param: 'actionLabel' }, variant: 'primary' }, action: 'confirm_booking',
+          payload: { hotelId: { $data: 'hotel.id' }, total: { $data: 'total' } } }] }] }],
+    scenarios: [
+      { id: 'std', name: 'Marlowe House, two nights', data: reviewData(HOTELS[0], 412) },
+      { id: 'price', name: 'Price changed while reviewing', data: reviewData(HOTELS[0], 438, null, 'The price changed from $412 to $438 while you were reviewing.') }],
+    suggest: [
+      { say: 'Shorten the confirm button to "OK"', label: 'Confirm button: "OK"', edit: s => { s.params.actionLabel = 'OK'; } },
+      { say: 'Say "Book and pay" on the confirm button', label: 'Confirm button: "Book and pay"', edit: s => { s.params.actionLabel = 'Book and pay'; } }]
+  },
+  'booking-result': { id: 'booking-result', name: 'Booking result', project: 'hotel', version: 1, status: 'Draft',
+    summary: 'Reports whether the booking was made and what to do next.',
+    useWhen: 'A booking attempt has finished.', avoidWhen: 'The outcome is not yet known.',
+    params: {}, data: [{ name: 'status', type: 'booked or failed' }, { name: 'facts', type: 'list of label and value' }],
+    actions: [{ name: 'new_search', kind: 'Navigate', sends: [] }, { name: 'back_to_review', kind: 'Navigate', sends: [] }],
+    states: [
+      { id: 'failed', purpose: 'status', whenText: 'status is failed', when: d => d.status === 'failed', template: [{ c: 'card', id: 'result', kids: [
+        { c: 'text', id: 'result-title', role: 'heading', text: 'The booking did not go through' },
+        { c: 'badge', id: 'result-badge', tone: 'error', text: 'Not booked' },
+        { c: 'text', id: 'result-note', text: 'You have not been charged.' },
+        { c: 'button', id: 'result-back', props: { label: 'Back to review', variant: 'primary' }, action: 'back_to_review' }] }] },
+      { id: 'booked', purpose: 'status', whenText: 'status is booked', when: d => d.status === 'booked', template: [{ c: 'card', id: 'result', kids: [
+        { c: 'text', id: 'result-title', role: 'heading', text: 'You are booked' },
+        { c: 'badge', id: 'result-badge', tone: 'ok', text: 'Confirmed' },
+        { c: 'metadata-list', id: 'result-facts', props: { items: { $data: 'facts' } } },
+        { c: 'button', id: 'result-again', props: { label: 'Search again', variant: 'secondary' }, action: 'new_search' }] }] }],
+    scenarios: [
+      { id: 'booked', name: 'Booked', data: { status: 'booked', facts: [{ label: 'Confirmation', value: 'MH-58213' }, { label: 'Hotel', value: 'Marlowe House' }, { label: 'Charged', value: '$412' }] } },
+      { id: 'failed', name: 'Booking failed', data: { status: 'failed' } }],
+    suggest: []
+  },
+  'estimate-summary': { id: 'estimate-summary', name: 'Estimate summary', project: 'estimate', version: 1, status: 'Approved',
+    summary: 'Shows an accepted estimate and whether it can become a project.',
+    useWhen: 'A person is deciding whether to convert an estimate.', avoidWhen: 'The estimate is still being edited.',
+    params: { convertLabel: { label: 'Convert button label', value: 'Convert to project' } },
+    data: [{ name: 'status', type: 'convertible or blocked' }, { name: 'title', type: 'text' }, { name: 'facts', type: 'list of label and value' }, { name: 'reason', type: 'text, when blocked' }],
+    actions: [{ name: 'request_conversion', kind: 'Navigate', sends: [] }, { name: 'close_estimate', kind: 'Navigate', sends: [] }],
+    states: [
+      { id: 'blocked', purpose: 'status', whenText: 'status is blocked', when: d => d.status === 'blocked', template: [{ c: 'card', id: 'estimate', kids: [
+        { c: 'text', id: 'estimate-title', role: 'heading', text: { $data: 'title' } },
+        { c: 'badge', id: 'estimate-badge', tone: 'warn', text: 'Cannot be converted yet' },
+        { c: 'text', id: 'estimate-reason', text: { $data: 'reason' } },
+        { c: 'metadata-list', id: 'estimate-facts', props: { items: { $data: 'facts' } } },
+        { c: 'button', id: 'estimate-close', props: { label: 'Back to estimates', variant: 'secondary' }, action: 'close_estimate' }] }] },
+      { id: 'convertible', purpose: 'status', whenText: 'status is convertible', when: d => d.status === 'convertible', template: [{ c: 'card', id: 'estimate', kids: [
+        { c: 'text', id: 'estimate-title', role: 'heading', text: { $data: 'title' } },
+        { c: 'badge', id: 'estimate-badge', tone: 'ok', text: 'Accepted by the customer' },
+        { c: 'metadata-list', id: 'estimate-facts', props: { items: { $data: 'facts' } } },
+        { c: 'button', id: 'estimate-convert', props: { label: { $param: 'convertLabel' }, variant: 'primary' }, action: 'request_conversion' }] }] }],
+    scenarios: [
+      { id: 'ok', name: 'Accepted estimate', data: { status: 'convertible', title: 'Estimate E-1042', facts: [{ label: 'Customer', value: 'Northwind Fabrication' }, { label: 'Total', value: '$18,400' }, { label: 'Valid until', value: '15 December' }] } },
+      { id: 'blocked', name: 'Not convertible', data: { status: 'blocked', title: 'Estimate E-1042', reason: 'Two line items have no cost code. Add them before converting.', facts: [{ label: 'Customer', value: 'Northwind Fabrication' }, { label: 'Total', value: '$18,400' }] } }],
+    suggest: []
+  },
+  'conversion-confirm': { id: 'conversion-confirm', name: 'Conversion confirmation', project: 'estimate', version: 1, status: 'Approved',
+    summary: 'Asks for explicit confirmation before an estimate becomes a project.',
+    useWhen: 'A change that cannot be repeated or undone is about to be made.', avoidWhen: 'The change can be undone.',
+    params: { actionLabel: { label: 'Confirm button label', value: 'Convert to project' } },
+    data: [{ name: 'estimateId', type: 'text' }, { name: 'confirmTitle', type: 'text' }],
+    actions: [{ name: 'convert_estimate', kind: 'Change', sends: ['estimateId'], consequential: true }, { name: 'cancel_conversion', kind: 'Navigate', sends: [] }],
+    states: [{ id: 'ready', purpose: 'destructive-action', whenText: 'always', when: () => true }],
+    template: [{ c: 'alert-dialog', id: 'convert-confirm', props: { title: { $data: 'confirmTitle' }, description: 'This creates the project and its work orders. It cannot be undone or repeated.' }, kids: [
+      { c: 'button', id: 'convert-cancel', props: { label: 'Cancel', variant: 'secondary' }, action: 'cancel_conversion' },
+      { c: 'button', id: 'convert-submit', role: 'confirm', props: { label: { $param: 'actionLabel' }, variant: 'primary' }, action: 'convert_estimate', payload: { estimateId: { $data: 'estimateId' } } }] }],
+    scenarios: [{ id: 'std', name: 'Estimate E-1042', data: { estimateId: 'E-1042', confirmTitle: 'Convert estimate E-1042 to a project?' } }],
+    suggest: [{ say: 'Shorten the confirm button to "Yes"', label: 'Confirm button: "Yes"', edit: s => { s.params.actionLabel = 'Yes'; } }]
+  },
+  'conversion-result': { id: 'conversion-result', name: 'Conversion result', project: 'estimate', version: 1, status: 'Draft',
+    summary: 'Reports the outcome of a conversion, including when the outcome is not known.',
+    useWhen: 'A conversion was attempted.', avoidWhen: 'Nothing was attempted.',
+    params: {}, data: [{ name: 'status', type: 'created or unknown' }, { name: 'facts', type: 'list of label and value' }],
+    actions: [{ name: 'check_conversion', kind: 'Query', sends: [] }, { name: 'close_estimate', kind: 'Navigate', sends: [] }],
+    states: [
+      { id: 'unknown', purpose: 'status', whenText: 'status is unknown', when: d => d.status === 'unknown', template: [{ c: 'card', id: 'converted', kids: [
+        { c: 'text', id: 'converted-title', role: 'heading', text: 'We do not know whether the project was created' },
+        { c: 'badge', id: 'converted-badge', tone: 'warn', text: 'Result unknown' },
+        { c: 'text', id: 'converted-note', text: 'The request timed out. Do not convert again until the status is known.' },
+        { c: 'button', id: 'converted-check', props: { label: 'Check status', variant: 'primary' }, action: 'check_conversion' }] }] },
+      { id: 'created', purpose: 'status', whenText: 'status is created', when: d => d.status === 'created', template: [{ c: 'card', id: 'converted', kids: [
+        { c: 'text', id: 'converted-title', role: 'heading', text: 'Project P-2207 was created' },
+        { c: 'badge', id: 'converted-badge', tone: 'ok', text: 'Read back and matches' },
+        { c: 'metadata-list', id: 'converted-facts', props: { items: { $data: 'facts' } } },
+        { c: 'button', id: 'converted-close', props: { label: 'Back to estimates', variant: 'secondary' }, action: 'close_estimate' }] }] }],
+    scenarios: [
+      { id: 'created', name: 'Created and read back', data: { status: 'created', facts: [{ label: 'Project', value: 'P-2207' }, { label: 'From estimate', value: 'E-1042' }, { label: 'Total', value: '$18,400' }] } },
+      { id: 'unknown', name: 'Timed out, result unknown', data: { status: 'unknown' } }],
+    suggest: []
+  }
+};
+
+/* ---------- flows and their simulated agents ---------- */
+const FLOWS = {
+  hotel: { id: 'hotel', name: 'Hotel reservation', carries: ['query', 'results', 'selection', 'total'],
+    request: 'Create a hotel reservation experience: search, compare options, review, then confirm.',
+    steps: [{ id: 'search', comp: 'hotel-search', name: 'Search' }, { id: 'results', comp: 'hotel-results', name: 'Results' }, { id: 'review', comp: 'booking-confirm', name: 'Review' }, { id: 'done', comp: 'booking-result', name: 'Result' }],
+    transitions: [['search', 'search_hotels', 'results'], ['results', 'choose_hotel', 'review'], ['results', 'change_search', 'search'], ['results', 'retry_search', 'results'],
+      ['review', 'confirm_booking', 'done'], ['review', 'back_to_results', 'results'], ['done', 'new_search', 'search'], ['done', 'back_to_review', 'review']],
+    scenarios: [{ id: 'three', name: 'Three hotels found' }, { id: 'one', name: 'One hotel found (the rules refuse it)' }, { id: 'none', name: 'No availability' },
+      { id: 'fail', name: 'Search fails, then works' }, { id: 'bookfail', name: 'Booking fails once' }],
+    start: rt => show(rt, 'search', {}, SEARCH_FILLED),
+    pushes: [{ id: 'price', label: 'Price changed', when: rt => rt.cur && rt.cur.stepId === 'review' && !rt.pending,
+      run: rt => { const old = rt.task.total; rt.task.total = old + 26; log(rt, 'agent', 'Learns the price changed from ' + money(old) + ' to ' + money(rt.task.total) + ' and sends an update.');
+        show(rt, 'review', reviewData(rt.task.selection, rt.task.total, rt.task.stay, 'The price changed from ' + money(old) + ' to ' + money(rt.task.total) + ' while you were reviewing.')); } }],
+    handlers: {
+      search_hotels(rt, p) {
+        const errs = {}, iso = /^\d{4}-\d{2}-\d{2}$/;
+        if (!String(p.destination || '').trim()) errs.destination = 'Enter a city or area.';
+        if (!iso.test(p.checkIn || '')) errs.checkIn = 'Use the form YYYY-MM-DD.';
+        if (!iso.test(p.checkOut || '')) errs.checkOut = 'Use the form YYYY-MM-DD.';
+        else if (iso.test(p.checkIn || '') && p.checkOut <= p.checkIn) errs.checkOut = 'Check-out must be after check-in.';
+        const g = Number(p.guests);
+        if (!Number.isInteger(g) || g < 1 || g > 8) errs.guests = 'Enter a whole number from 1 to 8.';
+        if (Object.keys(errs).length) { log(rt, 'agent', 'Checks the search and finds ' + Object.keys(errs).length + ' problem(s). Shows the same form with messages.'); show(rt, 'search', { errors: errs }); return; }
+        const nights = Math.max(1, Math.round((Date.parse(p.checkOut) - Date.parse(p.checkIn)) / 864e5));
+        rt.task.query = p; rt.task.nights = nights;
+        rt.task.stay = p.checkIn + ' to ' + p.checkOut + ', ' + nights + (nights === 1 ? ' night, ' : ' nights, ') + g + (g === 1 ? ' guest' : ' guests');
+        FLOWS.hotel.runSearch(rt);
+      },
+      retry_search(rt) { FLOWS.hotel.runSearch(rt); },
+      choose_hotel(rt, p) { const h = HOTELS.find(x => x.id === p.hotelId); rt.task.selection = h; rt.task.total = h.price * (rt.task.nights || 2);
+        show(rt, 'review', reviewData(h, rt.task.total, rt.task.stay)); },
+      change_search(rt) { show(rt, 'search', {}, rt.task.query || SEARCH_FILLED); },
+      back_to_results(rt) { show(rt, 'results', resultsData(HOTELS.filter(h => (rt.task.results || []).includes(h.id)), rt.task.query && rt.task.query.destination)); },
+      confirm_booking(rt, p) {
+        tool(rt, 'bookRoom', 900, () => {
+          if (rt.scen === 'bookfail' && !rt.task.failedOnce) { rt.task.failedOnce = true; log(rt, 'tool', 'bookRoom failed: payment was declined (simulated).'); show(rt, 'done', { status: 'failed' }); return; }
+          log(rt, 'tool', 'bookRoom succeeded: confirmation MH-58213 (simulated).');
+          show(rt, 'done', { status: 'booked', facts: [{ label: 'Confirmation', value: 'MH-58213' }, { label: 'Hotel', value: rt.task.selection.name }, { label: 'Charged', value: money(p.total) }] });
+        });
+      },
+      back_to_review(rt) { show(rt, 'review', reviewData(rt.task.selection, rt.task.total, rt.task.stay)); },
+      new_search(rt) { rt.task = {}; show(rt, 'search', {}, {}); }
+    },
+    runSearch(rt) {
+      const dest = rt.task.query.destination;
+      show(rt, 'results', { status: 'loading', loadingNote: 'Looking in ' + dest + ' for ' + rt.task.query.checkIn + ' to ' + rt.task.query.checkOut + '.' });
+      tool(rt, 'searchHotels', 900, () => {
+        if (rt.scen === 'fail' && !rt.task.retried) { rt.task.retried = true; log(rt, 'tool', 'searchHotels failed: the service timed out (simulated).'); show(rt, 'results', { status: 'error' }); return; }
+        const hs = rt.scen === 'one' ? HOTELS.slice(0, 1) : rt.scen === 'none' ? [] : HOTELS;
+        log(rt, 'tool', 'searchHotels returned ' + hs.length + (hs.length === 1 ? ' result' : ' results') + ' (simulated).');
+        rt.task.results = hs.map(h => h.id);
+        show(rt, 'results', resultsData(hs, dest));
+      });
+    }
+  },
+  estimate: { id: 'estimate', name: 'Convert estimate to project', carries: ['estimateId', 'conversion'],
+    request: 'Let a project manager convert an accepted estimate into a project, with explicit confirmation and a read-back.',
+    steps: [{ id: 'estimate', comp: 'estimate-summary', name: 'Estimate' }, { id: 'confirm', comp: 'conversion-confirm', name: 'Confirm' }, { id: 'outcome', comp: 'conversion-result', name: 'Result' }],
+    transitions: [['estimate', 'request_conversion', 'confirm'], ['confirm', 'convert_estimate', 'outcome'], ['confirm', 'cancel_conversion', 'estimate'], ['outcome', 'check_conversion', 'outcome'], ['outcome', 'close_estimate', 'estimate']],
+    scenarios: [{ id: 'ok', name: 'Converts and reads back' }, { id: 'unknown', name: 'Times out, result unknown' }, { id: 'blocked', name: 'Not convertible' }],
+    start: rt => show(rt, 'estimate', COMPS['estimate-summary'].scenarios[rt.scen === 'blocked' ? 1 : 0].data),
+    pushes: [],
+    handlers: {
+      request_conversion(rt) { rt.task.estimateId = 'E-1042'; show(rt, 'confirm', COMPS['conversion-confirm'].scenarios[0].data); },
+      cancel_conversion(rt) { FLOWS.estimate.start(rt); },
+      convert_estimate(rt) {
+        tool(rt, 'convertEstimate', 900, () => {
+          if (rt.scen === 'unknown' && !rt.task.checked) { log(rt, 'tool', 'convertEstimate timed out (simulated). The agent does not try again: the change may have happened.'); rt.task.conversion = 'unknown'; show(rt, 'outcome', { status: 'unknown' }); return; }
+          log(rt, 'tool', 'convertEstimate created project P-2207; a read-back matches (simulated).'); rt.task.conversion = 'created';
+          show(rt, 'outcome', COMPS['conversion-result'].scenarios[0].data);
+        });
+      },
+      check_conversion(rt) { tool(rt, 'getProjectByEstimate', 600, () => { rt.task.checked = true; rt.task.conversion = 'created'; log(rt, 'tool', 'getProjectByEstimate found project P-2207 (simulated). It was created the first time.'); show(rt, 'outcome', COMPS['conversion-result'].scenarios[0].data); }); },
+      close_estimate(rt) { rt.task = {}; FLOWS.estimate.start(rt); }
+    }
+  }
+};
+
+/* ---------- expander, instantiate, illustrative emit ---------- */
+function resolve(spec, ctx, n, field) {
+  if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
+    if ('$param' in spec) { n.src[field] = { kind: 'param', ref: spec.$param }; return ctx.snap.params[spec.$param]; }
+    if ('$data' in spec) {
+      const parts = spec.$data.split('.');
+      if (ctx.vars && parts[0] in ctx.vars) { const rest = parts.slice(1).join('.'); n.src[field] = { kind: 'data', ref: ctx.item.of + '[].' + rest }; return get(ctx.vars[parts[0]], rest); }
+      n.src[field] = { kind: 'data', ref: spec.$data }; return get(ctx.data, spec.$data);
+    }
+  }
+  n.src[field] = { kind: 'fixed' };
+  const ov = ctx.snap.overrides[n.id + '.' + field];
+  return ov !== undefined ? ov : spec;
+}
+function expandInto(t, ctx, out) {
+  if (t.$each) { (get(ctx.data, t.$each) || []).forEach((item, i) => { const c2 = { ...ctx, vars: { ...(ctx.vars || {}), [t.as]: item }, item: { index: i, id: item.id, of: t.$each } }; t.kids.forEach(k => expandInto(k, c2, out)); }); return; }
+  if (t.$if) { if (get(ctx.data, t.$if)) expandInto(t.then, ctx, out); return; }
+  const n = { c: t.c, id: t.id, key: t.id + (ctx.item ? '#' + (ctx.item.index + 1) : ''), role: t.role || null, tone: t.tone || null, input: t.input || null, src: {}, props: {}, kids: [], item: ctx.item || null };
+  if ('text' in t) n.text = resolve(t.text, ctx, n, 'text');
+  for (const [k, v] of Object.entries(t.props || {})) n.props[k] = resolve(v, ctx, n, k);
+  if (t.input) n.src.value = { kind: 'typed', ref: '/input/' + t.input };
+  if (t.action) {
+    n.action = t.action; n.payload = {};
+    for (const [k, v] of Object.entries(t.payload || {})) {
+      if (v && v.$input) n.payload[k] = { path: '/input/' + v.$input };
+      else if (v && v.$data) { const tmp = { src: {}, id: n.id }; n.payload[k] = resolve(v, ctx, tmp, k); }
+      else n.payload[k] = v;
+    }
+  }
+  (t.kids || []).forEach(k => expandInto(k, ctx, n.kids));
+  out.push(n);
+}
+function instantiate(comp, snap, data) {
+  const state = comp.states.find(s => s.when(data));
+  if (!state) return { ok: false, comp: comp.id, reason: 'No state of this composition accepts this data.', findings: [] };
+  const tree = []; (state.template || comp.template).forEach(t => expandInto(t, { snap, data }, tree));
+  const findings = rulesFor(state.purpose).map(r => { const res = r.test(tree); return { rule: r, pass: res === true, detail: res === true ? '' : res }; });
+  const failed = findings.filter(f => !f.pass);
+  return { ok: failed.length === 0, comp: comp.id, state: state.id, purpose: state.purpose, tree, findings, failed, data };
+}
+function emit(inst, surfaceId, inputs) {
+  const used = {}, comps = [];
+  const visit = n => {
+    const base = n.id.replace(/-/g, '_'); used[base] = (used[base] || 0) + 1; const id = used[base] === 1 ? base : base + '_' + used[base];
+    n.emitId = id;
+    const c = { id, component: A2UI[n.c] };
+    if (n.text !== undefined) c.text = n.text;
+    for (const [k, v] of Object.entries(n.props)) c[k] = v;
+    if (n.input) c.value = { path: '/input/' + n.input };
+    if (n.action) c.action = { event: { name: n.action, context: n.payload || {} } };
+    comps.push(c);
+    if (n.kids.length) c.children = n.kids.map(visit);
+    return id;
+  };
+  const roots = inst.tree.map(visit);
+  const msgs = [{ createSurface: { surfaceId, catalogId: 'astryx (derived catalog)' } }, { updateComponents: { surfaceId, root: roots[0], components: comps } }];
+  if (inputs && Object.keys(inputs).length) msgs.push({ updateDataModel: { surfaceId, path: '/input', value: inputs } });
+  return msgs;
+}
+const findNode = (tree, key) => { let hit = null; walk(tree, n => { if (n.key === key) hit = n; }); return hit; };
+const pathTo = (tree, key, trail = []) => { for (const n of tree) { const t = [...trail, n]; if (n.key === key) return t; const d = pathTo(n.kids, key, t); if (d) return d; } return null; };
+const labelOf = n => n.text || n.props.label || n.props.title || (n.c === 'metadata-list' ? (n.props.items || []).length + ' items' : '') || '';
+const nameOf = n => PLAIN[n.c] + (n.item ? ' ' + (n.item.index + 1) : '');
+
+/* ---------- state ---------- */
+const hist = {};
+for (const c of Object.values(COMPS)) hist[c.id] = { at: 0, entries: [{ label: 'Version ' + c.version + ' (' + c.status.toLowerCase() + ')', kind: 'base', snap: { params: Object.fromEntries(Object.entries(c.params).map(([k, p]) => [k, p.value])), overrides: {} } }] };
+const snapOf = id => hist[id].entries[hist[id].at].snap;
+const ui = { view: 'compose', project: 'hotel', step: { hotel: 'search', estimate: 'estimate' }, sel: null, scen: {}, left: 'conversation', right: true, wiring: false, map: false,
+  compare: null, mtab: 'inspector', chat: {}, lastValid: {}, fieldErr: null, lib: { tab: 'compositions', q: '' }, ds: 'rules', pub: { tab: 'check', agent: { comp: null, scen: null } }, pgtab: 'timeline' };
+try { const s = JSON.parse(localStorage.getItem('cw-panels') || 'null'); if (s) { if (s.lw) document.documentElement.style.setProperty('--lw', s.lw + 'px'); if (s.rw) document.documentElement.style.setProperty('--rw', s.rw + 'px'); } } catch (e) { /* storage is optional */ }
+const flow = () => FLOWS[ui.project];
+const stepObj = () => flow().steps.find(s => s.id === ui.step[ui.project]);
+const curComp = () => COMPS[stepObj().comp];
+const scenOf = comp => comp.scenarios.find(s => s.id === (ui.scen[comp.id] || comp.scenarios[0].id));
+const wide = () => window.innerWidth >= 1440;
+const narrow = () => window.innerWidth < 900;
+const chatOf = () => ui.chat[ui.project] || (ui.chat[ui.project] = [
+  { who: 'You', text: flow().request },
+  { who: 'Composer', staged: true, text: 'I planned ' + flow().steps.length + ' steps (' + flow().steps.map(s => s.name).join(', ') + ') and built each from your design system. Every step passes its rules. Select a step above to look at it, or ask for a change.' }]);
+
+function applyEdit(comp, label, kind, mutate) {
+  const next = clone(snapOf(comp.id)); mutate(next);
+  for (const sc of comp.scenarios) {
+    const before = instantiate(comp, snapOf(comp.id), sc.data), after = instantiate(comp, next, sc.data);
+    if (before.ok && !after.ok) return { ok: false, finding: after.failed[0], scenario: sc.name };
+  }
+  const h = hist[comp.id]; h.entries.length = h.at + 1; h.entries.push({ label, kind, snap: next }); h.at++;
+  return { ok: true };
+}
+function health() {
+  let bad = 0;
+  for (const c of Object.values(COMPS)) if (c.project === ui.project) for (const sc of c.scenarios) { const r = instantiate(c, snapOf(c.id), sc.data); if (r.ok === (sc.expect === 'refused')) bad++; }
+  return bad;
+}
+
+/* ---------- drawing a surface ---------- */
+function draw(n, env) {
+  const kids = () => n.kids.map(k => draw(k, env));
+  let e;
+  switch (n.c) {
+    case 'card': e = el('section', { class: 'ds-card' }, kids()); break;
+    case 'text': e = n.role === 'heading' ? el('h3', { class: 'ds-h', tabindex: env.live ? '-1' : null }, n.text) : el('p', { class: 'ds-p' + (n.tone ? ' t-' + n.tone : '') }, n.text); break;
+    case 'badge': e = el('span', { class: 'ds-badge t-' + (n.tone || 'neutral') }, n.text); break;
+    case 'text-input': {
+      const id = 'f-' + env.uid + '-' + n.key;
+      const inp = el('input', { class: 'ds-input', id, type: 'text', autocomplete: 'off', placeholder: n.props.hint || null, readonly: env.live ? null : true, tabindex: env.live ? null : '-1', fk: env.live ? 'in:' + n.key : null });
+      inp.value = (env.inputs && env.inputs[n.input]) || '';
+      if (env.live) inp.addEventListener('input', () => { env.inputs[n.input] = inp.value; });
+      e = el('div', { class: 'ds-field' }, el('label', { for: id }, n.props.label), inp); break; }
+    case 'button': e = el('button', { type: 'button', class: 'ds-btn v-' + (n.props.variant || 'secondary'), tabindex: env.live ? null : '-1', fk: env.live ? 'btn:' + n.key : null }, n.props.label);
+      if (env.live) e.addEventListener('click', () => env.onAction(n)); break;
+    case 'list': e = el('div', { class: 'ds-list', role: 'list' }, kids()); break;
+    case 'selectable-card': e = el('div', { class: 'ds-option', role: 'listitem' }, el('div', { class: 'ds-option-main' }, el('strong', {}, n.props.label), el('span', { class: 'd' }, n.props.description), el('span', { class: 'm' }, n.props.meta)), kids()); break;
+    case 'metadata-list': e = el('dl', { class: 'ds-meta' }, (n.props.items || []).map(it => [el('dt', {}, it.label), el('dd', {}, it.value)])); break;
+    case 'alert-dialog': e = el('div', { class: 'ds-alert', role: 'group', 'aria-label': n.props.title }, el('strong', { class: 'ds-alert-t' }, n.props.title), el('p', { class: 'ds-p' }, n.props.description), el('div', { class: 'ds-alert-actions' }, kids())); break;
+    default: e = el('div', {}, kids());
+  }
+  e.dataset.key = n.key;
+  if (env.design) {
+    e.classList.add('selable');
+    if (env.sel === n.key) e.dataset.selected = '';
+    if (env.wiring) { const kinds = new Set(Object.values(n.src).map(s => s.kind)); const k = kinds.has('typed') ? 'typed' : kinds.has('data') ? 'data' : kinds.has('param') ? 'param' : null;
+      if (k) e.append(el('span', { class: 'wire w-' + k, 'aria-hidden': 'true' }, k === 'param' ? 'parameter' : k)); }
+  }
+  if (env.changed && env.changed.has(n.id)) e.dataset.changed = '';
+  return e;
+}
+const surface = (inst, env) => el('div', { class: 'surface' + (env.dim ? ' dimmed' : '') }, inst.tree.map(n => draw(n, env)));
+
+/* ---------- shell ---------- */
+const main = document.getElementById('main');
+const VIEWS = [['compose', 'Compose'], ['library', 'Library'], ['playground', 'Playground'], ['publish', 'Publish'], ['design-system', 'Design system']];
+function shell() {
+  const nav = document.getElementById('nav'); nav.replaceChildren(...VIEWS.map(([id, name]) => el('a', { href: '#' + id, class: id === 'design-system' ? 'quiet' : null, 'aria-current': ui.view === id ? 'page' : null }, name)));
+  const p = document.getElementById('proj'); if (!p.options.length) { p.append(el('option', { value: 'hotel' }, 'Hotel reservation · Astryx sample'), el('option', { value: 'estimate' }, 'Convert estimate to project · Astryx sample'));
+    p.addEventListener('change', () => { ui.project = p.value; ui.sel = null; ui.compare = null; run = null; render(); say('Project: ' + flow().name); }); }
+  p.value = ui.project;
+  const bad = health();
+  document.getElementById('health').replaceChildren(el('span', { class: 'pill ' + (bad ? 'err' : 'ok') }, bad ? bad + ' to fix' : 'All checks pass'));
+}
+function render(opts) {
+  const fk = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fk : null;
+  const scroll = {}; main.querySelectorAll('[data-scroll]').forEach(n => { scroll[n.dataset.scroll] = n.scrollTop; });
+  shell();
+  main.replaceChildren(...({ compose: viewCompose, library: viewLibrary, playground: viewPlayground, publish: viewPublish, 'design-system': viewDesignSystem }[ui.view])());
+  main.querySelectorAll('[data-scroll]').forEach(n => { if (scroll[n.dataset.scroll]) n.scrollTop = scroll[n.dataset.scroll]; });
+  const want = (opts && opts.focus) || fk;
+  if (want) { const t = main.querySelector('[data-fk="' + CSS.escape(want) + '"]'); if (t) t.focus(); }
+}
+function go() {
+  const h = (location.hash || '').slice(1); const v = VIEWS.find(x => x[0] === h) ? h : 'compose';
+  const changed = v !== ui.view; ui.view = v; render();
+  if (changed) { const h1 = main.querySelector('h1'); if (h1) { h1.tabIndex = -1; h1.focus(); } }
+}
+const head = (title, sub) => el('div', { class: 'viewhead' }, el('h1', {}, title), sub ? el('p', {}, sub) : null);
+const staged = () => el('span', { class: 'tag', title: 'Prepared for the prototype, not produced by a model or a real service' }, 'Staged');
+
+/* ---------- Compose ---------- */
+function setLeft(v) { ui.left = ui.left === v ? null : v; if (ui.left && !wide()) ui.right = false; ui.mtab = v; }
+function setRight(v) { ui.right = v; if (v && !wide()) ui.left = null; }
+function select(key, from) {
+  ui.sel = key; ui.fieldErr = null;
+  if (from === 'canvas' && key) { if (!ui.right) setRight(true); ui.mtab = 'inspector'; }
+}
+function currentInstance() {
+  const comp = curComp(), sc = scenOf(comp);
+  const inst = instantiate(comp, snapOf(comp.id), sc.data);
+  if (inst.ok) ui.lastValid[comp.id] = { inst, scen: sc.name, inputs: sc.inputs };
+  else if (!ui.lastValid[comp.id]) { const alt = comp.scenarios.map(s => ({ s, r: instantiate(comp, snapOf(comp.id), s.data) })).find(x => x.r.ok); if (alt) ui.lastValid[comp.id] = { inst: alt.r, scen: alt.s.name, inputs: alt.s.inputs }; }
+  else { const lv = ui.lastValid[comp.id]; const again = comp.scenarios.find(s => s.name === lv.scen); if (again) lv.inst = instantiate(comp, snapOf(comp.id), again.data); }
+  return { comp, sc, inst, shown: inst.ok ? inst : (ui.lastValid[comp.id] ? ui.lastValid[comp.id].inst : null), shownInputs: inst.ok ? sc.inputs : (ui.lastValid[comp.id] || {}).inputs };
+}
+function viewCompose() {
+  const c = currentInstance(), comp = c.comp, h = hist[comp.id];
+  if (ui.sel && c.shown && !findNode(c.shown.tree, ui.sel)) ui.sel = null;
+  const isNarrow = narrow();
+  const leftOpen = !isNarrow && ui.left, rightOpen = !isNarrow && ui.right;
+
+  const steps = el('ol', { class: 'steps', 'aria-label': 'Journey outline' }, flow().steps.map(s => el('li', {}, el('button', { type: 'button', 'aria-current': s.id === stepObj().id ? 'step' : null, fk: 'step:' + s.id,
+    onclick: () => { ui.step[ui.project] = s.id; ui.sel = null; ui.compare = null; ui.fieldErr = null; render(); say('Step: ' + s.name); } }, s.name))));
+  const toggle = (label, on, fn, fk) => el('button', { class: 'btn small', type: 'button', 'aria-pressed': String(!!on), onclick: () => { fn(); render(); }, fk }, label);
+  const mapBtn = toggle(ui.map ? 'Hide flow map' : 'Show flow map', ui.map, () => { ui.map = !ui.map; }, 'map');
+  const outline = el('div', { class: 'outline' }, steps, isNarrow ? null : mapBtn,
+    el('div', { class: 'panels', role: 'group', 'aria-label': 'Panels' },
+      toggle('Conversation', ui.left === 'conversation', () => setLeft('conversation'), 'p:conversation'),
+      toggle('Structure', ui.left === 'structure', () => setLeft('structure'), 'p:structure'),
+      toggle('History', ui.left === 'history', () => setLeft('history'), 'p:history'),
+      toggle('Inspector', ui.right, () => setRight(!ui.right), 'p:inspector')));
+  const map = ui.map ? el('div', { class: 'map' }, el('ol', {}, flow().steps.map(s => { const sc = COMPS[s.comp];
+    return el('li', { class: 'mapstep', 'data-cur': s.id === stepObj().id ? '' : null }, el('h3', {}, s.name),
+      el('span', { class: 'muted' }, sc.name + ' · ' + sc.states.length + (sc.states.length === 1 ? ' state' : ' states')),
+      el('ul', {}, flow().transitions.filter(t => t[0] === s.id).map(t => { const a = sc.actions.find(x => x.name === t[1]);
+        return el('li', {}, el('code', {}, t[1]), ' leads to ', el('strong', {}, flow().steps.find(x => x.id === t[2]).name), a && a.consequential ? el('span', { class: 'pill warn', style: 'margin-left:6px' }, 'needs confirmation') : null); }))); })),
+    el('p', { class: 'mapnote' }, 'Carried between steps: ', flow().carries.map((k, i) => [i ? ', ' : '', el('code', {}, k)]), '. Going back keeps it.')) : null;
+
+  const scenSel = el('select', { id: 'scen', fk: 'scen', onchange: e => { ui.scen[comp.id] = e.target.value; ui.sel = null; ui.compare = null; render(); const r = currentInstance(); say(r.inst.ok ? 'Showing ' + r.sc.name + ', state ' + r.inst.state : 'Refused: ' + r.inst.failed[0].rule.title); } },
+    comp.scenarios.map(s => el('option', { value: s.id }, s.name)));
+  scenSel.value = c.sc.id;
+  const draftNote = h.at > 0 ? 'Draft of v' + (comp.version + 1) + ' · ' + h.at + (h.at === 1 ? ' change' : ' changes') + ' since v' + comp.version : 'v' + comp.version + ' · ' + comp.status;
+  const editTools = el('div', { class: 'grow' },
+      el('button', { class: 'btn small', type: 'button', disabled: h.at === 0, fk: 'undo', onclick: undo }, 'Undo'),
+      el('button', { class: 'btn small', type: 'button', disabled: h.at >= h.entries.length - 1, fk: 'redo', onclick: redo }, 'Redo'),
+      toggle('Show wiring', ui.wiring, () => { ui.wiring = !ui.wiring; }, 'wiring'));
+  const bar = el('div', { class: 'bar' }, el('span', { class: 'title' }, comp.name), el('span', { class: 'muted' }, draftNote),
+    el('label', { for: 'scen' }, 'Sample data', scenSel), isNarrow ? null : editTools);
+
+  const stage = el('div', { class: 'stage', 'data-scroll': 'stage', onclick: e => { const t = e.target.closest('[data-key]'); if (!ui.compare) { select(t ? t.dataset.key : null, 'canvas'); render(); } } });
+  if (ui.compare) stage.append(compareView(comp, c));
+  else {
+    stage.append(el('div', { class: 'modeband' }, el('span', { class: 'pill' }, 'Compose'), el('span', {}, c.inst.ok ? ['State: ', el('strong', {}, c.inst.state), ' (chosen by the data) · Purpose: ', PURPOSES[c.inst.purpose].label] : ['Sample data "', c.sc.name, '" was refused']),
+      el('a', { href: '#playground', style: 'margin-left:auto;color:inherit' }, 'Run the flow in Playground')));
+    if (!c.inst.ok) { const f = c.inst.failed[0];
+      stage.append(el('div', { class: 'notice', role: 'status' }, el('h3', {}, 'Your design system refused this'), f ? [el('p', {}, el('strong', {}, f.rule.title + '. '), f.detail), el('p', {}, f.rule.why)] : el('p', {}, c.inst.reason),
+        el('p', { class: 'muted' }, c.shown ? 'Shown below, dimmed: the last valid surface (' + ui.lastValid[comp.id].scen + '). To accept this data, add a state for it or change the rule in Design system.' : 'No valid surface exists for this composition yet.'))); }
+    if (ui.wiring) stage.append(el('div', { class: 'legend' }, 'Wiring:', el('span', { class: 'src', style: 'color:#7a3aa8' }, 'parameter'), 'set when the composition is authored', el('span', { class: 'src', style: 'color:#0a6c74' }, 'data'), 'supplied each time it is shown', el('span', { class: 'src', style: 'color:#8a5a00' }, 'typed'), 'entered by the person. Unmarked content is fixed.'));
+    if (c.shown) stage.append(surface(c.shown, { design: true, sel: ui.sel, wiring: ui.wiring, uid: 'c', inputs: c.shownInputs || {}, dim: !c.inst.ok }));
+    if (comp.note) stage.append(el('p', { class: 'muted', style: 'max-width:560px;font-size:13px' }, comp.note));
+  }
+
+  const panels = { conversation: ['Conversation', paneConversation], structure: ['Structure', () => paneStructure(c)], history: ['History', () => paneHistory(comp)], inspector: ['Inspector', () => paneInspector(c)] };
+  const pane = (id, side) => el('section', { class: 'pane side', 'aria-label': panels[id][0] },
+    el('div', { class: 'panehead' }, el('h2', {}, panels[id][0]), id === 'conversation' ? staged() : null,
+      isNarrow ? null : el('button', { class: 'btn small', type: 'button', 'aria-label': 'Close ' + panels[id][0], onclick: () => { if (side === 'left') ui.left = null; else ui.right = false; render({ focus: 'p:' + id }); } }, 'Close')),
+    el('div', { class: 'panebody', 'data-scroll': id }, panels[id][1]()));
+  const centre = isNarrow ? el('div', { class: 'centre' }, outline, bar, stage, el('div', { class: 'bar' }, mapBtn, editTools), map) : el('div', { class: 'centre' }, outline, map, bar, stage);
+
+  if (isNarrow) {
+    const tabs = el('div', { class: 'mtabs tabs', role: 'tablist', 'aria-label': 'Panels' }, ['inspector', 'structure', 'conversation', 'history'].map(id =>
+      el('button', { type: 'button', role: 'tab', 'aria-selected': String(ui.mtab === id), fk: 'mt:' + id, onclick: () => { ui.mtab = id; render(); } }, panels[id][0])));
+    return [el('div', { class: 'sr' }, el('h1', {}, 'Compose: ' + flow().name)), el('div', { class: 'ws' }, centre, tabs, pane(ui.mtab))];
+  }
+  const cols = [], kids = [];
+  if (leftOpen) { cols.push('var(--lw)', '7px'); kids.push(pane(ui.left, 'left'), sep('left', panels[ui.left][0])); }
+  cols.push('minmax(0, 1fr)'); kids.push(centre);
+  if (rightOpen) { cols.push('7px', 'var(--rw)'); kids.push(sep('right', 'Inspector'), pane('inspector', 'right')); }
+  return [el('div', { class: 'sr' }, el('h1', {}, 'Compose: ' + flow().name)), el('div', { class: 'ws', style: 'grid-template-columns:' + cols.join(' ') }, kids)];
+}
+function sep(side, name) {
+  const prop = side === 'left' ? '--lw' : '--rw';
+  const cur = () => parseInt(getComputedStyle(document.documentElement).getPropertyValue(prop), 10) || 280;
+  const max = () => Math.max(240, Math.min(520, Math.round(main.clientWidth * 0.4)));
+  const set = w => { w = Math.max(240, Math.min(max(), Math.round(w))); document.documentElement.style.setProperty(prop, w + 'px'); s.setAttribute('aria-valuenow', w);
+    try { const st = JSON.parse(localStorage.getItem('cw-panels') || '{}') || {}; st[side === 'left' ? 'lw' : 'rw'] = w; localStorage.setItem('cw-panels', JSON.stringify(st)); } catch (e) { /* optional */ } };
+  const s = el('div', { class: 'sep', role: 'separator', tabindex: '0', 'aria-orientation': 'vertical', 'aria-label': 'Resize ' + name + ' panel', 'aria-valuemin': '240', 'aria-valuemax': String(max()), 'aria-valuenow': String(cur()), fk: 'sep:' + side });
+  s.addEventListener('keydown', e => { const dir = side === 'left' ? 1 : -1;
+    if (e.key === 'ArrowLeft') { set(cur() - 24 * dir); e.preventDefault(); } else if (e.key === 'ArrowRight') { set(cur() + 24 * dir); e.preventDefault(); }
+    else if (e.key === 'Home') { set(240); e.preventDefault(); } else if (e.key === 'End') { set(max()); e.preventDefault(); }
+    else if (e.key === 'Enter') { if (side === 'left') ui.left = null; else ui.right = false; render({ focus: side === 'left' ? 'p:conversation' : 'p:inspector' }); } });
+  s.addEventListener('pointerdown', e => { e.preventDefault(); s.setPointerCapture(e.pointerId); const x0 = e.clientX, w0 = cur();
+    const mv = ev => set(w0 + (ev.clientX - x0) * (side === 'left' ? 1 : -1)); const up = () => { s.removeEventListener('pointermove', mv); s.removeEventListener('pointerup', up); };
+    s.addEventListener('pointermove', mv); s.addEventListener('pointerup', up); });
+  return s;
+}
+function undo() { const h = hist[curComp().id]; if (h.at > 0) { const l = h.entries[h.at].label; h.at--; ui.fieldErr = null; render(); say('Undid: ' + l); } }
+function redo() { const h = hist[curComp().id]; if (h.at < h.entries.length - 1) { h.at++; ui.fieldErr = null; render(); say('Redid: ' + h.entries[h.at].label); } }
+
+function paneConversation() {
+  const comp = curComp(), log = chatOf();
+  const refine = s => { log.push({ who: 'You', text: s.say });
+    const r = applyEdit(comp, 'Refinement: ' + s.label, 'refine', s.edit);
+    if (r.ok) log.push({ who: 'Composer', staged: true, text: 'Done. ' + s.label + '. It still passes every rule for ' + comp.name + '. You can undo it or compare it with the version before.' });
+    else log.push({ who: 'Composer', staged: true, refused: true, text: 'I did not apply that. ' + r.finding.rule.title + ': ' + r.finding.detail + ' ' + r.finding.rule.why });
+    render({ focus: 'chatin' }); say(r.ok ? 'Applied: ' + s.label : 'Refused: ' + r.finding.rule.title); };
+  const input = el('input', { id: 'chatin', fk: 'chatin', type: 'text', placeholder: 'Describe a change to ' + comp.name, 'aria-label': 'Describe a change' });
+  const form = el('form', { class: 'chatform', onsubmit: e => { e.preventDefault(); const v = input.value.trim(); if (!v) return; log.push({ who: 'You', text: v });
+    log.push({ who: 'Composer', staged: true, text: 'This prototype has no model, so I cannot act on free text. Try one of the prepared refinements below; they make real, undoable edits.' }); render({ focus: 'chatin' }); } }, input, el('button', { class: 'btn', type: 'submit' }, 'Send'));
+  return [el('div', { class: 'chat' }, log.map(m => el('div', { class: 'msg' + (m.who === 'You' ? ' you' : '') + (m.refused ? ' refused' : '') }, el('span', { class: 'who' }, m.who, m.staged ? staged() : null), el('p', {}, m.text)))),
+    comp.suggest.length ? el('div', { class: 'sect' }, el('h3', {}, 'Refine ' + comp.name), el('div', { class: 'suggest' }, comp.suggest.map((s, i) => el('button', { class: 'btn', type: 'button', fk: 'sg:' + i, onclick: () => refine(s) }, s.say)))) : el('p', { class: 'muted' }, 'No refinements were prepared for this step.'),
+    form];
+}
+function paneStructure(c) {
+  if (!c.shown) return [el('p', { class: 'muted' }, 'Nothing to show.')];
+  const item = (n, level) => el('li', { role: 'none' },
+    el('div', { role: 'treeitem', 'aria-level': String(level), 'aria-selected': String(ui.sel === n.key), 'aria-expanded': n.kids.length ? 'true' : null, tabindex: (ui.sel === n.key || (!ui.sel && level === 1)) ? '0' : '-1', fk: 'tree:' + n.key, 'data-key': n.key,
+      onclick: () => { select(n.key, 'tree'); render({ focus: 'tree:' + n.key }); } }, el('span', { class: 'k' }, nameOf(n)), el('span', { class: 's' }, labelOf(n))),
+    n.kids.length ? el('ul', { role: 'group' }, n.kids.map(k => item(k, level + 1))) : null);
+  const tree = el('ul', { class: 'tree', role: 'tree', 'aria-label': 'Structure of ' + c.comp.name }, c.shown.tree.map(n => item(n, 1)));
+  tree.addEventListener('keydown', e => {
+    const items = [...tree.querySelectorAll('[role="treeitem"]')], i = items.indexOf(document.activeElement); if (i < 0) return;
+    let to = null; const key = items[i].dataset.key;
+    if (e.key === 'ArrowDown') to = items[i + 1]; else if (e.key === 'ArrowUp') to = items[i - 1]; else if (e.key === 'Home') to = items[0]; else if (e.key === 'End') to = items[items.length - 1];
+    else if (e.key === 'ArrowRight') { const n = findNode(c.shown.tree, key); if (n && n.kids.length) to = items[i + 1]; }
+    else if (e.key === 'ArrowLeft') { const p = pathTo(c.shown.tree, key); if (p && p.length > 1) to = items.find(x => x.dataset.key === p[p.length - 2].key); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!ui.right && wide()) setRight(true); render({ focus: 'tree:' + key }); return; }
+    if (to) { e.preventDefault(); select(to.dataset.key, 'tree'); render({ focus: 'tree:' + to.dataset.key }); }
+  });
+  return [el('p', { class: 'muted' }, 'Arrow keys move through the structure. The canvas and inspector follow.'), tree];
+}
+function paneHistory(comp) {
+  const h = hist[comp.id], cmp = ui.compare || {};
+  const pick = (slot, i) => { ui.compare = { a: slot === 'a' ? i : (cmp.a != null ? cmp.a : Math.max(0, h.at - 1)), b: slot === 'b' ? i : (cmp.b != null ? cmp.b : h.at) }; render(); };
+  return [el('p', { class: 'muted' }, 'Every edit and refinement to ' + comp.name + '. Go back to any point, or compare two.'),
+    el('ol', { class: 'hist' }, h.entries.map((e, i) => el('li', { 'data-cur': i === h.at ? '' : null },
+      el('div', { class: 'row' }, el('span', { class: 'lab' }, e.label), i === h.at ? el('span', { class: 'pill ok' }, 'Current') : i > h.at ? el('span', { class: 'pill' }, 'Undone') : null),
+      el('div', { class: 'row' },
+        i !== h.at ? el('button', { class: 'btn small', type: 'button', fk: 'h:go' + i, onclick: () => { h.at = i; ui.fieldErr = null; render(); say('Now at: ' + e.label); } }, 'Go to this version') : null,
+        el('button', { class: 'btn small', type: 'button', 'aria-pressed': String(ui.compare != null && cmp.a === i), fk: 'h:a' + i, onclick: () => pick('a', i) }, 'Compare: before'),
+        el('button', { class: 'btn small', type: 'button', 'aria-pressed': String(ui.compare != null && cmp.b === i), fk: 'h:b' + i, onclick: () => pick('b', i) }, 'after'))))),
+    h.entries.length === 1 ? el('p', { class: 'muted' }, 'No changes yet. Edit a label in the inspector or apply a refinement in the conversation.') : null,
+    ui.compare ? el('button', { class: 'btn', type: 'button', fk: 'cmpclose', onclick: () => { ui.compare = null; render(); } }, 'Close comparison') : null];
+}
+function compareView(comp, c) {
+  const h = hist[comp.id], A = h.entries[ui.compare.a], B = h.entries[ui.compare.b];
+  const diffs = [], changed = new Set();
+  for (const [k, p] of Object.entries(comp.params)) if (A.snap.params[k] !== B.snap.params[k]) { diffs.push(p.label + ': "' + A.snap.params[k] + '" became "' + B.snap.params[k] + '"');
+    const mark = t => { if (t.$each || t.kids) (t.kids || []).forEach(mark); if (t.$if) mark(t.then); const vals = [t.text, ...Object.values(t.props || {})]; if (vals.some(v => v && v.$param === k)) changed.add(t.id); };
+    comp.states.forEach(s => (s.template || comp.template).forEach(mark)); }
+  const keys = new Set([...Object.keys(A.snap.overrides), ...Object.keys(B.snap.overrides)]);
+  keys.forEach(k => { if (A.snap.overrides[k] !== B.snap.overrides[k]) { diffs.push('Fixed text on ' + k.split('.')[0] + ': "' + (A.snap.overrides[k] === undefined ? 'original' : A.snap.overrides[k]) + '" became "' + (B.snap.overrides[k] === undefined ? 'original' : B.snap.overrides[k]) + '"'); changed.add(k.split('.')[0]); } });
+  const col = (e, tag) => { const inst = instantiate(comp, e.snap, c.sc.data); return el('div', {}, el('h3', {}, tag + ': ' + e.label), inst.tree ? surface(inst, { uid: 'cmp' + tag, inputs: c.sc.inputs || {}, changed }) : el('p', {}, 'No surface.')); };
+  return el('div', { class: 'cmp' }, el('div', { class: 'modeband' }, el('span', { class: 'pill' }, 'Comparing two versions'), el('span', {}, 'Sample data: ' + c.sc.name),
+      el('button', { class: 'btn small', type: 'button', style: 'margin-left:auto', onclick: e => { e.stopPropagation(); ui.compare = null; render(); } }, 'Close comparison')),
+    el('div', { class: 'sect', style: 'color:var(--fg)' }, el('h3', {}, diffs.length ? diffs.length + (diffs.length === 1 ? ' difference' : ' differences') : 'No differences'), diffs.length ? el('ul', { class: 'changes' }, diffs.map(d => el('li', {}, d))) : el('p', { class: 'muted' }, 'These two versions are the same.')),
+    el('div', { class: 'cmpcols' }, col(A, 'Before'), col(B, 'After')));
+}
+const srcChip = s => el('span', { class: 'src' }, s.kind === 'fixed' ? 'Fixed' : s.kind === 'param' ? 'Parameter' : s.kind === 'data' ? 'Data' : 'Typed by the person');
+function paneInspector(c) {
+  const comp = c.comp, inst = c.shown; if (!inst) return [el('p', { class: 'muted' }, 'Nothing to inspect.')];
+  const n = ui.sel ? findNode(inst.tree, ui.sel) : null;
+  const ruleList = (rules, findings) => el('ul', { class: 'rules' }, rules.map(r => { const f = findings.find(x => x.rule.id === r.id);
+    return el('li', {}, el('span', { class: f && !f.pass ? 'n' : 'y', 'aria-hidden': 'true' }, f && !f.pass ? '✕' : '✓'),
+      el('details', {}, el('summary', {}, el('span', { class: 'sr' }, f && !f.pass ? 'Fails: ' : 'Passes: '), r.title, r.project ? ' (project rule)' : ''), el('p', { class: 'muted' }, r.why), el('code', {}, r.id))); }));
+  if (!n) return [
+    el('div', { class: 'sect' }, el('h3', {}, comp.name), el('p', {}, comp.summary),
+      el('dl', { class: 'kv' }, el('dt', {}, 'Use when'), el('dd', {}, comp.useWhen), el('dt', {}, 'Avoid when'), el('dd', {}, comp.avoidWhen), el('dt', {}, 'Purpose'), el('dd', {}, PURPOSES[inst.purpose].label + (PURPOSES[inst.purpose].project ? ' (authored in this project)' : '')))),
+    Object.keys(comp.params).length ? el('div', { class: 'sect' }, el('h3', {}, 'Parameters'), Object.entries(comp.params).map(([k, p]) => editField(comp, 'param:' + k, p.label, snapOf(comp.id).params[k], { kind: 'param', ref: k }))) : null,
+    el('div', { class: 'sect' }, el('h3', {}, 'Data it needs'), el('dl', { class: 'kv' }, comp.data.map(d => [el('dt', {}, el('code', {}, d.name)), el('dd', {}, d.type + (d.note ? '. ' + d.note : ''))]))),
+    el('div', { class: 'sect' }, el('h3', {}, 'Actions it can send'), el('dl', { class: 'kv' }, comp.actions.map(a => [el('dt', {}, el('code', {}, a.name)), el('dd', {}, a.kind + (a.sends.length ? ', sends ' + a.sends.join(', ') : '') + (a.consequential ? '. Needs confirmation; accepted once per surface' : ''))]))),
+    el('div', { class: 'sect' }, el('h3', {}, 'States'), el('dl', { class: 'kv' }, comp.states.map(s => [el('dt', {}, s.id + (s.id === inst.state ? ' (shown)' : '')), el('dd', {}, (s.whenText === 'otherwise' ? 'Otherwise' : s.whenText === 'always' ? 'Always' : 'When ' + s.whenText) + '. ' + PURPOSES[s.purpose].label + '.')]))),
+    el('div', { class: 'sect' }, el('h3', {}, 'Rules for this state'), ruleList(rulesFor(inst.purpose), inst.findings)),
+    el('p', { class: 'muted' }, 'Select anything on the canvas or in Structure to inspect it.')];
+
+  const trail = pathTo(inst.tree, n.key) || [n];
+  const out = [el('nav', { class: 'crumbs', 'aria-label': 'Where this sits' }, el('button', { type: 'button', onclick: () => { select(null); render(); } }, comp.name),
+    trail.map(t => [el('span', { 'aria-hidden': 'true' }, '›'), el('button', { type: 'button', 'aria-current': t.key === n.key ? 'true' : null, onclick: () => { select(t.key); render(); } }, nameOf(t))])),
+    el('div', { class: 'sect' }, el('h3', {}, nameOf(n) + (labelOf(n) ? ': ' + labelOf(n) : '')), n.item ? el('p', { class: 'muted' }, 'Repeated for each item in ', el('code', {}, n.item.of), '. This is item ' + (n.item.index + 1) + ' (', el('code', {}, n.item.id), ').') : null)];
+  const fields = Object.entries(n.src).filter(([f]) => f !== 'variant' && f !== 'items' && f !== 'value');
+  if (fields.length || n.input) out.push(el('div', { class: 'sect' }, el('h3', {}, 'Content'),
+    fields.map(([f, s]) => { const v = f === 'text' ? n.text : n.props[f]; const label = f === 'text' ? 'Text' : f[0].toUpperCase() + f.slice(1);
+      if (s.kind === 'fixed') return editField(comp, 'fixed:' + n.id + '.' + f, label, v, s);
+      if (s.kind === 'param') return editField(comp, 'param:' + s.ref, label, v, s);
+      return el('div', { class: 'field' }, el('label', {}, label, srcChip(s), el('code', {}, s.ref)), el('p', {}, String(v)), el('p', { class: 'muted' }, 'Comes from the sample data. Change the data set above to see other values.')); }),
+    n.input ? el('div', { class: 'field' }, el('label', {}, 'Value', srcChip({ kind: 'typed' }), el('code', {}, '/input/' + n.input)), el('p', { class: 'muted' }, 'Whatever the person types. Rules do not read it; it reaches the agent only inside an action.')) : null,
+    n.c === 'metadata-list' ? el('div', { class: 'field' }, el('label', {}, 'Items', srcChip(n.src.items), el('code', {}, n.src.items.ref)), el('p', { class: 'muted' }, (n.props.items || []).length + ' label and value pairs from the sample data.')) : null));
+  if (n.c === 'button') { const sel = el('select', { id: 'variant', fk: 'variant', onchange: e => { const r = applyEdit(comp, 'Button style on ' + n.id + ': ' + e.target.value, 'edit', s => { s.overrides[n.id + '.variant'] = e.target.value; }); render(); if (r.ok) say('Style changed'); } }, ['primary', 'secondary', 'ghost'].map(v => el('option', { value: v }, v[0].toUpperCase() + v.slice(1))));
+    sel.value = n.props.variant || 'secondary'; out.push(el('div', { class: 'sect' }, el('h3', {}, 'Appearance'), el('div', { class: 'field' }, el('label', { for: 'variant' }, 'Style'), el('div', { class: 'rowi' }, sel)))); }
+  if (n.action) { const a = comp.actions.find(x => x.name === n.action), tr = flow().transitions.find(t => t[0] === stepObj().id && t[1] === n.action);
+    out.push(el('div', { class: 'sect' }, el('h3', {}, 'When pressed'), el('dl', { class: 'kv' },
+      el('dt', {}, 'Sends'), el('dd', {}, el('code', {}, n.action), ' (' + a.kind.toLowerCase() + ')'),
+      Object.keys(n.payload).length ? [el('dt', {}, 'With'), el('dd', {}, Object.entries(n.payload).map(([k, v], i) => [i ? el('br') : null, el('code', {}, k), ': ', v && v.path ? ['what was typed in ', el('code', {}, v.path)] : [el('code', {}, JSON.stringify(v)), ' (fixed when this surface was made)']]))] : null,
+      el('dt', {}, 'Leads to'), el('dd', {}, tr ? flow().steps.find(s => s.id === tr[2]).name : 'Nothing declared'),
+      a.consequential ? [el('dt', {}, 'Safeguards'), el('dd', {}, 'Needs this confirmation. Accepted once per surface. Its payload contains fixed values only.')] : null),
+      el('p', { class: 'muted' }, 'Nothing is sent from Compose. ', el('a', { href: '#playground', style: 'color:inherit' }, 'Run the flow in Playground'), ' to press it.'))); }
+  const here = rulesFor(inst.purpose).filter(r => r.touches.includes(n.c));
+  if (here.length) out.push(el('div', { class: 'sect' }, el('h3', {}, 'Rules that apply here'), ruleList(here, inst.findings)));
+  const comps = emit(inst, comp.id + '-preview-1', {})[1].updateComponents.components;
+  const fresh = findNode(inst.tree, n.key);
+  out.push(el('details', {}, el('summary', {}, 'Details'), el('div', { class: 'sect', style: 'margin-top:6px' }, el('dl', { class: 'kv' }, el('dt', {}, 'Template node'), el('dd', {}, el('code', {}, n.id)), el('dt', {}, 'Message id'), el('dd', {}, el('code', {}, fresh.emitId)), el('dt', {}, 'Component'), el('dd', {}, el('code', {}, A2UI[n.c]))),
+    el('pre', { tabindex: '0', 'aria-label': 'Component as sent' }, JSON.stringify(comps.find(x => x.id === fresh.emitId), null, 2)), el('p', { class: 'muted' }, 'Illustrative, in the outline of A2UI 0.9.1. Produced by this page, not by the emitter.'))));
+  return out;
+}
+function editField(comp, key, label, value, src) {
+  const id = 'e-' + key.replace(/[^a-z0-9]/gi, '-');
+  const inp = el('input', { id, type: 'text', fk: id, maxlength: '80' }); inp.value = value == null ? '' : value;
+  const err = ui.fieldErr && ui.fieldErr.key === key ? ui.fieldErr : null;
+  if (err) { inp.value = err.tried; inp.setAttribute('aria-invalid', 'true'); inp.setAttribute('aria-describedby', id + '-err'); }
+  const apply = () => { const v = inp.value; if (v === String(value == null ? '' : value)) { if (err) { ui.fieldErr = null; render({ focus: id }); } return; }
+    const r = applyEdit(comp, label + ': "' + v + '"', 'edit', s => { if (key.startsWith('param:')) s.params[key.slice(6)] = v; else s.overrides[key.slice(6)] = v; });
+    ui.fieldErr = r.ok ? null : { key, tried: v, finding: r.finding, scenario: r.scenario }; render({ focus: id }); say(r.ok ? 'Applied: ' + label : 'Refused: ' + r.finding.rule.title); };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); apply(); } });
+  return el('div', { class: 'field' }, el('label', { for: id }, label, srcChip(src), src.kind === 'param' ? el('code', {}, src.ref) : null),
+    el('div', { class: 'rowi' }, inp, el('button', { class: 'btn small', type: 'button', onclick: apply }, 'Apply')),
+    err ? el('p', { class: 'errtxt', id: id + '-err' }, 'Not applied. ' + err.finding.rule.title + ': ' + err.finding.detail + ' ' + err.finding.rule.why) : null);
+}
+
+/* ---------- Playground: every change is a new surface ---------- */
+let run = null;
+const log = (rt, who, text, o) => rt.log.push({ t: rt.clock, who, text, refused: !!(o && o.refused), detail: o && o.detail });
+function startRun(scen) {
+  if (run && run.timer) clearTimeout(run.timer);
+  const f = flow();
+  run = { flow: f.id, scen: scen || f.scenarios[0].id, task: {}, n: 0, session: Math.random().toString(36).slice(2, 6), cur: null, deleted: [], used: new Set(), log: [], wire: [], clock: 0, last: null, notice: null, pending: null, timer: null };
+  log(run, 'host', 'Run started. Scenario: ' + f.scenarios.find(s => s.id === run.scen).name + '.');
+  f.start(run);
+}
+function show(rt, stepId, data, seed) {
+  const f = FLOWS[rt.flow], st = f.steps.find(s => s.id === stepId), comp = COMPS[st.comp];
+  const inst = instantiate(comp, snapOf(comp.id), data);
+  if (!inst.ok) { const fnd = inst.failed[0];
+    log(rt, 'rule', 'Refused: the agent tried to show ' + comp.name + '. ' + (fnd ? fnd.rule.title + '. ' + fnd.detail : inst.reason), { refused: true, detail: fnd ? fnd.rule.id + ' — ' + fnd.rule.why : '' });
+    rt.notice = { title: 'Your design system refused the next surface', text: (fnd ? fnd.rule.title + '. ' + fnd.detail + ' ' + fnd.rule.why : inst.reason), after: 'The last valid surface is still shown. To handle this case, give ' + comp.name + ' a state for it, or change the rule.' };
+    say('Refused. ' + (fnd ? fnd.rule.title : '')); return false; }
+  const prev = rt.cur, sid = comp.id + '-' + rt.session + '-' + (++rt.n);
+  inst.surfaceId = sid; inst.stepId = stepId; inst.stepName = st.name; inst.inputs = { ...(seed || {}) };
+  let carried = [];
+  if (prev && prev.comp === comp.id) { const names = []; walk(inst.tree, n => { if (n.input) names.push(n.input); }); names.forEach(k => { if (prev.inputs[k] !== undefined) { inst.inputs[k] = prev.inputs[k]; carried.push(k); } }); }
+  inst.messages = emit(inst, sid, inst.inputs); rt.wire.push(...inst.messages);
+  log(rt, 'agent', 'Shows ' + comp.name + ' (state: ' + inst.state + ').', { detail: 'New surface ' + sid + '. Passed ' + inst.findings.length + ' rule checks for "' + PURPOSES[inst.purpose].label + '".' });
+  if (prev) { rt.deleted.push(prev.surfaceId); rt.wire.push({ deleteSurface: { surfaceId: prev.surfaceId } });
+    log(rt, 'host', 'Replaced the previous surface' + (carried.length ? ' and carried over what was typed (' + carried.join(', ') + ').' : '.'), { detail: 'Deleted ' + prev.surfaceId + '. Actions from it are now refused.' }); }
+  rt.cur = inst; rt.notice = null; rt.sameComp = !!(prev && prev.comp === comp.id);
+  say(comp.name + ': ' + (labelOf(inst.tree[0].kids[0] || inst.tree[0]) || inst.state));
+  return true;
+}
+function tool(rt, name, ms, fn) {
+  rt.pending = name; log(rt, 'tool', 'Calls ' + name + ' (simulated, ' + ms + ' ms).');
+  rt.timer = setTimeout(() => { if (run !== rt) return; rt.clock += ms; rt.pending = null; fn(); if (ui.view === 'playground') render({ focusAfterReplace: true }); }, ms);
+}
+function dispatch(rt, ev) {
+  const f = FLOWS[rt.flow];
+  const refuse = (why, detail) => { log(rt, 'rule', 'Refused ' + ev.name + ': ' + why, { refused: true, detail }); rt.notice = { title: 'An action was refused', text: why, after: 'Nothing changed.' }; say('Refused. ' + why); return false; };
+  log(rt, 'user', 'Presses "' + ev.label + '".', { detail: ev.name + ' ' + JSON.stringify(ev.payload) + ' from ' + ev.surfaceId });
+  rt.clock += 1;
+  if (!rt.cur || ev.surfaceId !== rt.cur.surfaceId) return refuse('It came from a surface that has been replaced.', 'Stale: ' + ev.surfaceId + ' is not the current surface (' + (rt.cur ? rt.cur.surfaceId : 'none') + ').');
+  const decl = COMPS[rt.cur.comp].actions.find(a => a.name === ev.name);
+  if (!decl) return refuse('This surface does not declare that action.', 'Undeclared action.');
+  const missing = decl.sends.filter(k => !(k in ev.payload)); if (missing.length) return refuse('Its payload is missing ' + missing.join(', ') + '.', 'Payload does not match the declaration.');
+  if (decl.consequential) { const k = ev.surfaceId + ':' + ev.name; if (rt.used.has(k)) return refuse('It was already accepted once from this surface.', 'A consequential action is single-use per surface.'); rt.used.add(k); }
+  else if (rt.pending) return refuse('The agent is still working on the previous action.', 'Busy: ' + rt.pending);
+  log(rt, 'agent', 'Accepts ' + ev.name + '. The payload matches its declaration.');
+  rt.last = ev; rt.notice = null;
+  f.handlers[ev.name](rt, ev.payload); return true;
+}
+const eventFor = (rt, n) => ({ name: n.action, label: n.props.label, surfaceId: rt.cur.surfaceId, sourceKey: n.key,
+  payload: Object.fromEntries(Object.entries(n.payload || {}).map(([k, v]) => [k, v && v.path ? (rt.cur.inputs[v.path.slice(7)] || '') : v])) });
+function viewPlayground(opts) {
+  if (!run || run.flow !== ui.project) startRun();
+  const rt = run, f = flow();
+  const scenSel = el('select', { id: 'pgscen', fk: 'pgscen', onchange: e => { startRun(e.target.value); render(); } }, f.scenarios.map(s => el('option', { value: s.id }, s.name))); scenSel.value = rt.scen;
+  const stage = el('div', { class: 'stage', 'data-scroll': 'pgstage' });
+  stage.append(el('div', { class: 'modeband' }, el('span', { class: 'pill info' }, 'Playground'), el('span', {}, 'Step ', el('strong', {}, rt.cur ? rt.cur.stepName : 'none'), rt.cur ? ' · state ' + rt.cur.state : '', rt.pending ? [' · ', el('span', { class: 'pill info' }, 'Agent is calling ' + rt.pending)] : null)));
+  if (rt.notice) stage.append(el('div', { class: 'notice', role: 'status' }, el('h3', {}, rt.notice.title), el('p', {}, rt.notice.text), el('p', { class: 'muted' }, rt.notice.after)));
+  if (rt.cur) stage.append(surface(rt.cur, { live: true, uid: 'pg', inputs: rt.cur.inputs, onAction: n => { dispatch(rt, eventFor(rt, n)); render({ focusAfterReplace: true }); } }));
+  const confirmNode = (() => { let hit = null; if (rt.cur) walk(rt.cur.tree, n => { const d = n.action && COMPS[rt.cur.comp].actions.find(a => a.name === n.action); if (d && d.consequential) hit = n; }); return hit; })();
+  const pushes = f.pushes.filter(p => p.when(rt));
+  const tools = el('div', { class: 'tools' },
+    el('div', { class: 'grp' }, el('span', {}, 'Agent sends an update:'), pushes.length ? pushes.map(p => el('button', { class: 'btn small', type: 'button', fk: 'push:' + p.id, onclick: () => { p.run(rt); render({ focusAfterReplace: true }); } }, p.label)) : el('span', {}, 'none available at this step')),
+    el('div', { class: 'grp' }, el('span', {}, 'Try to break it:'),
+      el('button', { class: 'btn small', type: 'button', disabled: !(rt.last && rt.deleted.includes(rt.last.surfaceId)), fk: 'stale', onclick: () => { dispatch(rt, { ...rt.last }); render(); } }, 'Replay the last action from a replaced surface'),
+      el('button', { class: 'btn small', type: 'button', disabled: !confirmNode || !!rt.pending, fk: 'twice', onclick: () => { const ev = eventFor(rt, confirmNode); dispatch(rt, ev); dispatch(rt, { ...ev }); render(); } }, 'Send the confirming action twice')));
+  const tabs = ['timeline', 'task', 'messages'], names = { timeline: 'Timeline', task: 'Task state', messages: 'Messages' };
+  const tabbar = el('div', { class: 'tabs', role: 'tablist', 'aria-label': 'What happened' }, tabs.map(t => el('button', { type: 'button', role: 'tab', 'aria-selected': String(ui.pgtab === t), fk: 'pgt:' + t, onclick: () => { ui.pgtab = t; render(); } }, names[t])));
+  let body;
+  if (ui.pgtab === 'timeline') body = el('ol', { class: 'timeline' }, rt.log.map(e => el('li', { class: e.refused ? 'refused' : null }, el('span', { class: 't' }, (e.t / 1000).toFixed(1) + ' s'), el('span', { class: 'w ' + e.who }, { user: 'Person', agent: 'Agent', tool: 'Tool', host: 'Host', rule: 'Refusal' }[e.who]),
+    e.detail ? el('details', {}, el('summary', { style: 'color:inherit' }, e.text), el('p', { class: 'muted mono' }, e.detail)) : el('span', {}, e.text))));
+  else if (ui.pgtab === 'task') body = [el('p', { class: 'muted' }, 'What the flow carries between steps. Going back does not lose it.'), el('pre', { tabindex: '0', 'aria-label': 'Task state' }, JSON.stringify(rt.task, (k, v) => v instanceof Set ? [...v] : v, 2) === '{}' ? '{ }  nothing yet' : JSON.stringify(rt.task, null, 2)),
+    rt.cur && Object.keys(rt.cur.inputs).length ? [el('p', { class: 'muted' }, 'What the person has typed on this surface. The agent sees it only inside an action.'), el('pre', { tabindex: '0', 'aria-label': 'Typed values' }, JSON.stringify(rt.cur.inputs, null, 2))] : null];
+  else body = [el('p', { class: 'muted' }, 'Illustrative, in the outline of A2UI 0.9.1; produced by this page. Each surface is created once and never patched.'), el('pre', { tabindex: '0', 'aria-label': 'Messages' }, rt.wire.slice(-4).map(m => JSON.stringify(m, null, 1)).join('\n\n'))];
+  const out = [head('Playground', f.name),
+    el('div', { class: 'simband' }, 'Simulated agent · sample data · nothing leaves this page', el('label', { for: 'pgscen', style: 'margin-left:auto;display:inline-flex;gap:6px;align-items:center;font-weight:400' }, 'Scenario', scenSel), el('button', { class: 'btn small', type: 'button', fk: 'restart', onclick: () => { startRun(rt.scen); render(); } }, 'Restart')),
+    el('div', { class: 'pg' }, el('div', { class: 'centre' }, stage, tools),
+      el('section', { class: 'pane side', 'aria-label': 'What happened' }, el('div', { class: 'panehead' }, tabbar), el('div', { class: 'panebody', 'data-scroll': 'pgside' }, body)))];
+  return out;
+}
+
+/* ---------- Library, Design system (thin stubs) ---------- */
+const mine = () => Object.values(COMPS).filter(c => c.project === ui.project);
+function viewLibrary() {
+  const tabs = [['compositions', 'Compositions'], ['flows', 'Flows'], ['contract', 'Data and actions']];
+  const tabbar = el('div', { class: 'tabs', role: 'tablist' }, tabs.map(([id, n]) => el('button', { type: 'button', role: 'tab', 'aria-selected': String(ui.lib.tab === id), fk: 'lib:' + id, onclick: () => { ui.lib.tab = id; render(); } }, n)));
+  let body;
+  if (ui.lib.tab === 'compositions') { const q = ui.lib.q.toLowerCase(); const list = mine().filter(c => !q || (c.name + ' ' + c.summary + ' ' + c.useWhen + ' ' + c.states.map(s => PURPOSES[s.purpose].label).join(' ')).toLowerCase().includes(q));
+    const inp = el('input', { class: 'search', id: 'libq', fk: 'libq', type: 'search', placeholder: 'Search by purpose, for example "choose"', 'aria-label': 'Search compositions' }); inp.value = ui.lib.q;
+    inp.addEventListener('input', () => { ui.lib.q = inp.value; render({ focus: 'libq' }); });
+    body = [inp, el('div', { class: 'grid' }, list.map(c => el('article', { class: 'card' }, el('h3', {}, c.name), el('p', {}, c.summary),
+      el('div', { class: 'row' }, el('span', { class: 'pill' + (c.status === 'Approved' ? ' ok' : '') }, 'v' + c.version + ' · ' + c.status), hist[c.id].at ? el('span', { class: 'pill warn' }, 'Draft changes') : null),
+      el('dl', { class: 'kv' }, el('dt', {}, 'Use when'), el('dd', {}, c.useWhen), el('dt', {}, 'States'), el('dd', {}, c.states.map(s => s.id).join(', ')), el('dt', {}, 'Actions'), el('dd', {}, c.actions.map(a => a.name).join(', '))),
+      el('div', { class: 'row' }, el('button', { class: 'btn small', type: 'button', onclick: () => { const st = flow().steps.find(s => s.comp === c.id); ui.step[ui.project] = st.id; ui.sel = null; location.hash = 'compose'; } }, 'Open in Compose'))))),
+      list.length ? null : el('p', { class: 'muted' }, 'No composition matches "' + ui.lib.q + '".')]; }
+  else if (ui.lib.tab === 'flows') body = el('div', { class: 'grid' }, el('article', { class: 'card' }, el('h3', {}, flow().name), el('p', {}, flow().steps.map(s => s.name).join(' › ')), el('dl', { class: 'kv' }, el('dt', {}, 'Carries'), el('dd', {}, flow().carries.join(', ')), el('dt', {}, 'Scenarios'), el('dd', {}, flow().scenarios.map(s => s.name).join('; '))),
+    el('div', { class: 'row' }, el('a', { class: 'btn small', href: '#playground', style: 'text-decoration:none' }, 'Run in Playground'))));
+  else body = [el('p', { class: 'muted' }, 'Everything this project lets a surface show or ask for. Declared by people; a model never invents an action name.'),
+    el('div', { class: 'tablewrap' }, el('table', {}, el('thead', {}, el('tr', {}, ['Action', 'Kind', 'Sends', 'Used by', 'Safeguard'].map(h => el('th', { scope: 'col' }, h)))), el('tbody', {}, mine().flatMap(c => c.actions.map(a => el('tr', {}, el('td', {}, el('code', {}, a.name)), el('td', {}, a.kind), el('td', {}, a.sends.join(', ') || 'nothing'), el('td', {}, c.name), el('td', {}, a.consequential ? 'Confirmation, single use' : ''))))))),
+    el('div', { class: 'tablewrap' }, el('table', {}, el('thead', {}, el('tr', {}, ['Data', 'Type', 'Used by'].map(h => el('th', { scope: 'col' }, h)))), el('tbody', {}, mine().flatMap(c => c.data.map(d => el('tr', {}, el('td', {}, el('code', {}, d.name)), el('td', {}, d.type), el('td', {}, c.name)))))))];
+  return [head('Library', 'Compositions, flows, and the data and actions they share'), el('div', { class: 'page' }, el('div', { class: 'stack' }, el('p', { class: 'callout' }, 'A thin stub. It shows what belongs here; the search is a plain text filter.'), tabbar, body))];
+}
+function viewDesignSystem() {
+  const tabbar = el('div', { class: 'tabs', role: 'tablist' }, [['rules', 'Rules'], ['components', 'Components']].map(([id, n]) => el('button', { type: 'button', role: 'tab', 'aria-selected': String(ui.ds === id), fk: 'ds:' + id, onclick: () => { ui.ds = id; render(); } }, n)));
+  const usedBy = r => Object.values(COMPS).filter(c => c.states.some(s => r.purpose === '*' || s.purpose === r.purpose));
+  const body = ui.ds === 'rules' ? el('div', { class: 'tablewrap' }, el('table', {}, el('thead', {}, el('tr', {}, ['Rule', 'Why', 'Applies to', 'Compositions it touches'].map(h => el('th', { scope: 'col' }, h)))),
+      el('tbody', {}, RULES.map(r => el('tr', {}, el('td', {}, el('strong', {}, r.title), el('br'), el('code', {}, r.id)), el('td', {}, r.why), el('td', {}, r.purpose === '*' ? 'Every purpose' : PURPOSES[r.purpose].label + (r.project ? ' (project)' : '')), el('td', {}, usedBy(r).map(c => c.name).join(', ')))))))
+    : el('div', { class: 'tablewrap' }, el('table', {}, el('thead', {}, el('tr', {}, ['Component', 'Used in', 'Note'].map(h => el('th', { scope: 'col' }, h)))),
+      el('tbody', {}, COMPONENTS.map(k => { const users = Object.values(COMPS).filter(c => JSON.stringify(c.template || c.states.map(s => s.template)).includes('"c":"' + k + '"') || c.states.some(s => JSON.stringify(s.template || '').includes('"c":"' + k + '"')));
+        return el('tr', {}, el('td', {}, el('code', {}, k)), el('td', {}, users.length ? users.map(c => c.name).join(', ') : 'Not used yet'), el('td', {}, k === 'dropdown-menu' ? 'Not representable in A2UI' : '')); }))));
+  return [head('Design system', 'Astryx sample: what agents may build with, and why'), el('div', { class: 'page' }, el('div', { class: 'stack' },
+    el('p', { class: 'callout' }, 'A thin stub. The rules are the ones this page checks, modelled on the Astryx sample and using its rule ids. "Compositions it touches" is computed, and is what a design-system owner needs before changing a rule.'), tabbar, body))];
+}
+
+/* ---------- Publish ---------- */
+function viewPublish() {
+  const tabs = [['check', 'Check'], ['deliver', 'Deliver'], ['agent', 'Agent view']];
+  const tabbar = el('div', { class: 'tabs', role: 'tablist' }, tabs.map(([id, n]) => el('button', { type: 'button', role: 'tab', 'aria-selected': String(ui.pub.tab === id), fk: 'pub:' + id, onclick: () => { ui.pub.tab = id; render(); } }, n)));
+  let body;
+  if (ui.pub.tab === 'check') {
+    const rows = mine().flatMap(c => c.scenarios.map(sc => { const r = instantiate(c, snapOf(c.id), sc.data); const good = r.ok !== (sc.expect === 'refused');
+      return el('tr', {}, el('td', {}, c.name), el('td', {}, sc.name), el('td', {}, r.state || 'none'), el('td', {}, el('span', { class: 'pill ' + (good ? 'ok' : 'err') }, r.ok ? 'Passes' : sc.expect === 'refused' ? 'Refused, as this scenario expects' : 'Refused'), r.ok ? '' : ' ' + (r.failed[0] ? r.failed[0].rule.title : r.reason))); }));
+    const bad = health();
+    body = [el('p', {}, bad ? el('span', { class: 'pill err' }, bad + ' to fix before publishing') : el('span', { class: 'pill ok' }, 'Ready: every composition behaves as its scenarios expect')),
+      el('div', { class: 'tablewrap' }, el('table', {}, el('thead', {}, el('tr', {}, ['Composition', 'Sample data', 'State chosen', 'Design-system rules'].map(h => el('th', { scope: 'col' }, h)))), el('tbody', {}, rows))),
+      el('div', { class: 'sect' }, el('h3', {}, 'Verification reached ', staged()), el('div', { class: 'tablewrap' }, el('table', {}, el('tbody', {},
+        el('tr', {}, el('th', { scope: 'row' }, 'Messages are correct'), el('td', {}, 'An independent validator accepts them, and independently resolves typed values and action payloads'), el('td', {}, el('span', { class: 'pill warn' }, 'Not yet shown'))),
+        el('tr', {}, el('th', { scope: 'row' }, 'A renderer draws them faithfully'), el('td', {}, 'A separate host draws every governed value, accepts typing, and sends the right payload for each item'), el('td', {}, el('span', { class: 'pill warn' }, 'Not yet shown'))),
+        el('tr', {}, el('th', { scope: 'row' }, 'A2UI 1.0'), el('td', {}, 'Required before public release'), el('td', {}, el('span', { class: 'pill warn' }, 'Not yet verified')))))),
+        el('p', { class: 'muted' }, 'The two claims are reported separately. Publish shows the level actually reached, never the level intended.'))];
+  } else if (ui.pub.tab === 'deliver') {
+    const cfg = '{\n  "mcpServers": {\n    "design-system": { "command": "npx", "args": ["ds-mcp", "--package", "./' + ui.project + '-package"] }\n  }\n}';
+    const pre = el('pre', { tabindex: '0', id: 'cfg' }, cfg);
+    body = [el('div', { class: 'two' }, el('div', { class: 'sect' }, el('h3', {}, 'What an agent gets'), el('ul', { class: 'changes' }, ['The design-system contract and its protocol mapping', 'The derived A2UI catalog', mine().length + ' compositions, with their data, actions, states and sample data', 'The flow and what it carries between steps', 'Validated message examples, each with the inputs that produced it', 'Instructions an agent can read, and a validation report'].map(t => el('li', {}, t)))),
+      el('div', { class: 'sect' }, el('h3', {}, 'Deliver ', staged()), el('div', { class: 'row', style: 'display:flex;gap:6px;flex-wrap:wrap' }, el('button', { class: 'btn', type: 'button', disabled: true }, 'Download package'),
+        el('button', { class: 'btn', type: 'button', onclick: e => { const b = e.currentTarget; navigator.clipboard.writeText(cfg).then(() => { b.textContent = 'Copied'; say('Copied'); }).catch(() => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selected: copy it now'; }); } }, 'Copy agent configuration')), pre,
+        el('p', { class: 'muted' }, 'The download is disabled and the configuration is an example. No package format exists yet.')))];
+  } else {
+    const a = ui.pub.agent, list = mine(); const comp = COMPS[a.comp] || list.find(c => c.id === 'hotel-results') || list[0]; const sc = comp.scenarios.find(s => s.id === a.scen) || comp.scenarios[0];
+    const cs = el('select', { id: 'ag-comp', fk: 'ag-comp', onchange: e => { a.comp = e.target.value; a.scen = null; render(); } }, list.map(c => el('option', { value: c.id }, c.name))); cs.value = comp.id;
+    const ss = el('select', { id: 'ag-scen', fk: 'ag-scen', onchange: e => { a.scen = e.target.value; render(); } }, comp.scenarios.map(s => el('option', { value: s.id }, s.name))); ss.value = sc.id;
+    const r = instantiate(comp, snapOf(comp.id), sc.data);
+    const purpose = PURPOSES[comp.states[comp.states.length - 1].purpose].label;
+    const response = r.ok ? { ok: true, state: r.state, messages: emit(r, comp.id + '-a1b2-1', sc.inputs || {}) } : { ok: false, refused: { rule: r.failed[0] ? r.failed[0].rule.id : 'no-state', title: r.failed[0] ? r.failed[0].rule.title : r.reason, detail: r.failed[0] ? r.failed[0].detail : '', why: r.failed[0] ? r.failed[0].rule.why : '' } };
+    body = [el('p', {}, 'What an agent that has never seen Composer does with the published package. ', el('span', { class: 'muted' }, 'Tool names and shapes are proposals. The third response is computed by this page.')),
+      el('ol', { class: 'steplist' },
+        el('li', {}, el('h3', {}, 'Discover a composition by purpose ', staged()), el('div', { class: 'two' }, el('pre', { tabindex: '0' }, 'search-compositions\n' + JSON.stringify({ purpose: purpose.toLowerCase() }, null, 2)),
+          el('pre', { tabindex: '0' }, JSON.stringify(list.filter(c => c.states.some(s => PURPOSES[s.purpose].label === purpose)).map(c => ({ id: c.id, version: c.version, summary: c.summary })), null, 2)))),
+        el('li', {}, el('h3', {}, 'Read what it needs and what it can ask for'), el('div', { class: 'field', style: 'max-width:360px' }, el('label', { for: 'ag-comp' }, 'Composition'), el('div', { class: 'rowi' }, cs)),
+          el('pre', { tabindex: '0' }, 'get-composition\n' + JSON.stringify({ id: comp.id, useWhen: comp.useWhen, avoidWhen: comp.avoidWhen, parameters: Object.keys(comp.params), data: comp.data.map(d => d.name + ': ' + d.type), actions: comp.actions.map(a2 => ({ name: a2.name, sends: a2.sends, consequential: !!a2.consequential })), states: comp.states.map(s => s.id) }, null, 2))),
+        el('li', {}, el('h3', {}, 'Instantiate it with data'), el('div', { class: 'field', style: 'max-width:360px' }, el('label', { for: 'ag-scen' }, 'Data the agent supplies'), el('div', { class: 'rowi' }, ss)),
+          el('div', { class: 'two' }, el('div', {}, el('p', { class: 'muted' }, 'Request'), el('pre', { tabindex: '0' }, 'instantiate-composition\n' + JSON.stringify({ id: comp.id, version: comp.version, data: sc.data }, null, 2))),
+            el('div', {}, el('p', { class: 'muted' }, r.ok ? 'Response: validated messages, ready to send' : 'Response: refused, with the reason'), el('pre', { tabindex: '0', style: r.ok ? null : 'border-color:var(--err)' }, JSON.stringify(response, null, 1))))))];
+  }
+  return [head('Publish', flow().name + ' package'), el('div', { class: 'page' }, el('div', { class: 'stack' }, tabbar, body))];
+}
+
+/* ---------- wiring it up ---------- */
+const aboutDlg = document.getElementById('about');
+document.getElementById('aboutbtn').addEventListener('click', () => aboutDlg.showModal());
+document.getElementById('aboutclose').addEventListener('click', () => aboutDlg.close());
+window.addEventListener('hashchange', go);
+let band = [wide(), narrow()];
+window.addEventListener('resize', () => { const b = [wide(), narrow()]; if (b[0] !== band[0] || b[1] !== band[1]) { band = b; if (!b[0] && ui.left && ui.right) ui.left = null; render(); } });
+document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ''));
+  if (ui.view !== 'compose' || typing) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+  else if (e.key === 'Escape' && ui.sel) { select(null); render(); }
+});
+const baseRender = render;
+render = function (opts) {
+  const ae = document.activeElement, active = ae && ae.dataset ? ae.dataset.fk : null;
+  const inSurface = !!(ae && ae.closest && ae.closest('.surface'));
+  baseRender(opts);
+  if (ui.view === 'playground' && ui.pgtab === 'timeline') { const sd = main.querySelector('[data-scroll="pgside"]'); if (sd) sd.scrollTop = sd.scrollHeight; }
+  if (opts && opts.focusAfterReplace && inSurface && ui.view === 'playground' && run && run.cur) {
+    const keep = run.sameComp && active && main.querySelector('[data-fk="' + CSS.escape(active) + '"]');
+    if (keep) keep.focus(); else { const h = main.querySelector('.stage .ds-h, .stage .ds-alert-t'); if (h) { h.tabIndex = -1; h.focus(); } }
+  }
+};
+if (!wide()) ui.left = null;
+go();
+})();
+</script>
