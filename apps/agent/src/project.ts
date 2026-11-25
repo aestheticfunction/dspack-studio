@@ -41,6 +41,7 @@ import {
   preservesLedger,
   finding,
   projectEmit,
+  scriptedReplaySource,
   type ComposerFinding,
   type ProjectManifest,
   type SurfaceToEmit,
@@ -484,13 +485,13 @@ async function runProject(ctx: ProjectContext, body: Record<string, unknown>, re
   // comes through per-run; the agent owns the endpoint + any credential.
   const provider = parseProviderConfig(props.provider);
 
-  const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
   // LAST match FOR THIS INTENT: accepted chat results join the corpus at the
   // end, and the deterministic twin plays the owner's latest accepted
   // example. Never borrow another intent's example — a screen built for a
   // different intent is not a deterministic stand-in, it is a wrong answer
-  // reported as a right one (#43).
-  const example = examples.filter((e) => e.intent === intent).at(-1);
+  // reported as a right one (#43). The browser names the same example on the
+  // turn (scriptedReplaySource is shared), so a replay is labelled as one.
+  const example = scriptedReplaySource(contract.examples as Array<{ intent: string; surface: unknown }> | undefined, intent)?.example;
   if (modelRef === "scripted" && !example) {
     throw new ProjectError(
       400,

@@ -29,6 +29,7 @@ import {
   createCallRecorder,
   planDeterministic,
   reconcilePlan,
+  scriptedReplaySource,
   type BlockChoice,
   type CallRecorder,
   type GoalPlan,
@@ -356,8 +357,7 @@ export async function runHostedBlockBuild(args: {
     surfaceRaw = gatewayAdapter({ ...(recorder ? { recorder } : {}), refinement, maxCalls: 1 });
     blockRaw = gatewayAdapter({ ...(recorder ? { recorder } : {}), maxCalls: 1 });
   } else {
-    const examples = (contract.examples as Array<{ intent: string; surface: unknown }> | undefined) ?? [];
-    const example = examples.filter((e) => e.intent === intent).at(-1);
+    const example = scriptedReplaySource(contract.examples as Array<{ intent: string; surface: unknown }> | undefined, intent)?.example;
     surfaceRaw = example
       ? recordedScripted(scriptedRunAdapter(example.surface, input.conversation), recorder, refinement)
       : { id: "fake:scripted", generate: async () => Promise.reject(new AdapterOutputError("fake:scripted", `scripted mode has no surface for '${intent}'`)) };

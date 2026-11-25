@@ -14,7 +14,7 @@
 import { useMemo, useState } from "react";
 import { buildVocabulary } from "@aestheticfunction/dspack-spec/lib/validate.mjs";
 import { useComposer } from "../state";
-import { ViewHeader } from "../ui";
+import { ViewHeader, ViewMessage } from "../ui";
 import { contractSurfaces, lintOneSurface } from "../validation";
 
 const field = {
@@ -143,7 +143,7 @@ export function GovernanceView() {
   const [issue, setIssue] = useState<string | null>(null);
 
   const vocab = useMemo(() => (contract ? buildVocabulary(contract) : null), [contract]);
-  if (!contract || !vocab) return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No contract loaded.</p>;
+  if (!contract || !vocab) return <ViewMessage title="Governance">No contract loaded.</ViewMessage>;
 
   const componentIds = [...vocab.components.keys()];
   const subIds = [...vocab.subComponents.keys()];

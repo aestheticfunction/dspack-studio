@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Page } from "@playwright/test";
 
 /**
@@ -34,6 +35,17 @@ async function scriptedBuild(page: Page, intent: string, goal: string) {
   await page.getByTestId("build-prompt").fill(goal);
   await page.getByTestId("build-run").click();
   await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+}
+
+/**
+ * A scripted edit of turn `turn - 1`. A Demo replay of a sample the project
+ * already has is never saved (it would only add a second prompt for the same
+ * surface: M0 trust fix a); the scripted edit is a new surface to keep.
+ */
+async function scriptedEdit(page: Page, turn: number) {
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId(`build-gate-summary-${turn}`)).toContainText("Follows your design-system rules", { timeout: 30_000 });
 }
 
 test("first run is the Projects hub, and it loads clean", async ({ page }) => {
@@ -193,10 +205,14 @@ test("a built surface becomes first-class project content: accept → Preview de
   await page.goto("/");
   await newProject(page, "shadcn", "Ownership");
   await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
+  // The unedited replay is a sample the project already has: nothing to save.
+  await expect(page.getByTestId("build-already-1")).toContainText("Already in your project");
+  await expect(page.getByTestId("build-accept-1")).toHaveCount(0);
+  await scriptedEdit(page, 2);
 
   // Accept in the BROWSER — no agent required to own browser-authored work.
-  await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText(/ex\.chat-\d+/);
 
   // Preview opens on the project's OWN surface, with the reference corpus
   // clearly separated — never one anonymous list.
@@ -256,8 +272,9 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await page.goto("/");
   await newProject(page, "shadcn", "First impression");
   await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
-  await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await scriptedEdit(page, 2);
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText(/ex\.chat-\d+/);
 
   await page.getByTestId("nav-preview").click();
 
@@ -271,9 +288,12 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await expect(page.locator('[data-testid^="surface-ex."]').first()).toHaveAttribute("data-testid", "surface-ex.chat-1");
   await expect(own).toHaveClass(/st-btn--active/);
 
-  // B7 — it reads as what the person asked for; the canonical id stays beside
-  // it as metadata, never as the headline.
-  await expect(own).toContainText("let people permanently delete their account");
+  // B7 — it reads as what it is; the canonical id stays beside it as
+  // metadata, never as the headline. A scripted build is a demo replay of a
+  // saved surface, so it is named for that surface, never for the words typed
+  // (M0 trust fix: a replay must not read as the answer to a request).
+  await expect(own).toContainText("(demo replay)");
+  await expect(own).not.toContainText("let people permanently delete their account");
   await expect(own).toContainText("ex.chat-1");
   await expect(page.getByTestId("preview-your-surfaces")).toContainText("Your surfaces");
 
@@ -288,6 +308,305 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await page.getByTestId("nav-flows").click();
   await expect(page.getByTestId("preview-flows")).toBeVisible();
   await expect(page.getByTestId("flows-empty")).toBeVisible();
+});
+
+/**
+ * M0 trust fix (a): a demo replay is never presented, or saved, as the answer
+ * to an unrelated request. The hotel request is the case found in the live
+ * audit: scripted mode replays the project's plan-comparison surface for it.
+ */
+const HOTEL =
+  "Create a hotel reservation experience where a user can search for hotels by destination, check-in date, check-out date and number of guests, compare available hotels, select a hotel and room, review the reservation details, and confirm the booking.";
+
+async function exportedExamples(page: Page) {
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("project-export").click()]);
+  return (JSON.parse(readFileSync((await download.path())!, "utf8")) as {
+    contract: { examples: Array<{ id: string; name?: string; prompt?: string; description?: string; surface: unknown }> };
+  }).contract.examples;
+}
+
+test("a demo replay names what it replays, adds no duplicate, and a scripted edit of it is saved under that sample", async ({ page }) => {
+  await page.goto("/");
+  await newProject(page, "astryx", "Replay honesty");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-prompt").fill(HOTEL);
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+
+  // Before the result: what it is, and what it is not.
+  const notice = page.getByTestId("build-replay-1");
+  await expect(notice).toContainText("Demo replay, not generated from your request");
+  await expect(notice).toContainText("Plan comparison");
+  await expect(notice).toContainText("ex.plan-comparison");
+  // The unedited replay IS that sample: saving it would add the same surface
+  // under a second prompt (a duplicate few-shot pairing). Nothing is offered.
+  await expect(page.getByTestId("build-already-1")).toContainText("Already in your project as “Plan comparison” ex.plan-comparison");
+  await expect(page.getByTestId("build-accept-1")).toHaveCount(0);
+
+  // A scripted "refinement" never applies the instruction, and says so.
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-replay-2")).toContainText("Demo replay: your instruction was not applied");
+  await expect(page.getByTestId("build-replay-2")).toContainText("this thread started from “Plan comparison”");
+  await expect(page.getByTestId("build-accept-2")).toHaveText("Add this sample to project");
+
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText("Plan comparison (demo replay)");
+
+  // The saved record: the sample's own prompt, a description of where it came
+  // from, and no trace of the typed request or the unapplied instruction.
+  const examples = await exportedExamples(page);
+  const source = examples.find((e) => e.id === "ex.plan-comparison")!;
+  const saved = examples.find((e) => e.id === "ex.chat-1")!;
+  expect(saved.name).toBe("Plan comparison (demo replay)");
+  expect(saved.prompt).toBe(source.prompt);
+  expect(saved.description).toBe("Saved from a demo replay of ex.plan-comparison. It was not generated from a request.");
+  expect(JSON.stringify(saved)).not.toContain("hotel");
+  expect(JSON.stringify(saved)).not.toContain("clearer");
+});
+
+/**
+ * A model's work is recorded under the words it applied. /api/models and
+ * /api/propose are stubbed, so no model is called: planning answers with a
+ * fixed purpose, generation answers with a fixed surface.
+ */
+async function stubHosted(page: Page, intent: string, surface: unknown) {
+  const posts: Array<{ kind: "plan" | "generation"; body: Record<string, any> }> = [];
+  await page.route("**/api/models", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }));
+  await page.route("**/api/propose", (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}") as Record<string, any>;
+    const kind = "$defs" in (body.jsonSchema ?? {}) ? "generation" : "plan";
+    posts.push({ kind, body });
+    const out = kind === "plan" ? { intent, feasible: true, restated: "A stubbed restatement.", reason: "stub" } : surface;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ json: out, raw: JSON.stringify(out), model: "stub", usage: { inputTokens: 1, outputTokens: 1 }, calls: [{ inputTokens: 1, outputTokens: 1, outcome: "ok", durationMs: 1 }] }),
+    });
+  });
+  return posts;
+}
+
+function astryxExample(id: string) {
+  const doc = JSON.parse(readFileSync(new URL("../apps/composer/astryx-project/astryx.dspack.json", import.meta.url), "utf8")) as {
+    examples: Array<{ id: string; name: string; prompt: string; surface: unknown }>;
+  };
+  return doc.examples.find((e) => e.id === id)!;
+}
+
+test("a model's refinement of a demo replay keeps the replay ancestry, is not called a replay, and never records the typed request", async ({ page }) => {
+  const sample = astryxExample("ex.plan-comparison");
+  const refined = JSON.parse(JSON.stringify(sample.surface).replace('"Choose a plan"', '"Choose a yearly plan"'));
+  expect(JSON.stringify(refined)).toContain("Choose a yearly plan");
+  const posts = await stubHosted(page, "transactional-review", refined);
+  await page.goto("/");
+  await newProject(page, "astryx", "Replay ancestry");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-prompt").fill(HOTEL);
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+
+  // A real model applies the refinement to the replayed sample.
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill("add a yearly price");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  expect(posts.filter((p) => p.kind === "generation")).toHaveLength(1);
+  await expect(page.getByTestId("build-canvas-2")).toContainText("Choose a yearly plan");
+  const notice = page.getByTestId("build-replay-2");
+  await expect(notice).toContainText("Refined from a demo sample");
+  await expect(notice).toContainText("Plan comparison");
+  await expect(notice).not.toContainText("Demo replay");
+  await expect(page.getByTestId("build-accept-2")).toHaveText("Add to project");
+  await expect(page.getByTestId("build-accept-note-2")).toContainText("“Plan comparison (refined)”");
+
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText("Plan comparison (refined)");
+  const saved = (await exportedExamples(page)).find((e) => e.id === "ex.chat-1")!;
+  expect(saved.name).toBe("Plan comparison (refined)");
+  expect(saved.prompt).toBe(`${sample.prompt} — refined: add a yearly price`);
+  expect(saved.description).toContain("Refined by a model from the demo sample ex.plan-comparison");
+  expect(saved.name).not.toContain("demo replay");
+  expect(JSON.stringify(saved)).not.toContain("hotel");
+});
+
+test("a generated build is titled and saved under the request that produced it", async ({ page }) => {
+  const surface = JSON.parse(JSON.stringify(astryxExample("ex.plan-comparison").surface).replace('"Choose a plan"', '"Pick a support plan"'));
+  await stubHosted(page, "transactional-review", surface);
+  const goal = "let a customer compare our support plans and pick one";
+  await page.goto("/");
+  await newProject(page, "astryx", "Generated provenance");
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill(goal);
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-replay-1")).toHaveCount(0);
+  await expect(page.getByTestId("build-accept-1")).toHaveText("Add to project");
+  await page.getByTestId("build-accept-1").click();
+  await expect(page.getByTestId("build-accepted-1")).toContainText(goal);
+  const saved = (await exportedExamples(page)).find((e) => e.id === "ex.chat-1")!;
+  expect(saved.name).toBe(goal);
+  expect(saved.prompt).toBe(goal);
+  expect(saved).not.toHaveProperty("description");
+});
+
+/**
+ * M0 trust fix (b): passing the design system's rules is not the same as doing
+ * what was asked, and whether anything can generate is said before typing.
+ */
+test("with only the scripted twin, the hub and Build say generation is unavailable before anyone types", async ({ page }) => {
+  // /api/models is stubbed to scripted only, as production answers while its
+  // kill switch is off, so this holds wherever the spec runs: this spec also
+  // runs against production after a deploy, where hosted AI may be on. The
+  // answer is delayed: until it arrives nothing is claimed either way.
+  let answer!: () => void;
+  const answered = new Promise<void>((resolve) => (answer = resolve));
+  await page.route("**/api/models", async (route) => {
+    await answered;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted"] }) });
+  });
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await expect(page.getByTestId("availability-hub")).toHaveCount(0);
+  answer();
+  await expect(page.getByTestId("availability-hub")).toContainText("AI generation is not available here right now");
+  await newProject(page, "astryx", "Availability");
+  await expect(page.getByTestId("availability-build")).toContainText("do not answer what you type");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-prompt").fill("a booking for a hotel room");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  // One notice per turn: the replay notice says it does not answer the
+  // request, so no second fulfilment line repeats it.
+  await expect(page.getByTestId("build-replay-1")).toContainText("Demo replay, not generated from your request");
+  await expect(page.getByTestId("build-fulfilment-1")).toHaveCount(0);
+  // A scripted edit is no answer either, and says so once.
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-replay-2")).toContainText("your instruction was not applied");
+  await expect(page.getByTestId("build-fulfilment-2")).toHaveCount(0);
+});
+
+test("a passing hosted build separates rule checks from doing what was asked, and no availability warning shows", async ({ page }) => {
+  const contract = JSON.parse(
+    readFileSync(fileURLToPath(new URL("../apps/composer/shadcn-v3-project/shadcn-ui.dspack.json", import.meta.url)), "utf8"),
+  ) as { examples: Array<{ intent: string; surface: unknown }> };
+  const surface = contract.examples.find((e) => e.intent === "destructive-action")!.surface;
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  await page.route("**/api/propose", (route) => {
+    const request = JSON.parse(route.request().postData() ?? "{}") as { jsonSchema?: Record<string, unknown> };
+    const generation = !!request.jsonSchema && "$defs" in request.jsonSchema;
+    const json = generation ? surface : { intent: "destructive-action", feasible: true, restated: "Let people permanently delete their account." };
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ json, model: "claude-haiku-4.5", usage: { inputTokens: 100, outputTokens: 10 }, calls: [{ inputTokens: 100, outputTokens: 10, outcome: "ok", durationMs: 10 }] }),
+    });
+  });
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await expect(page.getByTestId("availability-hub")).toHaveCount(0);
+  await newProject(page, "shadcn", "Fulfilment");
+  await expect(page.getByTestId("availability-build")).toHaveCount(0);
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill("let people permanently delete their account");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-fulfilment-1")).toContainText("They do not confirm it does what you asked");
+});
+
+/**
+ * M0 trust fix (c): page structure a screen-reader or keyboard user can rely on.
+ * Every working view names itself with one h1; the navigation says which view
+ * is current; the first Tab reaches a skip link that lands on the content.
+ */
+test("every working view has one h1, the navigation marks the current view, and a skip link reaches the content", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  const views: Array<[string, RegExp]> = [
+    ["build", /build/i],
+    ["preview", /preview/i],
+    ["surfaces", /surfaces/i],
+    ["flows", /flows/i],
+    ["inventory", /catalog/i],
+    ["governance", /governance/i],
+    ["validate", /checks/i],
+    ["settings", /settings/i],
+  ];
+  for (const [id, name] of views) {
+    await page.getByTestId(`nav-${id}`).click();
+    const h1 = page.locator("main h1");
+    await expect(h1, `view ${id}`).toHaveCount(1);
+    await expect(h1).toHaveText(name);
+    await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("aria-current", "page");
+    await expect(page.locator('nav[aria-label="Primary"] [aria-current="page"], [data-testid="nav-settings"][aria-current="page"]')).toHaveCount(1);
+  }
+  // Views opened from inside a view are named too: a component from the
+  // Catalog, and the Surfaces editor for a new and an existing surface.
+  await page.getByTestId("nav-inventory").click();
+  await page.locator('[data-testid^="inventory-"]').first().click();
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await page.getByTestId("nav-surfaces").click();
+  await page.locator('[data-testid^="edit-ex."], [data-testid^="copy-ex."]').first().click();
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await expect(page.locator("main h1")).toHaveText(/(Edit|New) surface/);
+
+  // From a fresh load, the first Tab stop is the skip link.
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("skip-link")).toBeFocused();
+  await expect(page.getByTestId("skip-link")).toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main#main-content")).toBeFocused();
+});
+
+/** M0 trust fix (d): Checks reflows at phone width; long findings scroll in their own region. */
+test("Checks does not scroll the page sideways at 390 px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await page.getByTestId("nav-validate").click();
+  await expect(page.locator("main table").first()).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow, "page scrolls sideways by this many pixels").toBeLessThanOrEqual(0);
+  await expect(page.getByTestId("findings-scroll").first()).toBeVisible();
+});
+
+/**
+ * Checks' findings regions: each has its own name; each is a keyboard stop
+ * only while it scrolls; and the view passes axe at desktop and phone width.
+ */
+test("Checks: distinct region names, a tab stop only where it scrolls, and no axe violations", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await page.getByTestId("nav-validate").click();
+  await expect(page.locator("main table").first()).toBeVisible();
+  await page.getByTestId("fidelity-notes").locator("summary").click();
+  const regions = page.getByTestId("findings-scroll");
+  const names = await regions.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+  expect(new Set(names).size, `region names: ${names.join(", ")}`).toBe(names.length);
+  expect(names).toContain("Fidelity notes");
+  const scan = async (label: string) => {
+    const result = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.nodes.length}`), label).toEqual([]);
+  };
+  // Desktop: wide enough that nothing scrolls, so nothing is a tab stop.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const region of await regions.all()) {
+    const scrolls = await region.evaluate((e) => e.scrollWidth > e.clientWidth + 1);
+    expect(await region.getAttribute("tabindex"), "tab stop iff it scrolls").toBe(scrolls ? "0" : null);
+  }
+  await scan("Checks at 1440 px");
+  // Phone: the regions that now scroll become tab stops.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => regions.evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).every((e) => e.getAttribute("tabindex") === "0"))).toBe(true);
+  await scan("Checks at 390 px");
 });
 
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
@@ -426,14 +745,16 @@ test("flows: create, walk, advance, persist, and round-trip through export/impor
   // Two accepted surfaces to compose: a record detail whose buttons carry
   // known emitted actions, then a destructive confirmation.
   await scriptedBuild(page, "record-detail", "show one order in full detail");
-  await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toContainText("ex.chat-1");
+  await scriptedEdit(page, 2);
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText("ex.chat-1");
   await page.getByTestId("build-intent").selectOption("destructive-action");
   await page.getByTestId("build-prompt").fill("let people permanently delete their account");
   await page.getByTestId("build-run").click();
-  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
-  await page.getByTestId("build-accept-2").click();
-  await expect(page.getByTestId("build-accepted-2")).toContainText("ex.chat-2");
+  await expect(page.getByTestId("build-gate-summary-3")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await scriptedEdit(page, 4);
+  await page.getByTestId("build-accept-4").click();
+  await expect(page.getByTestId("build-accepted-4")).toContainText("ex.chat-2");
 
   // Author a flow over the two surfaces, in Preview ("Your flows" — a
   // first-class concept, distinct from a single Surface).
@@ -562,8 +883,12 @@ test("build a flow: plan deterministically, edit the plan, create the pending fl
   await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
 
   // Accept turn 1 — PRE-TARGETED to its step by the driver (Phase B binding).
+  // It is a demo replay of a sample the project already has, so nothing new
+  // is saved: the step is pointed at that existing surface (M0 trust fix a).
+  await expect(page.getByTestId("build-accept-1")).toHaveText("Use it for this flow step");
   await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await expect(page.getByTestId("build-accepted-1")).toContainText("Already in your project");
+  await expect(page.getByTestId("build-accepted-1")).toContainText("nothing new was saved");
   await expect(page.getByTestId("build-accepted-1")).toContainText("Review the order");
 
   // Half-built flow: step 2 is visibly PENDING in Preview — an outline state,
@@ -660,8 +985,9 @@ test("the Catalog export is today's: the catalog and each surface's messages, an
   await page.goto("/");
   await newProject(page, "shadcn", "Catalog export");
   await scriptedBuild(page, "destructive-action", "let people permanently delete their account");
-  await page.getByTestId("build-accept-1").click();
-  await expect(page.getByTestId("build-accepted-1")).toContainText(/ex\.chat-\d+/);
+  await scriptedEdit(page, 2);
+  await page.getByTestId("build-accept-2").click();
+  await expect(page.getByTestId("build-accepted-2")).toContainText(/ex\.chat-\d+/);
   await page.getByTestId("nav-preview").click();
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-catalog").click()]);
   expect(download.suggestedFilename()).toMatch(/-catalog\.json$/);

@@ -23,6 +23,8 @@ import {
   describeTimings,
   flowPlanSourceNote,
   intentLabel,
+  existingExampleFor,
+  replayLabel,
   type FlowPlan,
 } from "@dspack-studio/composer-core";
 import { mintStepId, nextFlowId, type StepBinding } from "../flows";
@@ -31,6 +33,7 @@ import type { BuildTurn, FlowBuildState } from "../state";
 import { useComposer } from "../state";
 import { blockingFindings, surfaceEntriesById, surfaceTitle } from "../surface-identity";
 import { Eyebrow } from "../ui";
+import { GenerationAvailability } from "./availability";
 import { browserEmit } from "../validation";
 
 const GATE_COLOR: Record<string, string> = { PASS: "var(--ok)", FAIL: "var(--err)", SKIPPED: "var(--fg-dim)" };
@@ -133,12 +136,6 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
           {turn.blockNote ? ` ${turn.blockNote}` : ""}
         </span>
       )}
-      {turn.modelRef === "scripted" && !turn.refinement && (
-        <span style={{ display: "block", color: "var(--warn)", marginTop: 2 }}>
-          Scripted mode replays a surface this project already has for this context — switch to a hosted or local model
-          to generate for your exact words.
-        </span>
-      )}
       {onChange && (
         <>
           {" "}
@@ -156,6 +153,70 @@ function ContextChip({ turn, onChange }: { turn: BuildTurn; onChange?: () => voi
     </p>
   );
 }
+
+/**
+ * Demo replay (scripted mode) never reads the words typed. A fresh replay plays
+ * a surface the project already has; a scripted "refinement" only marks the
+ * previous result. Say which, before the result, so the gate checks below are
+ * not read as "this is what you asked for". A model's refinement of a replay
+ * is not a replay, but says where its thread began.
+ */
+function ReplayNotice({ turn }: { turn: BuildTurn }) {
+  const source = turn.replayOf;
+  const sample = (s: NonNullable<BuildTurn["replayOf"]>) => (
+    <>
+      &ldquo;{replayLabel(s)}&rdquo;
+      {s.id.startsWith("block:") ? "" : (
+        <>
+          {" "}
+          (<code>{s.id}</code>)
+        </>
+      )}
+    </>
+  );
+  if (turn.modelRef === "scripted" && !turn.refinement) {
+    return (
+      <div data-testid={`build-replay-${turn.id}`} role="note" style={replayBox("var(--warn)")}>
+        <p style={{ margin: 0, color: "var(--warn)" }}>
+          <strong>Demo replay, not generated from your request.</strong>
+        </p>
+        <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
+          {source ? <>This is {sample(source)}, a surface this project already has for the same purpose.</> : <>This is a surface this project already has for the same purpose.</>}{" "}
+          To build from your own words, choose a hosted or local model.
+        </p>
+      </div>
+    );
+  }
+  if (turn.modelRef === "scripted") {
+    return (
+      <div data-testid={`build-replay-${turn.id}`} role="note" style={replayBox("var(--warn)")}>
+        <p style={{ margin: 0, color: "var(--warn)" }}>
+          <strong>Demo replay: your instruction was not applied.</strong>
+        </p>
+        <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
+          Scripted mode only marks the previous result as refined{source ? <>; this thread started from {sample(source)}</> : null}. To apply an
+          instruction, choose a hosted or local model.
+        </p>
+      </div>
+    );
+  }
+  if (turn.replayAncestor) {
+    return (
+      <div data-testid={`build-replay-${turn.id}`} role="note" style={replayBox("var(--line)")}>
+        <p style={{ margin: 0, color: "var(--fg)" }}>
+          <strong>Refined from a demo sample.</strong>
+        </p>
+        <p style={{ margin: "4px 0 0", color: "var(--fg-body)" }}>
+          A model applied your instruction to {sample(turn.replayAncestor)}, which a demo replay showed earlier in this thread. The request typed
+          before that replay was not applied.
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
+const replayBox = (border: string) => ({ border: `1px solid ${border}`, borderRadius: 2, padding: "8px 10px", margin: "4px 0 8px", fontSize: 13 });
 
 /** A vocabulary gap: the goal is understood, but the approved catalog cannot
  *  express it. Surfaced conversationally (never a silent generation failure),
@@ -310,6 +371,11 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
   // Blank by default: identity is minted from the contract ON DISK, so a
   // reload or a second tab can never collide with saved work (#42).
   const [exampleId, setExampleId] = useState("");
+  // A demo replay of a surface the project already has: nothing new to save.
+  const already =
+    turn.modelRef === "scripted" && turn.progress.surface
+      ? existingExampleFor((contract?.examples as Array<{ id: string; name?: string; intent?: string; surface?: unknown }> | undefined) ?? [], turn.intent, turn.progress.surface)
+      : null;
   const locked = buildBusy || busy !== null;
   // The Accept button unmounts on success; a keyboard user's focus must
   // land on the confirmation, never fall to the document body.
@@ -329,12 +395,22 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       </p>
 
       <ContextChip turn={turn} />
+      <ReplayNotice turn={turn} />
 
       {turn.kind === "vocab-gap" ? (
         <VocabGap turn={turn} />
       ) : (
         <>
           <GateSummary turn={turn} />
+          {/* One notice per turn: a scripted turn's replay notice already says
+              it does not answer the request, so the fulfilment line is for a
+              model's result only. */}
+          {turn.progress.outcome === "passed" && turn.modelRef !== "scripted" && (
+            <p data-testid={`build-fulfilment-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-body)", margin: "0 0 6px" }}>
+              These checks confirm the result follows your design system. They do not confirm it does what you asked: compare it with your
+              request before you save it.
+            </p>
+          )}
           <details style={{ marginBottom: 4 }}>
             <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--fg-dim)" }}>validation detail (gates, repairs, emit)</summary>
             <ol data-testid={`build-pipeline-${turn.id}`} style={{ listStyle: "none", padding: "4px 0 0", fontSize: 12, fontFamily: "var(--mono)" }}>
@@ -451,7 +527,27 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
 
       <TurnCanvas turn={turn} />
 
-      {canAcceptTurn(turn.progress) && !turn.accepted && (
+      {canAcceptTurn(turn.progress) && !turn.accepted && already && (
+        <div style={{ marginTop: 10 }}>
+          <p data-testid={`build-already-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", margin: 0 }}>
+            Already in your project as {already.name ? <>&ldquo;{already.name}&rdquo; </> : null}
+            <code>{already.id}</code>. A demo replay of it adds nothing new, so nothing is saved.
+            {binding ? " The flow step can show the existing surface." : ""}
+          </p>
+          {binding && (
+            <button
+              className="st-btn"
+              style={{ marginTop: 6 }}
+              disabled={locked}
+              onClick={() => void acceptBuildTurn(turn.id, undefined, binding)}
+              data-testid={`build-accept-${turn.id}`}
+            >
+              Use it for this flow step
+            </button>
+          )}
+        </div>
+      )}
+      {canAcceptTurn(turn.progress) && !turn.accepted && !already && (
         <div style={{ marginTop: 10 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
@@ -469,10 +565,23 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
               onClick={() => void acceptBuildTurn(turn.id, exampleId.trim() || undefined, binding)}
               data-testid={`build-accept-${turn.id}`}
             >
-              Add to project
+              {turn.modelRef === "scripted" ? "Add this sample to project" : "Add to project"}
             </button>
           </div>
           <p data-testid={`build-accept-note-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 6 }}>
+            {turn.modelRef === "scripted" && turn.replayOf && (
+              <>
+                It is saved as &ldquo;{replayLabel(turn.replayOf)} (demo replay)&rdquo; under that sample&rsquo;s own description, never under
+                your request.{" "}
+              </>
+            )}
+            {turn.modelRef === "scripted" && !turn.replayOf && <>It is saved under the words a model applied; this edit&rsquo;s instruction is not recorded. </>}
+            {turn.modelRef !== "scripted" && turn.replayAncestor && (
+              <>
+                It is saved as &ldquo;{replayLabel(turn.replayAncestor)} (refined)&rdquo; under that sample&rsquo;s description and the
+                instructions a model applied, never under the request typed before the replay.{" "}
+              </>
+            )}
             {mode === "agent"
               ? "Saves this surface into your repository's contract on disk."
               : isExample
@@ -486,9 +595,18 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
       )}
       {turn.accepted && (
         <p ref={accepted} tabIndex={-1} data-testid={`build-accepted-${turn.id}`} style={{ fontSize: 12, color: "var(--ok)" }}>
-          Saved as &ldquo;{savedTitle}&rdquo; <code>{turn.accepted}</code>
-          {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows this surface</>} — it is one of
-          your project&rsquo;s surfaces, and context the next build learns from.
+          {turn.acceptedExisting ? (
+            <>
+              Already in your project as &ldquo;{savedTitle}&rdquo; <code>{turn.accepted}</code>; nothing new was saved
+              {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows it</>}.
+            </>
+          ) : (
+            <>
+              Saved as &ldquo;{savedTitle}&rdquo; <code>{turn.accepted}</code>
+              {turn.acceptedIntoStep && <> — flow step &ldquo;{turn.acceptedIntoStep}&rdquo; now shows this surface</>} — it is one of
+              your project&rsquo;s surfaces, and context the next build learns from.
+            </>
+          )}
         </p>
       )}
     </article>
@@ -653,7 +771,8 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
     const hidden = byTarget.size - shown.length;
     return (
       <section>
-        <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
+        {/* The view's one h1, styled as the h2 it replaced (M0 trust fix c). */}
+        <h1 style={{ fontFamily: "var(--hl)", fontSize: 15, fontWeight: "bold", textTransform: "uppercase", color: "var(--fg)", margin: "0.83em 0" }}>Build</h1>
         <p style={{ fontSize: 13, color: "var(--warn)" }} data-testid="build-not-ready">
           Not ready to build yet: {readiness.reason}
         </p>
@@ -710,11 +829,12 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
 
   return (
     <section style={{ maxWidth: 840 }}>
-      <Eyebrow>Build</Eyebrow>
+      <Eyebrow as="h1">Build</Eyebrow>
       <p className="af-lead" style={{ marginTop: 0, fontSize: 15 }}>
         Describe what you want, in your own words. Composer works out the governed context, builds it from this
         project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
       </p>
+      <GenerationAvailability where="build" />
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
         <button
           className={`st-btn st-btn--dashed${buildMode === "flow" ? " st-btn--active" : ""}`}
