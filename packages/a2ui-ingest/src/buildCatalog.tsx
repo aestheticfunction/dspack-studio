@@ -12,7 +12,7 @@
  * vocabulary) but renders a visible "unimplemented" placeholder, which is distinct from the
  * renderer's "Unknown component" state (a name absent from the Catalog entirely).
  */
-import type { FC } from "react";
+import { createElement, type FC } from "react";
 import { Catalog } from "@a2ui/web_core/v0_9";
 import {
   basicCatalog,
@@ -45,6 +45,44 @@ function makeUnimplemented(name: string): FC<any> {
   return Placeholder;
 }
 
+/**
+ * The binder (`@a2ui/web_core` GenericBinder, pinned and at upstream head
+ * alike) gives every DYNAMIC property a setter (`value` -> `setValue`) and
+ * that setter writes ONLY when the raw property is a data binding
+ * (`{path}`, or `{"@path"}` in A2UI 1.0); otherwise it does nothing. A
+ * renderer cannot tell the two apart, so a controlled input that trusts the
+ * setter drops every keystroke on an unbound field.
+ *
+ * Keep a setter only where it can write. A renderer then sees a setter for a
+ * bound property (two-way binding, unchanged) and none for an unbound one,
+ * where it keeps the typed value itself for the surface's lifetime and sends
+ * nothing: the behaviour of upstream's own text fields, which bind their
+ * value one way and keep what is typed in the input (R0 decision 16).
+ */
+export function onlyBoundSetters(props: Record<string, unknown>, raw: Record<string, unknown> | undefined): Record<string, unknown> {
+  let out = props;
+  for (const key of Object.keys(props)) {
+    const match = /^set([A-Z].*)$/.exec(key);
+    if (!match || typeof props[key] !== "function") continue;
+    const name = match[1]!.charAt(0).toLowerCase() + match[1]!.slice(1);
+    const value = raw?.[name];
+    const bound = !!value && typeof value === "object" && ("path" in value || "@path" in value);
+    if (bound) continue;
+    if (out === props) out = { ...props };
+    delete out[key];
+  }
+  return out;
+}
+
+function withBoundSetters(Render: FC<any>): FC<any> {
+  const Wrapped: FC<any> = (args) => {
+    const props = onlyBoundSetters(args.props ?? {}, args.context?.componentModel?.properties);
+    return createElement(Render, props === args.props ? args : { ...args, props });
+  };
+  Wrapped.displayName = `WithBoundSetters(${Render.displayName ?? Render.name ?? "Render"})`;
+  return Wrapped;
+}
+
 export function buildCatalog(catalog: Record<string, any>, registry: Registry): BuiltCatalog {
   const names = Object.keys(catalog.components ?? {});
   const impls: ReactComponentImplementation[] = [];
@@ -65,7 +103,7 @@ export function buildCatalog(catalog: Record<string, any>, registry: Registry): 
 
     const customRender = registry.custom[name];
     if (customRender) {
-      impls.push(createComponentImplementation(api, customRender as any));
+      impls.push(createComponentImplementation(api, withBoundSetters(customRender) as any));
       continue;
     }
 

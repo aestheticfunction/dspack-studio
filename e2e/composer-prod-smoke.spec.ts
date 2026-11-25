@@ -762,3 +762,35 @@ test("the default build ships no interface-block code (docs/BLOCKS.md: blocks st
     }
   }
 });
+
+/**
+ * Decision 16 (R0 review): a text field whose value is not bound to the data
+ * model keeps what the person types for the life of the surface, and sends
+ * nothing anywhere. Before the fix the field stayed empty: the upstream
+ * binder always supplies a setter, which writes only to a bound path, so the
+ * renderers' local-value fallback never ran. Checked in both native design
+ * systems, on a packaged sample whose fields are unbound.
+ */
+for (const [system, sample] of [
+  ["astryx", "ex.signup-basic"],
+  ["shadcn", "ex.expense-report-form"],
+] as const) {
+  test(`an unbound ${system} text field keeps what is typed and dispatches nothing`, async ({ page }) => {
+    await page.goto("/");
+    await page.getByTestId(`example-open-${system}`).click();
+    await page.getByTestId("nav-preview").click();
+    await page.getByTestId(`registry-${system}`).click();
+    await page.getByTestId(`surface-${sample}`).click();
+    const field = page.locator('[data-project-canvas] input[type="text"]').first();
+    await expect(field).toBeVisible();
+    await field.click();
+    await field.pressSequentially("Ada Lovelace");
+    await expect(field).toHaveValue("Ada Lovelace");
+    // Editing in the middle keeps the rest: the value is the field's own.
+    await field.press("Home");
+    await field.pressSequentially("Dr ");
+    await expect(field).toHaveValue("Dr Ada Lovelace");
+    // Typing is local: no action is dispatched, so nothing reaches an agent.
+    await expect(page.getByTestId("action-log")).toHaveCount(0);
+  });
+}
