@@ -290,6 +290,54 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await expect(page.getByTestId("flows-empty")).toBeVisible();
 });
 
+/**
+ * M0 trust fix (b): passing the design system's rules is not the same as doing
+ * what was asked, and whether anything can generate is said before typing.
+ */
+test("with only the scripted twin, the hub and Build say generation is unavailable before anyone types", async ({ page }) => {
+  // This static server has no /api/models, so the page offers scripted only,
+  // as production does while its kill switch is off.
+  await page.goto("/");
+  await expect(page.getByTestId("availability-hub")).toContainText("AI generation is not available here right now");
+  await newProject(page, "astryx", "Availability");
+  await expect(page.getByTestId("availability-build")).toContainText("do not answer what you type");
+  await page.getByTestId("build-model").selectOption("scripted");
+  await page.getByTestId("build-prompt").fill("a booking for a hotel room");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-fulfilment-1")).toContainText("replayed, not generated from your request");
+});
+
+test("a passing hosted build separates rule checks from doing what was asked, and no availability warning shows", async ({ page }) => {
+  const contract = JSON.parse(
+    readFileSync(fileURLToPath(new URL("../apps/composer/shadcn-v3-project/shadcn-ui.dspack.json", import.meta.url)), "utf8"),
+  ) as { examples: Array<{ intent: string; surface: unknown }> };
+  const surface = contract.examples.find((e) => e.intent === "destructive-action")!.surface;
+  await page.route("**/api/models", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted", "hosted-ai"] }) }),
+  );
+  await page.route("**/api/propose", (route) => {
+    const request = JSON.parse(route.request().postData() ?? "{}") as { jsonSchema?: Record<string, unknown> };
+    const generation = !!request.jsonSchema && "$defs" in request.jsonSchema;
+    const json = generation ? surface : { intent: "destructive-action", feasible: true, restated: "Let people permanently delete their account." };
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ json, model: "claude-haiku-4.5", usage: { inputTokens: 100, outputTokens: 10 }, calls: [{ inputTokens: 100, outputTokens: 10, outcome: "ok", durationMs: 10 }] }),
+    });
+  });
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await expect(page.getByTestId("availability-hub")).toHaveCount(0);
+  await newProject(page, "shadcn", "Fulfilment");
+  await expect(page.getByTestId("availability-build")).toHaveCount(0);
+  await page.getByTestId("build-model").selectOption("hosted-ai");
+  await page.getByTestId("build-prompt").fill("let people permanently delete their account");
+  await page.getByTestId("build-run").click();
+  await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-fulfilment-1")).toContainText("They do not confirm it does what you asked");
+});
+
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
   await page.goto("/");
   // The hub separates Examples from Your projects.

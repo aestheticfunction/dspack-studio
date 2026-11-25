@@ -279,6 +279,10 @@ export interface ComposerState {
   buildModels: string[];
   /** Everything Build's model switch can offer (auto list + configured local). */
   selectableModels: string[];
+  /** Whether a build can generate from the user's words: "replay-only" when the
+   *  scripted twin is the only usable provider (every build is a demo replay);
+   *  "unknown" until the model list has loaded. */
+  generationAvailability: "unknown" | "replay-only" | "available";
   /** The active provider/model, shared between Settings and Build. */
   activeModel: string;
   setActiveModel: (m: string) => void;
@@ -1188,6 +1192,15 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     });
   }, [models, buildModels, mode, agentUp]);
 
+  // Can anything here generate from the user's words? Hosted counts when the
+  // deployed Worker offers it; a local model counts only while the agent that
+  // runs it is up.
+  const generationAvailability: ComposerState["generationAvailability"] = !models.loaded
+    ? "unknown"
+    : buildModels.includes("hosted-ai") || (agentUp && (buildModels.some(isLocalRef) || !!storedProviders.ollama || !!storedProviders.openai))
+      ? "available"
+      : "replay-only";
+
   // What Build's model switch offers: the auto list plus any configured local
   // provider and the current active ref (so an OpenAI/custom model is present).
   const selectableModels = useMemo(() => {
@@ -1713,6 +1726,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       buildBusy,
       buildModels,
       selectableModels,
+      generationAvailability,
       activeModel,
       setActiveModel,
       providerConfig,
