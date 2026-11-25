@@ -31,7 +31,7 @@ import { loadReference, type LoadedReference } from "../references";
 import type { RunRecord } from "../types";
 import { openPilotLedger } from "./ledger";
 import { createMonitor, PilotStop, type Monitor } from "./monitor";
-import { goalFor, PILOT_CEILING_USD, PILOT_MAX_REQUESTS, PILOT_REFERENCE, PILOT_RUNS, TASK_FIT, taskFitKey, type PilotRun } from "./runs";
+import { goalFor, PILOT_CEILING_USD, PILOT_MAX_REQUESTS, PILOT_REFERENCE, PILOT_RUNS, PILOT_SPACING_MS, TASK_FIT, taskFitKey, type PilotRun } from "./runs";
 
 /** Astryx components with a native renderer (packages/astryx-renderers/src/registry.tsx), as the corpus harness uses. */
 const ASTRYX_NATIVE = new Set(["AlertDialog", "Badge", "Button", "Card", "Column", "Dialog", "List", "MetadataList", "SelectableCard", "Table", "Text", "TextField"]);
@@ -173,7 +173,7 @@ export async function runPilot(options: PilotOptions): Promise<PilotResult> {
   delete state.stopped;
   save();
 
-  const pacer = createPacer({ maxRequests: PILOT_MAX_REQUESTS, spacingMs: options.spacingMs ?? 3000, backoffMs: [], ...(options.sleep ? { sleep: options.sleep } : {}), ...(options.now ? { now: options.now } : {}) });
+  const pacer = createPacer({ maxRequests: PILOT_MAX_REQUESTS, spacingMs: options.spacingMs ?? PILOT_SPACING_MS, backoffMs: [], ...(options.sleep ? { sleep: options.sleep } : {}), ...(options.now ? { now: options.now } : {}) });
   pacer.ledger = ledger;
   pacer.served = {
     get id() {

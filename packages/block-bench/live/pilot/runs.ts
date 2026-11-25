@@ -15,6 +15,12 @@ export const PILOT_CEILING_USD = 5;
  * for each of at most 8 steps, the same four. 3 single hotel builds and 4 corpus builds are 28; 5 flows are 165.
  */
 export const PILOT_MAX_REQUESTS = 200;
+/**
+ * Time between requests. ds-ai-gateway allows 5 provider calls per 60 s (fixed window) and one /api/propose request can
+ * make two calls (the Worker's parse retry), so a request every 31 s stays at or under 4 calls a minute. The pilot never
+ * retries a 429, so a faster pace would only end it early.
+ */
+export const PILOT_SPACING_MS = 31_000;
 /** The only reference the pilot runs on. */
 export const PILOT_REFERENCE = "astryx";
 /** Consecutive provider failures that stop the pilot. */

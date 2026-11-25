@@ -403,3 +403,10 @@ describe("access control", () => {
     expect(seen?.get("accept")).toBe("application/json");
   });
 });
+
+describe("pilot pacing", () => {
+  it("spaces requests so two calls each stay within the gateway's 5 per minute", async () => {
+    const { PILOT_SPACING_MS } = await import("./runs");
+    expect(2 * Math.ceil(60_000 / PILOT_SPACING_MS)).toBeLessThanOrEqual(5);
+  });
+});
