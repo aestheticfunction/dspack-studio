@@ -347,6 +347,8 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const [exampleProject, setExampleProject] = useState<StoredProject | null>(null);
   const [projects, setProjects] = useState<StoredProject[]>([]);
   const [agentUp, setAgentUp] = useState(false);
+  // Whether the first agent probe has answered: until then, "no agent" is a guess.
+  const [agentProbed, setAgentProbed] = useState(false);
   const [projectPath, setProjectPath] = useState("");
   const [manifest, setManifest] = useState<ProjectManifest | null>(null);
   const [contract, setContract] = useState<Record<string, any> | null>(null);
@@ -369,7 +371,10 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   const decisionLock = useRef(false);
 
   useEffect(() => {
-    void probeAgent().then(setAgentUp);
+    void probeAgent().then((up) => {
+      setAgentUp(up);
+      setAgentProbed(true);
+    });
   }, []);
 
   const refreshLedger = useCallback(async (doc: Record<string, any> | null) => {
@@ -1109,7 +1114,9 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   // state as the list it describes: as a ref it flipped the moment a fetch
   // landed, so an effect from a render computed just before (the agent coming
   // up) read loaded=true beside the stale placeholder and downgraded Hosted.
-  const [models, setModels] = useState<{ list: string[]; loaded: boolean }>({ list: ["scripted"], loaded: false });
+  // `withAgent`: whether the list was fetched with the agent's models joined in,
+  // so a list fetched before the agent answered is never read as final.
+  const [models, setModels] = useState<{ list: string[]; loaded: boolean; withAgent: boolean }>({ list: ["scripted"], loaded: false, withAgent: false });
   const buildModels = models.list;
   // Configured local providers (remembered endpoint + model per provider; NO
   // secret) and the active model ref persist across reloads. The OpenAI-
@@ -1169,7 +1176,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
     const sources = agentUp ? [hostedModels(), agentModels()] : [hostedModels()];
     void Promise.all(sources).then((lists) => {
       if (cancelled) return;
-      setModels({ list: [...new Set(lists.flat())], loaded: true });
+      setModels({ list: [...new Set(lists.flat())], loaded: true, withAgent: agentUp });
     });
     return () => {
       cancelled = true;
@@ -1193,13 +1200,17 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
   }, [models, buildModels, mode, agentUp]);
 
   // Can anything here generate from the user's words? Hosted counts when the
-  // deployed Worker offers it; a local model counts only while the agent that
-  // runs it is up.
-  const generationAvailability: ComposerState["generationAvailability"] = !models.loaded
-    ? "unknown"
-    : buildModels.includes("hosted-ai") || (agentUp && (buildModels.some(isLocalRef) || !!storedProviders.ollama || !!storedProviders.openai))
-      ? "available"
-      : "replay-only";
+  // deployed Worker offers it; a local model counts only when the running
+  // agent lists one, or an OpenAI-compatible provider has its session key (a
+  // remembered provider setting alone is not a reachable model).
+  // "unknown" until the agent probe has answered and the list reflects it, so
+  // nothing is said that the next moment contradicts.
+  const generationAvailability: ComposerState["generationAvailability"] =
+    !agentProbed || !models.loaded || models.withAgent !== agentUp
+      ? "unknown"
+      : buildModels.includes("hosted-ai") || (agentUp && (buildModels.some(isLocalRef) || (!!storedProviders.openai && !!openaiKey)))
+        ? "available"
+        : "replay-only";
 
   // What Build's model switch offers: the auto list plus any configured local
   // provider and the current active ref (so an OpenAI/custom model is present).
@@ -1743,7 +1754,7 @@ export function ComposerProvider({ children }: { children: ReactNode }) {
       experimental,
       setExperimental,
     }),
-    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, blockProvenanceFor, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread, flowComposition, experimental, setExperimental],
+    [mode, agentUp, projectPath, manifest, contract, profile, ledger, rediscovery, emit, validate, busy, notice, selected, connect, referenceId, loadReference, referenceExampleIds, projects, activeProject, newProject, openProject, closeProject, renameProject, duplicateProject, deleteProject, importProject, exportProject, blockProvenanceFor, openExample, exampleProject, duplicateExample, discover, rediscover, saveContract, saveProfile, resolveDeletion, resolveConflict, clearTombstone, acceptFreshFact, runEmit, runValidate, flows, saveFlows, buildTurns, buildBusy, buildModels, selectableModels, generationAvailability, activeModel, setActiveModel, providerConfig, storedProviders, openaiKey, configureLocalProvider, readiness, runBuild, acceptBuildTurn, clearBuildThread, flowComposition, experimental, setExperimental],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -339,7 +339,7 @@ function TurnBlock({ turn, intoFlowStep }: { turn: BuildTurn; intoFlowStep?: Ste
           {turn.progress.outcome === "passed" && (
             <p data-testid={`build-fulfilment-${turn.id}`} style={{ fontSize: 12, color: "var(--fg-body)", margin: "0 0 6px" }}>
               {turn.modelRef === "scripted"
-                ? "These checks confirm a saved surface follows your design system. It was replayed, not generated from your request."
+                ? "These checks confirm the result follows your design system. Demo replay never reads what you type, so it does not answer your request."
                 : "These checks confirm the result follows your design system. They do not confirm it does what you asked: compare it with your request before you save it."}
             </p>
           )}

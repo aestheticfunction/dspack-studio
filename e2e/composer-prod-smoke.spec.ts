@@ -295,9 +295,20 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
  * what was asked, and whether anything can generate is said before typing.
  */
 test("with only the scripted twin, the hub and Build say generation is unavailable before anyone types", async ({ page }) => {
-  // This static server has no /api/models, so the page offers scripted only,
-  // as production does while its kill switch is off.
+  // /api/models is stubbed to scripted only, as production answers while its
+  // kill switch is off, so this holds wherever the spec runs: this spec also
+  // runs against production after a deploy, where hosted AI may be on. The
+  // answer is delayed: until it arrives nothing is claimed either way.
+  let answer!: () => void;
+  const answered = new Promise<void>((resolve) => (answer = resolve));
+  await page.route("**/api/models", async (route) => {
+    await answered;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ models: ["scripted"] }) });
+  });
   await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await expect(page.getByTestId("availability-hub")).toHaveCount(0);
+  answer();
   await expect(page.getByTestId("availability-hub")).toContainText("AI generation is not available here right now");
   await newProject(page, "astryx", "Availability");
   await expect(page.getByTestId("availability-build")).toContainText("do not answer what you type");
@@ -305,7 +316,12 @@ test("with only the scripted twin, the hub and Build say generation is unavailab
   await page.getByTestId("build-prompt").fill("a booking for a hotel room");
   await page.getByTestId("build-run").click();
   await expect(page.getByTestId("build-gate-summary-1")).toContainText("Follows your design-system rules", { timeout: 30_000 });
-  await expect(page.getByTestId("build-fulfilment-1")).toContainText("replayed, not generated from your request");
+  await expect(page.getByTestId("build-fulfilment-1")).toContainText("Demo replay never reads what you type");
+  // A scripted edit is no answer either, and is described the same way.
+  await page.getByTestId("build-prompt").fill("make the title clearer");
+  await page.getByTestId("build-refine").click();
+  await expect(page.getByTestId("build-gate-summary-2")).toContainText("Follows your design-system rules", { timeout: 30_000 });
+  await expect(page.getByTestId("build-fulfilment-2")).toContainText("Demo replay never reads what you type");
 });
 
 test("a passing hosted build separates rule checks from doing what was asked, and no availability warning shows", async ({ page }) => {
