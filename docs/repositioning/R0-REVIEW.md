@@ -495,6 +495,16 @@ After R1a the remainder of M1 should be re-scoped from the spike's results, star
 
 All earlier architectural conditions remain in effect. The decision register ([DECISIONS.md](DECISIONS.md)) records all of them.
 
+**M0 remediation, as pull requests (all drafts, none merged):**
+
+| Pull request | What it holds |
+|---|---|
+| #117 | These documents: this review, the refined prototype, the decision register, and the corrections in §2.4 |
+| #118 | The four trust fixes, revised per §2.3 and combined; it replaces #113 to #116, which stay open as review records |
+| #119 | The unbound-input fix (§9 Part D, decision 16) |
+
+Recommended order: #117, then #118, then #119. Every merge to `main` deploys production.
+
 ---|---|---|
 | 12 | Whether uploading a Worker version on every branch push is acceptable, or builds for non-production branches should be turned off in Cloudflare (the owner's action) | Owner's call. No harm found, but it is production infrastructure reacting to draft work. |
 | 14 | Storage approach before the experimental build writes any new shape: its own storage keys, or a tolerant reader in the public build first (A7) | Its own keys. Needed after R1a, not before. |
