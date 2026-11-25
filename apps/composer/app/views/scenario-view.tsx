@@ -18,7 +18,7 @@ import { A2uiCanvas } from "@dspack-studio/a2ui-ingest";
 import { wireframeRegistryFor } from "@dspack-studio/wireframe-renderers";
 import { enumMembers } from "../contract-enums";
 import { useComposer } from "../state";
-import { ViewHeader } from "../ui";
+import { Eyebrow, ViewHeader, ViewMessage } from "../ui";
 import { surfaceTitle } from "../surface-identity";
 import { browserEmit, lintOneSurface } from "../validation";
 
@@ -181,7 +181,7 @@ export function ScenarioView() {
     return { error: null, catalog: result.catalog, registry: wireframeRegistryFor(result.catalog), messages: emitted.messages };
   }, [contract, profile, draftSurface]);
 
-  if (!contract || !vocab) return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No contract loaded.</p>;
+  if (!contract || !vocab) return <ViewMessage title="Surfaces">No contract loaded.</ViewMessage>;
 
   const intents: Array<{ id: string }> = contract.intents ?? [];
   const examples: Array<Record<string, any>> = contract.examples ?? [];
@@ -308,6 +308,7 @@ export function ScenarioView() {
         <button className="st-link" onClick={() => setEditing(null)}>
           ← surfaces
         </button>
+        <Eyebrow as="h1">{editing === "(new)" ? "New surface" : "Edit surface"}</Eyebrow>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, margin: "10px 0" }}>
           <input style={field} placeholder="ex.id" value={meta.id} onChange={(e) => setMeta({ ...meta, id: e.target.value })} data-testid="scenario-id" />
           <select style={field} value={meta.intent} onChange={(e) => setMeta({ ...meta, intent: e.target.value })} data-testid="scenario-intent">

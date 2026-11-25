@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useComposer } from "../state";
-import { ViewHeader } from "../ui";
+import { ViewHeader, ViewMessage } from "../ui";
 
 /**
  * The component inventory. Lifecycle is DERIVED, never stored: described
@@ -11,7 +11,7 @@ import { ViewHeader } from "../ui";
  */
 export function InventoryView({ onOpen }: { onOpen: () => void }) {
   const { contract, profile, emit, ledger, setSelected } = useComposer();
-  if (!contract) return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No contract loaded.</p>;
+  if (!contract) return <ViewMessage title="Catalog">No contract loaded.</ViewMessage>;
 
   const components = Object.entries((contract.components ?? {}) as Record<string, any>);
   // Ledger v2 only: per-entry ownership (v1 documents show section-level

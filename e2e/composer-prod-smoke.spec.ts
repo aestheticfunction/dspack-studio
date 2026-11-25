@@ -518,6 +518,53 @@ test("a passing hosted build separates rule checks from doing what was asked, an
   await expect(page.getByTestId("build-fulfilment-1")).toContainText("They do not confirm it does what you asked");
 });
 
+/**
+ * M0 trust fix (c): page structure a screen-reader or keyboard user can rely on.
+ * Every working view names itself with one h1; the navigation says which view
+ * is current; the first Tab reaches a skip link that lands on the content.
+ */
+test("every working view has one h1, the navigation marks the current view, and a skip link reaches the content", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  const views: Array<[string, RegExp]> = [
+    ["build", /build/i],
+    ["preview", /preview/i],
+    ["surfaces", /surfaces/i],
+    ["flows", /flows/i],
+    ["inventory", /catalog/i],
+    ["governance", /governance/i],
+    ["validate", /checks/i],
+    ["settings", /settings/i],
+  ];
+  for (const [id, name] of views) {
+    await page.getByTestId(`nav-${id}`).click();
+    const h1 = page.locator("main h1");
+    await expect(h1, `view ${id}`).toHaveCount(1);
+    await expect(h1).toHaveText(name);
+    await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("aria-current", "page");
+    await expect(page.locator('nav[aria-label="Primary"] [aria-current="page"], [data-testid="nav-settings"][aria-current="page"]')).toHaveCount(1);
+  }
+  // Views opened from inside a view are named too: a component from the
+  // Catalog, and the Surfaces editor for a new and an existing surface.
+  await page.getByTestId("nav-inventory").click();
+  await page.locator('[data-testid^="inventory-"]').first().click();
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await page.getByTestId("nav-surfaces").click();
+  await page.locator('[data-testid^="edit-ex."], [data-testid^="copy-ex."]').first().click();
+  await expect(page.locator("main h1")).toHaveCount(1);
+  await expect(page.locator("main h1")).toHaveText(/(Edit|New) surface/);
+
+  // From a fresh load, the first Tab stop is the skip link.
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("skip-link")).toBeFocused();
+  await expect(page.getByTestId("skip-link")).toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main#main-content")).toBeFocused();
+});
+
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
   await page.goto("/");
   // The hub separates Examples from Your projects.

@@ -18,6 +18,7 @@ import { useState } from "react";
  */
 import { enumLabel } from "../contract-enums";
 import { useComposer } from "../state";
+import { ViewMessage } from "../ui";
 
 const field = {
   fontFamily: "var(--mono)",
@@ -33,8 +34,8 @@ export function MapperView() {
   const { contract, profile, selected, saveProfile, runEmit, emit, mode, busy } = useComposer();
   const [issue, setIssue] = useState<string | null>(null);
 
-  if (!contract || !profile) return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>No project loaded.</p>;
-  if (!selected) return <p style={{ fontSize: 13, color: "var(--fg-dim)" }}>Pick a component in the Inventory.</p>;
+  if (!contract || !profile) return <ViewMessage title="Mapping">No project loaded.</ViewMessage>;
+  if (!selected) return <ViewMessage title="Mapping">Pick a component in the Catalog.</ViewMessage>;
 
   const plans: any[] = profile.components ?? [];
   const plan = plans.find((p) => p.dspackId === selected);
@@ -56,7 +57,8 @@ export function MapperView() {
   return (
     <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(380px, 3fr) minmax(240px, 2fr)" }}>
       <div>
-        <h2 style={{ fontFamily: "var(--mono)", fontSize: 15, color: "var(--fg)" }}>{selected}</h2>
+        {/* The view's one h1, styled as the h2 it replaced (M0 trust fix c). */}
+        <h1 style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: "bold", color: "var(--fg)", margin: "0.83em 0" }}>{selected}</h1>
 
         {casualty ? (
           <div>

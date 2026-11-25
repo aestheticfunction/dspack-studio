@@ -112,6 +112,9 @@ function Shell() {
 
   return (
     <div>
+      <a className="af-skip" href="#main-content" data-testid="skip-link">
+        Skip to content
+      </a>
       <header className="af-top" ref={headerRef}>
         <div className="af-top__in">
           {/* Quiet ecosystem identity: the canonical Aesthetic Function mark
@@ -130,6 +133,7 @@ function Shell() {
           <nav className="af-nav" aria-label="Primary">
             <button
               className={`af-nav__link${view === "projects" ? " af-nav__link--active" : ""}`}
+              aria-current={view === "projects" ? "page" : undefined}
               onClick={() => setView("projects")}
               data-testid="nav-projects"
             >
@@ -140,6 +144,7 @@ function Shell() {
                 <button
                   key={v.id}
                   className={`af-nav__link${view === v.id ? " af-nav__link--active" : ""}`}
+                  aria-current={view === v.id ? "page" : undefined}
                   onClick={() => setView(v.id)}
                   disabled={v.id === "build" && !!buildBlocked}
                   title={v.id === "build" && buildBlocked ? `Not ready to build: ${buildBlocked}` : undefined}
@@ -152,6 +157,7 @@ function Shell() {
             {hasProject && isAgentProject && (
               <button
                 className={`af-nav__link${view === "repository" ? " af-nav__link--active" : ""}`}
+                aria-current={view === "repository" ? "page" : undefined}
                 onClick={() => setView("repository")}
                 data-testid="nav-repository"
               >
@@ -183,6 +189,7 @@ function Shell() {
           )}
           <button
             className={`af-nav__link${view === "settings" ? " af-nav__link--active" : ""}`}
+            aria-current={view === "settings" ? "page" : undefined}
             onClick={() => setView("settings")}
             data-testid="nav-settings"
           >
@@ -191,7 +198,7 @@ function Shell() {
         </div>
       </header>
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {state.isExample && (
           <div style={{ maxWidth: "var(--maxw,1180px)", margin: "0 auto", padding: "12px var(--gut,24px) 0" }}>
             <p

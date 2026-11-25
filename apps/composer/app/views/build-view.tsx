@@ -771,7 +771,8 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
     const hidden = byTarget.size - shown.length;
     return (
       <section>
-        <h2 style={{ fontFamily: "var(--hl)", fontSize: 15, textTransform: "uppercase", color: "var(--fg)" }}>Build</h2>
+        {/* The view's one h1, styled as the h2 it replaced (M0 trust fix c). */}
+        <h1 style={{ fontFamily: "var(--hl)", fontSize: 15, fontWeight: "bold", textTransform: "uppercase", color: "var(--fg)", margin: "0.83em 0" }}>Build</h1>
         <p style={{ fontSize: 13, color: "var(--warn)" }} data-testid="build-not-ready">
           Not ready to build yet: {readiness.reason}
         </p>
@@ -828,7 +829,7 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
 
   return (
     <section style={{ maxWidth: 840 }}>
-      <Eyebrow>Build</Eyebrow>
+      <Eyebrow as="h1">Build</Eyebrow>
       <p className="af-lead" style={{ marginTop: 0, fontSize: 15 }}>
         Describe what you want, in your own words. Composer works out the governed context, builds it from this
         project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
