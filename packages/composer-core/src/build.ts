@@ -513,3 +513,56 @@ export function acceptedExampleEntry(input: {
     surface,
   };
 }
+
+/**
+ * Probable demo replays already saved in a project (M0 example integrity).
+ *
+ * Before the replay fix, accepting a scripted build saved a copy of an
+ * existing example under the typed request. Such an entry is recognisable
+ * without guessing at wording: its surface, once scripted-refinement markers
+ * ("(refined)", "(refined N)") are removed, is canonically identical to an
+ * EARLIER example of the same purpose, and its prompt differs. Entries saved
+ * after the fix carry a "demo replay of" description and are reported as
+ * labelled, never flagged. Packaged reference examples are never examined.
+ * Pure and read-only: it reports, the person decides.
+ */
+export interface ReplayFinding {
+  id: string;
+  /** The earlier example whose surface it repeats. */
+  source: string;
+  kind: "probable-replay" | "labelled-replay";
+}
+
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
+  }
+  if (typeof value === "string") return JSON.stringify(value.replace(/ \(refined(?: \d+)?\)/g, ""));
+  return JSON.stringify(value);
+}
+
+export function findProbableReplays(
+  examples: ReadonlyArray<{ id: string; intent?: unknown; prompt?: unknown; description?: unknown; surface?: unknown }>,
+  baseIds: Iterable<string> = [],
+): ReplayFinding[] {
+  const base = new Set(baseIds);
+  const seen: Array<{ id: string; intent: unknown; prompt: unknown; key: string }> = [];
+  const findings: ReplayFinding[] = [];
+  for (const example of examples) {
+    const key = canonical(example.surface);
+    if (!base.has(example.id)) {
+      const source = seen.find((s) => s.intent === example.intent && s.key === key);
+      if (source) {
+        const labelled = typeof example.description === "string" && example.description.includes("demo replay of");
+        if (labelled) findings.push({ id: example.id, source: source.id, kind: "labelled-replay" });
+        else if (example.prompt !== source.prompt) findings.push({ id: example.id, source: source.id, kind: "probable-replay" });
+      }
+    }
+    seen.push({ id: example.id, intent: example.intent, prompt: example.prompt, key });
+  }
+  return findings;
+}

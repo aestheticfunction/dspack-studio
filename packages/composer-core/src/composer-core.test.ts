@@ -40,6 +40,7 @@ import {
   examplePromptFor,
   acceptedExampleEntry,
   scriptedReplaySource,
+  findProbableReplays,
   foldBuildEvents,
   vocabularyGap,
 } from "./build";
@@ -892,5 +893,41 @@ describe("demo replay integrity (M0 trust fix a)", () => {
     expect(entry.prompt).toBe("ex.bare");
     expect(entry.name).toBe("ex.bare (demo replay)");
     expect(JSON.stringify(entry)).not.toContain("typed words");
+  });
+});
+
+describe("findProbableReplays (M0 example integrity)", () => {
+  const astryx = JSON.parse(
+    readFileSync(fileURLToPath(new URL("../../../apps/composer/astryx-project/astryx.dspack.json", import.meta.url)), "utf8"),
+  ) as { examples: Array<{ id: string; intent: string; prompt?: string; name?: string; surface: unknown }> };
+  const baseIds = astryx.examples.map((e) => e.id);
+  const plan = astryx.examples.find((e) => e.id === "ex.plan-comparison")!;
+
+  it("leaves the packaged examples alone", () => {
+    expect(findProbableReplays(astryx.examples, baseIds)).toEqual([]);
+    expect(findProbableReplays(astryx.examples)).toEqual([]);
+  });
+
+  it("flags a replay saved under an unrelated request (the pre-fix shape)", () => {
+    const saved = { id: "ex.chat-1", intent: plan.intent, name: "Create a hotel reservation", prompt: "Create a hotel reservation experience", surface: structuredClone(plan.surface) };
+    expect(findProbableReplays([...astryx.examples, saved], baseIds)).toEqual([{ id: "ex.chat-1", source: "ex.plan-comparison", kind: "probable-replay" }]);
+  });
+
+  it("flags a scripted refinement of a replay", () => {
+    const surface = JSON.parse(JSON.stringify(plan.surface).replace(/"Choose a plan"/, '"Choose a plan (refined 2)"'));
+    expect(JSON.stringify(surface)).toContain("(refined 2)");
+    const saved = { id: "ex.chat-2", intent: plan.intent, prompt: "hotels — refined: shorter", surface };
+    expect(findProbableReplays([...astryx.examples, saved], baseIds)).toEqual([{ id: "ex.chat-2", source: "ex.plan-comparison", kind: "probable-replay" }]);
+  });
+
+  it("reports a labelled replay (the post-fix shape) without flagging it", () => {
+    const saved = acceptedExampleEntry({ id: "ex.chat-3", intent: plan.intent, chain: ["hotels"], surface: structuredClone(plan.surface), replayOf: { id: plan.id, name: plan.name, prompt: plan.prompt } });
+    expect(findProbableReplays([...astryx.examples, saved], baseIds)).toEqual([{ id: "ex.chat-3", source: "ex.plan-comparison", kind: "labelled-replay" }]);
+  });
+
+  it("does not flag a different surface, or the same surface under a different purpose", () => {
+    const other = { id: "ex.chat-4", intent: plan.intent, prompt: "x", surface: { ...(plan.surface as object), intent: "changed" } };
+    const elsewhere = { id: "ex.chat-5", intent: "data-collection", prompt: "x", surface: structuredClone(plan.surface) };
+    expect(findProbableReplays([...astryx.examples, other, elsewhere], baseIds)).toEqual([]);
   });
 });

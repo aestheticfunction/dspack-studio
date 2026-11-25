@@ -75,6 +75,7 @@ export {
   acceptedExampleEntry,
   scriptedReplaySource,
   replayLabel,
+  findProbableReplays,
   foldBuildEvents,
   vocabularyGap,
   type BuildReadiness,
@@ -85,6 +86,7 @@ export {
   type TurnAttempt,
   type TurnGate,
   type ReplaySource,
+  type ReplayFinding,
 } from "./build";
 export {
   buildPlanRequest,
