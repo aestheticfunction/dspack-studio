@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "bench": "tsx src/write.ts",
     "eval:live": "tsx live/run.ts",
-    "baseline": "tsx live/baseline.ts"
+    "baseline": "tsx live/baseline.ts",
+    "pilot": "tsx live/pilot/cli.ts"
   },
   "dependencies": {
     "@aestheticfunction/dspack-emit": "^0.7.0",
