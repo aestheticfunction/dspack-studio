@@ -93,7 +93,7 @@ For every fix:
 ## 7. Pull requests
 
 - Trust fixes: #113 to #116 above.
-- Documents, the baseline and the corpus pin: the draft PR from `claude/vibrant-shannon-v2fuf0`.
+- Documents, the baseline and the corpus pin: [aestheticfunction/dspack-studio#117](https://github.com/aestheticfunction/dspack-studio/pull/117), from `claude/vibrant-shannon-v2fuf0`.
 - All are drafts and unmerged.
 - Possible side effect: opening a PR may trigger a Workers Builds branch build. `preview_urls` is off, so no preview should be reachable. **Assumed, not checked.**
 
