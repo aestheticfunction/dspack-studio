@@ -57,8 +57,12 @@ export function Marks({ trueCount = 0, className = "" }: { trueCount?: number; c
   );
 }
 
-export function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="af-eyebrow">{children}</p>;
+/** A small labelled line above a view. `as="h1"` makes it the view's
+ *  heading, so every working view has exactly one h1 in reading order (M0
+ *  trust fix c) without changing how it looks. */
+export function Eyebrow({ children, as = "p" }: { children: ReactNode; as?: "p" | "h1" }) {
+  const Tag = as;
+  return <Tag className="af-eyebrow">{children}</Tag>;
 }
 
 /** The shared editorial header for a working view: an eyebrow naming the view,
@@ -67,7 +71,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 export function ViewHeader({ eyebrow, lead }: { eyebrow: string; lead?: string }) {
   return (
     <header style={{ marginBottom: 18 }}>
-      <Eyebrow>{eyebrow}</Eyebrow>
+      <Eyebrow as="h1">{eyebrow}</Eyebrow>
       {lead && (
         <p className="af-lead" style={{ marginTop: 0, fontSize: 14 }}>
           {lead}

@@ -636,3 +636,25 @@ button.af-choice {
     transform: none;
   }
 }
+
+/* Skip link: off-screen until focused, then the first thing a keyboard user
+   reaches (M0 trust fix c). */
+.af-skip {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 100;
+  padding: 8px 12px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--green);
+  border-radius: 2px;
+  font-size: 13px;
+  text-decoration: none;
+}
+.af-skip:focus {
+  top: 12px;
+}
+main:focus {
+  outline: none;
+}

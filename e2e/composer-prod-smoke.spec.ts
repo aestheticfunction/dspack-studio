@@ -290,6 +290,43 @@ test("first run: the project previews as ITSELF, the user's work leads with a hu
   await expect(page.getByTestId("flows-empty")).toBeVisible();
 });
 
+/**
+ * M0 trust fix (c): page structure a screen-reader or keyboard user can rely on.
+ * Every working view names itself with one h1; the navigation says which view
+ * is current; the first Tab reaches a skip link that lands on the content.
+ */
+test("every working view has one h1, the navigation marks the current view, and a skip link reaches the content", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await expect(page.getByTestId("build-prompt")).toBeVisible();
+  const views: Array<[string, RegExp]> = [
+    ["build", /build/i],
+    ["preview", /preview/i],
+    ["surfaces", /surfaces/i],
+    ["flows", /flows/i],
+    ["inventory", /catalog/i],
+    ["governance", /governance/i],
+    ["validate", /checks/i],
+    ["settings", /settings/i],
+  ];
+  for (const [id, name] of views) {
+    await page.getByTestId(`nav-${id}`).click();
+    const h1 = page.locator("main h1");
+    await expect(h1, `view ${id}`).toHaveCount(1);
+    await expect(h1).toHaveText(name);
+    await expect(page.getByTestId(`nav-${id}`)).toHaveAttribute("aria-current", "page");
+    await expect(page.locator('nav[aria-label="Primary"] [aria-current="page"], [data-testid="nav-settings"][aria-current="page"]')).toHaveCount(1);
+  }
+  // From a fresh load, the first Tab stop is the skip link.
+  await page.goto("/");
+  await expect(page.getByTestId("new-project")).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("skip-link")).toBeFocused();
+  await expect(page.getByTestId("skip-link")).toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main#main-content")).toBeFocused();
+});
+
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {
   await page.goto("/");
   // The hub separates Examples from Your projects.

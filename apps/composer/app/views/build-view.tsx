@@ -710,7 +710,7 @@ export function BuildView({ onNavigate }: { onNavigate?: (view: "surfaces" | "va
 
   return (
     <section style={{ maxWidth: 840 }}>
-      <Eyebrow>Build</Eyebrow>
+      <Eyebrow as="h1">Build</Eyebrow>
       <p className="af-lead" style={{ marginTop: 0, fontSize: 15 }}>
         Describe what you want, in your own words. Composer works out the governed context, builds it from this
         project&rsquo;s approved components only, checks it in front of you, and renders it in your design system.
