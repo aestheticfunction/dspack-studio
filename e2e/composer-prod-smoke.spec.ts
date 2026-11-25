@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Page } from "@playwright/test";
 
 /**
@@ -563,6 +564,49 @@ test("every working view has one h1, the navigation marks the current view, and 
   await expect(page.getByTestId("skip-link")).toBeInViewport();
   await page.keyboard.press("Enter");
   await expect(page.locator("main#main-content")).toBeFocused();
+});
+
+/** M0 trust fix (d): Checks reflows at phone width; long findings scroll in their own region. */
+test("Checks does not scroll the page sideways at 390 px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await page.getByTestId("nav-validate").click();
+  await expect(page.locator("main table").first()).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow, "page scrolls sideways by this many pixels").toBeLessThanOrEqual(0);
+  await expect(page.getByTestId("findings-scroll").first()).toBeVisible();
+});
+
+/**
+ * Checks' findings regions: each has its own name; each is a keyboard stop
+ * only while it scrolls; and the view passes axe at desktop and phone width.
+ */
+test("Checks: distinct region names, a tab stop only where it scrolls, and no axe violations", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("example-open-astryx").click();
+  await page.getByTestId("nav-validate").click();
+  await expect(page.locator("main table").first()).toBeVisible();
+  await page.getByTestId("fidelity-notes").locator("summary").click();
+  const regions = page.getByTestId("findings-scroll");
+  const names = await regions.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+  expect(new Set(names).size, `region names: ${names.join(", ")}`).toBe(names.length);
+  expect(names).toContain("Fidelity notes");
+  const scan = async (label: string) => {
+    const result = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+    expect(result.violations.map((v) => `${v.id}: ${v.nodes.length}`), label).toEqual([]);
+  };
+  // Desktop: wide enough that nothing scrolls, so nothing is a tab stop.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const region of await regions.all()) {
+    const scrolls = await region.evaluate((e) => e.scrollWidth > e.clientWidth + 1);
+    expect(await region.getAttribute("tabindex"), "tab stop iff it scrolls").toBe(scrolls ? "0" : null);
+  }
+  await scan("Checks at 1440 px");
+  // Phone: the regions that now scroll become tab stops.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => regions.evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).every((e) => e.getAttribute("tabindex") === "0"))).toBe(true);
+  await scan("Checks at 390 px");
 });
 
 test("Examples are teaching material: separate section, ephemeral read-only workspace, duplicate to keep", async ({ page }) => {

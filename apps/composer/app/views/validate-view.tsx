@@ -12,6 +12,7 @@
  * what is actionable. A finding whose message was capped carries its
  * COMPLETE raw gate output on `evidence`, one expander away.
  */
+import { useEffect, useRef, useState } from "react";
 import type { ComposerFinding } from "@dspack-studio/composer-core";
 import { useComposer } from "../state";
 import { ViewHeader } from "../ui";
@@ -24,7 +25,7 @@ function FindingRow({ f }: { f: ComposerFinding }) {
     <tr style={{ borderTop: "1px solid var(--line-soft)" }} data-testid={`finding-${f.gate}-${f.code}`}>
       <td style={{ padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 12 }}>
         {f.gate}
-        <span style={{ color: "var(--fg-faint)" }}> {f.code}</span>
+        <span style={{ color: "var(--fg-dim)" }}> {f.code}</span>
       </td>
       <td style={{ padding: "6px 8px", fontFamily: "var(--mono)", fontSize: 11, color: SEV_COLOR[f.severity] }}>
         {f.severity}
@@ -59,9 +60,32 @@ function FindingRow({ f }: { f: ComposerFinding }) {
   );
 }
 
-function FindingsTable({ rows }: { rows: ComposerFinding[] }) {
+/** Findings carry long ids and JSON paths. At phone width the table scrolls
+ *  inside its own named region instead of pushing the page sideways (M0 trust
+ *  fix d). The region is a tab stop only while it actually scrolls, so a
+ *  keyboard user can scroll it then, and is not given a stop that does nothing. */
+function FindingsTable({ rows, label }: { rows: ComposerFinding[]; label: string }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const [scrolls, setScrolls] = useState(false);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const measure = () => setScrolls(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [rows]);
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+    <div
+      ref={scroller}
+      role="region"
+      aria-label={label}
+      tabIndex={scrolls ? 0 : undefined}
+      data-testid="findings-scroll"
+      style={{ maxWidth: "100%", overflowX: "auto" }}
+    >
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, overflowWrap: "anywhere" }}>
       <thead>
         <tr style={{ textAlign: "left", fontFamily: "var(--mono)", fontSize: 11, textTransform: "uppercase", color: "var(--fg-dim)" }}>
           <th style={{ padding: "4px 8px" }}>gate</th>
@@ -76,6 +100,7 @@ function FindingsTable({ rows }: { rows: ComposerFinding[] }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -139,7 +164,7 @@ export function ValidateView() {
       ) : (
         <>
           {actionable.length > 0 ? (
-            <FindingsTable rows={actionable} />
+            <FindingsTable rows={actionable} label="Findings" />
           ) : (
             <p style={{ fontSize: 13, color: "var(--fg-dim)" }} data-testid="findings-clear">
               No error or warning findings — only fidelity notes below.
@@ -150,7 +175,7 @@ export function ValidateView() {
               <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--fg-dim)" }}>
                 {fidelity.length} fidelity note{fidelity.length === 1 ? "" : "s"} — how this contract projects onto A2UI
               </summary>
-              <FindingsTable rows={fidelity} />
+              <FindingsTable rows={fidelity} label="Fidelity notes" />
             </details>
           )}
         </>
