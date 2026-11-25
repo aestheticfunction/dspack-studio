@@ -1,5 +1,7 @@
 # M0 trust fixes
 
+> **Revised after the independent review.** Each fix was revised on its branch ([R0-REVIEW.md](R0-REVIEW.md) §2.3 and §9 Part A), and the four ship as one combined pull request. In short: (a) a model's refinement of a replay keeps the replay's ancestry and is saved under the sample's prompt plus the applied instructions, and a replay of a sample the project already has is not saved again; (b) availability says nothing until it is known, and the smoke test no longer depends on production's hosted-AI setting; (c) every reachable view has one h1; (d) the two findings regions have distinct names, are tab stops only while they scroll, and Checks passes axe.
+
 Four changes to the default build, each on its own branch and draft pull request, each with a regression test that fails on the parent commit (`8053151`) and passes with the fix. None is merged: a merge to `main` deploys production.
 
 Scope note: revision 1 of the proposal said four fixes and listed five. Hash routing (the fifth) is deferred to M1, because it changes how projects open and hold view state, and the new shell rebuilds it anyway.

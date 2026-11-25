@@ -4,9 +4,10 @@ Records for the repositioning of Composer from a governed static-surface workben
 
 | Document | What it is |
 |---|---|
-| [R0-REPORT.md](R0-REPORT.md) | **Start here.** The M0 review: what was done, what was verified, what is still assumed, and the decisions needed |
+| [R0-REVIEW.md](R0-REVIEW.md) | **Start here.** The independent review of R0, accepted by the owner with conditions: findings, the immutable-instance architecture, the canvas-first workspace, the A2UI 1.0 track, M1 to R1a, decisions and the remediation handoff |
+| [R0-REPORT.md](R0-REPORT.md) | The M0 report: what was done, what was verified, what was still assumed. Corrections from the review are marked in place |
 | [PROPOSAL.md](PROPOSAL.md) | The approved proposal (revision 2): assessment, strategy, architecture, UX, roadmap, decision analysis |
-| [DECISIONS.md](DECISIONS.md) | The owner's decisions D1 to D16 with their conditions, and the decisions now needed |
+| [DECISIONS.md](DECISIONS.md) | The owner's decisions D1 to D16 with their conditions, the R0 decisions, and the decisions from the independent review |
 | [adr/](adr/) | ADR drafts R1 to R4 |
 | [BASELINE.md](BASELINE.md) | The deterministic baseline, run twice |
 | [PROTOCOL.md](PROTOCOL.md) | Offline check of Composer's A2UI output against the upstream validator ([scripts](protocol-check/)) |
@@ -15,6 +16,7 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [M0-TRUST-FIXES.md](M0-TRUST-FIXES.md) | The four fixes and their pull requests |
 | [INTEGRATION.md](INTEGRATION.md) | Combined verification of #113 to #117: dependencies, conflicts, merge order, results |
 | [UX-EXPLORATION.md](UX-EXPLORATION.md) | Three workspace approaches compared ([clickable source](prototypes/composer-explorations.html)) |
+| [prototypes/composer-workspace.html](prototypes/composer-workspace.html) | The approved direction: one canvas-first workspace, as a standalone design reference (not product code); what is real, simulated and staged is listed on the page |
 | [LIVE-EVALUATION-PROPOSAL.md](LIVE-EVALUATION-PROPOSAL.md) | A costed pilot; nothing run |
 | [ASTRYX-D5B.md](ASTRYX-D5B.md) | Astryx for the hotel vertical, and what a contract extension would take |
 | [M1-SCOPE.md](M1-SCOPE.md) | M1 as updated at R0 (not authorized) |

@@ -1,8 +1,10 @@
 # Workspace explorations: conversation-led, canvas-led, flow-led
 
+> **After R0.** The owner approved the unified, canvas-first workspace. Its refined exploration is `prototypes/composer-workspace.html`, described in [R0-REVIEW.md](R0-REVIEW.md) §4.4 and §4.5. It is a design reference, not product code.
+
 **Status:** M0 design exploration, 2026-11-25. Accepted direction for prototyping (decision D10); not a final UI specification.
 
-**The prototype:** a private artifact, https://claude.ai/artifact/TxXcGqEmgEV2CGPY4Yz2b1 (only the owner and people they share it with can open it). Source: `docs/repositioning/prototypes/composer-explorations.html`, one self-contained page outside the product build. Each approach and moment has its own address (`#a-onboard` … `#c-publish`).
+**The prototype:** `docs/repositioning/prototypes/composer-explorations.html`, one self-contained page outside the product build. Each approach and moment has its own address (`#a-onboard` … `#c-publish`).
 
 ## What was built
 

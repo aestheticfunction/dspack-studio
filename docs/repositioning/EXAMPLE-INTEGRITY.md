@@ -18,9 +18,9 @@ Fix (a) stops new cases (`claude/m0-replay-integrity`). This document covers exi
 
 | Place | Can we see it? | Finding |
 |---|---|---|
-| Packaged contracts and sample projects in this repository (Astryx, shadcn/ui v3, shadcn/ui 2.3.0, the demo project, composer-core fixtures) | Yes | **Clean.** 21 examples; every prompt describes its own surface; no two examples share a surface; no `ex.chat-*` (chat-accepted) examples ship |
+| Packaged contracts and sample projects in this repository (Astryx, shadcn/ui v3, shadcn/ui 2.3.0, the demo project, composer-core fixtures) | Yes | **Clean.** 24 example entries in five distinct contracts (20 distinct ids: the sample projects copy `packages/contracts`); every prompt describes its own surface; no two examples share a surface; no `ex.chat-*` (chat-accepted) examples ship |
 | Replay fixtures (`packages/replay/fixtures`) | Yes | **Clean.** 14 live recordings with their real prompts; the two scripted fixtures (007, 008) are labelled `mode: "scripted"` with descriptive prompts |
-| Browser projects (localStorage on each visitor's machine) | No | Unknown. Any project where someone accepted a scripted build carries the defect. Since production has offered only scripted since 2026-10-18, every acceptance there since then was a replay |
+| Browser projects (localStorage on each visitor's machine) | No | Unknown. Any project where someone accepted a scripted build carries the defect. Since 2026-10-18 production has offered only scripted in the browser, so an acceptance there used a replay unless the visitor ran the local bridge with their own model |
 | Exported `.composerproject.json` files | Only if someone shares one | Same as above |
 | Repository projects saved through the local agent | Only on the owner's disk | Same, for scripted acceptances |
 
@@ -36,7 +36,7 @@ A deterministic rule, with no model and no heuristics about wording:
 - A generated surface that happens to equal an existing example (a model can reproduce a few-shot example exactly) is also flagged. That is the right outcome: it is still a duplicate under a different request, and the person decides.
 - False negatives: a replay whose source example was later deleted cannot be matched. Rare, and the remedy is the same as for any unflagged example.
 
-Implemented as `findProbableReplays()` in `packages/composer-core/src/build.ts` on `claude/m0-replay-integrity`, with unit tests: it flags a constructed replay, flags a scripted-refined replay, does not flag the packaged examples, and does not flag a labelled replay. It is not yet wired into the product.
+Implemented as `findProbableReplays()` in `packages/composer-core/src/build.ts` on `claude/m0-replay-integrity`, with unit tests: it flags a constructed replay, flags a scripted-refined replay, does not flag the packaged examples, and does not flag a labelled replay. It is not yet wired into the product. After the independent review it was tightened: only the marker scripted mode appends is stripped, a marked top-level id is ignored, and an entry is flagged only if it carries Build's accept signature (an `ex.chat-N` id, or a prompt that begins with its name), so an author's deliberate paraphrase example is not flagged.
 
 ## Proposed remedy (not shipped in M0)
 

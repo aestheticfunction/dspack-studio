@@ -36,6 +36,22 @@ The processor ran with `STRICT_VALIDATION`: unknown properties, dangling referen
 3. **D6 is therefore real work, owned upstream.** Verified final 1.0 support (the owner's condition for public release) needs dspack-emit to: write `protocolVersion: "1.0"`, include `anyFunction`, use the 1.0 common types (`@path`, `@call`, `@checks`), and emit 1.0 surface messages. That is a Track 2 item (`C8` in the proposal). Composer's own A3 gate cannot detect any of this, because it validates against the catalog dspack-emit itself wrote.
 4. **For M1:** compositions may bind values only on the 0.9.1 path, and the compatibility report must say "bindings verified for 0.9.1 only" until the upstream change lands. The M1 interoperability spike should run this check on every composition instance.
 
+## After the independent review: the gap is wider
+
+The independent review ([R0-REVIEW.md](R0-REVIEW.md) §5) read the emitter against upstream at the same commit and found the "1.0" output differs from final 1.0 in more than the three ways above. Recorded here so the protocol track starts from the full list:
+
+- Components are wrapped in `allOf` with `unevaluatedProperties: false`; final 1.0 requires flat components.
+- The catalog carries `$defs.surfaceProperties`, which no longer exists upstream.
+- `functions` has the wrong shape (final 1.0 needs `@call`, `returnType` and `allowedCallers`).
+- Envelope keys are unprefixed: `path`, `call` and `checks` where final 1.0 uses `@path`, `@call` and `@checks`.
+- `createSurface.theme` is present on all 17 emitted streams and is invalid in 1.0.
+- shadcn/ui's `aria-label` and `aria-hidden` property names break the 1.0 naming rule.
+- The vendored `common_types` file is a pre-release copy.
+- dspack-emit's own A2 schema for 1.0 requires the opposite of the final one in places.
+- `emitSurface` has no version parameter, so surface messages are 0.9 only.
+
+A loader pass is not conformance: `a2ui-core` loads today's "1.0" catalogs only because its name check does not look inside `allOf`. Final 1.0 has to mean passing several validators at a pinned upstream commit, re-run at release; the owner accepted that track as P0 (this repository, separately scoped), P1 (dspack-emit) and P2 (renderer upgrade), with P1 and P2 not authorized.
+
 ## Reproduce
 
 From the repository root, with dependencies installed:

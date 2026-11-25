@@ -1,5 +1,7 @@
 # R4. Every instance is a governed expansion; bindings only where the rules cannot see
 
+> **Amended by the independent R0 review** ([R0-REVIEW.md](../R0-REVIEW.md) §3.2, decision 6, accepted 2026-11-25). The initial strategy is an immutable instance: one instance is one surface with a fresh `surfaceId`, replaced and never patched. Binding by tracing, gate I0, rule coverage and in-place agent updates are out of M1; only input values (leaf paths under `/input/`) and per-item literal action payloads are attached after emission. This is not a permanent ban on incremental A2UI updates: a narrow class may return when a scenario demonstrates the need, as a separately reviewed change. Entered values, focus and meaningful interaction state are kept across a replacement where appropriate. The ADR text below is the R0 draft and is to be rewritten in the R1a paper step.
+
 **Status:** draft for review. Accepted by the owner as D4 (2026-11-24), with the condition that later data updates cannot get around governance.
 
 ## Context

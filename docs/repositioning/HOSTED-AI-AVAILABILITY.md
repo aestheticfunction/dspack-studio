@@ -12,9 +12,9 @@ Facts, each checked directly:
 |---|---|
 | `GET /api/models` returns `{"models":["scripted"]}` | Public request |
 | An empty `POST /api/propose` returns `503 {"error":"unavailable", "calls":[], …}` before any body validation | Public request. This answer comes only from the first check in `proposeReply` (`apps/composer/worker/propose.mjs:386-391`): `(env.HOSTED_AI ?? "on") !== "on" \|\| !env.AI`. With hosted AI on, an empty body would be refused later with `invalid-request` |
-| The active deployment is version `e1aaa890` (number 248), uploaded by wrangler at 2026-10-18 02:22:14 UTC | Cloudflare API, `GET …/workers/scripts/dspack-studio-composer/deployments` and `/versions` |
+| The active deployment is a version uploaded by wrangler on 2026-10-18 | Cloudflare API, `GET …/workers/scripts/dspack-studio-composer/deployments` and `/versions` |
 | Version 248 is the Workers Builds deploy of PR #112, merged at 02:20:45 UTC | Times line up with `git log origin/main` |
-| Version 248 has the `AI` binding, the `ASSETS` binding, the `PROPOSE_RATE_LIMIT` binding, and one plain-text variable: `HOSTED_AI = "off"` | `GET …/versions/e1aaa890…` (secret values were not requested) |
+| Version 248 has the `AI` binding, the `ASSETS` binding, the `PROPOSE_RATE_LIMIT` binding, and one plain-text variable: `HOSTED_AI = "off"` | The version's configuration (secret values were not requested) |
 | `HOSTED_AI` was changed in the dashboard at 2026-10-18 01:44:47 UTC (version 247, "Updated variable: HOSTED_AI"), 36 minutes before #112 merged | Version annotations |
 | Every later version carries `HOSTED_AI = "off"`, because `wrangler.jsonc` sets `keep_vars: true` and declares no variables | Versions 248 to 251; `wrangler.jsonc:46-51` |
 | Deployment history after the cutover: experimental build deployed (12:03, version 249), rolled back to 248 (16:48); operator-log variable added (17:06, version 251), rolled back to 248 (17:19). No deployment since 2026-10-18 | `GET …/deployments` |
@@ -27,7 +27,7 @@ Facts, each checked directly:
 Two observations the owner should weigh, both from the same evidence:
 
 1. **The beta is not currently live.** The experimental artifact was deployed and then rolled back the same day. The active version serves the default (block-free) artifact, and the configured `BLOCKS_BETA` switch is absent.
-2. **Cloudflare Access is not covering the hostname today.** An anonymous request is served. The cutover plan assumed Access covers the whole hostname. Whether Access was removed deliberately after the rollback, or never applied, cannot be told from the Worker's configuration. I did not read Access settings: the owner allowed reading the Worker's configuration only.
+2. **Cloudflare Access is not covering the hostname today.** An anonymous request is served. The cutover plan assumed Access covers the whole hostname. Whether Access was removed deliberately after the rollback, or never applied, cannot be told from the Worker's configuration. Access settings were not read: the owner allowed reading the Worker's configuration only.
 
 What could not be verified without a paid call: whether the AI Gateway (`ds-ai-gateway`) and its Unified Billing credit would serve a request if the switch were turned on. The binding is present; the gateway and billing state were not probed.
 

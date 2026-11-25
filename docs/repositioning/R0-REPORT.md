@@ -1,5 +1,7 @@
 # Review R0: Milestone 0 report
 
+> **After R0.** The independent review of these results is [R0-REVIEW.md](R0-REVIEW.md), accepted by the owner on 2026-11-25 with conditions. Its corrections to this report are marked in place. The M0 remediation it asked for (combined trust fixes, the unbound-input fix, these documents) is in the pull requests named in [R0-REVIEW.md](R0-REVIEW.md) §8.
+
 **Date:** 2026-11-25. **Scope:** M0 as authorized on 2026-11-24. **Work stops here until M1 is explicitly authorized.**
 
 Every statement below is marked **verified** (checked by running something or reading the live system) or **assumed** (reasoning or documents, not checked). Nothing was merged or deployed; no production setting, credential, Access rule or gateway setting was changed; no sibling repository was touched; no paid inference was run.
@@ -26,7 +28,7 @@ The twelve Gateway prompts and their paraphrases are now pinned by hash in a tes
 Recorded in [DECISIONS.md](DECISIONS.md):
 - D1 to D16 with the owner's conditions;
 - the two execution choices made during M0;
-- six decisions now needed (section 10 below).
+- six decisions now needed (section 11 below).
 
 ADR drafts R1 to R4 are in [adr/](adr/).
 
@@ -46,11 +48,11 @@ Also verified:
 
 ## 4. Scripted example integrity
 
-**Verified:** all 21 packaged examples and all 14 replay fixtures in the repository are correctly attributed.
+**Verified:** all 24 packaged example entries (five distinct contracts; 20 distinct ids, because the sample projects under `apps/composer` copy `packages/contracts`) and all 16 replay fixtures (14 live, 2 scripted) in the repository are correctly attributed. *(Counts corrected after the independent review, [R0-REVIEW.md](R0-REVIEW.md) §2.4.)*
 
 **Assumed, cannot be checked from here:**
 - Visitors' browser projects and exported files may hold replays saved under the wrong request.
-- Every acceptance on production since 2026-10-18 was a replay.
+- Since 2026-10-18 production has offered only Demo replay in the browser, so an acceptance there used a replay unless the visitor ran the local bridge with a model of their own, which production allows. *(Corrected after the independent review: the earlier wording said every acceptance was a replay.)*
 
 **Built:** a deterministic detector, `findProbableReplays()`, with tests, on #113. It is read-only.
 
@@ -63,7 +65,6 @@ Details are in [EXAMPLE-INTEGRITY.md](EXAMPLE-INTEGRITY.md).
 ## 5. UX/UI prototypes and recommendation
 
 **Built:** clickable explorations of conversation-led, canvas-led and flow-led workspaces, for the hotel task, across first run, authoring, refinement, testing and publishing.
-- Private link: https://claude.ai/artifact/TxXcGqEmgEV2CGPY4Yz2b1. Others need it shared from its Share menu.
 - Source: [prototypes/](prototypes/).
 - The Playground moment works: search, invalid dates, loading, no availability, choosing, going back with the query kept, a booking failure and retry, an agent price change, and an agent update the rules refuse.
 - **Verified:** it loads with no errors and no sideways scroll at 1280 px and 390 px, in light and dark.
@@ -121,7 +122,7 @@ For every fix:
 ## 9. Proposed live evaluation budget
 
 **Assumed** (estimate, nothing run). A pilot on Astryx only, using the production model through the existing Worker:
-- **Requests:** about 60.
+- **Requests:** 12 (prompts × samples), making about 60 provider calls with plans, generations and repairs. *(Corrected after the independent review.)*
 - **Estimated cost:** about $1.
 - **Ceiling:** $5, enforced per request.
 - **Early termination:** at the ceiling, on any model or usage integrity failure, or on repeated provider failures.
@@ -152,7 +153,7 @@ See [M1-SCOPE.md](M1-SCOPE.md). Changes from the proposal:
 | N4 | Author `loading-state` and `status-feedback`; rule on booking as destructive | Author both; booking is not destructive |
 | N5 | Adopt "one workspace, three coordinated views" for M1 prototyping | Yes |
 | N6 | Authorize M1 as scoped | Owner's call |
-| Also | Merge order and timing for #113 to #116 under the release freeze | (a) and (b) touch the same files in different places, so the second to merge may need a rebase |
+| Also | Merge order and timing for #113 to #116 under the release freeze | Every pair conflicts in `e2e/composer-prod-smoke.spec.ts` ([INTEGRATION.md](INTEGRATION.md)). Merge them as one combined pull request ([R0-REVIEW.md](R0-REVIEW.md) §2.5) *(corrected after the independent review)* |
 
 **Risks and blockers:**
 - **Final A2UI 1.0** depends on upstream emitter work that has not started. D6 makes it release-critical.

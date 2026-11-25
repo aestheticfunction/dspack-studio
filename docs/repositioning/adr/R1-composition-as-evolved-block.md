@@ -4,7 +4,7 @@
 
 ## Context
 
-Composer needs reusable, named, versioned arrangements of components that an agent can find and fill with task data. The experimental interface blocks (`packages/composer-core/src/blocks/`, `docs/blocks/RFC-dspack-blocks.md`) already have a stable id and integer version, a closed typed signature, a closed expansion template, declared action names, gates B0 to B2 and H1, provenance that re-expands to prove identity, and an export manifest. Phase 1B measured them: tokens per successful build fell 53% on Astryx at an equal pass rate. They lack data inputs, action payloads, states, usage guidance and user authoring.
+Composer needs reusable, named, versioned arrangements of components that an agent can find and fill with task data. The experimental interface blocks (`packages/composer-core/src/blocks/`, `docs/blocks/RFC-dspack-blocks.md`) already have a stable id and integer version, a closed typed signature, a closed expansion template, declared action names, gates B0 to B2 and H1, provenance that re-expands to prove identity, and an export manifest. Phase 1B measured them: tokens per successful build fell 53% on Astryx with the pass rate inside the pre-registered margin. They lack data inputs, action payloads, states, usage guidance and user authoring.
 
 The alternatives were a new composition schema beside blocks (duplicates all of the above), or parameters on contract worked examples (impossible: `examples` entries are closed objects in the dspack schema).
 

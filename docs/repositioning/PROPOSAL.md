@@ -4,7 +4,9 @@ Prepared for product-owner review. Nothing in this document has been implemented
 
 ## Status: revision 2, after the product-owner decision
 
-**Owner decision (2026-11-24): accepted in principle; M0 authorized; no later milestone authorized.** This revision records that decision and applies its refinements. Approving it releases M0 execution only. I stop at review R0.
+> **After R0.** The independent review ([R0-REVIEW.md](R0-REVIEW.md)), accepted on 2026-11-25, amends this proposal: an instance is immutable (one instance, one surface) as the initial strategy, binding by tracing and in-place updates are out of M1, M1 runs only to the R1a interoperability review, and the workspace is canvas-first. Where the two differ, the review and the decision register govern.
+
+**Owner decision (2026-11-24): accepted in principle; M0 authorized; no later milestone authorized.** This revision records that decision and applies its refinements. Approving it releases M0 execution only. Work stops at review R0.
 
 What changed from revision 1:
 
@@ -25,7 +27,7 @@ What changed from revision 1:
 
 M0 runs inside these boundaries: work on a branch; no merge, no deploy, no change to production infrastructure, credentials, Access, gateway or deployment settings; no change to sibling repositories; no paid inference; no new paid dependency; the release freeze stands; the twelve corpus prompts and existing evidence are untouched.
 
-Evidence tags used throughout: **[live]** observed on composer.aesthetic-function.com in a real browser; **[code]** read in source; **[doc]** stated in repository documentation; **[upstream]** read in a sibling or external repository; **[inferred]** my reasoning, not directly observed; **[unverified]** could not be checked here.
+Evidence tags used throughout: **[live]** observed on composer.aesthetic-function.com in a real browser; **[code]** read in source; **[doc]** stated in repository documentation; **[upstream]** read in a sibling or external repository; **[inferred]** reasoning, not directly observed; **[unverified]** could not be checked here.
 
 ## Context
 
@@ -69,12 +71,12 @@ Composer's engineering is unusually disciplined: gates are deterministic, losses
 | A2UI, AG-UI, json-render, Astryx | Shallow clones, read only |
 | Deployed app | Headless Chromium at 1440 px and 390 px: first run, every tab of the Astryx example, project creation, the hotel prompt as a single build and as a flow, reload, focus order, landmarks |
 | Issues and PRs | 8 open issues, no open PRs |
-| The proposed design itself | An independent review against `composer-core`, dspack-emit and the A2UI renderer source. It overturned my first design (bind first, with a hand-written overlay); A4 items 13 and 14 and the design in C3 are the result |
+| The proposed design itself | An independent review against `composer-core`, dspack-emit and the A2UI renderer source. It overturned the first design (bind first, with a hand-written overlay); A4 items 13 and 14 and the design in C3 are the result |
 
 Limits and blockers:
 
 - **No live model run was possible or attempted.** Hosted AI is off on production, the experimental build is behind Cloudflare Access, and no provider key or local runner exists in this environment. Every statement about model behaviour is from recorded evidence **[doc]** or code reading, not reproduction.
-- **Dependencies were not installed** (read-only engagement), so no test suite was executed. Test counts come from reading spec files.
+- **Dependencies were not installed** (read-only engagement), so no test suite was executed for this assessment. Test counts come from reading spec files. *(M0 then installed dependencies and ran every suite: [BASELINE.md](BASELINE.md).)*
 - **a2ui.org is blocked by this environment's network policy.** The A2UI repository's `specification/` directory was used instead.
 - **Sibling repositories were last pushed in August 2026.** Composer pins their latest versions, so there is no drift, but nothing upstream has moved in three months.
 - `docs/AUDIT.md`, `docs/NAV-REFACTOR.md` and `docs/IMPLEMENTATION_LOG.md` describe the Studio exhibit, not Composer. Composer's July to October build-out is recorded only in PR titles **[doc]**.
@@ -759,7 +761,7 @@ M1 and M2 need nothing from a sibling repository. Every arrow after R0 needs exp
 3. **Deployment baseline.** What is served today: the artifact, its build marker, `/api/models`, response headers, and the zero-cost refusal from an empty `POST /api/propose`.
 4. **Offline protocol check** (`PROTOCOL.md`). The A2UI repository's validator suites against the derived 0.9.1 and 1.0 catalogs and emitted messages. Findings recorded with the divergences from final 1.0 listed; nothing fixed.
 5. **Hosted AI availability** (`HOSTED-AI-AVAILABILITY.md`). The code offers hosted generation only when `HOSTED_AI` is "on" (absent counts as on) and the `AI` binding exists (`apps/composer/worker/propose.mjs:53-56`). Both configs declare the binding and keep dashboard variables (`wrangler.jsonc`, `keep_vars`). So the candidates are: the kill switch set off in the dashboard (a pause does exactly this per `docs/deployment.md`), a deployed version without the binding, or a rollback that restored other variables. Method: repository and docs; the public probes in item 3; and read-only GET calls to the Cloudflare API for the Worker's bindings, plain-text variables and deployment list (allowed by the owner on 2026-11-24; no write, update or delete request is made, and no secret value is requested or recorded). Output: the verified cause, or the precise blocker to verification, and a recommended remediation for the owner to carry out. Nothing is changed.
-6. **Scripted example integrity** (`EXAMPLE-INTEGRITY.md`). (a) Audit every packaged contract, sample project and fixture in the repository for examples whose prompt does not belong to their surface. (b) A deterministic detector for user projects, which live in browsers and exported files I cannot see: an authored example whose surface is canonically identical to another example of the same purpose while its prompt differs is flagged as a probable replay. (c) A non-destructive remedy, proposed and not shipped in M0 beyond the fix in item 10a: flag on project open, and offer keep, restore the source example's prompt, or leave out of generation context. Nothing is removed or rewritten automatically.
+6. **Scripted example integrity** (`EXAMPLE-INTEGRITY.md`). (a) Audit every packaged contract, sample project and fixture in the repository for examples whose prompt does not belong to their surface. (b) A deterministic detector for user projects, which live in browsers and exported files this work cannot see: an authored example whose surface is canonically identical to another example of the same purpose while its prompt differs is flagged as a probable replay. (c) A non-destructive remedy, proposed and not shipped in M0 beyond the fix in item 10a: flag on project open, and offer keep, restore the source example's prompt, or leave out of generation context. Nothing is removed or rewritten automatically.
 7. **Clickable design explorations** (`prototypes/`). The three approaches of D.11 for the hotel task, each covering onboarding, authoring, refinement, testing and publishing; self-contained HTML outside the product build, also published as a private page for easy viewing. With a written comparison and recommendation (`UX-EXPLORATION.md`).
 8. **Live evaluation proposal** (`LIVE-EVALUATION-PROPOSAL.md`). No run and no spend. It states model and provider configuration, number of requests, sampling, estimated cost with its derivation, objectives, early-termination criteria, and the evidence that would justify further runs. It leads with a small pilot (Astryx only; the hotel request as a single build and as a flow; three corpus prompts chosen as one solved, one partial, one flow) and makes anything larger conditional on the pilot.
 9. **Reference system note** (`ASTRYX-D5B.md`). What a contract extension would need (components, renderers, package upgrade, rules), and the owner-authored purposes the hotel vertical requires for its loading, empty, error and result surfaces. Investigation only.
@@ -843,7 +845,7 @@ The new shell becomes the default build only after M5 passes and the owner appro
 - **Live, never in CI:** the gateway harness and the block-bench live harness, extended with plan and wiring metrics, with pinned model identifiers, request configuration, per-request dollar ceilings and resumable ledgers as built for Phase 1B. Each run is pre-registered in the ADR-B3 style: what is measured, the decision rule, the ceiling.
 - **Corpora:** the twelve prompts unchanged; a new experience corpus holding the hotel prompt, paraphrases, variations and the adversarial sets; parity checklists per prompt as in `packages/block-bench/live`.
 
-### E5. Provisional thresholds (deterministic ones fixed at R0; model-dependent ones only after an authorized live pilot)
+### E5. Provisional thresholds (deterministic ones fixed once measured; model-dependent ones only after an authorized live pilot)
 
 | Measure | Baseline source | Provisional target |
 |---|---|---|
@@ -1026,7 +1028,7 @@ Recommend (a). (b) breaks "the AI proposes; deterministic machinery decides".
 curl -s https://composer.aesthetic-function.com/api/models
 ```
 
-returns `{"models":["scripted"]}`. On the live site: create a project on Astryx, paste the hotel request from the brief into Build, then repeat through "Build a flow…". Expected: a "Choose a plan" surface with four green checks; a two-step outline; "Add to project" saves both under the hotel prompt. Line-level evidence: `packages/a2ui-ingest/src/provenance.tsx:24-27`, `apps/composer/app/state.tsx:1519-1528`, `apps/composer/worker/propose.mjs:28-31,65-82`, `packages/composer-core/src/flow-plan.ts:169-190`, `packages/composer-core/src/flows.ts`, `docs/blocks/RFC-dspack-blocks.md` §2, `docs/blocks/HOST-ACTIONS.md` §3 and §4.
+returns `{"models":["scripted"]}`. On the live site: create a project on Astryx, paste the hotel request from the brief into Build, then repeat through "Build a flow…". Expected: a "Choose a plan" surface with four green checks; a two-step outline; before M0 trust fix (a), "Add to project" saved both under the hotel prompt. Line-level evidence: `packages/a2ui-ingest/src/provenance.tsx:24-27`, `apps/composer/app/state.tsx:1519-1528`, `apps/composer/worker/propose.mjs:28-31,65-82`, `packages/composer-core/src/flow-plan.ts:169-190`, `packages/composer-core/src/flows.ts`, `docs/blocks/RFC-dspack-blocks.md` §2, `docs/blocks/HOST-ACTIONS.md` §3 and §4.
 
 **Verifying Milestone 0.** None of these calls a model.
 

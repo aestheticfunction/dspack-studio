@@ -38,3 +38,31 @@ Product-owner decisions on the Composer repositioning, recorded 2026-11-24, with
 | N4 | Author `loading-state` and `status-feedback` for the Astryx project, and rule on whether booking is `destructive-action` | Author both; booking is not destructive | Needed before the hotel vertical's state surfaces exist |
 | N5 | Adopt "one workspace, three coordinated views" | Yes, as the prototyping direction for M1 | Settles the Compose layout before M1 builds it |
 | N6 | Authorize M1 as scoped in M1-SCOPE.md | | Stop point |
+
+## After R0: the independent review (2026-11-25)
+
+The owner accepted the independent review ([R0-REVIEW.md](R0-REVIEW.md)) with conditions, then gave final approval for the M0 remediation. Numbers are the review's section 8. They refine D4, D10 and D14 above and settle N5 and N6.
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 1 | Accept R0 with the revisions in the review's section 2 | Accepted | |
+| 2 | Make the M0 revisions on the existing draft branches | Accepted | Replay provenance and ancestry; no duplicate or misleading examples; browser and agent paths consistent; availability messaging; production smoke stable with hosted AI on or off; headings; Checks; documents; corpus hash portability |
+| 3 | Merge as #117 and one combined trust-fix pull request, in place of five | Accepted | The four original pull requests stay open as review records until the combined one is approved |
+| 4 | Trust fixes may ship ahead of the repositioning | Accepted | The merge stays the owner's act; merging to `main` deploys production |
+| 5 | Fix the live form-field defect | Accepted | Separately scoped; upstream behaviour confirmed first; no unrelated shared-renderer change |
+| 6 | Immutable instances (one instance, one surface); no binding by tracing, I0, rule coverage or in-place updates in M1 (amends D4) | Accepted as the initial strategy | Not a permanent ban on incremental updates; keep entered data, focus and meaningful state across a replacement where appropriate; surface ids unique across sessions and instances; prove each repeated element's payload, not by position alone; separate message correctness from renderer fidelity; keep deterministic governance, version pins, fail-closed behaviour and confirmation of consequential actions |
+| 7 | Verification levels 1a, 1b and 2 | Accepted | |
+| 8 | Persist nothing before R1a (refines D14) | Accepted | |
+| 9 | M1 only up to R1a | Scope accepted | **Implementation not authorized** |
+| 10 | Protocol stages P0, P1, P2 | Separation accepted | P0 accepted in principle as a separately scoped task; P1 and P2 not authorized; final A2UI 1.0 remains a public-release requirement |
+| 11 | Unified, canvas-first workspace (refines D10; settles N5) | Approved | Refined exploration in `prototypes/composer-workspace.html` |
+| 12 | Uploading a Worker version on every branch push | Keep the current branch-build configuration for this milestone | Minimise pushes; how it could be turned off is documented in `docs/deployment.md`; no Cloudflare change authorized |
+| 13 | Commit the review | Accepted | Without private links, session identifiers or inappropriate deployment details |
+| 14 | Storage before the experimental build writes new shapes | Separate storage keys for the experimental application | Implementation deferred to the appropriate post-R1a milestone |
+| 15 | Approved versions and newer drafts of one composition | May coexist | Approved versions are immutable; editing one creates a new draft; implementation deferred |
+| 16 | An unbound input field | Keeps its local value for the lifetime of the surface and dispatches nothing | Verified against the pinned and current upstream renderers before the fix; no conflict found |
+| 17 | When M1 to R1a and P0 may start | Not until the M0 remediation has been reviewed and verified | Supersedes N6 |
+| 18 | One side panel below 1440 px, with the inspector breadcrumb | Keep the prototype's behaviour | Revisit through usability evaluation, not another design exercise |
+
+All architectural conditions recorded above remain in effect.
+
