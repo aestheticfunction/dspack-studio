@@ -1,0 +1,15 @@
+D1: the SelectableCard tests (apps/composer/app/astryx-renderers-a11y.test.ts) run against main at 4487794, before the adapter change.
+Recorded 2026-11-26T11:47Z with: npx vitest run app/astryx-renderers-a11y.test.ts -t SelectableCard
+
+   × SelectableCard > draws the label as the card's visible name, and the checkbox keeps it as its accessible name
+     → expected undefined to be 'Casa do Rio' // Object.is equality
+   × SelectableCard > announces the name once: the drawn name is hidden from assistive technology and is not a heading
+     → expected '' to contain 'aria-hidden="true"'
+   × SelectableCard > draws no second name where a child already shows the same text
+     → expected '<span style="display:contents" data-a…' to contain 'data-selectable-card-name'
+   × SelectableCard > draws nothing for an empty label, and still renders without a context
+     → expected '<span style="display:contents" data-a…' to contain 'data-selectable-card-name'
+   × SelectableCard > wraps a long unbroken name instead of overflowing the card
+     → expected '' to match /overflow-wrap:anywhere/
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 13 skipped (18)
