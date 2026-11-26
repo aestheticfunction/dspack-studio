@@ -72,11 +72,12 @@ describe("off unless BETA_OPERATOR_LOG is exactly on: production logs nothing", 
     });
   }
 
-  it("neither composer config sets it: both declare no vars and keep the dashboard's, where it lives", () => {
+  it("neither composer config sets it: both keep the dashboard's vars, where it lives, and declare only HOSTED_AI off", () => {
     const read = (config) => readFileSync(new URL(`../../../${config}`, import.meta.url), "utf8");
     for (const config of ["wrangler.jsonc", "wrangler.composer-experimental.jsonc"]) {
       const parsed = JSON.parse(read(config).replace(/^\s*\/\/.*$/gm, ""));
-      expect(parsed, config).not.toHaveProperty("vars");
+      expect(parsed.vars, config).toEqual({ HOSTED_AI: "off" });
+      expect(parsed.vars, config).not.toHaveProperty("BETA_OPERATOR_LOG");
       expect(parsed, config).not.toHaveProperty("env");
       expect(parsed.keep_vars, config).toBe(true);
     }

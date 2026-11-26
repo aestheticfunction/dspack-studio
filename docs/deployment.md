@@ -85,7 +85,38 @@ unchanged. The one runtime binding is the **AI binding** (`"ai": {"binding":
 **`ds-ai-gateway`** — the SAME gateway the af-site theme generator uses (shared
 zone ⇒ shared account) — over Unified Billing, so there is **no provider key, no
 BYOK credential, and no gateway secret**. No KV, Durable Objects, or databases.
-A `HOSTED_AI` var is the kill switch. It lives in the dashboard: `wrangler.jsonc` declares no vars and keeps the dashboard's (`keep_vars: true`), so a flip there lasts across deploys, though not across a rollback ("The invite-only beta", Runbook, below). Absent means on.
+A `HOSTED_AI` var switches hosted generation, and it **fails closed**: on only for the exact string `on`, off when absent or anything else. Both composer configs declare it `"off"`, so every ordinary deploy sets it off explicitly ("Hosted AI", below).
+
+### Hosted AI
+
+**Default: off on every deploy.** `wrangler.jsonc` and `wrangler.composer-experimental.jsonc` declare `vars: { "HOSTED_AI": "off" }` and `keep_vars: true`. Wrangler therefore uploads `HOSTED_AI` "off" with every version and keeps only the variables the config does not declare (`BLOCKS_BETA`, `BETA_OPERATOR_LOG`). Before 2026-11-26 the configs declared no vars and every upload inherited `HOSTED_AI` from the latest uploaded version, deployed or not. That is how a pilot's temporary "on" reached production ([incidents/2026-11-26-hosted-ai-inherited.md](incidents/2026-11-26-hosted-ai-inherited.md)).
+
+**Active deployment and latest upload.** The active deployment is what visitors get. The latest uploaded version is what the next upload's kept variables come from. Every check reads both:
+
+```bash
+node apps/composer/scripts/verify-hosted-ai-off.mjs
+```
+
+It needs `CLOUDFLARE_API_TOKEN` (read access to Workers Scripts) for the configuration and no credentials for the public checks (`--public-only`). It runs after every deploy:
+- `deploy-composer.yml`: configuration and public API.
+- `deploy-composer-experimental.yml`: configuration, with Access in front.
+- CI on `main` (job `production-hosted-ai-off`): the public API, watched for 10 minutes while Workers Builds deploys the merge.
+
+**Turning it on is deliberate, for one version, behind Access.** Only for a separately authorized, restricted evaluation:
+1. Protect `/api` with Access first ([repositioning/LIVE-PILOT-RUNBOOK.md](repositioning/LIVE-PILOT-RUNBOOK.md)).
+2. Set `HOSTED_AI` to `on` in the dashboard, which deploys a new version with that value. Or upload a version with `--var HOSTED_AI:on`, which overrides the config for that upload only.
+3. Afterwards, deploy an ordinary version from `main`. That makes the latest upload "off" again.
+4. Run the check above, and only then remove Access.
+
+The next ordinary deploy resets the switch to off in any case.
+
+**Containment, if hosted generation is ever reachable unintentionally.**
+1. Set `HOSTED_AI` to `off` in the dashboard (Workers & Pages → `dspack-studio-composer` → Settings → Variables). This deploys a new version of the current code with "off" in seconds, and it becomes the latest upload too.
+2. Check from outside: `node apps/composer/scripts/verify-hosted-ai-off.mjs`.
+3. Read AI Gateway analytics for the exposure window.
+4. Record an incident.
+
+**Rollback.** A rollback deploys the target version with the variables it had. Never roll back to a version that carries `HOSTED_AI` "on". After any rollback, run the check. A rollback uploads nothing, so it leaves the latest upload unchanged.
 
 **Cloudflare Access.** **Current state (checked 2026-11-25): Access does not cover this hostname.** An anonymous request is served ([repositioning/HOSTED-AI-AVAILABILITY.md](repositioning/HOSTED-AI-AVAILABILITY.md)); whether it was removed after the beta's rollback or never applied is not recorded. What follows is the intended state. Under the owner's single-host amendment, Access is to protect this hostname with email one-time PIN, admitting the owner's exact email and the testers the owner adds. The owner applies it in the dashboard; nothing in this repository applies it, and the experimental workflow refuses to deploy until anonymous requests go to its login. Applying it removes anonymous access: the existing public Composer becomes the invite-only beta, and this repository's anonymous checks of production (the build id, `/api/models`, the live-artifact scan, the production smoke) meet the Access login. The order of the cutover, the experimental deploy and the rollback to the block-free release candidate is in [blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md).
 
@@ -309,12 +340,14 @@ The exact name of the control was not verified: Cloudflare's documentation was
 not reachable when this was written. Confirm it in the dashboard. No
 Cloudflare setting has been changed.
 
-**The switches.** All three live in the dashboard, as type Text, and both
-configs keep them (`keep_vars: true`), so no deploy resets them. A rollback
-does: it restores the variables the target version had (Runbook, below).
-- `HOSTED_AI`, the kill switch: `off` stops hosted generation for every user
-  of Composer; absent means on. Scripted mode and the local agent are
-  unaffected.
+**The switches.** `BLOCKS_BETA` and `BETA_OPERATOR_LOG` live in the
+dashboard, as type Text, and both configs keep them (`keep_vars: true`), so no
+deploy resets them. `HOSTED_AI` is declared `"off"` in both configs, so every
+deploy resets it to off; turning it on for the beta is a deliberate step after
+the deploy ("Hosted AI", above). A rollback restores the variables the target
+version had (Runbook, below).
+- `HOSTED_AI`: on only for the exact string `on`; off when absent or anything
+  else. Scripted mode and the local agent are unaffected.
 - `BLOCKS_BETA`, the block switch, says what the beta offers:
 
   ```json
@@ -396,17 +429,17 @@ sets it ([blocks/BETA-DEPLOY-PLAN.md](blocks/BETA-DEPLOY-PLAN.md), steps A to F)
 - Roll back: `npx --yes wrangler@4.146.0 rollback <anchor version id> --config wrangler.jsonc`,
   or the dashboard's Deployments; always name the anchor, since each variable
   change deploys a new version. A rollback deploys that version as it was, and
-  restores the `BLOCKS_BETA`, `HOSTED_AI` and `BETA_OPERATOR_LOG` it had: for
-  the anchor, `HOSTED_AI` on and neither of the others. So roll back first,
-  then set all three again, `HOSTED_AI` to `off` if hosted generation was
-  paused, and check `/api/models` in a signed-in browser; no endpoint shows
+  restores the `BLOCKS_BETA`, `HOSTED_AI` and `BETA_OPERATOR_LOG` it had. Never
+  roll back to a version that carries `HOSTED_AI` "on". So roll back first,
+  then set the switches again, and run
+  `node apps/composer/scripts/verify-hosted-ai-off.mjs --expect-access` (or
+  check `/api/models` in a signed-in browser); no endpoint shows
   `BETA_OPERATOR_LOG`, so confirm it in the dashboard. A rollback never stops
   blocks on its own.
 - End the beta for good with a forward change that deletes the experimental
   config and workflow and keeps `wrangler.jsonc`'s `workers_dev`,
-  `preview_urls` and `keep_vars`. Never revert this change: a revert restores
-  the superseded separate-Worker files and redeclares `HOSTED_AI` without
-  `keep_vars`, so its own deploy would turn a paused kill switch back on.
+  `preview_urls`, `keep_vars` and its `HOSTED_AI` "off". Never revert this
+  change: a revert restores the superseded separate-Worker files.
 
 **Stop conditions (initial, set by the owner).**
 - Disable blocks at once (`BLOCKS_BETA` off) on any model mismatch, any

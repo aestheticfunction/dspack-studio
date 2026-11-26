@@ -86,3 +86,21 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Every merge to main is deployed to production by Cloudflare Workers Builds, outside this repository's
+  # workflows. wrangler.jsonc declares HOSTED_AI "off", which prevents a deploy inheriting "on"; this job
+  # detects it if anything else goes wrong, by watching the public API for ten minutes after the merge, with
+  # no credentials. A failure means hosted generation may be reachable: contain it at once (docs/deployment.md,
+  # "Hosted AI").
+  production-hosted-ai-off:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Hosted generation stays off while Workers Builds deploys this merge (public API, 10 minutes)
+        run: node apps/composer/scripts/verify-hosted-ai-off.mjs --public-only --watch 600

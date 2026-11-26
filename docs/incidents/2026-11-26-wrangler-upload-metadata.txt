@@ -1,0 +1,9 @@
+What wrangler 4.146.0 sends on upload, recorded against a local stand-in for the Cloudflare API (2026-11-26).
+The stand-in reports the latest upload as carrying HOSTED_AI "on", as on the day of the incident.
+'before' is wrangler.jsonc as it was (keep_vars, no vars); 'safe' adds vars { HOSTED_AI: "off" }.
+The stand-in does not model the deploy step after the upload; both deploy runs stop there, after recording the upload.
+
+before  versions upload  bindings [] keep_bindings ['plain_text', 'json', 'secret_text', 'secret_key']
+before  deploy           bindings [] keep_bindings ['plain_text', 'json', 'secret_text', 'secret_key']
+safe    versions upload  bindings [('plain_text', 'HOSTED_AI', 'off')] keep_bindings ['plain_text', 'json', 'secret_text', 'secret_key']
+safe    deploy           bindings [('plain_text', 'HOSTED_AI', 'off')] keep_bindings ['plain_text', 'json', 'secret_text', 'secret_key']

@@ -18,12 +18,14 @@
 // - workers_dev and preview_urls are off, and the route's previews_enabled is
 //   false, so no workers.dev, Preview or custom-domain Preview URL bypasses
 //   Access;
-// - keep_vars keeps the switches set in the dashboard, and this file declares
-//   no vars: HOSTED_AI (the kill switch; absent means on), BLOCKS_BETA (the
-//   block switch, apps/composer/worker/blocks-beta.mjs) and BETA_OPERATOR_LOG
-//   (the operator log, apps/composer/worker/operator-log.mjs; on only when
-//   exactly "on") live only in the dashboard, so a deploy never resets any of
-//   them.
+// - both declare HOSTED_AI "off" and nothing else, so every deploy sets hosted
+//   generation off explicitly (on only for the exact string "on"; see
+//   docs/incidents/2026-11-26-hosted-ai-inherited.md). keep_vars keeps the
+//   other switches as set in the dashboard: BLOCKS_BETA (the block switch,
+//   apps/composer/worker/blocks-beta.mjs) and BETA_OPERATOR_LOG (the operator
+//   log, apps/composer/worker/operator-log.mjs; on only when exactly "on").
+//   Hosted generation for the beta is turned on deliberately, after a deploy
+//   (docs/deployment.md, "Hosted AI").
 {
   "name": "dspack-studio-composer",
   "compatibility_date": "2026-08-08",
@@ -36,6 +38,7 @@
   "workers_dev": false,
   "preview_urls": false,
   "keep_vars": true,
+  "vars": { "HOSTED_AI": "off" },
   "assets": {
     "directory": "./apps/composer/out-experimental",
     "not_found_handling": "404-page",

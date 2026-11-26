@@ -72,7 +72,7 @@ describe("the configs", () => {
       expect(c.workers_dev).toBe(false);
       expect(c.preview_urls).toBe(false);
       expect(c.keep_vars).toBe(true);
-      expect(c).not.toHaveProperty("vars");
+      expect(c.vars).toEqual({ HOSTED_AI: "off" });
     }
   });
 
@@ -99,6 +99,10 @@ describe("the configs", () => {
       ["leaves Preview URLs to the default", ({ preview_urls: _p, ...c }) => c, /preview_urls/],
       ["drops the dashboard's variables on deploy", (c) => ({ ...c, keep_vars: false }), /keep_vars/],
       ["leaves keep_vars to the default", ({ keep_vars: _k, ...c }) => c, /keep_vars/],
+      ["declares no vars, so a deploy inherits HOSTED_AI from the latest upload", ({ vars: _v, ...c }) => c, /HOSTED_AI/],
+      ["turns hosted generation on", (c) => ({ ...c, vars: { HOSTED_AI: "on" } }), /HOSTED_AI/],
+      ["declares another var, which belongs in the dashboard", (c) => ({ ...c, vars: { HOSTED_AI: "off", BLOCKS_BETA: "{}" } }), /HOSTED_AI/],
+      ["spells off another way", (c) => ({ ...c, vars: { HOSTED_AI: "OFF" } }), /HOSTED_AI/],
       ["declares HOSTED_AI, which would reset the kill switch on every deploy", (c) => ({ ...c, vars: { HOSTED_AI: "on" } }), /vars/],
       ["declares the block switch, which would override the dashboard", (c) => ({ ...c, vars: { BLOCKS_BETA: '{"enabled":true}' } }), /vars/],
       ["declares the operator log", (c) => ({ ...c, vars: { BETA_OPERATOR_LOG: "on" } }), /vars/],
@@ -460,8 +464,10 @@ describe("the workflows", () => {
       const code = step.text.replace(/^\s*#.*$/gm, "");
       const callsCloudflare = /\bwrangler@\S+ (deployments|deploy|rollback)\b/.test(code);
       const checksCredential = step.name === "The experimental deploy uses only its own credential";
+      // Reads the active and latest versions' HOSTED_AI through the Cloudflare API; repository code, no install.
+      const verifiesHostedAiOff = /node apps\/composer\/scripts\/verify-hosted-ai-off\.mjs\b/.test(code);
       const hasToken = /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN_EXPERIMENTAL \}\}/.test(step.text);
-      expect(hasToken, step.name).toBe(callsCloudflare || checksCredential);
+      expect(hasToken, step.name).toBe(callsCloudflare || checksCredential || verifiesHostedAiOff);
       if (hasToken) expect(step.text, step.name).toMatch(/CLOUDFLARE_ACCOUNT_ID: \$\{\{ vars\.CLOUDFLARE_ACCOUNT_ID \}\}/);
     }
     for (const name of ["Frozen-lockfile install", "Build the experimental artifact (apps/composer/out-experimental)"]) {
@@ -529,7 +535,7 @@ describe("the workflows", () => {
     }
   });
 
-  it("exactly one step deploys, and after the guard only the two post-deploy steps carry a condition", () => {
+  it("exactly one step deploys, and after the guard only the three post-deploy steps carry a condition", () => {
     const all = steps(workflow());
     const code = (step) => step.text.replace(/^\s*#.*$/gm, "").replace(/^\s*echo .*$/gm, "");
     const deploying = all.filter((s) => /\bwrangler@\S+ (deploy|versions deploy|versions upload|triggers deploy|rollback)\b/.test(code(s)));
@@ -537,7 +543,11 @@ describe("the workflows", () => {
     const guard = all.findIndex((s) => /check-experimental-deploy\.mjs(\n|$)/.test(s.text));
     expect(guard).toBeGreaterThan(-1);
     const POST_DEPLOY = "${{ !cancelled() && steps.deploy.outcome != 'skipped' }}";
-    const postDeploy = ["Record the deployed version", "Cloudflare Access still sends anonymous requests, GET and POST, to its login"];
+    const postDeploy = [
+      "Record the deployed version",
+      "Cloudflare Access still sends anonymous requests, GET and POST, to its login",
+      "Hosted generation is off after the deploy (effective configuration; Access in front)",
+    ];
     for (const step of all.slice(guard)) {
       const conditions = [...step.text.matchAll(/\n {8}if: (.*)/g)].map((m) => m[1]);
       expect(conditions, step.name).toEqual(postDeploy.includes(step.name) ? [POST_DEPLOY] : []);
