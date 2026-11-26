@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
-import { versionKey, type CompositionDefinition, type Governor, type Host, type ShowResult } from "@dspack-studio/composer-core/compositions";
+import { pinsFor, samePins, versionKey, type CompositionDefinition, type Governor, type Host, type ShowResult } from "@dspack-studio/composer-core/compositions";
 import { canvasScopeFor, registryFor } from "../../app/registries";
 import { checkVersion, governorFor, hostFor, loadLibrary, type LoadedLibrary, type VersionCheck } from "./runtime";
 import { browserStore, DEFAULT_PREFS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
@@ -57,7 +57,8 @@ function useLayout(): Layout {
 interface Ready {
   loaded: LoadedLibrary;
   governors: Map<WhatIf, Governor>;
-  checks: Map<string, VersionCheck>;
+  /** The latest check of each version under each rule set: what the canvas and the inspector both read (R2). */
+  checks: Map<WhatIf, Map<string, VersionCheck>>;
   hosts: Map<string, Host>;
   storage: ReadResult<LibraryPrefs>["status"];
 }
@@ -71,7 +72,6 @@ export function LibraryWorkspace() {
   const [whatIf, setWhatIf] = useState<WhatIf>("none");
   const [shown, setShown] = useState<ShowResult | null>(null);
   const [showing, setShowing] = useState(false);
-  const [recheckNote, setRecheckNote] = useState<VersionCheck | null>(null);
   const [lastAction, setLastAction] = useState<{ name: string; context: Json; consequential: boolean } | null>(null);
   const [filter, setFilter] = useState("");
   const [announce, setAnnounce] = useState("");
@@ -108,7 +108,7 @@ export function LibraryWorkspace() {
         // A phone starts on the canvas alone; wider screens reopen the side panel last used.
         const narrow = !window.matchMedia("(min-width: 900px)").matches;
         setOpen(narrow ? { library: false, inspector: false } : start.panel === "inspector" ? { library: false, inspector: true } : { library: true, inspector: false });
-        setReady({ loaded, governors: new Map([["none", governor]]), checks, hosts, storage: stored.status });
+        setReady({ loaded, governors: new Map([["none", governor]]), checks: new Map([["none", checks]]), hosts, storage: stored.status });
       } catch (error) {
         if (!cancelled) setFailed(error instanceof Error ? error.message : String(error));
       }
@@ -129,7 +129,8 @@ export function LibraryWorkspace() {
 
   const definition: CompositionDefinition | undefined = ready && prefs.composition && prefs.version ? ready.loaded.library.get(prefs.composition, prefs.version) : undefined;
   const key = definition ? versionKey(definition.id, definition.version) : "";
-  const check = ready?.checks.get(key);
+  // One authoritative result per version and rule set; undefined means not checked under these rules yet.
+  const check = ready?.checks.get(whatIf)?.get(key);
   const scenario = definition?.scenarios.find((s) => s.id === prefs.scenario) ?? definition?.scenarios[0];
 
   const persist = useCallback((next: LibraryPrefs) => {
@@ -157,7 +158,6 @@ export function LibraryWorkspace() {
     if (!ready) return;
     const entry = ready.loaded.library.entry(composition)!;
     persist({ ...prefs, composition, version: (entry.approved ?? entry.versions[0]!).version, scenario: null, state: null });
-    setRecheckNote(null);
     if (layout === "narrow") {
       setOpen({ library: false, inspector: false });
       setTimeout(() => canvasHeading.current?.focus(), 0);
@@ -177,26 +177,41 @@ export function LibraryWorkspace() {
 
   const closeDrawer = (panel: Panel) => {
     setOpen({ ...open, [panel]: false });
-    toggles.current[panel]?.focus();
+    // After the commit: until then the toggle is still inert behind the modal drawer and cannot take focus.
+    setTimeout(() => toggles.current[panel]?.focus(), 0);
   };
 
+  /**
+   * Switch rule sets (R2). Every host is governed by the new rules at once. A host gets an approval back only
+   * when a check under exactly these rules issued it for exactly that version and its pins still match;
+   * otherwise it shows nothing new until checked. So restoring the packaged rules restores the packaged
+   * check's authorization, and nothing from the what-if survives into the packaged rules.
+   */
   const changeRules = async (next: WhatIf) => {
     if (!ready) return;
     const governor = ready.governors.get(next) ?? (await governorFor(next));
     ready.governors.set(next, governor);
-    for (const host of ready.hosts.values()) host.setGovernor(governor);
-    setRecheckNote(null);
+    for (const e of ready.loaded.library.entries) {
+      for (const v of e.versions) {
+        const k = versionKey(v.id, v.version);
+        const host = ready.hosts.get(k)!;
+        host.setGovernor(governor);
+        const issued = ready.checks.get(next)?.get(k)?.approval;
+        if (issued && samePins(issued.pins, await pinsFor(governor, v))) host.approve(v.id, issued);
+      }
+    }
     setWhatIf(next);
   };
 
   const recheckNow = async () => {
     if (!ready || !definition) return;
     const governor = ready.governors.get(whatIf)!;
-    // A what-if is never stored: its re-check writes no approval record.
+    // A what-if is never stored: its check writes no record, and it is kept only for this session.
     const result = await checkVersion(governor, definition, whatIf === "none" ? browserStore() : null);
     if (result.approval) ready.hosts.get(key)!.approve(definition.id, result.approval);
-    if (whatIf === "none") ready.checks.set(key, result);
-    setRecheckNote(result);
+    const forRules = ready.checks.get(whatIf) ?? new Map<string, VersionCheck>();
+    forRules.set(key, result);
+    ready.checks.set(whatIf, forRules);
     // A new object, so the selection is shown again through the (possibly re-approved) host.
     setReady({ ...ready });
   };
@@ -214,6 +229,47 @@ export function LibraryWorkspace() {
     },
     [ready, key, definition],
   );
+
+  // On a phone an open panel is a modal drawer (R3): everything behind it is inert, and Tab stays inside it.
+  // Wider screens keep side panels non-modal.
+  useEffect(() => {
+    if (layout !== "narrow") return;
+    const which: Panel | null = open.library ? "library" : open.inspector ? "inspector" : null;
+    const drawer = which ? panels.current[which] : null;
+    if (!drawer) return;
+    const changed: Array<[HTMLElement, boolean]> = [];
+    let node: HTMLElement = drawer;
+    while (node.parentElement && node !== document.body) {
+      for (const sibling of Array.from(node.parentElement.children) as HTMLElement[]) {
+        if (sibling === node || sibling.classList.contains("cl-scrim") || sibling.hasAttribute("aria-live") || ["SCRIPT", "STYLE"].includes(sibling.tagName)) continue;
+        changed.push([sibling, sibling.inert]);
+        sibling.inert = true;
+      }
+      node = node.parentElement;
+    }
+    const focusable = () =>
+      Array.from(drawer.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')).filter((el) => el.getClientRects().length > 0);
+    const onTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const items = focusable();
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === drawer || !drawer.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !drawer.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onTab);
+    return () => {
+      document.removeEventListener("keydown", onTab);
+      for (const [el, was] of changed) el.inert = was;
+    };
+  }, [layout, open.library, open.inspector]);
 
   // Escape closes a drawer on a phone.
   useEffect(() => {
@@ -259,25 +315,30 @@ export function LibraryWorkspace() {
   const entry = definition ? ready.loaded.library.entry(definition.id) : undefined;
   const governed = whatIf === "none";
   const toolchain = ready.governors.get(whatIf)!.toolchain;
+  const drawerProps = (panel: Panel) => (layout === "narrow" ? { role: "dialog", "aria-modal": true, "aria-labelledby": `cl-${panel}-title` } : { "aria-labelledby": `cl-${panel}-title` });
+  const rules = governed ? "the packaged rules" : "the what-if rules";
+  const failing = check && !check.approval ? check.scenarios.filter((s) => !s.matches).map((s) => s.id) : [];
 
   const libraryPanel = (
     <aside
       id="cl-library"
       className={`cl-panel cl-panel--library${open.library ? " cl-panel--open" : ""}`}
-      aria-label="Compositions"
+      {...drawerProps("library")}
       hidden={!open.library}
       tabIndex={-1}
       ref={(el) => void (panels.current.library = el)}
     >
       <div className="cl-panel__head">
-        <h2 className="cl-h">Compositions</h2>
+        <h2 className="cl-h" id="cl-library-title">
+          Compositions
+        </h2>
         {layout === "narrow" && (
           <button className="st-btn" onClick={() => closeDrawer("library")}>
             Close
           </button>
         )}
       </div>
-      <p className="cl-dim">Packaged compositions for the Astryx sample. Each one is a definition the agent fills with data; every instance is governed.</p>
+      <p className="cl-dim">The Astryx sample&rsquo;s compositions. Each one is a reusable definition an agent fills with data; every instance is checked against the design system&rsquo;s rules.</p>
       <label className="cl-label" htmlFor="cl-filter">
         Filter by name or purpose
       </label>
@@ -379,7 +440,7 @@ export function LibraryWorkspace() {
           </div>
           {definition.status === "draft" && (
             <p className="cl-note" data-testid="draft-note">
-              A draft: newer than approved v{entry.approved?.version}, not approved for use. It is previewed under the same checks, and v{entry.approved?.version} is unchanged.
+              A draft, newer than approved v{entry.approved?.version}. It is not approved for use by agents: passing checks previews it but does not approve it. v{entry.approved?.version} stays as it was.
             </p>
           )}
           {!governed && (
@@ -387,12 +448,18 @@ export function LibraryWorkspace() {
               What-if, this session only: a review now needs four options. Nothing is saved, and the packaged rules are unchanged.
             </p>
           )}
-          <CanvasBody shown={shown} showing={showing} definition={definition} onAction={onAction} catalog={ready.governors.get(whatIf)!.catalog("0.9.1")} recheck={recheckNow} recheckNote={recheckNote} />
+          <CanvasBody shown={shown} showing={showing} definition={definition} onAction={onAction} catalog={ready.governors.get(whatIf)!.catalog("0.9.1")} recheck={recheckNow} failing={failing} />
           {lastAction && (
-            <p className="cl-note" role="status" data-testid="action-note">
-              <strong>{lastAction.name}</strong> would send <code>{JSON.stringify(lastAction.context)}</code>
-              {lastAction.consequential ? ". It is consequential, accepted once and only from this confirmation." : "."} In the Library actions are shown, not run: running a flow belongs to the Playground, which is not available yet.
-            </p>
+            // R4: pinned to the bottom of the visible canvas, so the feedback is seen where the button was pressed.
+            <div className="cl-action" role="status" data-testid="action-note">
+              <p>
+                <strong>Preview only, not run.</strong> <code>{lastAction.name}</code> would send <code>{JSON.stringify(lastAction.context)}</code>
+                {lastAction.consequential ? ". It is consequential: in a running flow it is accepted once, from this confirmation only." : "."}
+              </p>
+              <button className="st-btn" onClick={() => setLastAction(null)} aria-label="Dismiss the action preview">
+                Dismiss
+              </button>
+            </div>
           )}
         </>
       )}
@@ -404,14 +471,16 @@ export function LibraryWorkspace() {
     <aside
       id="cl-inspector"
       className={`cl-panel cl-panel--inspector${open.inspector ? " cl-panel--open" : ""}`}
-      aria-label="Inspector"
+      {...drawerProps("inspector")}
       hidden={!open.inspector}
       tabIndex={-1}
       ref={(el) => void (panels.current.inspector = el)}
       data-testid="inspector"
     >
       <div className="cl-panel__head">
-        <h2 className="cl-h">Inspector</h2>
+        <h2 className="cl-h" id="cl-inspector-title">
+          Inspector
+        </h2>
         {layout === "narrow" && (
           <button className="st-btn" onClick={() => closeDrawer("inspector")}>
             Close
@@ -428,20 +497,29 @@ export function LibraryWorkspace() {
             <Facts
               rows={[
                 ["Id", <code key="id">{definition.id}</code>],
-                ["Version", `v${definition.version} · ${definition.status === "approved" ? "Approved, immutable" : "Draft"}`],
+                ["Version", `v${definition.version} · ${definition.status === "approved" ? "Approved, immutable" : "Draft, not approved"}`],
                 ["Versions", entry!.versions.map((v) => `v${v.version} ${v.status}`).join(", ")],
-                ["Definition hash", check?.approval ? short(check.approval.pins.compositionSha256) : "not approved"],
+                ["Definition hash", check?.approval ? short(check.approval.pins.compositionSha256) : "after checks pass"],
               ]}
             />
           </Section>
-          <Section title="Governance">
-            {check?.approval && governed ? (
-              <p className="cl-ok" data-testid="approval-status">
-                Re-checked on load: {check.scenarios.filter((s) => s.matches).length} of {check.scenarios.length} scenarios behave as declared under the packaged rules.
+          <Section title="Checks">
+            {!check ? (
+              <p className="cl-warn" data-testid="check-status" data-check="unchecked">
+                Needs a new check: not yet checked under {rules}. Nothing new is shown from this version until its scenarios pass.
+              </p>
+            ) : check.approval ? (
+              <p className="cl-ok" data-testid="check-status" data-check="pass">
+                Checks pass: {check.scenarios.filter((s) => s.matches).length} of {check.scenarios.length} scenarios behave as declared under {rules}.
               </p>
             ) : (
-              <p className="cl-bad" data-testid="approval-status">
-                {governed ? "Not approved: a scenario does not behave as declared." : "Under the what-if rules this version needs a re-check before anything runs."}
+              <p className="cl-bad" data-testid="check-status" data-check="fail">
+                Checks fail under {rules}: {failing.join(", ")} {failing.length === 1 ? "does" : "do"} not behave as declared. Nothing runs from this version under these rules.
+              </p>
+            )}
+            {definition.status === "draft" && (
+              <p className="cl-dim" data-testid="draft-check-note">
+                Still a draft: passing checks does not approve it for agents. Approving a version is a separate, explicit decision.
               </p>
             )}
             {check && (
@@ -454,7 +532,7 @@ export function LibraryWorkspace() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(recheckNote && !governed ? recheckNote.scenarios : check.scenarios).map((s) => (
+                  {check.scenarios.map((s) => (
                     <tr key={s.id}>
                       <td>{s.id}</td>
                       <td>{s.expect === "refused" ? `refused by ${s.refusedBy}` : "shown"}</td>
@@ -464,19 +542,20 @@ export function LibraryWorkspace() {
                 </tbody>
               </table>
             )}
-            {check && (
+            {check && governed && (
               <p className="cl-dim" data-testid="device-record">
                 {check.previous.status === "none"
-                  ? "On this device: the first approval of this version was recorded."
+                  ? "On this device: these checks are recorded for the first time."
                   : check.previous.status === "current"
-                    ? "On this device: matches the approval recorded earlier."
-                    : `On this device: the earlier approval was made under another ${check.previous.changed.join(", ")}; re-checked now.`}
+                    ? "On this device: the same as the checks recorded earlier."
+                    : `On this device: the earlier checks ran under another ${check.previous.changed.join(", ")}; checked again now.`}
               </p>
             )}
             <Facts
               rows={[
                 ["Contract", `Astryx reference · ${short(ready.governors.get(whatIf)!.contractSha256)}`],
                 ["Toolchain", `lint ${toolchain.lint} · emit ${toolchain.emit} · runtime ${toolchain.runtime}`],
+                ["What runs", "The design system's rules (S1–S3) and the catalog gates (A1–A3)"],
               ]}
             />
             <button className="st-btn" aria-pressed={!governed} onClick={() => changeRules(governed ? "four-options" : "none")} data-testid="what-if">
@@ -573,7 +652,7 @@ function CanvasBody({
   onAction,
   catalog,
   recheck,
-  recheckNote,
+  failing,
 }: {
   shown: ShowResult | null;
   showing: boolean;
@@ -581,7 +660,8 @@ function CanvasBody({
   onAction: (a: A2uiClientAction) => void;
   catalog: Json;
   recheck: () => void;
-  recheckNote: VersionCheck | null;
+  /** Scenarios that failed the latest check under the current rules, if it failed. */
+  failing: string[];
 }) {
   const registry = useMemo(() => registryFor("astryx", catalog), [catalog]);
   const scope = canvasScopeFor("astryx");
@@ -595,7 +675,8 @@ function CanvasBody({
     return (
       <>
         <p className="cl-status" data-testid="instance-status">
-          State <strong>{shown.instance.state}</strong> · {purposeLabel(shown.instance.purpose)} · <span className="cl-ok">governed: S1–S3 and A1–A3 pass</span>
+          State <strong>{shown.instance.state}</strong> · {purposeLabel(shown.instance.purpose)} · <span className="cl-ok">Checks pass</span>
+          {definition.status === "draft" ? " · Draft, not approved" : ""}
           {showing ? " · updating…" : ""}
         </p>
         {frame(shown.instance)}
@@ -608,29 +689,30 @@ function CanvasBody({
   return (
     <>
       <div className={`cl-refusal${needsRecheck ? " cl-refusal--recheck" : ""}`} role="status" data-testid="refusal" data-stage={refusal.stage}>
-        <p className="cl-refusal__title">{needsRecheck ? "Needs re-check before anything runs" : `Not shown: refused by ${STAGE[refusal.stage] ?? refusal.stage}`}</p>
+        <p className="cl-refusal__title">{needsRecheck ? (failing.length ? "Checks fail under these rules" : "Needs a new check") : `Not shown: refused by ${STAGE[refusal.stage] ?? refusal.stage}`}</p>
         {rule && (
           <p>
             <code>{rule}</code>
           </p>
         )}
-        <p>{needsRecheck ? `The rules changed since ${definition.name} v${definition.version} was approved, so the host shows nothing new from it until its scenarios pass again.` : String(refusal.reason)}</p>
+        <p>{needsRecheck ? `The rules changed since ${definition.name} v${definition.version} was last checked, so nothing new is shown from it until its scenarios pass again.` : String(refusal.reason)}</p>
+        {needsRecheck && failing.length > 0 && (
+          <p data-testid="recheck-failed">
+            {failing.join(", ")} no longer {failing.length === 1 ? "behaves" : "behave"} as declared. Nothing runs from this version under these rules, and nothing shown before is replaced.
+          </p>
+        )}
         {needsRecheck && (
           <button className="st-btn" onClick={recheck} data-testid="recheck">
-            Re-check this version
+            Run checks under these rules
           </button>
-        )}
-        {recheckNote && !recheckNote.approval && (
-          <p data-testid="recheck-failed">
-            Re-check failed: {recheckNote.scenarios.filter((s) => !s.matches).map((s) => s.id).join(", ")} no longer behave as declared. This version stays unapproved under these rules, and nothing it showed before is replaced.
-          </p>
         )}
       </div>
       {shown.kept && (
-        <>
-          <p className="cl-dim">The last valid instance, which stays on screen in a running flow:</p>
+        <details className="cl-kept" data-testid="kept-instance">
+          <summary>Last valid instance · not interactive</summary>
+          <p className="cl-dim">In a running flow this stays on screen while the new data is refused. Here it is shown for comparison only.</p>
           {frame(shown.kept, true)}
-        </>
+        </details>
       )}
     </>
   );
@@ -641,7 +723,7 @@ function Bar({ children }: { children?: ReactNode }) {
     <div className="cl-bar">
       <nav aria-label="Workspace" className="cl-dest">
         <span className="cl-dest__item cl-dest__item--current" aria-current="page">
-          Library
+          Library <small className="cl-scope">Astryx sample</small>
         </span>
         <span className="cl-dest__item cl-dest__item--later" aria-disabled="true">
           Compose · Playground · Publish <small>not yet available</small>
@@ -728,7 +810,7 @@ const CSS = `
 .cl-item__versions { display: flex; gap: 6px; flex-wrap: wrap; }
 .cl-badge { display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border: 1px solid var(--line); border-radius: 2px; color: var(--fg-dim); vertical-align: middle; }
 .cl-badge--ok { border-color: var(--green-deep); color: var(--green-bright); }
-.cl-canvas { padding: 16px max(16px, env(safe-area-inset-left)) 32px; min-width: 0; overflow: auto; }
+.cl-canvas { padding: 16px max(16px, env(safe-area-inset-left)) 32px; min-width: 0; overflow-x: clip; }
 .cl-canvas__head { display: grid; gap: 10px; margin-bottom: 12px; }
 .cl-crumbs { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-dim); margin: 0; }
 .cl-title { font-family: var(--hl); font-weight: 600; text-transform: uppercase; color: var(--fg); font-size: clamp(20px, 2.4vw, 28px); margin: 0; outline: none; }
@@ -767,6 +849,14 @@ p.cl-ok, p.cl-bad { font-size: 14px; line-height: 1.5; margin: 0 0 8px; }
 .cl-empty__title { color: var(--fg); font-weight: 600; margin: 0 0 4px; }
 .cl-loading { color: var(--fg-dim); padding: 24px 0; }
 .cl-issues { margin-top: 12px; font-size: 12px; color: var(--fg-dim); }
+.cl-scope { font-size: 10px; letter-spacing: 0.04em; text-transform: none; color: var(--fg-dim); margin-left: 6px; }
+.cl-warn { color: var(--warn, #c9a35a); }
+p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8px; }
+.cl-action { position: sticky; bottom: 12px; z-index: 5; display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--green); border-radius: 3px; background: var(--bg-1); box-shadow: var(--shadow-menu); font-size: 13px; line-height: 1.5; }
+.cl-action p { margin: 0; min-width: 0; }
+.cl-action code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.cl-kept { margin-top: 8px; }
+.cl-kept summary { cursor: pointer; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-dim); padding: 6px 0; }
 .cl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .cl * { transition: none !important; } }
 `;

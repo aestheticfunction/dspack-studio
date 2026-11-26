@@ -1,6 +1,6 @@
 # M1 workspace increment: storage, versions and the Composition Library
 
-**Status:** for the owner's evaluation, 2026-11-26. Three slices in two stacked pull requests. Nothing here is in the default build or in production.
+**Status:** Slices A and B merged (#126). Slice C, the Library (#127), is corrected after the independent review ([M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md)) and awaits merge approval. Nothing here is in the default build.
 
 | Slice | What | Where |
 |---|---|---|
@@ -29,11 +29,11 @@ Open `http://localhost:3315/` and choose **Library** in the top navigation. The 
 Things to try:
 
 1. **Hotel results.** Switch between **v1 Approved** and **v2 Draft**: the draft's wording appears, and v1 is unchanged.
-2. **Scenario "one".** The design system's rule refuses it, with its rationale, and the last valid instance stays below.
+2. **Scenario "one".** The design system's rule refuses it, with its rationale. The last valid instance is kept behind a closed "not interactive" disclosure.
 3. **State "empty" with scenario "three".** The state's guard refuses it.
-4. **Inspector, What-if: require four options.** The canvas reports **Needs re-check**. **Re-check this version** fails on "three" and "two", and nothing is approved or stored. **Restore the packaged rules** brings it back.
-5. **Hotel search.** Type a loyalty number and press **Search hotels**. The note shows what the action would send, with the loyalty number as `[sensitive]`. Actions are shown, never run.
-6. **Narrow the window below 900 px.** The canvas comes first, and the two panels become drawers. Escape closes a drawer.
+4. **Inspector, What-if: require four options.** The canvas and the inspector both report **Needs a new check**. **Run checks under these rules** fails on "three" and "two", and both say **Checks fail**; nothing is stored. Hotel search passes under the same rules. **Restore the packaged rules** brings both back to **Checks pass**.
+5. **Hotel search.** Type a loyalty number and press **Search hotels**. A note pinned to the bottom of the canvas says **Preview only, not run**, with what the action would send and the loyalty number as `[sensitive]`.
+6. **Narrow the window below 900 px.** The canvas comes first, and the two panels become modal drawers: Tab stays inside, the page behind is unavailable, Escape closes and returns focus.
 
 Screenshots at 1280, 1440 and 390 px are in [m1/screenshots/](m1/screenshots/).
 
@@ -153,21 +153,34 @@ Layout and keyboard:
 - **Isolation tests.** `lib/compositions-isolation.test.mjs` now allows the composition runtime only under `apps/composer/experimental/`, and checks that the directory is aliased away in a default build.
 - **Default artifact check.** It covers the new markers. The default build passed it: 29 files, 19 markers.
 
+## Corrections after the independent review (R1 to R4)
+
+| Finding | Correction | Regression test (`e2e/composer-library.spec.ts`) |
+|---|---|---|
+| **R1.** A checked draft read as approved | "Approved" is reserved for a version's status. Runtime results read **Checks pass**, **Checks fail** or **Needs a new check**. A draft says it is not approved for use by agents and that passing checks does not approve it; under changed rules it was "last checked", never "approved". The device record speaks of checks | "R1: passing checks never reads as approval; a draft stays a draft": every line of the workspace that mentions approval is a version status or a statement that something is not approved |
+| **R2.** The what-if left the canvas and the inspector contradicting each other, and Restore did not restore | One result per version and rule set, which both read. A rules change gives each host back only an approval a check under exactly those rules issued for exactly that version, with matching pins; otherwise nothing new is shown until checked. Restore therefore re-authorizes with the packaged check. What-if checks are never stored | "R2: the canvas and the inspector report one result…": unchecked, a failing check and a passing check under the what-if, then the restore, for both compositions; the contract shown is unchanged and the stored approval records are byte-identical |
+| **R3.** Phone drawers did not contain focus | Below 900 px an open panel is a `dialog` with `aria-modal`, named by its heading. Everything behind it is inert, including the app header. Tab and Shift+Tab cycle inside it. Escape and Close return focus to the toggle. Wider screens keep non-modal side panels | "R3: on a phone…" (12 Tabs and 12 Shift+Tabs stay inside; header and canvas inert, then restored) and "R3: wider screens keep side panels non-modal" |
+| **R4.** Pressing an action gave no visible feedback | A **Preview only, not run** note pinned to the bottom of the visible canvas, with the redacted payload and a Dismiss button. The live region is kept | "R4: action feedback appears inside the visible working area…": the note is in the viewport after pressing the first card's button and after scrolling to the last |
+
+The R tests run against the uncorrected Library fail on all four findings ([m1/review-corrections-failing-first.txt](m1/review-corrections-failing-first.txt)). Some of those failures are on the new wording, so they are regression guards; the defects themselves are reproduced in the review.
+
+Two of the owner's approved decisions are applied at the same time: the workspace bar names the **Library · Astryx sample**, and the retained last valid instance sits behind a closed disclosure marked **not interactive**.
+
 ## Limits that remain
 
-- **Hotel names are not visible on the option cards** in the Library, as everywhere. That is the selectable-card gap, fixed in its own pull request (D1), which is not merged into this one.
+- **Hotel names on option cards** are drawn since D1 (#125) merged.
+- **The Astryx list-item violation** is fixed in its own pull request. Until it merges, this spec keeps its one exception, for exactly `aria-required-children` on `.astryx-list`; remove it when integrating that change.
 - **The Library is read-only.** Authoring, running actions and flows, and publishing are named and not built.
 - **One design system** (Astryx), two compositions, one draft.
 - **A rule change re-checks every composition**, not only those a rule affects. Rule coverage is deferred in M1.
-- **The what-if is the only way to reach needs-recheck in the Library**, because the packaged rules do not change while it runs.
+- **The what-if is the only way to reach "Needs a new check" in the Library**, because the packaged rules do not change while it runs.
+- **Designer-first refinements** (a fixed workspace frame, less chrome above the instance, plain-language refusals, human scenario names, technical details behind a disclosure) are proposed in [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md), ahead of authoring.
 - **Sensitive fields are drawn unmasked.** Masking is required before real sensitive inputs are supported (owner decision). Only synthetic values are used here.
 - **Focus inside a repeated element** across a replacement is still verified as the host's hint only. The Library shows one instance per selection.
 
-## Decisions for the owner
+## Decisions taken
 
-1. **Merging.** Merge the foundations (Slices A and B) first, then the Library. Neither touches the default build.
-2. **The plan-comparison accessibility violation** inside Astryx's `List`. Fixing it is a renderer-adapter change, like D1, and reaches the default build. Recommended: scope it next to D1.
-3. **A visible draft workflow** (create a draft, edit it, approve it) belongs to authoring, the next slice. This increment only shows packaged drafts.
+The owner's decisions on the review (§11) are recorded at the top of [M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md).
 
 ## Next: composition authoring, and preparing for M2
 

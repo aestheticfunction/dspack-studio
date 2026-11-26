@@ -29,12 +29,14 @@ test.describe("the Composition Library", () => {
     await openLibrary(page);
     await expect(page.getByTestId("library-item-hotel-results")).toHaveAttribute("aria-current", "true");
     await expect(page.getByTestId("library-item-hotel-search")).toBeVisible();
-    await expect(page.getByTestId("instance-status")).toContainText("governed");
+    await expect(page.getByTestId("instance-status")).toContainText("Checks pass");
     await expect(canvas(page).locator("[data-a2ui-surface]")).toHaveCount(1);
     await expect(canvas(page).locator('[data-a2ui-component="SelectableCard"]')).toHaveCount(3);
     await expect(canvas(page)).toContainText("Hotels in Lisbon");
     // Future destinations are named, and none is a control.
     const bar = page.getByRole("navigation", { name: "Workspace" });
+    // The Library's scope is named: the Astryx sample, whatever project is open.
+    await expect(bar).toContainText("Astryx sample");
     await expect(bar).toContainText("Compose · Playground · Publish");
     await expect(bar).toContainText("not yet available");
     await expect(bar.locator("button, a")).toHaveCount(0);
@@ -59,6 +61,10 @@ test.describe("the Composition Library", () => {
     await expect(refusal).toHaveAttribute("data-stage", "lint");
     await expect(refusal).toContainText("rule.review-offers-alternatives");
     await expect(refusal).toContainText("A choice of one is not a comparison");
+    // The retained instance sits behind a closed disclosure, named as not interactive, and is inert.
+    const kept = page.getByTestId("kept-instance");
+    await expect(kept).not.toHaveAttribute("open", "");
+    await expect(kept.locator("summary")).toHaveText("Last valid instance · not interactive");
     await expect(page.locator(".cl-frame--kept")).toHaveAttribute("inert", "");
     await page.getByTestId("scenario-select").selectOption("none");
     await expect(page.getByTestId("instance-status")).toContainText("empty");
@@ -74,7 +80,7 @@ test.describe("the Composition Library", () => {
     await openLibrary(page);
     const before = await storage(page);
     await page.getByTestId("toggle-inspector").click();
-    await expect(page.getByTestId("approval-status")).toContainText("5 of 5");
+    await expect(page.getByTestId("check-status")).toContainText("Checks pass: 5 of 5");
     await page.getByTestId("what-if").click();
     await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "needs-recheck");
     await page.getByTestId("recheck").click();
@@ -83,14 +89,14 @@ test.describe("the Composition Library", () => {
     const after = await storage(page);
     expect(after[`${NS}approvals`]).toBe(before[`${NS}approvals`]);
     await page.getByTestId("what-if").click();
-    await expect(page.getByTestId("instance-status")).toContainText("governed");
+    await expect(page.getByTestId("instance-status")).toContainText("Checks pass");
   });
 
   test("actions are shown, never run; a sensitive value appears only in its recordable form and is stored nowhere", async ({ page }) => {
     await openLibrary(page);
     await canvas(page).getByRole("button", { name: "Choose Hotel Miradouro" }).click();
     await expect(page.getByTestId("action-note")).toContainText('{"hotelId":"h-102"}');
-    await expect(page.getByTestId("action-note")).toContainText("shown, not run");
+    await expect(page.getByTestId("action-note")).toContainText("Preview only, not run.");
     await page.getByTestId("library-item-hotel-search").click();
     await expect(canvas(page)).toContainText("Find a hotel");
     const field = (id: string) => canvas(page).locator(`[data-a2ui-id="${id}"] input`);
@@ -102,6 +108,121 @@ test.describe("the Composition Library", () => {
     const stored = await storage(page);
     expect(JSON.stringify(stored)).not.toContain(SECRET);
     expect(Object.keys(stored).filter((k) => k.startsWith("composer.") && !k.startsWith(NS) && !["composer.appearance.v1", "composer.providers.v1", "composer.projects.v1", "composer.lastProject.v1", "composer.experimental.v1"].includes(k))).toEqual([]);
+  });
+});
+
+test.describe("M1 workspace review corrections (R1 to R4)", () => {
+  test("R1: passing checks never reads as approval; a draft stays a draft", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 860 });
+    await openLibrary(page);
+    await page.getByTestId("toggle-inspector").click();
+    await page.getByRole("radio", { name: /v2 Draft/i }).check();
+    await expect(page.getByTestId("draft-note")).toContainText("not approved for use by agents");
+    await expect(page.getByTestId("instance-status")).toContainText("Checks pass · Draft, not approved");
+    await expect(page.getByTestId("check-status")).toHaveAttribute("data-check", "pass");
+    await expect(page.getByTestId("draft-check-note")).toContainText("passing checks does not approve it");
+    await expect(page.getByTestId("device-record")).not.toContainText(/approv/i);
+    // Under changed rules, a draft is "last checked", never "approved".
+    await page.getByTestId("what-if").click();
+    await expect(page.getByTestId("refusal")).toContainText("was last checked");
+    // "Approved" appears only as a version's status.
+    const words = await page.getByTestId("composition-library").innerText();
+    for (const line of words.split("\n").filter((l) => /approv/i.test(l))) {
+      expect(line, line).toMatch(/^(v\d+ · Approved|v\d+ Approved|Approved, immutable|v\d+ · Approved, immutable|.*not approved.*|.*does not approve.*|Approving a version is a separate.*|A draft, newer than approved v\d+.*|v\d+ approved, v\d+ draft|Version|.*Draft, not approved)$/i);
+    }
+  });
+
+  test("R2: the canvas and the inspector report one result, through what-if checks that pass and fail, and the restore", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 860 });
+    await openLibrary(page);
+    const approvalsBefore = (await storage(page))[`${NS}approvals`];
+    await page.getByTestId("toggle-inspector").click();
+    const contract = await page.locator(".cl-facts").filter({ hasText: "Contract" }).innerText();
+    const status = () => page.getByTestId("check-status");
+    await page.getByTestId("what-if").click();
+    await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "needs-recheck");
+    await expect(status()).toHaveAttribute("data-check", "unchecked");
+    // A what-if check that fails: both say so.
+    await page.getByTestId("recheck").click();
+    await expect(status()).toHaveAttribute("data-check", "fail");
+    await expect(status()).toContainText("three, two");
+    await expect(page.getByTestId("recheck-failed")).toContainText("three, two");
+    // A what-if check that passes (hotel search is unaffected): both say so.
+    await page.getByTestId("toggle-library").click();
+    await page.getByTestId("library-item-hotel-search").click();
+    await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "needs-recheck");
+    await page.getByTestId("recheck").click();
+    await expect(page.getByTestId("instance-status")).toContainText("Checks pass");
+    await page.getByTestId("toggle-inspector").click();
+    await expect(status()).toHaveAttribute("data-check", "pass");
+    await expect(status()).toContainText("the what-if rules");
+    // Restore: the packaged checks authorize again, for both versions, and the inspector agrees with the canvas.
+    await page.getByTestId("what-if").click();
+    await expect(page.getByTestId("instance-status")).toContainText("Checks pass");
+    await expect(status()).toHaveAttribute("data-check", "pass");
+    await expect(status()).toContainText("the packaged rules");
+    await page.getByTestId("toggle-library").click();
+    await page.getByTestId("library-item-hotel-results").click();
+    await expect(page.getByTestId("instance-status")).toContainText("Checks pass");
+    await page.getByTestId("toggle-inspector").click();
+    await expect(status()).toContainText("Checks pass: 5 of 5");
+    // The packaged rules are unchanged and nothing from the what-if was stored.
+    expect(await page.locator(".cl-facts").filter({ hasText: "Contract" }).innerText()).toBe(contract);
+    expect((await storage(page))[`${NS}approvals`]).toBe(approvalsBefore);
+  });
+
+  test("R3: on a phone an open panel is a modal dialog; focus stays inside, the background is unavailable, Escape returns", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openLibrary(page);
+    await page.getByTestId("toggle-inspector").click();
+    const drawer = page.getByRole("dialog", { name: "Inspector" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveAttribute("aria-modal", "true");
+    await expect(page.locator(".cl-canvas")).toHaveAttribute("inert", "");
+    await expect(page.locator("header.af-top")).toHaveAttribute("inert", "");
+    const inside = () => page.evaluate(() => !!document.activeElement?.closest("#cl-inspector"));
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press("Tab");
+      expect(await inside(), `Tab ${i + 1}`).toBe(true);
+    }
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press("Shift+Tab");
+      expect(await inside(), `Shift+Tab ${i + 1}`).toBe(true);
+    }
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("toggle-inspector")).toBeFocused();
+    await expect(page.locator(".cl-canvas")).not.toHaveAttribute("inert", "");
+    await expect(page.locator("header.af-top")).not.toHaveAttribute("inert", "");
+    // The same for the Compositions drawer.
+    await page.getByTestId("toggle-library").click();
+    await expect(page.getByRole("dialog", { name: "Compositions" })).toBeVisible();
+    await page.keyboard.press("Shift+Tab");
+    expect(await page.evaluate(() => !!document.activeElement?.closest("#cl-library"))).toBe(true);
+  });
+
+  test("R3: wider screens keep side panels non-modal", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 860 });
+    await openLibrary(page);
+    await page.getByTestId("toggle-inspector").click();
+    await expect(page.locator("#cl-inspector")).not.toHaveAttribute("role", "dialog");
+    await expect(page.locator(".cl-canvas")).not.toHaveAttribute("inert", "");
+    await expect(page.locator("header.af-top")).not.toHaveAttribute("inert", "");
+  });
+
+  test("R4: action feedback appears inside the visible working area, wherever the button was", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openLibrary(page);
+    const inView = () => page.getByTestId("action-note").evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+    await canvas(page).getByRole("button", { name: "Choose Casa do Rio" }).click();
+    await expect(page.getByTestId("action-note")).toContainText("Preview only, not run.");
+    expect(await inView()).toBe(true);
+    const last = canvas(page).getByRole("button", { name: "Choose Lumen Chiado" });
+    await last.scrollIntoViewIfNeeded();
+    await last.click();
+    await expect(page.getByTestId("action-note")).toContainText('"hotelId":"h-103"');
+    expect(await inView()).toBe(true);
+    await page.getByRole("button", { name: "Dismiss the action preview" }).click();
+    await expect(page.getByTestId("action-note")).toHaveCount(0);
   });
 });
 
