@@ -119,6 +119,39 @@ describe("Table", () => {
   });
 });
 
+/**
+ * Astryx's List renders a <ul role="list"> and expects ListItem children. The contract's List takes arbitrary
+ * children (for a comparison, SelectableCards), so the adapter gives each child a list item of its own.
+ * Recorded as "Outside the blocks" in docs/blocks/ACCESSIBILITY.md (axe aria-required-children on
+ * ex.plan-comparison) and in the M1 workspace review.
+ */
+describe("List", () => {
+  const children = { a: createElement("span", { "data-a2ui-id": "a" }, "First"), b: createElement("span", { "data-a2ui-id": "b" }, "Second") };
+
+  it("gives every child its own list item, in order, inside the list", () => {
+    const html = render("List", { children: ["a", "b"] }, children);
+    const list = html.match(/<ul[^>]*>(.*)<\/ul>/);
+    expect(list?.[0]).toMatch(/^<ul role="list"/);
+    const items = list![1]!.match(/<li[^>]*>.*?<\/li>/g) ?? [];
+    expect(items).toHaveLength(2);
+    expect(items[0]).toContain("First");
+    expect(items[1]).toContain("Second");
+    // Nothing but list items directly inside the list.
+    expect(list![1]!.replace(/<li[^>]*>.*?<\/li>/g, "")).toBe("");
+  });
+
+  it("adds no nested or duplicate list items, and no marker or spacing of its own", () => {
+    const html = render("List", { children: ["a"] }, children);
+    expect(html.match(/<li/g) ?? []).toHaveLength(1);
+    expect(html).toMatch(/<li[^>]*style="[^"]*list-style:none[^"]*"/);
+    expect(html).toMatch(/<li[^>]*style="[^"]*margin:0[^"]*"/);
+  });
+
+  it("renders an empty list without items", () => {
+    expect(render("List", { children: [] })).not.toContain("<li");
+  });
+});
+
 describe("Badge", () => {
   it("wraps a long label inside the badge instead of overflowing its container", () => {
     const badge = tagWith(render("Badge", { label: "Serves: four people with leftovers for lunch the next day", variant: "neutral" }), "astryx-badge");
