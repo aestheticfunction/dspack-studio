@@ -31,13 +31,16 @@ Rejected alternatives: Access on the whole hostname (closes the public site); `H
 | 2 | Zero Trust → Access → Applications → Add → Self-hosted | Domain `composer.aesthetic-function.com`, path `api`. One policy: action **Service Auth**, include **Service Token** `composer-live-pilot`. Optionally a second policy allowing the owner's email, for checking in a browser | None |
 | 3 | A terminal with the repository | Run `pilot check` (section 3). Expected now: the two public lines `ok`, and a `FAIL` saying hosted-ai is not offered, because hosted AI is still off. If a public line fails, stop: Access is not in front of `/api` | None |
 | 4 | AI → AI Gateway → `ds-ai-gateway` | Confirm the daily spend limit is at most $10 and auto top-up is off, as `docs/deployment.md` records | None |
-| 5 | Workers & Pages → `dspack-studio-composer` → Settings → Variables | Set `HOSTED_AI` to `on`. Changing a variable deploys a new version of the current code with that value | None until requests are sent |
+| 5 | Workers & Pages → `dspack-studio-composer` → Settings → Variables | Set `HOSTED_AI` to `on` (the exact string; anything else is off). Changing a variable deploys a new version of the current code with that value. That version is also the latest upload, so it stays the source of kept variables until step 8a | None until requests are sent |
 | 6 | Terminal | Run `pilot check` again. Every line must read `ok` | None |
 | 7 | Terminal | Run `pilot run` (section 3), once authorized | At most $5 |
 | 8 | Workers & Pages → Variables | Set `HOSTED_AI` back to `off` | None |
-| 9 | Zero Trust | Revoke the service token. Keep the Access application until the owner decides whether and for whom hosted AI comes back (decision N1); removing it while `HOSTED_AI` is off changes nothing for visitors | None |
+| 8a | A terminal with the repository and a read-only Cloudflare token | Run `node apps/composer/scripts/verify-hosted-ai-off.mjs --config-only`. It must report "off" for **both** the active deployment **and** the latest uploaded version. If the latest upload still carries "on", run an ordinary deploy from `main` first, which uploads a version with `HOSTED_AI` "off", and check again | None |
+| 9 | Zero Trust | Revoke the service token. Only after 8a passes, remove the Access application or keep it until the owner decides whether and for whom hosted AI comes back (decision N1) | None |
 
-**Rollback at any point:** set `HOSTED_AI` to `off` (immediate: the Worker refuses before any provider call), then revoke the token. A Worker rollback restores the target version's variables, and every version since 2026-10-18 carries `off`, so a rollback also switches hosted AI off. Removing the Access application is the last step, never the first.
+**Cleanup checks two versions, not one.** The active deployment is what visitors get now. The latest uploaded version is what the next upload's kept variables come from, deployed or not. On 2026-11-26 the pilot's cleanup checked only the first, removed Access, and the next ordinary deploy inherited the pilot's `HOSTED_AI` "on" ([incident record](../incidents/2026-11-26-hosted-ai-inherited.md)). Since then, both deploy configs declare `HOSTED_AI` "off" and the Worker enables hosted generation only for the exact string "on". Step 8a still runs before Access is removed.
+
+**Rollback at any point:** set `HOSTED_AI` to `off` (immediate: the Worker refuses before any provider call), then revoke the token. A Worker rollback restores the target version's variables: never roll back to a version that carries "on", such as one this pilot uploaded. After any rollback, run step 8a. Removing the Access application is the last step, never the first.
 
 ## 3. Commands
 

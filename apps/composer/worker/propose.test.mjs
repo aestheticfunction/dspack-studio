@@ -35,7 +35,7 @@ describe("hosted propose — bounded retry on unusable output", () => {
       .fn()
       .mockResolvedValueOnce(text("Sure! Here is the surface you asked for:"))
       .mockResolvedValueOnce(text(SURFACE));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.json).toEqual({ root: { component: "Text", id: "t1" } });
@@ -47,7 +47,7 @@ describe("hosted propose — bounded retry on unusable output", () => {
       .fn()
       .mockResolvedValueOnce(text('```json\n{"root": {"component": "Te'))
       .mockResolvedValueOnce(text("```json\n" + SURFACE + "\n```"));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(200);
     expect((await res.json()).json).toEqual({ root: { component: "Text", id: "t1" } });
     expect(run).toHaveBeenCalledTimes(2);
@@ -55,7 +55,7 @@ describe("hosted propose — bounded retry on unusable output", () => {
 
   it("two unusable outputs return the existing 502 provider-unavailable shape — and there is NO third call", async () => {
     const run = vi.fn().mockResolvedValue(text("I cannot help with that."));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.error).toBe("provider-unavailable");
@@ -65,7 +65,7 @@ describe("hosted propose — bounded retry on unusable output", () => {
 
   it("provider rate-limiting (429 shape) is NEVER retried — one call, classified busy", async () => {
     const run = vi.fn().mockRejectedValue(new Error("InferenceUpstreamError: 429 Too Many Requests"));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(503);
     expect((await res.json()).error).toBe("busy");
     expect(run).toHaveBeenCalledTimes(1);
@@ -73,7 +73,7 @@ describe("hosted propose — bounded retry on unusable output", () => {
 
   it("the model-call+parse helper is exported and retries exactly once (unit, injected fake env.AI)", async () => {
     const run = vi.fn().mockResolvedValueOnce(text("garbage")).mockResolvedValueOnce(text(SURFACE));
-    const out = await worker.callModel({ AI: { run } }, "anthropic/claude-haiku-4.5", VALID);
+    const out = await worker.callModel({ HOSTED_AI: "on", AI: { run } }, "anthropic/claude-haiku-4.5", VALID);
     expect(out.json).toEqual({ root: { component: "Text", id: "t1" } });
     expect(run).toHaveBeenCalledTimes(2);
   });
@@ -99,7 +99,7 @@ const postWith = (extra) =>
 describe("hosted propose — every provider call is accounted", () => {
   it("success reports canonical usage keys, never the legacy {in, out}", async () => {
     const run = vi.fn().mockResolvedValueOnce(metered(SURFACE, 1200, 80));
-    const body = await (await worker.handlePropose(post(), { AI: { run } })).json();
+    const body = await (await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } })).json();
     expect(body.usage).toEqual({ inputTokens: 1200, outputTokens: 80 });
     expect(body.calls).toHaveLength(1);
     expect(body.calls[0]).toMatchObject({ inputTokens: 1200, outputTokens: 80, outcome: "ok" });
@@ -108,7 +108,7 @@ describe("hosted propose — every provider call is accounted", () => {
 
   it("usage is SUMMED across the parse retry, and both calls are listed in order", async () => {
     const run = vi.fn().mockResolvedValueOnce(metered("Sure! Here it is:", 1000, 40)).mockResolvedValueOnce(metered(SURFACE, 1000, 90));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.usage).toEqual({ inputTokens: 2000, outputTokens: 130 });
@@ -118,7 +118,7 @@ describe("hosted propose — every provider call is accounted", () => {
 
   it("two unusable outputs: the 502 keeps its error and gains cause, usage and calls", async () => {
     const run = vi.fn().mockResolvedValue(metered("I cannot help with that.", 900, 12));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.error).toBe("provider-unavailable");
@@ -129,7 +129,7 @@ describe("hosted propose — every provider call is accounted", () => {
 
   it("a provider failure (timeout/transport) is a 502 with cause provider and one unmetered call", async () => {
     const run = vi.fn().mockRejectedValue(new Error("provider timeout"));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.error).toBe("provider-unavailable");
@@ -146,7 +146,7 @@ describe("hosted propose — every provider call is accounted", () => {
       .fn()
       .mockResolvedValueOnce(metered("prose", 700, 30))
       .mockRejectedValueOnce(new Error("InferenceUpstreamError: 429 Too Many Requests"));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.error).toBe("provider-unavailable");
@@ -161,7 +161,7 @@ describe("hosted propose — every provider call is accounted", () => {
     expect(killed.calls).toEqual([]);
     expect(killed.usage).toBeUndefined();
     const limiter = { limit: vi.fn().mockResolvedValue({ success: false }) };
-    const limited = await worker.handlePropose(post(), { AI: { run: vi.fn() }, PROPOSE_RATE_LIMIT: limiter });
+    const limited = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run: vi.fn() }, PROPOSE_RATE_LIMIT: limiter });
     expect(limited.status).toBe(429);
     expect((await limited.json()).calls).toEqual([]);
   });
@@ -170,7 +170,7 @@ describe("hosted propose — every provider call is accounted", () => {
 describe("hosted propose — maxCalls caps the parse retry", () => {
   it("maxCalls 1 makes exactly one provider call and reports the unusable output", async () => {
     const run = vi.fn().mockResolvedValue(metered("prose", 500, 9));
-    const res = await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } });
+    const res = await worker.handlePropose(postWith({ maxCalls: 1 }), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.cause).toBe("unusable-output");
@@ -180,14 +180,14 @@ describe("hosted propose — maxCalls caps the parse retry", () => {
 
   it("maxCalls 2 is today's behavior (one retry)", async () => {
     const run = vi.fn().mockResolvedValueOnce(text("prose")).mockResolvedValueOnce(text(SURFACE));
-    const res = await worker.handlePropose(postWith({ maxCalls: 2 }), { AI: { run } });
+    const res = await worker.handlePropose(postWith({ maxCalls: 2 }), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(200);
     expect(run).toHaveBeenCalledTimes(2);
   });
 
   it.each([0, 3, "1", 1.5, null])("maxCalls %j is rejected as an invalid request before any provider call", async (maxCalls) => {
     const run = vi.fn();
-    const res = await worker.handlePropose(postWith({ maxCalls }), { AI: { run } });
+    const res = await worker.handlePropose(postWith({ maxCalls }), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("invalid-request");
     expect(run).not.toHaveBeenCalled();
@@ -197,7 +197,7 @@ describe("hosted propose — maxCalls caps the parse retry", () => {
 describe("hosted propose — a rejection value that cannot be stringified still reports its call", () => {
   it("one provider call that rejected with a null-prototype object is still listed", async () => {
     const run = vi.fn().mockRejectedValue(Object.create(null));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.cause).toBe("provider");
@@ -233,7 +233,7 @@ describe("hosted propose — every call names the model that served it (Option B
       },
     };
     const run = vi.fn().mockResolvedValue(unreadable);
-    const res = await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } });
+    const res = await worker.handlePropose(postWith({ maxCalls: 1 }), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.cause).toBe("unusable-output");
@@ -253,7 +253,7 @@ describe("hosted propose — every call names the model that served it (Option B
         },
       };
       const run = vi.fn().mockResolvedValue(response);
-      const body = await (await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } })).json();
+      const body = await (await worker.handlePropose(postWith({ maxCalls: 1 }), { HOSTED_AI: "on", AI: { run } })).json();
       expect(body.calls, text).toEqual([{ inputTokens: 300, outputTokens: 7, model: HAIKU, outcome: text === SURFACE ? "ok" : "unusable-output", durationMs: expect.any(Number) }]);
     }
   });
@@ -270,12 +270,12 @@ describe("hosted propose — every call names the model that served it (Option B
     // The model cannot be read: the call keeps its usage and names no model. Its top-level model cannot be read either,
     // so the Worker treats the answer as unusable.
     let run = vi.fn().mockResolvedValue(throwing("model", {}));
-    let res = await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } });
+    let res = await worker.handlePropose(postWith({ maxCalls: 1 }), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     expect((await res.json()).calls).toEqual([{ inputTokens: 300, outputTokens: 7, outcome: "unusable-output", durationMs: expect.any(Number) }]);
     // The usage cannot be read, on the retry of an unusable first call: both calls are kept, the second with no usage.
     run = vi.fn().mockResolvedValueOnce(servedBy("prose", HAIKU, 700, 30)).mockResolvedValueOnce(throwing("usage", {}));
-    res = await worker.handlePropose(post(), { AI: { run } });
+    res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(200);
     expect((await res.json()).calls).toEqual([
       { inputTokens: 700, outputTokens: 30, model: HAIKU, outcome: "unusable-output", durationMs: expect.any(Number) },
@@ -285,7 +285,7 @@ describe("hosted propose — every call names the model that served it (Option B
 
   it("an unusable output keeps its call's model and usage on the 502, and the reply carries nothing of the output itself", async () => {
     const run = vi.fn().mockResolvedValue(servedBy("Sure! Here is the form you asked for.", HAIKU, 500, 9));
-    const res = await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run } });
+    const res = await worker.handlePropose(postWith({ maxCalls: 1 }), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(Object.keys(body).sort()).toEqual(ERROR_KEYS);
@@ -302,7 +302,7 @@ describe("hosted propose — every call names the model that served it (Option B
       .fn()
       .mockResolvedValueOnce(servedBy("prose", "claude-haiku-4-5-20251001", 400, 20))
       .mockResolvedValueOnce(servedBy(SURFACE, "claude-haiku-4-5-20260301", 400, 30));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.calls).toEqual([
@@ -315,7 +315,7 @@ describe("hosted propose — every call names the model that served it (Option B
 
   it("two unusable outputs: the 502 lists both calls, each with its own model and usage, and makes no third call", async () => {
     const run = vi.fn().mockResolvedValueOnce(servedBy("no", "m-1", 100, 1)).mockResolvedValueOnce(servedBy("still no", "m-2", 100, 2));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.cause).toBe("unusable-output");
@@ -325,7 +325,7 @@ describe("hosted propose — every call names the model that served it (Option B
 
   it("a provider failure after a call keeps the earlier call's model; the failed call, which returned nothing, names none", async () => {
     const run = vi.fn().mockResolvedValueOnce(servedBy("prose", HAIKU, 700, 30)).mockRejectedValueOnce(new Error("provider timeout"));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.cause).toBe("provider");
@@ -340,7 +340,7 @@ describe("hosted propose — every call names the model that served it (Option B
     // JSON.parse reads nesting this deep; JSON.stringify cannot write it back (Maximum call stack size exceeded).
     const deep = "[".repeat(20_000) + "]".repeat(20_000);
     const run = vi.fn().mockResolvedValue(servedBy(deep, HAIKU, 900, 8000));
-    const res = await worker.handlePropose(post(), { AI: { run } });
+    const res = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } });
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(Object.keys(body).sort()).toEqual(ERROR_KEYS);
@@ -355,7 +355,7 @@ describe("hosted propose — every call names the model that served it (Option B
   it("a response that names no model leaves its call without one, never the configured id; the top-level model keeps its fallback for the app", async () => {
     for (const named of [undefined, "", 42, null]) {
       const run = vi.fn().mockResolvedValue({ ...metered(SURFACE, 100, 10), ...(named === undefined ? {} : { model: named }) });
-      const body = await (await worker.handlePropose(post(), { AI: { run } })).json();
+      const body = await (await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } })).json();
       expect(body.calls, String(named)).toEqual([{ inputTokens: 100, outputTokens: 10, outcome: "ok", durationMs: expect.any(Number) }]);
       expect(body.model, String(named)).toBe(named === "" || named === 42 ? named : "anthropic/claude-haiku-4.5");
     }
@@ -363,7 +363,7 @@ describe("hosted propose — every call names the model that served it (Option B
 
   it("the busy gateway's rejected call names no model, so a refusal that reached no model still reads as one", async () => {
     const run = vi.fn().mockRejectedValue(new Error("InferenceUpstreamError: 429 Too Many Requests"));
-    const body = await (await worker.handlePropose(post(), { AI: { run } })).json();
+    const body = await (await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run } })).json();
     expect(body.error).toBe("busy");
     expect(body.calls).toEqual([{ inputTokens: null, outputTokens: null, outcome: "provider-error", durationMs: expect.any(Number) }]);
     expect(run).toHaveBeenCalledTimes(1);
@@ -375,15 +375,15 @@ describe("hosted propose — every call names the model that served it (Option B
     const raw = (init) => new Request("https://composer.test/api/propose", init);
     const json = { method: "POST", headers: { "content-type": "application/json" } };
     const refusals = [
-      [405, await worker.handlePropose(raw({ method: "GET" }), { AI: { run } })],
+      [405, await worker.handlePropose(raw({ method: "GET" }), { HOSTED_AI: "on", AI: { run } })],
       [503, await worker.handlePropose(post(), { HOSTED_AI: "off", AI: { run } })],
-      [429, await worker.handlePropose(post(), { AI: { run }, PROPOSE_RATE_LIMIT: { limit: vi.fn().mockResolvedValue({ success: false }) } })],
-      [503, await worker.handlePropose(post(), { AI: { run }, PROPOSE_RATE_LIMIT: { limit: vi.fn().mockRejectedValue(new Error("limiter down")) } })],
-      [415, await worker.handlePropose(raw({ method: "POST", headers: { "content-type": "text/plain" }, body: "x" }), { AI: { run } })],
-      [413, await worker.handlePropose(raw({ ...json, body: "x".repeat(512 * 1024 + 1) }), { AI: { run } })],
-      [400, await worker.handlePropose(raw({ ...json, body: "{" }), { AI: { run } })],
-      [400, await worker.handlePropose(raw({ ...json, body: "{}" }), { AI: { run } })],
-      [400, await worker.handlePropose(postWith({ maxCalls: 3 }), { AI: { run } })],
+      [429, await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run }, PROPOSE_RATE_LIMIT: { limit: vi.fn().mockResolvedValue({ success: false }) } })],
+      [503, await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run }, PROPOSE_RATE_LIMIT: { limit: vi.fn().mockRejectedValue(new Error("limiter down")) } })],
+      [415, await worker.handlePropose(raw({ method: "POST", headers: { "content-type": "text/plain" }, body: "x" }), { HOSTED_AI: "on", AI: { run } })],
+      [413, await worker.handlePropose(raw({ ...json, body: "x".repeat(512 * 1024 + 1) }), { HOSTED_AI: "on", AI: { run } })],
+      [400, await worker.handlePropose(raw({ ...json, body: "{" }), { HOSTED_AI: "on", AI: { run } })],
+      [400, await worker.handlePropose(raw({ ...json, body: "{}" }), { HOSTED_AI: "on", AI: { run } })],
+      [400, await worker.handlePropose(postWith({ maxCalls: 3 }), { HOSTED_AI: "on", AI: { run } })],
     ];
     for (const [status, res] of refusals) {
       expect(res.status).toBe(status);
@@ -404,12 +404,12 @@ describe("hosted propose — every call names the model that served it (Option B
     const hash = (run) => createHash("sha256").update(JSON.stringify(run.mock.calls)).digest("hex");
     for (const extra of [{}, { maxCalls: 1 }, { maxCalls: 2 }]) {
       const run = vi.fn().mockResolvedValue(servedBy('{"a":1}', HAIKU, 5, 1));
-      await worker.handlePropose(postWith(extra), { AI: { run } });
+      await worker.handlePropose(postWith(extra), { HOSTED_AI: "on", AI: { run } });
       expect(hash(run), JSON.stringify(extra)).toBe(PINNED);
     }
     for (const extra of [{}, { maxCalls: 2 }]) {
       const run = vi.fn().mockResolvedValueOnce(servedBy("prose", HAIKU, 5, 1)).mockResolvedValueOnce(servedBy('{"a":1}', HAIKU, 5, 1));
-      await worker.handlePropose(postWith(extra), { AI: { run } });
+      await worker.handlePropose(postWith(extra), { HOSTED_AI: "on", AI: { run } });
       expect(run, JSON.stringify(extra)).toHaveBeenCalledTimes(2);
       expect(hash(run), JSON.stringify(extra)).toBe(PINNED_RETRY);
     }
@@ -419,10 +419,10 @@ describe("hosted propose — every call names the model that served it (Option B
     const HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer" };
     const deep = "[".repeat(20_000) + "]".repeat(20_000);
     const replies = [
-      await worker.handlePropose(post(), { AI: { run: vi.fn().mockResolvedValue(servedBy(SURFACE, HAIKU)) } }),
-      await worker.handlePropose(postWith({ maxCalls: 1 }), { AI: { run: vi.fn().mockResolvedValue(servedBy("prose", HAIKU)) } }),
-      await worker.handlePropose(post(), { AI: { run: vi.fn().mockResolvedValue(servedBy(deep, HAIKU)) } }),
-      await worker.handlePropose(postWith({ maxCalls: 3 }), { AI: { run: vi.fn() } }),
+      await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run: vi.fn().mockResolvedValue(servedBy(SURFACE, HAIKU)) } }),
+      await worker.handlePropose(postWith({ maxCalls: 1 }), { HOSTED_AI: "on", AI: { run: vi.fn().mockResolvedValue(servedBy("prose", HAIKU)) } }),
+      await worker.handlePropose(post(), { HOSTED_AI: "on", AI: { run: vi.fn().mockResolvedValue(servedBy(deep, HAIKU)) } }),
+      await worker.handlePropose(postWith({ maxCalls: 3 }), { HOSTED_AI: "on", AI: { run: vi.fn() } }),
     ];
     expect(replies.map((r) => r.status)).toEqual([200, 502, 502, 400]);
     for (const res of replies) expect(Object.fromEntries(res.headers), String(res.status)).toEqual(HEADERS);
@@ -460,7 +460,7 @@ const deferred = () => {
   return { promise, resolve };
 };
 async function classify(ai, request = post()) {
-  const res = await worker.handlePropose(request, { AI: ai });
+  const res = await worker.handlePropose(request, { HOSTED_AI: "on", AI: ai });
   return { status: res.status, body: await res.json() };
 }
 
@@ -600,9 +600,9 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
         throw busyWorded();
       };
     ai.run.mockImplementationOnce(refuse(first, 500)).mockImplementationOnce(refuse(second, 500));
-    const a = worker.handlePropose(post(), { AI: ai });
+    const a = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
     await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(1));
-    const b = worker.handlePropose(post(), { AI: ai });
+    const b = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
     await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(2));
     first.resolve();
     second.resolve();
@@ -659,7 +659,7 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
           throw upstream("late");
         }),
       };
-      const pending = worker.handlePropose(post(), { AI: ai });
+      const pending = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
       await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(1));
       await vi.advanceTimersByTimeAsync(45_000);
       const res = await pending;
@@ -687,9 +687,9 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
         this.lastRequestHttpStatusCode = 500;
         throw upstream("internal error");
       });
-    const a = worker.handlePropose(post(), { AI: ai });
+    const a = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
     await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(1));
-    const b = worker.handlePropose(post(), { AI: ai });
+    const b = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
     await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(2));
     second.resolve();
     first.resolve();
@@ -709,7 +709,7 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
         began = Date.now();
         await hung.promise;
       });
-      const first = worker.handlePropose(post(), { AI: ai });
+      const first = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
       await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(1));
       await vi.advanceTimersByTimeAsync(45_000);
       expect((await first).status).toBe(502);
@@ -764,9 +764,9 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
       .mockImplementationOnce(async () => servedBy("prose", HAIKU, 700, 30))
       .mockImplementationOnce(refuse(gateA))
       .mockImplementationOnce(refuse(gateB));
-    const a = worker.handlePropose(post(), { AI: ai });
+    const a = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
     await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(2));
-    const b = worker.handlePropose(post(), { AI: ai });
+    const b = worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
     await vi.waitFor(() => expect(ai.run).toHaveBeenCalledTimes(3));
     gateA.resolve();
     gateB.resolve();
@@ -969,7 +969,7 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
 
   it("a busy reply keeps the endpoint's headers, and a served call still names its model and usage", async () => {
     const HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer" };
-    const busy = await worker.handlePropose(post(), { AI: refusingBinding(429) });
+    const busy = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: refusingBinding(429) });
     expect(busy.status).toBe(503);
     expect(Object.fromEntries(busy.headers)).toEqual(HEADERS);
     const ai = refusingBinding(429);
@@ -977,7 +977,7 @@ describe("hosted propose — a gateway 429 is read from its status, not only its
       this.lastRequestHttpStatusCode = 200;
       return servedBy(SURFACE, HAIKU, 120, 9);
     });
-    const ok = await worker.handlePropose(post(), { AI: ai });
+    const ok = await worker.handlePropose(post(), { HOSTED_AI: "on", AI: ai });
     expect(ok.status).toBe(200);
     expect((await ok.json()).calls).toEqual([{ inputTokens: 120, outputTokens: 9, model: HAIKU, outcome: "ok", durationMs: expect.any(Number) }]);
   });

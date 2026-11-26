@@ -127,10 +127,19 @@ jobs:
           status=$(npx --yes wrangler@4.146.0 deployments status --json --config wrangler.composer-experimental.jsonc)
           live=$(printf '%s' "$status" | node apps/composer/scripts/check-experimental-deploy.mjs --active-version)
           echo "live: $live" | tee -a "$GITHUB_STEP_SUMMARY"
-          echo 'rollback: npx --yes wrangler@4.146.0 rollback <anchor version id> --config wrangler.jsonc  (the block-free anchor recorded before the first experimental deploy, or the one above; then set BLOCKS_BETA, HOSTED_AI and BETA_OPERATOR_LOG again)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'rollback: npx --yes wrangler@4.146.0 rollback <anchor version id> --config wrangler.jsonc  (the block-free anchor recorded before the first experimental deploy, or the one above; never a version with HOSTED_AI \"on\"; then set BLOCKS_BETA and BETA_OPERATOR_LOG again)' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       # A check that fails here means the hostname answered an anonymous request
       # without Access: roll back to the anchor at once (docs/deployment.md).
       - name: Cloudflare Access still sends anonymous requests, GET and POST, to its login
         if: ${{ !cancelled() && steps.deploy.outcome != 'skipped' }}
         run: node apps/composer/scripts/check-experimental-deploy.mjs --access=after
+      # The experimental config declares HOSTED_AI "off" too: the beta's hosted generation is turned on
+      # deliberately, after this deploy (docs/deployment.md, "Hosted AI"). This checks the deploy applied
+      # "off" to the active version and the latest upload, with Access answering the public API.
+      - name: Hosted generation is off after the deploy (effective configuration; Access in front)
+        if: ${{ !cancelled() && steps.deploy.outcome != 'skipped' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_EXPERIMENTAL }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: node apps/composer/scripts/verify-hosted-ai-off.mjs --expect-access
