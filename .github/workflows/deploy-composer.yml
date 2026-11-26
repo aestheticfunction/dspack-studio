@@ -68,8 +68,14 @@ jobs:
         run: |
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           npx wrangler deployments list --config wrangler.jsonc | tail -8 | tee -a "$GITHUB_STEP_SUMMARY"
-          echo 'rollback: npx wrangler rollback --config wrangler.jsonc  (target = the anchor above)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'rollback: npx wrangler rollback --config wrangler.jsonc  (target = the anchor above; never a version with HOSTED_AI "on", see docs/deployment.md "Hosted AI")' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+      # wrangler.jsonc declares HOSTED_AI "off", so this deploy set it explicitly. This checks what is
+      # actually live: every active version and the latest upload carry "off", and the public API offers
+      # no hosted model and refuses generation before any provider call. On failure, contain it at once
+      # (docs/deployment.md, "Hosted AI").
+      - name: Hosted generation is off (effective configuration and public API)
+        run: node apps/composer/scripts/verify-hosted-ai-off.mjs --base https://composer.aesthetic-function.com
       - name: Install Playwright chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: Production smoke (agent-free specs against the deployed composer)

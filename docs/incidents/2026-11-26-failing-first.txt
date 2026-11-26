@@ -1,0 +1,32 @@
+Failing-first run: apps/composer/lib/hosted-ai-safety.test.mjs against origin/main 1b3b08e (propose.mjs, both wrangler configs and the three workflows as on main), 2026-11-26.
+The five value cases containing off or on ('off', 'OFF', 'ON', 'On', 'exactly on') also fail on main because hostedAiEnabled does not exist there; the others fail on behaviour.
+   × the HOSTED_AI switch fails closed > absent: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > empty: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > off: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > OFF: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > ON (wrong case): off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > On: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > true: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > 1: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > yes: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > on with a leading space: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > on with a trailing space: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > a boolean true: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > a JSON object: off, offered nowhere, refused before any provider call
+   × the HOSTED_AI switch fails closed > exactly "on", with the AI binding: offered
+   ✓ the HOSTED_AI switch fails closed > "on" without the AI binding: still off
+   × every composer deploy config sets hosted generation off explicitly > wrangler.jsonc declares HOSTED_AI "off" and keeps the dashboard's other switches
+   × every composer deploy config sets hosted generation off explicitly > wrangler.composer-experimental.jsonc declares HOSTED_AI "off" and keeps the dashboard's other switches
+   ✓ every composer deploy config sets hosted generation off explicitly > the exhibit Worker is another Worker and has no hosted generation switch
+   × both deploy paths verify hosted generation is off > the dispatched production deploy verifies configuration and public API after deploying
+   × both deploy paths verify hosted generation is off > the dispatched experimental deploy verifies configuration after deploying, with Access in front
+   × both deploy paths verify hosted generation is off > CI on main watches the public API while Workers Builds deploys the merge
+   ✓ the verification script > passes when the active version and the latest upload are both off
+   ✓ the verification script > fails when the latest upload is on although the active version is off: the incident's pattern
+   ✓ the verification script > fails when the active version is on, absent or misspelled
+   ✓ the verification script > checks every version of a split deployment
+   ✓ the verification script > public: passes on scripted only and a 503 unavailable; fails when hosted-ai is offered or propose reaches the request
+   ✓ the verification script > with --expect-access, only Cloudflare Access may answer
+   ✓ the verification script > main: exit 1 on a problem, 2 without a token, 0 when all is off; --watch repeats until its deadline
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  19 failed | 9 passed (28)

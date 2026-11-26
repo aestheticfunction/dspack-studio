@@ -11,7 +11,8 @@
  *     one hostname. They differ only in the artifact they serve:
  *     apps/composer/out, the default, and apps/composer/out-experimental.
  *     Neither has a workers.dev or Preview URL; both keep the dashboard's vars
- *     and declare none. The built artifact is an experimental build that
+ *     and declare exactly one, HOSTED_AI "off", so no deploy can inherit "on"
+ *     from an earlier upload (docs/incidents/2026-11-26-hosted-ai-inherited.md). The built artifact is an experimental build that
  *     carries the beta switch.
  *
  *   node apps/composer/scripts/check-experimental-deploy.mjs --access=before|after
@@ -42,8 +43,10 @@ export const WRANGLER = "wrangler@4.146.0";
 const WORKER = { name: "dspack-studio-composer", hostname: "composer.aesthetic-function.com" };
 const PRODUCTION = { file: "wrangler.jsonc", directory: "./apps/composer/out" };
 const EXPERIMENTAL = { file: "wrangler.composer-experimental.jsonc", directory: "./apps/composer/out-experimental" };
-/** Everything either config may declare. Anything else (vars, env, other bindings, triggers) is refused. */
-const KEYS = ["name", "compatibility_date", "compatibility_flags", "main", "observability", "routes", "workers_dev", "preview_urls", "keep_vars", "assets", "ai", "ratelimits"];
+/** Everything either config may declare. Anything else (env, other bindings, triggers) is refused. */
+const KEYS = ["name", "compatibility_date", "compatibility_flags", "main", "observability", "routes", "workers_dev", "preview_urls", "keep_vars", "vars", "assets", "ai", "ratelimits"];
+/** The one var a deploy config declares: hosted generation off, so every ordinary deploy sets it explicitly. */
+export const SAFE_VARS = Object.freeze({ HOSTED_AI: "off" });
 /** What the experimental artifact must carry: the sidecar envelope key (the e2e positive control) and the switch. */
 const ARTIFACT_MARKERS = [
   ["blocksSidecar", "this is not an experimental build"],
@@ -107,7 +110,10 @@ export function checkConfigs({ production, experimental }) {
     }
     if (config.workers_dev !== false) say("workers_dev must be false: a workers.dev URL would bypass Cloudflare Access");
     if (config.preview_urls !== false) say("preview_urls must be false: a Preview URL would bypass Cloudflare Access");
-    if (config.keep_vars !== true) say("keep_vars must be true, so a deploy keeps HOSTED_AI, BLOCKS_BETA and BETA_OPERATOR_LOG as set in the dashboard");
+    if (config.keep_vars !== true) say("keep_vars must be true, so a deploy keeps BLOCKS_BETA and BETA_OPERATOR_LOG as set in the dashboard");
+    if (!same(config.vars, SAFE_VARS)) {
+      say('vars must be exactly { "HOSTED_AI": "off" }: every deploy then sets hosted generation off explicitly instead of inheriting whatever the latest upload carried (docs/incidents/2026-11-26-hosted-ai-inherited.md); other switches stay in the dashboard');
+    }
     const assets = config.assets ?? {};
     if (assets.binding !== "ASSETS" || assets.not_found_handling !== "404-page") say('assets must bind ASSETS with not_found_handling "404-page"');
     if (!same(assets.run_worker_first, ["/api/*"])) say('assets.run_worker_first must be ["/api/*"], so the Worker answers only the API');

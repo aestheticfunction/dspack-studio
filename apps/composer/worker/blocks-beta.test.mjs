@@ -25,7 +25,7 @@ const text = async (env) => {
 
 describe("/api/models without BLOCKS_BETA: production's reply, byte for byte", () => {
   it("hosted on: today's exact bytes and headers, with no blocks field", async () => {
-    const reply = await text({ AI });
+    const reply = await text({ HOSTED_AI: "on", AI });
     expect(reply.status).toBe(200);
     expect(reply.body).toBe('{"models":["scripted","hosted-ai"]}\n');
     expect(reply.headers).toEqual({
@@ -44,7 +44,7 @@ describe("/api/models without BLOCKS_BETA: production's reply, byte for byte", (
 
 describe("/api/models with BLOCKS_BETA: the switch, normalized", () => {
   it("the owner's switch, as the dashboard stores text, is reported exactly", async () => {
-    const reply = await text({ AI, BLOCKS_BETA: OWNER });
+    const reply = await text({ HOSTED_AI: "on", AI, BLOCKS_BETA: OWNER });
     expect(reply.status).toBe(200);
     expect(reply.body).toBe(
       '{"models":["scripted","hosted-ai"],"blocks":{"enabled":true,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}}\n',
@@ -54,7 +54,7 @@ describe("/api/models with BLOCKS_BETA: the switch, normalized", () => {
   it("a JSON-typed variable is malformed: Cloudflare parses it first, so a repeated field would already be gone", async () => {
     // The dashboard's JSON type hands the Worker a parsed value, in which the
     // last of two equal fields has already won. Only Text can be checked.
-    expect((await text({ AI, BLOCKS_BETA: JSON.parse(OWNER) })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"malformed"}}\n');
+    expect((await text({ HOSTED_AI: "on", AI, BLOCKS_BETA: JSON.parse(OWNER) })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"malformed"}}\n');
     expect(blocksBetaFor({ BLOCKS_BETA: { enabled: false, references: [], blocks: [] } })).toEqual({ enabled: false, reason: "malformed" });
   });
 
@@ -74,7 +74,7 @@ describe("/api/models with BLOCKS_BETA: the switch, normalized", () => {
 
   it("enabled false is disabled, and says nothing more", async () => {
     const off = '{"enabled":false,"references":["astryx"],"blocks":["records-table","auth-form","guide-steps"]}';
-    expect((await text({ AI, BLOCKS_BETA: off })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"disabled"}}\n');
+    expect((await text({ HOSTED_AI: "on", AI, BLOCKS_BETA: off })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"disabled"}}\n');
   });
 
   it.each([
@@ -109,12 +109,12 @@ describe("/api/models with BLOCKS_BETA: the switch, normalized", () => {
     ["an on switch with no references", '{"enabled":true,"references":[],"blocks":["auth-form"]}'],
     ["an on switch with no blocks", '{"enabled":true,"references":["astryx"],"blocks":[]}'],
   ])("%s is malformed: blocks are off", async (_name, value) => {
-    expect((await text({ AI, BLOCKS_BETA: value })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"malformed"}}\n');
+    expect((await text({ HOSTED_AI: "on", AI, BLOCKS_BETA: value })).body).toBe('{"models":["scripted","hosted-ai"],"blocks":{"enabled":false,"reason":"malformed"}}\n');
   });
 
   it("whitespace is not a difference: the owner's switch, laid out over lines, reads the same", async () => {
     const laidOut = '{\n  "enabled": true,\n  "references": ["astryx"],\n  "blocks": ["records-table", "auth-form", "guide-steps"]\n}\n';
-    expect((await text({ AI, BLOCKS_BETA: laidOut })).body).toBe((await text({ AI, BLOCKS_BETA: OWNER })).body);
+    expect((await text({ HOSTED_AI: "on", AI, BLOCKS_BETA: laidOut })).body).toBe((await text({ HOSTED_AI: "on", AI, BLOCKS_BETA: OWNER })).body);
   });
 
   it("a disabled switch may list nothing", async () => {
@@ -122,7 +122,7 @@ describe("/api/models with BLOCKS_BETA: the switch, normalized", () => {
   });
 
   it("a malformed switch never echoes what the variable held", async () => {
-    const reply = await text({ AI, BLOCKS_BETA: '{"enabled":true,"references":["astryx"],"blocks":["<img onerror>"]}' });
+    const reply = await text({ HOSTED_AI: "on", AI, BLOCKS_BETA: '{"enabled":true,"references":["astryx"],"blocks":["<img onerror>"]}' });
     expect(reply.body).not.toContain("onerror");
   });
 });
@@ -156,8 +156,8 @@ describe("/api/propose does not read the switch", () => {
   ];
 
   it.each(states)("the same refusal, byte for byte, with the switch %s as without it", async (_name, value) => {
-    const without = await worker.fetch(post(), { AI });
-    const withSwitch = await worker.fetch(post(), { AI, BLOCKS_BETA: value });
+    const without = await worker.fetch(post(), { HOSTED_AI: "on", AI });
+    const withSwitch = await worker.fetch(post(), { HOSTED_AI: "on", AI, BLOCKS_BETA: value });
     expect(without.status).toBe(400);
     expect(withSwitch.status).toBe(400);
     expect(Object.fromEntries(withSwitch.headers)).toEqual(Object.fromEntries(without.headers));
@@ -175,7 +175,7 @@ describe("/api/propose does not read the switch", () => {
         seen.push(JSON.stringify(args));
         return { content: [{ type: "text", text: SURFACE }], usage: { input_tokens: 10, output_tokens: 2 }, model: "claude-haiku-4-5-20251001" };
       };
-      const res = await worker.fetch(request(), { AI: { run }, ...extra });
+      const res = await worker.fetch(request(), { HOSTED_AI: "on", AI: { run }, ...extra });
       const json = await res.json();
       replies.push({ status: res.status, seen, json: { ...json, calls: json.calls.map(({ durationMs: _d, ...call }) => call) } });
     }

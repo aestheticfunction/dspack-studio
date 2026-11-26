@@ -43,12 +43,18 @@
   // (previews_enabled above, which every deploy sends).
   "workers_dev": false,
   "preview_urls": false,
-  // No vars: keep_vars keeps the switches set in the dashboard, so no deploy
-  // resets them. HOSTED_AI is the kill switch: set it to "off" there to disable
-  // hosted AI generation (absent means on; scripted mode and the local agent are
-  // unaffected). BLOCKS_BETA and BETA_OPERATOR_LOG matter only to the
-  // experimental artifact and the operator log (docs/deployment.md).
+  // HOSTED_AI is declared "off", so every deploy and every version upload from
+  // this file sets hosted generation off explicitly. The Worker enables it only
+  // for the exact string "on" (worker/propose.mjs hostedAiEnabled), so absent
+  // or misspelled is off too. Without this line a deploy inherited HOSTED_AI from
+  // the latest upload, and on 2026-11-26 it inherited a pilot's temporary "on"
+  // (docs/incidents/2026-11-26-hosted-ai-inherited.md). Turning hosted generation
+  // on is a deliberate act on one version (docs/deployment.md, "Hosted AI").
+  // keep_vars keeps the other switches, BLOCKS_BETA and BETA_OPERATOR_LOG, as set
+  // in the dashboard; they matter only to the experimental artifact and the
+  // operator log. Scripted mode and the local agent are unaffected.
   "keep_vars": true,
+  "vars": { "HOSTED_AI": "off" },
   "assets": {
     "directory": "./apps/composer/out",
     "not_found_handling": "404-page",

@@ -49,9 +49,19 @@ export const CAPABILITIES = Object.freeze(["per-call-model"]);
    Worker that reported nothing. */
 const refuse = (status, body) => json(status, { ...body, calls: [], capabilities: CAPABILITIES });
 
-/** hosted-ai is offered only when the account binding is present AND not killed. */
+/* Hosted generation is ENABLED ONLY by the exact string "on". Absent, empty,
+   "ON", "true", " on" or anything else is off: the switch fails closed
+   (docs/incidents/2026-11-26-hosted-ai-inherited.md). Every deploy config
+   declares HOSTED_AI "off" (wrangler.jsonc), so an ordinary deploy can never
+   inherit "on" from an earlier upload; turning it on is a deliberate,
+   per-version act (docs/deployment.md, "Hosted AI"). */
+export function hostedAiEnabled(env) {
+  return env?.HOSTED_AI === "on";
+}
+
+/** hosted-ai is offered only when explicitly enabled AND the account binding is present. */
 export function hostedModelsFor(env) {
-  const on = (env?.HOSTED_AI ?? "on") === "on" && !!env?.AI;
+  const on = hostedAiEnabled(env) && !!env?.AI;
   return on ? ["scripted", "hosted-ai"] : ["scripted"];
 }
 
@@ -383,7 +393,7 @@ export async function handlePropose(request, env) {
    operator log is on, learns the maxCalls the request was accepted with. */
 async function proposeReply(request, env, note) {
   if (request.method !== "POST") return refuse(405, { error: "method-not-allowed", message: "This endpoint accepts POST only." });
-  if ((env?.HOSTED_AI ?? "on") !== "on" || !env?.AI) {
+  if (!hostedAiEnabled(env) || !env?.AI) {
     return refuse(503, {
       error: "unavailable",
       message: "Hosted AI generation is unavailable. Use scripted mode to watch the governed pipeline, or connect the local agent for local models.",
