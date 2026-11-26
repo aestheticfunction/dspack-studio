@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { ComposerProvider, useComposer } from "./state";
 import { BuildView } from "./views/build-view";
 import { ProjectsView } from "./views/projects-view";
@@ -17,6 +18,16 @@ import { ValidateView } from "./views/validate-view";
 import { AfMark } from "./ui";
 import { getStoredTheme, applyTheme } from "./appearance";
 
+/**
+ * The Composition Library (M1, experimental): the canvas-first workspace. Only an experimental build has it:
+ * the import sits behind the literal flag check, which a default build folds away, and the experimental
+ * directory is aliased to nothing there besides (next.config.mjs).
+ */
+const LibraryWorkspace =
+  process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"
+    ? dynamic(() => import("../experimental/workspace/library").then((m) => m.LibraryWorkspace), { ssr: false })
+    : null;
+
 export type View =
   | "projects"
   | "build"
@@ -30,7 +41,8 @@ export type View =
   | "validate"
   | "settings"
   | "connect"
-  | "repository";
+  | "repository"
+  | "library";
 
 /** The working views, shown in the nav only when a project is open. Their order
  *  is the product's, not the pipeline's: make something, look at it, compose it
@@ -139,6 +151,16 @@ function Shell() {
             >
               Projects
             </button>
+            {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && (
+              <button
+                className={`af-nav__link${view === "library" ? " af-nav__link--active" : ""}`}
+                aria-current={view === "library" ? "page" : undefined}
+                onClick={() => setView("library")}
+                data-testid="nav-library"
+              >
+                Library
+              </button>
+            )}
             {hasProject &&
               WORK_NAV.map((v) => (
                 <button
@@ -243,13 +265,14 @@ function Shell() {
         {view === "projects" && <ProjectsView onOpen={() => setView("build")} onConnect={() => setView("connect")} />}
         {view === "connect" && <ProjectView onNavigate={(v) => setView(v as View)} />}
         {view === "settings" && <SettingsView />}
+        {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && view === "library" && LibraryWorkspace && <LibraryWorkspace />}
 
         {/* Working views require a project; EVERY working route falls back to
             the hub otherwise — never a blank page. */}
-        {!hasProject && view !== "projects" && view !== "connect" && view !== "settings" && (
+        {!hasProject && view !== "projects" && view !== "connect" && view !== "settings" && view !== "library" && (
           <ProjectsView onOpen={() => setView("build")} onConnect={() => setView("connect")} />
         )}
-        {hasProject && (
+        {hasProject && view !== "library" && (
           <div className="af-page" style={{ paddingTop: "clamp(20px,3vw,32px)" }}>
             {view === "build" && <BuildView onNavigate={(v) => setView(v)} />}
             {view === "preview" && <PreviewView />}

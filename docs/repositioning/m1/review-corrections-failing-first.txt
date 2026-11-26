@@ -1,0 +1,13 @@
+M1 workspace review corrections: the R1-R4 browser tests (e2e/composer-library.spec.ts) run against the uncorrected Library at 4f4de16 (experimental build), before the corrections.
+R3's desktop test passes on both: it guards that wider screens stay non-modal. Some failures are on new wording or the new data-check attribute, so these are regression guards for the corrected behaviour, not only proofs of the old defects; the defects themselves are reproduced in M1-WORKSPACE-REVIEW.md.
+
+  1) M1 workspace review corrections (R1 to R4) › R1: passing checks never reads as approval; a draft stays a draft 
+    Error: expect(locator).toContainText(expected) failed
+  2) M1 workspace review corrections (R1 to R4) › R2: the canvas and the inspector report one result, through what-if checks that pass and fail, and the restore 
+    Error: expect(locator).toHaveAttribute(expected) failed
+  3) M1 workspace review corrections (R1 to R4) › R3: on a phone an open panel is a modal dialog; focus stays inside, the background is unavailable, Escape returns 
+    Error: expect(locator).toBeVisible() failed
+  4) M1 workspace review corrections (R1 to R4) › R4: action feedback appears inside the visible working area, wherever the button was 
+    Error: expect(locator).toContainText(expected) failed
+  4 failed
+  1 passed (31.9s)
