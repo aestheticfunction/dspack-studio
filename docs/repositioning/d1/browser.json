@@ -1,0 +1,75 @@
+{
+  "before": {
+    "url": "https://composer.aesthetic-function.com/",
+    "cards": [
+      {
+        "accessibleName": "Basic",
+        "drawnName": null,
+        "drawnNameHidden": null,
+        "firstVisibleText": "Price",
+        "headings": 0,
+        "visibleNameIsTheLabel": false,
+        "ariaSnapshot": "- checkbox \"Basic\"\n- term: Price\n- definition: $5/mo\n- term: Storage\n- definition: 50 GB\n- term: Support\n- definition: Community",
+        "labelInAccessibilityTree": 1
+      },
+      {
+        "accessibleName": "Pro",
+        "drawnName": null,
+        "drawnNameHidden": null,
+        "firstVisibleText": "Price",
+        "headings": 0,
+        "visibleNameIsTheLabel": false,
+        "ariaSnapshot": "- checkbox \"Pro\" [checked]\n- term: Price\n- definition: $12/mo\n- term: Storage\n- definition: 1 TB\n- term: Support\n- definition: Priority\n- text: Most popular",
+        "labelInAccessibilityTree": 1
+      }
+    ],
+    "keyboard": [
+      {
+        "name": "Basic",
+        "ring": "solid 2px"
+      },
+      {
+        "name": "Pro",
+        "ring": "solid 2px"
+      }
+    ],
+    "pageErrors": []
+  },
+  "after": {
+    "url": "http://localhost:4311/",
+    "cards": [
+      {
+        "accessibleName": "Basic",
+        "drawnName": "Basic",
+        "drawnNameHidden": "true",
+        "firstVisibleText": "Basic",
+        "headings": 0,
+        "visibleNameIsTheLabel": true,
+        "ariaSnapshot": "- checkbox \"Basic\"\n- term: Price\n- definition: $5/mo\n- term: Storage\n- definition: 50 GB\n- term: Support\n- definition: Community",
+        "labelInAccessibilityTree": 1
+      },
+      {
+        "accessibleName": "Pro",
+        "drawnName": "Pro",
+        "drawnNameHidden": "true",
+        "firstVisibleText": "Pro",
+        "headings": 0,
+        "visibleNameIsTheLabel": true,
+        "ariaSnapshot": "- checkbox \"Pro\" [checked]\n- term: Price\n- definition: $12/mo\n- term: Storage\n- definition: 1 TB\n- term: Support\n- definition: Priority\n- text: Most popular",
+        "labelInAccessibilityTree": 1
+      }
+    ],
+    "keyboard": [
+      {
+        "name": "Basic",
+        "ring": "solid 2px"
+      },
+      {
+        "name": "Pro",
+        "ring": "solid 2px"
+      }
+    ],
+    "pageErrors": []
+  },
+  "pass": true
+}
