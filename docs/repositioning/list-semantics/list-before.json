@@ -1,0 +1,86 @@
+{
+  "label": "before",
+  "planComparison": {
+    "violations": [
+      {
+        "id": "aria-required-children",
+        "nodes": [
+          ".astryx-list"
+        ]
+      }
+    ],
+    "structure": [
+      {
+        "tag": "UL",
+        "role": "list",
+        "children": [
+          "SPAN",
+          "SPAN"
+        ],
+        "nestedListItems": 0
+      }
+    ],
+    "cardBoxes": [
+      [
+        152,
+        700,
+        976,
+        152
+      ],
+      [
+        152,
+        854,
+        976,
+        176
+      ]
+    ],
+    "ariaSnapshot": "- list:\n  - checkbox \"Basic\"\n  - term: Price\n  - definition: $5/mo\n  - term: Storage\n  - definition: 50 GB\n  - term: Support\n  - definition: Community\n  - checkbox \"Pro\" [checked]\n  - term: Price\n  - definition: $12/mo\n  - term: Storage\n  - definition: 1 TB\n  - term: Support\n  - definition: Priority\n  - text: Most popular",
+    "keyboard": [
+      "Basic",
+      "Pro"
+    ]
+  },
+  "hotelResults": {
+    "violations": [
+      {
+        "id": "aria-required-children",
+        "nodes": [
+          "ul"
+        ]
+      }
+    ],
+    "structure": [
+      {
+        "tag": "UL",
+        "role": "list",
+        "children": [
+          "SPAN",
+          "SPAN",
+          "SPAN"
+        ],
+        "nestedListItems": 0
+      }
+    ],
+    "cardBoxes": [
+      [
+        277,
+        273,
+        726,
+        184
+      ],
+      [
+        277,
+        459,
+        726,
+        184
+      ],
+      [
+        277,
+        645,
+        726,
+        184
+      ]
+    ],
+    "ariaSnapshot": "- list:\n  - checkbox \"Casa do Rio\"\n  - term: Area\n  - definition: Alfama\n  - term: Price per night\n  - definition: $142\n  - term: Guest rating\n  - definition: 8.9 / 10\n  - button \"Choose Casa do Rio\":\n    - text: Choose Casa do Rio\n    - status\n  - checkbox \"Hotel Miradouro\"\n  - term: Area\n  - definition: Graça\n  - term: Price per night\n  - definition: $188\n  - term: Guest rating\n  - definition: 9.2 / 10\n  - button \"Choose Hotel Miradouro\":\n    - text: Choose Hotel Miradouro\n    - status\n  - checkbox \"Lumen Chiado\"\n  - term: Area\n  - definition: Chiado\n  - term: Price per night\n  - definition: $231\n  - term: Guest rating\n  - definition: 9.0 / 10\n  - button \"Choose Lumen Chiado\":\n    - text: Choose Lumen Chiado\n    - status"
+  }
+}

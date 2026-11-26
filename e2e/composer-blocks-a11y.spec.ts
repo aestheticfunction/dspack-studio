@@ -625,8 +625,12 @@ test("Astryx: an accepted block surface keeps its heading, its names and its foc
   }
 });
 
-/** A violation outside the blocks that predates step 6, recorded in docs/blocks/ACCESSIBILITY.md ("Outside the blocks"). */
-const KNOWN: Record<string, string[]> = { "ex.plan-comparison": ["aria-required-children"] };
+/**
+ * Violations allowed by name. None: the one that was here (aria-required-children on ex.plan-comparison's
+ * Astryx list) is fixed in the List adapter, which gives each child a list item
+ * (docs/repositioning/list-semantics/).
+ */
+const KNOWN: Record<string, string[]> = {};
 
 test("Astryx: every reference surface in Preview, at every size: axe, and nothing cut off, scrolled in a box or drawn over", async ({ page }) => {
   test.setTimeout(240_000);
