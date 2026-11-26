@@ -1,0 +1,406 @@
+{
+ "run": {
+  "id": "corpus-03-2",
+  "kind": "single",
+  "source": "corpus",
+  "corpusN": 3,
+  "sample": 2
+ },
+ "goal": "An estimate detail workspace for an IP services estimate.\nAt the top, show the estimate reference or identifier, current status,\nand the most important service context.\nBelow it, organize the estimate into clear sections for service\ndetails, jurisdictions or languages when available, pricing and\ncurrency, important dates, and other meaningful estimate information\nreturned by the service.\nWarnings should be visible without overwhelming the estimate.\nIf documents or estimate-related links are available, show them in a\nseparate documents area.\nProvide a clear place for the next available action, especially when\nthe estimate can proceed into project creation.\nThe interface should make an estimate easy to review with a client or\ncolleague during a live demonstration without exposing raw API JSON.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:25:41.988Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "the estimate reference and status",
+   "the line items or services estimated",
+   "totals",
+   "what the user can do next, as EXPECTED.md row 3 describes"
+  ]
+ },
+ "builds": [
+  {
+   "plan": {
+    "intent": "structured-editing",
+    "source": "model",
+    "durationMs": 21033.735636000056
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12540,
+    "output": 2194,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.0246855,
+   "timings": {
+    "planMs": 21033.735636000056,
+    "firstGatedAttemptMs": 60316.12447099993,
+    "emitMs": 73.30750100011937,
+    "totalMs": 60389.85857599997,
+    "pacingMs": 43424.84633800015,
+    "execution": {
+     "planMs": 4315.819329000078,
+     "firstGatedAttemptMs": 16891.27813299978,
+     "emitMs": 73.30750100011937,
+     "totalMs": 16965.01223799982
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "Text"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1143,
+     "outputTokens": 155,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 4182,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11397,
+     "outputTokens": 2039,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 12383,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "structured-editing",
+    "root": {
+     "component": "card",
+     "id": "estimate-workspace",
+     "props": {
+      "variant": "default"
+     },
+     "children": [
+      {
+       "component": "text",
+       "id": "estimate-header",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Estimate EST-2024-0847"
+      },
+      {
+       "component": "metadata-list",
+       "id": "header-metadata",
+       "props": {
+        "items": [
+         {
+          "label": "Status",
+          "value": "Active"
+         },
+         {
+          "label": "Service Type",
+          "value": "Patent Search & Analysis"
+         },
+         {
+          "label": "Client",
+          "value": "TechCorp Industries"
+         }
+        ],
+        "columns": "multi",
+        "orientation": "horizontal"
+       }
+      },
+      {
+       "component": "card",
+       "id": "warning-section",
+       "props": {
+        "variant": "orange"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "warning-label",
+         "props": {
+          "type": "label"
+         },
+         "text": "Pricing expires in 5 days"
+        },
+        {
+         "component": "text",
+         "id": "warning-detail",
+         "props": {
+          "type": "supporting"
+         },
+         "text": "Client acceptance required by 2024-12-29 to maintain quoted rates."
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "service-section-title",
+       "props": {
+        "type": "large",
+        "as": "div"
+       },
+       "text": "Service Details"
+      },
+      {
+       "component": "metadata-list",
+       "id": "service-metadata",
+       "props": {
+        "items": [
+         {
+          "label": "Scope",
+          "value": "Comprehensive patent landscape analysis across US, EU, and JP jurisdictions"
+         },
+         {
+          "label": "Search Depth",
+          "value": "Full database search with cited references"
+         },
+         {
+          "label": "Deliverables",
+          "value": "Executive summary, detailed analysis report, claim chart comparison"
+         },
+         {
+          "label": "Estimated Duration",
+          "value": "15 business days from project initiation"
+         }
+        ],
+        "columns": "single",
+        "orientation": "vertical"
+       }
+      },
+      {
+       "component": "text",
+       "id": "jurisdiction-section-title",
+       "props": {
+        "type": "large",
+        "as": "div"
+       },
+       "text": "Jurisdictions & Languages"
+      },
+      {
+       "component": "list",
+       "id": "jurisdiction-list",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "text",
+         "props": {
+          "type": "body"
+         },
+         "text": "United States — English"
+        },
+        {
+         "component": "text",
+         "props": {
+          "type": "body"
+         },
+         "text": "European Union — English & German"
+        },
+        {
+         "component": "text",
+         "props": {
+          "type": "body"
+         },
+         "text": "Japan — Japanese with English summary"
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "pricing-section-title",
+       "props": {
+        "type": "large",
+        "as": "div"
+       },
+       "text": "Pricing & Currency"
+      },
+      {
+       "component": "metadata-list",
+       "id": "pricing-metadata",
+       "props": {
+        "items": [
+         {
+          "label": "Currency",
+          "value": "USD"
+         },
+         {
+          "label": "Service Fee",
+          "value": "$8,500.00"
+         },
+         {
+          "label": "Jurisdiction Surcharge",
+          "value": "$2,200.00"
+         },
+         {
+          "label": "Translation Services",
+          "value": "$1,300.00"
+         },
+         {
+          "label": "Total Estimate",
+          "value": "$12,000.00"
+         }
+        ],
+        "columns": "single",
+        "orientation": "vertical"
+       }
+      },
+      {
+       "component": "text",
+       "id": "dates-section-title",
+       "props": {
+        "type": "large",
+        "as": "div"
+       },
+       "text": "Important Dates"
+      },
+      {
+       "component": "metadata-list",
+       "id": "dates-metadata",
+       "props": {
+        "items": [
+         {
+          "label": "Estimate Created",
+          "value": "2024-12-24"
+         },
+         {
+          "label": "Quote Valid Until",
+          "value": "2024-12-29"
+         },
+         {
+          "label": "Estimated Project Start",
+          "value": "Upon approval + 2 business days"
+         },
+         {
+          "label": "Target Completion",
+          "value": "2025-01-15"
+         }
+        ],
+        "columns": "single",
+        "orientation": "vertical"
+       }
+      },
+      {
+       "component": "text",
+       "id": "documents-section-title",
+       "props": {
+        "type": "large",
+        "as": "div"
+       },
+       "text": "Documents & References"
+      },
+      {
+       "component": "list",
+       "id": "documents-list",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "text",
+         "props": {
+          "type": "body"
+         },
+         "text": "Estimate PDF — EST-2024-0847.pdf"
+        },
+        {
+         "component": "text",
+         "props": {
+          "type": "body"
+         },
+         "text": "Service Terms & Conditions"
+        },
+        {
+         "component": "text",
+         "props": {
+          "type": "body"
+         },
+         "text": "Client Intake Form (reference)"
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "additional-info",
+       "props": {
+        "type": "supporting",
+        "as": "div"
+       },
+       "text": "Special notes: Rush delivery available (+15%) if decision made within 48 hours."
+      },
+      {
+       "component": "text",
+       "id": "action-section-title",
+       "props": {
+        "type": "large",
+        "as": "div"
+       },
+       "text": "Next Steps"
+      },
+      {
+       "component": "button",
+       "id": "action-create-project",
+       "props": {
+        "label": "Create Project from Estimate",
+        "variant": "primary",
+        "size": "lg"
+       }
+      },
+      {
+       "component": "button",
+       "id": "action-send-client",
+       "props": {
+        "label": "Send to Client for Review",
+        "variant": "secondary",
+        "size": "md"
+       }
+      },
+      {
+       "component": "button",
+       "id": "action-revise",
+       "props": {
+        "label": "Revise Estimate",
+        "variant": "ghost",
+        "size": "md"
+       }
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "durationMs": 60391,
+ "pilotUsdAfter": 0.46792305
+}

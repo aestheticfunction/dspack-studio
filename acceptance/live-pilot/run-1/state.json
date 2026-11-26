@@ -1,0 +1,17 @@
+{
+  "completed": [
+    "hotel-single-1",
+    "hotel-single-2",
+    "hotel-single-3",
+    "hotel-flow-1",
+    "hotel-flow-2",
+    "hotel-flow-3",
+    "corpus-03-1",
+    "corpus-03-2",
+    "corpus-10-1",
+    "corpus-10-2",
+    "corpus-05-1",
+    "corpus-05-2"
+  ],
+  "servedModel": "claude-haiku-4-5-20251001"
+}
