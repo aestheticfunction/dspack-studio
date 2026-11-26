@@ -35,7 +35,7 @@ Things to try:
 5. **Hotel search.** Type a loyalty number and press **Search hotels**. A note pinned to the bottom of the canvas says **Preview only, not run**, with what the action would send and the loyalty number as `[sensitive]`.
 6. **Narrow the window below 900 px.** The canvas comes first, and the two panels become modal drawers: Tab stays inside, the page behind is unavailable, Escape closes and returns focus.
 
-Screenshots at 1280, 1440 and 390 px are in [m1/screenshots/](m1/screenshots/).
+Screenshots at 1440, 1280, 1024 and 390 px, after the review corrections, are in [m1/screenshots/](m1/screenshots/).
 
 ## Slice A: experimental storage
 
