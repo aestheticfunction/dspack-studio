@@ -128,3 +128,58 @@ describe("Badge", () => {
     expect(badge).toContain("overflow-wrap:anywhere");
   });
 });
+
+/**
+ * D1 (docs/repositioning/R1A-REVIEW.md §5 and §10): the contract requires each option card's label and treats
+ * it as the option's visible name (rule.option-carries-label). Astryx's SelectableCard renders it only as its
+ * hidden checkbox's aria-label, by design. The adapter draws it as the card's visible name, and keeps the
+ * checkbox the one thing that announces it, so a screen reader hears it once.
+ */
+describe("SelectableCard", () => {
+  const withContext = (props: Record<string, unknown>, components: Record<string, { type: string; properties: Record<string, unknown> }> = {}, children: Record<string, ReactNode> = {}) =>
+    renderToStaticMarkup(
+      createElement(custom.SelectableCard!, {
+        props,
+        buildChild: (id: string) => children[id] ?? null,
+        context: { surfaceComponents: { get: (id: string) => components[id] } },
+      }),
+    );
+
+  it("draws the label as the card's visible name, and the checkbox keeps it as its accessible name", () => {
+    const html = withContext({ label: "Casa do Rio", children: ["meta"] }, { meta: { type: "MetadataList", properties: {} } }, { meta: createElement("dl", null, "Area") });
+    const name = html.match(/<[a-z]+[^>]*data-selectable-card-name[^>]*>([^<]*)</);
+    expect(name?.[1]).toBe("Casa do Rio");
+    // The visible name comes before the card's own content.
+    expect(html.indexOf("data-selectable-card-name")).toBeLessThan(html.indexOf("<dl>"));
+    expect(html).toMatch(/<input[^>]*aria-label="Casa do Rio"/);
+  });
+
+  it("announces the name once: the drawn name is hidden from assistive technology and is not a heading", () => {
+    const html = withContext({ label: "Plan B" });
+    const tag = html.match(/<[a-z]+[^>]*data-selectable-card-name[^>]*>/)?.[0] ?? "";
+    expect(tag).toContain('aria-hidden="true"');
+    expect(html).not.toMatch(/<h[1-6]|role="heading"/);
+  });
+
+  it("draws no second name where a child already shows the same text", () => {
+    const html = withContext({ label: "Starter", children: ["title", "price"] }, { title: { type: "Text", properties: { text: "Starter" } }, price: { type: "Text", properties: { text: "$9" } } }, { title: createElement("p", null, "Starter"), price: createElement("p", null, "$9") });
+    expect(html).not.toContain("data-selectable-card-name");
+    expect(html).toMatch(/<input[^>]*aria-label="Starter"/);
+    // Nested deeper, through a container, still counts; a button merely containing the name does not.
+    const nested = withContext({ label: "Pro", children: ["col"] }, { col: { type: "Column", properties: { children: ["t"] } }, t: { type: "Text", properties: { text: " pro " } } });
+    expect(nested).not.toContain("data-selectable-card-name");
+    const button = withContext({ label: "Casa do Rio", children: ["b"] }, { b: { type: "Button", properties: { label: "Choose Casa do Rio" } } });
+    expect(button).toContain("data-selectable-card-name");
+  });
+
+  it("draws nothing for an empty label, and still renders without a context", () => {
+    expect(withContext({ label: "  " })).not.toContain("data-selectable-card-name");
+    const bare = renderToStaticMarkup(createElement(custom.SelectableCard!, { props: { label: "Solo" }, buildChild: () => null }));
+    expect(bare).toContain("data-selectable-card-name");
+  });
+
+  it("wraps a long unbroken name instead of overflowing the card", () => {
+    const tag = withContext({ label: "x".repeat(120) }).match(/<[a-z]+[^>]*data-selectable-card-name[^>]*>/)?.[0] ?? "";
+    expect(tag).toMatch(/overflow-wrap:anywhere/);
+  });
+});
