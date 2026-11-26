@@ -1,0 +1,37 @@
+{
+  "id": "results-duplicate-names",
+  "outcome": "refused",
+  "composition": "hotel-results",
+  "data": {
+    "destination": "Lisbon",
+    "nights": 3,
+    "hotels": [
+      {
+        "id": "h-101",
+        "name": "Casa do Rio",
+        "area": "Alfama",
+        "price": 142,
+        "rating": "8.9 / 10"
+      },
+      {
+        "id": "h-102",
+        "name": "Casa do Rio",
+        "area": "Graça",
+        "price": 188,
+        "rating": "9.2 / 10"
+      },
+      {
+        "id": "h-103",
+        "name": "Lumen Chiado",
+        "area": "Chiado",
+        "price": 231,
+        "rating": "9.0 / 10"
+      }
+    ]
+  },
+  "stage": "attach",
+  "state": "ready",
+  "purpose": "transactional-review",
+  "reason": "action 'choose': items 1 and 2 render the same hotel.name, so a person could not tell them apart (completeness, I3)",
+  "failures": []
+}

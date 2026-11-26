@@ -7,18 +7,24 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./blocks": "./src/blocks/index.ts"
+    "./blocks": "./src/blocks/index.ts",
+    "./compositions": "./src/compositions/index.ts"
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "r1a:evidence": "tsx src/compositions/spike/evidence.ts"
   },
   "dependencies": {
     "@aestheticfunction/dspack-emit": "^0.7.0",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "@aestheticfunction/dspack-gen": "^0.5.0",
+    "tsx": "^4.19.0"
   }
 }

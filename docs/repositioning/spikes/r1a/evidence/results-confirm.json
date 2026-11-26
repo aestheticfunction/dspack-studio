@@ -1,0 +1,138 @@
+{
+  "id": "results-confirm",
+  "outcome": "instance",
+  "composition": "hotel-results",
+  "state": "confirm",
+  "purpose": "destructive-action",
+  "surfaceId": "hotel-results-evidence-10",
+  "data": {
+    "destination": "Lisbon",
+    "nights": 3,
+    "hotels": [
+      {
+        "id": "h-101",
+        "name": "Casa do Rio",
+        "area": "Alfama",
+        "price": 142,
+        "rating": "8.9 / 10"
+      },
+      {
+        "id": "h-102",
+        "name": "Hotel Miradouro",
+        "area": "Graça",
+        "price": 188,
+        "rating": "9.2 / 10"
+      },
+      {
+        "id": "h-103",
+        "name": "Lumen Chiado",
+        "area": "Chiado",
+        "price": 231,
+        "rating": "9.0 / 10"
+      }
+    ],
+    "selection": {
+      "id": "h-102",
+      "name": "Hotel Miradouro",
+      "total": 564
+    }
+  },
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "hotel-results-evidence-10",
+        "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+        "theme": {
+          "agentDisplayName": "Astryx via dspack"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "hotel-results-evidence-10",
+        "components": [
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "root_col"
+          },
+          {
+            "id": "text",
+            "component": "Text",
+            "variant": "h1",
+            "text": "Review your reservation"
+          },
+          {
+            "id": "reserve",
+            "component": "AlertDialog",
+            "title": "Reserve Hotel Miradouro?",
+            "description": "3 nights in Lisbon for $564. Payment is taken when you reserve.",
+            "actionLabel": "Reserve Hotel Miradouro",
+            "cancelLabel": "Not now",
+            "action": {
+              "event": {
+                "name": "reserve",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              }
+            }
+          },
+          {
+            "id": "back",
+            "component": "Button",
+            "label": "Back to results",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "back",
+                "context": {}
+              }
+            }
+          },
+          {
+            "id": "root_col",
+            "component": "Column",
+            "children": [
+              "text",
+              "reserve",
+              "back"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "name": "reserve",
+      "componentId": "reserve",
+      "payload": {
+        "hotelId": "h-102"
+      },
+      "carries": [],
+      "consequential": true
+    },
+    {
+      "name": "back",
+      "componentId": "back",
+      "payload": {},
+      "carries": [],
+      "consequential": false
+    }
+  ],
+  "inputs": [],
+  "inputValues": {},
+  "pins": {
+    "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+    "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9",
+    "interactionSha256": "def08ab6d03024de8b54693bfab6cc24f11a524c246dd6a9171b1e28258403b0",
+    "compositionSha256": "4ecbe65bb9c31cb560fa810ad9a3ed7ed21c818a4869297e171077a29737ce6e",
+    "composition": "hotel-results",
+    "version": 1
+  },
+  "expansionSha256": "2fed2b1814a394fcf774dcb3cf06ffa0f9af0660b117ba9cba433fd02d0cc8c6",
+  "emittedSha256": "3940f3b9d2cf8d06de6dd18f28100dd894a6a29648e474744358dd39c989fe71"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "results-one",
+  "outcome": "refused",
+  "composition": "hotel-results",
+  "data": {
+    "destination": "Lisbon",
+    "nights": 3,
+    "hotels": [
+      {
+        "id": "h-101",
+        "name": "Casa do Rio",
+        "area": "Alfama",
+        "price": 142,
+        "rating": "8.9 / 10"
+      }
+    ]
+  },
+  "stage": "lint",
+  "state": "ready",
+  "purpose": "transactional-review",
+  "reason": "S3 rule.review-offers-alternatives: Required sub-component 'selectable-card' (min 2) not found among descendants (found 1). Rationale: A choice of one is not a comparison: a review's option list carries at least two selectable cards. (Under this intent, lists are option groups; the floor applies to every list on the surface. Exact counts and upper bounds are inexpressible in current rule types and remain guidance.)",
+  "failures": [
+    {
+      "gate": "S3",
+      "rule": "rule.review-offers-alternatives",
+      "message": "Required sub-component 'selectable-card' (min 2) not found among descendants (found 1). Rationale: A choice of one is not a comparison: a review's option list carries at least two selectable cards. (Under this intent, lists are option groups; the floor applies to every list on the surface. Exact counts and upper bounds are inexpressible in current rule types and remain guidance.)"
+    }
+  ]
+}

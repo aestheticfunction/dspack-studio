@@ -1,0 +1,340 @@
+{
+  "session": "walk",
+  "steps": [
+    {
+      "step": 1,
+      "label": "Search, empty",
+      "show": "hotel-search-walk-1",
+      "state": "ready",
+      "carried": [],
+      "focus": {
+        "kind": "heading",
+        "componentId": "text"
+      },
+      "batch": [
+        "createSurface",
+        "updateComponents",
+        "updateDataModel"
+      ]
+    },
+    {
+      "step": 2,
+      "label": "Search with invalid dates and guests",
+      "action": "search",
+      "surfaceId": "hotel-search-walk-1",
+      "context": {
+        "destination": "Lisbon",
+        "checkIn": "2026-03-13",
+        "checkOut": "2026-02-30",
+        "guests": "12"
+      },
+      "accepted": false,
+      "code": "invalid-input",
+      "reason": "checkOut is not a real date; guests must be between 1 and 8"
+    },
+    {
+      "step": 3,
+      "label": "Search with check-out before check-in (field-valid; the tool rejects the pair)",
+      "action": "search",
+      "surfaceId": "hotel-search-walk-1",
+      "context": {
+        "destination": "Lisbon",
+        "checkIn": "2026-03-13",
+        "checkOut": "2026-03-10",
+        "guests": "2"
+      },
+      "accepted": true
+    },
+    {
+      "step": 4,
+      "label": "Search again, with the error, values and focus kept",
+      "show": "hotel-search-walk-2",
+      "state": "invalid",
+      "carried": [
+        "destination",
+        "checkIn",
+        "checkOut",
+        "guests"
+      ],
+      "focus": {
+        "kind": "component",
+        "componentId": "check_out"
+      },
+      "batch": [
+        "deleteSurface",
+        "createSurface",
+        "updateComponents",
+        "updateDataModel"
+      ]
+    },
+    {
+      "step": 5,
+      "label": "A stale search from the first surface",
+      "action": "search",
+      "surfaceId": "hotel-search-walk-1",
+      "context": {
+        "destination": "Lisbon",
+        "checkIn": "2026-03-10",
+        "checkOut": "2026-03-13",
+        "guests": "2"
+      },
+      "accepted": false,
+      "code": "stale",
+      "reason": "surface 'hotel-search-walk-1' is not the current instance ('hotel-search-walk-2')"
+    },
+    {
+      "step": 6,
+      "label": "Search with valid values",
+      "action": "search",
+      "surfaceId": "hotel-search-walk-2",
+      "context": {
+        "destination": "Lisbon",
+        "checkIn": "2026-03-10",
+        "checkOut": "2026-03-13",
+        "guests": "2"
+      },
+      "accepted": true
+    },
+    {
+      "step": 7,
+      "label": "Three results",
+      "show": "hotel-results-walk-3",
+      "state": "ready",
+      "carried": [],
+      "focus": {
+        "kind": "heading",
+        "componentId": "text"
+      },
+      "batch": [
+        "deleteSurface",
+        "createSurface",
+        "updateComponents"
+      ]
+    },
+    {
+      "step": 8,
+      "label": "The same search returns them reordered",
+      "show": "hotel-results-walk-4",
+      "state": "ready",
+      "carried": [],
+      "focus": {
+        "kind": "component",
+        "componentId": "choose_3"
+      },
+      "batch": [
+        "deleteSurface",
+        "createSurface",
+        "updateComponents"
+      ]
+    },
+    {
+      "step": 9,
+      "label": "The first drawn button of the replaced surface (stale)",
+      "action": "choose",
+      "surfaceId": "hotel-results-walk-3",
+      "context": {
+        "hotelId": "h-101"
+      },
+      "accepted": false,
+      "code": "stale",
+      "reason": "surface 'hotel-results-walk-3' is not the current instance ('hotel-results-walk-4')"
+    },
+    {
+      "step": 10,
+      "label": "A tampered payload",
+      "action": "choose",
+      "surfaceId": "hotel-results-walk-4",
+      "context": {
+        "hotelId": "h-999"
+      },
+      "accepted": false,
+      "code": "payload-mismatch",
+      "reason": "context 'hotelId' is \"h-999\", but this button's payload is \"h-103\""
+    },
+    {
+      "step": 11,
+      "label": "A forged reservation from the results surface",
+      "action": "reserve",
+      "surfaceId": "hotel-results-walk-4",
+      "context": {
+        "hotelId": "h-102"
+      },
+      "accepted": false,
+      "code": "needs-confirmation",
+      "reason": "'reserve' is consequential and is accepted only from its confirmation step (confirm)"
+    },
+    {
+      "step": 12,
+      "label": "Choose the second hotel now drawn",
+      "action": "choose",
+      "surfaceId": "hotel-results-walk-4",
+      "context": {
+        "hotelId": "h-101"
+      },
+      "accepted": true
+    },
+    {
+      "step": 13,
+      "label": "Confirm the reservation",
+      "show": "hotel-results-walk-5",
+      "state": "confirm",
+      "carried": [],
+      "focus": {
+        "kind": "heading",
+        "componentId": "text"
+      },
+      "batch": [
+        "deleteSurface",
+        "createSurface",
+        "updateComponents"
+      ]
+    },
+    {
+      "step": 14,
+      "label": "Reserve",
+      "action": "reserve",
+      "surfaceId": "hotel-results-walk-5",
+      "context": {
+        "hotelId": "h-102"
+      },
+      "accepted": true
+    },
+    {
+      "step": 15,
+      "label": "Reserve again on the same surface",
+      "action": "reserve",
+      "surfaceId": "hotel-results-walk-5",
+      "context": {
+        "hotelId": "h-102"
+      },
+      "accepted": false,
+      "code": "duplicate",
+      "reason": "'reserve' was already accepted on surface 'hotel-results-walk-5'; a consequential action is accepted once per surface"
+    },
+    {
+      "step": 16,
+      "label": "A result set of one",
+      "refusedShow": "lint",
+      "reason": "S3 rule.review-offers-alternatives: Required sub-component 'selectable-card' (min 2) not found among descendants (found 1). Rationale: A choice of one is not a comparison: a review's option list carries at least two selectable cards. (Under this intent, lists are option groups; the floor applies to every list on the surface. Exact counts and upper bounds are inexpressible in current rule types and remain guidance.)",
+      "kept": "hotel-results-walk-5"
+    },
+    {
+      "step": 17,
+      "label": "After an edit to a rule hotel-results depends on",
+      "refusedShow": "needs-recheck",
+      "reason": "hotel-results was approved against other rules or another version; it needs a re-check before anything runs",
+      "kept": "hotel-results-walk-5"
+    }
+  ],
+  "log": [
+    {
+      "at": 1,
+      "kind": "show",
+      "surfaceId": "hotel-search-walk-1"
+    },
+    {
+      "at": 2,
+      "kind": "refused",
+      "surfaceId": "hotel-search-walk-1",
+      "name": "search",
+      "code": "invalid-input",
+      "reason": "checkOut is not a real date; guests must be between 1 and 8"
+    },
+    {
+      "at": 3,
+      "kind": "accepted",
+      "surfaceId": "hotel-search-walk-1",
+      "name": "search"
+    },
+    {
+      "at": 4,
+      "kind": "show",
+      "surfaceId": "hotel-search-walk-2"
+    },
+    {
+      "at": 5,
+      "kind": "refused",
+      "surfaceId": "hotel-search-walk-1",
+      "name": "search",
+      "code": "stale",
+      "reason": "surface 'hotel-search-walk-1' is not the current instance ('hotel-search-walk-2')"
+    },
+    {
+      "at": 6,
+      "kind": "accepted",
+      "surfaceId": "hotel-search-walk-2",
+      "name": "search"
+    },
+    {
+      "at": 7,
+      "kind": "show",
+      "surfaceId": "hotel-results-walk-3"
+    },
+    {
+      "at": 8,
+      "kind": "show",
+      "surfaceId": "hotel-results-walk-4"
+    },
+    {
+      "at": 9,
+      "kind": "refused",
+      "surfaceId": "hotel-results-walk-3",
+      "name": "choose",
+      "code": "stale",
+      "reason": "surface 'hotel-results-walk-3' is not the current instance ('hotel-results-walk-4')"
+    },
+    {
+      "at": 10,
+      "kind": "refused",
+      "surfaceId": "hotel-results-walk-4",
+      "name": "choose",
+      "code": "payload-mismatch",
+      "reason": "context 'hotelId' is \"h-999\", but this button's payload is \"h-103\""
+    },
+    {
+      "at": 11,
+      "kind": "refused",
+      "surfaceId": "hotel-results-walk-4",
+      "name": "reserve",
+      "code": "needs-confirmation",
+      "reason": "'reserve' is consequential and is accepted only from its confirmation step (confirm)"
+    },
+    {
+      "at": 12,
+      "kind": "accepted",
+      "surfaceId": "hotel-results-walk-4",
+      "name": "choose"
+    },
+    {
+      "at": 13,
+      "kind": "show",
+      "surfaceId": "hotel-results-walk-5"
+    },
+    {
+      "at": 14,
+      "kind": "accepted",
+      "surfaceId": "hotel-results-walk-5",
+      "name": "reserve"
+    },
+    {
+      "at": 15,
+      "kind": "refused",
+      "surfaceId": "hotel-results-walk-5",
+      "name": "reserve",
+      "code": "duplicate",
+      "reason": "'reserve' was already accepted on surface 'hotel-results-walk-5'; a consequential action is accepted once per surface"
+    },
+    {
+      "at": 16,
+      "kind": "refused-show",
+      "code": "lint",
+      "reason": "S3 rule.review-offers-alternatives: Required sub-component 'selectable-card' (min 2) not found among descendants (found 1). Rationale: A choice of one is not a comparison: a review's option list carries at least two selectable cards. (Under this intent, lists are option groups; the floor applies to every list on the surface. Exact counts and upper bounds are inexpressible in current rule types and remain guidance.)"
+    },
+    {
+      "at": 17,
+      "kind": "refused-show",
+      "code": "needs-recheck",
+      "reason": "hotel-results was approved against other rules or another version; it needs a re-check before anything runs"
+    }
+  ]
+}

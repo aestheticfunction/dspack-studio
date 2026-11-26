@@ -1,0 +1,459 @@
+{
+  "implementation": "a2ui-core (Python), strict validation",
+  "catalog": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+  "cases": [
+    {
+      "id": "results-confirm",
+      "surfaceId": "hotel-results-evidence-10",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "reserve from reserve sends its own payload",
+          "context": {
+            "hotelId": "h-102"
+          },
+          "pass": true
+        },
+        {
+          "check": "back from back sends its own payload",
+          "context": {},
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "results-none",
+      "surfaceId": "hotel-results-evidence-6",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "input destination resolves its bound value",
+          "before": "",
+          "after": "typed destination",
+          "pass": true
+        },
+        {
+          "check": "search_again from search_again sends its own payload",
+          "context": {
+            "destination": "typed destination"
+          },
+          "pass": true
+        },
+        {
+          "check": "garbage in /input changes no governed property",
+          "compared": 6,
+          "changed": [],
+          "pass": true
+        },
+        {
+          "check": "search_again after garbage carries it to the host, which must refuse it",
+          "context": {
+            "destination": {
+              "not": "text"
+            }
+          },
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "results-removed",
+      "surfaceId": "hotel-results-evidence-8",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "choose from item 1 (Casa do Rio) sends its own payload",
+          "context": {
+            "hotelId": "h-101"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 2 (Lumen Chiado) sends its own payload",
+          "context": {
+            "hotelId": "h-103"
+          },
+          "pass": true
+        },
+        {
+          "check": "new_search from new_search sends its own payload",
+          "context": {},
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "results-reordered",
+      "surfaceId": "hotel-results-evidence-7",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "choose from item 1 (Lumen Chiado) sends its own payload",
+          "context": {
+            "hotelId": "h-103"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 2 (Casa do Rio) sends its own payload",
+          "context": {
+            "hotelId": "h-101"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 3 (Hotel Miradouro) sends its own payload",
+          "context": {
+            "hotelId": "h-102"
+          },
+          "pass": true
+        },
+        {
+          "check": "new_search from new_search sends its own payload",
+          "context": {},
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "results-three",
+      "surfaceId": "hotel-results-evidence-3",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "choose from item 1 (Casa do Rio) sends its own payload",
+          "context": {
+            "hotelId": "h-101"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 2 (Hotel Miradouro) sends its own payload",
+          "context": {
+            "hotelId": "h-102"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 3 (Lumen Chiado) sends its own payload",
+          "context": {
+            "hotelId": "h-103"
+          },
+          "pass": true
+        },
+        {
+          "check": "new_search from new_search sends its own payload",
+          "context": {},
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "results-twenty",
+      "surfaceId": "hotel-results-evidence-9",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "choose from item 1 (Casa do Rio) sends its own payload",
+          "context": {
+            "hotelId": "h-101"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 2 (Hotel Miradouro) sends its own payload",
+          "context": {
+            "hotelId": "h-102"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 3 (Lumen Chiado) sends its own payload",
+          "context": {
+            "hotelId": "h-103"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 4 (Pens\u00e3o Azulejo) sends its own payload",
+          "context": {
+            "hotelId": "h-104"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 5 (Tejo Riverside) sends its own payload",
+          "context": {
+            "hotelId": "h-105"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 6 (Pal\u00e1cio das Janelas) sends its own payload",
+          "context": {
+            "hotelId": "h-106"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 7 (Estrela Garden) sends its own payload",
+          "context": {
+            "hotelId": "h-107"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 8 (Bairro Alto Rooms) sends its own payload",
+          "context": {
+            "hotelId": "h-108"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 9 (Avenida Liberdade 77) sends its own payload",
+          "context": {
+            "hotelId": "h-109"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 10 (Bel\u00e9m Harbour Inn) sends its own payload",
+          "context": {
+            "hotelId": "h-110"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 11 (Pr\u00edncipe Real Suites) sends its own payload",
+          "context": {
+            "hotelId": "h-111"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 12 (Campo de Ourique House) sends its own payload",
+          "context": {
+            "hotelId": "h-112"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 13 (Santos Design Hotel) sends its own payload",
+          "context": {
+            "hotelId": "h-113"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 14 (Martim Moniz Stay) sends its own payload",
+          "context": {
+            "hotelId": "h-114"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 15 (Parque Eduardo Lodge) sends its own payload",
+          "context": {
+            "hotelId": "h-115"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 16 (Alc\u00e2ntara Docks) sends its own payload",
+          "context": {
+            "hotelId": "h-116"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 17 (Castelo View) sends its own payload",
+          "context": {
+            "hotelId": "h-117"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 18 (Intendente Loft) sends its own payload",
+          "context": {
+            "hotelId": "h-118"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 19 (Saldanha Central) sends its own payload",
+          "context": {
+            "hotelId": "h-119"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 20 (Oriente Tower) sends its own payload",
+          "context": {
+            "hotelId": "h-120"
+          },
+          "pass": true
+        },
+        {
+          "check": "new_search from new_search sends its own payload",
+          "context": {},
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "results-two",
+      "surfaceId": "hotel-results-evidence-4",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "choose from item 1 (Casa do Rio) sends its own payload",
+          "context": {
+            "hotelId": "h-101"
+          },
+          "pass": true
+        },
+        {
+          "check": "choose from item 2 (Hotel Miradouro) sends its own payload",
+          "context": {
+            "hotelId": "h-102"
+          },
+          "pass": true
+        },
+        {
+          "check": "new_search from new_search sends its own payload",
+          "context": {},
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "search-invalid",
+      "surfaceId": "hotel-search-evidence-2",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "input destination resolves its bound value",
+          "before": "Lisbon",
+          "after": "typed destination",
+          "pass": true
+        },
+        {
+          "check": "input checkIn resolves its bound value",
+          "before": "2026-03-13",
+          "after": "typed checkIn",
+          "pass": true
+        },
+        {
+          "check": "input checkOut resolves its bound value",
+          "before": "2026-03-10",
+          "after": "typed checkOut",
+          "pass": true
+        },
+        {
+          "check": "input guests resolves its bound value",
+          "before": "2",
+          "after": "typed guests",
+          "pass": true
+        },
+        {
+          "check": "search from search sends its own payload",
+          "context": {
+            "destination": "typed destination",
+            "checkIn": "typed checkIn",
+            "checkOut": "typed checkOut",
+            "guests": "typed guests"
+          },
+          "pass": true
+        },
+        {
+          "check": "garbage in /input changes no governed property",
+          "compared": 10,
+          "changed": [],
+          "pass": true
+        },
+        {
+          "check": "search after garbage carries it to the host, which must refuse it",
+          "context": {
+            "destination": {
+              "not": "text"
+            },
+            "checkIn": null,
+            "checkOut": null,
+            "guests": null
+          },
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "search-ready",
+      "surfaceId": "hotel-search-evidence-1",
+      "accepted": true,
+      "checks": [
+        {
+          "check": "input destination resolves its bound value",
+          "before": "Lisbon",
+          "after": "typed destination",
+          "pass": true
+        },
+        {
+          "check": "input checkIn resolves its bound value",
+          "before": "",
+          "after": "typed checkIn",
+          "pass": true
+        },
+        {
+          "check": "input checkOut resolves its bound value",
+          "before": "",
+          "after": "typed checkOut",
+          "pass": true
+        },
+        {
+          "check": "input guests resolves its bound value",
+          "before": "",
+          "after": "typed guests",
+          "pass": true
+        },
+        {
+          "check": "search from search sends its own payload",
+          "context": {
+            "destination": "typed destination",
+            "checkIn": "typed checkIn",
+            "checkOut": "typed checkOut",
+            "guests": "typed guests"
+          },
+          "pass": true
+        },
+        {
+          "check": "garbage in /input changes no governed property",
+          "compared": 8,
+          "changed": [],
+          "pass": true
+        },
+        {
+          "check": "search after garbage carries it to the host, which must refuse it",
+          "context": {
+            "destination": {
+              "not": "text"
+            },
+            "checkIn": null,
+            "checkOut": null,
+            "guests": null
+          },
+          "pass": true
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "catalogLoads": true,
+  "pass": true
+}

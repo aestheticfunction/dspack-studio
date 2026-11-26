@@ -1,0 +1,90 @@
+{
+  "generated": "pnpm --filter @dspack-studio/composer-core r1a:evidence",
+  "cases": [
+    {
+      "id": "search-ready",
+      "outcome": "instance",
+      "state": "ready",
+      "purpose": "data-collection",
+      "surfaceId": "hotel-search-evidence-1",
+      "buttons": 1
+    },
+    {
+      "id": "search-invalid",
+      "outcome": "instance",
+      "state": "invalid",
+      "purpose": "data-collection",
+      "surfaceId": "hotel-search-evidence-2",
+      "buttons": 1
+    },
+    {
+      "id": "results-three",
+      "outcome": "instance",
+      "state": "ready",
+      "purpose": "transactional-review",
+      "surfaceId": "hotel-results-evidence-3",
+      "buttons": 4
+    },
+    {
+      "id": "results-two",
+      "outcome": "instance",
+      "state": "ready",
+      "purpose": "transactional-review",
+      "surfaceId": "hotel-results-evidence-4",
+      "buttons": 3
+    },
+    {
+      "id": "results-one",
+      "outcome": "refused",
+      "stage": "lint",
+      "reason": "S3 rule.review-offers-alternatives: Required sub-component 'selectable-card' (min 2) not found among descendants (found 1). Rationale: A choice of one is not a comparison: a review's option list carri"
+    },
+    {
+      "id": "results-none",
+      "outcome": "instance",
+      "state": "empty",
+      "purpose": "data-collection",
+      "surfaceId": "hotel-results-evidence-6",
+      "buttons": 1
+    },
+    {
+      "id": "results-reordered",
+      "outcome": "instance",
+      "state": "ready",
+      "purpose": "transactional-review",
+      "surfaceId": "hotel-results-evidence-7",
+      "buttons": 4
+    },
+    {
+      "id": "results-removed",
+      "outcome": "instance",
+      "state": "ready",
+      "purpose": "transactional-review",
+      "surfaceId": "hotel-results-evidence-8",
+      "buttons": 3
+    },
+    {
+      "id": "results-twenty",
+      "outcome": "instance",
+      "state": "ready",
+      "purpose": "transactional-review",
+      "surfaceId": "hotel-results-evidence-9",
+      "buttons": 21
+    },
+    {
+      "id": "results-confirm",
+      "outcome": "instance",
+      "state": "confirm",
+      "purpose": "destructive-action",
+      "surfaceId": "hotel-results-evidence-10",
+      "buttons": 2
+    },
+    {
+      "id": "results-duplicate-names",
+      "outcome": "refused",
+      "stage": "attach",
+      "reason": "action 'choose': items 1 and 2 render the same hotel.name, so a person could not tell them apart (completeness, I3)"
+    }
+  ],
+  "emitSurfaceIsTheEmitter": true
+}

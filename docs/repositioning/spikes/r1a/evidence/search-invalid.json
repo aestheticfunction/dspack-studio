@@ -1,0 +1,196 @@
+{
+  "id": "search-invalid",
+  "outcome": "instance",
+  "composition": "hotel-search",
+  "state": "invalid",
+  "purpose": "data-collection",
+  "surfaceId": "hotel-search-evidence-2",
+  "data": {
+    "errors": [
+      "Check-out must be after check-in."
+    ]
+  },
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "hotel-search-evidence-2",
+        "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+        "theme": {
+          "agentDisplayName": "Astryx via dspack"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "hotel-search-evidence-2",
+        "components": [
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "root_col"
+          },
+          {
+            "id": "text",
+            "component": "Text",
+            "variant": "h1",
+            "text": "Find a hotel"
+          },
+          {
+            "id": "text_2",
+            "component": "Text",
+            "variant": "caption",
+            "text": "Some details need another look:"
+          },
+          {
+            "id": "text_3",
+            "component": "Text",
+            "variant": "body",
+            "text": "Check-out must be after check-in."
+          },
+          {
+            "id": "destination",
+            "component": "TextField",
+            "label": "Destination",
+            "placeholder": "City or area",
+            "value": {
+              "path": "/input/destination"
+            }
+          },
+          {
+            "id": "check_in",
+            "component": "TextField",
+            "label": "Check-in date",
+            "placeholder": "YYYY-MM-DD",
+            "value": {
+              "path": "/input/checkIn"
+            }
+          },
+          {
+            "id": "check_out",
+            "component": "TextField",
+            "label": "Check-out date",
+            "placeholder": "YYYY-MM-DD",
+            "value": {
+              "path": "/input/checkOut"
+            }
+          },
+          {
+            "id": "guests",
+            "component": "TextField",
+            "label": "Guests",
+            "placeholder": "1 to 8",
+            "value": {
+              "path": "/input/guests"
+            }
+          },
+          {
+            "id": "search",
+            "component": "Button",
+            "label": "Search hotels",
+            "variant": "primary",
+            "action": {
+              "event": {
+                "name": "search",
+                "context": {
+                  "destination": {
+                    "path": "/input/destination"
+                  },
+                  "checkIn": {
+                    "path": "/input/checkIn"
+                  },
+                  "checkOut": {
+                    "path": "/input/checkOut"
+                  },
+                  "guests": {
+                    "path": "/input/guests"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "root_col",
+            "component": "Column",
+            "children": [
+              "text",
+              "text_2",
+              "text_3",
+              "destination",
+              "check_in",
+              "check_out",
+              "guests",
+              "search"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "hotel-search-evidence-2",
+        "path": "/input",
+        "value": {
+          "destination": "Lisbon",
+          "checkIn": "2026-03-13",
+          "checkOut": "2026-03-10",
+          "guests": "2"
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "name": "search",
+      "componentId": "search",
+      "payload": {},
+      "carries": [
+        "destination",
+        "checkIn",
+        "checkOut",
+        "guests"
+      ],
+      "consequential": false
+    }
+  ],
+  "inputs": [
+    {
+      "name": "destination",
+      "componentId": "destination",
+      "path": "/input/destination"
+    },
+    {
+      "name": "checkIn",
+      "componentId": "check_in",
+      "path": "/input/checkIn"
+    },
+    {
+      "name": "checkOut",
+      "componentId": "check_out",
+      "path": "/input/checkOut"
+    },
+    {
+      "name": "guests",
+      "componentId": "guests",
+      "path": "/input/guests"
+    }
+  ],
+  "inputValues": {
+    "destination": "Lisbon",
+    "checkIn": "2026-03-13",
+    "checkOut": "2026-03-10",
+    "guests": "2"
+  },
+  "pins": {
+    "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+    "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9",
+    "interactionSha256": "4ea4cceaed30ee5c8a6af17efe7e8ac5baf91e409190f5a5af5710c36c8d76bc",
+    "compositionSha256": "7e4e01b605526447d818971241e88e5a8436a2b9525c5525e36c8ac6f825bed2",
+    "composition": "hotel-search",
+    "version": 1
+  },
+  "expansionSha256": "d15aa56c8f6942a668d3e40c4f6aa902f2b3192f4e5538005c0d60fa01b7efbc",
+  "emittedSha256": "e534639a5e63c283f2c980a6ab17ef96108b5493ef216927fb9a6b169f7dc351"
+}

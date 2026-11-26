@@ -1,0 +1,228 @@
+{
+  "id": "results-two",
+  "outcome": "instance",
+  "composition": "hotel-results",
+  "state": "ready",
+  "purpose": "transactional-review",
+  "surfaceId": "hotel-results-evidence-4",
+  "data": {
+    "destination": "Lisbon",
+    "nights": 3,
+    "hotels": [
+      {
+        "id": "h-101",
+        "name": "Casa do Rio",
+        "area": "Alfama",
+        "price": 142,
+        "rating": "8.9 / 10"
+      },
+      {
+        "id": "h-102",
+        "name": "Hotel Miradouro",
+        "area": "Graça",
+        "price": 188,
+        "rating": "9.2 / 10"
+      }
+    ]
+  },
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "hotel-results-evidence-4",
+        "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+        "theme": {
+          "agentDisplayName": "Astryx via dspack"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "hotel-results-evidence-4",
+        "components": [
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "root_col"
+          },
+          {
+            "id": "text",
+            "component": "Text",
+            "variant": "h1",
+            "text": "Hotels in Lisbon"
+          },
+          {
+            "id": "text_2",
+            "component": "Text",
+            "variant": "caption",
+            "text": "3 nights. Compare and choose one."
+          },
+          {
+            "id": "results",
+            "component": "List",
+            "children": [
+              "selectablecard",
+              "selectablecard_2"
+            ]
+          },
+          {
+            "id": "selectablecard",
+            "component": "SelectableCard",
+            "label": "Casa do Rio",
+            "children": [
+              "metadatalist",
+              "choose"
+            ]
+          },
+          {
+            "id": "metadatalist",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Alfama"
+              },
+              {
+                "label": "Price per night",
+                "value": "$142"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.9 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose",
+            "component": "Button",
+            "label": "Choose Casa do Rio",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_2",
+            "component": "SelectableCard",
+            "label": "Hotel Miradouro",
+            "children": [
+              "metadatalist_2",
+              "choose_2"
+            ]
+          },
+          {
+            "id": "metadatalist_2",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Graça"
+              },
+              {
+                "label": "Price per night",
+                "value": "$188"
+              },
+              {
+                "label": "Guest rating",
+                "value": "9.2 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_2",
+            "component": "Button",
+            "label": "Choose Hotel Miradouro",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              }
+            }
+          },
+          {
+            "id": "new_search",
+            "component": "Button",
+            "label": "New search",
+            "variant": "ghost",
+            "action": {
+              "event": {
+                "name": "new_search",
+                "context": {}
+              }
+            }
+          },
+          {
+            "id": "root_col",
+            "component": "Column",
+            "children": [
+              "text",
+              "text_2",
+              "results",
+              "new_search"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "name": "choose",
+      "componentId": "choose",
+      "payload": {
+        "hotelId": "h-101"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 0,
+        "witness": [
+          "Casa do Rio"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_2",
+      "payload": {
+        "hotelId": "h-102"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 1,
+        "witness": [
+          "Hotel Miradouro"
+        ]
+      }
+    },
+    {
+      "name": "new_search",
+      "componentId": "new_search",
+      "payload": {},
+      "carries": [],
+      "consequential": false
+    }
+  ],
+  "inputs": [],
+  "inputValues": {},
+  "pins": {
+    "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+    "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9",
+    "interactionSha256": "def08ab6d03024de8b54693bfab6cc24f11a524c246dd6a9171b1e28258403b0",
+    "compositionSha256": "4ecbe65bb9c31cb560fa810ad9a3ed7ed21c818a4869297e171077a29737ce6e",
+    "composition": "hotel-results",
+    "version": 1
+  },
+  "expansionSha256": "3e43ae575d7fb4b3b533bc0faed0479edf934d68e6408818599ed2e3708aeecc",
+  "emittedSha256": "a78213546e0a0fa031da6964208372d18cd257f2f6aa8d36af5e0f50a75a653f"
+}

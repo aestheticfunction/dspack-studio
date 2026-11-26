@@ -1,0 +1,322 @@
+{
+  "about": "R1a data sets for hotel-results (synthetic, Lisbon). 'one' must be refused by rule.review-offers-alternatives; 'none' selects the empty state by its guard; 'duplicate-names' must be refused because two items cannot be told apart.",
+  "sets": {
+    "three": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-102",
+          "name": "Hotel Miradouro",
+          "area": "Graça",
+          "price": 188,
+          "rating": "9.2 / 10"
+        },
+        {
+          "id": "h-103",
+          "name": "Lumen Chiado",
+          "area": "Chiado",
+          "price": 231,
+          "rating": "9.0 / 10"
+        }
+      ]
+    },
+    "two": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-102",
+          "name": "Hotel Miradouro",
+          "area": "Graça",
+          "price": 188,
+          "rating": "9.2 / 10"
+        }
+      ]
+    },
+    "one": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        }
+      ]
+    },
+    "none": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": []
+    },
+    "reordered": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-103",
+          "name": "Lumen Chiado",
+          "area": "Chiado",
+          "price": 231,
+          "rating": "9.0 / 10"
+        },
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-102",
+          "name": "Hotel Miradouro",
+          "area": "Graça",
+          "price": 188,
+          "rating": "9.2 / 10"
+        }
+      ]
+    },
+    "removed": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-103",
+          "name": "Lumen Chiado",
+          "area": "Chiado",
+          "price": 231,
+          "rating": "9.0 / 10"
+        }
+      ]
+    },
+    "twenty": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-102",
+          "name": "Hotel Miradouro",
+          "area": "Graça",
+          "price": 188,
+          "rating": "9.2 / 10"
+        },
+        {
+          "id": "h-103",
+          "name": "Lumen Chiado",
+          "area": "Chiado",
+          "price": 231,
+          "rating": "9.0 / 10"
+        },
+        {
+          "id": "h-104",
+          "name": "Pensão Azulejo",
+          "area": "Mouraria",
+          "price": 96,
+          "rating": "8.1 / 10"
+        },
+        {
+          "id": "h-105",
+          "name": "Tejo Riverside",
+          "area": "Cais do Sodré",
+          "price": 205,
+          "rating": "8.7 / 10"
+        },
+        {
+          "id": "h-106",
+          "name": "Palácio das Janelas",
+          "area": "Lapa",
+          "price": 318,
+          "rating": "9.4 / 10"
+        },
+        {
+          "id": "h-107",
+          "name": "Estrela Garden",
+          "area": "Estrela",
+          "price": 164,
+          "rating": "8.8 / 10"
+        },
+        {
+          "id": "h-108",
+          "name": "Bairro Alto Rooms",
+          "area": "Bairro Alto",
+          "price": 118,
+          "rating": "7.9 / 10"
+        },
+        {
+          "id": "h-109",
+          "name": "Avenida Liberdade 77",
+          "area": "Avenida",
+          "price": 276,
+          "rating": "9.1 / 10"
+        },
+        {
+          "id": "h-110",
+          "name": "Belém Harbour Inn",
+          "area": "Belém",
+          "price": 154,
+          "rating": "8.5 / 10"
+        },
+        {
+          "id": "h-111",
+          "name": "Príncipe Real Suites",
+          "area": "Príncipe Real",
+          "price": 249,
+          "rating": "9.3 / 10"
+        },
+        {
+          "id": "h-112",
+          "name": "Campo de Ourique House",
+          "area": "Campo de Ourique",
+          "price": 133,
+          "rating": "8.6 / 10"
+        },
+        {
+          "id": "h-113",
+          "name": "Santos Design Hotel",
+          "area": "Santos",
+          "price": 197,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-114",
+          "name": "Martim Moniz Stay",
+          "area": "Martim Moniz",
+          "price": 89,
+          "rating": "7.6 / 10"
+        },
+        {
+          "id": "h-115",
+          "name": "Parque Eduardo Lodge",
+          "area": "Marquês",
+          "price": 172,
+          "rating": "8.4 / 10"
+        },
+        {
+          "id": "h-116",
+          "name": "Alcântara Docks",
+          "area": "Alcântara",
+          "price": 158,
+          "rating": "8.3 / 10"
+        },
+        {
+          "id": "h-117",
+          "name": "Castelo View",
+          "area": "Castelo",
+          "price": 221,
+          "rating": "9.0 / 10"
+        },
+        {
+          "id": "h-118",
+          "name": "Intendente Loft",
+          "area": "Intendente",
+          "price": 104,
+          "rating": "8.2 / 10"
+        },
+        {
+          "id": "h-119",
+          "name": "Saldanha Central",
+          "area": "Saldanha",
+          "price": 146,
+          "rating": "8.0 / 10"
+        },
+        {
+          "id": "h-120",
+          "name": "Oriente Tower",
+          "area": "Parque das Nações",
+          "price": 183,
+          "rating": "8.6 / 10"
+        }
+      ]
+    },
+    "confirm": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-102",
+          "name": "Hotel Miradouro",
+          "area": "Graça",
+          "price": 188,
+          "rating": "9.2 / 10"
+        },
+        {
+          "id": "h-103",
+          "name": "Lumen Chiado",
+          "area": "Chiado",
+          "price": 231,
+          "rating": "9.0 / 10"
+        }
+      ],
+      "selection": {
+        "id": "h-102",
+        "name": "Hotel Miradouro",
+        "total": 564
+      }
+    },
+    "duplicate-names": {
+      "destination": "Lisbon",
+      "nights": 3,
+      "hotels": [
+        {
+          "id": "h-101",
+          "name": "Casa do Rio",
+          "area": "Alfama",
+          "price": 142,
+          "rating": "8.9 / 10"
+        },
+        {
+          "id": "h-102",
+          "name": "Casa do Rio",
+          "area": "Graça",
+          "price": 188,
+          "rating": "9.2 / 10"
+        },
+        {
+          "id": "h-103",
+          "name": "Lumen Chiado",
+          "area": "Chiado",
+          "price": 231,
+          "rating": "9.0 / 10"
+        }
+      ]
+    }
+  }
+}

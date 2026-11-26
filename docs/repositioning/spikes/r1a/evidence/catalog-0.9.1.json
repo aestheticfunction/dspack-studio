@@ -1,0 +1,1265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+  "title": "Astryx — A2UI catalog (compiled from dspack)",
+  "description": "A2UI catalog compiled from the Astryx dspack v0.4 contract. The Astryx contract is props-based, so component shapes and variant enums project onto A2UI mostly verbatim; declarative actions and the Column layout primitive are synthesized and warned.",
+  "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+  "components": {
+    "Button": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/Checkable"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Button"
+            },
+            "action": {
+              "$ref": "#/$defs/Action",
+              "description": "The interaction dispatched when the button is activated."
+            },
+            "label": {
+              "type": "string",
+              "description": "The button's visible label (required by rule.button-carries-label).",
+              "x-dspack-source": {
+                "sourceProp": "label",
+                "sourceType": "string"
+              }
+            },
+            "variant": {
+              "type": "string",
+              "description": "Button visual treatment, carried verbatim from the Astryx contract.",
+              "enum": [
+                "primary",
+                "secondary",
+                "ghost",
+                "destructive"
+              ],
+              "default": "primary",
+              "x-dspack-source": {
+                "sourceProp": "variant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "primary",
+                  "secondary",
+                  "ghost",
+                  "destructive"
+                ]
+              }
+            },
+            "size": {
+              "type": "string",
+              "description": "Button size, carried verbatim.",
+              "enum": [
+                "sm",
+                "md",
+                "lg"
+              ],
+              "default": "md",
+              "x-dspack-source": {
+                "sourceProp": "size",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "sm",
+                  "md",
+                  "lg"
+                ]
+              }
+            },
+            "isDisabled": {
+              "type": "boolean",
+              "description": "Disables the button.",
+              "x-dspack-source": {
+                "sourceProp": "isDisabled",
+                "sourceType": "boolean"
+              }
+            },
+            "isIconOnly": {
+              "type": "boolean",
+              "description": "Renders the button as icon-only; the label becomes the accessible name.",
+              "x-dspack-source": {
+                "sourceProp": "isIconOnly",
+                "sourceType": "boolean"
+              }
+            },
+            "tooltip": {
+              "type": "string",
+              "description": "Optional tooltip text.",
+              "x-dspack-source": {
+                "sourceProp": "tooltip",
+                "sourceType": "string"
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label",
+            "action"
+          ],
+          "description": "Triggers an action when clicked. The accessible label is a REQUIRED string prop (rendered as visible text; used as aria-label when isIconOnly).",
+          "x-dspack": {
+            "sourceId": "button"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Card": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Card"
+            },
+            "child": {
+              "$ref": "#/$defs/ComponentId",
+              "description": "The ID of the single child component. Wrap multiple elements in a Column and pass its ID."
+            },
+            "variant": {
+              "type": "string",
+              "description": "Card background variant, carried verbatim (default/muted plus the color variants, which categorize rather than signal status).",
+              "enum": [
+                "default",
+                "muted",
+                "blue",
+                "cyan",
+                "gray",
+                "green",
+                "orange",
+                "pink",
+                "purple",
+                "red",
+                "teal",
+                "yellow"
+              ],
+              "default": "default",
+              "x-dspack-source": {
+                "sourceProp": "variant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "default",
+                  "muted",
+                  "blue",
+                  "cyan",
+                  "gray",
+                  "green",
+                  "orange",
+                  "pink",
+                  "purple",
+                  "red",
+                  "teal",
+                  "yellow"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "child"
+          ],
+          "description": "A container for a discrete item that could be reordered or removed independently.",
+          "x-dspack": {
+            "sourceId": "card"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "TextField": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/Checkable"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "TextField"
+            },
+            "value": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The bound value of the text field."
+            },
+            "label": {
+              "type": "string",
+              "description": "The visible field label (required by rule.input-carries-label).",
+              "x-dspack-source": {
+                "sourceProp": "label",
+                "sourceType": "string"
+              }
+            },
+            "variant": {
+              "type": "string",
+              "description": "Input kind, projected from the contract's input type onto A2UI TextField variants.",
+              "enum": [
+                "shortText",
+                "obscured"
+              ],
+              "default": "shortText",
+              "x-dspack-source": {
+                "sourceProp": "type",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "text",
+                  "password",
+                  "email"
+                ],
+                "valueMap": {
+                  "text": "shortText",
+                  "email": "shortText",
+                  "password": "obscured"
+                }
+              }
+            },
+            "placeholder": {
+              "type": "string",
+              "description": "Placeholder text shown when the field is empty.",
+              "x-dspack-source": {
+                "sourceProp": "placeholder",
+                "sourceType": "string"
+              }
+            },
+            "description": {
+              "type": "string",
+              "description": "Helper text describing the field.",
+              "x-dspack-source": {
+                "sourceProp": "description",
+                "sourceType": "string"
+              }
+            },
+            "isLabelHidden": {
+              "type": "boolean",
+              "description": "Visually hides the label while keeping it accessible.",
+              "x-dspack-source": {
+                "sourceProp": "isLabelHidden",
+                "sourceType": "boolean"
+              }
+            },
+            "isRequired": {
+              "type": "boolean",
+              "description": "Marks the field as required.",
+              "x-dspack-source": {
+                "sourceProp": "isRequired",
+                "sourceType": "boolean"
+              }
+            },
+            "size": {
+              "type": "string",
+              "description": "Field size, carried verbatim.",
+              "enum": [
+                "sm",
+                "md",
+                "lg"
+              ],
+              "default": "md",
+              "x-dspack-source": {
+                "sourceProp": "size",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "sm",
+                  "md",
+                  "lg"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label"
+          ],
+          "description": "A single-line text input. The visible label is a REQUIRED string prop.",
+          "x-dspack": {
+            "sourceId": "text-input"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Badge": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Badge"
+            },
+            "label": {
+              "type": "string",
+              "description": "The badge text.",
+              "x-dspack-source": {
+                "sourceProp": "label",
+                "sourceType": "string"
+              }
+            },
+            "variant": {
+              "type": "string",
+              "description": "Badge visual treatment, carried verbatim (all fourteen Astryx variants).",
+              "enum": [
+                "neutral",
+                "info",
+                "success",
+                "warning",
+                "error",
+                "blue",
+                "cyan",
+                "green",
+                "orange",
+                "pink",
+                "purple",
+                "red",
+                "teal",
+                "yellow"
+              ],
+              "default": "neutral",
+              "x-dspack-source": {
+                "sourceProp": "variant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "neutral",
+                  "info",
+                  "success",
+                  "warning",
+                  "error",
+                  "blue",
+                  "cyan",
+                  "green",
+                  "orange",
+                  "pink",
+                  "purple",
+                  "red",
+                  "teal",
+                  "yellow"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label"
+          ],
+          "description": "A small status or category label.",
+          "x-dspack": {
+            "sourceId": "badge"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Table": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Table"
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Header labels for the data columns."
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Row records, each { cells: string[], status?: { label, variant } }."
+            },
+            "children": {
+              "$ref": "#/$defs/ChildList",
+              "description": "Nested child component IDs, arranged left-to-right, top-to-bottom into rows of one cell per column (an alternative to `data`)."
+            },
+            "density": {
+              "type": "string",
+              "description": "Row density, carried verbatim.",
+              "enum": [
+                "compact",
+                "balanced",
+                "spacious"
+              ],
+              "default": "balanced",
+              "x-dspack-source": {
+                "sourceProp": "density",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "compact",
+                  "balanced",
+                  "spacious"
+                ]
+              }
+            },
+            "dividers": {
+              "type": "string",
+              "description": "Divider style, carried verbatim.",
+              "enum": [
+                "rows",
+                "columns",
+                "grid",
+                "none"
+              ],
+              "default": "rows",
+              "x-dspack-source": {
+                "sourceProp": "dividers",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "rows",
+                  "columns",
+                  "grid",
+                  "none"
+                ]
+              }
+            },
+            "isStriped": {
+              "type": "boolean",
+              "description": "Alternates row backgrounds.",
+              "x-dspack-source": {
+                "sourceProp": "isStriped",
+                "sourceType": "boolean"
+              }
+            }
+          },
+          "required": [
+            "component",
+            "columns"
+          ],
+          "description": "Tabular data. DATA-DRIVEN: rows and columns are array props (`data`, `columns`), not sub-components — the second instance of the Astryx data-props idiom.",
+          "x-dspack": {
+            "sourceId": "table"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "AlertDialog": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "AlertDialog"
+            },
+            "action": {
+              "$ref": "#/$defs/Action",
+              "description": "Event dispatched when the user confirms the action."
+            },
+            "title": {
+              "type": "string",
+              "description": "Confirmation title (required by rule.alertdialog-carries-content).",
+              "x-dspack-source": {
+                "sourceProp": "title",
+                "sourceType": "string"
+              }
+            },
+            "description": {
+              "type": "string",
+              "description": "Consequence description (required by rule.alertdialog-carries-content).",
+              "x-dspack-source": {
+                "sourceProp": "description",
+                "sourceType": "string"
+              }
+            },
+            "actionLabel": {
+              "type": "string",
+              "description": "Label of the confirm action. Must name the action specifically (rule.alertdialog-action-label-specific forbids OK/Confirm/Yes/Continue).",
+              "x-dspack-source": {
+                "sourceProp": "actionLabel",
+                "sourceType": "string"
+              }
+            },
+            "cancelLabel": {
+              "type": "string",
+              "description": "Label of the cancel action.",
+              "x-dspack-source": {
+                "sourceProp": "cancelLabel",
+                "sourceType": "string"
+              }
+            },
+            "actionVariant": {
+              "type": "string",
+              "description": "Visual treatment of the confirm action button, carried verbatim.",
+              "enum": [
+                "primary",
+                "secondary",
+                "ghost",
+                "destructive"
+              ],
+              "default": "primary",
+              "x-dspack-source": {
+                "sourceProp": "actionVariant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "primary",
+                  "secondary",
+                  "ghost",
+                  "destructive"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "title",
+            "actionLabel",
+            "action"
+          ],
+          "description": "A modal dialog that asks the user to confirm a destructive action. Props-based: title, description, and action/cancel labels are string props (there is no trigger sub-component; visibility is controlled).",
+          "x-dspack": {
+            "sourceId": "alert-dialog"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Dialog": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Dialog"
+            },
+            "child": {
+              "$ref": "#/$defs/ComponentId",
+              "description": "The ID of the dialog's content component. Wrap multiple elements in a Column and pass its ID."
+            },
+            "title": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Dialog title shown in the header."
+            },
+            "variant": {
+              "type": "string",
+              "description": "Dialog presentation, carried verbatim.",
+              "enum": [
+                "standard",
+                "fullscreen"
+              ],
+              "default": "standard",
+              "x-dspack-source": {
+                "sourceProp": "variant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "standard",
+                  "fullscreen"
+                ]
+              }
+            },
+            "purpose": {
+              "type": "string",
+              "description": "Dialog dismissal semantics, carried verbatim.",
+              "enum": [
+                "required",
+                "form",
+                "info"
+              ],
+              "default": "info",
+              "x-dspack-source": {
+                "sourceProp": "purpose",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "required",
+                  "form",
+                  "info"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "child"
+          ],
+          "description": "A modal window over the page content. Takes arbitrary children; dismissal behavior is controlled by `purpose`.",
+          "x-dspack": {
+            "sourceId": "dialog"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Text": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Text"
+            },
+            "text": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The text content to display (optional when the node only nests children)."
+            },
+            "children": {
+              "$ref": "#/$defs/ChildList",
+              "description": "Nested child component IDs rendered after the text content."
+            },
+            "variant": {
+              "type": "string",
+              "description": "Base text style, projected from the contract's semantic text type (the display scale collapses onto the heading variants; label/supporting project to caption; code collapses to body).",
+              "enum": [
+                "h1",
+                "h2",
+                "h3",
+                "body",
+                "caption"
+              ],
+              "default": "body",
+              "x-dspack-source": {
+                "sourceProp": "type",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "body",
+                  "large",
+                  "label",
+                  "supporting",
+                  "code",
+                  "display-1",
+                  "display-2",
+                  "display-3"
+                ],
+                "valueMap": {
+                  "display-1": "h1",
+                  "display-2": "h1",
+                  "display-3": "h2",
+                  "large": "h3",
+                  "body": "body",
+                  "code": "body",
+                  "label": "caption",
+                  "supporting": "caption"
+                }
+              }
+            }
+          },
+          "required": [
+            "component"
+          ],
+          "description": "Body text content.",
+          "x-dspack": {
+            "sourceId": "text"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "List": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "List"
+            },
+            "children": {
+              "$ref": "#/$defs/ChildList",
+              "description": "Child component IDs rendered as the list's items, in order."
+            },
+            "density": {
+              "type": "string",
+              "description": "Item density, carried verbatim.",
+              "enum": [
+                "compact",
+                "balanced",
+                "spacious"
+              ],
+              "default": "balanced",
+              "x-dspack-source": {
+                "sourceProp": "density",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "compact",
+                  "balanced",
+                  "spacious"
+                ]
+              }
+            },
+            "hasDividers": {
+              "type": "boolean",
+              "description": "Renders dividers between items.",
+              "x-dspack-source": {
+                "sourceProp": "hasDividers",
+                "sourceType": "boolean"
+              }
+            }
+          },
+          "required": [
+            "component",
+            "children"
+          ],
+          "description": "A vertical collection of items with consistent spacing, dividers, and optional markers.",
+          "x-dspack": {
+            "sourceId": "list"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "SelectableCard": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "SelectableCard"
+            },
+            "children": {
+              "$ref": "#/$defs/ChildList",
+              "description": "IDs of the option's content components: attributes, badges, actions."
+            },
+            "label": {
+              "type": "string",
+              "description": "The option's name, carried verbatim.",
+              "x-dspack-source": {
+                "sourceProp": "label",
+                "sourceType": "string"
+              }
+            },
+            "isSelected": {
+              "type": "boolean",
+              "description": "Selected state, carried verbatim. Presentational: selection lives in the shared data model and re-delivers this prop; the card itself carries no action (upstream onChange is the interaction overlay's territory, out of contract scope).",
+              "x-dspack-source": {
+                "sourceProp": "isSelected",
+                "sourceType": "boolean"
+              }
+            },
+            "isDisabled": {
+              "type": "boolean",
+              "description": "Whether the option can be chosen.",
+              "x-dspack-source": {
+                "sourceProp": "isDisabled",
+                "sourceType": "boolean"
+              }
+            },
+            "variant": {
+              "type": "string",
+              "description": "Card background variant, carried verbatim from SelectableCard's union.",
+              "enum": [
+                "default",
+                "transparent",
+                "muted",
+                "blue",
+                "cyan",
+                "gray",
+                "green",
+                "orange",
+                "pink",
+                "purple",
+                "red",
+                "teal",
+                "yellow"
+              ],
+              "default": "default",
+              "x-dspack-source": {
+                "sourceProp": "variant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "default",
+                  "transparent",
+                  "muted",
+                  "blue",
+                  "cyan",
+                  "gray",
+                  "green",
+                  "orange",
+                  "pink",
+                  "purple",
+                  "red",
+                  "teal",
+                  "yellow"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label"
+          ],
+          "description": "A card that toggles between selected and unselected states with an accent border.",
+          "x-dspack": {
+            "sourceId": "selectable-card"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "MetadataList": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "MetadataList"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Attribute records, each { label, value }."
+            },
+            "columns": {
+              "type": "string",
+              "description": "Column layout for the attribute grid, carried verbatim.",
+              "enum": [
+                "single",
+                "multi"
+              ],
+              "default": "single",
+              "x-dspack-source": {
+                "sourceProp": "columns",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "single",
+                  "multi"
+                ]
+              }
+            },
+            "orientation": {
+              "type": "string",
+              "description": "Label/value flow direction, carried verbatim.",
+              "enum": [
+                "vertical",
+                "horizontal"
+              ],
+              "default": "vertical",
+              "x-dspack-source": {
+                "sourceProp": "orientation",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "vertical",
+                  "horizontal"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "items"
+          ],
+          "description": "Key-value pairs for object attributes, in a structured layout. DATA-DRIVEN: items are an array prop, the same Astryx data-props idiom as Table.",
+          "x-dspack": {
+            "sourceId": "metadata-list"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Column": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Column"
+            },
+            "children": {
+              "$ref": "#/$defs/ChildList",
+              "description": "Child component IDs (or a template)."
+            },
+            "justify": {
+              "type": "string",
+              "description": "Arrangement of children along the vertical main axis.",
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly",
+                "stretch"
+              ],
+              "default": "start"
+            },
+            "align": {
+              "type": "string",
+              "description": "Alignment of children along the horizontal cross axis.",
+              "enum": [
+                "center",
+                "end",
+                "start",
+                "stretch"
+              ],
+              "default": "stretch"
+            }
+          },
+          "required": [
+            "component",
+            "children"
+          ],
+          "description": "Arranges children vertically. Synthesized A2UI structural primitive (the contract has no layout component; its layout knowledge is descriptive only)."
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  },
+  "$defs": {
+    "ComponentId": {
+      "type": "string",
+      "description": "The unique identifier for a component, used for both definitions and references within the same surface."
+    },
+    "AccessibilityAttributes": {
+      "type": "object",
+      "description": "Attributes to enhance accessibility when using assistive technologies like screen readers.",
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "description": {
+          "$ref": "#/$defs/DynamicString"
+        }
+      }
+    },
+    "ComponentCommon": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "accessibility": {
+          "$ref": "#/$defs/AccessibilityAttributes"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "DataBinding": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "A JSON Pointer path to a value in the data model."
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "FunctionCall": {
+      "type": "object",
+      "description": "Invokes a named function on the client.",
+      "properties": {
+        "call": {
+          "type": "string",
+          "description": "The name of the function to call."
+        },
+        "args": {
+          "type": "object",
+          "description": "Arguments passed to the function.",
+          "additionalProperties": true
+        },
+        "returnType": {
+          "type": "string",
+          "description": "The expected return type of the function call.",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "array",
+            "object",
+            "any",
+            "void"
+          ],
+          "default": "boolean"
+        }
+      },
+      "required": [
+        "call"
+      ]
+    },
+    "DynamicValue": {
+      "description": "A value that can be a literal, a path, or a function call returning any type.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "array"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "$ref": "#/$defs/FunctionCall"
+        }
+      ]
+    },
+    "DynamicString": {
+      "description": "Represents a string",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FunctionCall"
+            },
+            {
+              "properties": {
+                "returnType": {
+                  "const": "string"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "DynamicBoolean": {
+      "description": "Represents a boolean",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FunctionCall"
+            },
+            {
+              "properties": {
+                "returnType": {
+                  "const": "boolean"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "ChildList": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "A static list of child component IDs."
+        },
+        {
+          "type": "object",
+          "description": "A template for generating a dynamic list of children from a data model list.",
+          "properties": {
+            "componentId": {
+              "$ref": "#/$defs/ComponentId"
+            },
+            "path": {
+              "type": "string",
+              "description": "The path to the list of component property objects in the data model."
+            }
+          },
+          "required": [
+            "componentId",
+            "path"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CheckRule": {
+      "type": "object",
+      "description": "A single validation rule applied to an input component.",
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/DynamicBoolean"
+        },
+        "message": {
+          "type": "string",
+          "description": "The error message to display if the check fails."
+        }
+      },
+      "required": [
+        "condition",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "Checkable": {
+      "type": "object",
+      "description": "Properties for components that support client-side checks.",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "description": "A list of checks to perform.",
+          "items": {
+            "$ref": "#/$defs/CheckRule"
+          }
+        }
+      }
+    },
+    "Action": {
+      "description": "Defines an interaction handler that can either trigger a server-side event or execute a local client-side function.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Triggers a server-side event.",
+          "properties": {
+            "event": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "context": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/DynamicValue"
+                  }
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "event"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Executes a local client-side function.",
+          "properties": {
+            "functionCall": {
+              "$ref": "#/$defs/FunctionCall"
+            }
+          },
+          "required": [
+            "functionCall"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "anyComponent": {
+      "oneOf": [
+        {
+          "$ref": "#/components/Button"
+        },
+        {
+          "$ref": "#/components/Card"
+        },
+        {
+          "$ref": "#/components/TextField"
+        },
+        {
+          "$ref": "#/components/Badge"
+        },
+        {
+          "$ref": "#/components/Table"
+        },
+        {
+          "$ref": "#/components/AlertDialog"
+        },
+        {
+          "$ref": "#/components/Dialog"
+        },
+        {
+          "$ref": "#/components/Text"
+        },
+        {
+          "$ref": "#/components/List"
+        },
+        {
+          "$ref": "#/components/SelectableCard"
+        },
+        {
+          "$ref": "#/components/MetadataList"
+        },
+        {
+          "$ref": "#/components/Column"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "component"
+      }
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "primaryColor": {
+          "type": "string",
+          "description": "The primary brand color used for highlights (e.g., primary buttons, active borders). Format: Hexadecimal code (e.g., '#00BFFF').",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "iconUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL for an image that identifies the agent or tool associated with the surface."
+        },
+        "agentDisplayName": {
+          "type": "string",
+          "description": "Text displayed next to the surface to identify the agent or tool that created it."
+        }
+      },
+      "additionalProperties": true,
+      "x-dspack-tokens": {}
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "r1a-standalone-host",
+  "private": true,
+  "description": "R1a level 2: a standalone A2UI host outside apps/composer, on upstream @a2ui/react 0.16.1 with Composer's Astryx renderers and a bridge written for the spike. Not part of the pnpm workspace.",
+  "type": "module",
+  "dependencies": {
+    "@a2ui/react": "0.16.1",
+    "@a2ui/web_core": "0.16.1",
+    "@astryxdesign/core": "0.1.4",
+    "@stylexjs/stylex": "0.18.3",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}
