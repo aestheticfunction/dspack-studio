@@ -296,7 +296,8 @@ describe("cached A gates", () => {
       }
     }
     expect(compared).toBeGreaterThanOrEqual(100);
-  });
+    // Each comparison runs dspack-emit's uncached validateCatalog (about 35 ms a version): seconds in all.
+  }, 60_000);
 
   it("give dspack-emit's own validateCatalog verdict, instance by instance, for valid and broken messages", async () => {
     const r = await results(ds.three);
