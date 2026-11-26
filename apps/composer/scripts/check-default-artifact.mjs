@@ -33,6 +33,11 @@ const markers = new Set([
   "diagnostics-export",
   "composer-beta-diagnostics",
   "x-composer-operation",
+  // M1: the experimental workspace (the composition runtime, its storage namespace and the Library).
+  "composer.experimental.workspace.",
+  "compositionsSidecar",
+  "composition-library",
+  "NEXT_PUBLIC_COMPOSER_TOOLCHAIN",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));

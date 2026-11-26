@@ -17,6 +17,7 @@ import { slug } from "@aestheticfunction/dspack-emit";
 import { contractDigest } from "../blocks/digest";
 import type { BlockDefinition, BlocksSidecar, TemplateChild } from "../blocks/schema";
 import { parseBlocksSidecar } from "../blocks/schema";
+import { versionIssues, versionKey } from "./versions";
 import { COMPOSITIONS_SIDECAR_VERSION, parseCompositionsSidecar, type CompositionDefinition, type CompositionIssue, type CompositionsSidecar } from "./schema";
 
 type Json = Record<string, unknown>;
@@ -221,12 +222,18 @@ export async function loadCompositions(raw: unknown, options: { baseContract: Js
   }
   const usable: CompositionDefinition[] = [];
   const disabled: LoadedCompositions["disabled"] = [];
-  const ids = new Set<string>();
+  // Versions of one id coexist (versions.ts): (id, version) is unique, one draft per id, newer than its approved versions.
+  const byVersion = new Map<string, string[]>();
+  for (const v of versionIssues(sidecar.compositions)) byVersion.set(v.key, [...(byVersion.get(v.key) ?? []), v.message]);
+  const reported = new Set<string>();
   for (const c of sidecar.compositions) {
+    const key = versionKey(c.id, c.version);
     const issues = compositionIssues(c, options.baseContract).map((i) => `${i.path}: ${i.message}`);
-    if (ids.has(c.id)) issues.push(`id '${c.id}' is used twice (version coexistence is deferred, R0-REVIEW A10)`);
-    ids.add(c.id);
-    if (issues.length > 0) disabled.push({ composition: c.id, issues });
+    // A repeated (id, version) disables its second occurrence only; the version rules disable the version they name.
+    if (reported.has(key)) issues.push(`${key} is given twice`);
+    else issues.push(...(byVersion.get(key) ?? []).filter((m) => !m.endsWith("is given twice")));
+    reported.add(key);
+    if (issues.length > 0) disabled.push({ composition: key, issues });
     else usable.push(c);
   }
   return { from, binding: "ok", sidecar, usable, disabled, issues: [] };

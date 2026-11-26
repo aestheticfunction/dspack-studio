@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { installedToolchain } from "./lib/toolchain.mjs";
 
 /**
  * The Composer runs the governed pipeline in the browser. It imports runPipeline
@@ -43,7 +44,9 @@ export default function composerConfig(phase) {
   return {
     output: "export",
     ...(phase === "phase-production-build" && outDir === "out-experimental" ? { distDir: "out-experimental" } : {}),
-    env: { NEXT_PUBLIC_COMPOSER_EXPERIMENTAL: flag },
+    // The experimental workspace pins the lint and emitter versions it governs with (R1A-REVIEW L2). A default
+    // build is given nothing new.
+    env: { NEXT_PUBLIC_COMPOSER_EXPERIMENTAL: flag, ...(flag === "1" ? { NEXT_PUBLIC_COMPOSER_TOOLCHAIN: JSON.stringify(installedToolchain()) } : {}) },
     transpilePackages: [
       "@dspack-studio/a2ui-ingest",
       "@dspack-studio/composer-core",

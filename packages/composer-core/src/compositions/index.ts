@@ -6,3 +6,4 @@ export * from "./governance";
 export * from "./bindings";
 export * from "./instantiate";
 export * from "./host";
+export * from "./versions";
