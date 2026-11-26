@@ -1,0 +1,10 @@
+List semantics: the List tests (apps/composer/app/astryx-renderers-a11y.test.ts) against main at b2b6362's ListRender, before the change. The empty-list test passes on both by design (it guards that no item is invented).
+Recorded 2026-11-26T13:50Z with: npx vitest run app/astryx-renderers-a11y.test.ts -t List
+
+   × List > gives every child its own list item, in order, inside the list
+     → expected [] to have a length of 2 but got +0
+   × List > adds no nested or duplicate list items, and no marker or spacing of its own
+     → expected [] to have a length of 1 but got +0
+   ✓ List > renders an empty list without items
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 1 passed | 18 skipped (21)

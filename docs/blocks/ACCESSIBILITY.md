@@ -118,10 +118,10 @@ The contrast nodes are the wireframe fallback's Separator chips (1.19:1 and 1.26
 
 ## Outside the blocks (information)
 
-- **One axe violation, unchanged by this step.** axe runs over each Astryx reference surface in Preview, with the tags above, at every size. It finds one violation: on `ex.plan-comparison`, `aria-required-children` (critical).
-  - Its Astryx list, a `ul` with the role `list`, holds checkboxes and a definition list's `dt` and `dd`, where a list allows only list items.
-  - The List, SelectableCard and MetadataList renderers are unchanged here.
-  - It is not a block, so it is left for a separate change. The reference spec allows it by name.
+- **One axe violation, since fixed.** axe runs over each Astryx reference surface in Preview, with the tags above, at every size. It found one violation: on `ex.plan-comparison`, `aria-required-children` (critical).
+  - Its Astryx list, a `ul` with the role `list`, held the option cards directly, where a list allows only list items.
+  - **Fixed in Composer's List adapter** (`packages/astryx-renderers/src/components/ListRender.tsx`): each child gets its own list item, with no marker, margin or padding, so the layout is unchanged. Astryx is unchanged. Evidence: `docs/repositioning/list-semantics/`.
+  - The reference spec no longer allows any violation by name.
 - **A row of buttons too wide for its line.** Outside a dialog's footer, which wraps, a row of buttons still overflows when the longest words of its labels together are wider than the row.
   - A word wider than its own line breaks (`overflow-wrap: break-word`).
   - Breaking anywhere would also split short labels: it split "Cancel" in a dialog's two-button row at 320 px.
