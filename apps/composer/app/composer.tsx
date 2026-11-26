@@ -188,6 +188,8 @@ function Shell() {
             )}
           </nav>
 
+          {/* The Library's scope and what comes next sit here, in the one header row (D0). */}
+          {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && view === "library" && <div id="cl-header-slot" className="cl-header-slot" />}
           <div className="af-spacer" />
 
           {state.activeProject && (

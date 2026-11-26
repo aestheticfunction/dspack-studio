@@ -66,3 +66,17 @@ The owner accepted the independent review ([R0-REVIEW.md](R0-REVIEW.md)) with co
 
 All architectural conditions recorded above remain in effect.
 
+
+## Library acceptance and the designer-first refinement (2026-11-26)
+
+The owner accepted the corrected Library and decided the following. #128 (list semantics) and #127 (the Library, with R1 to R4) are merged and verified in production.
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 19 | Refine the workspace designer-first (D0) before any authoring | Approved | On the existing workspace; no new shell and no parallel governance; not merged or deployed without further approval. Record: [m1/d0/README.md](m1/d0/README.md) |
+| 20 | First-run task T3 | Corrected: "Identify the approved version and explain whether it has been published for external agent consumption" | Passing checks, human approval and future publication stay distinct |
+| 21 | Usability evaluation of D0 | Three to five designers, the five tasks ([m1/d0/USABILITY-SCRIPT.md](m1/d0/USABILITY-SCRIPT.md)) | Observations are kept apart from engineering verification. No AI evaluation is presented as a human usability test, and no participant is contacted without the owner |
+| 22 | The af-site theme compiler | Intended to graduate into `dspack-gen` as the shared compiler | Subject to explicit licensing, ownership and cross-repository authorization. No duplicate generator, and no private af-site code in this repository. Plan: [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md) |
+| 23 | AF brand identity, workspace appearance and canvas design-system styling | Kept separate | Workspace themes never modify composition definitions, governance outcomes, design-system tokens or computed canvas styling |
+| 24 | Workspace themes | AF dark during D0, as a temporary scope decision | Dark-only is not a permanent restriction. A later increment supports original AF, neutral light, neutral dark and custom themes through the shared compiler |
+| 25 | Getting-started documentation | A future requirement: concise getting-started docs with working examples | Not an extensive documentation suite, and not part of D0 |

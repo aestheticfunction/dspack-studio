@@ -1,6 +1,6 @@
 # Designer-first refinement proposal
 
-**Status:** proposal for the owner, 2026-11-26. Nothing here is implemented. It refines the approved canvas-first workspace before composition authoring widens it. It does not change the architecture, the governance pipeline or the approved layout direction.
+**Status:** approved by the owner, 2026-11-26 (decisions 19 to 25 in [DECISIONS.md](DECISIONS.md)). **D0 is implemented** for evaluation, not merged: [m1/d0/README.md](m1/d0/README.md) records what was built, the measurements and the differences from this proposal. Theming is planned in [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md) and not implemented. It refines the approved canvas-first workspace before composition authoring widens it. It does not change the architecture, the governance pipeline or the approved layout direction.
 
 ## Why
 
@@ -53,7 +53,7 @@ A designer who has never seen Composer opens the Library.
 |---|---|---|
 | T1 | Find the hotel results composition and say what it is for | Named within 30 s; purpose stated in their words |
 | T2 | Show it with one hotel and explain why it is not shown | They cite "needs at least two options" |
-| T3 | Tell which version agents may use | They say v1, because v2 is a draft |
+| T3 | Identify the approved version and explain whether it has been published for external agent consumption (corrected by the owner) | They name v1 as approved, because v2 is a draft, and say it is not published: publishing is not available yet. Passing checks, approval and publication stay distinct |
 | T4 | Find out what pressing a hotel's button would do | They find the preview note and say nothing actually runs |
 | T5 | Do T1 on a phone | Without opening a drawer for the composition itself |
 
@@ -100,7 +100,7 @@ A designer who has never seen Composer opens the Library.
 | Purpose: Review before a transaction | Kept, in the Design tab |
 | Definition hash, contract hash, toolchain | Technical details only |
 
-**Human scenario names** need an optional `title` on a scenario in the 0.2 sidecar. That is a small, additive schema change, made at the start of authoring, which edits scenarios anyway. Until then the Library shows a mapped label for the two packaged compositions.
+**Human scenario names** need an optional `title` on a scenario in the 0.2 sidecar. D0 adds it, additively. The draft carries titles. The approved versions cannot change, so the Library names their examples from a small mapped label, and a definition's own title wins.
 
 ## Workspace theming and the Aesthetic Function theme generator
 
@@ -166,3 +166,10 @@ Read-only discovery of `aestheticfunction/af-site` at `910ca7c`.
 | 3 | The first-run test with designers | Three to five people, the five tasks above, before authoring merges |
 | 4 | The theme compiler: graduate it into `dspack-gen` first, or settle af-site's licence | Graduate, as af-site already plans |
 | 5 | Workspace themes: dark only, or light as well | Dark only at first; a light workspace needs its own canvas-isolation test |
+
+**The owner's answers.**
+- **Decisions 1 to 3:** approved. Task T3 is corrected as shown above.
+- **Decision 4:** graduation is the intent, subject to licensing, ownership and cross-repository authorization.
+- **Decision 5:** AF dark only during D0, as a temporary scope. Original AF, neutral light, neutral dark and custom themes come later, through the shared compiler.
+
+All of these are recorded in [DECISIONS.md](DECISIONS.md) (19 to 25).

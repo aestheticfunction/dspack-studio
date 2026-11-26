@@ -1,0 +1,52 @@
+{
+ "1280x800": {
+  "compositionTop": 189,
+  "compositionWidth": 714,
+  "canvasShare": 0.781,
+  "pageScrollH": 800,
+  "horizontalOverflow": false,
+  "firstRun": false,
+  "canvasShareInspector": 0.734
+ },
+ "1280x800-first-run": {
+  "compositionTop": 189,
+  "compositionWidth": 714,
+  "canvasShare": 0.781,
+  "pageScrollH": 800,
+  "horizontalOverflow": false,
+  "firstRun": true
+ },
+ "1440x900": {
+  "compositionTop": 189,
+  "compositionWidth": 714,
+  "canvasShare": 0.806,
+  "pageScrollH": 900,
+  "horizontalOverflow": false,
+  "firstRun": false,
+  "canvasShareInspector": 0.569
+ },
+ "1024x768": {
+  "compositionTop": 225,
+  "compositionWidth": 666,
+  "canvasShare": 0.727,
+  "pageScrollH": 768,
+  "horizontalOverflow": false,
+  "firstRun": false
+ },
+ "390x844": {
+  "compositionTop": 243,
+  "compositionWidth": 336,
+  "canvasShare": 1,
+  "pageScrollH": 1000,
+  "horizontalOverflow": false,
+  "firstRun": false
+ },
+ "390x844-first-run": {
+  "compositionTop": 259,
+  "compositionWidth": 336,
+  "canvasShare": 1,
+  "pageScrollH": 1016,
+  "horizontalOverflow": false,
+  "firstRun": true
+ }
+}

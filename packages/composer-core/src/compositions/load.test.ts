@@ -46,6 +46,22 @@ describe("sidecar 0.1 upcast", () => {
   }
 });
 
+describe("scenario titles (D0)", () => {
+  it("a scenario may carry a short human title; an empty or overlong one is refused", async () => {
+    const { parseCompositionsSidecar } = await import("./schema");
+    const { sidecarJson } = await import("./spike/fixtures");
+    const ok = sidecarJson();
+    ok.compositions[1].scenarios[0].title = "Three hotels";
+    const parsed = parseCompositionsSidecar(ok);
+    expect(parsed.ok && parsed.sidecar.compositions[1]!.scenarios[0]!.title).toBe("Three hotels");
+    for (const bad of ["", "   ", "x".repeat(61)]) {
+      const doc = sidecarJson();
+      doc.compositions[1].scenarios[0].title = bad;
+      expect(parseCompositionsSidecar(doc).ok, JSON.stringify(bad)).toBe(false);
+    }
+  });
+});
+
 describe("sidecar 0.2", () => {
   it("parses and loads the R1a compositions with no disabled composition", async () => {
     const loaded = await loadCompositions(sidecarJson(), { baseContract: contract() });

@@ -20,7 +20,8 @@
  *
  * Writes that fail (quota, blocked) report it and change nothing stored.
  *
- * What may be stored is closed by the shapes below: the Library's selection and panel, approval records
+ * What may be stored is closed by the shapes below: the Library's selection and panel, whether the first-run
+ * guide was put away, approval records
  * (pins and scenario outcomes, which are evidence, never authorizations: see versions.ts), and drafts. None
  * of them has room for a typed input value, an action event, a session or surface id, a commitment or
  * renderer state (Part B decisions; checked by storage.test.ts).
@@ -32,11 +33,12 @@ export const KEYS = {
   library: `${NAMESPACE}library`,
   approvals: `${NAMESPACE}approvals`,
   drafts: `${NAMESPACE}drafts`,
+  onboarding: `${NAMESPACE}onboarding`,
 } as const;
 export type RecordKind = keyof typeof KEYS;
 
 /** The schema version this build reads and writes, per record. */
-export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1 };
+export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1 };
 
 export interface LibraryPrefs {
   composition: string | null;
@@ -57,16 +59,23 @@ export interface StoredDrafts {
   drafts: CompositionDefinition[];
 }
 
+/** Whether the first-run guide was put away (D0). */
+export interface Onboarding {
+  dismissed: boolean;
+}
+
 interface Shapes {
   library: LibraryPrefs;
   approvals: StoredApprovals;
   drafts: StoredDrafts;
+  onboarding: Onboarding;
 }
 
 const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
   library: DEFAULT_PREFS,
   approvals: { records: [] },
   drafts: { drafts: [] },
+  onboarding: { dismissed: false },
 };
 
 export type ReadResult<T> =
@@ -135,6 +144,10 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
       records.push(structuredClone(r) as unknown as ApprovalRecord);
     }
     return { ok: true, value: { records } };
+  },
+  onboarding(data) {
+    if (!isObject(data) || !onlyKeys(data, ["dismissed"]) || typeof data.dismissed !== "boolean") return { ok: false, reason: "onboarding: not the onboarding shape" };
+    return { ok: true, value: { dismissed: data.dismissed } };
   },
   drafts(data) {
     if (!isObject(data) || !onlyKeys(data, ["drafts"]) || !Array.isArray(data.drafts)) return { ok: false, reason: "drafts: not the drafts shape" };
