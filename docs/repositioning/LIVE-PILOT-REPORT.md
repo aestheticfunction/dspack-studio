@@ -1,12 +1,12 @@
 # Live pilot report
 
-**Status:** executed 2026-11-25, complete. Twelve of twelve runs, $0.71 of inference ($0.75 as the harness counts it), production restored. The scope, controls and commands are in [LIVE-PILOT-RUNBOOK.md](LIVE-PILOT-RUNBOOK.md); the evidence is in `acceptance/live-pilot/run-1/` (one JSON file per run, the request ledger, `state.json`, `SUMMARY.md`).
+**Status:** executed 2026-11-25, complete; accepted by the owner 2026-11-26, with the full baseline deferred (section 9). Counts corrected after acceptance; see "Corrections" at the end. Twelve of twelve runs, $0.71 of inference ($0.75 as the harness counts it), production restored. The scope, controls and commands are in [LIVE-PILOT-RUNBOOK.md](LIVE-PILOT-RUNBOOK.md); the evidence is in `acceptance/live-pilot/run-1/` (one JSON file per run, the request ledger, `state.json`, `SUMMARY.md`).
 
 ## 1. Recommendation
 
 **Proceed into M1 through R1a as already scoped. Do not run the full baseline first.**
 
-Inside a single screen, Claude Haiku 4.5 under Astryx's rules does the job: every build passed its gates, 76% on the first attempt, at about a fortieth of the pilot ceiling. What fails is everything between screens and everything a screen would have to do: data that changes from one step to the next, buttons that send nothing, dates typed as free text, and two prompts answered with the wrong shape. Those are the problems R1a exists to address (data supplied at instantiation, per-item action payloads, input binding, completeness checks), and none of them is a planning or generation weakness that more samples of today's pipeline would clarify. The baseline is cheap enough (section 6) to run after R1a against the pipeline that will actually ship.
+Inside a single screen, Claude Haiku 4.5 under Astryx's rules does the job: every build passed its gates, 79% on the first attempt, at about a fortieth of the pilot ceiling. What fails is everything between screens and everything a screen would have to do: data that changes from one step to the next, buttons that send nothing, dates typed as free text, and two prompts answered with the wrong shape. Those are the problems R1a exists to address (data supplied at instantiation, per-item action payloads, input binding, completeness checks), and none of them is a planning or generation weakness that more samples of today's pipeline would clarify. The baseline is cheap enough (section 6) to run after R1a against the pipeline that will actually ship.
 
 In the proposal's decision table this is the row "builds pass but task fit is poor", scoped to fit across steps: "evidence for the M1 task plan and completeness checks; no more runs until those exist".
 
@@ -15,7 +15,7 @@ In the proposal's decision table this is the row "builds pass but task fit is po
 | | |
 |---|---|
 | Runs | Hotel request as a single build × 3; hotel request as a flow × 3; corpus prompt 3 × 2; prompt 10 × 2; prompt 5 as a flow × 2 |
-| Builds | 34 (6 single, 28 flow steps), plus 6 flow plans |
+| Builds | 34: 7 single builds (3 hotel, 2 corpus-03, 2 corpus-10) and 27 flow steps across 5 flows (3 hotel, 2 corpus-05), plus 5 flow plans |
 | Provider calls | 80: 39 plans, 34 generations, 7 repairs. No Worker parse retries, no provider failures, no calls without usage |
 | Model | `claude-haiku-4-5-20251001` on every call |
 | Reference | Astryx |
@@ -24,11 +24,11 @@ In the proposal's decision table this is the row "builds pass but task fit is po
 
 ## 3. Generation and planning quality
 
-**Gates.** 34 of 34 builds passed. 26 passed first time; 8 needed one repair, none needed two. Repairs concentrated on list-shaped surfaces (corpus 10 both times, the estimate summary that opens corpus 5 three times) and on the last step of a flow (twice). The evidence records that a repair happened but not which rule the first attempt broke; see section 7.
+**Gates.** 34 of 34 builds passed. 27 passed first time; 7 needed one repair request each, none needed two. The repaired builds: corpus 10 in both samples; the estimate summary that opens corpus 5 in both samples; the "Project created" step that ends corpus-05-1; the confirmation step that ends hotel-flow-3; and the reservation review, step 5 of 6, in hotel-flow-1. The evidence records that a repair happened but not which rule the first attempt broke; see section 7.
 
 **Rendering.** Every build rendered natively. No component fell back to a wireframe and the emitter refused nothing. Components used: Button, Card, Column, List, MetadataList, SelectableCard, Table, Text, TextField, Badge, AlertDialog.
 
-**Planning.** All six flow plans came from the model (no deterministic fallback) and all were sensible:
+**Planning.** All five flow plans came from the model (no deterministic fallback) and all were sensible:
 
 | Flow | Steps proposed |
 |---|---|
@@ -43,7 +43,13 @@ Each hotel plan covers the five stages a person would expect (search, results, r
 
 ## 4. Task fit
 
-Marked here from the recorded surfaces by the reviewer, not by the owner; `SUMMARY.md` keeps its checklists unmarked for a person, as designed.
+**How each result is known.**
+
+| Result | Status |
+|---|---|
+| Gates, repairs, models, tokens, cost | Verified: recorded by the harness from the production pipeline's own results and the provider's reported usage; cost also matches AI Gateway analytics |
+| Rendering (native, wireframe, refusals) | Verified: recorded by the emitter and renderer registry for each build |
+| Task fit (this section) | **Reviewer-assessed**: marked by the reviewer from the recorded surfaces, not by the owner or an independent check. `SUMMARY.md` keeps its checklists unmarked, as designed |
 
 | Run | Checklist items present | Notes |
 |---|---|---|
@@ -52,7 +58,7 @@ Marked here from the recorded surfaces by the reviewer, not by the owner; `SUMMA
 | hotel-single-3 | 8 of 8 | Summary names a hotel and room the screen also shows as choices, so it is a mock-up of a later moment |
 | hotel-flow-1 | 8 of 8 across steps | Explicit confirmation dialog at the end. Step 4 repeats room choice with different rooms from step 3 |
 | hotel-flow-2 | 7 of 8 | No explicit confirmation: the last step is a guest-details form with a Confirm button. The reviewed hotel ("The Grandview Hotel") is not the one chosen in step 3 ("Grand Plaza Hotel") |
-| hotel-flow-3 | 8 of 8 | The best of the six: compare, choose a room, review with a price table, a confirmation dialog stating the charge |
+| hotel-flow-3 | 8 of 8 | The best of the six hotel runs: compare, choose a room, review with a price table, a confirmation dialog stating the charge |
 | corpus-03-1, -2 | 4 of 4 each | Reference, status, service, jurisdictions, pricing, dates, documents, next actions, including "Create project from estimate" |
 | corpus-10-1, -2 | 2 of 4 each | Asked for a reusable card for one file, with the filename primary. Both answers are a table of several files. Filename, type and size are there; the card shape is not, and empty values are shown as statuses |
 | corpus-05-1 | 4 of 5 | Step 1 offers "Convert to invoice", not to a project, and describes locking line items into a billing record. Confirmation dialog, read-back of the created project present |
@@ -105,12 +111,25 @@ The AI Gateway was not changed: $10 per 24 h spend limit, 5 requests per 60 s, l
 
 ## 8. Gaps in the evidence
 
-- **The first attempt's gate failure is not recorded for repaired builds.** Seven repairs are counted, but not why. One line in the evidence writer (store the failing rule codes) should be added before any further run.
-- **Task fit was marked by the reviewer**, from the recorded surfaces. A person should confirm sections 4's judgements before they set thresholds.
-- **Twelve runs is a pilot.** Rates above (first-pass 76%, fit 8 of 8 on hotel singles) have wide intervals and should not be used as E5 thresholds.
+- **The first attempt's gate failure is not recorded for repaired builds.** Seven repairs are counted, but not why. **Requirement before any further paid evaluation:** the evidence writer must record, for every gated attempt, the rule codes it failed and the message the repair was asked to fix, and a test must show it. Without this the pilot's repairs cannot be attributed to the model, the prompt or the vocabulary.
+- **Task fit was marked by the reviewer**, from the recorded surfaces. A person should confirm section 4's judgements before they set thresholds.
+- **Twelve runs is a pilot.** Rates above (first-pass 79%, fit 8 of 8 on hotel singles) have wide intervals and should not be used as E5 thresholds.
 
-## 9. Owner follow-ups
+## 9. Owner decision (2026-11-26)
 
-1. Remove the four temporary Edit permissions from the `dspack-composer-api` token; nothing further needs them.
-2. Read the AI Gateway credit balance and confirm it against section 6.
-3. Decide on M1 through R1a (recommended in section 1). The full baseline stays unauthorized.
+- The pilot is accepted, with $0.7149 of inference ($0.7507 in the harness ledger).
+- **The full baseline remains deferred.** The next authorization goes to M1 through R1a instead. No further paid inference is authorized.
+- **Before any later paid evaluation**, the first-attempt gate-failure evidence in section 8 must exist.
+
+## Corrections
+
+Made after the owner's acceptance, by reconciling this report against the evidence files. The evidence and `SUMMARY.md` were already right and are unchanged.
+
+| Was | Now | Why |
+|---|---|---|
+| 6 single builds, 28 flow steps | 7 single builds, 27 flow steps | The two corpus-10 runs are single builds; flow steps are 6 + 5 + 6 + 5 + 5 |
+| 6 flow plans | 5 flow plans | There are five flows: three hotel, two corpus-05 |
+| 26 first-pass builds, 8 repaired, 76% | 27 first-pass, 7 repaired, 79% | Seven builds have one repair each, seven repair requests in all |
+| Corpus 5's opening summary repaired three times; the last step of a flow twice | Opening summary twice; corpus-05-1's last step once; hotel-flow-3's last step once; hotel-flow-1's step 5 of 6 once | Listed from the evidence |
+
+The call total was right throughout: 80 = 5 flow plans + 34 goal plans + 34 generations + 7 repairs.
