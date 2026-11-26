@@ -1,6 +1,7 @@
 {
   "implementation": "a2ui-core (Python), strict validation",
   "catalog": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+  "catalogLoads": true,
   "cases": [
     {
       "id": "results-confirm",
@@ -8,15 +9,19 @@
       "accepted": true,
       "checks": [
         {
-          "check": "reserve from reserve sends its own payload",
-          "context": {
+          "check": "reserve sends what the data says",
+          "expected": {
+            "hotelId": "h-102"
+          },
+          "sent": {
             "hotelId": "h-102"
           },
           "pass": true
         },
         {
-          "check": "back from back sends its own payload",
-          "context": {},
+          "check": "back sends what the data says",
+          "expected": {},
+          "sent": {},
           "pass": true
         }
       ],
@@ -34,25 +39,28 @@
           "pass": true
         },
         {
-          "check": "search_again from search_again sends its own payload",
-          "context": {
+          "check": "search_again sends what the data says",
+          "expected": {
+            "destination": "typed destination"
+          },
+          "sent": {
             "destination": "typed destination"
           },
           "pass": true
         },
         {
-          "check": "garbage in /input changes no governed property",
+          "check": "garbage in /input changes no property but bound input values",
           "compared": 6,
-          "changed": [],
+          "changed": [
+            "new_destination"
+          ],
           "pass": true
         },
         {
-          "check": "search_again after garbage carries it to the host, which must refuse it",
-          "context": {
-            "destination": {
-              "not": "text"
-            }
-          },
+          "check": "positive control: the comparison sees the bound input values change",
+          "changed": [
+            "new_destination"
+          ],
           "pass": true
         }
       ],
@@ -64,22 +72,29 @@
       "accepted": true,
       "checks": [
         {
-          "check": "choose from item 1 (Casa do Rio) sends its own payload",
-          "context": {
+          "check": "choose sends what the data says",
+          "expected": {
+            "hotelId": "h-101"
+          },
+          "sent": {
             "hotelId": "h-101"
           },
           "pass": true
         },
         {
-          "check": "choose from item 2 (Lumen Chiado) sends its own payload",
-          "context": {
+          "check": "choose_2 sends what the data says",
+          "expected": {
+            "hotelId": "h-103"
+          },
+          "sent": {
             "hotelId": "h-103"
           },
           "pass": true
         },
         {
-          "check": "new_search from new_search sends its own payload",
-          "context": {},
+          "check": "new_search sends what the data says",
+          "expected": {},
+          "sent": {},
           "pass": true
         }
       ],
@@ -91,29 +106,39 @@
       "accepted": true,
       "checks": [
         {
-          "check": "choose from item 1 (Lumen Chiado) sends its own payload",
-          "context": {
+          "check": "choose sends what the data says",
+          "expected": {
+            "hotelId": "h-103"
+          },
+          "sent": {
             "hotelId": "h-103"
           },
           "pass": true
         },
         {
-          "check": "choose from item 2 (Casa do Rio) sends its own payload",
-          "context": {
+          "check": "choose_2 sends what the data says",
+          "expected": {
+            "hotelId": "h-101"
+          },
+          "sent": {
             "hotelId": "h-101"
           },
           "pass": true
         },
         {
-          "check": "choose from item 3 (Hotel Miradouro) sends its own payload",
-          "context": {
+          "check": "choose_3 sends what the data says",
+          "expected": {
+            "hotelId": "h-102"
+          },
+          "sent": {
             "hotelId": "h-102"
           },
           "pass": true
         },
         {
-          "check": "new_search from new_search sends its own payload",
-          "context": {},
+          "check": "new_search sends what the data says",
+          "expected": {},
+          "sent": {},
           "pass": true
         }
       ],
@@ -125,29 +150,39 @@
       "accepted": true,
       "checks": [
         {
-          "check": "choose from item 1 (Casa do Rio) sends its own payload",
-          "context": {
+          "check": "choose sends what the data says",
+          "expected": {
+            "hotelId": "h-101"
+          },
+          "sent": {
             "hotelId": "h-101"
           },
           "pass": true
         },
         {
-          "check": "choose from item 2 (Hotel Miradouro) sends its own payload",
-          "context": {
+          "check": "choose_2 sends what the data says",
+          "expected": {
+            "hotelId": "h-102"
+          },
+          "sent": {
             "hotelId": "h-102"
           },
           "pass": true
         },
         {
-          "check": "choose from item 3 (Lumen Chiado) sends its own payload",
-          "context": {
+          "check": "choose_3 sends what the data says",
+          "expected": {
+            "hotelId": "h-103"
+          },
+          "sent": {
             "hotelId": "h-103"
           },
           "pass": true
         },
         {
-          "check": "new_search from new_search sends its own payload",
-          "context": {},
+          "check": "new_search sends what the data says",
+          "expected": {},
+          "sent": {},
           "pass": true
         }
       ],
@@ -159,148 +194,209 @@
       "accepted": true,
       "checks": [
         {
-          "check": "choose from item 1 (Casa do Rio) sends its own payload",
-          "context": {
+          "check": "choose sends what the data says",
+          "expected": {
+            "hotelId": "h-101"
+          },
+          "sent": {
             "hotelId": "h-101"
           },
           "pass": true
         },
         {
-          "check": "choose from item 2 (Hotel Miradouro) sends its own payload",
-          "context": {
+          "check": "choose_2 sends what the data says",
+          "expected": {
+            "hotelId": "h-102"
+          },
+          "sent": {
             "hotelId": "h-102"
           },
           "pass": true
         },
         {
-          "check": "choose from item 3 (Lumen Chiado) sends its own payload",
-          "context": {
+          "check": "choose_3 sends what the data says",
+          "expected": {
+            "hotelId": "h-103"
+          },
+          "sent": {
             "hotelId": "h-103"
           },
           "pass": true
         },
         {
-          "check": "choose from item 4 (Pens\u00e3o Azulejo) sends its own payload",
-          "context": {
+          "check": "choose_4 sends what the data says",
+          "expected": {
+            "hotelId": "h-104"
+          },
+          "sent": {
             "hotelId": "h-104"
           },
           "pass": true
         },
         {
-          "check": "choose from item 5 (Tejo Riverside) sends its own payload",
-          "context": {
+          "check": "choose_5 sends what the data says",
+          "expected": {
+            "hotelId": "h-105"
+          },
+          "sent": {
             "hotelId": "h-105"
           },
           "pass": true
         },
         {
-          "check": "choose from item 6 (Pal\u00e1cio das Janelas) sends its own payload",
-          "context": {
+          "check": "choose_6 sends what the data says",
+          "expected": {
+            "hotelId": "h-106"
+          },
+          "sent": {
             "hotelId": "h-106"
           },
           "pass": true
         },
         {
-          "check": "choose from item 7 (Estrela Garden) sends its own payload",
-          "context": {
+          "check": "choose_7 sends what the data says",
+          "expected": {
+            "hotelId": "h-107"
+          },
+          "sent": {
             "hotelId": "h-107"
           },
           "pass": true
         },
         {
-          "check": "choose from item 8 (Bairro Alto Rooms) sends its own payload",
-          "context": {
+          "check": "choose_8 sends what the data says",
+          "expected": {
+            "hotelId": "h-108"
+          },
+          "sent": {
             "hotelId": "h-108"
           },
           "pass": true
         },
         {
-          "check": "choose from item 9 (Avenida Liberdade 77) sends its own payload",
-          "context": {
+          "check": "choose_9 sends what the data says",
+          "expected": {
+            "hotelId": "h-109"
+          },
+          "sent": {
             "hotelId": "h-109"
           },
           "pass": true
         },
         {
-          "check": "choose from item 10 (Bel\u00e9m Harbour Inn) sends its own payload",
-          "context": {
+          "check": "choose_10 sends what the data says",
+          "expected": {
+            "hotelId": "h-110"
+          },
+          "sent": {
             "hotelId": "h-110"
           },
           "pass": true
         },
         {
-          "check": "choose from item 11 (Pr\u00edncipe Real Suites) sends its own payload",
-          "context": {
+          "check": "choose_11 sends what the data says",
+          "expected": {
+            "hotelId": "h-111"
+          },
+          "sent": {
             "hotelId": "h-111"
           },
           "pass": true
         },
         {
-          "check": "choose from item 12 (Campo de Ourique House) sends its own payload",
-          "context": {
+          "check": "choose_12 sends what the data says",
+          "expected": {
+            "hotelId": "h-112"
+          },
+          "sent": {
             "hotelId": "h-112"
           },
           "pass": true
         },
         {
-          "check": "choose from item 13 (Santos Design Hotel) sends its own payload",
-          "context": {
+          "check": "choose_13 sends what the data says",
+          "expected": {
+            "hotelId": "h-113"
+          },
+          "sent": {
             "hotelId": "h-113"
           },
           "pass": true
         },
         {
-          "check": "choose from item 14 (Martim Moniz Stay) sends its own payload",
-          "context": {
+          "check": "choose_14 sends what the data says",
+          "expected": {
+            "hotelId": "h-114"
+          },
+          "sent": {
             "hotelId": "h-114"
           },
           "pass": true
         },
         {
-          "check": "choose from item 15 (Parque Eduardo Lodge) sends its own payload",
-          "context": {
+          "check": "choose_15 sends what the data says",
+          "expected": {
+            "hotelId": "h-115"
+          },
+          "sent": {
             "hotelId": "h-115"
           },
           "pass": true
         },
         {
-          "check": "choose from item 16 (Alc\u00e2ntara Docks) sends its own payload",
-          "context": {
+          "check": "choose_16 sends what the data says",
+          "expected": {
+            "hotelId": "h-116"
+          },
+          "sent": {
             "hotelId": "h-116"
           },
           "pass": true
         },
         {
-          "check": "choose from item 17 (Castelo View) sends its own payload",
-          "context": {
+          "check": "choose_17 sends what the data says",
+          "expected": {
+            "hotelId": "h-117"
+          },
+          "sent": {
             "hotelId": "h-117"
           },
           "pass": true
         },
         {
-          "check": "choose from item 18 (Intendente Loft) sends its own payload",
-          "context": {
+          "check": "choose_18 sends what the data says",
+          "expected": {
+            "hotelId": "h-118"
+          },
+          "sent": {
             "hotelId": "h-118"
           },
           "pass": true
         },
         {
-          "check": "choose from item 19 (Saldanha Central) sends its own payload",
-          "context": {
+          "check": "choose_19 sends what the data says",
+          "expected": {
+            "hotelId": "h-119"
+          },
+          "sent": {
             "hotelId": "h-119"
           },
           "pass": true
         },
         {
-          "check": "choose from item 20 (Oriente Tower) sends its own payload",
-          "context": {
+          "check": "choose_20 sends what the data says",
+          "expected": {
+            "hotelId": "h-120"
+          },
+          "sent": {
             "hotelId": "h-120"
           },
           "pass": true
         },
         {
-          "check": "new_search from new_search sends its own payload",
-          "context": {},
+          "check": "new_search sends what the data says",
+          "expected": {},
+          "sent": {},
           "pass": true
         }
       ],
@@ -312,22 +408,29 @@
       "accepted": true,
       "checks": [
         {
-          "check": "choose from item 1 (Casa do Rio) sends its own payload",
-          "context": {
+          "check": "choose sends what the data says",
+          "expected": {
+            "hotelId": "h-101"
+          },
+          "sent": {
             "hotelId": "h-101"
           },
           "pass": true
         },
         {
-          "check": "choose from item 2 (Hotel Miradouro) sends its own payload",
-          "context": {
+          "check": "choose_2 sends what the data says",
+          "expected": {
+            "hotelId": "h-102"
+          },
+          "sent": {
             "hotelId": "h-102"
           },
           "pass": true
         },
         {
-          "check": "new_search from new_search sends its own payload",
-          "context": {},
+          "check": "new_search sends what the data says",
+          "expected": {},
+          "sent": {},
           "pass": true
         }
       ],
@@ -363,8 +466,14 @@
           "pass": true
         },
         {
-          "check": "search from search sends its own payload",
-          "context": {
+          "check": "search sends what the data says",
+          "expected": {
+            "destination": "typed destination",
+            "checkIn": "typed checkIn",
+            "checkOut": "typed checkOut",
+            "guests": "typed guests"
+          },
+          "sent": {
             "destination": "typed destination",
             "checkIn": "typed checkIn",
             "checkOut": "typed checkOut",
@@ -373,21 +482,24 @@
           "pass": true
         },
         {
-          "check": "garbage in /input changes no governed property",
+          "check": "garbage in /input changes no property but bound input values",
           "compared": 10,
-          "changed": [],
+          "changed": [
+            "check_in",
+            "check_out",
+            "destination",
+            "guests"
+          ],
           "pass": true
         },
         {
-          "check": "search after garbage carries it to the host, which must refuse it",
-          "context": {
-            "destination": {
-              "not": "text"
-            },
-            "checkIn": null,
-            "checkOut": null,
-            "guests": null
-          },
+          "check": "positive control: the comparison sees the bound input values change",
+          "changed": [
+            "check_in",
+            "check_out",
+            "destination",
+            "guests"
+          ],
           "pass": true
         }
       ],
@@ -423,8 +535,14 @@
           "pass": true
         },
         {
-          "check": "search from search sends its own payload",
-          "context": {
+          "check": "search sends what the data says",
+          "expected": {
+            "destination": "typed destination",
+            "checkIn": "typed checkIn",
+            "checkOut": "typed checkOut",
+            "guests": "typed guests"
+          },
+          "sent": {
             "destination": "typed destination",
             "checkIn": "typed checkIn",
             "checkOut": "typed checkOut",
@@ -433,27 +551,86 @@
           "pass": true
         },
         {
-          "check": "garbage in /input changes no governed property",
+          "check": "garbage in /input changes no property but bound input values",
           "compared": 8,
-          "changed": [],
+          "changed": [
+            "check_in",
+            "check_out",
+            "destination",
+            "guests"
+          ],
           "pass": true
         },
         {
-          "check": "search after garbage carries it to the host, which must refuse it",
-          "context": {
-            "destination": {
-              "not": "text"
-            },
-            "checkIn": null,
-            "checkOut": null,
-            "guests": null
-          },
+          "check": "positive control: the comparison sees the bound input values change",
+          "changed": [
+            "check_in",
+            "check_out",
+            "destination",
+            "guests"
+          ],
           "pass": true
         }
       ],
       "pass": true
     }
   ],
-  "catalogLoads": true,
+  "longLivedProcessor": {
+    "steps": [
+      {
+        "label": "Search, empty",
+        "surfaceId": "hotel-search-walk-1",
+        "live": [
+          "hotel-search-walk-1"
+        ],
+        "pass": true
+      },
+      {
+        "label": "Search again, with the error, values and focus kept",
+        "surfaceId": "hotel-search-walk-2",
+        "live": [
+          "hotel-search-walk-2"
+        ],
+        "pass": true
+      },
+      {
+        "label": "Three results",
+        "surfaceId": "hotel-results-walk-3",
+        "live": [
+          "hotel-results-walk-3"
+        ],
+        "pressed": "choose",
+        "sent": {
+          "hotelId": "h-101"
+        },
+        "pass": true
+      },
+      {
+        "label": "The same search returns them reordered",
+        "surfaceId": "hotel-results-walk-4",
+        "live": [
+          "hotel-results-walk-4"
+        ],
+        "pressed": "choose",
+        "sent": {
+          "hotelId": "h-103"
+        },
+        "pass": true
+      },
+      {
+        "label": "Confirm the reservation",
+        "surfaceId": "hotel-results-walk-5",
+        "live": [
+          "hotel-results-walk-5"
+        ],
+        "pressed": "reserve",
+        "sent": {
+          "hotelId": "h-102"
+        },
+        "pass": true
+      }
+    ],
+    "pass": true
+  },
   "pass": true
 }

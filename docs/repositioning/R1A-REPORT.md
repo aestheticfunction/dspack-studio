@@ -1,13 +1,13 @@
 # R1a report: interoperability and governed composition
 
-**Status:** delivered 2026-11-26 for the product owner's review. M1 stops here, at R1a. Nothing was merged, deployed or changed in Cloudflare, no hosted AI and no paid inference were used, and no sibling repository was touched.
+**Status:** delivered 2026-11-26; reviewed independently the same day ([R1A-REVIEW.md](R1A-REVIEW.md)) and accepted by the owner with targeted revisions. **Corrected** after that review (section 2): six code corrections, each with a test that failed first, four evidence replacements, and the reporting below. M1 stops here, at R1a, for the owner's final merge decision. No hosted AI, paid inference or sibling repository was involved in R1a.
 
 ## 1. Result
 
 The two riskiest claims of the repositioning hold on this stack.
 
 1. **One definition, many governed instances.** Two compositions (hotel search, hotel results) were instantiated across nine data sets and a recorded walk. Every instance passed S1 to S3 under its state's purpose, A1 to A3 for both A2UI versions, and a binding-layout check. Data the rules refuse is refused with the rule's own rationale: a single result fails `rule.review-offers-alternatives`, "A choice of one is not a comparison". Nothing in a template names a hotel.
-2. **Rendering outside Composer.** The messages pass upstream's own Python implementation under strict validation (levels 1a and 1b, 55 checks). They render, accept typing and send the right payloads in a standalone host on upstream `@a2ui/react` 0.16.1 (level 2), and identically on Composer's own canvas.
+2. **Rendering outside Composer.** The messages pass upstream's own Python implementation under strict validation (levels 1a and 1b, 55 checks with expectations derived from the data), and a recorded walk replays through one long-lived processor in both upstream implementations. They render, accept typing and send what the data says in a standalone host on upstream `@a2ui/react` 0.16.1 (level 2), and identically on Composer's own canvas.
 
 The k-th repeated button is proven to send item k's payload four ways:
 - by structure;
@@ -21,24 +21,35 @@ The host refuses:
 - forged or tampered payloads;
 - consequential actions outside their confirmation step;
 - invalid inputs;
-- any action after a rule it depends on changes, until a re-check passes.
+- any action after a rule it depends on changes, until a re-check passes;
+- any action on a surface governed under rules other than the current approval's, even after a re-approval.
 
-One renderer-fidelity gap was found and is reported, not fixed (section 6): Astryx's `SelectableCard` does not draw its governed `label` as visible text.
+One mismatch between the contract and a component was found (section 6). The contract requires each option card's `label` and treats it as the option's visible name; Astryx's `SelectableCard` renders it as an accessible label only, as designed. The owner approved drawing it as a visible heading in Composer's renderer adapter, separately (decision D1).
 
-**Recommendation:** proceed with the remainder of M1, re-scoped as in section 9, starting with the storage decision (R0-REVIEW A7) and the composition's place in the workspace.
+**Recommendation:** #122 is ready for the owner's final merge decision once PR #123 (the deployment-security correction) has merged. Then proceed with the remainder of M1 as recommended in R1A-REVIEW §9, starting with the host-hardening follow-up (section 10).
 
-## 2. Pilot closeout and PR #121
+## 2. Independent review and corrections
 
-[aestheticfunction/dspack-studio#121](https://github.com/aestheticfunction/dspack-studio/pull/121) is ready for the owner's merge decision. It is not merged.
+The independent review ([R1A-REVIEW.md](R1A-REVIEW.md)) accepted R1a with targeted revisions. Every finding in its Part A is now resolved. Each code correction has a regression test in `packages/composer-core/src/compositions/corrections.test.ts` that failed against `3036584` (`spikes/r1a/evidence/failing-first.txt`: 8 of 8 failed).
 
-- Its head is `a09e1b0`.
-- The report's counts were reconciled against the evidence and corrected openly in a Corrections section: 7 single builds and 27 flow steps, 5 flow plans, 27 first-pass builds and 7 repairs. The evidence files are unchanged.
-- Verified governance results are now distinguished from reviewer-assessed task fit.
-- First-attempt gate-failure evidence is recorded as a requirement before any further paid evaluation.
-- The full baseline is recorded as deferred.
-- Block-bench passes 292 tests and typecheck is clean.
-- Changes are confined to `packages/block-bench`, `acceptance/live-pilot` and `docs/repositioning`.
-- The committed evidence was scanned: no credentials, account, token or version identifiers, or personal data.
+| Finding | What was wrong | Disposition |
+|---|---|---|
+| H1 | After a re-approval under changed rules, a surface governed under the old rules ran again | **Fixed.** `act` refuses unless the current surface's pins equal the current approval's pins; the surface must be replaced (`host.ts`) |
+| H2 | A governor held the caller's contract by reference, so an in-place edit changed the rules without changing the pin | **Fixed.** The governor snapshots and deep-freezes its contract and profile (`governance.ts`) |
+| M1 | Two overlapping `show` calls orphaned a surface | **Fixed.** Replacements run one at a time; each batch deletes the surface actually shown (`host.ts`) |
+| M2 | Two literal ids that emit the same id bound the wrong field, silently | **Fixed.** Refused at load (`load.ts`); a declared node the emitter renames is refused at instantiation (`instantiate.ts`) |
+| M5 | The 0.1 upcast dropped block constraints | **Fixed for constraints:** carried and checked through the composition path (`load.ts`, `expand.ts`). Block **actions** are still not mapped, so upcast blocks are expansion-compatible, not instantiation-compatible (section 10) |
+| M6 | A consequential action could carry typed input | **Fixed.** Refused at load (`load.ts`) |
+| E1 | Two "garbage changes nothing governed" checks compared values a write cannot alter | **Replaced.** Level 1b resolves every property of every component before and after the writes, with a positive control that sees the bound input values change. The host test now asserts the refusal, and the binding layout gets six negative tests (`instantiate.test.ts`) |
+| E2 | The structure test used the implementation's own traversal | **Replaced** with the test's own traversal |
+| E3 | Levels 1b and 2 took expected payloads from the implementation's action table | **Replaced.** Expectations come from the data and the page's structure: the control in the k-th drawn option card sends `data.hotels[k].id`, a confirmation sends `data.selection.id`, a search sends what was typed. A negative control (two hotels swapped in a copy of the data) fails exactly those two checks |
+| E4 | No replacement walk through one long-lived processor | **Added**, in both upstream implementations (`evidence/level-1.json`, `evidence/level-1-web-core-walk.json`) |
+| A8 | Reporting | This report, ADR R1 and R4, the pilot report's task-fit correction, and the committed review |
+| A9 | No test held the composition runtime out of the applications | **Added:** `apps/composer/lib/compositions-isolation.test.mjs` (shown to fail when an import is added) |
+
+Part B of the review (host hardening) is separately authorized and not started. Its recommended scope is in section 10.
+
+**PR #121** (the live pilot) merged on 2026-11-26 at `a09e1b0`, as `1b3b08e`. Its automatic deploy exposed hosted generation for about 1 minute 44 seconds, with no generation requests. The incident and its prevention are recorded separately in `docs/incidents/2026-11-26-hosted-ai-inherited.md`, on PR #123.
 
 ## 3. Amended decisions
 
@@ -47,7 +58,7 @@ The ADR amendments from R0-REVIEW §6.1:
 - [R4](adr/R4-expansion-first-instantiation.md) is rewritten: instance identity, repeated-element identity, input binding, payloads, replacement, renderer assumptions, pins, verification levels.
 - [R1](adr/R1-composition-as-evolved-block.md) and [R2](adr/R2-lifting-the-data-boundary.md) carry amendment notes: sidecar 0.2, and the narrowed data boundary.
 
-None introduces a mechanism the owner has not approved. Four points are flagged for review.
+None introduces a mechanism the owner has not approved. Four points were flagged for review. The independent review accepted all four, and the owner's decisions are in [R1A-REVIEW.md](R1A-REVIEW.md) §10 (F1 as D5, F3 as D4).
 
 | # | Point | What the spike does | Why |
 |---|---|---|---|
@@ -100,10 +111,13 @@ Negative tests. Each is refused, the last valid instance stays, and the reason i
 | Unauthorized | An undeclared action name, or a declared one from another component, gives `unauthorized` |
 | Tampered or extended payload | Another hotel's id, or an extra key, gives `payload-mismatch` |
 | Invalid inputs | A short destination, an impossible date, free text for a date and 12 guests give `invalid-input`, with each field's reason |
-| Local renderer writes | Garbage written into `/input/destination` and over `/input` itself:<br>- leaves every governed property unchanged (level 1b, compared on every component);<br>- the next search carrying it is refused |
+| Local renderer writes | Garbage written into `/input/destination` and over `/input` itself:<br>- changes no resolved property except bound input values (level 1b, every property of every component, with a positive control);<br>- the next search carrying it is refused as `invalid-input`;<br>- the binding layout refuses six ways a governed property could read `/input` (`instantiate.test.ts`) |
 | Collection changes | Three, then two, then the same three reordered:<br>- each screen is byte-equal to a fresh emission;<br>- each button's payload names its own item (`instantiate.test.ts`) |
 | Parent-path updates | Static check on the recorded walk: no `updateComponents` or `updateDataModel` reaches a surface already shown; exactly one `updateComponents` and at most one `updateDataModel` per surface, in its creation batch |
 | Rule-dependency change | Editing `rule.review-offers-alternatives` to require four options:<br>- `show` and `act` give `needs-recheck`;<br>- the re-check fails for "three" and "two" and restores nothing.<br>An edit that keeps every scenario passing is restored by its re-check |
+| Re-approval under changed rules (H1) | A rule the scenarios never exercise makes the twenty-hotel surface fail; the re-check passes and re-approves; an action on the old surface gives `needs-recheck` until it is replaced (`corrections.test.ts`) |
+| In-place rule edit (H2) | Editing the caller's contract object after the governor is made changes nothing it decides (`corrections.test.ts`) |
+| Concurrent replacement (M1) | Two overlapping shows: each batch deletes the surface shown before it; none is orphaned (`corrections.test.ts`) |
 | Identity | 12 instances across 3 sessions: 12 distinct surface ids |
 | Replacement | Within a composition, values and focus are carried; inside a repeat, focus follows the same payload, or goes to the heading when that item is gone; across compositions, nothing is carried and focus goes to the heading |
 
@@ -118,39 +132,42 @@ Negative tests. Each is refused, the last valid instance stays, and the reason i
 | Level | Claim | Result |
 |---|---|---|
 | 1a | **Messages are correct** | Upstream Python `a2ui-core` (A2UI repository at `1dbe86a`) loads the 0.9.1 catalog and accepts all 9 instances' creation batches under strict validation |
-| 1b | **Messages are correct** | The same implementation, 55 checks, all pass:<br>- each input resolves its bound value from the data model, before and after a write;<br>- each of the 40 actions resolves and dispatches exactly the payload the host expects, with carried inputs as typed;<br>- garbage in `/input` changes no governed property |
-| 2 | **Renderer fidelity**, for the renderers tested | Two stacks, identical results:<br>- **A standalone host outside `apps/composer`:** upstream `@a2ui/react` and `@a2ui/web_core` 0.16.1, Composer's Astryx renderer files unchanged, and a bridge written for the spike (`Catalog.fromJson`, `createComponentImplementation`, and the bound-setter rule);<br>- **Composer's own canvas:** `a2ui-ingest` on the pinned 0.10 stack.<br>On both: every input accepts typing and keeps it (9 of 9); every control sends exactly its expected payload (40 of 40); the k-th drawn button is item k's; no page errors. Of 288 governed literals, 249 are drawn as visible text inside their own component and 39 only as an accessible name or attribute |
+| 1b | **Messages are correct** | The same implementation, 55 checks, all pass:<br>- each input resolves its bound value from the creation batch, then a typed value;<br>- each of the 40 actions dispatches what the **data** says it must (the k-th list child sends `data.hotels[k].id`; a confirmation sends `data.selection.id`), with carried inputs as typed;<br>- with every property of every component resolved before and after garbage writes into `/input`, only bound input values change, and a positive control confirms the comparison sees those changes |
+| 1b' | **Messages are correct, across replacements** | The recorded walk (5 replacements) replayed through **one** long-lived processor, in upstream Python `a2ui-core` and in `@a2ui/web_core` 0.16.1: after each batch exactly one surface is live, the new one, and its first option card sends the new data's first hotel (after the reorder, `h-103`) |
+| 2 | **Renderer fidelity**, for the renderers tested | Two stacks, identical results:<br>- **A standalone host outside `apps/composer`:** upstream `@a2ui/react` and `@a2ui/web_core` 0.16.1, Composer's Astryx renderer files unchanged, and a bridge written for the spike (`Catalog.fromJson`, `createComponentImplementation`, and the bound-setter rule);<br>- **Composer's own canvas:** `a2ui-ingest` on the pinned 0.10 stack.<br>On both: every input accepts typing and keeps it (9 of 9); every control, found in drawn order, sends what the data says (40 of 40); the control in the k-th drawn option card is item k's; no page errors. Of 288 governed literals, 249 are drawn as visible text inside their own component and 39 only as an accessible name or attribute |
 
 The 39 not drawn as visible text:
-- **The 30 `SelectableCard.label` values (the hotel names): a fidelity gap.** The renderer passes the label to Astryx's `SelectableCard`, which exposes it as an accessible name but does not draw it. In the hotel cards, the name is visible only because the composition repeats it in the button label. A rule (`rule.option-carries-label`) requires that label, and no gate can see that it is not drawn. This is reported, not fixed: fixing it means changing the shared renderer (`packages/astryx-renderers`), which R1a does not touch.
+- **The 30 `SelectableCard.label` values (the hotel names): a mismatch between the contract and the component.** The renderer is faithful: it passes the label to Astryx's `SelectableCard`, which documents it as an accessibility label and renders it as `aria-label`, by design. The contract treats the same label as the option's visible name (`rule.option-carries-label`: how an alternative is "identified, compared, and announced"). So no gate can see that it is not drawn. In the hotel cards the name is visible only because the composition repeats it in the button label. It predates R1a: the contract's own plan-comparison example and the live pilot's hotel surfaces show unnamed cards too, and the pilot's task fit has been corrected for it. The owner approved drawing the label as a visible heading in Composer's Astryx renderer adapter, as a separately scoped correction (D1).
 - **The 9 placeholders** are attributes by nature, as expected.
 
 **What each level does not show.** Level 1 says nothing about pixels. Level 2 covers these two renderers, the 12 Astryx components and the 0.9.1 envelope only. A2UI 1.0 messages are not claimed; that is protocol track P1.
 
 ## 7. Performance (R0-REVIEW A12)
 
-Measured in Node 22, `evidence/performance.json`.
+Measured in Node 22, `evidence/performance.json`, regenerated after the corrections. Figures vary with machine load; the first run measured 2.58 ms and 219 ms.
 
 | | Budget | Measured |
 |---|---|---|
-| Warm `instantiate`, 20 items, 95th percentile | 50 ms | **2.58 ms** (p50 1.34 ms, n = 200) |
-| Cold: governor setup plus the first 20-item instance | 500 ms | **219 ms** (setup 197 ms, first instance 22 ms) |
-| Warm, 3 items, 95th percentile | | 0.55 ms |
-| The same 20-item instance with uncached A gates, both versions | | 51 ms p50, 55 ms p95: over budget, hence F2 |
+| Warm `instantiate`, 20 items, 95th percentile | 50 ms | **4.04 ms** (p50 2.05 ms, n = 200) |
+| Cold: governor setup plus the first 20-item instance | 500 ms | **240 ms** (setup 207 ms, first instance 33 ms) |
+| Warm, 3 items, 95th percentile | | 0.96 ms |
+| The same 20-item instance with uncached A gates, both versions | | 74 ms p50, 85 ms p95: over budget, hence F2 |
+
+Not measured in a browser.
 
 The demonstration runs the same pipeline in the browser. Instantiation runs in the browser, Node and, later, ds-mcp; never in the Worker.
 
 ## 8. Regression and CI
 
-Run locally on `claude/m1-r1a`.
+Run locally on `claude/m1-r1a` after the corrections, with `main` (including #121) merged in.
 
 | Suite | Result |
 |---|---|
-| Workspace unit tests (`pnpm test`) | All pass:<br>- composer-core 513, including the 48 new;<br>- apps/composer 524;<br>- block-bench 268, including the Phase 1B goldens and request-hash ratchet, unchanged;<br>- every other package |
+| Workspace unit tests (`pnpm test`) | All pass:<br>- composer-core 523, including the 58 compositions tests;<br>- apps/composer 526, including the isolation test;<br>- block-bench 292, including the Phase 1B goldens and request-hash ratchet, unchanged;<br>- every other package |
 | Workspace typecheck | Clean |
 | Upcast equivalence | Every packaged example in both the Astryx and shadcn/ui v3 sidecars expands byte for byte as the block expander does |
 | Unchanged | The Gateway corpus and its goldens, the default catalog export, the replay fixtures, `apps/composer`, the Worker, the renderers, `a2ui-ingest` |
-| Default build | Imports nothing from `compositions/`. The lockfile adds `ajv` and `ajv-formats` to composer-core, plus the dev-only `dspack-gen` and `tsx` |
+| Default build | Imports nothing from `compositions/`, held by `apps/composer/lib/compositions-isolation.test.mjs`. The built bundle itself was not inspected. The lockfile adds `ajv` and `ajv-formats` to composer-core, plus the dev-only `dspack-gen` and `tsx` |
 
 GitHub CI on the PR is reported in the PR.
 
@@ -163,32 +180,53 @@ GitHub CI on the PR is reported in the PR.
 | **Astryx vocabulary gaps** | No date, number or select input; no purpose for empty or result states | Unchanged, and confirmed again: dates and guests are text inputs validated by the host by kind; the empty state borrows data collection (F3) |
 | **Model-generation weaknesses not yet isolated** | Seven repairs whose cause the pilot did not record | Not addressable without the first-attempt gate-failure evidence the pilot report now requires; no model was called in R1a |
 
-## 10. Findings, limitations and the rest of M1
+## 10. Acceptance criteria as they stand, limitations and next steps
 
-Findings:
+The R0-REVIEW §7 criteria for R1a, after the corrections:
 
-- **Selectable cards hide their governed label** (section 6). The shared renderer should draw it, or the contract should say how a selectable card names itself visibly. It needs its own scoped fix and the owner's call; it affects the default build too.
-- **Emitted ids are positional with suffixes** (`choose`, `choose_2`, …). The spike never relies on them. An id map from dspack-emit (R0 A18) would replace the structural step: a sibling-repository change, not authorized.
-- **`createSurface.theme` is still emitted.** Nothing depends on it.
+| Criterion | Status |
+|---|---|
+| Every screen in a recorded walk equals a fresh governed emission | **Verified** for the messages: byte-equal re-emission, and a one-processor walk in both upstream implementations. Renderer replacement inside one React session is not separately evidenced (the pages mount a processor per batch) |
+| No updates to a surface already shown | **Verified** (static transcript check; one live surface after every batch) |
+| The five §3.4 paths each have a negative test | **Verified** (stale, renderer writes via the binding layout and level 1b, parent-path updates, collection changes, rule-dependency changes including H1 and H2) |
+| One result refused with its rule's reason; none selects the empty state | **Verified** |
+| Each button names its own item, shown four ways | **Verified** (own traversal, witness, property test, data-derived behaviour in two renderers). The witness is satisfied by the button label; the card's own label is not drawn (section 6) |
+| Replacement keeps values and focus; a change of step keeps neither | **Partially verified.** Values are verified at message level after an accepted action; after an `invalid-input` refusal they are not yet kept (Part B, M4). Focus is a hint the host returns; applying it is demonstration code, not tested |
+| No two instances share a surface id | **Partially verified.** Unique within a host by construction; across sessions it depends on a caller-supplied session id (Part B, L5) |
+| Results reported as messages or renderer fidelity | **Verified**, with the label mismatch now described correctly |
+| A consequential action refused without confirmation, and a second time | **Verified.** The surface itself is not yet locked after acceptance (Part B, M3, decision D3) |
+| A rule change forces a re-check before anything runs | **Verified,** including after a re-approval (H1) and against in-place edits (H2) |
+| Timing within budget | **Verified** in Node; not measured in a browser |
+| Levels 1a, 1b and 2 reported, bridge described | **Verified** |
+| Goldens unchanged; default artifact has none of the new code | **Verified** by tests and the isolation test; the built bundle was not inspected |
+| Sidecar 0.2 with 0.1 compatibility | **Partially verified:** expansion-compatible, constraints enforced; block actions not mapped, so upcast blocks are not instantiable |
+| Version coexistence, template child lists, binding by tracing | **Deferred** by approved scope |
 
 Limitations:
 
-- One design system (Astryx).
-- Two compositions, no nested repeats, no template child lists.
+- One design system (Astryx); two compositions; no nested repeats, no template child lists.
 - The hotel tool is simulated.
-- A2UI 0.9.1 only.
-- Focus is a hint the host applies; screen-reader behaviour was not tested beyond the live region.
+- A2UI 0.9.1 only. Upstream 0.16.1 is a renderer version, not verified final A2UI 1.0 compatibility.
+- Governance covers the form of data, not its truth: a confirmation's selection is whatever the caller supplies (R1A-REVIEW L7).
+- The empty state borrows the data-collection purpose through M1, as a documented limitation and not permanent governance semantics (D4).
+- Emitted ids are positional with suffixes (`choose`, `choose_2`, …). The spike never relies on them. An id map from dspack-emit would replace the structural step: a sibling-repository change, not authorized.
+- `createSurface.theme` is still emitted. Nothing depends on it.
 
-**Recommended scope for the rest of M1.** Re-scoped from these results; still not authorized.
+**Recommended scope for the host-hardening follow-up (Part B, not authorized).**
 
-1. **The storage decision (A7, decision 14)** before anything persists a composition: separate storage keys for the experimental build, as recommended.
-2. **Version coexistence (A10)**, decided on paper.
-3. **The renderer fix** for selectable-card labels, as its own small PR.
-4. **Compositions in the experimental workspace.** The Library entry and a Compose preview with scenario and state pickers, following the approved unified workspace prototype, behind the experimental flag.
-5. **The Playground**, driven by the host built here: the recorded walk is already its test.
-6. **Planning:** the task plan and plan checks (pilot category 2). Any further paid evaluation waits for the gate-failure evidence requirement.
+1. **M3 / D3: lock the surface** once a consequential action is accepted, until a governed replacement is shown. Return an idempotency key (surface id and action name). Model the outcome as pending, succeeded, failed or unknown for later agent integration, without claiming exactly-once external execution.
+2. **M4: keep typed values after an `invalid-input` refusal,** so the invalid state shows what the person typed.
+3. **D5: sensitive inputs.** An input flag that is never carried into a replacement, never written into a recorded batch or transcript, and kept apart from retained evaluation evidence. Required before application integration and before any real interaction transcript is recorded.
+4. **E5 to E7.** Generate session ids in core with a restricted charset (L5); run the attachment-difference test on the search composition; assert a prefilled carried value in level 2.
+5. **Low findings.**
+   - L1: report a lint exception as a refusal.
+   - L2: pin the emitter and lint versions.
+   - L3: record the expected rule for scenarios that expect a refusal.
+   - L4: synchronous pin comparison.
+   - L6: freeze instances.
+   - L8: allow one literal id in both branches of an `$if`.
 
-Protocol P0 can run alongside these; P1 and P2 remain unauthorized.
+The rest of M1, in the order R1A-REVIEW §9 recommends, stays unauthorized: experimental storage isolation, version coexistence, the selectable-card correction (D1), then Library, approval, authoring, Playground groundwork and task planning in visible slices. Protocol P0 stays separately scoped; P1 and P2 unauthorized.
 
 ## 11. Try it
 

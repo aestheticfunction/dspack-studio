@@ -64,9 +64,12 @@ const approvals = Object.fromEntries(await Promise.all(Object.values(cs).map(asy
 const host = createHost({ session: "walk", governor: g, compositions: Object.values(cs) });
 for (const [id, a] of Object.entries(approvals)) host.approve(id, a);
 const walk: unknown[] = [];
+// Every batch a renderer would receive, in order, for the long-lived processor check (R1A-REVIEW E4).
+const replacement: Array<{ label: string; composition: string; data: unknown; surfaceId: string; batch: unknown[] }> = [];
 const step = (label: string, value: any) => walk.push({ step: walk.length + 1, label, ...value });
 const show = async (label: string, id: string, data: Record<string, unknown>, focused?: string) => {
   const r = await host.show(id, { data, focused });
+  if (r.ok) replacement.push({ label, composition: id, data, surfaceId: r.instance.surfaceId, batch: r.batch });
   step(label, r.ok ? { show: r.instance.surfaceId, state: r.instance.state, carried: r.carried, focus: r.focus, batch: r.batch.map((m: any) => Object.keys(m).find((x) => x !== "version")) } : { refusedShow: r.refusal.stage, reason: r.refusal.reason, kept: r.kept?.surfaceId });
   return r;
 };
@@ -101,6 +104,7 @@ edited.rules.find((r: any) => r.id === "rule.review-offers-alternatives").requir
 host.setGovernor(await governorFor(edited));
 await show("After an edit to a rule hotel-results depends on", "hotel-results", ds.three);
 write("walk.json", { session: "walk", steps: walk, log: host.log() });
+write("replacement-walk.json", { about: "Every batch the host sent in walk.json, in order: deleteSurface for the surface before, then the new creation batch. Replayed through one long-lived processor in each upstream implementation.", catalog: "catalog-0.9.1.json", steps: replacement });
 
 // Performance (R0-REVIEW A12): warm instantiate of a 20-item list, p95 <= 50 ms; cold <= 500 ms.
 const samples = (n: number, f: () => Promise<number>) => (async () => { const out: number[] = []; for (let i = 0; i < n; i++) out.push(await f()); return out; })();

@@ -27,11 +27,11 @@ The R0 draft bound data into a fixed tree by tracing markers through the emitter
 8. runs A1 to A3;
 9. records the pins (item 7).
 
-Every step fails closed, names its stage and, for a rule, the rule and its rationale.
+Every step fails closed, names its stage and, for a rule, the rule and its rationale. Two literal ids that emit the same id are refused at load, and a declared node the emitter renames is refused at instantiation, so a binding can never find the wrong component (R1A-REVIEW M2).
 
 The surface id is `<composition>-<session>-<counter>`, unique across sessions and instances. The session id is random in use and injected in tests.
 
-When data, state or parameters change, the host creates a new instance, sends `deleteSurface` for the old one, then the new creation batch. Nothing is ever sent to a surface that is already shown. That is a structural property with one static test: no transcript holds `updateComponents` or `updateDataModel` addressed to a live surface.
+When data, state or parameters change, the host creates a new instance, sends `deleteSurface` for the old one, then the new creation batch. Replacements run one at a time, so every batch deletes the surface actually shown (R1A-REVIEW M1). Nothing is ever sent to a surface that is already shown. That is a structural property with one static test: no transcript holds `updateComponents` or `updateDataModel` addressed to a live surface.
 
 This is the initial strategy, not a permanent ban on A2UI incremental updates. A narrow class of in-place update can return when a scenario demonstrates the need, as a separately reviewed change with its own negative tests.
 
@@ -64,7 +64,7 @@ The host accepts an action only when all of these hold:
 - the context is exactly the literal payload plus the declared carried inputs;
 - each carried value is valid.
 
-A **consequential** action is declared on exactly one confirmation state. It is refused from any other surface (`needs-confirmation`) and accepted once per surface (`duplicate` thereafter). What the confirmation shows and what is sent come from the same instantiation.
+A **consequential** action is declared on exactly one confirmation state and carries literals only, never typed input (R1A-REVIEW M6). It is refused from any other surface (`needs-confirmation`) and accepted once per surface (`duplicate` thereafter). What the confirmation shows and what is sent come from the same instantiation.
 
 ### 5. Replacement keeps what the person did
 
@@ -90,7 +90,7 @@ Every approval and every instance records:
 - `interactionSha256`: the composition's declared data, inputs and actions;
 - `compositionSha256`, with its id and version.
 
-An approval exists only when every declared scenario behaves as declared (`recheck`). On any mismatch, the host refuses to show or accept anything for that composition (`needs-recheck`) until a re-check passes under the new pins.
+An approval exists only when every declared scenario behaves as declared (`recheck`). On any mismatch, the host refuses to show or accept anything for that composition (`needs-recheck`) until a re-check passes under the new pins. A surface on screen must itself carry the current approval's pins: after a re-approval under changed rules, a surface governed under the old ones is refused until it is replaced, because the scenarios a re-check runs need not cover the data that surface shows (R1A-REVIEW H1). A governor takes frozen copies of its contract and profile, so the rules a pin stands for cannot change underneath it (H2).
 
 ### 8. Verification levels (R0-REVIEW §3.5)
 

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { validateCatalog } from "@aestheticfunction/dspack-emit";
-import { childRefs, subtree } from "./bindings";
+import { bindingLayoutIssues, childRefs } from "./bindings";
 import type { Governor } from "./governance";
 import { instantiate, type Instance } from "./instantiate";
 import type { CompositionDefinition } from "./schema";
@@ -23,14 +23,31 @@ function components(instance: Instance) {
   return out;
 }
 
-/** Item k's button payload, found by structure only: the list's k-th child and its subtree. */
+/**
+ * The ids under `root`, root included, walked here rather than through the implementation's own subtree()
+ * (R1A-REVIEW E2): A2UI 0.9 names children in `child` (one id) or `children` (an id array).
+ */
+function descendants(cs: Map<string, any>, root: string): string[] {
+  const out: string[] = [];
+  const visit = (id: string) => {
+    if (out.includes(id)) return;
+    out.push(id);
+    const c = cs.get(id);
+    if (!c) return;
+    if (typeof c.child === "string") visit(c.child);
+    if (Array.isArray(c.children)) for (const x of c.children) if (typeof x === "string") visit(x);
+  };
+  visit(root);
+  return out;
+}
+
+/** Item k's button payload, found by structure only: the list's k-th child and the ids under it. */
 function payloadsByStructure(instance: Instance): Array<Record<string, unknown> | undefined> {
   const cs = components(instance);
   const list = cs.get("results");
   return (list.children as string[]).map((root) => {
-    const ids = subtree(cs, root);
-    const button = ids.map((id) => cs.get(id)).find((c) => c?.action?.event?.name === "choose");
-    return button?.action.event.context;
+    const buttons = descendants(cs, root).map((id) => cs.get(id)).filter((c) => c?.action?.event?.name === "choose");
+    return buttons.length === 1 ? buttons[0].action.event.context : undefined;
   });
 }
 
@@ -87,7 +104,7 @@ describe("repeated element identity (R0-REVIEW 6.1 item 2)", () => {
     const cs = components(r.instance);
     const names = ds.three.hotels.map((h: any) => h.name);
     (cs.get("results").children as string[]).forEach((root, k) => {
-      const text = JSON.stringify(subtree(cs, root).map((id) => cs.get(id)));
+      const text = JSON.stringify(descendants(cs, root).map((id) => cs.get(id)));
       expect(text).toContain(names[k]);
       for (const [j, other] of names.entries()) if (j !== k) expect(text).not.toContain(other);
     });
@@ -99,7 +116,7 @@ describe("repeated element identity (R0-REVIEW 6.1 item 2)", () => {
     const cs = components(r.instance);
     const roots = cs.get("results").children as string[];
     expect(roots.map((id) => cs.get(id).component)).toEqual(Array(20).fill("SelectableCard"));
-    const inside = new Set(roots.flatMap((root) => subtree(cs, root)));
+    const inside = new Set(roots.flatMap((root) => descendants(cs, root)));
     for (const c of cs.values()) if (c.action?.event?.name === "choose") expect(inside.has(c.id)).toBe(true);
   });
 
@@ -181,6 +198,34 @@ describe("instance messages", () => {
     const strip = (messages: any[]) =>
       JSON.stringify(messages, (k, v) => (k === "context" ? {} : v));
     expect(strip(r.instance.messages)).toBe(strip(plain.messages));
+  });
+});
+
+describe("the binding layout (what keeps renderer writes away from governed content)", () => {
+  it("holds on every evidence instance: the only data paths are input leaves, on a text field's value or in an action context", async () => {
+    for (const [id, data] of [["hotel-search", {}], ["hotel-results", ds.three], ["hotel-results", ds.none], ["hotel-results", ds.confirm]] as const) {
+      const r = await instantiate(g, cs[id]!, { surfaceId: `layout-${id}`, data: data as never });
+      if (!r.ok) throw new Error(r.reason);
+      expect(bindingLayoutIssues(r.instance.messages)).toEqual([]);
+    }
+  });
+
+  it("refuses a path on a governed property, a path outside /input, a nested path, and a bound text field outside /input", async () => {
+    const r = await instantiate(g, cs["hotel-search"]!, { surfaceId: "layout-neg", data: {} });
+    if (!r.ok) throw new Error(r.reason);
+    const variants: Array<[string, (comps: any[]) => void]> = [
+      ["a text's content bound to an input", (c) => (c.find((x) => x.component === "Text").text = { path: "/input/destination" })],
+      ["a field's label bound", (c) => (c.find((x) => x.component === "TextField").label = { path: "/input/destination" })],
+      ["a field's value bound outside /input", (c) => (c.find((x) => x.component === "TextField").value = { path: "/secrets" })],
+      ["a field's value bound to /input itself", (c) => (c.find((x) => x.component === "TextField").value = { path: "/input" })],
+      ["a nested input path", (c) => (c.find((x) => x.component === "TextField").value = { path: "/input/destination/city" })],
+      ["an action context path outside /input", (c) => (c.find((x) => x.id === "search").action.event.context.destination = { path: "/session/token" })],
+    ];
+    for (const [label, edit] of variants) {
+      const messages = structuredClone(r.instance.messages);
+      edit(messages[1].updateComponents.components);
+      expect(bindingLayoutIssues(messages).length, label).toBeGreaterThan(0);
+    }
   });
 });
 

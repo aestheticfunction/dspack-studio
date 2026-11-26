@@ -6,8 +6,8 @@
  *   - every governed literal of every component is drawn inside that component's own element, as visible
  *     text, or only as an accessible name or placeholder, or not at all;
  *   - every input accepts typing and keeps the value;
- *   - pressing each bound action's control sends exactly the payload the host expects, the k-th drawn
- *     "choose" button sends item k's payload, and the search sends what was typed.
+ *   - pressing each control sends what the DATA says it must: the control in the k-th drawn option card sends
+ *     data.hotels[k].id, a confirmation sends data.selection.id, a search sends what was typed (R1A-REVIEW E3).
  * These are claims about one renderer drawing correct messages. Level 1 covers the messages themselves.
  *
  *   node verify_render.cjs > evidence/level-2.json
@@ -94,22 +94,36 @@ function literals(component) {
         typed[inp.name] = kept;
         inputs.push({ input: inp.name, typed: value, kept, pass: kept === value });
       }
-      // Actions: press each and compare with what the host expects.
+      // Actions (R1A-REVIEW E3): every control is found in DRAWN order, and what it must send is derived from the data
+      // set and the page's own structure: a control inside the k-th drawn option card sends data.hotels[k].id; a
+      // confirmation dialog sends data.selection.id; any other control sends {} plus the values typed above.
+      const controls = await page.evaluate(() =>
+        [...document.querySelectorAll("[data-a2ui-component=Button], [data-a2ui-component=AlertDialog]")].map((el) => {
+          const cards = [...document.querySelectorAll("[data-a2ui-component=SelectableCard]")];
+          const card = el.parentElement && el.parentElement.closest("[data-a2ui-component=SelectableCard]");
+          return { id: el.getAttribute("data-a2ui-id"), kind: el.getAttribute("data-a2ui-component"), cardIndex: card ? cards.indexOf(card) : -1 };
+        }),
+      );
       const actions = [];
-      const order = await page.evaluate(() => [...document.querySelectorAll("[data-a2ui-component=Button]")].map((n) => n.getAttribute("data-a2ui-id")));
-      for (const a of rec.actions) {
+      for (const [position, ctl] of controls.entries()) {
         await page.evaluate(() => (window.__fidelity.actions = []));
-        const host = page.locator(`[data-a2ui-id="${a.componentId}"]`);
-        const control = a.name === "reserve" ? host.getByRole("button", { name: /^Reserve / }) : host.getByRole("button").first();
+        const host = page.locator(`[data-a2ui-id="${ctl.id}"]`);
+        const control = ctl.kind === "AlertDialog" ? host.getByRole("button", { name: /^Reserve / }) : host.getByRole("button").first();
         await control.click();
         await page.waitForTimeout(50);
         const sent = await page.evaluate(() => window.__fidelity.actions);
-        const expected = { ...a.payload, ...Object.fromEntries(a.carries.map((n) => [n, typed[n]])) };
         const got = sent[0] || null;
-        const ok = sent.length === 1 && got.name === a.name && got.sourceComponentId === a.componentId && got.surfaceId === rec.surfaceId && JSON.stringify(got.context) === JSON.stringify(expected);
-        actions.push({ action: a.name, component: a.componentId, item: a.item ? a.item.index + 1 : null, drawnPosition: order.indexOf(a.componentId) + 1, expected, sent: got && { name: got.name, sourceComponentId: got.sourceComponentId, context: got.context }, pass: ok });
+        const literal = ctl.cardIndex >= 0 ? { hotelId: rec.data.hotels[ctl.cardIndex].id } : ctl.kind === "AlertDialog" ? { hotelId: rec.data.selection.id } : {};
+        const carried = got ? Object.fromEntries(Object.keys(got.context ?? {}).filter((k) => k in typed).map((k) => [k, typed[k]])) : {};
+        const expected = { ...literal, ...carried };
+        const carriesAllTyped = Object.keys(carried).length === 0 || Object.keys(typed).every((k) => k in carried);
+        const ok = sent.length === 1 && got.sourceComponentId === ctl.id && got.surfaceId === rec.surfaceId && JSON.stringify(got.context) === JSON.stringify(expected) && carriesAllTyped;
+        actions.push({ drawnPosition: position + 1, component: ctl.id, inOptionCard: ctl.cardIndex >= 0 ? ctl.cardIndex + 1 : null, expected, sent: got && { name: got.name, sourceComponentId: got.sourceComponentId, context: got.context }, pass: ok });
       }
-      const kth = rec.actions.filter((a) => a.item).every((a) => order.filter((id) => rec.actions.some((x) => x.item && x.componentId === id)).indexOf(a.componentId) === a.item.index);
+      // Every option card has exactly one control, and every control in a card was pressed.
+      const cardControls = actions.filter((a) => a.inOptionCard !== null).map((a) => a.inOptionCard);
+      const cards = (rec.data.hotels || []).length && controls.some((c) => c.cardIndex >= 0) ? rec.data.hotels.length : 0;
+      const kth = cardControls.length === cards && cardControls.every((k, i) => k === i + 1);
       const missing = drawn.filter((d) => d.drawn === "missing" || d.drawn === "no-element");
       const accessibleOnly = drawn.filter((d) => d.drawn === "accessible-only" || d.drawn === "in-dom-not-visible");
       results.push({
@@ -120,7 +134,7 @@ function literals(component) {
         missing,
         inputs,
         actions,
-        kthButtonIsItemK: kth,
+        kthDrawnControlIsItemK: kth,
         pass: missing.length === 0 && inputs.every((i) => i.pass) && actions.every((a) => a.pass) && kth,
       });
     }

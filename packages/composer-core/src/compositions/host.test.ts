@@ -136,17 +136,17 @@ describe("actions", () => {
     expect(ok).toMatchObject({ accepted: true, values: { destination: "Lisbon", guests: "2" } });
   });
 
-  it("garbage a renderer writes into the input paths changes nothing governed, and the next action is refused for its payload", async () => {
+  // Why garbage in /input cannot reach governed content is the binding layout (instantiate.test.ts, "the binding
+  // layout"), checked on every instance; level 1b resolves every property before and after such writes.
+  it("garbage a renderer writes into the input paths is refused when an action carries it", async () => {
     const host = newHost();
     const s = shown(await host.show("hotel-search", { data: {} }));
-    const before = JSON.stringify(s.instance.messages.slice(0, 2));
     // What a renderer sends after writes to /input/destination (an object) and /input itself (replaced by a string).
     const garbage = [{ destination: { path: "/secrets" } }, { destination: 42 }, {}];
     for (const g of garbage) {
       const r = host.act({ name: "search", surfaceId: s.instance.surfaceId, sourceComponentId: "search", context: { checkIn: "2026-03-10", checkOut: "2026-03-13", guests: "2", ...g } });
-      expect(r.accepted).toBe(false);
+      expect(r).toMatchObject({ accepted: false, code: "invalid-input" });
     }
-    expect(JSON.stringify(s.instance.messages.slice(0, 2))).toBe(before);
   });
 });
 

@@ -16,10 +16,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "reserve",
+              "drawnPosition": 1,
               "component": "reserve",
-              "item": null,
-              "drawnPosition": 0,
+              "inOptionCard": null,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -33,10 +32,9 @@
               "pass": true
             },
             {
-              "action": "back",
+              "drawnPosition": 2,
               "component": "back",
-              "item": null,
-              "drawnPosition": 1,
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "back",
@@ -46,7 +44,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -72,10 +70,9 @@
           ],
           "actions": [
             {
-              "action": "search_again",
-              "component": "search_again",
-              "item": null,
               "drawnPosition": 1,
+              "component": "search_again",
+              "inOptionCard": null,
               "expected": {
                 "destination": "Porto"
               },
@@ -89,7 +86,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -114,10 +111,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -131,10 +127,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -148,10 +143,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -161,7 +155,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -192,10 +186,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -209,10 +202,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -226,10 +218,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_3",
-              "item": 3,
               "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -243,10 +234,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -256,7 +246,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -287,10 +277,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -304,10 +293,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -321,10 +309,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_3",
-              "item": 3,
               "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -338,10 +325,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -351,7 +337,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -484,10 +470,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -501,10 +486,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -518,10 +502,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_3",
-              "item": 3,
               "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -535,10 +518,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_4",
-              "item": 4,
               "drawnPosition": 4,
+              "component": "choose_4",
+              "inOptionCard": 4,
               "expected": {
                 "hotelId": "h-104"
               },
@@ -552,10 +534,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_5",
-              "item": 5,
               "drawnPosition": 5,
+              "component": "choose_5",
+              "inOptionCard": 5,
               "expected": {
                 "hotelId": "h-105"
               },
@@ -569,10 +550,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_6",
-              "item": 6,
               "drawnPosition": 6,
+              "component": "choose_6",
+              "inOptionCard": 6,
               "expected": {
                 "hotelId": "h-106"
               },
@@ -586,10 +566,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_7",
-              "item": 7,
               "drawnPosition": 7,
+              "component": "choose_7",
+              "inOptionCard": 7,
               "expected": {
                 "hotelId": "h-107"
               },
@@ -603,10 +582,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_8",
-              "item": 8,
               "drawnPosition": 8,
+              "component": "choose_8",
+              "inOptionCard": 8,
               "expected": {
                 "hotelId": "h-108"
               },
@@ -620,10 +598,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_9",
-              "item": 9,
               "drawnPosition": 9,
+              "component": "choose_9",
+              "inOptionCard": 9,
               "expected": {
                 "hotelId": "h-109"
               },
@@ -637,10 +614,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_10",
-              "item": 10,
               "drawnPosition": 10,
+              "component": "choose_10",
+              "inOptionCard": 10,
               "expected": {
                 "hotelId": "h-110"
               },
@@ -654,10 +630,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_11",
-              "item": 11,
               "drawnPosition": 11,
+              "component": "choose_11",
+              "inOptionCard": 11,
               "expected": {
                 "hotelId": "h-111"
               },
@@ -671,10 +646,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_12",
-              "item": 12,
               "drawnPosition": 12,
+              "component": "choose_12",
+              "inOptionCard": 12,
               "expected": {
                 "hotelId": "h-112"
               },
@@ -688,10 +662,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_13",
-              "item": 13,
               "drawnPosition": 13,
+              "component": "choose_13",
+              "inOptionCard": 13,
               "expected": {
                 "hotelId": "h-113"
               },
@@ -705,10 +678,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_14",
-              "item": 14,
               "drawnPosition": 14,
+              "component": "choose_14",
+              "inOptionCard": 14,
               "expected": {
                 "hotelId": "h-114"
               },
@@ -722,10 +694,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_15",
-              "item": 15,
               "drawnPosition": 15,
+              "component": "choose_15",
+              "inOptionCard": 15,
               "expected": {
                 "hotelId": "h-115"
               },
@@ -739,10 +710,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_16",
-              "item": 16,
               "drawnPosition": 16,
+              "component": "choose_16",
+              "inOptionCard": 16,
               "expected": {
                 "hotelId": "h-116"
               },
@@ -756,10 +726,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_17",
-              "item": 17,
               "drawnPosition": 17,
+              "component": "choose_17",
+              "inOptionCard": 17,
               "expected": {
                 "hotelId": "h-117"
               },
@@ -773,10 +742,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_18",
-              "item": 18,
               "drawnPosition": 18,
+              "component": "choose_18",
+              "inOptionCard": 18,
               "expected": {
                 "hotelId": "h-118"
               },
@@ -790,10 +758,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_19",
-              "item": 19,
               "drawnPosition": 19,
+              "component": "choose_19",
+              "inOptionCard": 19,
               "expected": {
                 "hotelId": "h-119"
               },
@@ -807,10 +774,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_20",
-              "item": 20,
               "drawnPosition": 20,
+              "component": "choose_20",
+              "inOptionCard": 20,
               "expected": {
                 "hotelId": "h-120"
               },
@@ -824,10 +790,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 21,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -837,7 +802,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -862,10 +827,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -879,10 +843,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -896,10 +859,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -909,7 +871,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -971,10 +933,9 @@
           ],
           "actions": [
             {
-              "action": "search",
-              "component": "search",
-              "item": null,
               "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
               "expected": {
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
@@ -994,7 +955,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -1056,10 +1017,9 @@
           ],
           "actions": [
             {
-              "action": "search",
-              "component": "search",
-              "item": null,
               "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
               "expected": {
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
@@ -1079,7 +1039,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         }
       ]
@@ -1099,10 +1059,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "reserve",
+              "drawnPosition": 1,
               "component": "reserve",
-              "item": null,
-              "drawnPosition": 0,
+              "inOptionCard": null,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -1116,10 +1075,9 @@
               "pass": true
             },
             {
-              "action": "back",
+              "drawnPosition": 2,
               "component": "back",
-              "item": null,
-              "drawnPosition": 1,
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "back",
@@ -1129,7 +1087,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -1155,10 +1113,9 @@
           ],
           "actions": [
             {
-              "action": "search_again",
-              "component": "search_again",
-              "item": null,
               "drawnPosition": 1,
+              "component": "search_again",
+              "inOptionCard": null,
               "expected": {
                 "destination": "Porto"
               },
@@ -1172,7 +1129,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -1197,10 +1154,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -1214,10 +1170,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -1231,10 +1186,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -1244,7 +1198,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -1275,10 +1229,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -1292,10 +1245,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -1309,10 +1261,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_3",
-              "item": 3,
               "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -1326,10 +1277,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -1339,7 +1289,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -1370,10 +1320,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -1387,10 +1336,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -1404,10 +1352,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_3",
-              "item": 3,
               "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -1421,10 +1368,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -1434,7 +1380,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -1567,10 +1513,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -1584,10 +1529,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -1601,10 +1545,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_3",
-              "item": 3,
               "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
               "expected": {
                 "hotelId": "h-103"
               },
@@ -1618,10 +1561,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_4",
-              "item": 4,
               "drawnPosition": 4,
+              "component": "choose_4",
+              "inOptionCard": 4,
               "expected": {
                 "hotelId": "h-104"
               },
@@ -1635,10 +1577,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_5",
-              "item": 5,
               "drawnPosition": 5,
+              "component": "choose_5",
+              "inOptionCard": 5,
               "expected": {
                 "hotelId": "h-105"
               },
@@ -1652,10 +1593,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_6",
-              "item": 6,
               "drawnPosition": 6,
+              "component": "choose_6",
+              "inOptionCard": 6,
               "expected": {
                 "hotelId": "h-106"
               },
@@ -1669,10 +1609,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_7",
-              "item": 7,
               "drawnPosition": 7,
+              "component": "choose_7",
+              "inOptionCard": 7,
               "expected": {
                 "hotelId": "h-107"
               },
@@ -1686,10 +1625,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_8",
-              "item": 8,
               "drawnPosition": 8,
+              "component": "choose_8",
+              "inOptionCard": 8,
               "expected": {
                 "hotelId": "h-108"
               },
@@ -1703,10 +1641,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_9",
-              "item": 9,
               "drawnPosition": 9,
+              "component": "choose_9",
+              "inOptionCard": 9,
               "expected": {
                 "hotelId": "h-109"
               },
@@ -1720,10 +1657,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_10",
-              "item": 10,
               "drawnPosition": 10,
+              "component": "choose_10",
+              "inOptionCard": 10,
               "expected": {
                 "hotelId": "h-110"
               },
@@ -1737,10 +1673,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_11",
-              "item": 11,
               "drawnPosition": 11,
+              "component": "choose_11",
+              "inOptionCard": 11,
               "expected": {
                 "hotelId": "h-111"
               },
@@ -1754,10 +1689,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_12",
-              "item": 12,
               "drawnPosition": 12,
+              "component": "choose_12",
+              "inOptionCard": 12,
               "expected": {
                 "hotelId": "h-112"
               },
@@ -1771,10 +1705,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_13",
-              "item": 13,
               "drawnPosition": 13,
+              "component": "choose_13",
+              "inOptionCard": 13,
               "expected": {
                 "hotelId": "h-113"
               },
@@ -1788,10 +1721,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_14",
-              "item": 14,
               "drawnPosition": 14,
+              "component": "choose_14",
+              "inOptionCard": 14,
               "expected": {
                 "hotelId": "h-114"
               },
@@ -1805,10 +1737,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_15",
-              "item": 15,
               "drawnPosition": 15,
+              "component": "choose_15",
+              "inOptionCard": 15,
               "expected": {
                 "hotelId": "h-115"
               },
@@ -1822,10 +1753,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_16",
-              "item": 16,
               "drawnPosition": 16,
+              "component": "choose_16",
+              "inOptionCard": 16,
               "expected": {
                 "hotelId": "h-116"
               },
@@ -1839,10 +1769,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_17",
-              "item": 17,
               "drawnPosition": 17,
+              "component": "choose_17",
+              "inOptionCard": 17,
               "expected": {
                 "hotelId": "h-117"
               },
@@ -1856,10 +1785,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_18",
-              "item": 18,
               "drawnPosition": 18,
+              "component": "choose_18",
+              "inOptionCard": 18,
               "expected": {
                 "hotelId": "h-118"
               },
@@ -1873,10 +1801,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_19",
-              "item": 19,
               "drawnPosition": 19,
+              "component": "choose_19",
+              "inOptionCard": 19,
               "expected": {
                 "hotelId": "h-119"
               },
@@ -1890,10 +1817,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_20",
-              "item": 20,
               "drawnPosition": 20,
+              "component": "choose_20",
+              "inOptionCard": 20,
               "expected": {
                 "hotelId": "h-120"
               },
@@ -1907,10 +1833,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 21,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -1920,7 +1845,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -1945,10 +1870,9 @@
           "inputs": [],
           "actions": [
             {
-              "action": "choose",
-              "component": "choose",
-              "item": 1,
               "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
               "expected": {
                 "hotelId": "h-101"
               },
@@ -1962,10 +1886,9 @@
               "pass": true
             },
             {
-              "action": "choose",
-              "component": "choose_2",
-              "item": 2,
               "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
               "expected": {
                 "hotelId": "h-102"
               },
@@ -1979,10 +1902,9 @@
               "pass": true
             },
             {
-              "action": "new_search",
-              "component": "new_search",
-              "item": null,
               "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
               "expected": {},
               "sent": {
                 "name": "new_search",
@@ -1992,7 +1914,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -2054,10 +1976,9 @@
           ],
           "actions": [
             {
-              "action": "search",
-              "component": "search",
-              "item": null,
               "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
               "expected": {
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
@@ -2077,7 +1998,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         },
         {
@@ -2139,10 +2060,9 @@
           ],
           "actions": [
             {
-              "action": "search",
-              "component": "search",
-              "item": null,
               "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
               "expected": {
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
@@ -2162,7 +2082,7 @@
               "pass": true
             }
           ],
-          "kthButtonIsItemK": true,
+          "kthDrawnControlIsItemK": true,
           "pass": true
         }
       ]

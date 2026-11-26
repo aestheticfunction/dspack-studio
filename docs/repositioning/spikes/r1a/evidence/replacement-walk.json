@@ -1,0 +1,845 @@
+{
+  "about": "Every batch the host sent in walk.json, in order: deleteSurface for the surface before, then the new creation batch. Replayed through one long-lived processor in each upstream implementation.",
+  "catalog": "catalog-0.9.1.json",
+  "steps": [
+    {
+      "label": "Search, empty",
+      "composition": "hotel-search",
+      "data": {},
+      "surfaceId": "hotel-search-walk-1",
+      "batch": [
+        {
+          "version": "v0.9",
+          "createSurface": {
+            "surfaceId": "hotel-search-walk-1",
+            "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+            "theme": {
+              "agentDisplayName": "Astryx via dspack"
+            }
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateComponents": {
+            "surfaceId": "hotel-search-walk-1",
+            "components": [
+              {
+                "id": "root",
+                "component": "Card",
+                "child": "root_col"
+              },
+              {
+                "id": "text",
+                "component": "Text",
+                "variant": "h1",
+                "text": "Find a hotel"
+              },
+              {
+                "id": "destination",
+                "component": "TextField",
+                "label": "Destination",
+                "placeholder": "City or area",
+                "value": {
+                  "path": "/input/destination"
+                }
+              },
+              {
+                "id": "check_in",
+                "component": "TextField",
+                "label": "Check-in date",
+                "placeholder": "YYYY-MM-DD",
+                "value": {
+                  "path": "/input/checkIn"
+                }
+              },
+              {
+                "id": "check_out",
+                "component": "TextField",
+                "label": "Check-out date",
+                "placeholder": "YYYY-MM-DD",
+                "value": {
+                  "path": "/input/checkOut"
+                }
+              },
+              {
+                "id": "guests",
+                "component": "TextField",
+                "label": "Guests",
+                "placeholder": "1 to 8",
+                "value": {
+                  "path": "/input/guests"
+                }
+              },
+              {
+                "id": "search",
+                "component": "Button",
+                "label": "Search hotels",
+                "variant": "primary",
+                "action": {
+                  "event": {
+                    "name": "search",
+                    "context": {
+                      "destination": {
+                        "path": "/input/destination"
+                      },
+                      "checkIn": {
+                        "path": "/input/checkIn"
+                      },
+                      "checkOut": {
+                        "path": "/input/checkOut"
+                      },
+                      "guests": {
+                        "path": "/input/guests"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "id": "root_col",
+                "component": "Column",
+                "children": [
+                  "text",
+                  "destination",
+                  "check_in",
+                  "check_out",
+                  "guests",
+                  "search"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateDataModel": {
+            "surfaceId": "hotel-search-walk-1",
+            "path": "/input",
+            "value": {
+              "destination": "",
+              "checkIn": "",
+              "checkOut": "",
+              "guests": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "label": "Search again, with the error, values and focus kept",
+      "composition": "hotel-search",
+      "data": {
+        "errors": [
+          "Check-out must be after check-in."
+        ]
+      },
+      "surfaceId": "hotel-search-walk-2",
+      "batch": [
+        {
+          "version": "v0.9",
+          "deleteSurface": {
+            "surfaceId": "hotel-search-walk-1"
+          }
+        },
+        {
+          "version": "v0.9",
+          "createSurface": {
+            "surfaceId": "hotel-search-walk-2",
+            "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+            "theme": {
+              "agentDisplayName": "Astryx via dspack"
+            }
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateComponents": {
+            "surfaceId": "hotel-search-walk-2",
+            "components": [
+              {
+                "id": "root",
+                "component": "Card",
+                "child": "root_col"
+              },
+              {
+                "id": "text",
+                "component": "Text",
+                "variant": "h1",
+                "text": "Find a hotel"
+              },
+              {
+                "id": "text_2",
+                "component": "Text",
+                "variant": "caption",
+                "text": "Some details need another look:"
+              },
+              {
+                "id": "text_3",
+                "component": "Text",
+                "variant": "body",
+                "text": "Check-out must be after check-in."
+              },
+              {
+                "id": "destination",
+                "component": "TextField",
+                "label": "Destination",
+                "placeholder": "City or area",
+                "value": {
+                  "path": "/input/destination"
+                }
+              },
+              {
+                "id": "check_in",
+                "component": "TextField",
+                "label": "Check-in date",
+                "placeholder": "YYYY-MM-DD",
+                "value": {
+                  "path": "/input/checkIn"
+                }
+              },
+              {
+                "id": "check_out",
+                "component": "TextField",
+                "label": "Check-out date",
+                "placeholder": "YYYY-MM-DD",
+                "value": {
+                  "path": "/input/checkOut"
+                }
+              },
+              {
+                "id": "guests",
+                "component": "TextField",
+                "label": "Guests",
+                "placeholder": "1 to 8",
+                "value": {
+                  "path": "/input/guests"
+                }
+              },
+              {
+                "id": "search",
+                "component": "Button",
+                "label": "Search hotels",
+                "variant": "primary",
+                "action": {
+                  "event": {
+                    "name": "search",
+                    "context": {
+                      "destination": {
+                        "path": "/input/destination"
+                      },
+                      "checkIn": {
+                        "path": "/input/checkIn"
+                      },
+                      "checkOut": {
+                        "path": "/input/checkOut"
+                      },
+                      "guests": {
+                        "path": "/input/guests"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "id": "root_col",
+                "component": "Column",
+                "children": [
+                  "text",
+                  "text_2",
+                  "text_3",
+                  "destination",
+                  "check_in",
+                  "check_out",
+                  "guests",
+                  "search"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateDataModel": {
+            "surfaceId": "hotel-search-walk-2",
+            "path": "/input",
+            "value": {
+              "destination": "Lisbon",
+              "checkIn": "2026-03-13",
+              "checkOut": "2026-03-10",
+              "guests": "2"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "label": "Three results",
+      "composition": "hotel-results",
+      "data": {
+        "destination": "Lisbon",
+        "nights": 3,
+        "hotels": [
+          {
+            "id": "h-101",
+            "name": "Casa do Rio",
+            "area": "Alfama",
+            "price": 142,
+            "rating": "8.9 / 10"
+          },
+          {
+            "id": "h-102",
+            "name": "Hotel Miradouro",
+            "area": "Graça",
+            "price": 188,
+            "rating": "9.2 / 10"
+          },
+          {
+            "id": "h-103",
+            "name": "Lumen Chiado",
+            "area": "Chiado",
+            "price": 231,
+            "rating": "9.0 / 10"
+          }
+        ]
+      },
+      "surfaceId": "hotel-results-walk-3",
+      "batch": [
+        {
+          "version": "v0.9",
+          "deleteSurface": {
+            "surfaceId": "hotel-search-walk-2"
+          }
+        },
+        {
+          "version": "v0.9",
+          "createSurface": {
+            "surfaceId": "hotel-results-walk-3",
+            "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+            "theme": {
+              "agentDisplayName": "Astryx via dspack"
+            }
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateComponents": {
+            "surfaceId": "hotel-results-walk-3",
+            "components": [
+              {
+                "id": "root",
+                "component": "Card",
+                "child": "root_col"
+              },
+              {
+                "id": "text",
+                "component": "Text",
+                "variant": "h1",
+                "text": "Hotels in Lisbon"
+              },
+              {
+                "id": "text_2",
+                "component": "Text",
+                "variant": "caption",
+                "text": "3 nights. Compare and choose one."
+              },
+              {
+                "id": "results",
+                "component": "List",
+                "children": [
+                  "selectablecard",
+                  "selectablecard_2",
+                  "selectablecard_3"
+                ]
+              },
+              {
+                "id": "selectablecard",
+                "component": "SelectableCard",
+                "label": "Casa do Rio",
+                "children": [
+                  "metadatalist",
+                  "choose"
+                ]
+              },
+              {
+                "id": "metadatalist",
+                "component": "MetadataList",
+                "items": [
+                  {
+                    "label": "Area",
+                    "value": "Alfama"
+                  },
+                  {
+                    "label": "Price per night",
+                    "value": "$142"
+                  },
+                  {
+                    "label": "Guest rating",
+                    "value": "8.9 / 10"
+                  }
+                ]
+              },
+              {
+                "id": "choose",
+                "component": "Button",
+                "label": "Choose Casa do Rio",
+                "variant": "secondary",
+                "action": {
+                  "event": {
+                    "name": "choose",
+                    "context": {
+                      "hotelId": "h-101"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "selectablecard_2",
+                "component": "SelectableCard",
+                "label": "Hotel Miradouro",
+                "children": [
+                  "metadatalist_2",
+                  "choose_2"
+                ]
+              },
+              {
+                "id": "metadatalist_2",
+                "component": "MetadataList",
+                "items": [
+                  {
+                    "label": "Area",
+                    "value": "Graça"
+                  },
+                  {
+                    "label": "Price per night",
+                    "value": "$188"
+                  },
+                  {
+                    "label": "Guest rating",
+                    "value": "9.2 / 10"
+                  }
+                ]
+              },
+              {
+                "id": "choose_2",
+                "component": "Button",
+                "label": "Choose Hotel Miradouro",
+                "variant": "secondary",
+                "action": {
+                  "event": {
+                    "name": "choose",
+                    "context": {
+                      "hotelId": "h-102"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "selectablecard_3",
+                "component": "SelectableCard",
+                "label": "Lumen Chiado",
+                "children": [
+                  "metadatalist_3",
+                  "choose_3"
+                ]
+              },
+              {
+                "id": "metadatalist_3",
+                "component": "MetadataList",
+                "items": [
+                  {
+                    "label": "Area",
+                    "value": "Chiado"
+                  },
+                  {
+                    "label": "Price per night",
+                    "value": "$231"
+                  },
+                  {
+                    "label": "Guest rating",
+                    "value": "9.0 / 10"
+                  }
+                ]
+              },
+              {
+                "id": "choose_3",
+                "component": "Button",
+                "label": "Choose Lumen Chiado",
+                "variant": "secondary",
+                "action": {
+                  "event": {
+                    "name": "choose",
+                    "context": {
+                      "hotelId": "h-103"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "new_search",
+                "component": "Button",
+                "label": "New search",
+                "variant": "ghost",
+                "action": {
+                  "event": {
+                    "name": "new_search",
+                    "context": {}
+                  }
+                }
+              },
+              {
+                "id": "root_col",
+                "component": "Column",
+                "children": [
+                  "text",
+                  "text_2",
+                  "results",
+                  "new_search"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "The same search returns them reordered",
+      "composition": "hotel-results",
+      "data": {
+        "destination": "Lisbon",
+        "nights": 3,
+        "hotels": [
+          {
+            "id": "h-103",
+            "name": "Lumen Chiado",
+            "area": "Chiado",
+            "price": 231,
+            "rating": "9.0 / 10"
+          },
+          {
+            "id": "h-101",
+            "name": "Casa do Rio",
+            "area": "Alfama",
+            "price": 142,
+            "rating": "8.9 / 10"
+          },
+          {
+            "id": "h-102",
+            "name": "Hotel Miradouro",
+            "area": "Graça",
+            "price": 188,
+            "rating": "9.2 / 10"
+          }
+        ]
+      },
+      "surfaceId": "hotel-results-walk-4",
+      "batch": [
+        {
+          "version": "v0.9",
+          "deleteSurface": {
+            "surfaceId": "hotel-results-walk-3"
+          }
+        },
+        {
+          "version": "v0.9",
+          "createSurface": {
+            "surfaceId": "hotel-results-walk-4",
+            "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+            "theme": {
+              "agentDisplayName": "Astryx via dspack"
+            }
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateComponents": {
+            "surfaceId": "hotel-results-walk-4",
+            "components": [
+              {
+                "id": "root",
+                "component": "Card",
+                "child": "root_col"
+              },
+              {
+                "id": "text",
+                "component": "Text",
+                "variant": "h1",
+                "text": "Hotels in Lisbon"
+              },
+              {
+                "id": "text_2",
+                "component": "Text",
+                "variant": "caption",
+                "text": "3 nights. Compare and choose one."
+              },
+              {
+                "id": "results",
+                "component": "List",
+                "children": [
+                  "selectablecard",
+                  "selectablecard_2",
+                  "selectablecard_3"
+                ]
+              },
+              {
+                "id": "selectablecard",
+                "component": "SelectableCard",
+                "label": "Lumen Chiado",
+                "children": [
+                  "metadatalist",
+                  "choose"
+                ]
+              },
+              {
+                "id": "metadatalist",
+                "component": "MetadataList",
+                "items": [
+                  {
+                    "label": "Area",
+                    "value": "Chiado"
+                  },
+                  {
+                    "label": "Price per night",
+                    "value": "$231"
+                  },
+                  {
+                    "label": "Guest rating",
+                    "value": "9.0 / 10"
+                  }
+                ]
+              },
+              {
+                "id": "choose",
+                "component": "Button",
+                "label": "Choose Lumen Chiado",
+                "variant": "secondary",
+                "action": {
+                  "event": {
+                    "name": "choose",
+                    "context": {
+                      "hotelId": "h-103"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "selectablecard_2",
+                "component": "SelectableCard",
+                "label": "Casa do Rio",
+                "children": [
+                  "metadatalist_2",
+                  "choose_2"
+                ]
+              },
+              {
+                "id": "metadatalist_2",
+                "component": "MetadataList",
+                "items": [
+                  {
+                    "label": "Area",
+                    "value": "Alfama"
+                  },
+                  {
+                    "label": "Price per night",
+                    "value": "$142"
+                  },
+                  {
+                    "label": "Guest rating",
+                    "value": "8.9 / 10"
+                  }
+                ]
+              },
+              {
+                "id": "choose_2",
+                "component": "Button",
+                "label": "Choose Casa do Rio",
+                "variant": "secondary",
+                "action": {
+                  "event": {
+                    "name": "choose",
+                    "context": {
+                      "hotelId": "h-101"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "selectablecard_3",
+                "component": "SelectableCard",
+                "label": "Hotel Miradouro",
+                "children": [
+                  "metadatalist_3",
+                  "choose_3"
+                ]
+              },
+              {
+                "id": "metadatalist_3",
+                "component": "MetadataList",
+                "items": [
+                  {
+                    "label": "Area",
+                    "value": "Graça"
+                  },
+                  {
+                    "label": "Price per night",
+                    "value": "$188"
+                  },
+                  {
+                    "label": "Guest rating",
+                    "value": "9.2 / 10"
+                  }
+                ]
+              },
+              {
+                "id": "choose_3",
+                "component": "Button",
+                "label": "Choose Hotel Miradouro",
+                "variant": "secondary",
+                "action": {
+                  "event": {
+                    "name": "choose",
+                    "context": {
+                      "hotelId": "h-102"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "new_search",
+                "component": "Button",
+                "label": "New search",
+                "variant": "ghost",
+                "action": {
+                  "event": {
+                    "name": "new_search",
+                    "context": {}
+                  }
+                }
+              },
+              {
+                "id": "root_col",
+                "component": "Column",
+                "children": [
+                  "text",
+                  "text_2",
+                  "results",
+                  "new_search"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "Confirm the reservation",
+      "composition": "hotel-results",
+      "data": {
+        "destination": "Lisbon",
+        "nights": 3,
+        "hotels": [
+          {
+            "id": "h-101",
+            "name": "Casa do Rio",
+            "area": "Alfama",
+            "price": 142,
+            "rating": "8.9 / 10"
+          },
+          {
+            "id": "h-102",
+            "name": "Hotel Miradouro",
+            "area": "Graça",
+            "price": 188,
+            "rating": "9.2 / 10"
+          },
+          {
+            "id": "h-103",
+            "name": "Lumen Chiado",
+            "area": "Chiado",
+            "price": 231,
+            "rating": "9.0 / 10"
+          }
+        ],
+        "selection": {
+          "id": "h-102",
+          "name": "Hotel Miradouro",
+          "total": 564
+        }
+      },
+      "surfaceId": "hotel-results-walk-5",
+      "batch": [
+        {
+          "version": "v0.9",
+          "deleteSurface": {
+            "surfaceId": "hotel-results-walk-4"
+          }
+        },
+        {
+          "version": "v0.9",
+          "createSurface": {
+            "surfaceId": "hotel-results-walk-5",
+            "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+            "theme": {
+              "agentDisplayName": "Astryx via dspack"
+            }
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateComponents": {
+            "surfaceId": "hotel-results-walk-5",
+            "components": [
+              {
+                "id": "root",
+                "component": "Card",
+                "child": "root_col"
+              },
+              {
+                "id": "text",
+                "component": "Text",
+                "variant": "h1",
+                "text": "Review your reservation"
+              },
+              {
+                "id": "reserve",
+                "component": "AlertDialog",
+                "title": "Reserve Hotel Miradouro?",
+                "description": "3 nights in Lisbon for $564. Payment is taken when you reserve.",
+                "actionLabel": "Reserve Hotel Miradouro",
+                "cancelLabel": "Not now",
+                "action": {
+                  "event": {
+                    "name": "reserve",
+                    "context": {
+                      "hotelId": "h-102"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "back",
+                "component": "Button",
+                "label": "Back to results",
+                "variant": "secondary",
+                "action": {
+                  "event": {
+                    "name": "back",
+                    "context": {}
+                  }
+                }
+              },
+              {
+                "id": "root_col",
+                "component": "Column",
+                "children": [
+                  "text",
+                  "reserve",
+                  "back"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
