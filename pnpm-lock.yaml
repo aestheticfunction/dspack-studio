@@ -321,10 +321,22 @@ importers:
       '@aestheticfunction/dspack-emit':
         specifier: ^0.7.0
         version: 0.7.0
+      ajv:
+        specifier: ^8.17.1
+        version: 8.20.0
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.20.0)
       zod:
         specifier: 3.25.76
         version: 3.25.76
     devDependencies:
+      '@aestheticfunction/dspack-gen':
+        specifier: ^0.5.0
+        version: 0.5.0(zod@3.25.76)
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.0
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -2398,6 +2410,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@aestheticfunction/dspack-gen@0.5.0(zod@3.25.76)':
+    dependencies:
+      '@aestheticfunction/dspack-emit': 0.7.0
+      '@anthropic-ai/sdk': 0.109.1(zod@3.25.76)
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+      undici: 6.27.0
+    transitivePeerDependencies:
+      - zod
+
   '@aestheticfunction/dspack-gen@0.5.0(zod@4.4.3)':
     dependencies:
       '@aestheticfunction/dspack-emit': 0.7.0
@@ -2442,6 +2464,13 @@ snapshots:
       '@ag-ui/core': 0.0.57
       '@bufbuild/protobuf': 2.12.1
       '@protobuf-ts/protoc': 2.11.1
+
+  '@anthropic-ai/sdk@0.109.1(zod@3.25.76)':
+    dependencies:
+      json-schema-to-ts: 3.1.1
+      standardwebhooks: 1.0.0
+    optionalDependencies:
+      zod: 3.25.76
 
   '@anthropic-ai/sdk@0.109.1(zod@4.4.3)':
     dependencies:

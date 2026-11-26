@@ -1,0 +1,36 @@
+{
+  "machine": "node v22.23.5 linux/x64",
+  "budget": {
+    "warmP95Ms": 50,
+    "coldMs": 500
+  },
+  "governorSetupMs": 207.4,
+  "coldFirstInstantiate20Ms": 32.7,
+  "coldTotalIncludingSetupMs": 240.1,
+  "warm20": {
+    "n": 200,
+    "p50": 2.05,
+    "p95": 4.04,
+    "max": 9.54
+  },
+  "warm3": {
+    "n": 200,
+    "p50": 0.77,
+    "p95": 0.96,
+    "max": 1.35
+  },
+  "stages20Ms": {
+    "expandMs": 0.12,
+    "lintMs": 0.18,
+    "emitMs": 0.33,
+    "attachMs": 0.39,
+    "gatesMs": 0.09,
+    "totalMs": 1.55
+  },
+  "uncachedGatesWarm20": {
+    "n": 30,
+    "p50": 73.61,
+    "p95": 85.26,
+    "note": "the same instantiation plus dspack-emit's validateCatalog for both versions, as an uncached pipeline would run"
+  }
+}

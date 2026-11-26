@@ -1,5 +1,11 @@
 # R2. Compositions carry data and action payloads; Composer simulates and never executes
 
+> **Amended at R1a** (2026-11-26, from [R0-REVIEW.md](../R0-REVIEW.md) §3.2, A4, A5 and A11). The two ways data crosses the boundary are now narrow and checked:
+> - **Inputs.** A person's input is bound only to a leaf path `/input/<name>`, which nothing governed reads.
+> - **Actions.** Each carries a literal payload fixed at instantiation, plus only the input values it declares, validated by kind and bounds when the action arrives.
+>
+> Parameters and data are told apart by lifecycle, not by who produced them (A11). Parameters are fixed at authoring or approval. Data arrives at instantiation and is validated against its declared types and bounds whoever produced it. A consequential action is accepted only from its confirmation state, once per surface. Details: [R4](R4-expansion-first-instantiation.md) §3 and §4. `HOST-ACTIONS.md` and the default build's empty-context rule are unchanged until compositions reach the default build, which is not in M1 through R1a.
+
 **Status:** draft for review. Accepted in principle by the owner as D2 (2026-11-24).
 
 ## Context

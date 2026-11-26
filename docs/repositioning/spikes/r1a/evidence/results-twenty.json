@@ -1,0 +1,1380 @@
+{
+  "id": "results-twenty",
+  "outcome": "instance",
+  "composition": "hotel-results",
+  "state": "ready",
+  "purpose": "transactional-review",
+  "surfaceId": "hotel-results-evidence-9",
+  "data": {
+    "destination": "Lisbon",
+    "nights": 3,
+    "hotels": [
+      {
+        "id": "h-101",
+        "name": "Casa do Rio",
+        "area": "Alfama",
+        "price": 142,
+        "rating": "8.9 / 10"
+      },
+      {
+        "id": "h-102",
+        "name": "Hotel Miradouro",
+        "area": "Graça",
+        "price": 188,
+        "rating": "9.2 / 10"
+      },
+      {
+        "id": "h-103",
+        "name": "Lumen Chiado",
+        "area": "Chiado",
+        "price": 231,
+        "rating": "9.0 / 10"
+      },
+      {
+        "id": "h-104",
+        "name": "Pensão Azulejo",
+        "area": "Mouraria",
+        "price": 96,
+        "rating": "8.1 / 10"
+      },
+      {
+        "id": "h-105",
+        "name": "Tejo Riverside",
+        "area": "Cais do Sodré",
+        "price": 205,
+        "rating": "8.7 / 10"
+      },
+      {
+        "id": "h-106",
+        "name": "Palácio das Janelas",
+        "area": "Lapa",
+        "price": 318,
+        "rating": "9.4 / 10"
+      },
+      {
+        "id": "h-107",
+        "name": "Estrela Garden",
+        "area": "Estrela",
+        "price": 164,
+        "rating": "8.8 / 10"
+      },
+      {
+        "id": "h-108",
+        "name": "Bairro Alto Rooms",
+        "area": "Bairro Alto",
+        "price": 118,
+        "rating": "7.9 / 10"
+      },
+      {
+        "id": "h-109",
+        "name": "Avenida Liberdade 77",
+        "area": "Avenida",
+        "price": 276,
+        "rating": "9.1 / 10"
+      },
+      {
+        "id": "h-110",
+        "name": "Belém Harbour Inn",
+        "area": "Belém",
+        "price": 154,
+        "rating": "8.5 / 10"
+      },
+      {
+        "id": "h-111",
+        "name": "Príncipe Real Suites",
+        "area": "Príncipe Real",
+        "price": 249,
+        "rating": "9.3 / 10"
+      },
+      {
+        "id": "h-112",
+        "name": "Campo de Ourique House",
+        "area": "Campo de Ourique",
+        "price": 133,
+        "rating": "8.6 / 10"
+      },
+      {
+        "id": "h-113",
+        "name": "Santos Design Hotel",
+        "area": "Santos",
+        "price": 197,
+        "rating": "8.9 / 10"
+      },
+      {
+        "id": "h-114",
+        "name": "Martim Moniz Stay",
+        "area": "Martim Moniz",
+        "price": 89,
+        "rating": "7.6 / 10"
+      },
+      {
+        "id": "h-115",
+        "name": "Parque Eduardo Lodge",
+        "area": "Marquês",
+        "price": 172,
+        "rating": "8.4 / 10"
+      },
+      {
+        "id": "h-116",
+        "name": "Alcântara Docks",
+        "area": "Alcântara",
+        "price": 158,
+        "rating": "8.3 / 10"
+      },
+      {
+        "id": "h-117",
+        "name": "Castelo View",
+        "area": "Castelo",
+        "price": 221,
+        "rating": "9.0 / 10"
+      },
+      {
+        "id": "h-118",
+        "name": "Intendente Loft",
+        "area": "Intendente",
+        "price": 104,
+        "rating": "8.2 / 10"
+      },
+      {
+        "id": "h-119",
+        "name": "Saldanha Central",
+        "area": "Saldanha",
+        "price": 146,
+        "rating": "8.0 / 10"
+      },
+      {
+        "id": "h-120",
+        "name": "Oriente Tower",
+        "area": "Parque das Nações",
+        "price": 183,
+        "rating": "8.6 / 10"
+      }
+    ]
+  },
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "hotel-results-evidence-9",
+        "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+        "theme": {
+          "agentDisplayName": "Astryx via dspack"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "hotel-results-evidence-9",
+        "components": [
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "root_col"
+          },
+          {
+            "id": "text",
+            "component": "Text",
+            "variant": "h1",
+            "text": "Hotels in Lisbon"
+          },
+          {
+            "id": "text_2",
+            "component": "Text",
+            "variant": "caption",
+            "text": "3 nights. Compare and choose one."
+          },
+          {
+            "id": "results",
+            "component": "List",
+            "children": [
+              "selectablecard",
+              "selectablecard_2",
+              "selectablecard_3",
+              "selectablecard_4",
+              "selectablecard_5",
+              "selectablecard_6",
+              "selectablecard_7",
+              "selectablecard_8",
+              "selectablecard_9",
+              "selectablecard_10",
+              "selectablecard_11",
+              "selectablecard_12",
+              "selectablecard_13",
+              "selectablecard_14",
+              "selectablecard_15",
+              "selectablecard_16",
+              "selectablecard_17",
+              "selectablecard_18",
+              "selectablecard_19",
+              "selectablecard_20"
+            ]
+          },
+          {
+            "id": "selectablecard",
+            "component": "SelectableCard",
+            "label": "Casa do Rio",
+            "children": [
+              "metadatalist",
+              "choose"
+            ]
+          },
+          {
+            "id": "metadatalist",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Alfama"
+              },
+              {
+                "label": "Price per night",
+                "value": "$142"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.9 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose",
+            "component": "Button",
+            "label": "Choose Casa do Rio",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_2",
+            "component": "SelectableCard",
+            "label": "Hotel Miradouro",
+            "children": [
+              "metadatalist_2",
+              "choose_2"
+            ]
+          },
+          {
+            "id": "metadatalist_2",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Graça"
+              },
+              {
+                "label": "Price per night",
+                "value": "$188"
+              },
+              {
+                "label": "Guest rating",
+                "value": "9.2 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_2",
+            "component": "Button",
+            "label": "Choose Hotel Miradouro",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_3",
+            "component": "SelectableCard",
+            "label": "Lumen Chiado",
+            "children": [
+              "metadatalist_3",
+              "choose_3"
+            ]
+          },
+          {
+            "id": "metadatalist_3",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Chiado"
+              },
+              {
+                "label": "Price per night",
+                "value": "$231"
+              },
+              {
+                "label": "Guest rating",
+                "value": "9.0 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_3",
+            "component": "Button",
+            "label": "Choose Lumen Chiado",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_4",
+            "component": "SelectableCard",
+            "label": "Pensão Azulejo",
+            "children": [
+              "metadatalist_4",
+              "choose_4"
+            ]
+          },
+          {
+            "id": "metadatalist_4",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Mouraria"
+              },
+              {
+                "label": "Price per night",
+                "value": "$96"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.1 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_4",
+            "component": "Button",
+            "label": "Choose Pensão Azulejo",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-104"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_5",
+            "component": "SelectableCard",
+            "label": "Tejo Riverside",
+            "children": [
+              "metadatalist_5",
+              "choose_5"
+            ]
+          },
+          {
+            "id": "metadatalist_5",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Cais do Sodré"
+              },
+              {
+                "label": "Price per night",
+                "value": "$205"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.7 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_5",
+            "component": "Button",
+            "label": "Choose Tejo Riverside",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-105"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_6",
+            "component": "SelectableCard",
+            "label": "Palácio das Janelas",
+            "children": [
+              "metadatalist_6",
+              "choose_6"
+            ]
+          },
+          {
+            "id": "metadatalist_6",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Lapa"
+              },
+              {
+                "label": "Price per night",
+                "value": "$318"
+              },
+              {
+                "label": "Guest rating",
+                "value": "9.4 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_6",
+            "component": "Button",
+            "label": "Choose Palácio das Janelas",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-106"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_7",
+            "component": "SelectableCard",
+            "label": "Estrela Garden",
+            "children": [
+              "metadatalist_7",
+              "choose_7"
+            ]
+          },
+          {
+            "id": "metadatalist_7",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Estrela"
+              },
+              {
+                "label": "Price per night",
+                "value": "$164"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.8 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_7",
+            "component": "Button",
+            "label": "Choose Estrela Garden",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-107"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_8",
+            "component": "SelectableCard",
+            "label": "Bairro Alto Rooms",
+            "children": [
+              "metadatalist_8",
+              "choose_8"
+            ]
+          },
+          {
+            "id": "metadatalist_8",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Bairro Alto"
+              },
+              {
+                "label": "Price per night",
+                "value": "$118"
+              },
+              {
+                "label": "Guest rating",
+                "value": "7.9 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_8",
+            "component": "Button",
+            "label": "Choose Bairro Alto Rooms",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-108"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_9",
+            "component": "SelectableCard",
+            "label": "Avenida Liberdade 77",
+            "children": [
+              "metadatalist_9",
+              "choose_9"
+            ]
+          },
+          {
+            "id": "metadatalist_9",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Avenida"
+              },
+              {
+                "label": "Price per night",
+                "value": "$276"
+              },
+              {
+                "label": "Guest rating",
+                "value": "9.1 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_9",
+            "component": "Button",
+            "label": "Choose Avenida Liberdade 77",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-109"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_10",
+            "component": "SelectableCard",
+            "label": "Belém Harbour Inn",
+            "children": [
+              "metadatalist_10",
+              "choose_10"
+            ]
+          },
+          {
+            "id": "metadatalist_10",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Belém"
+              },
+              {
+                "label": "Price per night",
+                "value": "$154"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.5 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_10",
+            "component": "Button",
+            "label": "Choose Belém Harbour Inn",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-110"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_11",
+            "component": "SelectableCard",
+            "label": "Príncipe Real Suites",
+            "children": [
+              "metadatalist_11",
+              "choose_11"
+            ]
+          },
+          {
+            "id": "metadatalist_11",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Príncipe Real"
+              },
+              {
+                "label": "Price per night",
+                "value": "$249"
+              },
+              {
+                "label": "Guest rating",
+                "value": "9.3 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_11",
+            "component": "Button",
+            "label": "Choose Príncipe Real Suites",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-111"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_12",
+            "component": "SelectableCard",
+            "label": "Campo de Ourique House",
+            "children": [
+              "metadatalist_12",
+              "choose_12"
+            ]
+          },
+          {
+            "id": "metadatalist_12",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Campo de Ourique"
+              },
+              {
+                "label": "Price per night",
+                "value": "$133"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.6 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_12",
+            "component": "Button",
+            "label": "Choose Campo de Ourique House",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-112"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_13",
+            "component": "SelectableCard",
+            "label": "Santos Design Hotel",
+            "children": [
+              "metadatalist_13",
+              "choose_13"
+            ]
+          },
+          {
+            "id": "metadatalist_13",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Santos"
+              },
+              {
+                "label": "Price per night",
+                "value": "$197"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.9 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_13",
+            "component": "Button",
+            "label": "Choose Santos Design Hotel",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-113"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_14",
+            "component": "SelectableCard",
+            "label": "Martim Moniz Stay",
+            "children": [
+              "metadatalist_14",
+              "choose_14"
+            ]
+          },
+          {
+            "id": "metadatalist_14",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Martim Moniz"
+              },
+              {
+                "label": "Price per night",
+                "value": "$89"
+              },
+              {
+                "label": "Guest rating",
+                "value": "7.6 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_14",
+            "component": "Button",
+            "label": "Choose Martim Moniz Stay",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-114"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_15",
+            "component": "SelectableCard",
+            "label": "Parque Eduardo Lodge",
+            "children": [
+              "metadatalist_15",
+              "choose_15"
+            ]
+          },
+          {
+            "id": "metadatalist_15",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Marquês"
+              },
+              {
+                "label": "Price per night",
+                "value": "$172"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.4 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_15",
+            "component": "Button",
+            "label": "Choose Parque Eduardo Lodge",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-115"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_16",
+            "component": "SelectableCard",
+            "label": "Alcântara Docks",
+            "children": [
+              "metadatalist_16",
+              "choose_16"
+            ]
+          },
+          {
+            "id": "metadatalist_16",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Alcântara"
+              },
+              {
+                "label": "Price per night",
+                "value": "$158"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.3 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_16",
+            "component": "Button",
+            "label": "Choose Alcântara Docks",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-116"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_17",
+            "component": "SelectableCard",
+            "label": "Castelo View",
+            "children": [
+              "metadatalist_17",
+              "choose_17"
+            ]
+          },
+          {
+            "id": "metadatalist_17",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Castelo"
+              },
+              {
+                "label": "Price per night",
+                "value": "$221"
+              },
+              {
+                "label": "Guest rating",
+                "value": "9.0 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_17",
+            "component": "Button",
+            "label": "Choose Castelo View",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-117"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_18",
+            "component": "SelectableCard",
+            "label": "Intendente Loft",
+            "children": [
+              "metadatalist_18",
+              "choose_18"
+            ]
+          },
+          {
+            "id": "metadatalist_18",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Intendente"
+              },
+              {
+                "label": "Price per night",
+                "value": "$104"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.2 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_18",
+            "component": "Button",
+            "label": "Choose Intendente Loft",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-118"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_19",
+            "component": "SelectableCard",
+            "label": "Saldanha Central",
+            "children": [
+              "metadatalist_19",
+              "choose_19"
+            ]
+          },
+          {
+            "id": "metadatalist_19",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Saldanha"
+              },
+              {
+                "label": "Price per night",
+                "value": "$146"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.0 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_19",
+            "component": "Button",
+            "label": "Choose Saldanha Central",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-119"
+                }
+              }
+            }
+          },
+          {
+            "id": "selectablecard_20",
+            "component": "SelectableCard",
+            "label": "Oriente Tower",
+            "children": [
+              "metadatalist_20",
+              "choose_20"
+            ]
+          },
+          {
+            "id": "metadatalist_20",
+            "component": "MetadataList",
+            "items": [
+              {
+                "label": "Area",
+                "value": "Parque das Nações"
+              },
+              {
+                "label": "Price per night",
+                "value": "$183"
+              },
+              {
+                "label": "Guest rating",
+                "value": "8.6 / 10"
+              }
+            ]
+          },
+          {
+            "id": "choose_20",
+            "component": "Button",
+            "label": "Choose Oriente Tower",
+            "variant": "secondary",
+            "action": {
+              "event": {
+                "name": "choose",
+                "context": {
+                  "hotelId": "h-120"
+                }
+              }
+            }
+          },
+          {
+            "id": "new_search",
+            "component": "Button",
+            "label": "New search",
+            "variant": "ghost",
+            "action": {
+              "event": {
+                "name": "new_search",
+                "context": {}
+              }
+            }
+          },
+          {
+            "id": "root_col",
+            "component": "Column",
+            "children": [
+              "text",
+              "text_2",
+              "results",
+              "new_search"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "name": "choose",
+      "componentId": "choose",
+      "payload": {
+        "hotelId": "h-101"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 0,
+        "witness": [
+          "Casa do Rio"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_2",
+      "payload": {
+        "hotelId": "h-102"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 1,
+        "witness": [
+          "Hotel Miradouro"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_3",
+      "payload": {
+        "hotelId": "h-103"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 2,
+        "witness": [
+          "Lumen Chiado"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_4",
+      "payload": {
+        "hotelId": "h-104"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 3,
+        "witness": [
+          "Pensão Azulejo"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_5",
+      "payload": {
+        "hotelId": "h-105"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 4,
+        "witness": [
+          "Tejo Riverside"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_6",
+      "payload": {
+        "hotelId": "h-106"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 5,
+        "witness": [
+          "Palácio das Janelas"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_7",
+      "payload": {
+        "hotelId": "h-107"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 6,
+        "witness": [
+          "Estrela Garden"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_8",
+      "payload": {
+        "hotelId": "h-108"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 7,
+        "witness": [
+          "Bairro Alto Rooms"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_9",
+      "payload": {
+        "hotelId": "h-109"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 8,
+        "witness": [
+          "Avenida Liberdade 77"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_10",
+      "payload": {
+        "hotelId": "h-110"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 9,
+        "witness": [
+          "Belém Harbour Inn"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_11",
+      "payload": {
+        "hotelId": "h-111"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 10,
+        "witness": [
+          "Príncipe Real Suites"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_12",
+      "payload": {
+        "hotelId": "h-112"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 11,
+        "witness": [
+          "Campo de Ourique House"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_13",
+      "payload": {
+        "hotelId": "h-113"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 12,
+        "witness": [
+          "Santos Design Hotel"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_14",
+      "payload": {
+        "hotelId": "h-114"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 13,
+        "witness": [
+          "Martim Moniz Stay"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_15",
+      "payload": {
+        "hotelId": "h-115"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 14,
+        "witness": [
+          "Parque Eduardo Lodge"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_16",
+      "payload": {
+        "hotelId": "h-116"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 15,
+        "witness": [
+          "Alcântara Docks"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_17",
+      "payload": {
+        "hotelId": "h-117"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 16,
+        "witness": [
+          "Castelo View"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_18",
+      "payload": {
+        "hotelId": "h-118"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 17,
+        "witness": [
+          "Intendente Loft"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_19",
+      "payload": {
+        "hotelId": "h-119"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 18,
+        "witness": [
+          "Saldanha Central"
+        ]
+      }
+    },
+    {
+      "name": "choose",
+      "componentId": "choose_20",
+      "payload": {
+        "hotelId": "h-120"
+      },
+      "carries": [],
+      "consequential": false,
+      "item": {
+        "index": 19,
+        "witness": [
+          "Oriente Tower"
+        ]
+      }
+    },
+    {
+      "name": "new_search",
+      "componentId": "new_search",
+      "payload": {},
+      "carries": [],
+      "consequential": false
+    }
+  ],
+  "inputs": [],
+  "inputValues": {},
+  "pins": {
+    "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+    "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9",
+    "interactionSha256": "def08ab6d03024de8b54693bfab6cc24f11a524c246dd6a9171b1e28258403b0",
+    "compositionSha256": "4ecbe65bb9c31cb560fa810ad9a3ed7ed21c818a4869297e171077a29737ce6e",
+    "composition": "hotel-results",
+    "version": 1
+  },
+  "expansionSha256": "ab3ffd7f2a57218ac827a1477487bd0bf0775b7be5339ab03f432a8ea68b5532",
+  "emittedSha256": "49ce85c604c366c595123056d1724248e91a25c0651b9b6e6b24f0e5985f8cc7"
+}

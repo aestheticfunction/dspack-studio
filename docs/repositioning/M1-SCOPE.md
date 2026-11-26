@@ -1,6 +1,6 @@
 # M1 scope and dependencies, updated at R0
 
-**Status:** superseded where it differs by [R0-REVIEW.md](R0-REVIEW.md) §6, accepted by the owner on 2026-11-25. **M1 is not authorized.** Under decision 17, M1 up to R1a and protocol stage P0 stay unauthorized until the M0 remediation has been reviewed and verified.
+**Status:** superseded where it differs by [R0-REVIEW.md](R0-REVIEW.md) §6, accepted by the owner on 2026-11-25. **M1 was authorized through R1a on 2026-11-26 and stopped there:** see [R1A-REPORT.md](R1A-REPORT.md), whose section 10 proposes the scope for the rest of M1. Nothing beyond R1a is authorized.
 
 > **What changed at the review.** M1 runs only to the R1a interoperability review, with the scope in R0-REVIEW §6.2 and the paper decisions in §6.1 first (instance identity, repeated-element identity proven four ways, input binding, renderer assumptions, state guards, sidecar 0.2, verification levels). Out of M1: the binding compiler by tracing, gates I0 and rule coverage, in-place updates, template children (step 6 and 7 below), and everything in R0-REVIEW §6.3 before R1a. Persistence and the project-level interaction-contract UI are deferred (decisions 8 and 14). The table below is kept as the R0 proposal it was.
 

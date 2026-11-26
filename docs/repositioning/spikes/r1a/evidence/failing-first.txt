@@ -1,0 +1,19 @@
+Failing-first run: corrections.test.ts against src/compositions at 3036584 (unchanged), 2026-11-26T02:12Z
+   × H1: a surface governed under earlier rules does not run again after a re-approval > refuses an action on the old surface until it is replaced
+   × H2: a governor's rules cannot change after its pins are taken > an in-place edit of the caller's contract changes nothing the governor decides
+   × H2: a governor's rules cannot change after its pins are taken > the governor's own contract and profile are frozen
+   × M1: replacements run one at a time > two overlapping shows each delete the surface before them, and no surface is orphaned
+   × M2: emitted id collisions never bind the wrong field > two literal ids that emit the same id are refused at load
+   × M2: emitted id collisions never bind the wrong field > a declared input renamed by the emitter's deduplication is refused at instantiation
+   × M5: a 0.1 block's constraints still hold through the composition path > refuses a call the block's own constraint refuses
+   × M6: a consequential action carries literals only > refuses a consequential action that carries typed input
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected { accepted: true, …(3) } to match object { accepted: false, …(1) }
+AssertionError: expected true to be false // Object.is equality
+AssertionError: expected false to be true // Object.is equality
+AssertionError: expected { version: 'v0.9', …(1) } to deeply equal { version: 'v0.9', …(1) }
+AssertionError: expected '' to contain 'check_in'
+AssertionError: expected true to be false // Object.is equality
+AssertionError: expected { ok: true, state: { …(4) }, …(1) } to match object { ok: false, stage: 'data' }
+AssertionError: expected '' to contain 'consequential'
+      Tests  8 failed (8)

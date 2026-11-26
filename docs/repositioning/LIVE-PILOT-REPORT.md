@@ -49,7 +49,7 @@ Each hotel plan covers the five stages a person would expect (search, results, r
 |---|---|
 | Gates, repairs, models, tokens, cost | Verified: recorded by the harness from the production pipeline's own results and the provider's reported usage; cost also matches AI Gateway analytics |
 | Rendering (native, wireframe, refusals) | Verified: recorded by the emitter and renderer registry for each build |
-| Task fit (this section) | **Reviewer-assessed**: marked by the reviewer from the recorded surfaces, not by the owner or an independent check. `SUMMARY.md` keeps its checklists unmarked, as designed |
+| Task fit (this section) | **Reviewer-assessed**: marked by the reviewer from the recorded surfaces, not by the owner or an independent check. `SUMMARY.md` keeps its checklists unmarked, as designed. Corrected on 2026-11-26 for what is visibly drawn ("Task fit, corrected") |
 
 | Run | Checklist items present | Notes |
 |---|---|---|
@@ -64,12 +64,33 @@ Each hotel plan covers the five stages a person would expect (search, results, r
 | corpus-05-1 | 4 of 5 | Step 1 offers "Convert to invoice", not to a project, and describes locking line items into a billing record. Confirmation dialog, read-back of the created project present |
 | corpus-05-2 | 4 of 5 | Same "Convert to Invoice" defect in step 1; the later steps are correct and the read-back is good |
 
+> **Corrected on 2026-11-26 after the independent R1a review** ([R1A-REVIEW.md](R1A-REVIEW.md) §5). The marks above were made from the recorded surface JSON, where every option card carries a name. Astryx draws a selectable card's name only as an accessible label, not as visible text, so on screen the hotel and room options have no visible names. The table above is kept as first assessed; the corrected marks are in "Task fit, corrected" below.
+
 **Across every hotel run:**
 
 - **Dates and guests are free text.** Astryx as contracted has no date, number or select input (ASTRYX-D5B.md), so every date is a text field with a placeholder, and one flow mixes `MM/DD/YYYY` and `YYYY-MM-DD`. Expected, and a vocabulary limit rather than a model fault.
 - **Data does not carry between steps.** Every step invents its own hotels, rooms and prices. The search results in step 2 do not contain the hotel shown in step 3 in two of three flows, and the reviewed booking differs from the chosen room in two of three. A model building one screen at a time from prose cannot keep this consistent; it needs the data supplied, which is R1a's "data arrives at instantiation".
 - **Nothing is wired.** No button carries an action or payload, and every list item is told apart only by position. This matches R0 findings A2 and A3; the generation prompt does not ask for actions and the emitter writes none.
 - **Two shape errors on the corpus prompts.** One card asked for and a table produced (prompt 10, both samples); a project conversion labelled as an invoice conversion (prompt 5, both samples). Both pass every gate, which is the separation the proposal predicted: governance compliance is not task fit. A completeness check (I3) of the kind R1a defines would catch the first; the second needs the task's own vocabulary in the plan.
+
+### Task fit, corrected (2026-11-26)
+
+The original marks above counted "a comparison of at least two hotels" and "a room choice" as present when the options existed in the surface. Rendered, an Astryx selectable card does not show its `label`; the name is only an accessible label. Counting only names a person can see:
+
+| Run | Option cards | Names drawn inside a card | Hotel comparison visible | Room choice visible | Corrected |
+|---|---|---|---|---|---|
+| hotel-single-1 | 6 (3 hotels, 3 rooms) | 0 | No: three unnamed cards of attributes | No | **6 of 8** (was 8) |
+| hotel-single-2 | 5 (3 hotels, 2 rooms) | 0 | No | No | **6 of 8** (was 8) |
+| hotel-single-3 | 6 (3 hotels, 3 rooms) | 0 | No | No | **6 of 8** (was 8) |
+| hotel-flow-1 | 8 across steps 3 to 5 | 0 | Yes: step 2 lists hotels by name in a table | No | **7 of 8** (was 8) |
+| hotel-flow-2 | 5 across steps 3 and 4 | 1 ("The Grandview Hotel", step 4) | Yes, step 2 table | No | **6 of 8** (was 7) |
+| hotel-flow-3 | 6 across steps 3 and 4 | 0 | Yes, step 2 table | No | **7 of 8** (was 8) |
+
+The corpus runs are unchanged: their checklists do not depend on option names, though corpus-05's review step shows two unnamed cards too. The evidence files are unchanged; the counts above come from them (`acceptance/live-pilot/run-1/*.json`, every `selectable-card` and its children).
+
+What this changes in the conclusions:
+- "Task fit holds within a screen" holds for the corpus prompts and for the hotel forms. It does not hold for comparing options: no hotel single build shows which hotel is which.
+- It is a mismatch between the contract and the component, not a model fault. The contract's `rule.option-carries-label` requires the label because it treats it as the option's visible name; the component treats it as an accessible label. The owner approved drawing it as a visible heading in Composer's Astryx renderer adapter, as a separately scoped correction (decision D1).
 
 ## 5. Governance, vocabulary, emission and rendering
 

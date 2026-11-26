@@ -1,0 +1,126 @@
+{
+  "id": "results-none",
+  "outcome": "instance",
+  "composition": "hotel-results",
+  "state": "empty",
+  "purpose": "data-collection",
+  "surfaceId": "hotel-results-evidence-6",
+  "data": {
+    "destination": "Lisbon",
+    "nights": 3,
+    "hotels": []
+  },
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "hotel-results-evidence-6",
+        "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+        "theme": {
+          "agentDisplayName": "Astryx via dspack"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "hotel-results-evidence-6",
+        "components": [
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "root_col"
+          },
+          {
+            "id": "text",
+            "component": "Text",
+            "variant": "h1",
+            "text": "No hotels found in Lisbon"
+          },
+          {
+            "id": "text_2",
+            "component": "Text",
+            "variant": "caption",
+            "text": "Nothing is available for these dates. Try another destination."
+          },
+          {
+            "id": "new_destination",
+            "component": "TextField",
+            "label": "Another destination",
+            "placeholder": "City or area",
+            "value": {
+              "path": "/input/destination"
+            }
+          },
+          {
+            "id": "search_again",
+            "component": "Button",
+            "label": "Search again",
+            "variant": "primary",
+            "action": {
+              "event": {
+                "name": "search_again",
+                "context": {
+                  "destination": {
+                    "path": "/input/destination"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "root_col",
+            "component": "Column",
+            "children": [
+              "text",
+              "text_2",
+              "new_destination",
+              "search_again"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "hotel-results-evidence-6",
+        "path": "/input",
+        "value": {
+          "destination": ""
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "name": "search_again",
+      "componentId": "search_again",
+      "payload": {},
+      "carries": [
+        "destination"
+      ],
+      "consequential": false
+    }
+  ],
+  "inputs": [
+    {
+      "name": "destination",
+      "componentId": "new_destination",
+      "path": "/input/destination"
+    }
+  ],
+  "inputValues": {
+    "destination": ""
+  },
+  "pins": {
+    "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+    "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9",
+    "interactionSha256": "def08ab6d03024de8b54693bfab6cc24f11a524c246dd6a9171b1e28258403b0",
+    "compositionSha256": "4ecbe65bb9c31cb560fa810ad9a3ed7ed21c818a4869297e171077a29737ce6e",
+    "composition": "hotel-results",
+    "version": 1
+  },
+  "expansionSha256": "a3e773ff971ea911df63000ecd6a7df1c3e5f17a1510309778802175fe636602",
+  "emittedSha256": "84ffce9d941a0ac286353e0fe8e57383f6518fab3d248fdef1d17f366fc50665"
+}

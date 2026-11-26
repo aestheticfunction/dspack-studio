@@ -1,0 +1,2091 @@
+{
+  "level": 2,
+  "stacks": {
+    "upstream-0.16.1": {
+      "page": "fidelity-016.html",
+      "unrendered": [],
+      "pageErrors": [],
+      "pass": true,
+      "cases": [
+        {
+          "id": "results-confirm",
+          "literals": 6,
+          "visible": 6,
+          "accessibleOnly": [],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "reserve",
+              "inOptionCard": null,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "reserve",
+                "sourceComponentId": "reserve",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "back",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "back",
+                "sourceComponentId": "back",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-none",
+          "literals": 5,
+          "visible": 4,
+          "accessibleOnly": [
+            {
+              "component": "TextField#new_destination",
+              "prop": "placeholder",
+              "value": "City or area",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [
+            {
+              "input": "destination",
+              "typed": "Porto",
+              "kept": "Porto",
+              "pass": true
+            }
+          ],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "search_again",
+              "inOptionCard": null,
+              "expected": {
+                "destination": "Porto"
+              },
+              "sent": {
+                "name": "search_again",
+                "sourceComponentId": "search_again",
+                "context": {
+                  "destination": "Porto"
+                }
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-removed",
+          "literals": 19,
+          "visible": 17,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-reordered",
+          "literals": 27,
+          "visible": 24,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_3",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_3",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-three",
+          "literals": 27,
+          "visible": 24,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_3",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_3",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-twenty",
+          "literals": 163,
+          "visible": 143,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_3",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_4",
+              "prop": "label",
+              "value": "Pensão Azulejo",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_5",
+              "prop": "label",
+              "value": "Tejo Riverside",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_6",
+              "prop": "label",
+              "value": "Palácio das Janelas",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_7",
+              "prop": "label",
+              "value": "Estrela Garden",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_8",
+              "prop": "label",
+              "value": "Bairro Alto Rooms",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_9",
+              "prop": "label",
+              "value": "Avenida Liberdade 77",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_10",
+              "prop": "label",
+              "value": "Belém Harbour Inn",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_11",
+              "prop": "label",
+              "value": "Príncipe Real Suites",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_12",
+              "prop": "label",
+              "value": "Campo de Ourique House",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_13",
+              "prop": "label",
+              "value": "Santos Design Hotel",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_14",
+              "prop": "label",
+              "value": "Martim Moniz Stay",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_15",
+              "prop": "label",
+              "value": "Parque Eduardo Lodge",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_16",
+              "prop": "label",
+              "value": "Alcântara Docks",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_17",
+              "prop": "label",
+              "value": "Castelo View",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_18",
+              "prop": "label",
+              "value": "Intendente Loft",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_19",
+              "prop": "label",
+              "value": "Saldanha Central",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_20",
+              "prop": "label",
+              "value": "Oriente Tower",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_3",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 4,
+              "component": "choose_4",
+              "inOptionCard": 4,
+              "expected": {
+                "hotelId": "h-104"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_4",
+                "context": {
+                  "hotelId": "h-104"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 5,
+              "component": "choose_5",
+              "inOptionCard": 5,
+              "expected": {
+                "hotelId": "h-105"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_5",
+                "context": {
+                  "hotelId": "h-105"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 6,
+              "component": "choose_6",
+              "inOptionCard": 6,
+              "expected": {
+                "hotelId": "h-106"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_6",
+                "context": {
+                  "hotelId": "h-106"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 7,
+              "component": "choose_7",
+              "inOptionCard": 7,
+              "expected": {
+                "hotelId": "h-107"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_7",
+                "context": {
+                  "hotelId": "h-107"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 8,
+              "component": "choose_8",
+              "inOptionCard": 8,
+              "expected": {
+                "hotelId": "h-108"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_8",
+                "context": {
+                  "hotelId": "h-108"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 9,
+              "component": "choose_9",
+              "inOptionCard": 9,
+              "expected": {
+                "hotelId": "h-109"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_9",
+                "context": {
+                  "hotelId": "h-109"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 10,
+              "component": "choose_10",
+              "inOptionCard": 10,
+              "expected": {
+                "hotelId": "h-110"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_10",
+                "context": {
+                  "hotelId": "h-110"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 11,
+              "component": "choose_11",
+              "inOptionCard": 11,
+              "expected": {
+                "hotelId": "h-111"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_11",
+                "context": {
+                  "hotelId": "h-111"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 12,
+              "component": "choose_12",
+              "inOptionCard": 12,
+              "expected": {
+                "hotelId": "h-112"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_12",
+                "context": {
+                  "hotelId": "h-112"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 13,
+              "component": "choose_13",
+              "inOptionCard": 13,
+              "expected": {
+                "hotelId": "h-113"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_13",
+                "context": {
+                  "hotelId": "h-113"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 14,
+              "component": "choose_14",
+              "inOptionCard": 14,
+              "expected": {
+                "hotelId": "h-114"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_14",
+                "context": {
+                  "hotelId": "h-114"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 15,
+              "component": "choose_15",
+              "inOptionCard": 15,
+              "expected": {
+                "hotelId": "h-115"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_15",
+                "context": {
+                  "hotelId": "h-115"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 16,
+              "component": "choose_16",
+              "inOptionCard": 16,
+              "expected": {
+                "hotelId": "h-116"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_16",
+                "context": {
+                  "hotelId": "h-116"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 17,
+              "component": "choose_17",
+              "inOptionCard": 17,
+              "expected": {
+                "hotelId": "h-117"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_17",
+                "context": {
+                  "hotelId": "h-117"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 18,
+              "component": "choose_18",
+              "inOptionCard": 18,
+              "expected": {
+                "hotelId": "h-118"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_18",
+                "context": {
+                  "hotelId": "h-118"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 19,
+              "component": "choose_19",
+              "inOptionCard": 19,
+              "expected": {
+                "hotelId": "h-119"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_19",
+                "context": {
+                  "hotelId": "h-119"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 20,
+              "component": "choose_20",
+              "inOptionCard": 20,
+              "expected": {
+                "hotelId": "h-120"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_20",
+                "context": {
+                  "hotelId": "h-120"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 21,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-two",
+          "literals": 19,
+          "visible": 17,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "search-invalid",
+          "literals": 12,
+          "visible": 8,
+          "accessibleOnly": [
+            {
+              "component": "TextField#destination",
+              "prop": "placeholder",
+              "value": "City or area",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_in",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_out",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#guests",
+              "prop": "placeholder",
+              "value": "1 to 8",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [
+            {
+              "input": "destination",
+              "typed": "Porto",
+              "kept": "Porto",
+              "pass": true
+            },
+            {
+              "input": "checkIn",
+              "typed": "2026-04-01",
+              "kept": "2026-04-01",
+              "pass": true
+            },
+            {
+              "input": "checkOut",
+              "typed": "2026-04-04",
+              "kept": "2026-04-04",
+              "pass": true
+            },
+            {
+              "input": "guests",
+              "typed": "3",
+              "kept": "3",
+              "pass": true
+            }
+          ],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
+              "expected": {
+                "destination": "Porto",
+                "checkIn": "2026-04-01",
+                "checkOut": "2026-04-04",
+                "guests": "3"
+              },
+              "sent": {
+                "name": "search",
+                "sourceComponentId": "search",
+                "context": {
+                  "destination": "Porto",
+                  "checkIn": "2026-04-01",
+                  "checkOut": "2026-04-04",
+                  "guests": "3"
+                }
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "search-ready",
+          "literals": 10,
+          "visible": 6,
+          "accessibleOnly": [
+            {
+              "component": "TextField#destination",
+              "prop": "placeholder",
+              "value": "City or area",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_in",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_out",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#guests",
+              "prop": "placeholder",
+              "value": "1 to 8",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [
+            {
+              "input": "destination",
+              "typed": "Porto",
+              "kept": "Porto",
+              "pass": true
+            },
+            {
+              "input": "checkIn",
+              "typed": "2026-04-01",
+              "kept": "2026-04-01",
+              "pass": true
+            },
+            {
+              "input": "checkOut",
+              "typed": "2026-04-04",
+              "kept": "2026-04-04",
+              "pass": true
+            },
+            {
+              "input": "guests",
+              "typed": "3",
+              "kept": "3",
+              "pass": true
+            }
+          ],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
+              "expected": {
+                "destination": "Porto",
+                "checkIn": "2026-04-01",
+                "checkOut": "2026-04-04",
+                "guests": "3"
+              },
+              "sent": {
+                "name": "search",
+                "sourceComponentId": "search",
+                "context": {
+                  "destination": "Porto",
+                  "checkIn": "2026-04-01",
+                  "checkOut": "2026-04-04",
+                  "guests": "3"
+                }
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        }
+      ]
+    },
+    "composer-canvas-0.10": {
+      "page": "fidelity-010.html",
+      "unrendered": [],
+      "pageErrors": [],
+      "pass": true,
+      "cases": [
+        {
+          "id": "results-confirm",
+          "literals": 6,
+          "visible": 6,
+          "accessibleOnly": [],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "reserve",
+              "inOptionCard": null,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "reserve",
+                "sourceComponentId": "reserve",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "back",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "back",
+                "sourceComponentId": "back",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-none",
+          "literals": 5,
+          "visible": 4,
+          "accessibleOnly": [
+            {
+              "component": "TextField#new_destination",
+              "prop": "placeholder",
+              "value": "City or area",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [
+            {
+              "input": "destination",
+              "typed": "Porto",
+              "kept": "Porto",
+              "pass": true
+            }
+          ],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "search_again",
+              "inOptionCard": null,
+              "expected": {
+                "destination": "Porto"
+              },
+              "sent": {
+                "name": "search_again",
+                "sourceComponentId": "search_again",
+                "context": {
+                  "destination": "Porto"
+                }
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-removed",
+          "literals": 19,
+          "visible": 17,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-reordered",
+          "literals": 27,
+          "visible": 24,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_3",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_3",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-three",
+          "literals": 27,
+          "visible": 24,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_3",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_3",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 4,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-twenty",
+          "literals": 163,
+          "visible": 143,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_3",
+              "prop": "label",
+              "value": "Lumen Chiado",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_4",
+              "prop": "label",
+              "value": "Pensão Azulejo",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_5",
+              "prop": "label",
+              "value": "Tejo Riverside",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_6",
+              "prop": "label",
+              "value": "Palácio das Janelas",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_7",
+              "prop": "label",
+              "value": "Estrela Garden",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_8",
+              "prop": "label",
+              "value": "Bairro Alto Rooms",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_9",
+              "prop": "label",
+              "value": "Avenida Liberdade 77",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_10",
+              "prop": "label",
+              "value": "Belém Harbour Inn",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_11",
+              "prop": "label",
+              "value": "Príncipe Real Suites",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_12",
+              "prop": "label",
+              "value": "Campo de Ourique House",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_13",
+              "prop": "label",
+              "value": "Santos Design Hotel",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_14",
+              "prop": "label",
+              "value": "Martim Moniz Stay",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_15",
+              "prop": "label",
+              "value": "Parque Eduardo Lodge",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_16",
+              "prop": "label",
+              "value": "Alcântara Docks",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_17",
+              "prop": "label",
+              "value": "Castelo View",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_18",
+              "prop": "label",
+              "value": "Intendente Loft",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_19",
+              "prop": "label",
+              "value": "Saldanha Central",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_20",
+              "prop": "label",
+              "value": "Oriente Tower",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "choose_3",
+              "inOptionCard": 3,
+              "expected": {
+                "hotelId": "h-103"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_3",
+                "context": {
+                  "hotelId": "h-103"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 4,
+              "component": "choose_4",
+              "inOptionCard": 4,
+              "expected": {
+                "hotelId": "h-104"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_4",
+                "context": {
+                  "hotelId": "h-104"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 5,
+              "component": "choose_5",
+              "inOptionCard": 5,
+              "expected": {
+                "hotelId": "h-105"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_5",
+                "context": {
+                  "hotelId": "h-105"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 6,
+              "component": "choose_6",
+              "inOptionCard": 6,
+              "expected": {
+                "hotelId": "h-106"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_6",
+                "context": {
+                  "hotelId": "h-106"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 7,
+              "component": "choose_7",
+              "inOptionCard": 7,
+              "expected": {
+                "hotelId": "h-107"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_7",
+                "context": {
+                  "hotelId": "h-107"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 8,
+              "component": "choose_8",
+              "inOptionCard": 8,
+              "expected": {
+                "hotelId": "h-108"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_8",
+                "context": {
+                  "hotelId": "h-108"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 9,
+              "component": "choose_9",
+              "inOptionCard": 9,
+              "expected": {
+                "hotelId": "h-109"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_9",
+                "context": {
+                  "hotelId": "h-109"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 10,
+              "component": "choose_10",
+              "inOptionCard": 10,
+              "expected": {
+                "hotelId": "h-110"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_10",
+                "context": {
+                  "hotelId": "h-110"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 11,
+              "component": "choose_11",
+              "inOptionCard": 11,
+              "expected": {
+                "hotelId": "h-111"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_11",
+                "context": {
+                  "hotelId": "h-111"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 12,
+              "component": "choose_12",
+              "inOptionCard": 12,
+              "expected": {
+                "hotelId": "h-112"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_12",
+                "context": {
+                  "hotelId": "h-112"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 13,
+              "component": "choose_13",
+              "inOptionCard": 13,
+              "expected": {
+                "hotelId": "h-113"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_13",
+                "context": {
+                  "hotelId": "h-113"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 14,
+              "component": "choose_14",
+              "inOptionCard": 14,
+              "expected": {
+                "hotelId": "h-114"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_14",
+                "context": {
+                  "hotelId": "h-114"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 15,
+              "component": "choose_15",
+              "inOptionCard": 15,
+              "expected": {
+                "hotelId": "h-115"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_15",
+                "context": {
+                  "hotelId": "h-115"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 16,
+              "component": "choose_16",
+              "inOptionCard": 16,
+              "expected": {
+                "hotelId": "h-116"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_16",
+                "context": {
+                  "hotelId": "h-116"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 17,
+              "component": "choose_17",
+              "inOptionCard": 17,
+              "expected": {
+                "hotelId": "h-117"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_17",
+                "context": {
+                  "hotelId": "h-117"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 18,
+              "component": "choose_18",
+              "inOptionCard": 18,
+              "expected": {
+                "hotelId": "h-118"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_18",
+                "context": {
+                  "hotelId": "h-118"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 19,
+              "component": "choose_19",
+              "inOptionCard": 19,
+              "expected": {
+                "hotelId": "h-119"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_19",
+                "context": {
+                  "hotelId": "h-119"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 20,
+              "component": "choose_20",
+              "inOptionCard": 20,
+              "expected": {
+                "hotelId": "h-120"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_20",
+                "context": {
+                  "hotelId": "h-120"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 21,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "results-two",
+          "literals": 19,
+          "visible": 17,
+          "accessibleOnly": [
+            {
+              "component": "SelectableCard#selectablecard",
+              "prop": "label",
+              "value": "Casa do Rio",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "SelectableCard#selectablecard_2",
+              "prop": "label",
+              "value": "Hotel Miradouro",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "choose",
+              "inOptionCard": 1,
+              "expected": {
+                "hotelId": "h-101"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose",
+                "context": {
+                  "hotelId": "h-101"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 2,
+              "component": "choose_2",
+              "inOptionCard": 2,
+              "expected": {
+                "hotelId": "h-102"
+              },
+              "sent": {
+                "name": "choose",
+                "sourceComponentId": "choose_2",
+                "context": {
+                  "hotelId": "h-102"
+                }
+              },
+              "pass": true
+            },
+            {
+              "drawnPosition": 3,
+              "component": "new_search",
+              "inOptionCard": null,
+              "expected": {},
+              "sent": {
+                "name": "new_search",
+                "sourceComponentId": "new_search",
+                "context": {}
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "search-invalid",
+          "literals": 12,
+          "visible": 8,
+          "accessibleOnly": [
+            {
+              "component": "TextField#destination",
+              "prop": "placeholder",
+              "value": "City or area",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_in",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_out",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#guests",
+              "prop": "placeholder",
+              "value": "1 to 8",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [
+            {
+              "input": "destination",
+              "typed": "Porto",
+              "kept": "Porto",
+              "pass": true
+            },
+            {
+              "input": "checkIn",
+              "typed": "2026-04-01",
+              "kept": "2026-04-01",
+              "pass": true
+            },
+            {
+              "input": "checkOut",
+              "typed": "2026-04-04",
+              "kept": "2026-04-04",
+              "pass": true
+            },
+            {
+              "input": "guests",
+              "typed": "3",
+              "kept": "3",
+              "pass": true
+            }
+          ],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
+              "expected": {
+                "destination": "Porto",
+                "checkIn": "2026-04-01",
+                "checkOut": "2026-04-04",
+                "guests": "3"
+              },
+              "sent": {
+                "name": "search",
+                "sourceComponentId": "search",
+                "context": {
+                  "destination": "Porto",
+                  "checkIn": "2026-04-01",
+                  "checkOut": "2026-04-04",
+                  "guests": "3"
+                }
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        },
+        {
+          "id": "search-ready",
+          "literals": 10,
+          "visible": 6,
+          "accessibleOnly": [
+            {
+              "component": "TextField#destination",
+              "prop": "placeholder",
+              "value": "City or area",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_in",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#check_out",
+              "prop": "placeholder",
+              "value": "YYYY-MM-DD",
+              "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#guests",
+              "prop": "placeholder",
+              "value": "1 to 8",
+              "drawn": "accessible-only"
+            }
+          ],
+          "missing": [],
+          "inputs": [
+            {
+              "input": "destination",
+              "typed": "Porto",
+              "kept": "Porto",
+              "pass": true
+            },
+            {
+              "input": "checkIn",
+              "typed": "2026-04-01",
+              "kept": "2026-04-01",
+              "pass": true
+            },
+            {
+              "input": "checkOut",
+              "typed": "2026-04-04",
+              "kept": "2026-04-04",
+              "pass": true
+            },
+            {
+              "input": "guests",
+              "typed": "3",
+              "kept": "3",
+              "pass": true
+            }
+          ],
+          "actions": [
+            {
+              "drawnPosition": 1,
+              "component": "search",
+              "inOptionCard": null,
+              "expected": {
+                "destination": "Porto",
+                "checkIn": "2026-04-01",
+                "checkOut": "2026-04-04",
+                "guests": "3"
+              },
+              "sent": {
+                "name": "search",
+                "sourceComponentId": "search",
+                "context": {
+                  "destination": "Porto",
+                  "checkIn": "2026-04-01",
+                  "checkOut": "2026-04-04",
+                  "guests": "3"
+                }
+              },
+              "pass": true
+            }
+          ],
+          "kthDrawnControlIsItemK": true,
+          "pass": true
+        }
+      ]
+    }
+  }
+}
