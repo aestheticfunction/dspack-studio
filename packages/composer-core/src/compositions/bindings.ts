@@ -44,6 +44,8 @@ export interface BoundInput {
   name: string;
   componentId: string;
   path: string;
+  /** Never carried, never recorded (decision D5). */
+  sensitive: boolean;
 }
 
 export type AttachResult =
@@ -122,7 +124,7 @@ export function attach(c: CompositionDefinition, state: CompositionState, messag
     if (field.component !== "TextField") return { ok: false, reason: `input '${input.name}': component '${componentId}' is a ${String(field.component)}, not a TextField` };
     if (field.value !== undefined) return { ok: false, reason: `input '${input.name}': the emitter already wrote a value on '${componentId}'` };
     field.value = { path: inputPath(input.name) };
-    inputs.push({ name: input.name, componentId, path: inputPath(input.name) });
+    inputs.push({ name: input.name, componentId, path: inputPath(input.name), sensitive: !!input.sensitive });
   }
 
   const forState = c.actions.filter((a) => a.states.includes(state.id));

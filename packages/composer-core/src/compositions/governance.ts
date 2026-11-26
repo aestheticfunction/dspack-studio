@@ -46,11 +46,31 @@ export interface GateFailure {
   message: string;
 }
 
+/**
+ * The version of this runtime's own governing behaviour: the pipeline, the attachments, the binding layout
+ * and the host's checks. Raise it with any change to what an instance is accepted as, so approvals made
+ * under the old behaviour need a re-check (R1A-REVIEW L2).
+ */
+export const COMPOSITIONS_RUNTIME_VERSION = "r1a-2";
+
+/**
+ * What a governor runs: the lint and the emitter by version, as the caller installed them, and this runtime.
+ * A change to any of them changes the pins, so every approval made under the old toolchain needs a re-check.
+ */
+export interface Toolchain {
+  lint: string;
+  emit: string;
+  [other: string]: string;
+}
+
 export interface Governor {
   readonly contract: Json;
   readonly profile: Profile;
   readonly contractSha256: string;
   readonly profileSha256: string;
+  /** Every part of the toolchain, the runtime included, and its hash (part of every pin). */
+  readonly toolchain: Readonly<Toolchain & { runtime: string }>;
+  readonly toolchainSha256: string;
   readonly versions: readonly A2uiVersion[];
   lint(surface: unknown): { pass: boolean; failures: GateFailure[]; report: LintReport };
   emit(surface: unknown, surfaceId: string): { ok: true; messages: Json[]; warnings: unknown[] } | { ok: false; failure: GateFailure };
@@ -76,7 +96,8 @@ function fmt(e: { instancePath?: string; message?: string }): string {
  */
 export const INSTANCE_A2UI_VERSIONS: readonly A2uiVersion[] = ["0.9.1", "1.0"];
 
-function deepFreeze<T>(value: T): T {
+/** Freeze a JSON-like value and everything in it. */
+export function deepFreeze<T>(value: T): T {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
     Object.freeze(value);
     for (const v of Object.values(value as Record<string, unknown>)) deepFreeze(v);
@@ -88,8 +109,15 @@ export async function createGovernor(options: {
   contract: Json;
   profileJson: Json;
   lintSurface: (surface: unknown, contract: Json) => LintReport;
+  /** The versions of the injected lint and of the emitter (R1A-REVIEW L2). Required. */
+  toolchain: Toolchain;
   versions?: readonly A2uiVersion[];
 }): Promise<Governor> {
+  const given = options.toolchain as Partial<Toolchain> | undefined;
+  for (const part of ["lint", "emit"] as const) {
+    if (typeof given?.[part] !== "string" || given[part]!.trim() === "") throw new Error(`createGovernor: the toolchain must name the ${part} version`);
+  }
+  const toolchain = deepFreeze({ ...given, runtime: COMPOSITIONS_RUNTIME_VERSION } as Toolchain & { runtime: string });
   // Snapshots, frozen (R1A-REVIEW H2): the pins below are taken once, so the rules they stand for must not
   // change under the governor. A caller that edits its own contract object afterwards changes nothing here.
   const contract = deepFreeze(structuredClone(options.contract));
@@ -117,12 +145,15 @@ export async function createGovernor(options: {
   }
   const contractSha256 = await sha256Hex(JSON.stringify(contract));
   const profileSha256 = await sha256Hex(JSON.stringify(profileJson));
+  const toolchainSha256 = await sha256Hex(JSON.stringify(Object.fromEntries(Object.entries(toolchain).sort(([a], [b]) => a.localeCompare(b)))));
 
   return {
     contract,
     profile,
     contractSha256,
     profileSha256,
+    toolchain,
+    toolchainSha256,
     versions,
     catalog: (version) => catalogs.get(version)!,
     lint(surface) {

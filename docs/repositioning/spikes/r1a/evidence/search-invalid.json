@@ -86,6 +86,15 @@
             }
           },
           {
+            "id": "member_number",
+            "component": "TextField",
+            "label": "Loyalty number (optional)",
+            "placeholder": "Not kept after this step",
+            "value": {
+              "path": "/input/memberNumber"
+            }
+          },
+          {
             "id": "search",
             "component": "Button",
             "label": "Search hotels",
@@ -105,6 +114,9 @@
                   },
                   "guests": {
                     "path": "/input/guests"
+                  },
+                  "memberNumber": {
+                    "path": "/input/memberNumber"
                   }
                 }
               }
@@ -121,6 +133,7 @@
               "check_in",
               "check_out",
               "guests",
+              "member_number",
               "search"
             ]
           }
@@ -136,7 +149,8 @@
           "destination": "Lisbon",
           "checkIn": "2026-03-13",
           "checkOut": "2026-03-10",
-          "guests": "2"
+          "guests": "2",
+          "memberNumber": ""
         }
       }
     }
@@ -150,7 +164,8 @@
         "destination",
         "checkIn",
         "checkOut",
-        "guests"
+        "guests",
+        "memberNumber"
       ],
       "consequential": false
     }
@@ -159,38 +174,50 @@
     {
       "name": "destination",
       "componentId": "destination",
-      "path": "/input/destination"
+      "path": "/input/destination",
+      "sensitive": false
     },
     {
       "name": "checkIn",
       "componentId": "check_in",
-      "path": "/input/checkIn"
+      "path": "/input/checkIn",
+      "sensitive": false
     },
     {
       "name": "checkOut",
       "componentId": "check_out",
-      "path": "/input/checkOut"
+      "path": "/input/checkOut",
+      "sensitive": false
     },
     {
       "name": "guests",
       "componentId": "guests",
-      "path": "/input/guests"
+      "path": "/input/guests",
+      "sensitive": false
+    },
+    {
+      "name": "memberNumber",
+      "componentId": "member_number",
+      "path": "/input/memberNumber",
+      "sensitive": true
     }
   ],
   "inputValues": {
     "destination": "Lisbon",
     "checkIn": "2026-03-13",
     "checkOut": "2026-03-10",
-    "guests": "2"
+    "guests": "2",
+    "memberNumber": ""
   },
   "pins": {
     "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
     "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9",
-    "interactionSha256": "4ea4cceaed30ee5c8a6af17efe7e8ac5baf91e409190f5a5af5710c36c8d76bc",
-    "compositionSha256": "7e4e01b605526447d818971241e88e5a8436a2b9525c5525e36c8ac6f825bed2",
+    "toolchainSha256": "e926fbad18dc4ac3cf0b6864ec5beaef04ce01b9590f52743de835f66d473c16",
+    "interactionSha256": "b1fa8b723225ffc6aa1cd0517153bc6643994f28f87e3f30417c0c52b829c718",
+    "compositionSha256": "4357e4514ab482da1c67f4ca548b98d20f1b9f002e53d0f3f73538c8de92d03d",
     "composition": "hotel-search",
     "version": 1
   },
-  "expansionSha256": "d15aa56c8f6942a668d3e40c4f6aa902f2b3192f4e5538005c0d60fa01b7efbc",
-  "emittedSha256": "e534639a5e63c283f2c980a6ab17ef96108b5493ef216927fb9a6b169f7dc351"
+  "expansionSha256": "b0f0c62eb6ed555303214f76ce4a1f88d70ebd1698a837379f82b801dce7762a",
+  "emittedSha256": "747c9e7c33045c371e3783aeaea8c530a8a186bb3e5cf6eb7f2409f5847d5810"
 }

@@ -11,7 +11,7 @@ import { createHost, recheck, type Host } from "./host";
 import { instantiate } from "./instantiate";
 import { compositionIssues, loadCompositions, stateIdFor } from "./load";
 import type { CompositionDefinition } from "./schema";
-import { compositions, contract, datasets, governorFor, lint, profileJson, readJson } from "./spike/fixtures";
+import { compositions, contract, datasets, governorFor, lint, profileJson, readJson, TOOLCHAIN } from "./spike/fixtures";
 
 let g: Governor;
 let cs: Record<string, CompositionDefinition>;
@@ -22,8 +22,8 @@ beforeAll(async () => {
   ds = datasets();
 });
 
-async function approvedHost(governor = g, session = "c1"): Promise<Host> {
-  const host = createHost({ session, governor, compositions: Object.values(cs) });
+async function approvedHost(governor = g): Promise<Host> {
+  const host = await createHost({ governor, compositions: Object.values(cs) });
   for (const c of Object.values(cs)) host.approve(c.id, (await recheck(governor, c)).approval!);
   return host;
 }
@@ -59,14 +59,14 @@ describe("H1: a surface governed under earlier rules does not run again after a 
 describe("H2: a governor's rules cannot change after its pins are taken", () => {
   it("an in-place edit of the caller's contract changes nothing the governor decides", async () => {
     const c = contract();
-    const gov = await createGovernor({ contract: c, profileJson: profileJson(), lintSurface: lint });
+    const gov = await createGovernor({ contract: c, profileJson: profileJson(), lintSurface: lint, toolchain: TOOLCHAIN });
     expect((await instantiate(gov, cs["hotel-results"]!, { surfaceId: "h2-1", data: ds.one })).ok).toBe(false);
     c.rules.find((r: any) => r.id === "rule.review-offers-alternatives").requiredSubComponents[0].min = 1;
     expect((await instantiate(gov, cs["hotel-results"]!, { surfaceId: "h2-2", data: ds.one })).ok).toBe(false);
   });
 
   it("the governor's own contract and profile are frozen", async () => {
-    const gov = await createGovernor({ contract: contract(), profileJson: profileJson(), lintSurface: lint });
+    const gov = await createGovernor({ contract: contract(), profileJson: profileJson(), lintSurface: lint, toolchain: TOOLCHAIN });
     expect(Object.isFrozen(gov.contract)).toBe(true);
     expect(Object.isFrozen((gov.contract.rules as unknown[])[0])).toBe(true);
   });

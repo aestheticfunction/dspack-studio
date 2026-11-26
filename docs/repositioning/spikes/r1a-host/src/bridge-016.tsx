@@ -12,7 +12,7 @@
  *     rule a2ui-ingest applies, R0 decision 16), so an unbound field keeps
  *     what is typed and a bound one writes to the data model.
  */
-import { createElement, useEffect, useState, type FC } from "react";
+import { createElement, useEffect, useRef, useState, type FC } from "react";
 import { Catalog, MessageProcessor } from "@a2ui/web_core/v0_9";
 import { A2uiSurface, createComponentImplementation } from "@a2ui/react/v0_9";
 import { TextRender } from "../../../../../packages/astryx-renderers/src/components/TextRender";
@@ -90,3 +90,48 @@ export const Surface016: FC<{ built: BuiltCatalog016; messages: unknown[]; onAct
     surfaces.map((s: any) => createElement("div", { key: s.id, "data-a2ui-surface": s.id }, createElement(A2uiSurface as any, { surface: s }))),
   );
 };
+
+/**
+ * One long-lived renderer session (R1A-REVIEW E4, in the browser): a single processor for the component's
+ * life. Each batch is a replacement (deleteSurface for the surface before, then the new creation batch),
+ * processed by that same processor, so what the person sees is upstream's own handling of a replacement.
+ */
+export const LiveSurface016: FC<{ built: BuiltCatalog016; batch: unknown[]; onAction: (a: any) => void; onReady?: (processor: any) => void }> = ({ built, batch, onAction, onReady }) => {
+  const handler = useRef(onAction);
+  handler.current = onAction;
+  const processor = useRef<any>(null);
+  const [surfaces, setSurfaces] = useState<any[]>([]);
+  useEffect(() => {
+    const p = new MessageProcessor<any>([built.catalog], async (a: any) => handler.current(a));
+    processor.current = p;
+    onReady?.(p);
+    return () => {
+      p.model.dispose();
+      processor.current = null;
+    };
+  }, [built]);
+  useEffect(() => {
+    const p = processor.current;
+    if (!p || batch.length === 0) return;
+    p.processMessages(structuredClone(batch) as any);
+    setSurfaces(Array.from(p.model.surfacesMap.values()));
+  }, [batch]);
+  return createElement(
+    "div",
+    null,
+    surfaces.map((s: any) => createElement("div", { key: s.id, "data-a2ui-surface": s.id }, createElement(A2uiSurface as any, { surface: s }))),
+  );
+};
+
+/**
+ * Apply the host's focus hint (host.ts focusAfter) after a replacement: the hinted component's own control,
+ * else its element, else the canvas region. Returns the element focused, so a check can assert on it.
+ */
+export function applyFocus(hint: { kind: string; componentId: string | null } | null, root: ParentNode = document): HTMLElement | null {
+  if (!hint) return null;
+  const el = hint.componentId ? (root.querySelector(`[data-a2ui-id="${CSS.escape(hint.componentId)}"]`) as HTMLElement | null) : null;
+  const control = el ? ((el.matches("input, button, textarea, select") ? el : el.querySelector("input, button, textarea, select")) as HTMLElement | null) : null;
+  const target = control ?? (el && el.tabIndex >= 0 ? el : null) ?? (root.querySelector("[data-canvas-region]") as HTMLElement | null);
+  target?.focus();
+  return target;
+}

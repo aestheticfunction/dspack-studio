@@ -466,29 +466,38 @@
           "pass": true
         },
         {
+          "check": "input memberNumber resolves its bound value",
+          "before": "",
+          "after": "typed memberNumber",
+          "pass": true
+        },
+        {
           "check": "search sends what the data says",
           "expected": {
             "destination": "typed destination",
             "checkIn": "typed checkIn",
             "checkOut": "typed checkOut",
-            "guests": "typed guests"
+            "guests": "typed guests",
+            "memberNumber": "typed memberNumber"
           },
           "sent": {
             "destination": "typed destination",
             "checkIn": "typed checkIn",
             "checkOut": "typed checkOut",
-            "guests": "typed guests"
+            "guests": "typed guests",
+            "memberNumber": "typed memberNumber"
           },
           "pass": true
         },
         {
           "check": "garbage in /input changes no property but bound input values",
-          "compared": 10,
+          "compared": 11,
           "changed": [
             "check_in",
             "check_out",
             "destination",
-            "guests"
+            "guests",
+            "member_number"
           ],
           "pass": true
         },
@@ -498,7 +507,8 @@
             "check_in",
             "check_out",
             "destination",
-            "guests"
+            "guests",
+            "member_number"
           ],
           "pass": true
         }
@@ -535,29 +545,38 @@
           "pass": true
         },
         {
+          "check": "input memberNumber resolves its bound value",
+          "before": "",
+          "after": "typed memberNumber",
+          "pass": true
+        },
+        {
           "check": "search sends what the data says",
           "expected": {
             "destination": "typed destination",
             "checkIn": "typed checkIn",
             "checkOut": "typed checkOut",
-            "guests": "typed guests"
+            "guests": "typed guests",
+            "memberNumber": "typed memberNumber"
           },
           "sent": {
             "destination": "typed destination",
             "checkIn": "typed checkIn",
             "checkOut": "typed checkOut",
-            "guests": "typed guests"
+            "guests": "typed guests",
+            "memberNumber": "typed memberNumber"
           },
           "pass": true
         },
         {
           "check": "garbage in /input changes no property but bound input values",
-          "compared": 8,
+          "compared": 9,
           "changed": [
             "check_in",
             "check_out",
             "destination",
-            "guests"
+            "guests",
+            "member_number"
           ],
           "pass": true
         },
@@ -567,7 +586,8 @@
             "check_in",
             "check_out",
             "destination",
-            "guests"
+            "guests",
+            "member_number"
           ],
           "pass": true
         }
@@ -579,25 +599,25 @@
     "steps": [
       {
         "label": "Search, empty",
-        "surfaceId": "hotel-search-walk-1",
+        "surfaceId": "hotel-search-evidencewalk0001-1",
         "live": [
-          "hotel-search-walk-1"
+          "hotel-search-evidencewalk0001-1"
         ],
         "pass": true
       },
       {
         "label": "Search again, with the error, values and focus kept",
-        "surfaceId": "hotel-search-walk-2",
+        "surfaceId": "hotel-search-evidencewalk0001-2",
         "live": [
-          "hotel-search-walk-2"
+          "hotel-search-evidencewalk0001-2"
         ],
         "pass": true
       },
       {
         "label": "Three results",
-        "surfaceId": "hotel-results-walk-3",
+        "surfaceId": "hotel-results-evidencewalk0001-3",
         "live": [
-          "hotel-results-walk-3"
+          "hotel-results-evidencewalk0001-3"
         ],
         "pressed": "choose",
         "sent": {
@@ -607,9 +627,9 @@
       },
       {
         "label": "The same search returns them reordered",
-        "surfaceId": "hotel-results-walk-4",
+        "surfaceId": "hotel-results-evidencewalk0001-4",
         "live": [
-          "hotel-results-walk-4"
+          "hotel-results-evidencewalk0001-4"
         ],
         "pressed": "choose",
         "sent": {
@@ -619,14 +639,22 @@
       },
       {
         "label": "Confirm the reservation",
-        "surfaceId": "hotel-results-walk-5",
+        "surfaceId": "hotel-results-evidencewalk0001-5",
         "live": [
-          "hotel-results-walk-5"
+          "hotel-results-evidencewalk0001-5"
         ],
         "pressed": "reserve",
         "sent": {
           "hotelId": "h-102"
         },
+        "pass": true
+      },
+      {
+        "label": "The governed replacement once the outcome is known",
+        "surfaceId": "hotel-search-evidencewalk0001-6",
+        "live": [
+          "hotel-search-evidencewalk0001-6"
+        ],
         "pass": true
       }
     ],

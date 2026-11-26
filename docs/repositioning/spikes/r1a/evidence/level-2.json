@@ -63,6 +63,8 @@
           "inputs": [
             {
               "input": "destination",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "Porto",
               "kept": "Porto",
               "pass": true
@@ -876,8 +878,8 @@
         },
         {
           "id": "search-invalid",
-          "literals": 12,
-          "visible": 8,
+          "literals": 14,
+          "visible": 9,
           "accessibleOnly": [
             {
               "component": "TextField#destination",
@@ -902,32 +904,54 @@
               "prop": "placeholder",
               "value": "1 to 8",
               "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#member_number",
+              "prop": "placeholder",
+              "value": "Not kept after this step",
+              "drawn": "accessible-only"
             }
           ],
           "missing": [],
           "inputs": [
             {
               "input": "destination",
+              "prefilled": "Lisbon",
+              "expectedPrefill": "Lisbon",
               "typed": "Porto",
               "kept": "Porto",
               "pass": true
             },
             {
               "input": "checkIn",
+              "prefilled": "2026-03-13",
+              "expectedPrefill": "2026-03-13",
               "typed": "2026-04-01",
               "kept": "2026-04-01",
               "pass": true
             },
             {
               "input": "checkOut",
+              "prefilled": "2026-03-10",
+              "expectedPrefill": "2026-03-10",
               "typed": "2026-04-04",
               "kept": "2026-04-04",
               "pass": true
             },
             {
               "input": "guests",
+              "prefilled": "2",
+              "expectedPrefill": "2",
               "typed": "3",
               "kept": "3",
+              "pass": true
+            },
+            {
+              "input": "memberNumber",
+              "prefilled": "",
+              "expectedPrefill": "",
+              "typed": "typed memberNumber",
+              "kept": "typed memberNumber",
               "pass": true
             }
           ],
@@ -940,7 +964,8 @@
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
                 "checkOut": "2026-04-04",
-                "guests": "3"
+                "guests": "3",
+                "memberNumber": "typed memberNumber"
               },
               "sent": {
                 "name": "search",
@@ -949,7 +974,8 @@
                   "destination": "Porto",
                   "checkIn": "2026-04-01",
                   "checkOut": "2026-04-04",
-                  "guests": "3"
+                  "guests": "3",
+                  "memberNumber": "typed memberNumber"
                 }
               },
               "pass": true
@@ -960,8 +986,8 @@
         },
         {
           "id": "search-ready",
-          "literals": 10,
-          "visible": 6,
+          "literals": 12,
+          "visible": 7,
           "accessibleOnly": [
             {
               "component": "TextField#destination",
@@ -986,32 +1012,54 @@
               "prop": "placeholder",
               "value": "1 to 8",
               "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#member_number",
+              "prop": "placeholder",
+              "value": "Not kept after this step",
+              "drawn": "accessible-only"
             }
           ],
           "missing": [],
           "inputs": [
             {
               "input": "destination",
+              "prefilled": "Lisbon",
+              "expectedPrefill": "Lisbon",
               "typed": "Porto",
               "kept": "Porto",
               "pass": true
             },
             {
               "input": "checkIn",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "2026-04-01",
               "kept": "2026-04-01",
               "pass": true
             },
             {
               "input": "checkOut",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "2026-04-04",
               "kept": "2026-04-04",
               "pass": true
             },
             {
               "input": "guests",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "3",
               "kept": "3",
+              "pass": true
+            },
+            {
+              "input": "memberNumber",
+              "prefilled": "",
+              "expectedPrefill": "",
+              "typed": "typed memberNumber",
+              "kept": "typed memberNumber",
               "pass": true
             }
           ],
@@ -1024,7 +1072,8 @@
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
                 "checkOut": "2026-04-04",
-                "guests": "3"
+                "guests": "3",
+                "memberNumber": "typed memberNumber"
               },
               "sent": {
                 "name": "search",
@@ -1033,7 +1082,8 @@
                   "destination": "Porto",
                   "checkIn": "2026-04-01",
                   "checkOut": "2026-04-04",
-                  "guests": "3"
+                  "guests": "3",
+                  "memberNumber": "typed memberNumber"
                 }
               },
               "pass": true
@@ -1106,6 +1156,8 @@
           "inputs": [
             {
               "input": "destination",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "Porto",
               "kept": "Porto",
               "pass": true
@@ -1919,8 +1971,8 @@
         },
         {
           "id": "search-invalid",
-          "literals": 12,
-          "visible": 8,
+          "literals": 14,
+          "visible": 9,
           "accessibleOnly": [
             {
               "component": "TextField#destination",
@@ -1945,32 +1997,54 @@
               "prop": "placeholder",
               "value": "1 to 8",
               "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#member_number",
+              "prop": "placeholder",
+              "value": "Not kept after this step",
+              "drawn": "accessible-only"
             }
           ],
           "missing": [],
           "inputs": [
             {
               "input": "destination",
+              "prefilled": "Lisbon",
+              "expectedPrefill": "Lisbon",
               "typed": "Porto",
               "kept": "Porto",
               "pass": true
             },
             {
               "input": "checkIn",
+              "prefilled": "2026-03-13",
+              "expectedPrefill": "2026-03-13",
               "typed": "2026-04-01",
               "kept": "2026-04-01",
               "pass": true
             },
             {
               "input": "checkOut",
+              "prefilled": "2026-03-10",
+              "expectedPrefill": "2026-03-10",
               "typed": "2026-04-04",
               "kept": "2026-04-04",
               "pass": true
             },
             {
               "input": "guests",
+              "prefilled": "2",
+              "expectedPrefill": "2",
               "typed": "3",
               "kept": "3",
+              "pass": true
+            },
+            {
+              "input": "memberNumber",
+              "prefilled": "",
+              "expectedPrefill": "",
+              "typed": "typed memberNumber",
+              "kept": "typed memberNumber",
               "pass": true
             }
           ],
@@ -1983,7 +2057,8 @@
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
                 "checkOut": "2026-04-04",
-                "guests": "3"
+                "guests": "3",
+                "memberNumber": "typed memberNumber"
               },
               "sent": {
                 "name": "search",
@@ -1992,7 +2067,8 @@
                   "destination": "Porto",
                   "checkIn": "2026-04-01",
                   "checkOut": "2026-04-04",
-                  "guests": "3"
+                  "guests": "3",
+                  "memberNumber": "typed memberNumber"
                 }
               },
               "pass": true
@@ -2003,8 +2079,8 @@
         },
         {
           "id": "search-ready",
-          "literals": 10,
-          "visible": 6,
+          "literals": 12,
+          "visible": 7,
           "accessibleOnly": [
             {
               "component": "TextField#destination",
@@ -2029,32 +2105,54 @@
               "prop": "placeholder",
               "value": "1 to 8",
               "drawn": "accessible-only"
+            },
+            {
+              "component": "TextField#member_number",
+              "prop": "placeholder",
+              "value": "Not kept after this step",
+              "drawn": "accessible-only"
             }
           ],
           "missing": [],
           "inputs": [
             {
               "input": "destination",
+              "prefilled": "Lisbon",
+              "expectedPrefill": "Lisbon",
               "typed": "Porto",
               "kept": "Porto",
               "pass": true
             },
             {
               "input": "checkIn",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "2026-04-01",
               "kept": "2026-04-01",
               "pass": true
             },
             {
               "input": "checkOut",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "2026-04-04",
               "kept": "2026-04-04",
               "pass": true
             },
             {
               "input": "guests",
+              "prefilled": "",
+              "expectedPrefill": "",
               "typed": "3",
               "kept": "3",
+              "pass": true
+            },
+            {
+              "input": "memberNumber",
+              "prefilled": "",
+              "expectedPrefill": "",
+              "typed": "typed memberNumber",
+              "kept": "typed memberNumber",
               "pass": true
             }
           ],
@@ -2067,7 +2165,8 @@
                 "destination": "Porto",
                 "checkIn": "2026-04-01",
                 "checkOut": "2026-04-04",
-                "guests": "3"
+                "guests": "3",
+                "memberNumber": "typed memberNumber"
               },
               "sent": {
                 "name": "search",
@@ -2076,7 +2175,8 @@
                   "destination": "Porto",
                   "checkIn": "2026-04-01",
                   "checkOut": "2026-04-04",
-                  "guests": "3"
+                  "guests": "3",
+                  "memberNumber": "typed memberNumber"
                 }
               },
               "pass": true
