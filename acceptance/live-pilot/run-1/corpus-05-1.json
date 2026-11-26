@@ -1,0 +1,959 @@
+{
+ "run": {
+  "id": "corpus-05-1",
+  "kind": "flow",
+  "source": "corpus",
+  "corpusN": 5,
+  "sample": 1
+ },
+ "goal": "A Convert Estimate to Project workflow.\nStart with a summary of the selected estimate so the user can verify\nwhich estimate will be converted.\nShow the project information required for conversion in a focused\nform, including relevant deadline, recipient, reference,\napplication/publication, or other fields when they are part of the\nsupplied request data.\nClearly separate information inherited from the estimate from\ninformation the user is supplying for the new project.\nBefore conversion, show a review step explaining that this action will\ncreate a project from the estimate.\nRequire explicit confirmation with Cancel and Confirm Conversion actions.\nAfter conversion succeeds, transition directly to the resulting\nProject detail interface. Make the new project identifier and status\nprominent and show that the project was successfully read back from\nGateway.\nThe workflow should visually communicate:\nEstimate → conversion details → review → confirmation → project\ncreated → project verified.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:29:39.127Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "a summary of the estimate being converted",
+   "an explicit confirmation before the change",
+   "the change cannot be repeated by accident",
+   "a read-back of the result",
+   "as EXPECTED.md row 5 describes"
+  ]
+ },
+ "flowPlan": {
+  "source": "model",
+  "raw": {
+   "name": "Convert Estimate to Project",
+   "steps": [
+    {
+     "title": "Verify Estimate",
+     "goal": "Display a summary of the selected estimate with key details so the user can confirm they are converting the correct estimate.",
+     "intent": "record-collection"
+    },
+    {
+     "title": "Enter Project Details",
+     "goal": "Collect required project information such as deadline, recipient, reference, and application/publication, with inherited estimate fields clearly separated from new user-supplied fields.",
+     "intent": "data-collection"
+    },
+    {
+     "title": "Review Conversion",
+     "goal": "Present a summary explaining that this action will create a new project from the estimate, with all supplied and inherited details for final verification.",
+     "intent": "transactional-review"
+    },
+    {
+     "title": "Confirm Conversion",
+     "goal": "Require explicit user confirmation with Cancel and Confirm Conversion actions to proceed with the irreversible conversion operation.",
+     "intent": "destructive-action"
+    },
+    {
+     "title": "Project Created",
+     "goal": "Display the new project with its identifier and status prominently, confirming successful creation and that the project was verified by Gateway.",
+     "intent": "record-collection"
+    }
+   ]
+  },
+  "name": "Convert Estimate to Project",
+  "steps": [
+   {
+    "title": "Verify Estimate",
+    "goal": "Display a summary of the selected estimate with key details so the user can confirm they are converting the correct estimate.",
+    "intent": "record-collection"
+   },
+   {
+    "title": "Enter Project Details",
+    "goal": "Collect required project information such as deadline, recipient, reference, and application/publication, with inherited estimate fields clearly separated from new user-supplied fields.",
+    "intent": "data-collection"
+   },
+   {
+    "title": "Review Conversion",
+    "goal": "Present a summary explaining that this action will create a new project from the estimate, with all supplied and inherited details for final verification.",
+    "intent": "transactional-review"
+   },
+   {
+    "title": "Confirm Conversion",
+    "goal": "Require explicit user confirmation with Cancel and Confirm Conversion actions to proceed with the irreversible conversion operation.",
+    "intent": "destructive-action"
+   },
+   {
+    "title": "Project Created",
+    "goal": "Display the new project with its identifier and status prominently, confirming successful creation and that the project was verified by Gateway.",
+    "intent": "record-collection"
+   }
+  ],
+  "durationMs": 31150,
+  "calls": [
+   {
+    "operation": "plan",
+    "subCall": 0,
+    "source": "provider",
+    "inputTokens": 819,
+    "outputTokens": 323,
+    "model": "claude-haiku-4-5-20251001",
+    "durationMs": 3245,
+    "outcome": "ok"
+   }
+  ],
+  "usd": 0.0025557
+ },
+ "builds": [
+  {
+   "step": {
+    "index": 1,
+    "title": "Verify Estimate",
+    "intent": "record-collection"
+   },
+   "plan": {
+    "intent": "record-collection",
+    "source": "model",
+    "durationMs": 29554.817249999847
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": false,
+   "attempts": 2,
+   "repairs": 1,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 24960,
+    "output": 857,
+    "providerCalls": 3,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.030707250000000005,
+   "timings": {
+    "planMs": 29554.817249999847,
+    "firstGatedAttemptMs": 61641.56550600007,
+    "emitMs": 115.39055599994026,
+    "totalMs": 93463.48920099996,
+    "pacingMs": 84661.47081100033,
+    "execution": {
+     "planMs": 1959.3802579997573,
+     "firstGatedAttemptMs": 4981.963990999851,
+     "emitMs": 115.39055599994026,
+     "totalMs": 8802.018389999634
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "Table",
+     "Text"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "Table",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1010,
+     "outputTokens": 130,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1837,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11509,
+     "outputTokens": 365,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2859,
+     "outcome": "ok"
+    },
+    {
+     "operation": "repair",
+     "attempt": 1,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 12441,
+     "outputTokens": 362,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 3494,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "record-collection",
+    "root": {
+     "component": "card",
+     "id": "estimate-summary",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Confirm estimate conversion"
+      },
+      {
+       "component": "table",
+       "id": "estimate-details",
+       "props": {
+        "columns": [
+         "Field",
+         "Value"
+        ],
+        "data": [
+         {
+          "cells": [
+           "Estimate ID",
+           "EST-2024-0847"
+          ]
+         },
+         {
+          "cells": [
+           "Client",
+           "Acme Corporation"
+          ]
+         },
+         {
+          "cells": [
+           "Project",
+           "Website Redesign Phase 2"
+          ]
+         },
+         {
+          "cells": [
+           "Issue date",
+           "December 15, 2024"
+          ]
+         },
+         {
+          "cells": [
+           "Valid until",
+           "January 15, 2025"
+          ]
+         },
+         {
+          "cells": [
+           "Subtotal",
+           "$12,500.00"
+          ]
+         },
+         {
+          "cells": [
+           "Tax",
+           "$1,000.00"
+          ]
+         },
+         {
+          "cells": [
+           "Total",
+           "$13,500.00"
+          ]
+         },
+         {
+          "cells": [
+           "Payment terms",
+           "Net 30"
+          ]
+         }
+        ],
+        "density": "balanced"
+       }
+      },
+      {
+       "component": "text",
+       "id": "confirmation-prompt",
+       "props": {
+        "type": "body",
+        "as": "p"
+       },
+       "text": "Converting this estimate to an invoice will lock the line items and create a formal billing record. This action cannot be undone."
+      },
+      {
+       "component": "list",
+       "id": "actions",
+       "props": {
+        "density": "compact",
+        "hasDividers": false
+       },
+       "children": [
+        {
+         "component": "button",
+         "id": "btn-convert",
+         "props": {
+          "label": "Convert to invoice",
+          "variant": "primary"
+         }
+        },
+        {
+         "component": "button",
+         "id": "btn-cancel",
+         "props": {
+          "label": "Cancel",
+          "variant": "secondary"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 2,
+    "title": "Enter Project Details",
+    "intent": "data-collection"
+   },
+   "plan": {
+    "intent": "data-collection",
+    "source": "model",
+    "durationMs": 29496.6310409999
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12309,
+    "output": 525,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.0156807,
+   "timings": {
+    "planMs": 29496.6310409999,
+    "firstGatedAttemptMs": 61291.55655199988,
+    "emitMs": 112.09367400011979,
+    "totalMs": 61404.10891800001,
+    "pacingMs": 55932.55525800004,
+    "execution": {
+     "planMs": 2294.121481999755,
+     "firstGatedAttemptMs": 5359.001293999841,
+     "emitMs": 112.09367400011979,
+     "totalMs": 5471.553659999976
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "MetadataList",
+     "Text",
+     "TextField"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "MetadataList",
+     "Text",
+     "TextField"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1019,
+     "outputTokens": 150,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2106,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11290,
+     "outputTokens": 375,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2891,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "data-collection",
+    "root": {
+     "component": "card",
+     "id": "project-info-card",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-3"
+       },
+       "text": "Project Information"
+      },
+      {
+       "component": "text",
+       "id": "section-new",
+       "props": {
+        "type": "large",
+        "as": "label"
+       },
+       "text": "Required Details"
+      },
+      {
+       "component": "text-input",
+       "id": "deadline-input",
+       "props": {
+        "label": "Project deadline",
+        "type": "text",
+        "placeholder": "YYYY-MM-DD",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "text-input",
+       "id": "recipient-input",
+       "props": {
+        "label": "Recipient",
+        "placeholder": "Organization or person name",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "text-input",
+       "id": "reference-input",
+       "props": {
+        "label": "Reference number",
+        "placeholder": "e.g., PRJ-2024-001",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "text-input",
+       "id": "application-input",
+       "props": {
+        "label": "Application/Publication",
+        "placeholder": "Target application or publication",
+        "isRequired": true
+       }
+      },
+      {
+       "component": "text",
+       "id": "section-inherited",
+       "props": {
+        "type": "large",
+        "as": "label"
+       },
+       "text": "Inherited Estimates"
+      },
+      {
+       "component": "metadata-list",
+       "id": "estimates",
+       "props": {
+        "items": [
+         {
+          "label": "Estimated duration",
+          "value": "8 weeks"
+         },
+         {
+          "label": "Estimated budget",
+          "value": "$15,000"
+         },
+         {
+          "label": "Resource allocation",
+          "value": "2 FTE"
+         }
+        ],
+        "columns": "multi",
+        "orientation": "vertical"
+       }
+      },
+      {
+       "component": "button",
+       "id": "submit",
+       "props": {
+        "label": "Save project information",
+        "variant": "primary"
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 3,
+    "title": "Review Conversion",
+    "intent": "transactional-review"
+   },
+   "plan": {
+    "intent": "transactional-review",
+    "source": "model",
+    "durationMs": 29808.8515300001
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12742,
+    "output": 527,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.01614585,
+   "timings": {
+    "planMs": 29808.8515300001,
+    "firstGatedAttemptMs": 62276.92478400003,
+    "emitMs": 79.45456400001422,
+    "totalMs": 62356.8590559999,
+    "pacingMs": 56907.69958800031,
+    "execution": {
+     "planMs": 1962.5820579999126,
+     "firstGatedAttemptMs": 5369.225195999723,
+     "emitMs": 79.45456400001422,
+     "totalMs": 5449.159467999591
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1014,
+     "outputTokens": 131,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1804,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11728,
+     "outputTokens": 396,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 3225,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "transactional-review",
+    "root": {
+     "component": "card",
+     "id": "summary-card",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-3"
+       },
+       "text": "Create project from estimate"
+      },
+      {
+       "component": "text",
+       "id": "description",
+       "props": {
+        "type": "body"
+       },
+       "text": "This action will create a new project using all details from your estimate. Review the supplied and inherited information below before confirming."
+      },
+      {
+       "component": "list",
+       "id": "details",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "estimate-details",
+         "props": {
+          "label": "Estimate details",
+          "isSelected": true,
+          "variant": "muted"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "estimate-metadata",
+           "props": {
+            "items": [
+             {
+              "label": "Estimate ID",
+              "value": "EST-2024-001"
+             },
+             {
+              "label": "Client",
+              "value": "Acme Corp"
+             },
+             {
+              "label": "Scope",
+              "value": "Web application redesign"
+             },
+             {
+              "label": "Estimate amount",
+              "value": "$18,500"
+             }
+            ]
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "inherited-details",
+         "props": {
+          "label": "Inherited settings",
+          "isSelected": true,
+          "variant": "muted"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "inherited-metadata",
+           "props": {
+            "items": [
+             {
+              "label": "Team",
+              "value": "Design & Development"
+             },
+             {
+              "label": "Status",
+              "value": "Active"
+             },
+             {
+              "label": "Timeline",
+              "value": "Q1 2024"
+             },
+             {
+              "label": "Budget type",
+              "value": "Fixed price"
+             }
+            ]
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "button",
+       "id": "confirm",
+       "props": {
+        "label": "Create project",
+        "variant": "primary",
+        "size": "md"
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 4,
+    "title": "Confirm Conversion",
+    "intent": "destructive-action"
+   },
+   "plan": {
+    "intent": "destructive-action",
+    "source": "model",
+    "durationMs": 29402.752071999945
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12172,
+    "output": 261,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.01415085,
+   "timings": {
+    "planMs": 29402.752071999945,
+    "firstGatedAttemptMs": 60889.27398700011,
+    "emitMs": 61.21930600004271,
+    "totalMs": 60950.88095300016,
+    "pacingMs": 56698.45606699982,
+    "execution": {
+     "planMs": 1864.6433089999482,
+     "firstGatedAttemptMs": 4190.817920000292,
+     "emitMs": 61.21930600004271,
+     "totalMs": 4252.424886000343
+    }
+   },
+   "renderer": {
+    "used": [
+     "AlertDialog"
+    ],
+    "native": [
+     "AlertDialog"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1011,
+     "outputTokens": 112,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1544,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11161,
+     "outputTokens": 149,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2146,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "destructive-action",
+    "root": {
+     "component": "alert-dialog",
+     "props": {
+      "title": "Convert this project?",
+      "description": "This conversion is irreversible. Your project structure and all associated data will be permanently transformed and cannot be restored to its original state.",
+      "actionLabel": "Convert project",
+      "cancelLabel": "Cancel",
+      "actionVariant": "destructive"
+     }
+    }
+   }
+  },
+  {
+   "step": {
+    "index": 5,
+    "title": "Project Created",
+    "intent": "record-collection"
+   },
+   "plan": {
+    "intent": "record-collection",
+    "source": "model",
+    "durationMs": 30594.806044999976
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": false,
+   "attempts": 2,
+   "repairs": 1,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 24397,
+    "output": 669,
+    "providerCalls": 3,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.029129099999999998,
+   "timings": {
+    "planMs": 30594.806044999976,
+    "firstGatedAttemptMs": 62680.05752499984,
+    "emitMs": 93.58188900002278,
+    "totalMs": 93564.13861399982,
+    "pacingMs": 85706.48283100012,
+    "execution": {
+     "planMs": 1958.4439539997838,
+     "firstGatedAttemptMs": 4978.012430999661,
+     "emitMs": 93.58188900002278,
+     "totalMs": 7857.655782999704
+    }
+   },
+   "renderer": {
+    "used": [
+     "Badge",
+     "Button",
+     "List",
+     "Table",
+     "Text"
+    ],
+    "native": [
+     "Badge",
+     "Button",
+     "List",
+     "Table",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1013,
+     "outputTokens": 125,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 1789,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11512,
+     "outputTokens": 290,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2772,
+     "outcome": "ok"
+    },
+    {
+     "operation": "repair",
+     "attempt": 1,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11872,
+     "outputTokens": 254,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2564,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "record-collection",
+    "root": {
+     "component": "table",
+     "id": "project-creation-confirmation",
+     "props": {
+      "columns": [
+       "Project ID",
+       "Name",
+       "Status",
+       "Gateway Verification",
+       "Created"
+      ],
+      "data": [
+       {
+        "cells": [
+         "PRJ-2847-X9K2",
+         "Marketing Analytics Platform",
+         "Verified",
+         "Passed",
+         "2024-01-15 at 14:32 UTC"
+        ]
+       }
+      ],
+      "density": "balanced"
+     },
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Project created successfully"
+      },
+      {
+       "component": "badge",
+       "id": "status-badge",
+       "props": {
+        "variant": "success",
+        "label": "Verified by Gateway"
+       }
+      },
+      {
+       "component": "list",
+       "id": "actions",
+       "props": {
+        "density": "compact"
+       },
+       "children": [
+        {
+         "component": "button",
+         "id": "view-project",
+         "props": {
+          "label": "View project dashboard",
+          "variant": "primary",
+          "size": "md"
+         }
+        },
+        {
+         "component": "button",
+         "id": "invite-team",
+         "props": {
+          "label": "Invite team members",
+          "variant": "secondary",
+          "size": "md"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "durationMs": 402895,
+ "pilotUsdAfter": 0.6539904
+}

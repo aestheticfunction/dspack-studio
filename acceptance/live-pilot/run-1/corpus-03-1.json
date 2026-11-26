@@ -1,0 +1,501 @@
+{
+ "run": {
+  "id": "corpus-03-1",
+  "kind": "single",
+  "source": "corpus",
+  "corpusN": 3,
+  "sample": 1
+ },
+ "goal": "An estimate detail workspace for an IP services estimate.\nAt the top, show the estimate reference or identifier, current status,\nand the most important service context.\nBelow it, organize the estimate into clear sections for service\ndetails, jurisdictions or languages when available, pricing and\ncurrency, important dates, and other meaningful estimate information\nreturned by the service.\nWarnings should be visible without overwhelming the estimate.\nIf documents or estimate-related links are available, show them in a\nseparate documents area.\nProvide a clear place for the next available action, especially when\nthe estimate can proceed into project creation.\nThe interface should make an estimate easy to review with a client or\ncolleague during a live demonstration without exposing raw API JSON.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:24:29.931Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "the estimate reference and status",
+   "the line items or services estimated",
+   "totals",
+   "what the user can do next, as EXPECTED.md row 3 describes"
+  ]
+ },
+ "builds": [
+  {
+   "plan": {
+    "intent": "structured-editing",
+    "source": "model",
+    "durationMs": 29362.991258000024
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12540,
+    "output": 2691,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.027294750000000003,
+   "timings": {
+    "planMs": 29362.991258000024,
+    "firstGatedAttemptMs": 71939.60645799991,
+    "emitMs": 113.41872900002636,
+    "totalMs": 72053.62117599999,
+    "pacingMs": 55135.00119500002,
+    "execution": {
+     "planMs": 2625.8135590001475,
+     "firstGatedAttemptMs": 16804.60526299989,
+     "emitMs": 113.41872900002636,
+     "totalMs": 16918.619980999967
+    }
+   },
+   "renderer": {
+    "used": [
+     "Badge",
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "Table",
+     "Text"
+    ],
+    "native": [
+     "Badge",
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "Table",
+     "Text"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1143,
+     "outputTokens": 162,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2481,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11397,
+     "outputTokens": 2529,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 13960,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "structured-editing",
+    "root": {
+     "component": "card",
+     "id": "estimate-workspace",
+     "props": {
+      "variant": "default"
+     },
+     "children": [
+      {
+       "component": "text",
+       "id": "estimate-header",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "EST-2024-001847"
+      },
+      {
+       "component": "list",
+       "id": "header-metadata",
+       "props": {
+        "density": "compact",
+        "hasDividers": false
+       },
+       "children": [
+        {
+         "component": "metadata-list",
+         "id": "header-info",
+         "props": {
+          "items": [
+           {
+            "label": "Status",
+            "value": "Draft"
+           },
+           {
+            "label": "Service Type",
+            "value": "Trademark Search & Report"
+           },
+           {
+            "label": "Client",
+            "value": "Acme Corporation"
+           }
+          ],
+          "columns": "multi",
+          "orientation": "horizontal"
+         }
+        }
+       ]
+      },
+      {
+       "component": "badge",
+       "id": "warning-badge",
+       "props": {
+        "label": "1 term requires clarification",
+        "variant": "warning"
+       }
+      },
+      {
+       "component": "card",
+       "id": "service-details-card",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "service-section-title",
+         "props": {
+          "type": "label"
+         },
+         "text": "Service Details"
+        },
+        {
+         "component": "metadata-list",
+         "id": "service-metadata",
+         "props": {
+          "items": [
+           {
+            "label": "Service",
+            "value": "Trademark Search & Report"
+           },
+           {
+            "label": "Scope",
+            "value": "Domestic + International"
+           },
+           {
+            "label": "Mark Type",
+            "value": "Word Mark"
+           },
+           {
+            "label": "Classes",
+            "value": "Class 09, Class 42"
+           },
+           {
+            "label": "Description",
+            "value": "Software and IT consulting services"
+           }
+          ],
+          "columns": "single",
+          "orientation": "vertical"
+         }
+        }
+       ]
+      },
+      {
+       "component": "card",
+       "id": "jurisdictions-card",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "jurisdictions-title",
+         "props": {
+          "type": "label"
+         },
+         "text": "Jurisdictions & Languages"
+        },
+        {
+         "component": "table",
+         "id": "jurisdictions-table",
+         "props": {
+          "columns": [
+           "Jurisdiction",
+           "Language",
+           "Status"
+          ],
+          "data": [
+           {
+            "cells": [
+             "United States",
+             "English",
+             "Included"
+            ]
+           },
+           {
+            "cells": [
+             "European Union",
+             "English",
+             "Included"
+            ]
+           },
+           {
+            "cells": [
+             "United Kingdom",
+             "English",
+             "Included"
+            ]
+           },
+           {
+            "cells": [
+             "Canada",
+             "English",
+             "Optional"
+            ]
+           }
+          ],
+          "density": "compact",
+          "dividers": "rows"
+         }
+        }
+       ]
+      },
+      {
+       "component": "card",
+       "id": "pricing-card",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "pricing-title",
+         "props": {
+          "type": "label"
+         },
+         "text": "Pricing & Currency"
+        },
+        {
+         "component": "metadata-list",
+         "id": "pricing-metadata",
+         "props": {
+          "items": [
+           {
+            "label": "Currency",
+            "value": "USD"
+           },
+           {
+            "label": "Base Service Fee",
+            "value": "$1,250.00"
+           },
+           {
+            "label": "International Search (EU)",
+            "value": "$850.00"
+           },
+           {
+            "label": "Optional: Canadian Search",
+            "value": "$400.00"
+           },
+           {
+            "label": "Subtotal",
+            "value": "$2,100.00"
+           },
+           {
+            "label": "Tax (8%)",
+            "value": "$168.00"
+           },
+           {
+            "label": "Total",
+            "value": "$2,268.00"
+           }
+          ],
+          "columns": "single",
+          "orientation": "vertical"
+         }
+        }
+       ]
+      },
+      {
+       "component": "card",
+       "id": "dates-card",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "dates-title",
+         "props": {
+          "type": "label"
+         },
+         "text": "Important Dates"
+        },
+        {
+         "component": "metadata-list",
+         "id": "dates-metadata",
+         "props": {
+          "items": [
+           {
+            "label": "Estimate Created",
+            "value": "2024-01-15"
+           },
+           {
+            "label": "Estimate Valid Until",
+            "value": "2024-02-15"
+           },
+           {
+            "label": "Proposed Start Date",
+            "value": "2024-02-01"
+           },
+           {
+            "label": "Estimated Completion",
+            "value": "2024-03-15"
+           }
+          ],
+          "columns": "single",
+          "orientation": "vertical"
+         }
+        }
+       ]
+      },
+      {
+       "component": "card",
+       "id": "warnings-card",
+       "props": {
+        "variant": "yellow"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "warnings-title",
+         "props": {
+          "type": "label"
+         },
+         "text": "Review Items"
+        },
+        {
+         "component": "list",
+         "id": "warnings-list",
+         "props": {
+          "density": "balanced",
+          "hasDividers": true
+         },
+         "children": [
+          {
+           "component": "text",
+           "id": "warning-1",
+           "props": {
+            "type": "body",
+            "as": "p"
+           },
+           "text": "Class 42 scope requires client clarification: Does this include custom development services?"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "card",
+       "id": "documents-card",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "documents-title",
+         "props": {
+          "type": "label"
+         },
+         "text": "Documents & Links"
+        },
+        {
+         "component": "list",
+         "id": "documents-list",
+         "props": {
+          "density": "balanced",
+          "hasDividers": true
+         },
+         "children": [
+          {
+           "component": "button",
+           "id": "download-estimate",
+           "props": {
+            "label": "Download PDF Estimate",
+            "variant": "secondary",
+            "size": "md"
+           }
+          },
+          {
+           "component": "button",
+           "id": "view-scope",
+           "props": {
+            "label": "View Detailed Scope Document",
+            "variant": "secondary",
+            "size": "md"
+           }
+          },
+          {
+           "component": "button",
+           "id": "comparison-link",
+           "props": {
+            "label": "Service Comparison Chart",
+            "variant": "secondary",
+            "size": "md"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "list",
+       "id": "action-buttons",
+       "props": {
+        "density": "balanced",
+        "hasDividers": false
+       },
+       "children": [
+        {
+         "component": "button",
+         "id": "clarify-action",
+         "props": {
+          "label": "Request Clarification from Client",
+          "variant": "secondary",
+          "size": "md"
+         }
+        },
+        {
+         "component": "button",
+         "id": "edit-estimate",
+         "props": {
+          "label": "Edit Estimate",
+          "variant": "secondary",
+          "size": "md"
+         }
+        },
+        {
+         "component": "button",
+         "id": "create-project",
+         "props": {
+          "label": "Create Project from Estimate",
+          "variant": "primary",
+          "size": "lg"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "durationMs": 72055,
+ "pilotUsdAfter": 0.44323755
+}

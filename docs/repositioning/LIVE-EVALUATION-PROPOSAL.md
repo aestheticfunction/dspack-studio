@@ -2,6 +2,8 @@
 
 **Status:** proposal only, 2026-11-25. No paid inference was run in M0 and none is authorized (decision D8). This document asks for a small pilot first and makes anything larger depend on what the pilot shows.
 
+> **After R0.** The owner accepted the pilot and its $5 ceiling in principle and authorized its preparation only. The harness changes this proposal called for now exist (`packages/block-bench/live/pilot/`), and [LIVE-PILOT-RUNBOOK.md](LIVE-PILOT-RUNBOOK.md) sets out the restricted environment, the owner's actions, the commands and the rollback. The pilot was then authorized and run on 2026-11-25: see [LIVE-PILOT-REPORT.md](LIVE-PILOT-REPORT.md). The full baseline remains unauthorized.
+
 ## Why a live run is needed at all
 
 The deterministic baseline (BASELINE.md) shows the machinery works. It cannot show how a model behaves on the requests this repositioning is about: whether a multi-stage request is decomposed sensibly, whether the result does what was asked, and what it costs. Every provisional threshold in the proposal's E5 that depends on a model stays provisional until measured.

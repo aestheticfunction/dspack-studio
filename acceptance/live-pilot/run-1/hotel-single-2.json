@@ -1,0 +1,496 @@
+{
+ "run": {
+  "id": "hotel-single-2",
+  "kind": "single",
+  "source": "hotel",
+  "sample": 2
+ },
+ "goal": "Create a hotel reservation experience where a user can search for hotels by destination, check-in date, check-out date and number of guests, compare available hotels, select a hotel and room, review the reservation details, and confirm the booking.",
+ "reference": "astryx",
+ "startedAt": "2026-11-25T22:02:25.367Z",
+ "taskFit": {
+  "marked": false,
+  "items": [
+   "destination",
+   "check-in date",
+   "check-out date",
+   "guest count",
+   "a comparison of at least two hotels",
+   "a room choice",
+   "a review of the reservation",
+   "an explicit confirmation"
+  ]
+ },
+ "builds": [
+  {
+   "plan": {
+    "intent": "transactional-review",
+    "source": "model",
+    "durationMs": 19811.389540000004
+   },
+   "outcome": "passed",
+   "passed": true,
+   "firstPass": true,
+   "attempts": 1,
+   "repairs": 0,
+   "models": [
+    "claude-haiku-4-5-20251001"
+   ],
+   "tokens": {
+    "input": 12788,
+    "output": 2350,
+    "providerCalls": 2,
+    "unreportedCalls": 0,
+    "modelFreeCalls": 0
+   },
+   "usd": 0.0257649,
+   "timings": {
+    "planMs": 19811.389540000004,
+    "firstGatedAttemptMs": 60323.032018000005,
+    "emitMs": 75.04474699999264,
+    "totalMs": 60398.482477000005,
+    "pacingMs": 45905.108582999994,
+    "execution": {
+     "planMs": 2464.58710600001,
+     "firstGatedAttemptMs": 14417.923435000012,
+     "emitMs": 75.04474699999264,
+     "totalMs": 14493.373894000011
+    }
+   },
+   "renderer": {
+    "used": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text",
+     "TextField"
+    ],
+    "native": [
+     "Button",
+     "Card",
+     "Column",
+     "List",
+     "MetadataList",
+     "SelectableCard",
+     "Text",
+     "TextField"
+    ],
+    "wireframe": []
+   },
+   "calls": [
+    {
+     "operation": "plan",
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 1037,
+     "outputTokens": 154,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 2275,
+     "outcome": "ok"
+    },
+    {
+     "operation": "generate",
+     "attempt": 0,
+     "subCall": 0,
+     "source": "provider",
+     "inputTokens": 11751,
+     "outputTokens": 2196,
+     "model": "claude-haiku-4-5-20251001",
+     "durationMs": 11653,
+     "outcome": "ok"
+    }
+   ],
+   "surface": {
+    "dspackSurface": "0.1",
+    "system": "Astryx",
+    "intent": "transactional-review",
+    "root": {
+     "component": "card",
+     "id": "hotel-reservation",
+     "children": [
+      {
+       "component": "text",
+       "id": "title",
+       "props": {
+        "type": "display-2"
+       },
+       "text": "Hotel Reservation"
+      },
+      {
+       "component": "card",
+       "id": "search-section",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "search-title",
+         "props": {
+          "type": "large"
+         },
+         "text": "Search Hotels"
+        },
+        {
+         "component": "text-input",
+         "id": "destination",
+         "props": {
+          "label": "Destination",
+          "placeholder": "City or hotel name"
+         }
+        },
+        {
+         "component": "text-input",
+         "id": "checkin",
+         "props": {
+          "label": "Check-in Date",
+          "type": "text",
+          "placeholder": "MM/DD/YYYY"
+         }
+        },
+        {
+         "component": "text-input",
+         "id": "checkout",
+         "props": {
+          "label": "Check-out Date",
+          "type": "text",
+          "placeholder": "MM/DD/YYYY"
+         }
+        },
+        {
+         "component": "text-input",
+         "id": "guests",
+         "props": {
+          "label": "Number of Guests",
+          "type": "text",
+          "placeholder": "1"
+         }
+        },
+        {
+         "component": "button",
+         "id": "search-btn",
+         "props": {
+          "label": "Search Hotels",
+          "variant": "primary"
+         }
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "results-title",
+       "props": {
+        "type": "large"
+       },
+       "text": "Available Hotels"
+      },
+      {
+       "component": "list",
+       "id": "hotels-list",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "hotel-1",
+         "props": {
+          "label": "Grand Plaza Hotel",
+          "isSelected": true,
+          "variant": "blue"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "hotel-1-details",
+           "props": {
+            "items": [
+             {
+              "label": "Location",
+              "value": "Downtown District"
+             },
+             {
+              "label": "Rating",
+              "value": "4.8/5 (342 reviews)"
+             },
+             {
+              "label": "Price per Night",
+              "value": "$185"
+             },
+             {
+              "label": "Available Rooms",
+              "value": "12 rooms"
+             }
+            ]
+           }
+          },
+          {
+           "component": "text",
+           "id": "hotel-1-amenities",
+           "props": {
+            "type": "supporting"
+           },
+           "text": "Free WiFi • Pool • Fitness Center • Restaurant"
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "hotel-2",
+         "props": {
+          "label": "Riverside Inn",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "hotel-2-details",
+           "props": {
+            "items": [
+             {
+              "label": "Location",
+              "value": "Waterfront"
+             },
+             {
+              "label": "Rating",
+              "value": "4.6/5 (287 reviews)"
+             },
+             {
+              "label": "Price per Night",
+              "value": "$142"
+             },
+             {
+              "label": "Available Rooms",
+              "value": "8 rooms"
+             }
+            ]
+           }
+          },
+          {
+           "component": "text",
+           "id": "hotel-2-amenities",
+           "props": {
+            "type": "supporting"
+           },
+           "text": "Free WiFi • Spa • Bar • Business Center"
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "hotel-3",
+         "props": {
+          "label": "Budget Express",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "hotel-3-details",
+           "props": {
+            "items": [
+             {
+              "label": "Location",
+              "value": "Airport Area"
+             },
+             {
+              "label": "Rating",
+              "value": "4.2/5 (156 reviews)"
+             },
+             {
+              "label": "Price per Night",
+              "value": "$89"
+             },
+             {
+              "label": "Available Rooms",
+              "value": "15 rooms"
+             }
+            ]
+           }
+          },
+          {
+           "component": "text",
+           "id": "hotel-3-amenities",
+           "props": {
+            "type": "supporting"
+           },
+           "text": "Free WiFi • Free Parking • Breakfast Included"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "text",
+       "id": "rooms-title",
+       "props": {
+        "type": "large"
+       },
+       "text": "Select Room Type"
+      },
+      {
+       "component": "list",
+       "id": "rooms-list",
+       "props": {
+        "density": "balanced",
+        "hasDividers": true
+       },
+       "children": [
+        {
+         "component": "selectable-card",
+         "id": "room-1",
+         "props": {
+          "label": "Deluxe Room",
+          "isSelected": true,
+          "variant": "blue"
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "room-1-details",
+           "props": {
+            "items": [
+             {
+              "label": "Occupancy",
+              "value": "2 guests"
+             },
+             {
+              "label": "Bed Type",
+              "value": "King"
+             },
+             {
+              "label": "Size",
+              "value": "350 sq ft"
+             },
+             {
+              "label": "Price",
+              "value": "$185/night"
+             }
+            ]
+           }
+          }
+         ]
+        },
+        {
+         "component": "selectable-card",
+         "id": "room-2",
+         "props": {
+          "label": "Suite",
+          "isSelected": false
+         },
+         "children": [
+          {
+           "component": "metadata-list",
+           "id": "room-2-details",
+           "props": {
+            "items": [
+             {
+              "label": "Occupancy",
+              "value": "4 guests"
+             },
+             {
+              "label": "Bed Type",
+              "value": "King + Sofa"
+             },
+             {
+              "label": "Size",
+              "value": "550 sq ft"
+             },
+             {
+              "label": "Price",
+              "value": "$285/night"
+             }
+            ]
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "component": "card",
+       "id": "review-section",
+       "props": {
+        "variant": "muted"
+       },
+       "children": [
+        {
+         "component": "text",
+         "id": "review-title",
+         "props": {
+          "type": "large"
+         },
+         "text": "Review Your Reservation"
+        },
+        {
+         "component": "metadata-list",
+         "id": "reservation-summary",
+         "props": {
+          "items": [
+           {
+            "label": "Hotel",
+            "value": "Grand Plaza Hotel"
+           },
+           {
+            "label": "Room Type",
+            "value": "Deluxe Room"
+           },
+           {
+            "label": "Check-in",
+            "value": "December 15, 2024"
+           },
+           {
+            "label": "Check-out",
+            "value": "December 18, 2024"
+           },
+           {
+            "label": "Nights",
+            "value": "3"
+           },
+           {
+            "label": "Guests",
+            "value": "2"
+           },
+           {
+            "label": "Nightly Rate",
+            "value": "$185"
+           },
+           {
+            "label": "Subtotal",
+            "value": "$555"
+           },
+           {
+            "label": "Taxes & Fees",
+            "value": "$72"
+           },
+           {
+            "label": "Total",
+            "value": "$627"
+           }
+          ],
+          "orientation": "vertical"
+         }
+        }
+       ]
+      },
+      {
+       "component": "button",
+       "id": "confirm-btn",
+       "props": {
+        "label": "Confirm Booking",
+        "variant": "primary",
+        "size": "lg"
+       }
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "durationMs": 60400,
+ "pilotUsdAfter": 0.0528318
+}
