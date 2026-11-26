@@ -62,6 +62,12 @@ export interface InputSpec {
   maxLength: number;
   minimum?: number;
   maximum?: number;
+  /**
+   * A sensitive value (R1A-REVIEW decision D5) reaches the caller once, in the accepted action that carries
+   * it, and nowhere else: never carried into a replacement, never written into a creation batch, never kept
+   * by the host, and replaced by redactEvent in anything recorded.
+   */
+  sensitive?: boolean;
 }
 
 /** A payload value: a JSON scalar, or a reference resolved once, at instantiation. */
@@ -89,6 +95,12 @@ export interface Scenario {
   state?: string;
   data: Record<string, unknown>;
   expect: "ok" | "refused";
+  /**
+   * For an expected refusal: the rule id (as lint reports it, e.g. "rule.review-offers-alternatives") or the
+   * pipeline stage ("data", "state", "expand", "emit", "attach", "layout", "gates") that must refuse it
+   * (R1A-REVIEW L3). Any other refusal fails the re-check.
+   */
+  refusedBy?: string;
 }
 
 export interface CompositionDefinition {
@@ -160,6 +172,7 @@ const compositionSchema = z
             maxLength: z.number().int().min(1).max(500),
             minimum: z.number().int().optional(),
             maximum: z.number().int().optional(),
+            sensitive: z.boolean().optional(),
           })
           .strict(),
       )
@@ -202,6 +215,7 @@ const compositionSchema = z
             state: z.string().regex(ID).optional(),
             data: z.record(z.unknown()),
             expect: z.enum(["ok", "refused"]),
+            refusedBy: z.string().min(1).optional(),
           })
           .strict(),
       )
@@ -262,6 +276,8 @@ export function parseCompositionsSidecar(json: unknown): { ok: true; sidecar: Co
     });
     c.scenarios.forEach((s, i) => {
       if (s.state && !stateIds.includes(s.state)) issues.push({ path: `${at}.scenarios.${i}.state`, message: `unknown state '${s.state}'` });
+      if (s.expect === "refused" && !s.refusedBy) issues.push({ path: `${at}.scenarios.${i}.refusedBy`, message: "a refused scenario names the rule or stage that must refuse it (refusedBy)" });
+      if (s.expect === "ok" && s.refusedBy) issues.push({ path: `${at}.scenarios.${i}.refusedBy`, message: "only a refused scenario names refusedBy" });
     });
   });
   if (issues.length > 0) return { ok: false, issues };

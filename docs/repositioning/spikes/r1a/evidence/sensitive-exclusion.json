@@ -1,0 +1,10 @@
+{
+  "about": "The sensitive loyalty number typed on every search of the recorded walk, searched for in every evidence file.",
+  "searchedFiles": 23,
+  "filesHoldingIt": [],
+  "recordedAs": "[sensitive]",
+  "positiveControl": {
+    "eventsAsSentHoldIt": true
+  },
+  "pass": true
+}

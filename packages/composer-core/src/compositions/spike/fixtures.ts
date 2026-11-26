@@ -14,8 +14,14 @@ export const sidecarJson = () => readJson("packages/composer-core/src/compositio
 export const datasets = (): Record<string, any> => readJson("packages/composer-core/src/compositions/spike/datasets.json").sets;
 export const lint = (surface: unknown, c: Record<string, unknown>) => lintSurface(surface, c as never) as unknown as LintReport;
 
+/** The versions of the lint and the emitter the governor runs, as installed for composer-core (R1A-REVIEW L2). */
+export const TOOLCHAIN = {
+  lint: readJson("packages/composer-core/node_modules/@aestheticfunction/dspack-gen/package.json").version as string,
+  emit: readJson("packages/composer-core/node_modules/@aestheticfunction/dspack-emit/package.json").version as string,
+};
+
 export async function governorFor(c = contract()) {
-  return createGovernor({ contract: c, profileJson: profileJson(), lintSurface: lint });
+  return createGovernor({ contract: c, profileJson: profileJson(), lintSurface: lint, toolchain: TOOLCHAIN });
 }
 
 export async function compositions(c = contract()): Promise<Record<string, CompositionDefinition>> {

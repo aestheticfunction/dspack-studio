@@ -5,7 +5,8 @@
  * Composer's own canvas on the pinned 0.10 stack), it checks what is DRAWN and what it DOES:
  *   - every governed literal of every component is drawn inside that component's own element, as visible
  *     text, or only as an accessible name or placeholder, or not at all;
- *   - every input accepts typing and keeps the value;
+ *   - every input first displays the value its creation batch carries (R1A-REVIEW E7), then accepts typing
+ *     and keeps the value;
  *   - pressing each control sends what the DATA says it must: the control in the k-th drawn option card sends
  *     data.hotels[k].id, a confirmation sends data.selection.id, a search sends what was typed (R1A-REVIEW E3).
  * These are claims about one renderer drawing correct messages. Level 1 covers the messages themselves.
@@ -88,11 +89,14 @@ function literals(component) {
       for (const inp of rec.inputs) {
         const box = page.locator(`[data-a2ui-id="${inp.componentId}"] input`).first();
         const value = { destination: "Porto", checkIn: "2026-04-01", checkOut: "2026-04-04", guests: "3" }[inp.name] ?? `typed ${inp.name}`;
+        // R1A-REVIEW E7: before anything is typed, the field displays the value its creation batch carries.
+        const expectedPrefill = rec.inputValues?.[inp.name] ?? "";
+        const prefilled = await box.inputValue();
         await box.fill("");
         await box.pressSequentially(value);
         const kept = await box.inputValue();
         typed[inp.name] = kept;
-        inputs.push({ input: inp.name, typed: value, kept, pass: kept === value });
+        inputs.push({ input: inp.name, prefilled, expectedPrefill, typed: value, kept, pass: prefilled === expectedPrefill && kept === value });
       }
       // Actions (R1A-REVIEW E3): every control is found in DRAWN order, and what it must send is derived from the data
       // set and the page's own structure: a control inside the k-th drawn option card sends data.hotels[k].id; a

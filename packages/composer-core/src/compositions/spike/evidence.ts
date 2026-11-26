@@ -8,11 +8,11 @@
  * Writes docs/repositioning/spikes/r1a/evidence/. Deterministic apart from
  * the timing file.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { validateCatalog, emitSurface } from "@aestheticfunction/dspack-emit";
 import { instantiate } from "../instantiate";
 import { createHost, recheck } from "../host";
-import { compositions, contract, datasets, governorFor, lint, profileJson, REPO } from "./fixtures";
+import { compositions, contract, datasets, governorFor, lint, profileJson, REPO, TOOLCHAIN } from "./fixtures";
 import { createGovernor } from "../governance";
 
 const OUT = `${REPO}docs/repositioning/spikes/r1a/evidence/`;
@@ -59,10 +59,14 @@ for (const [n, k] of cases.entries()) {
   index.push(r.ok ? { id: k.id, outcome: "instance", state: r.instance.state, purpose: r.instance.purpose, surfaceId: r.instance.surfaceId, buttons: r.instance.actions.length } : { id: k.id, outcome: "refused", stage: r.stage, reason: r.reason.slice(0, 200) });
 }
 
-// A recorded walk through the host, with its negative steps.
+// A recorded walk through the host, with its negative steps. The session id is supplied (and validated) so the
+// evidence is deterministic; in use the host generates one.
+const SESSION = "evidencewalk0001";
+// Typed into the sensitive loyalty-number field on every search. It must appear in no file written here (D5).
+const SENSITIVE = "LOYAL-EVIDENCE-4417";
 const approvals = Object.fromEntries(await Promise.all(Object.values(cs).map(async (c) => [c.id, (await recheck(g, c)).approval!] as const)));
-const host = createHost({ session: "walk", governor: g, compositions: Object.values(cs) });
-for (const [id, a] of Object.entries(approvals)) host.approve(id, a);
+const host = await createHost({ session: SESSION, governor: g, compositions: Object.values(cs) });
+for (const [id, a] of Object.entries(approvals)) if (!host.approve(id, a).approved) throw new Error(`approval of ${id}`);
 const walk: unknown[] = [];
 // Every batch a renderer would receive, in order, for the long-lived processor check (R1A-REVIEW E4).
 const replacement: Array<{ label: string; composition: string; data: unknown; surfaceId: string; batch: unknown[] }> = [];
@@ -73,19 +77,27 @@ const show = async (label: string, id: string, data: Record<string, unknown>, fo
   step(label, r.ok ? { show: r.instance.surfaceId, state: r.instance.state, carried: r.carried, focus: r.focus, batch: r.batch.map((m: any) => Object.keys(m).find((x) => x !== "version")) } : { refusedShow: r.refusal.stage, reason: r.refusal.reason, kept: r.kept?.surfaceId });
   return r;
 };
+// What is recorded of an action is its redacted form (host.redact): the sensitive value is used once and never written.
+const sent: unknown[] = [];
 const act = (label: string, event: any) => {
+  sent.push(event);
   const r = host.act(event);
-  step(label, { action: event.name, surfaceId: event.surfaceId, context: event.context, ...(r.accepted ? { accepted: true } : { accepted: false, code: r.code, reason: r.reason }) });
+  step(label, { action: event.name, surfaceId: event.surfaceId, context: host.redact(event).context, ...(r.accepted ? { accepted: true, ...(r.commitment ? { key: r.commitment.key, outcome: r.commitment.status } : {}) } : { accepted: false, code: r.code, reason: r.reason, ...(r.key ? { key: r.key } : {}) }) });
+  return r;
+};
+const settle = (label: string, key: string, outcome: "succeeded" | "failed" | "unknown") => {
+  const r = host.settle(key, outcome);
+  step(label, { settle: key, outcome, ...(r.ok ? { status: r.commitment.status } : { refused: r.code, reason: r.reason }) });
   return r;
 };
 const s1 = await show("Search, empty", "hotel-search", {});
 if (!s1.ok) throw new Error("walk");
-act("Search with invalid dates and guests", { name: "search", surfaceId: s1.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-02-30", guests: "12" } });
-act("Search with check-out before check-in (field-valid; the tool rejects the pair)", { name: "search", surfaceId: s1.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-03-10", guests: "2" } });
+act("Search with invalid dates and guests", { name: "search", surfaceId: s1.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-02-30", guests: "12", memberNumber: SENSITIVE } });
+act("Search with check-out before check-in (field-valid; the tool rejects the pair)", { name: "search", surfaceId: s1.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-03-10", guests: "2", memberNumber: SENSITIVE } });
 const s2 = await show("Search again, with the error, values and focus kept", "hotel-search", { errors: ["Check-out must be after check-in."] }, "check_out");
 if (!s2.ok) throw new Error("walk");
-act("A stale search from the first surface", { name: "search", surfaceId: s1.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-10", checkOut: "2026-03-13", guests: "2" } });
-act("Search with valid values", { name: "search", surfaceId: s2.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-10", checkOut: "2026-03-13", guests: "2" } });
+act("A stale search from the first surface", { name: "search", surfaceId: s1.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-10", checkOut: "2026-03-13", guests: "2", memberNumber: SENSITIVE } });
+act("Search with valid values", { name: "search", surfaceId: s2.instance.surfaceId, sourceComponentId: "search", context: { destination: "Lisbon", checkIn: "2026-03-10", checkOut: "2026-03-13", guests: "2", memberNumber: SENSITIVE } });
 const r1 = await show("Three results", "hotel-results", ds.three);
 if (!r1.ok) throw new Error("walk");
 const r2 = await show("The same search returns them reordered", "hotel-results", ds.reordered, r1.instance.actions[1]!.componentId);
@@ -96,21 +108,32 @@ act("A forged reservation from the results surface", { name: "reserve", surfaceI
 act("Choose the second hotel now drawn", { name: "choose", surfaceId: r2.instance.surfaceId, sourceComponentId: r2.instance.actions[1]!.componentId, context: r2.instance.actions[1]!.payload });
 const c1 = await show("Confirm the reservation", "hotel-results", ds.confirm);
 if (!c1.ok) throw new Error("walk");
-act("Reserve", { name: "reserve", surfaceId: c1.instance.surfaceId, sourceComponentId: "reserve", context: { hotelId: "h-102" } });
-act("Reserve again on the same surface", { name: "reserve", surfaceId: c1.instance.surfaceId, sourceComponentId: "reserve", context: { hotelId: "h-102" } });
+const reserved = act("Reserve: accepted once, with an idempotency key and a pending outcome", { name: "reserve", surfaceId: c1.instance.surfaceId, sourceComponentId: "reserve", context: { hotelId: "h-102" } });
+if (!reserved.accepted || !reserved.commitment) throw new Error("walk");
+const key = reserved.commitment.key;
+act("Reserve again on the same surface (the same key; not dispatched again)", { name: "reserve", surfaceId: c1.instance.surfaceId, sourceComponentId: "reserve", context: { hotelId: "h-102" } });
+act("Back, while the reservation is pending (the surface is locked)", { name: "back", surfaceId: c1.instance.surfaceId, sourceComponentId: "back", context: {} });
+await show("Navigate to the results while the outcome is pending", "hotel-results", ds.three);
+settle("The tool does not answer in time: the outcome is unknown", key, "unknown");
+await show("Navigate while the outcome is unknown", "hotel-results", ds.confirm);
+act("Reserve again while the outcome is unknown", { name: "reserve", surfaceId: c1.instance.surfaceId, sourceComponentId: "reserve", context: { hotelId: "h-102" } });
+settle("Reconciled by asking the tool by key: it succeeded", key, "succeeded");
+settle("A conflicting later report is refused: the outcome is final", key, "failed");
+act("Back, after the outcome is known but before a replacement (still locked)", { name: "back", surfaceId: c1.instance.surfaceId, sourceComponentId: "back", context: {} });
+await show("The governed replacement once the outcome is known", "hotel-search", {});
 await show("A result set of one", "hotel-results", ds.one);
 const edited = contract();
 edited.rules.find((r: any) => r.id === "rule.review-offers-alternatives").requiredSubComponents[0].min = 4;
 host.setGovernor(await governorFor(edited));
 await show("After an edit to a rule hotel-results depends on", "hotel-results", ds.three);
-write("walk.json", { session: "walk", steps: walk, log: host.log() });
+write("walk.json", { session: SESSION, steps: walk, log: host.log(), commitments: host.commitments() });
 write("replacement-walk.json", { about: "Every batch the host sent in walk.json, in order: deleteSurface for the surface before, then the new creation batch. Replayed through one long-lived processor in each upstream implementation.", catalog: "catalog-0.9.1.json", steps: replacement });
 
 // Performance (R0-REVIEW A12): warm instantiate of a 20-item list, p95 <= 50 ms; cold <= 500 ms.
 const samples = (n: number, f: () => Promise<number>) => (async () => { const out: number[] = []; for (let i = 0; i < n; i++) out.push(await f()); return out; })();
 const pct = (xs: number[], p: number) => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.ceil((p / 100) * xs.length) - 1)]!;
 const time = async (f: () => Promise<unknown>) => { const s = performance.now(); await f(); return performance.now() - s; };
-const coldGovernor = await createGovernor({ contract: contract(), profileJson: profileJson(), lintSurface: lint });
+const coldGovernor = await createGovernor({ contract: contract(), profileJson: profileJson(), lintSurface: lint, toolchain: TOOLCHAIN });
 const coldFirst = await time(() => instantiate(coldGovernor, cs["hotel-results"]!, { surfaceId: "cold-1", data: ds.twenty }));
 const warm20 = await samples(200, () => time(() => instantiate(g, cs["hotel-results"]!, { surfaceId: "warm", data: ds.twenty })));
 const warm3 = await samples(200, () => time(() => instantiate(g, cs["hotel-results"]!, { surfaceId: "warm", data: ds.three })));
@@ -133,4 +156,13 @@ const perf = {
 };
 write("performance.json", perf);
 write("index.json", { generated: "pnpm --filter @dspack-studio/composer-core r1a:evidence", cases: index, emitSurfaceIsTheEmitter: typeof emitSurface === "function" });
-console.log(JSON.stringify({ index, perf }, null, 2));
+
+// Decision D5: the sensitive value typed in the walk is in no file this script wrote, nor anywhere in the directory.
+const files = readdirSync(OUT).filter((f) => f.endsWith(".json") || f.endsWith(".txt"));
+const holding = files.filter((f) => readFileSync(`${OUT}${f}`, "utf8").includes(SENSITIVE));
+// Positive control: the events as sent do hold it, so the search can see it.
+const control = JSON.stringify(sent).includes(SENSITIVE);
+const exclusion = { about: "The sensitive loyalty number typed on every search of the recorded walk, searched for in every evidence file.", searchedFiles: files.length, filesHoldingIt: holding, recordedAs: "[sensitive]", positiveControl: { eventsAsSentHoldIt: control }, pass: holding.length === 0 && control };
+write("sensitive-exclusion.json", exclusion);
+if (!exclusion.pass) throw new Error(`sensitive value recorded in ${holding.join(", ")}`);
+console.log(JSON.stringify({ index, perf, exclusion }, null, 2));

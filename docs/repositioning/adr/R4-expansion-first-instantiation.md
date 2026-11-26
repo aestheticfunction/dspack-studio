@@ -1,6 +1,6 @@
 # R4. Every instance is a governed expansion, shown as an immutable surface
 
-**Status:** accepted for M1 through R1a. Rewritten in the R1a paper step from the R0 draft, applying the owner's decisions on the independent review ([R0-REVIEW.md](../R0-REVIEW.md) §3.2 and §6.1, decisions 6 and 7, 2026-11-25) and the M1 authorization of 2026-11-26. Implemented by the R1a spike (`packages/composer-core/src/compositions/`); evidence in [R1A-REPORT.md](../R1A-REPORT.md).
+**Status:** accepted for M1 through R1a. Rewritten in the R1a paper step from the R0 draft, applying the owner's decisions on the independent review ([R0-REVIEW.md](../R0-REVIEW.md) §3.2 and §6.1, decisions 6 and 7, 2026-11-25) and the M1 authorization of 2026-11-26. Implemented by the R1a spike (`packages/composer-core/src/compositions/`); evidence in [R1A-REPORT.md](../R1A-REPORT.md). **Amended** by the host hardening of R1A-REVIEW Part B (2026-11-26): session ids, immutable instances, the consequential lifecycle, sensitive inputs, the toolchain pin and approval integrity (items 1, 4, 5 and 7).
 
 ## Context
 
@@ -29,7 +29,9 @@ The R0 draft bound data into a fixed tree by tracing markers through the emitter
 
 Every step fails closed, names its stage and, for a rule, the rule and its rationale. Two literal ids that emit the same id are refused at load, and a declared node the emitter renames is refused at instantiation, so a binding can never find the wrong component (R1A-REVIEW M2).
 
-The surface id is `<composition>-<session>-<counter>`, unique across sessions and instances. The session id is random in use and injected in tests.
+The surface id is `<composition>-<session>-<counter>`, unique across sessions and instances. The host generates the session id itself, 128 bits from the platform's cryptographic generator as 26 base32 characters (`createSessionId`), unless the caller supplies one, which must be 16 to 64 lowercase letters and digits. With no hyphen in a session id, a surface id reads back one way. Uniqueness across sessions rests on the generator; a caller that supplies its own ids takes that on (R1A-REVIEW L5).
+
+An instance is deeply frozen when it is made, and an accepted action does not change it: what was governed is what stays on screen (L6). The host governs its own frozen snapshot of each composition, so a caller's later edit to a definition changes nothing it decides.
 
 When data, state or parameters change, the host creates a new instance, sends `deleteSurface` for the old one, then the new creation batch. Replacements run one at a time, so every batch deletes the surface actually shown (R1A-REVIEW M1). Nothing is ever sent to a surface that is already shown. That is a structural property with one static test: no transcript holds `updateComponents` or `updateDataModel` addressed to a live surface.
 
@@ -64,13 +66,23 @@ The host accepts an action only when all of these hold:
 - the context is exactly the literal payload plus the declared carried inputs;
 - each carried value is valid.
 
-A **consequential** action is declared on exactly one confirmation state and carries literals only, never typed input (R1A-REVIEW M6). It is refused from any other surface (`needs-confirmation`) and accepted once per surface (`duplicate` thereafter). What the confirmation shows and what is sent come from the same instantiation.
+A **consequential** action is declared on exactly one confirmation state and carries literals only, never typed input (R1A-REVIEW M6). It is refused from any other surface (`needs-confirmation`). What the confirmation shows and what is sent come from the same instantiation.
+
+**The consequential lifecycle (R1A-REVIEW M3, decision D3).** Accepting a consequential action opens a commitment: an idempotency key, `<surfaceId>/<action>/<component>`, and an outcome that starts `pending`. The key follows [HOST-ACTIONS.md](../../blocks/HOST-ACTIONS.md) rule 4: it is built from an id the host issued (the surface id), it is the same for any repeat, and the literal payload is fixed for that surface.
+
+- From acceptance until a replacement is shown, the surface accepts nothing: a repeat is refused as `duplicate`, naming the same key; anything else is refused as `locked`.
+- While the outcome is `pending` or `unknown`, nothing replaces the surface (`outcome-pending`), so the person cannot be moved on and press it again elsewhere.
+- Outcomes move only forward: `pending` to `succeeded`, `failed` or `unknown`; `unknown` to `succeeded` or `failed`. `succeeded` and `failed` are final, and a conflicting report is refused.
+- Recovery from `unknown` is by reconciling the same key with the tool. A new attempt is possible only after a known `failed`, and it is a new surface with a new key.
+
+What the host guarantees: at most one acceptance per surface, one key for every repeat, no second attempt while one is pending or unknown. What it cannot: that the tool honours the key, or that the agent reports outcomes and asks the tool by key after an unknown one. Those stay the external side's responsibility. The host executes nothing.
 
 ### 5. Replacement keeps what the person did
 
 The host, not the agent, carries entered values, focus and an announcement across a replacement:
 
-- **Values, within one composition, across states.** For example, the search's `ready` to `invalid`, so the person's typing survives the error. A carried value must still match the input's declared type (text within its length); one that does not is dropped and reported.
+- **Values, within one composition, across states.** For example, the search's `ready` to `invalid`, so the person's typing survives the error. Values are kept after an `invalid-input` refusal as well as after an accepted action (R1A-REVIEW M4). A carried value must still fit its field; one that does not is dropped and reported. Only non-empty values are reported as carried.
+- **Sensitive inputs, never (decision D5).** An input declared `sensitive` reaches the caller once, in the accepted action that carries it, and nowhere else. The host keeps no sensitive value, never carries one, and refuses to write one into a creation batch, which is what a transcript records. `redactEvent` and `host.redact` give the form of an action event that may be recorded. The distinction is between the runtime value, used once, and anything durable: transcripts, evidence, logs and saved artifacts. The renderer still draws the field as an ordinary text field; masking it is a renderer question, not addressed here.
 - **Values, across compositions.** Moving to another composition (a different step) carries nothing.
 - **Focus.** It returns to the same emitted id outside a repeat. Inside a repeat, it returns to the item with the same literal payload, or to the surface heading if that item is gone. A different composition focuses its heading.
 - **Announcement.** A polite live-region message says what changed.
@@ -87,10 +99,13 @@ Every approval and every instance records:
 
 - `contractSha256`: the contract as governed, rule edits included;
 - `profileSha256`;
+- `toolchainSha256`: the lint, emitter and runtime versions the governor runs (R1A-REVIEW L2). The caller names the lint and emitter versions it installed; the runtime's own version is a constant raised with any change to what an instance is accepted as;
 - `interactionSha256`: the composition's declared data, inputs and actions;
 - `compositionSha256`, with its id and version.
 
 An approval exists only when every declared scenario behaves as declared (`recheck`). On any mismatch, the host refuses to show or accept anything for that composition (`needs-recheck`) until a re-check passes under the new pins. A surface on screen must itself carry the current approval's pins: after a re-approval under changed rules, a surface governed under the old ones is refused until it is replaced, because the scenarios a re-check runs need not cover the data that surface shows (R1A-REVIEW H1). A governor takes frozen copies of its contract and profile, so the rules a pin stands for cannot change underneath it (H2).
+
+A refused scenario names the rule or stage that must refuse it (`refusedBy`); any other refusal fails the re-check (L3). An approval is issued only by `recheck`, frozen, and accepted by a host only as issued and only for its own composition. The host hashes each composition once when it is made, so every pin comparison is synchronous: no window in which an approval or a governor change has not yet taken effect (L4). An exception inside a gate is a refusal at that stage, not a rejection (L1).
 
 ### 8. Verification levels (R0-REVIEW §3.5)
 
@@ -99,6 +114,7 @@ An approval exists only when every declared scenario behaves as declared (`reche
 | 1a | Upstream Python `a2ui-core` loads the catalog and accepts every instance's messages under strict validation | The messages are correct |
 | 1b | The same implementation resolves each input's bound value after a write, resolves and dispatches every action with its own payload, and governed properties ignore garbage in `/input` | The messages are correct |
 | 2 | A standalone host outside `apps/composer`, on upstream `@a2ui/react` 0.16.1 with Composer's Astryx renderers and a bridge written for the spike, draws every governed literal, accepts typing, and sends the right payloads. The same checks also run on Composer's own canvas | Renderer fidelity, for the renderers tested only |
+| 2 (demonstration) | The standalone demonstration, driven in a browser in one long-lived renderer session: retained values displayed, focus applied, the locked surface inert, outcomes and navigation, session ids, and the sensitive value absent from everything recorded (`verify_demo.cjs`) | Host behaviour as a person meets it, for that renderer only |
 
 ## Not in M1 through R1a
 

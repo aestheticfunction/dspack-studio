@@ -1,0 +1,164 @@
+{
+  "level": "2, the demonstration in a browser",
+  "page": "r1a-host/dist/demo.html",
+  "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Headless Chromium/158.0.8127.36 Safari/537.36",
+  "checks": [
+    {
+      "check": "session ids are generated, 26 base32 characters, different on every load, and in every surface id",
+      "pass": true,
+      "sessions": [
+        "t6wd4eumqyhahkgtqppiw6fknm",
+        "pxpcedtpn3dc462grarngytucu"
+      ],
+      "surface": "hotel-search-pxpcedtpn3dc462grarngytucu-1"
+    },
+    {
+      "check": "positive control: while typed, the sensitive value is in the page, where this check can see it",
+      "pass": true
+    },
+    {
+      "check": "after the replacement, the fields DISPLAY the values typed, and the sensitive one displays nothing",
+      "pass": true,
+      "surface": "hotel-search-pxpcedtpn3dc462grarngytucu-2",
+      "shown": {
+        "destination": "Lisbon",
+        "check_in": "2026-03-13",
+        "check_out": "2026-03-10",
+        "guests": "2",
+        "member_number": ""
+      }
+    },
+    {
+      "check": "one renderer session: exactly one surface in the page after the replacement, the new one",
+      "pass": true,
+      "live": [
+        "hotel-search-pxpcedtpn3dc462grarngytucu-2"
+      ]
+    },
+    {
+      "check": "focus stays on the control pressed, now on the new surface",
+      "pass": true,
+      "component": "search",
+      "surface": "hotel-search-pxpcedtpn3dc462grarngytucu-2"
+    },
+    {
+      "check": "moving to another composition moves focus to the canvas region",
+      "pass": true,
+      "focused": "canvas"
+    },
+    {
+      "check": "Reserve is accepted once, with an idempotency key and a pending outcome",
+      "pass": true,
+      "key": "hotel-results-pxpcedtpn3dc462grarngytucu-4/reserve/reserve"
+    },
+    {
+      "check": "the surface is inert and marked busy while the reservation is open",
+      "pass": true
+    },
+    {
+      "check": "a press on the locked surface dispatches nothing at all",
+      "pass": true,
+      "logEntriesAdded": 0
+    },
+    {
+      "check": "forced events from the locked surface are refused: Back as locked, Reserve as a duplicate under the same key",
+      "pass": true,
+      "back": "locked",
+      "duplicate": "duplicate",
+      "key": "hotel-results-pxpcedtpn3dc462grarngytucu-4/reserve/reserve"
+    },
+    {
+      "check": "navigation is refused while the outcome is pending, and the surface stays",
+      "pass": true,
+      "code": "outcome-pending"
+    },
+    {
+      "check": "while the outcome is unknown, the surface stays inert and navigation is still refused",
+      "pass": true,
+      "code": "outcome-pending"
+    },
+    {
+      "check": "a known failure releases the page; the new confirmation is a new surface, not locked",
+      "pass": true,
+      "surface": "hotel-results-pxpcedtpn3dc462grarngytucu-5"
+    },
+    {
+      "check": "the new attempt has its own key",
+      "pass": true,
+      "key": "hotel-results-pxpcedtpn3dc462grarngytucu-5/reserve/reserve"
+    },
+    {
+      "check": "a succeeded outcome lets the next surface replace the locked one; the page is no longer locked",
+      "pass": true,
+      "surface": "hotel-search-pxpcedtpn3dc462grarngytucu-6"
+    },
+    {
+      "check": "the host's record of both attempts",
+      "pass": true,
+      "outcomes": [
+        {
+          "key": "hotel-results-pxpcedtpn3dc462grarngytucu-4/reserve/reserve",
+          "history": [
+            "pending",
+            "unknown",
+            "failed"
+          ]
+        },
+        {
+          "key": "hotel-results-pxpcedtpn3dc462grarngytucu-5/reserve/reserve",
+          "history": [
+            "pending",
+            "succeeded"
+          ]
+        }
+      ]
+    },
+    {
+      "check": "the sensitive value typed twice is in no recorded place: page, inputs, messages, host log, host state, storage",
+      "pass": true,
+      "found": {
+        "pageHtml": false,
+        "pageText": false,
+        "inputValues": false,
+        "hostLog": false,
+        "hostState": false,
+        "storage": false,
+        "messagesTab": false,
+        "logTab": false
+      },
+      "redactedInLog": true
+    },
+    {
+      "check": "no page errors",
+      "pass": true,
+      "errors": []
+    }
+  ],
+  "browserPerformance": {
+    "about": "Instantiation inside the page (expand, lint, emit, attach, gates), as instance.timings reports it, in this headless browser. The Node figures are in performance.json.",
+    "firstInstantiationMs": 0.7,
+    "byState": {
+      "hotel-search/ready": {
+        "n": 2,
+        "maxMs": 0.9,
+        "medianMs": 0.9
+      },
+      "hotel-search/invalid": {
+        "n": 1,
+        "maxMs": 1.1,
+        "medianMs": 1.1
+      },
+      "hotel-results/ready": {
+        "n": 1,
+        "maxMs": 1.5,
+        "medianMs": 1.5
+      },
+      "hotel-results/confirm": {
+        "n": 2,
+        "maxMs": 1.1,
+        "medianMs": 1.1
+      }
+    }
+  },
+  "pass": true
+}

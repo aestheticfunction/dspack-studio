@@ -1,0 +1,64 @@
+R1A-REVIEW Part B: the hardening tests (src/compositions/hardening.test.ts) run against main at 939cdb5, before any fix.
+Two pass by design: they guard properties that already held (M6; an over-length value is never kept).
+Recorded 2026-11-26T03:51Z with: npx vitest run src/compositions/hardening.test.ts
+
+   × M3 and D3: the consequential action lifecycle > accepting a consequential action returns a stable idempotency key and a pending outcome
+     → expected undefined to match object { status: 'pending', …(3) }
+   × M3 and D3: the consequential action lifecycle > locks the surface: every other action on it is refused until a governed replacement is shown
+     → expected { accepted: true, …(3) } to match object { accepted: false, code: 'locked' }
+   × M3 and D3: the consequential action lifecycle > refuses navigation while the outcome is pending, and keeps the locked surface
+     → expected { ok: true, instance: { …(15) }, …(5) } to match object { ok: false, …(2) }
+   × M3 and D3: the consequential action lifecycle > a succeeded outcome releases navigation; the replacement unlocks; the old surface is stale
+     → Cannot read properties of undefined (reading 'key')
+   × M3 and D3: the consequential action lifecycle > an unknown outcome keeps the lock and blocks navigation; recovery is by reconciling the same key, never a new dispatch
+     → Cannot read properties of undefined (reading 'key')
+   × M3 and D3: the consequential action lifecycle > outcomes move only forward: succeeded and failed are final, a repeat is idempotent, an unknown key is refused
+     → Cannot read properties of undefined (reading 'key')
+   × M3 and D3: the consequential action lifecycle > an action that is not consequential neither locks nor opens an outcome
+     → host.commitments is not a function
+   × M3 and D3: the consequential action lifecycle > the log records the key and each outcome, and nothing the person typed
+     → Cannot read properties of undefined (reading 'key')
+   × M4 and F1: values kept where they are meaningful > an invalid-input refusal keeps what was typed, so the invalid state shows it again
+     → expected { destination: '', checkIn: '', …(2) } to match object { destination: 'Lisbon', …(3) }
+   ✓ M4 and F1: values kept where they are meaningful > a value longer than its field allows is not kept
+   × D5: sensitive inputs > a sensitive input is declared on the input and read by the loader
+     → expected undefined to match object { sensitive: true }
+   × D5: sensitive inputs > the person's sensitive value reaches the caller once, for this action, and is never carried into a replacement
+     → expected { accepted: true, …(3) } to match object { accepted: true, values: { …(1) } }
+   × D5: sensitive inputs > is kept out of the host's log, its current instance, refusal reasons and the commitment record
+     → host.commitments is not a function
+   × D5: sensitive inputs > an invalid-input refusal does not keep a sensitive value either
+     → expected { destination: '', checkIn: '', …(2) } to match object { destination: 'Lisbon', …(2) }
+   × D5: sensitive inputs > redactEvent gives the recordable form of an action: sensitive values replaced, everything else as sent
+     → redactEvent is not a function
+   × D5: sensitive inputs > instantiate refuses to write a sensitive value into a creation batch
+     → expected { ok: true, instance: { …(15) } } to match object { ok: false, stage: 'data' }
+   ✓ D5: sensitive inputs > a consequential action may not carry any input, sensitive or not (M6 still holds)
+   × L5 and E5: session ids > are generated in core from a cryptographic source, in a restricted charset
+     → createSessionId is not a function
+   × L5 and E5: session ids > a host without a session id gets a generated one, and surface ids never repeat across hosts
+     → .toMatch() expects to receive a string, but got undefined
+   × L5 and E5: session ids > an externally supplied session id is validated
+     → promise resolved "{ session: '', …(6) }" instead of rejecting
+   × L6: instances are immutable > a shown instance is deeply frozen and stays the same object after an accepted action
+     → expected false to be true // Object.is equality
+   × L6: instances are immutable > the host governs its own snapshot of each composition: a later edit by the caller changes nothing
+     → {"issues":["compositions.0.inputs.4: Unrecognized key(s) in object: 'sensitive'"],"disabled":[]}
+   × L4: approval integrity, checked synchronously > an approval not issued by recheck is refused, even with the right pins
+     → expected undefined to match object { approved: false }
+   × L4: approval integrity, checked synchronously > an approval for one composition cannot approve another, and approvals cannot be edited
+     → expected undefined to match object { approved: false }
+   × L4: approval integrity, checked synchronously > an action right after approval is judged on current pins, with no window of stale state
+     → expected { accepted: false, …(2) } to match object { accepted: true }
+   × L2: the toolchain is part of the pins > an approval made under one emitter or lint version needs a re-check under another
+     → expected { ok: true, instance: { …(15) }, …(5) } to match object { ok: false, …(1) }
+   × L2: the toolchain is part of the pins > a governor needs the versions of the lint and the emitter it runs
+     → promise resolved "{ contract: { …(11) }, …(8) }" instead of rejecting
+   × L3: a refused scenario names the rule that must refuse it > the re-check passes only when that rule is what refused it
+     → {"issues":["compositions.0.inputs.4: Unrecognized key(s) in object: 'sensitive'","compositions.1.scenarios.2: Unrecognized key(s) in object: 'refusedBy'"],"disabled":[]}
+   × L3: a refused scenario names the rule that must refuse it > a refused scenario without a rule is a load issue
+     → expected 'compositions.0.inputs.4: Unrecognized…' to match /refusedBy/
+   × L1: an exception inside a gate is a refusal, not a rejection > a lint that throws refuses the instance with its stage
+     → unknown rule type 'frobnicate'
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  28 failed | 2 passed (30)

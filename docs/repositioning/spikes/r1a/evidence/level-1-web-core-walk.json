@@ -3,25 +3,25 @@
   "steps": [
     {
       "label": "Search, empty",
-      "surfaceId": "hotel-search-walk-1",
+      "surfaceId": "hotel-search-evidencewalk0001-1",
       "live": [
-        "hotel-search-walk-1"
+        "hotel-search-evidencewalk0001-1"
       ],
       "pass": true
     },
     {
       "label": "Search again, with the error, values and focus kept",
-      "surfaceId": "hotel-search-walk-2",
+      "surfaceId": "hotel-search-evidencewalk0001-2",
       "live": [
-        "hotel-search-walk-2"
+        "hotel-search-evidencewalk0001-2"
       ],
       "pass": true
     },
     {
       "label": "Three results",
-      "surfaceId": "hotel-results-walk-3",
+      "surfaceId": "hotel-results-evidencewalk0001-3",
       "live": [
-        "hotel-results-walk-3"
+        "hotel-results-evidencewalk0001-3"
       ],
       "pressed": "choose",
       "sent": {
@@ -34,9 +34,9 @@
     },
     {
       "label": "The same search returns them reordered",
-      "surfaceId": "hotel-results-walk-4",
+      "surfaceId": "hotel-results-evidencewalk0001-4",
       "live": [
-        "hotel-results-walk-4"
+        "hotel-results-evidencewalk0001-4"
       ],
       "pressed": "choose",
       "sent": {
@@ -49,9 +49,17 @@
     },
     {
       "label": "Confirm the reservation",
-      "surfaceId": "hotel-results-walk-5",
+      "surfaceId": "hotel-results-evidencewalk0001-5",
       "live": [
-        "hotel-results-walk-5"
+        "hotel-results-evidencewalk0001-5"
+      ],
+      "pass": true
+    },
+    {
+      "label": "The governed replacement once the outcome is known",
+      "surfaceId": "hotel-search-evidencewalk0001-6",
+      "live": [
+        "hotel-search-evidencewalk0001-6"
       ],
       "pass": true
     }

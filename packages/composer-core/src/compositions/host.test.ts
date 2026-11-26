@@ -21,8 +21,8 @@ beforeAll(async () => {
   }
 });
 
-function newHost(session = "s1"): Host {
-  const host = createHost({ session, governor: g, compositions: Object.values(cs) });
+async function newHost(session?: string): Promise<Host> {
+  const host = await createHost({ ...(session ? { session } : {}), governor: g, compositions: Object.values(cs) });
   for (const [id, a] of Object.entries(approvals)) host.approve(id, a);
   return host;
 }
@@ -49,7 +49,7 @@ describe("approval and pins", () => {
   });
 
   it("a change to a rule the composition depends on falls back to needs-recheck: show and act refuse until re-checked", async () => {
-    const host = newHost();
+    const host = await newHost();
     const first = shown(await host.show("hotel-results", { data: ds.three }));
     const edited = contract();
     const rule = edited.rules.find((r: any) => r.id === "rule.review-offers-alternatives");
@@ -66,7 +66,7 @@ describe("approval and pins", () => {
   });
 
   it("an edit that keeps every scenario passing is restored by its re-check", async () => {
-    const host = newHost();
+    const host = await newHost();
     const edited = contract();
     edited.rules.find((r: any) => r.id === "rule.review-offers-alternatives").rationale += " (edited)";
     const g2 = await governorFor(edited);
@@ -81,7 +81,7 @@ describe("approval and pins", () => {
 
 describe("actions", () => {
   it("a stale action, from an instance that has been replaced, is refused and changes nothing", async () => {
-    const host = newHost();
+    const host = await newHost();
     const a = shown(await host.show("hotel-results", { data: ds.three }));
     const b = shown(await host.show("hotel-results", { data: ds.reordered }));
     expect(b.batch[0]).toEqual({ version: "v0.9", deleteSurface: { surfaceId: a.instance.surfaceId } });
@@ -91,7 +91,7 @@ describe("actions", () => {
   });
 
   it("after a reorder, the k-th drawn button names the k-th hotel now on screen", async () => {
-    const host = newHost();
+    const host = await newHost();
     shown(await host.show("hotel-results", { data: ds.three }));
     const b = shown(await host.show("hotel-results", { data: ds.reordered }));
     const r = host.act(press(b.instance, "choose", 0));
@@ -99,7 +99,7 @@ describe("actions", () => {
   });
 
   it("a payload that is not the button's own is refused", async () => {
-    const host = newHost();
+    const host = await newHost();
     const a = shown(await host.show("hotel-results", { data: ds.three }));
     const e = press(a.instance, "choose", 0);
     expect(host.act({ ...e, context: { hotelId: "h-103" } })).toMatchObject({ accepted: false, code: "payload-mismatch" });
@@ -107,14 +107,14 @@ describe("actions", () => {
   });
 
   it("an undeclared action, or a declared one from the wrong component, is unauthorized", async () => {
-    const host = newHost();
+    const host = await newHost();
     const a = shown(await host.show("hotel-results", { data: ds.three }));
     expect(host.act({ name: "delete_everything", surfaceId: a.instance.surfaceId, sourceComponentId: "choose", context: {} })).toMatchObject({ accepted: false, code: "unauthorized" });
     expect(host.act({ ...press(a.instance, "choose", 0), sourceComponentId: "new_search" })).toMatchObject({ accepted: false, code: "unauthorized" });
   });
 
   it("a consequential action is refused without its confirmation step, and refused a second time on the same surface", async () => {
-    const host = newHost();
+    const host = await newHost();
     const ready = shown(await host.show("hotel-results", { data: ds.three }));
     const forged = { name: "reserve", surfaceId: ready.instance.surfaceId, sourceComponentId: "reserve", context: { hotelId: "h-102" } };
     expect(host.act(forged)).toMatchObject({ accepted: false, code: "needs-confirmation" });
@@ -124,7 +124,7 @@ describe("actions", () => {
   });
 
   it("invalid inputs arrive as an action and are refused with each field's reason", async () => {
-    const host = newHost();
+    const host = await newHost();
     const s = shown(await host.show("hotel-search", { data: {} }));
     const r = host.act(press(s.instance, "search", 0, { destination: "L", checkIn: "2026-02-30", checkOut: "tomorrow", guests: "12" }));
     expect(r).toMatchObject({ accepted: false, code: "invalid-input" });
@@ -139,7 +139,7 @@ describe("actions", () => {
   // Why garbage in /input cannot reach governed content is the binding layout (instantiate.test.ts, "the binding
   // layout"), checked on every instance; level 1b resolves every property before and after such writes.
   it("garbage a renderer writes into the input paths is refused when an action carries it", async () => {
-    const host = newHost();
+    const host = await newHost();
     const s = shown(await host.show("hotel-search", { data: {} }));
     // What a renderer sends after writes to /input/destination (an object) and /input itself (replaced by a string).
     const garbage = [{ destination: { path: "/secrets" } }, { destination: 42 }, {}];
@@ -152,19 +152,19 @@ describe("actions", () => {
 
 describe("replacement", () => {
   it("keeps entered values and focus within a composition, and announces the change", async () => {
-    const host = newHost();
+    const host = await newHost();
     const s = shown(await host.show("hotel-search", { data: {} }));
     host.act(press(s.instance, "search", 0, { destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-03-10", guests: "2" }));
     const invalid = shown(await host.show("hotel-search", { data: { errors: ["Check-out must be after check-in."] }, focused: "check_out" }));
     expect(invalid.instance.state).toBe("invalid");
     expect(invalid.carried.sort()).toEqual(["checkIn", "checkOut", "destination", "guests"]);
-    expect(invalid.instance.messages.at(-1)!.updateDataModel.value).toEqual({ destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-03-10", guests: "2" });
+    expect(invalid.instance.messages.at(-1)!.updateDataModel.value).toEqual({ destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-03-10", guests: "2", memberNumber: "" });
     expect(invalid.focus).toEqual({ kind: "component", componentId: "check_out" });
     expect(invalid.announcement).toContain("Updated");
   });
 
   it("inside a repeat, focus follows the item with the same payload; when it is gone, the heading", async () => {
-    const host = newHost();
+    const host = await newHost();
     const a = shown(await host.show("hotel-results", { data: ds.three }));
     const focusedMiradouro = a.instance.actions.find((x) => x.payload.hotelId === "h-102")!.componentId;
     const b = shown(await host.show("hotel-results", { data: ds.reordered, focused: focusedMiradouro }));
@@ -175,7 +175,7 @@ describe("replacement", () => {
   });
 
   it("moving to another composition carries nothing and focuses the new heading", async () => {
-    const host = newHost();
+    const host = await newHost();
     const s = shown(await host.show("hotel-search", { data: {} }));
     host.act(press(s.instance, "search", 0, { destination: "Lisbon", checkIn: "2026-03-10", checkOut: "2026-03-13", guests: "2" }));
     const r = shown(await host.show("hotel-results", { data: ds.none, focused: "search" }));
@@ -185,7 +185,7 @@ describe("replacement", () => {
   });
 
   it("a refused instance keeps the last valid one on screen", async () => {
-    const host = newHost();
+    const host = await newHost();
     const a = shown(await host.show("hotel-results", { data: ds.three }));
     const r = await host.show("hotel-results", { data: ds.one });
     expect(r).toMatchObject({ ok: false, kept: { surfaceId: a.instance.surfaceId } });
@@ -196,15 +196,15 @@ describe("replacement", () => {
 describe("identity and transcripts", () => {
   it("no two instances share a surface id, within or across sessions", async () => {
     const ids = new Set<string>();
-    for (const session of ["s1", "s2", "s3"]) {
-      const host = newHost(session);
+    for (const session of ["sessionalpha0001", "sessionbravo0002", undefined]) {
+      const host = await newHost(session);
       for (const name of ["three", "two", "reordered", "removed"]) ids.add(shown(await host.show("hotel-results", { data: ds[name] })).instance.surfaceId);
     }
     expect(ids.size).toBe(12);
   });
 
   it("a recorded walk never sends updateComponents or updateDataModel to a surface already shown", async () => {
-    const host = newHost();
+    const host = await newHost();
     const transcript: any[] = [];
     const walk: Array<[string, any]> = [
       ["hotel-search", {}],

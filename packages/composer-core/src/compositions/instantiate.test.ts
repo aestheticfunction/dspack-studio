@@ -184,10 +184,10 @@ describe("instance messages", () => {
     expect(kinds).toEqual(["createSurface", "updateComponents", "updateDataModel"]);
     expect(r.instance.messages.every((m) => (m.createSurface ?? m.updateComponents ?? m.updateDataModel).surfaceId === "hotel-search-s-1")).toBe(true);
     const fields = [...components(r.instance).values()].filter((c) => c.component === "TextField");
-    expect(fields.map((f) => f.value)).toEqual([{ path: "/input/destination" }, { path: "/input/checkIn" }, { path: "/input/checkOut" }, { path: "/input/guests" }]);
-    expect(r.instance.messages[2].updateDataModel).toEqual({ surfaceId: "hotel-search-s-1", path: "/input", value: { destination: "Lisbon", checkIn: "", checkOut: "", guests: "" } });
+    expect(fields.map((f) => f.value)).toEqual([{ path: "/input/destination" }, { path: "/input/checkIn" }, { path: "/input/checkOut" }, { path: "/input/guests" }, { path: "/input/memberNumber" }]);
+    expect(r.instance.messages[2].updateDataModel).toEqual({ surfaceId: "hotel-search-s-1", path: "/input", value: { destination: "Lisbon", checkIn: "", checkOut: "", guests: "", memberNumber: "" } });
     const search = components(r.instance).get("search");
-    expect(search.action.event).toEqual({ name: "search", context: { destination: { path: "/input/destination" }, checkIn: { path: "/input/checkIn" }, checkOut: { path: "/input/checkOut" }, guests: { path: "/input/guests" } } });
+    expect(search.action.event).toEqual({ name: "search", context: { destination: { path: "/input/destination" }, checkIn: { path: "/input/checkIn" }, checkOut: { path: "/input/checkOut" }, guests: { path: "/input/guests" }, memberNumber: { path: "/input/memberNumber" } } });
   });
 
   it("differ from the plain emission only by the two attachments", async () => {
@@ -198,6 +198,41 @@ describe("instance messages", () => {
     const strip = (messages: any[]) =>
       JSON.stringify(messages, (k, v) => (k === "context" ? {} : v));
     expect(strip(r.instance.messages)).toBe(strip(plain.messages));
+  });
+});
+
+describe("emission equivalence with bound inputs (R1A-REVIEW E6)", () => {
+  it.each([
+    ["search, ready, with a carried value", "hotel-search", {}, { destination: "Lisbon", guests: "2" }],
+    ["search, invalid, with every value carried", "hotel-search", { errors: ["Check-out must be after check-in."] }, { destination: "Lisbon", checkIn: "2026-03-13", checkOut: "2026-03-10", guests: "2" }],
+    ["results, empty, with its own input", "hotel-results", { destination: "Lisbon", nights: 3, hotels: [] }, { destination: "Porto" }],
+  ] as const)("%s: the messages are the plain emission plus exactly the two attachments", async (_label, id, data, values) => {
+    const c = cs[id]!;
+    const r = await instantiate(g, c, { surfaceId: `${id}-e6-1`, data: data as never, inputValues: values as never });
+    if (!r.ok) throw new Error(r.reason);
+    const plain = g.emit(r.instance.expansion, r.instance.surfaceId);
+    if (!plain.ok) throw new Error("emit");
+    const messages = structuredClone(r.instance.messages) as any[];
+    // Attachment 1: the trailing data model write, holding exactly the declared inputs' values.
+    const last = messages.pop();
+    const shownInputs = c.inputs.filter((i) => r.instance.inputs.some((b) => b.name === i.name)).map((i) => i.name);
+    expect(last).toEqual({ version: "v0.9", updateDataModel: { surfaceId: r.instance.surfaceId, path: "/input", value: Object.fromEntries(shownInputs.map((n) => [n, (values as Record<string, string>)[n] ?? ""])) } });
+    // Attachment 1: each declared input's field value, and nothing else bound on any field.
+    const byId = new Map<string, any>(messages.flatMap((m) => m.updateComponents?.components ?? []).map((x: any) => [x.id, x]));
+    for (const b of r.instance.inputs) {
+      expect(byId.get(b.componentId).value).toEqual({ path: `/input/${b.name}` });
+      delete byId.get(b.componentId).value;
+    }
+    // Attachment 2: each declared action's context, as the declaration says: its payload, then the inputs it carries.
+    for (const b of r.instance.actions) {
+      const spec = c.actions.find((a) => a.name === b.name)!;
+      const want = { ...b.payload, ...Object.fromEntries((spec.carries ?? []).map((n) => [n, { path: `/input/${n}` }])) };
+      expect(byId.get(b.componentId).action.event.context).toEqual(want);
+      delete byId.get(b.componentId).action.event.context;
+    }
+    const plainStripped = structuredClone(plain.messages) as any[];
+    for (const comp of plainStripped.flatMap((m) => m.updateComponents?.components ?? [])) if (comp.action?.event && Object.keys(comp.action.event.context ?? {}).length === 0) delete comp.action.event.context;
+    expect(JSON.stringify(messages)).toBe(JSON.stringify(plainStripped));
   });
 });
 
@@ -230,6 +265,39 @@ describe("the binding layout (what keeps renderer writes away from governed cont
 });
 
 describe("cached A gates", () => {
+  // F2 refinement: a ratchet against drift between the cached gates and dspack-emit's own, over every evidence
+  // data set and a handful of mutations of each.
+  it("agree with dspack-emit's validateCatalog on every data set and on mutations of each", async () => {
+    const mutations: Array<[string, (comps: any[]) => boolean]> = [
+      ["none", () => true],
+      ["a label that is not text", (c) => { const x = c.find((y) => y.component === "SelectableCard" || y.component === "TextField"); if (x) x.label = 42; return !!x; }],
+      ["a variant outside its enum", (c) => { const x = c.find((y) => y.component === "Button"); if (x) x.variant = "loud"; return !!x; }],
+      ["a component the catalog does not have", (c) => { c[c.length - 1] = { ...c[c.length - 1], component: "Marquee" }; return true; }],
+      ["an extra property", (c) => { c[0].onClick = "alert(1)"; return true; }],
+      ["an action event that is not an object", (c) => { const x = c.find((y) => y.action); if (x) x.action = { event: "x" }; return !!x; }],
+    ];
+    const sets: Array<[string, Record<string, unknown>]> = [["hotel-search", {}], ["hotel-search", { errors: ["x"] }], ...Object.keys(ds).map((n) => ["hotel-results", ds[n]] as [string, Record<string, unknown>])];
+    let compared = 0;
+    for (const [id, data] of sets) {
+      const r = await instantiate(g, cs[id]!, { surfaceId: `${id}-f2-1`, data: data as never });
+      if (!r.ok) continue;
+      for (const [label, mutate] of mutations) {
+        const messages = structuredClone(r.instance.messages) as any[];
+        if (!mutate(messages[1].updateComponents.components)) continue;
+        const ours = g.gates(messages);
+        for (const version of g.versions) {
+          const theirs = validateCatalog(g.catalog(version) as never, version, { messages });
+          const mine = ours.failures.filter((f) => f.version === version);
+          expect(theirs.pass, `${id} ${label} ${version}`).toBe(mine.length === 0);
+          const theirIds = new Set((theirs.gates.find((x) => x.name === "instance")?.errors ?? []).map((e) => e.split(":")[0]));
+          expect([...new Set(mine.map((f) => f.message.split(":")[0]))].sort(), `${id} ${label} ${version}`).toEqual([...theirIds].sort());
+          compared++;
+        }
+      }
+    }
+    expect(compared).toBeGreaterThanOrEqual(100);
+  });
+
   it("give dspack-emit's own validateCatalog verdict, instance by instance, for valid and broken messages", async () => {
     const r = await results(ds.three);
     if (!r.ok) throw new Error(r.reason);

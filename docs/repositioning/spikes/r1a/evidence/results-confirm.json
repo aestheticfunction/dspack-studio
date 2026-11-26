@@ -128,8 +128,9 @@
   "pins": {
     "contractSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
     "profileSha256": "221426c9c90d2319fc90735668077137f0548f04403c5d0105a85093f7e078e9",
+    "toolchainSha256": "e926fbad18dc4ac3cf0b6864ec5beaef04ce01b9590f52743de835f66d473c16",
     "interactionSha256": "def08ab6d03024de8b54693bfab6cc24f11a524c246dd6a9171b1e28258403b0",
-    "compositionSha256": "4ecbe65bb9c31cb560fa810ad9a3ed7ed21c818a4869297e171077a29737ce6e",
+    "compositionSha256": "3a4df9a1730feb5bd414b4879956f17d75715ab43f8e0afb1e84bc6b499dfe25",
     "composition": "hotel-results",
     "version": 1
   },

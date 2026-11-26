@@ -65,6 +65,13 @@
           "minimum": 1,
           "maximum": 8,
           "maxLength": 2
+        },
+        {
+          "name": "memberNumber",
+          "node": "member-number",
+          "kind": "text",
+          "maxLength": 20,
+          "sensitive": true
         }
       ],
       "actions": [
@@ -79,7 +86,8 @@
             "destination",
             "checkIn",
             "checkOut",
-            "guests"
+            "guests",
+            "memberNumber"
           ]
         }
       ],
@@ -158,6 +166,14 @@
                 }
               },
               {
+                "component": "text-input",
+                "id": "member-number",
+                "props": {
+                  "label": "Loyalty number (optional)",
+                  "placeholder": "Not kept after this step"
+                }
+              },
+              {
                 "component": "button",
                 "id": "search",
                 "props": {
@@ -217,6 +233,14 @@
                 "props": {
                   "label": "Guests",
                   "placeholder": "1 to 8"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "member-number",
+                "props": {
+                  "label": "Loyalty number (optional)",
+                  "placeholder": "Not kept after this step"
                 }
               },
               {
@@ -717,7 +741,8 @@
               }
             ]
           },
-          "expect": "refused"
+          "expect": "refused",
+          "refusedBy": "rule.review-offers-alternatives"
         },
         {
           "id": "none",

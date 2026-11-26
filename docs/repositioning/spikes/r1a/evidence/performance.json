@@ -4,33 +4,33 @@
     "warmP95Ms": 50,
     "coldMs": 500
   },
-  "governorSetupMs": 207.4,
-  "coldFirstInstantiate20Ms": 32.7,
-  "coldTotalIncludingSetupMs": 240.1,
+  "governorSetupMs": 222,
+  "coldFirstInstantiate20Ms": 31,
+  "coldTotalIncludingSetupMs": 253,
   "warm20": {
     "n": 200,
-    "p50": 2.05,
-    "p95": 4.04,
-    "max": 9.54
+    "p50": 2.36,
+    "p95": 4.11,
+    "max": 9.53
   },
   "warm3": {
     "n": 200,
-    "p50": 0.77,
-    "p95": 0.96,
-    "max": 1.35
+    "p50": 0.86,
+    "p95": 1.75,
+    "max": 8.03
   },
   "stages20Ms": {
-    "expandMs": 0.12,
+    "expandMs": 0.17,
     "lintMs": 0.18,
-    "emitMs": 0.33,
-    "attachMs": 0.39,
-    "gatesMs": 0.09,
-    "totalMs": 1.55
+    "emitMs": 0.29,
+    "attachMs": 0.38,
+    "gatesMs": 0.12,
+    "totalMs": 1.7
   },
   "uncachedGatesWarm20": {
     "n": 30,
-    "p50": 73.61,
-    "p95": 85.26,
+    "p50": 69.98,
+    "p95": 80.48,
     "note": "the same instantiation plus dspack-emit's validateCatalog for both versions, as an uncached pipeline would run"
   }
 }

@@ -6,12 +6,12 @@
       "label": "Search, empty",
       "composition": "hotel-search",
       "data": {},
-      "surfaceId": "hotel-search-walk-1",
+      "surfaceId": "hotel-search-evidencewalk0001-1",
       "batch": [
         {
           "version": "v0.9",
           "createSurface": {
-            "surfaceId": "hotel-search-walk-1",
+            "surfaceId": "hotel-search-evidencewalk0001-1",
             "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
             "theme": {
               "agentDisplayName": "Astryx via dspack"
@@ -21,7 +21,7 @@
         {
           "version": "v0.9",
           "updateComponents": {
-            "surfaceId": "hotel-search-walk-1",
+            "surfaceId": "hotel-search-evidencewalk0001-1",
             "components": [
               {
                 "id": "root",
@@ -71,6 +71,15 @@
                 }
               },
               {
+                "id": "member_number",
+                "component": "TextField",
+                "label": "Loyalty number (optional)",
+                "placeholder": "Not kept after this step",
+                "value": {
+                  "path": "/input/memberNumber"
+                }
+              },
+              {
                 "id": "search",
                 "component": "Button",
                 "label": "Search hotels",
@@ -90,6 +99,9 @@
                       },
                       "guests": {
                         "path": "/input/guests"
+                      },
+                      "memberNumber": {
+                        "path": "/input/memberNumber"
                       }
                     }
                   }
@@ -104,6 +116,7 @@
                   "check_in",
                   "check_out",
                   "guests",
+                  "member_number",
                   "search"
                 ]
               }
@@ -113,13 +126,14 @@
         {
           "version": "v0.9",
           "updateDataModel": {
-            "surfaceId": "hotel-search-walk-1",
+            "surfaceId": "hotel-search-evidencewalk0001-1",
             "path": "/input",
             "value": {
               "destination": "",
               "checkIn": "",
               "checkOut": "",
-              "guests": ""
+              "guests": "",
+              "memberNumber": ""
             }
           }
         }
@@ -133,18 +147,18 @@
           "Check-out must be after check-in."
         ]
       },
-      "surfaceId": "hotel-search-walk-2",
+      "surfaceId": "hotel-search-evidencewalk0001-2",
       "batch": [
         {
           "version": "v0.9",
           "deleteSurface": {
-            "surfaceId": "hotel-search-walk-1"
+            "surfaceId": "hotel-search-evidencewalk0001-1"
           }
         },
         {
           "version": "v0.9",
           "createSurface": {
-            "surfaceId": "hotel-search-walk-2",
+            "surfaceId": "hotel-search-evidencewalk0001-2",
             "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
             "theme": {
               "agentDisplayName": "Astryx via dspack"
@@ -154,7 +168,7 @@
         {
           "version": "v0.9",
           "updateComponents": {
-            "surfaceId": "hotel-search-walk-2",
+            "surfaceId": "hotel-search-evidencewalk0001-2",
             "components": [
               {
                 "id": "root",
@@ -216,6 +230,15 @@
                 }
               },
               {
+                "id": "member_number",
+                "component": "TextField",
+                "label": "Loyalty number (optional)",
+                "placeholder": "Not kept after this step",
+                "value": {
+                  "path": "/input/memberNumber"
+                }
+              },
+              {
                 "id": "search",
                 "component": "Button",
                 "label": "Search hotels",
@@ -235,6 +258,9 @@
                       },
                       "guests": {
                         "path": "/input/guests"
+                      },
+                      "memberNumber": {
+                        "path": "/input/memberNumber"
                       }
                     }
                   }
@@ -251,6 +277,7 @@
                   "check_in",
                   "check_out",
                   "guests",
+                  "member_number",
                   "search"
                 ]
               }
@@ -260,13 +287,14 @@
         {
           "version": "v0.9",
           "updateDataModel": {
-            "surfaceId": "hotel-search-walk-2",
+            "surfaceId": "hotel-search-evidencewalk0001-2",
             "path": "/input",
             "value": {
               "destination": "Lisbon",
               "checkIn": "2026-03-13",
               "checkOut": "2026-03-10",
-              "guests": "2"
+              "guests": "2",
+              "memberNumber": ""
             }
           }
         }
@@ -302,18 +330,18 @@
           }
         ]
       },
-      "surfaceId": "hotel-results-walk-3",
+      "surfaceId": "hotel-results-evidencewalk0001-3",
       "batch": [
         {
           "version": "v0.9",
           "deleteSurface": {
-            "surfaceId": "hotel-search-walk-2"
+            "surfaceId": "hotel-search-evidencewalk0001-2"
           }
         },
         {
           "version": "v0.9",
           "createSurface": {
-            "surfaceId": "hotel-results-walk-3",
+            "surfaceId": "hotel-results-evidencewalk0001-3",
             "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
             "theme": {
               "agentDisplayName": "Astryx via dspack"
@@ -323,7 +351,7 @@
         {
           "version": "v0.9",
           "updateComponents": {
-            "surfaceId": "hotel-results-walk-3",
+            "surfaceId": "hotel-results-evidencewalk0001-3",
             "components": [
               {
                 "id": "root",
@@ -531,18 +559,18 @@
           }
         ]
       },
-      "surfaceId": "hotel-results-walk-4",
+      "surfaceId": "hotel-results-evidencewalk0001-4",
       "batch": [
         {
           "version": "v0.9",
           "deleteSurface": {
-            "surfaceId": "hotel-results-walk-3"
+            "surfaceId": "hotel-results-evidencewalk0001-3"
           }
         },
         {
           "version": "v0.9",
           "createSurface": {
-            "surfaceId": "hotel-results-walk-4",
+            "surfaceId": "hotel-results-evidencewalk0001-4",
             "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
             "theme": {
               "agentDisplayName": "Astryx via dspack"
@@ -552,7 +580,7 @@
         {
           "version": "v0.9",
           "updateComponents": {
-            "surfaceId": "hotel-results-walk-4",
+            "surfaceId": "hotel-results-evidencewalk0001-4",
             "components": [
               {
                 "id": "root",
@@ -765,18 +793,18 @@
           "total": 564
         }
       },
-      "surfaceId": "hotel-results-walk-5",
+      "surfaceId": "hotel-results-evidencewalk0001-5",
       "batch": [
         {
           "version": "v0.9",
           "deleteSurface": {
-            "surfaceId": "hotel-results-walk-4"
+            "surfaceId": "hotel-results-evidencewalk0001-4"
           }
         },
         {
           "version": "v0.9",
           "createSurface": {
-            "surfaceId": "hotel-results-walk-5",
+            "surfaceId": "hotel-results-evidencewalk0001-5",
             "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
             "theme": {
               "agentDisplayName": "Astryx via dspack"
@@ -786,7 +814,7 @@
         {
           "version": "v0.9",
           "updateComponents": {
-            "surfaceId": "hotel-results-walk-5",
+            "surfaceId": "hotel-results-evidencewalk0001-5",
             "components": [
               {
                 "id": "root",
@@ -837,6 +865,149 @@
                 ]
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "label": "The governed replacement once the outcome is known",
+      "composition": "hotel-search",
+      "data": {},
+      "surfaceId": "hotel-search-evidencewalk0001-6",
+      "batch": [
+        {
+          "version": "v0.9",
+          "deleteSurface": {
+            "surfaceId": "hotel-results-evidencewalk0001-5"
+          }
+        },
+        {
+          "version": "v0.9",
+          "createSurface": {
+            "surfaceId": "hotel-search-evidencewalk0001-6",
+            "catalogId": "https://aestheticfunction.github.io/dspack-studio/catalogs/astryx/v0_9_1/catalog.json",
+            "theme": {
+              "agentDisplayName": "Astryx via dspack"
+            }
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateComponents": {
+            "surfaceId": "hotel-search-evidencewalk0001-6",
+            "components": [
+              {
+                "id": "root",
+                "component": "Card",
+                "child": "root_col"
+              },
+              {
+                "id": "text",
+                "component": "Text",
+                "variant": "h1",
+                "text": "Find a hotel"
+              },
+              {
+                "id": "destination",
+                "component": "TextField",
+                "label": "Destination",
+                "placeholder": "City or area",
+                "value": {
+                  "path": "/input/destination"
+                }
+              },
+              {
+                "id": "check_in",
+                "component": "TextField",
+                "label": "Check-in date",
+                "placeholder": "YYYY-MM-DD",
+                "value": {
+                  "path": "/input/checkIn"
+                }
+              },
+              {
+                "id": "check_out",
+                "component": "TextField",
+                "label": "Check-out date",
+                "placeholder": "YYYY-MM-DD",
+                "value": {
+                  "path": "/input/checkOut"
+                }
+              },
+              {
+                "id": "guests",
+                "component": "TextField",
+                "label": "Guests",
+                "placeholder": "1 to 8",
+                "value": {
+                  "path": "/input/guests"
+                }
+              },
+              {
+                "id": "member_number",
+                "component": "TextField",
+                "label": "Loyalty number (optional)",
+                "placeholder": "Not kept after this step",
+                "value": {
+                  "path": "/input/memberNumber"
+                }
+              },
+              {
+                "id": "search",
+                "component": "Button",
+                "label": "Search hotels",
+                "variant": "primary",
+                "action": {
+                  "event": {
+                    "name": "search",
+                    "context": {
+                      "destination": {
+                        "path": "/input/destination"
+                      },
+                      "checkIn": {
+                        "path": "/input/checkIn"
+                      },
+                      "checkOut": {
+                        "path": "/input/checkOut"
+                      },
+                      "guests": {
+                        "path": "/input/guests"
+                      },
+                      "memberNumber": {
+                        "path": "/input/memberNumber"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "id": "root_col",
+                "component": "Column",
+                "children": [
+                  "text",
+                  "destination",
+                  "check_in",
+                  "check_out",
+                  "guests",
+                  "member_number",
+                  "search"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateDataModel": {
+            "surfaceId": "hotel-search-evidencewalk0001-6",
+            "path": "/input",
+            "value": {
+              "destination": "",
+              "checkIn": "",
+              "checkOut": "",
+              "guests": "",
+              "memberNumber": ""
+            }
           }
         }
       ]
