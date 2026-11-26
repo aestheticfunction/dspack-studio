@@ -1,0 +1,1314 @@
+{
+  "compositionsSidecar": "0.2",
+  "status": "approved",
+  "reference": {
+    "name": "Astryx",
+    "dspack": "0.4",
+    "version": "0.1.4"
+  },
+  "baseSha256": "4c6ce46dcdb23854a191a4f783166ee6c188a402b74f4ecbf9755d29c09c1889",
+  "blocks": [],
+  "compositions": [
+    {
+      "id": "hotel-search",
+      "version": 1,
+      "status": "approved",
+      "name": "Hotel search",
+      "summary": "Asks where and when to stay, and for how many guests, and submits the search.",
+      "parameters": [
+        {
+          "name": "title",
+          "type": "string",
+          "maxLength": 60
+        }
+      ],
+      "data": [
+        {
+          "name": "errors",
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "destination",
+          "node": "destination",
+          "kind": "text",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 80
+        },
+        {
+          "name": "checkIn",
+          "node": "check-in",
+          "kind": "date",
+          "required": true,
+          "maxLength": 10
+        },
+        {
+          "name": "checkOut",
+          "node": "check-out",
+          "kind": "date",
+          "required": true,
+          "maxLength": 10
+        },
+        {
+          "name": "guests",
+          "node": "guests",
+          "kind": "integer",
+          "required": true,
+          "minimum": 1,
+          "maximum": 8,
+          "maxLength": 2
+        },
+        {
+          "name": "memberNumber",
+          "node": "member-number",
+          "kind": "text",
+          "maxLength": 20,
+          "sensitive": true
+        }
+      ],
+      "actions": [
+        {
+          "name": "search",
+          "node": "search",
+          "states": [
+            "invalid",
+            "ready"
+          ],
+          "carries": [
+            "destination",
+            "checkIn",
+            "checkOut",
+            "guests",
+            "memberNumber"
+          ]
+        }
+      ],
+      "states": [
+        {
+          "id": "invalid",
+          "purpose": "data-collection",
+          "guard": {
+            "present": "errors"
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": {
+                  "$prop": "title",
+                  "default": "Find a hotel"
+                }
+              },
+              {
+                "component": "text",
+                "props": {
+                  "type": "supporting"
+                },
+                "text": "Some details need another look:"
+              },
+              {
+                "$each": "errors",
+                "as": "error",
+                "children": [
+                  {
+                    "component": "text",
+                    "props": {
+                      "type": "body"
+                    },
+                    "text": {
+                      "$prop": "error"
+                    }
+                  }
+                ]
+              },
+              {
+                "component": "text-input",
+                "id": "destination",
+                "props": {
+                  "label": "Destination",
+                  "placeholder": "City or area"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "check-in",
+                "props": {
+                  "label": "Check-in date",
+                  "placeholder": "YYYY-MM-DD"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "check-out",
+                "props": {
+                  "label": "Check-out date",
+                  "placeholder": "YYYY-MM-DD"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "guests",
+                "props": {
+                  "label": "Guests",
+                  "placeholder": "1 to 8"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "member-number",
+                "props": {
+                  "label": "Loyalty number (optional)",
+                  "placeholder": "Not kept after this step"
+                }
+              },
+              {
+                "component": "button",
+                "id": "search",
+                "props": {
+                  "label": "Search hotels",
+                  "variant": "primary"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ready",
+          "purpose": "data-collection",
+          "guard": {
+            "always": true
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": {
+                  "$prop": "title",
+                  "default": "Find a hotel"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "destination",
+                "props": {
+                  "label": "Destination",
+                  "placeholder": "City or area"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "check-in",
+                "props": {
+                  "label": "Check-in date",
+                  "placeholder": "YYYY-MM-DD"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "check-out",
+                "props": {
+                  "label": "Check-out date",
+                  "placeholder": "YYYY-MM-DD"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "guests",
+                "props": {
+                  "label": "Guests",
+                  "placeholder": "1 to 8"
+                }
+              },
+              {
+                "component": "text-input",
+                "id": "member-number",
+                "props": {
+                  "label": "Loyalty number (optional)",
+                  "placeholder": "Not kept after this step"
+                }
+              },
+              {
+                "component": "button",
+                "id": "search",
+                "props": {
+                  "label": "Search hotels",
+                  "variant": "primary"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "ready",
+          "data": {},
+          "expect": "ok"
+        },
+        {
+          "id": "invalid",
+          "data": {
+            "errors": [
+              "Check-out must be after check-in."
+            ]
+          },
+          "expect": "ok"
+        }
+      ]
+    },
+    {
+      "id": "hotel-results",
+      "version": 1,
+      "status": "approved",
+      "name": "Hotel results",
+      "summary": "Compares the hotels a search found, lets the person choose one, and confirms the reservation.",
+      "parameters": [],
+      "data": [
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true,
+          "minLength": 1,
+          "maxLength": 80
+        },
+        {
+          "name": "nights",
+          "type": "integer",
+          "required": true,
+          "minimum": 1,
+          "maximum": 30
+        },
+        {
+          "name": "hotels",
+          "type": "array",
+          "required": true,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "props": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 40
+              },
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 60
+              },
+              {
+                "name": "area",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 60
+              },
+              {
+                "name": "price",
+                "type": "integer",
+                "required": true,
+                "minimum": 1,
+                "maximum": 5000
+              },
+              {
+                "name": "rating",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 20
+              }
+            ]
+          }
+        },
+        {
+          "name": "selection",
+          "type": "object",
+          "props": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "minLength": 1,
+              "maxLength": 40
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "minLength": 1,
+              "maxLength": 60
+            },
+            {
+              "name": "total",
+              "type": "integer",
+              "required": true,
+              "minimum": 1,
+              "maximum": 150000
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        {
+          "name": "destination",
+          "node": "new-destination",
+          "kind": "text",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 80
+        }
+      ],
+      "actions": [
+        {
+          "name": "choose",
+          "node": "choose",
+          "states": [
+            "ready"
+          ],
+          "repeat": {
+            "list": "results",
+            "each": "hotels",
+            "as": "hotel",
+            "witness": [
+              "hotel.name"
+            ]
+          },
+          "payload": {
+            "hotelId": {
+              "$prop": "hotel.id"
+            }
+          }
+        },
+        {
+          "name": "new_search",
+          "node": "new-search",
+          "states": [
+            "ready"
+          ]
+        },
+        {
+          "name": "search_again",
+          "node": "search-again",
+          "states": [
+            "empty"
+          ],
+          "carries": [
+            "destination"
+          ]
+        },
+        {
+          "name": "reserve",
+          "node": "reserve",
+          "states": [
+            "confirm"
+          ],
+          "payload": {
+            "hotelId": {
+              "$prop": "selection.id"
+            }
+          },
+          "consequential": true
+        },
+        {
+          "name": "back",
+          "node": "back",
+          "states": [
+            "confirm"
+          ]
+        }
+      ],
+      "states": [
+        {
+          "id": "confirm",
+          "purpose": "destructive-action",
+          "guard": {
+            "present": "selection"
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": "Review your reservation"
+              },
+              {
+                "component": "alert-dialog",
+                "id": "reserve",
+                "props": {
+                  "title": {
+                    "$concat": [
+                      "Reserve ",
+                      {
+                        "$prop": "selection.name"
+                      },
+                      "?"
+                    ]
+                  },
+                  "description": {
+                    "$concat": [
+                      {
+                        "$prop": "nights"
+                      },
+                      " nights in ",
+                      {
+                        "$prop": "destination"
+                      },
+                      " for $",
+                      {
+                        "$prop": "selection.total"
+                      },
+                      ". Payment is taken when you reserve."
+                    ]
+                  },
+                  "actionLabel": {
+                    "$concat": [
+                      "Reserve ",
+                      {
+                        "$prop": "selection.name"
+                      }
+                    ]
+                  },
+                  "cancelLabel": "Not now"
+                }
+              },
+              {
+                "component": "button",
+                "id": "back",
+                "props": {
+                  "label": "Back to results",
+                  "variant": "secondary"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "empty",
+          "purpose": "data-collection",
+          "guard": {
+            "empty": "hotels"
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": {
+                  "$concat": [
+                    "No hotels found in ",
+                    {
+                      "$prop": "destination"
+                    }
+                  ]
+                }
+              },
+              {
+                "component": "text",
+                "props": {
+                  "type": "supporting"
+                },
+                "text": "Nothing is available for these dates. Try another destination."
+              },
+              {
+                "component": "text-input",
+                "id": "new-destination",
+                "props": {
+                  "label": "Another destination",
+                  "placeholder": "City or area"
+                }
+              },
+              {
+                "component": "button",
+                "id": "search-again",
+                "props": {
+                  "label": "Search again",
+                  "variant": "primary"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ready",
+          "purpose": "transactional-review",
+          "guard": {
+            "always": true
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": {
+                  "$concat": [
+                    "Hotels in ",
+                    {
+                      "$prop": "destination"
+                    }
+                  ]
+                }
+              },
+              {
+                "component": "text",
+                "props": {
+                  "type": "supporting"
+                },
+                "text": {
+                  "$concat": [
+                    {
+                      "$prop": "nights"
+                    },
+                    " nights. Compare and choose one."
+                  ]
+                }
+              },
+              {
+                "component": "list",
+                "id": "results",
+                "children": [
+                  {
+                    "$each": "hotels",
+                    "as": "hotel",
+                    "children": [
+                      {
+                        "component": "selectable-card",
+                        "props": {
+                          "label": {
+                            "$prop": "hotel.name"
+                          }
+                        },
+                        "children": [
+                          {
+                            "component": "metadata-list",
+                            "props": {
+                              "items": [
+                                {
+                                  "label": "Area",
+                                  "value": {
+                                    "$prop": "hotel.area"
+                                  }
+                                },
+                                {
+                                  "label": "Price per night",
+                                  "value": {
+                                    "$concat": [
+                                      "$",
+                                      {
+                                        "$prop": "hotel.price"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "label": "Guest rating",
+                                  "value": {
+                                    "$prop": "hotel.rating"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "component": "button",
+                            "id": "choose",
+                            "props": {
+                              "label": {
+                                "$concat": [
+                                  "Choose ",
+                                  {
+                                    "$prop": "hotel.name"
+                                  }
+                                ]
+                              },
+                              "variant": "secondary"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "button",
+                "id": "new-search",
+                "props": {
+                  "label": "New search",
+                  "variant": "ghost"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "three",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              },
+              {
+                "id": "h-102",
+                "name": "Hotel Miradouro",
+                "area": "Graça",
+                "price": 188,
+                "rating": "9.2 / 10"
+              },
+              {
+                "id": "h-103",
+                "name": "Lumen Chiado",
+                "area": "Chiado",
+                "price": 231,
+                "rating": "9.0 / 10"
+              }
+            ]
+          },
+          "expect": "ok"
+        },
+        {
+          "id": "two",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              },
+              {
+                "id": "h-102",
+                "name": "Hotel Miradouro",
+                "area": "Graça",
+                "price": 188,
+                "rating": "9.2 / 10"
+              }
+            ]
+          },
+          "expect": "ok"
+        },
+        {
+          "id": "one",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              }
+            ]
+          },
+          "expect": "refused",
+          "refusedBy": "rule.review-offers-alternatives"
+        },
+        {
+          "id": "none",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": []
+          },
+          "expect": "ok"
+        },
+        {
+          "id": "confirm",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              },
+              {
+                "id": "h-102",
+                "name": "Hotel Miradouro",
+                "area": "Graça",
+                "price": 188,
+                "rating": "9.2 / 10"
+              },
+              {
+                "id": "h-103",
+                "name": "Lumen Chiado",
+                "area": "Chiado",
+                "price": 231,
+                "rating": "9.0 / 10"
+              }
+            ],
+            "selection": {
+              "id": "h-102",
+              "name": "Hotel Miradouro",
+              "total": 564
+            }
+          },
+          "expect": "ok"
+        }
+      ]
+    },
+    {
+      "id": "hotel-results",
+      "version": 2,
+      "status": "draft",
+      "name": "Hotel results",
+      "summary": "Compares the hotels a search found, lets the person choose one, and confirms the reservation.",
+      "parameters": [],
+      "data": [
+        {
+          "name": "destination",
+          "type": "string",
+          "required": true,
+          "minLength": 1,
+          "maxLength": 80
+        },
+        {
+          "name": "nights",
+          "type": "integer",
+          "required": true,
+          "minimum": 1,
+          "maximum": 30
+        },
+        {
+          "name": "hotels",
+          "type": "array",
+          "required": true,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "props": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 40
+              },
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 60
+              },
+              {
+                "name": "area",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 60
+              },
+              {
+                "name": "price",
+                "type": "integer",
+                "required": true,
+                "minimum": 1,
+                "maximum": 5000
+              },
+              {
+                "name": "rating",
+                "type": "string",
+                "required": true,
+                "minLength": 1,
+                "maxLength": 20
+              }
+            ]
+          }
+        },
+        {
+          "name": "selection",
+          "type": "object",
+          "props": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "minLength": 1,
+              "maxLength": 40
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "minLength": 1,
+              "maxLength": 60
+            },
+            {
+              "name": "total",
+              "type": "integer",
+              "required": true,
+              "minimum": 1,
+              "maximum": 150000
+            }
+          ]
+        }
+      ],
+      "inputs": [
+        {
+          "name": "destination",
+          "node": "new-destination",
+          "kind": "text",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 80
+        }
+      ],
+      "actions": [
+        {
+          "name": "choose",
+          "node": "choose",
+          "states": [
+            "ready"
+          ],
+          "repeat": {
+            "list": "results",
+            "each": "hotels",
+            "as": "hotel",
+            "witness": [
+              "hotel.name"
+            ]
+          },
+          "payload": {
+            "hotelId": {
+              "$prop": "hotel.id"
+            }
+          }
+        },
+        {
+          "name": "new_search",
+          "node": "new-search",
+          "states": [
+            "ready"
+          ]
+        },
+        {
+          "name": "search_again",
+          "node": "search-again",
+          "states": [
+            "empty"
+          ],
+          "carries": [
+            "destination"
+          ]
+        },
+        {
+          "name": "reserve",
+          "node": "reserve",
+          "states": [
+            "confirm"
+          ],
+          "payload": {
+            "hotelId": {
+              "$prop": "selection.id"
+            }
+          },
+          "consequential": true
+        },
+        {
+          "name": "back",
+          "node": "back",
+          "states": [
+            "confirm"
+          ]
+        }
+      ],
+      "states": [
+        {
+          "id": "confirm",
+          "purpose": "destructive-action",
+          "guard": {
+            "present": "selection"
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": "Review your reservation"
+              },
+              {
+                "component": "alert-dialog",
+                "id": "reserve",
+                "props": {
+                  "title": {
+                    "$concat": [
+                      "Reserve ",
+                      {
+                        "$prop": "selection.name"
+                      },
+                      "?"
+                    ]
+                  },
+                  "description": {
+                    "$concat": [
+                      {
+                        "$prop": "nights"
+                      },
+                      " nights in ",
+                      {
+                        "$prop": "destination"
+                      },
+                      " for $",
+                      {
+                        "$prop": "selection.total"
+                      },
+                      ". Payment is taken when you reserve."
+                    ]
+                  },
+                  "actionLabel": {
+                    "$concat": [
+                      "Reserve ",
+                      {
+                        "$prop": "selection.name"
+                      }
+                    ]
+                  },
+                  "cancelLabel": "Not now"
+                }
+              },
+              {
+                "component": "button",
+                "id": "back",
+                "props": {
+                  "label": "Back to results",
+                  "variant": "secondary"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "empty",
+          "purpose": "data-collection",
+          "guard": {
+            "empty": "hotels"
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": {
+                  "$concat": [
+                    "No hotels found in ",
+                    {
+                      "$prop": "destination"
+                    }
+                  ]
+                }
+              },
+              {
+                "component": "text",
+                "props": {
+                  "type": "supporting"
+                },
+                "text": "Nothing is available for these dates. Try another destination."
+              },
+              {
+                "component": "text-input",
+                "id": "new-destination",
+                "props": {
+                  "label": "Another destination",
+                  "placeholder": "City or area"
+                }
+              },
+              {
+                "component": "button",
+                "id": "search-again",
+                "props": {
+                  "label": "Search again",
+                  "variant": "primary"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ready",
+          "purpose": "transactional-review",
+          "guard": {
+            "always": true
+          },
+          "template": {
+            "component": "card",
+            "children": [
+              {
+                "component": "text",
+                "props": {
+                  "type": "display-2"
+                },
+                "text": {
+                  "$concat": [
+                    "Hotels in ",
+                    {
+                      "$prop": "destination"
+                    }
+                  ]
+                }
+              },
+              {
+                "component": "text",
+                "props": {
+                  "type": "supporting"
+                },
+                "text": {
+                  "$concat": [
+                    {
+                      "$prop": "nights"
+                    },
+                    " nights. Prices are per night, before taxes."
+                  ]
+                }
+              },
+              {
+                "component": "list",
+                "id": "results",
+                "children": [
+                  {
+                    "$each": "hotels",
+                    "as": "hotel",
+                    "children": [
+                      {
+                        "component": "selectable-card",
+                        "props": {
+                          "label": {
+                            "$prop": "hotel.name"
+                          }
+                        },
+                        "children": [
+                          {
+                            "component": "metadata-list",
+                            "props": {
+                              "items": [
+                                {
+                                  "label": "Area",
+                                  "value": {
+                                    "$prop": "hotel.area"
+                                  }
+                                },
+                                {
+                                  "label": "Price per night",
+                                  "value": {
+                                    "$concat": [
+                                      "$",
+                                      {
+                                        "$prop": "hotel.price"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "label": "Guest rating",
+                                  "value": {
+                                    "$prop": "hotel.rating"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "component": "button",
+                            "id": "choose",
+                            "props": {
+                              "label": {
+                                "$concat": [
+                                  "Choose ",
+                                  {
+                                    "$prop": "hotel.name"
+                                  }
+                                ]
+                              },
+                              "variant": "secondary"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "button",
+                "id": "new-search",
+                "props": {
+                  "label": "Change search",
+                  "variant": "ghost"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "three",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              },
+              {
+                "id": "h-102",
+                "name": "Hotel Miradouro",
+                "area": "Graça",
+                "price": 188,
+                "rating": "9.2 / 10"
+              },
+              {
+                "id": "h-103",
+                "name": "Lumen Chiado",
+                "area": "Chiado",
+                "price": 231,
+                "rating": "9.0 / 10"
+              }
+            ]
+          },
+          "expect": "ok"
+        },
+        {
+          "id": "two",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              },
+              {
+                "id": "h-102",
+                "name": "Hotel Miradouro",
+                "area": "Graça",
+                "price": 188,
+                "rating": "9.2 / 10"
+              }
+            ]
+          },
+          "expect": "ok"
+        },
+        {
+          "id": "one",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              }
+            ]
+          },
+          "expect": "refused",
+          "refusedBy": "rule.review-offers-alternatives"
+        },
+        {
+          "id": "none",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": []
+          },
+          "expect": "ok"
+        },
+        {
+          "id": "confirm",
+          "data": {
+            "destination": "Lisbon",
+            "nights": 3,
+            "hotels": [
+              {
+                "id": "h-101",
+                "name": "Casa do Rio",
+                "area": "Alfama",
+                "price": 142,
+                "rating": "8.9 / 10"
+              },
+              {
+                "id": "h-102",
+                "name": "Hotel Miradouro",
+                "area": "Graça",
+                "price": 188,
+                "rating": "9.2 / 10"
+              },
+              {
+                "id": "h-103",
+                "name": "Lumen Chiado",
+                "area": "Chiado",
+                "price": 231,
+                "rating": "9.0 / 10"
+              }
+            ],
+            "selection": {
+              "id": "h-102",
+              "name": "Hotel Miradouro",
+              "total": 564
+            }
+          },
+          "expect": "ok"
+        }
+      ]
+    }
+  ]
+}

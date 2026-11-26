@@ -310,6 +310,8 @@ export async function createHost(options: { session?: string; governor: Governor
       if (!compositions.has(compositionId)) return refuse(`unknown composition '${compositionId}'`);
       if (!approval || typeof approval !== "object" || !issued.has(approval)) return refuse("an approval is accepted only as recheck issued it");
       if (approval.pins.composition !== compositionId) return refuse(`the approval is for '${approval.pins.composition}', not '${compositionId}'`);
+      const governed = compositions.get(compositionId)!;
+      if (approval.pins.version !== governed.version) return refuse(`the approval is for v${approval.pins.version} of '${compositionId}'; this host governs v${governed.version}`);
       approvals.set(compositionId, approval);
       log.push({ at: ++seq, kind: "approved", name: compositionId });
       return { approved: true };

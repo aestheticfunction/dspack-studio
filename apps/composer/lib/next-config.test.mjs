@@ -6,6 +6,7 @@
  * read), the experimental directory is aliased away unless the flag is on,
  * and the flag and the output directory must agree, or the build throws.
  */
+import { installedToolchain } from "./toolchain.mjs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import nextConfig from "../next.config.mjs";
 
@@ -34,7 +35,9 @@ describe("next.config: the experimental flag and the output directory", () => {
 
   it("experimental build: the flag is inlined as '1', the output is out-experimental/, and nothing is aliased away", () => {
     const config = resolved(PRODUCTION, { flag: "1", outDir: "out-experimental" });
-    expect(config.env).toEqual({ NEXT_PUBLIC_COMPOSER_EXPERIMENTAL: "1" });
+    // The experimental build also carries the lint and emitter versions its composition workspace pins (M1).
+    expect(config.env).toEqual({ NEXT_PUBLIC_COMPOSER_EXPERIMENTAL: "1", NEXT_PUBLIC_COMPOSER_TOOLCHAIN: JSON.stringify(installedToolchain()) });
+    expect(JSON.parse(config.env.NEXT_PUBLIC_COMPOSER_TOOLCHAIN)).toEqual({ lint: expect.stringMatching(/^\d+\.\d+\.\d+/), emit: expect.stringMatching(/^\d+\.\d+\.\d+/) });
     expect(config.distDir).toBe("out-experimental");
     const webpack = config.webpack({ resolve: {}, plugins: [] }, { webpack: { NormalModuleReplacementPlugin: class {} } });
     expect(Object.values(webpack.resolve.alias)).not.toContain(false);
@@ -51,7 +54,7 @@ describe("next.config: the experimental flag and the output directory", () => {
   });
 
   it("the dev server never throws over the flag; it only inlines it", () => {
-    expect(resolved("phase-development-server", { flag: "1" }).env).toEqual({ NEXT_PUBLIC_COMPOSER_EXPERIMENTAL: "1" });
+    expect(resolved("phase-development-server", { flag: "1" }).env).toEqual({ NEXT_PUBLIC_COMPOSER_EXPERIMENTAL: "1", NEXT_PUBLIC_COMPOSER_TOOLCHAIN: JSON.stringify(installedToolchain()) });
     expect(resolved("phase-development-server", {}).env).toEqual({ NEXT_PUBLIC_COMPOSER_EXPERIMENTAL: "0" });
   });
 });
