@@ -149,7 +149,7 @@ Layout and keyboard:
   - keyboard;
   - 1280 and 390 layout;
   - axe (WCAG 2.2 AA) at both widths.
-- **One known violation, excepted precisely.** Axe's one finding is inside the rendered Astryx surface: Astryx's `List` gives `SelectableCard` items no list-item role. It is the violation already recorded for `ex.plan-comparison` in `docs/blocks/ACCESSIBILITY.md`, and the spec excepts exactly that rule on `.astryx-list` nodes.
+- **No accessibility exception.** Axe once reported `aria-required-children` inside the rendered Astryx surface (Astryx's `List` held option cards without list items). #128 fixed it in the List adapter, and the Library spec now allows no violation at either width.
 - **Isolation tests.** `lib/compositions-isolation.test.mjs` now allows the composition runtime only under `apps/composer/experimental/`, and checks that the directory is aliased away in a default build.
 - **Default artifact check.** It covers the new markers. The default build passed it: 29 files, 19 markers.
 
@@ -169,7 +169,6 @@ Two of the owner's approved decisions are applied at the same time: the workspac
 ## Limits that remain
 
 - **Hotel names on option cards** are drawn since D1 (#125) merged.
-- **The Astryx list-item violation** is fixed in its own pull request. Until it merges, this spec keeps its one exception, for exactly `aria-required-children` on `.astryx-list`; remove it when integrating that change.
 - **The Library is read-only.** Authoring, running actions and flows, and publishing are named and not built.
 - **One design system** (Astryx), two compositions, one draft.
 - **A rule change re-checks every composition**, not only those a rule affects. Rule coverage is deferred in M1.

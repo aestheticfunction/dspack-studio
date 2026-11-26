@@ -338,11 +338,9 @@ test.describe("keyboard, focus and layout", () => {
       await openLibrary(page);
       if (w === 1280) await page.getByTestId("toggle-inspector").click();
       const results = await new AxeBuilder({ page }).include('[data-testid="composition-library"]').withTags(TAGS).analyze();
-      // The one known violation is inside the rendered Astryx surface, not the workspace: Astryx's List gives
-      // SelectableCard items no listitem role. It predates M1 and is recorded in docs/blocks/ACCESSIBILITY.md
-      // ("Outside the blocks", as for ex.plan-comparison). Excepted for exactly that rule on .astryx-list only.
-      const known = (v: (typeof results.violations)[number]) => v.id === "aria-required-children" && v.nodes.every((n) => String(n.target[0]).includes(".astryx-list"));
-      expect(results.violations.filter((v) => !known(v)).map((v) => `${v.id}: ${v.nodes.length} (${v.help})`)).toEqual([]);
+      // No exception: the Astryx list-item violation that used to be excepted here is fixed in the List adapter
+      // (#128, docs/repositioning/list-semantics/).
+      expect(results.violations.map((v) => `${v.id}: ${v.nodes.length} (${v.help})`)).toEqual([]);
     });
   }
 });
