@@ -13,7 +13,7 @@
  */
 import { expandBlock, type ExpandedSurface } from "../blocks/expand";
 import type { BlockDefinition } from "../blocks/schema";
-import { validateCall } from "../blocks/call";
+import { checkConstraints, validateCall } from "../blocks/call";
 import type { ActionSpec, CompositionDefinition, CompositionState, Guard, PayloadValue } from "./schema";
 
 type Json = Record<string, unknown>;
@@ -80,6 +80,7 @@ function asBlock(c: CompositionDefinition, state: CompositionState, specs: "data
     intents: [state.purpose],
     keywords: [],
     props: specs === "data" ? c.data : [...c.parameters, ...c.data],
+    ...(c.constraints ? { constraints: c.constraints } : {}),
     actions: [],
     streaming: "static-safe",
     template: state.template,
@@ -92,6 +93,8 @@ export function validateInstanceInput(c: CompositionDefinition, parameters: Json
   const block = asBlock(c, c.states[0]!, "all");
   const scope = { ...parameters, ...data };
   const issues = validateCall(block, { block: c.id, version: c.version, ...scope }).map((i) => `${i.path}: ${i.message}`);
+  // A block's constraints run only over a call that is otherwise valid, as B2 does (blocks/call.ts).
+  if (issues.length === 0) issues.push(...checkConstraints(block, scope).map((i) => `${i.path}: ${i.message}`));
   for (const key of Object.keys(data)) if (!c.data.some((d) => d.name === key)) issues.push(`$.${key}: '${key}' is not declared data of ${c.id}`);
   for (const key of Object.keys(parameters)) if (!c.parameters.some((d) => d.name === key)) issues.push(`$.${key}: '${key}' is not a parameter of ${c.id}`);
   return [...new Set(issues)];

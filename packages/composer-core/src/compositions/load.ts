@@ -13,6 +13,7 @@
  * literal id and sits where the attachment can find it after emission.
  * Every check fails closed with a pathed reason.
  */
+import { slug } from "@aestheticfunction/dspack-emit";
 import { contractDigest } from "../blocks/digest";
 import type { BlockDefinition, BlocksSidecar, TemplateChild } from "../blocks/schema";
 import { parseBlocksSidecar } from "../blocks/schema";
@@ -39,6 +40,8 @@ export function upcastBlock(block: BlockDefinition): CompositionDefinition {
     name: block.name,
     summary: block.summary,
     parameters: block.props,
+    // Kept so the block's own cross-field checks still hold through the composition path (R1A-REVIEW M5).
+    ...(block.constraints?.length ? { constraints: block.constraints } : {}),
     data: [],
     inputs: [],
     actions: [],
@@ -134,8 +137,16 @@ export function compositionIssues(c: CompositionDefinition, contract: Json): Com
   const intents = new Set(((contract.intents ?? []) as Json[]).map((i) => String(i.id)));
   c.states.forEach((state, n) => {
     if (!intents.has(state.purpose)) issues.push({ path: `states.${n}.purpose`, message: `'${state.purpose}' is not an intent of this contract` });
-    const { duplicates } = templateSites(state.template as unknown as Json);
+    const { sites, duplicates } = templateSites(state.template as unknown as Json);
     for (const d of duplicates) issues.push({ path: `states.${n}.template`, message: `node id '${d}' appears twice; inputs and actions need unique literal ids` });
+    // Two literal ids that the emitter writes as the same id would let a binding find the wrong node (R1A-REVIEW M2).
+    const bySlug = new Map<string, string>();
+    for (const id of sites.keys()) {
+      const emitted = slug(id);
+      const other = bySlug.get(emitted);
+      if (other !== undefined) issues.push({ path: `states.${n}.template`, message: `node ids '${other}' and '${id}' are both emitted as '${emitted}'` });
+      else bySlug.set(emitted, id);
+    }
   });
   const statesWith = (node: string) => c.states.filter((s) => templateSites(s.template as unknown as Json).sites.has(node));
   c.inputs.forEach((input, n) => {
@@ -180,6 +191,8 @@ export function compositionIssues(c: CompositionDefinition, contract: Json): Com
       if (site.component !== "button" && site.component !== "alert-dialog") issues.push({ path: `actions.${n}.node`, message: `'${action.node}' is a ${site.component}; only buttons and alert dialogs dispatch here` });
     }
     if (action.consequential && action.states.length !== 1) issues.push({ path: `actions.${n}.states`, message: "a consequential action is dispatched from exactly one confirmation state" });
+    // What a confirmation shows must be what is sent, so a consequential payload is all literals (R0-REVIEW A5, R1A-REVIEW M6).
+    if (action.consequential && (action.carries?.length ?? 0) > 0) issues.push({ path: `actions.${n}.carries`, message: "a consequential action carries literals only, never typed input" });
   });
   return issues;
 }

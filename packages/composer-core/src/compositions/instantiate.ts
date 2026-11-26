@@ -17,6 +17,8 @@
 import { sha256Hex } from "../blocks/digest";
 import type { ExpandedSurface } from "../blocks/expand";
 import { attach, bindingLayoutIssues, INPUT_ROOT, type BoundAction, type BoundInput } from "./bindings";
+import { slug } from "@aestheticfunction/dspack-emit";
+import { templateSites } from "./load";
 import { expandInstance } from "./expand";
 import type { GateFailure, Governor } from "./governance";
 import type { CompositionDefinition } from "./schema";
@@ -110,6 +112,17 @@ export async function instantiate(governor: Governor, c: CompositionDefinition, 
   const t3 = now();
   if (!emitted.ok) return { ok: false, stage: "emit", state: state.id, purpose: state.purpose, failures: [emitted.failure], reason: emitted.failure.message };
 
+  // A declared node the emitter renamed to avoid a collision would be bound by its old id to some other
+  // component (R1A-REVIEW M2). Repeated nodes are renamed by design and are associated structurally instead.
+  const declared = declaredNodes(c, state.id);
+  for (const w of emitted.warnings as Array<{ code?: string; message?: string }>) {
+    if (w.code !== "surface-id-deduplicated") continue;
+    const renamed = /node id '([^']+)' already used/.exec(String(w.message))?.[1];
+    if (renamed !== undefined && declared.has(renamed)) {
+      return { ok: false, stage: "attach", state: state.id, purpose: state.purpose, reason: `the emitter renamed declared node '${renamed}' because another node already used that id: ${String(w.message)}` };
+    }
+  }
+
   const scope = { ...(input.parameters ?? {}), ...(input.data ?? {}) };
   const attached = attach(c, state, emitted.messages, scope);
   if (!attached.ok) return { ok: false, stage: "attach", state: state.id, purpose: state.purpose, reason: attached.reason };
@@ -144,6 +157,24 @@ export async function instantiate(governor: Governor, c: CompositionDefinition, 
     timings: { expandMs: t1 - t0, lintMs: t2 - t1, emitMs: t3 - t2, attachMs: t4 - t3, gatesMs: t5 - t4, totalMs: now() - t0 },
   };
   return { ok: true, instance };
+}
+
+/** Emitted ids of the nodes this state's inputs and actions are found by, other than repeated ones. */
+function declaredNodes(c: CompositionDefinition, stateId: string): Set<string> {
+  const state = c.states.find((s) => s.id === stateId)!;
+  const { sites } = templateSites(state.template as unknown as Json);
+  const out = new Set<string>();
+  const add = (id: string) => {
+    const site = sites.get(id);
+    if (site && !site.repeated) out.add(slug(id));
+  };
+  for (const i of c.inputs) add(i.node);
+  for (const a of c.actions) {
+    if (!a.states.includes(stateId)) continue;
+    if (a.repeat) add(a.repeat.list);
+    else add(a.node);
+  }
+  return out;
 }
 
 /**

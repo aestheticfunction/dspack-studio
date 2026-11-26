@@ -25,7 +25,7 @@
  * 0.1 sidecars (load.ts upcasts those) and does not expand anything.
  */
 import { z } from "zod";
-import type { BlockDefinition, PropSpec, TemplateNode } from "../blocks/schema";
+import type { BlockConstraint, BlockDefinition, PropSpec, TemplateNode } from "../blocks/schema";
 import { parseBlocksSidecar } from "../blocks/schema";
 
 export const COMPOSITIONS_SIDECAR_VERSION = "0.2";
@@ -99,6 +99,11 @@ export interface CompositionDefinition {
   summary: string;
   parameters: PropSpec[];
   data: PropSpec[];
+  /**
+   * Cross-field checks over parameters and data, in the block constraint language. Set by the 0.1 upcast
+   * from a block's constraints; not yet authorable in a 0.2 document.
+   */
+  constraints?: BlockConstraint[];
   inputs: InputSpec[];
   actions: ActionSpec[];
   states: CompositionState[];

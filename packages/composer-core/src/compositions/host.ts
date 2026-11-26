@@ -158,88 +158,112 @@ export function createHost(options: { session: string; governor: Governor; compo
       approvals.set(compositionId, approval);
       void refreshPins();
     },
-    async show(compositionId, input) {
-      const c = compositions.get(compositionId);
-      if (!c) throw new Error(`unknown composition '${compositionId}'`);
-      await refreshPins();
-      if (stalePins.has(c.id)) {
-        const reason = approvals.has(c.id)
-          ? `${c.id} was approved against other rules or another version; it needs a re-check before anything runs`
-          : `${c.id} has no approval`;
-        log.push({ at: ++seq, kind: "refused-show", code: "needs-recheck", reason });
-        return { ok: false, refusal: { stage: "needs-recheck", reason }, kept: current };
-      }
-      // Carry entered values to a new instance of the same composition, where name and type still match.
-      const previous = current;
-      const carried: string[] = [];
-      const dropped: Array<{ name: string; reason: string }> = [];
-      const inputValues: Record<string, string> = {};
-      if (previous && previous.composition === c.id) {
-        for (const spec of c.inputs) {
-          if (!Object.hasOwn(previous.inputValues, spec.name)) continue;
-          const value = previous.inputValues[spec.name];
-          const issue = typeof value === "string" && value.length <= spec.maxLength ? null : inputValueIssue(spec, value);
-          if (issue) dropped.push({ name: spec.name, reason: issue });
-          else {
-            inputValues[spec.name] = value!;
-            carried.push(spec.name);
-          }
-        }
-      }
-      const surfaceId = surfaceIdFor(c.id, options.session, ++counter);
-      const r = await instantiate(governor, c, { surfaceId, parameters: input.parameters, data: input.data, state: input.state, inputValues });
-      if (!r.ok) {
-        log.push({ at: ++seq, kind: "refused-show", code: r.stage, reason: r.reason });
-        return { ok: false, refusal: r, kept: current };
-      }
-      const instance = r.instance;
-      const batch = [...(previous ? [{ version: "v0.9", deleteSurface: { surfaceId: previous.surfaceId } }] : []), ...instance.messages];
-      current = instance;
-      accepted.clear();
-      log.push({ at: ++seq, kind: "show", surfaceId });
-      const focus = focusAfter(previous, instance, input.focused ?? null);
-      const announcement = previous && previous.composition === c.id
-        ? `Updated: ${describe(instance)}`
-        : `Showing ${describe(instance)}`;
-      return { ok: true, instance, batch, carried: carried.filter((n) => instance.inputs.some((i) => i.name === n)), dropped, focus, announcement };
+    show(compositionId, input) {
+      // Replacements run one at a time (R1A-REVIEW M1): each reads the surface before it only after the previous
+      // replacement has landed, so every batch deletes the surface actually shown and none is orphaned.
+      const run = queue.then(() => showNow(compositionId, input));
+      queue = run.then(
+        () => undefined,
+        () => undefined,
+      );
+      return run;
     },
     act(event) {
-      const refuse = (code: ActCode, reason: string, fields?: Record<string, string>): ActResult => {
-        log.push({ at: ++seq, kind: "refused", surfaceId: event.surfaceId, name: event.name, code, reason });
-        return { accepted: false, code, reason, ...(fields ? { fields } : {}) };
-      };
-      if (!current || event.surfaceId !== current.surfaceId) return refuse("stale", `surface '${event.surfaceId}' is not the current instance${current ? ` ('${current.surfaceId}')` : ""}`);
-      const c = compositions.get(current.composition)!;
-      if (stalePins.has(c.id)) return refuse("needs-recheck", `${c.id} needs a re-check against the current rules`);
-      const bound = current.actions.find((a) => a.name === event.name && a.componentId === event.sourceComponentId);
-      const declared = c.actions.find((a) => a.name === event.name);
-      if (!bound && declared?.consequential) return refuse("needs-confirmation", `'${event.name}' is consequential and is accepted only from its confirmation step (${declared.states.join(", ")})`);
-      if (!bound) return refuse("unauthorized", `no declared action '${event.name}' on component '${event.sourceComponentId}' of this instance`);
-      const context = event.context ?? {};
-      const expected = new Set([...Object.keys(bound.payload), ...bound.carries]);
-      const extra = Object.keys(context).filter((k) => !expected.has(k));
-      if (extra.length > 0) return refuse("payload-mismatch", `unexpected context key(s): ${extra.join(", ")}`);
-      for (const [k, v] of Object.entries(bound.payload)) {
-        if (context[k] !== v) return refuse("payload-mismatch", `context '${k}' is ${JSON.stringify(context[k])}, but this button's payload is ${JSON.stringify(v)}`);
-      }
-      const values: Record<string, string> = {};
-      const fields: Record<string, string> = {};
-      for (const name of bound.carries) {
-        const spec = c.inputs.find((i) => i.name === name)!;
-        const issue = inputValueIssue(spec, context[name]);
-        if (issue) fields[name] = issue;
-        else values[name] = String(context[name]).trim();
-      }
-      if (Object.keys(fields).length > 0) return refuse("invalid-input", Object.values(fields).join("; "), fields);
-      const key = `${event.name}@${event.sourceComponentId}`;
-      if (bound.consequential && accepted.has(key)) return refuse("duplicate", `'${event.name}' was already accepted on surface '${current.surfaceId}'; a consequential action is accepted once per surface`);
-      if (bound.consequential) accepted.add(key);
-      // The person's latest values become what a replacement can carry.
-      current = { ...current, inputValues: { ...current.inputValues, ...Object.fromEntries(bound.carries.map((n) => [n, String(context[n] ?? "")])) } };
-      log.push({ at: ++seq, kind: "accepted", surfaceId: event.surfaceId, name: event.name });
-      return { accepted: true, action: bound, values, instance: current };
+      return actNow(event);
     },
   };
+
+  let queue: Promise<unknown> = Promise.resolve();
+
+  async function showNow(compositionId: string, input: Parameters<Host["show"]>[1]): Promise<ShowResult> {
+    const c = compositions.get(compositionId);
+    if (!c) throw new Error(`unknown composition '${compositionId}'`);
+    await refreshPins();
+    if (stalePins.has(c.id)) {
+      const reason = approvals.has(c.id)
+        ? `${c.id} was approved against other rules or another version; it needs a re-check before anything runs`
+        : `${c.id} has no approval`;
+      log.push({ at: ++seq, kind: "refused-show", code: "needs-recheck", reason });
+      return { ok: false, refusal: { stage: "needs-recheck", reason }, kept: current };
+    }
+    // Carry entered values to a new instance of the same composition, where name and type still match.
+    const previous = current;
+    const carried: string[] = [];
+    const dropped: Array<{ name: string; reason: string }> = [];
+    const inputValues: Record<string, string> = {};
+    if (previous && previous.composition === c.id) {
+      for (const spec of c.inputs) {
+        if (!Object.hasOwn(previous.inputValues, spec.name)) continue;
+        const value = previous.inputValues[spec.name];
+        const issue = typeof value === "string" && value.length <= spec.maxLength ? null : inputValueIssue(spec, value);
+        if (issue) dropped.push({ name: spec.name, reason: issue });
+        else {
+          inputValues[spec.name] = value!;
+          carried.push(spec.name);
+        }
+      }
+    }
+    const surfaceId = surfaceIdFor(c.id, options.session, ++counter);
+    const r = await instantiate(governor, c, { surfaceId, parameters: input.parameters, data: input.data, state: input.state, inputValues });
+    if (!r.ok) {
+      log.push({ at: ++seq, kind: "refused-show", code: r.stage, reason: r.reason });
+      return { ok: false, refusal: r, kept: current };
+    }
+    const instance = r.instance;
+    const batch = [...(previous ? [{ version: "v0.9", deleteSurface: { surfaceId: previous.surfaceId } }] : []), ...instance.messages];
+    current = instance;
+    accepted.clear();
+    log.push({ at: ++seq, kind: "show", surfaceId });
+    const focus = focusAfter(previous, instance, input.focused ?? null);
+    const announcement = previous && previous.composition === c.id
+      ? `Updated: ${describe(instance)}`
+      : `Showing ${describe(instance)}`;
+    return { ok: true, instance, batch, carried: carried.filter((n) => instance.inputs.some((i) => i.name === n)), dropped, focus, announcement };
+  }
+
+  function actNow(event: ActionEvent): ActResult {
+    const refuse = (code: ActCode, reason: string, fields?: Record<string, string>): ActResult => {
+      log.push({ at: ++seq, kind: "refused", surfaceId: event.surfaceId, name: event.name, code, reason });
+      return { accepted: false, code, reason, ...(fields ? { fields } : {}) };
+    };
+    if (!current || event.surfaceId !== current.surfaceId) return refuse("stale", `surface '${event.surfaceId}' is not the current instance${current ? ` ('${current.surfaceId}')` : ""}`);
+    const c = compositions.get(current.composition)!;
+    if (stalePins.has(c.id)) return refuse("needs-recheck", `${c.id} needs a re-check against the current rules`);
+    // The surface itself must have been governed under the current approval's pins (R1A-REVIEW H1): a
+    // re-approval under changed rules does not make a surface emitted under the old ones executable again.
+    const approval = approvals.get(c.id);
+    if (!approval || !samePins(approval.pins, current.pins)) {
+      return refuse("needs-recheck", `surface '${current.surfaceId}' was governed under other rules or another version than ${c.id}'s current approval; it must be replaced before anything on it runs`);
+    }
+    const bound = current.actions.find((a) => a.name === event.name && a.componentId === event.sourceComponentId);
+    const declared = c.actions.find((a) => a.name === event.name);
+    if (!bound && declared?.consequential) return refuse("needs-confirmation", `'${event.name}' is consequential and is accepted only from its confirmation step (${declared.states.join(", ")})`);
+    if (!bound) return refuse("unauthorized", `no declared action '${event.name}' on component '${event.sourceComponentId}' of this instance`);
+    const context = event.context ?? {};
+    const expected = new Set([...Object.keys(bound.payload), ...bound.carries]);
+    const extra = Object.keys(context).filter((k) => !expected.has(k));
+    if (extra.length > 0) return refuse("payload-mismatch", `unexpected context key(s): ${extra.join(", ")}`);
+    for (const [k, v] of Object.entries(bound.payload)) {
+      if (context[k] !== v) return refuse("payload-mismatch", `context '${k}' is ${JSON.stringify(context[k])}, but this button's payload is ${JSON.stringify(v)}`);
+    }
+    const values: Record<string, string> = {};
+    const fields: Record<string, string> = {};
+    for (const name of bound.carries) {
+      const spec = c.inputs.find((i) => i.name === name)!;
+      const issue = inputValueIssue(spec, context[name]);
+      if (issue) fields[name] = issue;
+      else values[name] = String(context[name]).trim();
+    }
+    if (Object.keys(fields).length > 0) return refuse("invalid-input", Object.values(fields).join("; "), fields);
+    const key = `${event.name}@${event.sourceComponentId}`;
+    if (bound.consequential && accepted.has(key)) return refuse("duplicate", `'${event.name}' was already accepted on surface '${current.surfaceId}'; a consequential action is accepted once per surface`);
+    if (bound.consequential) accepted.add(key);
+    // The person's latest values become what a replacement can carry.
+    current = { ...current, inputValues: { ...current.inputValues, ...Object.fromEntries(bound.carries.map((n) => [n, String(context[n] ?? "")])) } };
+    log.push({ at: ++seq, kind: "accepted", surfaceId: event.surfaceId, name: event.name });
+    return { accepted: true, action: bound, values, instance: current };
+  }
+
   void refreshPins();
   return host;
 }

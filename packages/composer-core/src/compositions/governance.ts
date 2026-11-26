@@ -76,13 +76,24 @@ function fmt(e: { instancePath?: string; message?: string }): string {
  */
 export const INSTANCE_A2UI_VERSIONS: readonly A2uiVersion[] = ["0.9.1", "1.0"];
 
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const v of Object.values(value as Record<string, unknown>)) deepFreeze(v);
+  }
+  return value;
+}
+
 export async function createGovernor(options: {
   contract: Json;
   profileJson: Json;
   lintSurface: (surface: unknown, contract: Json) => LintReport;
   versions?: readonly A2uiVersion[];
 }): Promise<Governor> {
-  const { contract, profileJson } = options;
+  // Snapshots, frozen (R1A-REVIEW H2): the pins below are taken once, so the rules they stand for must not
+  // change under the governor. A caller that edits its own contract object afterwards changes nothing here.
+  const contract = deepFreeze(structuredClone(options.contract));
+  const profileJson = deepFreeze(structuredClone(options.profileJson));
   const versions = options.versions ?? INSTANCE_A2UI_VERSIONS;
   const profile = loadProfile(profileJson as never);
   const catalogs = new Map<A2uiVersion, Json>();
