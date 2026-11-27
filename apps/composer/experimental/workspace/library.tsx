@@ -679,7 +679,7 @@ export function LibraryWorkspace() {
           {definition.status === "draft" && (
             <details className="cl-draft" data-testid="draft-note">
               <summary>
-                <span className="cl-draft__status">Draft, not approved{changes ? " ·" : ""}</span>
+                <span className="cl-draft__status">Not approved{changes ? " ·" : ""}</span>
                 {changes ? " What changed" : ""}
               </summary>
               <div className="cl-draft__pop" role="note">
@@ -1350,7 +1350,7 @@ const CSS = `
 .cl-toolbar { position: sticky; top: 0; z-index: 6; background: var(--bg); padding: 12px 0 10px; display: grid; gap: 8px; border-bottom: 1px solid var(--line-soft); margin-bottom: 14px; }
 .cl[data-layout="narrow"] .cl-toolbar { position: static; }
 /* The head: title, status, and the view controls, which never wrap away from the title. */
-.cl-toolbar__head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "title versions status view"; align-items: center; gap: 8px 12px; min-width: 0; }
+.cl-toolbar__head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "title versions status view"; align-items: center; gap: 8px; min-width: 0; }
 .cl-title { grid-area: title; font-family: var(--sans); font-weight: 600; color: var(--fg); font-size: 20px; margin: 0; outline: none; line-height: 1.2; white-space: nowrap; }
 .cl-toolbar__versions { grid-area: versions; display: flex; align-items: center; min-width: 0; }
 .cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
@@ -1374,10 +1374,10 @@ const CSS = `
 .cl-toolbar__row { display: flex; align-items: center; gap: 8px 10px; min-width: 0; }
 .cl-toolbar__label { font-size: 12px; font-weight: 600; color: var(--fg-dim); white-space: nowrap; align-self: flex-start; line-height: var(--cl-target); }
 .cl-seg { border: 0; padding: 0; margin: 0; display: inline-flex; gap: 4px; align-items: center; }
-.cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cl-target); padding: 0 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cl-target); padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .cl-seg__opt input { margin: 0; width: 14px; height: 14px; accent-color: var(--fg); }
 .cl-seg__opt--on { border-color: var(--fg-dim); background: var(--bg-2); color: var(--fg); }
-.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--fg-body); }
+.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--fg-body); }
 .cl-pill--ok .cl-pill__icon { color: var(--green-bright); }
 .cl-pill--bad { color: var(--err, #d9826b); border-color: color-mix(in srgb, var(--err, #d9826b) 60%, transparent); }
 .cl-pill--warn { color: var(--warn, #c9a35a); border-color: color-mix(in srgb, var(--warn, #c9a35a) 60%, transparent); }

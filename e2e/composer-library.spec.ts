@@ -302,7 +302,12 @@ const toolbarState = (page: Page) =>
     const mid = (r: DOMRect) => r.top + r.height / 2;
     const title = document.querySelector("#cl-canvas-title")!.getBoundingClientRect();
     const toggles = [...document.querySelectorAll('[data-testid^="toggle-"]')].map((t) => t.getBoundingClientRect());
-    return { hidden, togglesOffTitle: toggles.some((t) => Math.abs(mid(t) - mid(title)) > 12), share: document.querySelector(".cl-canvas")!.getBoundingClientRect().width / innerWidth };
+    // Room left on the head row when the status shares it: a near-overflow would wrap on a font with wider metrics.
+    const status = [...document.querySelectorAll(".cl-toolbar__status > *")].map((e) => e.getBoundingClientRect());
+    const view = document.querySelector(".cl-toolbar__view")!.getBoundingClientRect();
+    const sameRow = status.length > 0 && Math.abs(mid(status[0]!) - mid(title)) <= 12;
+    const slack = sameRow ? view.left - Math.max(...status.map((r) => r.right)) : null;
+    return { hidden, togglesOffTitle: toggles.some((t) => Math.abs(mid(t) - mid(title)) > 12), share: document.querySelector(".cl-canvas")!.getBoundingClientRect().width / innerWidth, slack };
   });
 
 async function setPanels(page: Page, want: "none" | "library" | "inspector" | "both") {
@@ -347,6 +352,7 @@ test.describe("D0.1: the independent audit's corrections", () => {
           expect(state.togglesOffTitle, where).toBe(false);
           if (w === 1280 && config !== "none") expect(state.share, where).toBeGreaterThanOrEqual(0.6);
           if (w === 1280) expect(await compositionTop(page), where).toBeLessThanOrEqual(200);
+          if (state.slack !== null) expect(state.slack, where).toBeGreaterThanOrEqual(40);
         }
       }
     }
@@ -449,7 +455,7 @@ test.describe("D0.1: the independent audit's corrections", () => {
     await openLibrary(page, { guide: false });
     await page.getByRole("radio", { name: /v2 Draft/i }).check();
     const note = page.getByTestId("draft-note");
-    await expect(note.locator("summary")).toHaveText(/Draft, not approved · What changed/);
+    await expect(note.locator("summary")).toHaveText(/Not approved · What changed/);
     await expect(pill(page)).toHaveText(/^\W*Passes the design rules$/);
     await note.locator("summary").click();
     const changes = page.getByTestId("draft-changes");
@@ -519,7 +525,8 @@ test.describe("M1 workspace review corrections (R1 to R4)", () => {
     await expect(page.getByTestId("draft-note")).toContainText("not approved for use by agents");
     // The pill reports checks only; the draft's status is said beside it, separately (D0.1).
     await expect(pill(page)).toHaveText(/^\W*Passes the design rules$/);
-    await expect(page.getByTestId("draft-note").locator("summary")).toContainText("Draft, not approved");
+    await expect(page.getByRole("radio", { name: /v2 Draft/i })).toBeChecked();
+    await expect(page.getByTestId("draft-note").locator("summary")).toContainText("Not approved");
     await expect(page.getByTestId("check-status")).toHaveAttribute("data-check", "pass");
     await expect(page.getByTestId("draft-check-note")).toContainText("passing checks does not approve it");
     await expect(page.getByTestId("device-record")).not.toContainText(/approv/i);
