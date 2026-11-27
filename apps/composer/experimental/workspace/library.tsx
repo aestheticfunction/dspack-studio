@@ -1762,7 +1762,7 @@ function Empty({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const CSS = `
+const CSS = withWorkspaceChoices(`
 /* The experimental workspace's own, quieter type (D0.1): sentence case in the workspace's sans face, no
    tracked uppercase mono, a 12 px floor for labels and controls and 14 px for reading text. The AF palette is
    kept; the solid accent is left for primary actions, and none is offered in the read-only Library. */
@@ -1991,4 +1991,28 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
   .cl-chips-wrap[data-more-start]::before { content: "‹"; left: 0; z-index: 1; padding-left: 2px; background: linear-gradient(to left, transparent, var(--bg) 70%); }
 }
 @media (prefers-reduced-motion: reduce) { .cl * { transition: none !important; } }
+/* Workspace appearance (T4): labels follow the chosen case, and the canvas may sit on its own surround. With the
+   default choices these compute to exactly what they were before. */
+.cl-label, .cl-toolbar__label, .cl-table th, .cl-field__label, .cl-crumbs { text-transform: var(--cl-label-transform, none); letter-spacing: var(--cl-label-tracking, 0); }
+.cl-stage { background: var(--cl-surround, transparent); padding: var(--cl-surround-pad, 0); border-radius: 8px; }
+`) +
+  // The canvas is not part of the workspace: it keeps the size it inherited before any workspace choice existed, and
+  // no choice reaches inside it. Outside the scaling above on purpose. composer-appearance.spec.ts holds this.
+  `
+.cl-frame { font-size: 14px; --cl-type: 1; --cl-space: 1; --cl-label-transform: none; --cl-label-tracking: 0; }
 `;
+
+/**
+ * The workspace choices (T4) as CSS: every font size scales with --cl-type and every plain length of padding, gap
+ * and margin with --cl-space. Both default to 1, so the computed styles are exactly the ones written. Minimum target
+ * sizes (min-height) are deliberately left alone: density never shrinks a control below D0.1's floors.
+ */
+function withWorkspaceChoices(css: string): string {
+  return css
+    .replace(/font-size: (\d+(?:\.\d+)?)px/g, "font-size: calc($1px * var(--cl-type, 1))")
+    .replace(/\b(padding|gap|margin)(-(?:top|bottom|left|right|block|inline))?: ([^;{}!]+)(!important)?;/g, (m, prop: string, side: string | undefined, value: string, important: string | undefined) =>
+      /^(?:\d+(?:\.\d+)?px|0)(?:\s+(?:\d+(?:\.\d+)?px|0|auto))*$/.test(value.trim())
+        ? `${prop}${side ?? ""}: ${value.trim().replace(/(\d+(?:\.\d+)?)px/g, "calc($1px * var(--cl-space, 1))")}${important ? " !important" : ""};`
+        : m,
+    );
+}

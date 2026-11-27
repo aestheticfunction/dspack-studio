@@ -186,7 +186,7 @@ Two of the owner's approved decisions are applied at the same time: the workspac
   - human scenario names;
   - technical details behind a disclosure;
   - first-run guidance.
-- **The workspace has only Composer's existing dark appearances** (Aesthetic Function, Ember and Slate, in Settings) during D0. This is temporary. A neutral, customizable working environment is a requirement before broad external designer evaluation (decision 28). Workspace themes through the shared compiler are planned in [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md).
+- **Workspace appearances.** The experimental build adds Neutral dark, Neutral light and Custom to Aesthetic Function, Ember and Slate, compiled by the shared theme compiler, with density, text size, label case, header type and canvas surround ([m1/appearance/README.md](m1/appearance/README.md)). The default build keeps its three themes. Project export of an appearance is deferred.
 - **Sensitive fields are drawn unmasked.** Masking is required before real sensitive inputs are supported (owner decision). Only synthetic values are used here.
 - **Focus inside a repeated element** across a replacement is still verified as the host's hint only. The Library shows one instance per selection.
 

@@ -22,12 +22,13 @@
  *
  * What may be stored is closed by the shapes below: the Library's selection and panel, whether the first-run
  * guide was put away, whether the Library was the view on screen, versions approved on this device and
- * packaged drafts discarded here, approval records
+ * packaged drafts discarded here, the workspace appearance (a closed-enum proposal, never token values), approval records
  * (pins and scenario outcomes, which are evidence, never authorizations: see versions.ts), and drafts. None
  * of them has room for a typed input value, an action event, a session or surface id, a commitment or
  * renderer state (Part B decisions; checked by storage.test.ts).
  */
 import { parseCompositionsSidecar, type ApprovalRecord, type CompositionDefinition } from "@dspack-studio/composer-core/compositions";
+import { BASES, CUSTOM_ENUMS, WORKSPACE_ENUMS, type AppearanceRecord } from "./appearance-enums";
 
 export const NAMESPACE = "composer.experimental.workspace.";
 export const KEYS = {
@@ -37,11 +38,12 @@ export const KEYS = {
   onboarding: `${NAMESPACE}onboarding`,
   view: `${NAMESPACE}view`,
   versions: `${NAMESPACE}versions`,
+  appearance: `${NAMESPACE}appearance`,
 } as const;
 export type RecordKind = keyof typeof KEYS;
 
 /** The schema version this build reads and writes, per record. */
-export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1, versions: 1 };
+export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1, versions: 1, appearance: 1 };
 
 export interface LibraryPrefs {
   composition: string | null;
@@ -89,6 +91,7 @@ interface Shapes {
   onboarding: Onboarding;
   view: ViewRecord;
   versions: DeviceVersions;
+  appearance: AppearanceRecord;
 }
 
 const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
@@ -98,6 +101,12 @@ const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
   onboarding: { dismissed: false },
   view: { library: false },
   versions: { approved: [], retired: [] },
+  // Never used as such: a missing appearance record starts from the default build's preference (appearance.ts).
+  appearance: {
+    base: "default",
+    custom: { scheme: "dark", surfaceHue: "sky", tint: "whisper", depth: "dim", warmth: "neutral", contrast: "standard", accentHue: "teal", chroma: "clear", presence: "balance", weight: "medium", elevation: "soft" },
+    workspace: { density: "comfortable", textScale: "standard", labelCase: "sentence", display: "brand", surround: "workspace" },
+  },
 };
 
 export type ReadResult<T> =
@@ -180,6 +189,19 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
       approved = probe.sidecar.compositions;
     }
     return { ok: true, value: { approved, retired: [...data.retired] as string[] } };
+  },
+  appearance(data) {
+    // A workspace appearance is a closed-enum proposal, never token values (T4): every field is checked here, and
+    // the compiler checks it again before anything is applied.
+    if (!isObject(data) || !onlyKeys(data, ["base", "custom", "workspace"])) return { ok: false, reason: "appearance: not the appearance shape" };
+    if (!(BASES as readonly unknown[]).includes(data.base)) return { ok: false, reason: "appearance: unknown base appearance" };
+    const custom = data.custom;
+    if (!isObject(custom) || !onlyKeys(custom, Object.keys(CUSTOM_ENUMS)) || Object.keys(custom).length !== Object.keys(CUSTOM_ENUMS).length) return { ok: false, reason: "appearance: the custom direction is incomplete or has unknown fields" };
+    for (const [k, allowed] of Object.entries(CUSTOM_ENUMS)) if (!(allowed as readonly unknown[]).includes(custom[k])) return { ok: false, reason: `appearance: custom ${k} is not one of the compiler's choices` };
+    const ws = data.workspace;
+    if (!isObject(ws) || !onlyKeys(ws, Object.keys(WORKSPACE_ENUMS)) || Object.keys(ws).length !== Object.keys(WORKSPACE_ENUMS).length) return { ok: false, reason: "appearance: the workspace choices are incomplete or have unknown fields" };
+    for (const [k, allowed] of Object.entries(WORKSPACE_ENUMS)) if (!(allowed as readonly unknown[]).includes(ws[k])) return { ok: false, reason: `appearance: workspace ${k} is not one of its choices` };
+    return { ok: true, value: structuredClone(data) as unknown as AppearanceRecord };
   },
   view(data) {
     if (!isObject(data) || !onlyKeys(data, ["library"]) || typeof data.library !== "boolean") return { ok: false, reason: "view: not the view shape" };

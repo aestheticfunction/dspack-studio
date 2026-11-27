@@ -102,3 +102,19 @@ The owner accepted D0 and D0.1 as the experimental workspace foundation. #129 is
 | 31 | Composition authoring A1 to A4 | Authorized after #129's production verification | Extend the workspace; no parallel editor, pipeline or shell. No template editing, input or action declaration, block promotion, Playground, publication, theme work or paid inference. Not merged or deployed without approval. Record: [m1/authoring/README.md](m1/authoring/README.md) |
 | 32 | An authoring walkthrough for designers | Prepared alongside the first-run script ([m1/authoring/AUTHORING-WALKTHROUGH.md](m1/authoring/AUTHORING-WALKTHROUGH.md)) | Human observations kept apart from tests and AI assessments; no one recruited or contacted; it may run alongside development |
 | 33 | Authoring before the shared theme compiler | Accepted | The neutral, customizable workspace stays a requirement before broad external designer evaluation (decision 28). The compiler's graduation into `dspack-gen` stays subject to its own authorization |
+
+## A1–A4 acceptance and shared workspace theming (2026-11-27)
+
+The owner accepted A1 to A4. #130 is merged and verified in production. The shared theme compiler and a customizable workspace come next, before structure authoring. Record: [m1/appearance/README.md](m1/appearance/README.md).
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 34 | **Approval withdrawal** | A requirement, recorded now; implementation deferred | An approved definition stays immutable, but its authorization can be withdrawn. Withdrawal keeps the exact version and its history, stops any later authorized consumption and invalidates runtime authorization. Restoring approval needs an explicit human decision. It never silently authorizes a fallback version. It is distinct from supersession. Packaged and local (this-device) approvals stay distinct. **Implemented before external agent consumption or publication** |
+| 35 | Workspace theming before structure authoring | Accepted | Template and tree editing, input and action declaration, and block promotion wait for T1 to T4 |
+| 36 | The theme compiler graduates into `dspack-gen` | Approved under Apache-2.0, AF keeps ownership (T1, `dspack-gen` 0.6.0, unreleased) | Only the compiler, its schema, constraints, solver, tests and documentation move. af-site stays private; no other af-site code, asset, font, credential or configuration moves. The optional hosted natural-language theme generation stays out, and no paid inference is added |
+| 37 | One compiler, pinned exactly | af-site (T2) and Composer (T3) consume it; the canvas design system stays independent | Pinned to a `dspack-gen` commit until 0.6.0 is published, then to `npm:@aestheticfunction/dspack-gen@0.6.0`. No consumer copies, forks or re-implements it. Publishing the package needs the owner |
+| 38 | Workspace appearances (T4) | Aesthetic Function, Ember and Slate stay; Neutral dark, Neutral light and Custom are added, with density, text size, label case, header type and canvas surround | Experimental build only. Kept as a user preference: a validated closed-enum proposal, never token values. The three governed themes keep `composer.appearance.v1`. Inclusion in project export is deferred. Deterministic controls only; no natural-language generation |
+| 39 | What an appearance may never change | Composition definitions, hashes, governance outcomes, approvals, check records, design-system tokens, the canvas's computed styling, and the colour scheme Astryx or shadcn/ui surfaces inherit | Held by test (`e2e/composer-appearance.spec.ts`) |
+| 40 | Usability enhancements for later | Side-by-side version comparison, and a mobile preview of a composition | Recorded only; not scheduled |
+
+Still deferred: template and tree editing; input and action declaration; block promotion; the Playground; publication and execution; protocol tracks; paid inference. Synthetic data only.
