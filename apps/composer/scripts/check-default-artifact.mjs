@@ -47,6 +47,10 @@ const markers = new Set([
   "theme-direction-compiler@",
   "workspace-appearance@",
   "composer-workspace-appearance",
+  // Advanced authoring: Structure, canvas selection and the element inspector are experimental only.
+  "structure-panel",
+  "element-inspector",
+  "select-layer",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));

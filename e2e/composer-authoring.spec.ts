@@ -333,6 +333,11 @@ test.describe("the authoring walkthrough, keyboard, layout and accessibility", (
     await page.getByTestId("edit-example-invalid").click();
     await page.getByTestId("data-errors-0").fill("Choose a check-out date after check-in.");
     await runChecks(page, "pass");
+    // The loyalty number is private; a version that takes it is approved only once its field is masked.
+    await expect(page.getByTestId("approval-blocked")).toContainText("Member number is private");
+    await page.getByTestId("mask-fix").click();
+    await expect(page.getByTestId("approval-blocked")).toHaveCount(0);
+    await runChecks(page, "pass");
     await page.getByTestId("approve").click();
     await page.getByTestId("approve-confirm-button").click();
     await expect(page.getByRole("radio", { name: /v2 Approved/i })).toBeChecked();

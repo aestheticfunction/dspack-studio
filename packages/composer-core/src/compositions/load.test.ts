@@ -152,3 +152,25 @@ describe("state selection", () => {
     expect(expandInstance(results, { data: { destination: "Lisbon", nights: 3, hotels: [], secret: "x" }, reference: { name: "Astryx" } })).toMatchObject({ ok: false, stage: "data" });
   });
 });
+
+describe("one declaration per name and per node (interaction authoring)", () => {
+  const base = () => structuredClone((sidecarJson().compositions as any[]).find((c) => c.id === "hotel-search"));
+  const issues = (c: any) => compositionIssues(c, contract()).map((i) => i.message);
+  it("the packaged compositions pass", () => {
+    for (const c of sidecarJson().compositions as any[]) expect(issues(c), c.id).toEqual([]);
+  });
+  it("two inputs with one name, two inputs on one node, two actions on one node, or a misnamed action are refused", () => {
+    const sameName = base();
+    sameName.inputs[1].name = sameName.inputs[0].name;
+    expect(issues(sameName)).toContain(`two inputs are named '${sameName.inputs[0].name}'`);
+    const sameNode = base();
+    sameNode.inputs.push({ ...sameNode.inputs[0], name: "again" });
+    expect(issues(sameNode)).toContain(`two inputs bind node '${sameNode.inputs[0].node}'`);
+    const twoActions = base();
+    twoActions.actions.push({ ...twoActions.actions[0] });
+    expect(issues(twoActions)).toEqual(expect.arrayContaining([`two actions are named 'search'`, `two actions are declared on node 'search'`]));
+    const misnamed = base();
+    misnamed.actions[0].name = "find";
+    expect(issues(misnamed)).toContain("the action on 'search' is emitted as 'search', not 'find'");
+  });
+});

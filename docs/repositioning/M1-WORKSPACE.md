@@ -187,6 +187,7 @@ Two of the owner's approved decisions are applied at the same time: the workspac
   - technical details behind a disclosure;
   - first-run guidance.
 - **Workspace appearances.** The experimental build adds Neutral dark, Neutral light and Custom to Aesthetic Function, Ember and Slate, compiled by the shared theme compiler, with density, text size, label case, header type and canvas surround ([m1/appearance/README.md](m1/appearance/README.md)). The default build keeps its three themes. Project export of an appearance is deferred.
+- **Interaction authoring.** Elements are selected on the canvas (Select) or in Structure, and a draft declares what a person types into them and what pressing them sends, through the same edit, check and approval path ([m1/interaction/README.md](m1/interaction/README.md)). Layout editing is not available yet.
 - **Sensitive fields are drawn unmasked.** Masking is required before real sensitive inputs are supported (owner decision). Only synthetic values are used here.
 - **Focus inside a repeated element** across a replacement is still verified as the host's hint only. The Library shows one instance per selection.
 

@@ -25,7 +25,11 @@ import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
 import {
   createHost,
   createSessionId,
+  findInStructure,
   guardHolds,
+  instanceElements,
+  statesWithElement,
+  structureOf,
   instantiate,
   pinsFor,
   redactEvent,
@@ -44,6 +48,10 @@ import { canvasScopeFor, registryFor } from "../../app/registries";
 import { checkVersion, governorFor, hostFor, loadLibrary, type LoadedLibrary, type VersionCheck } from "./runtime";
 import { approveVersion, createDraft, discardDraftVersion, editDraft, plainDataReason } from "./authoring";
 import { DetailsEditor, ExamplesEditor, ParametersEditor } from "./editors";
+import { applyInputChange, describeInteractionChanges, interactionIssues, withoutMasks } from "./interaction";
+import { ElementInspector, type ItemContext } from "./element-inspector";
+import { SelectionLayer } from "./selection-layer";
+import { COMPONENT_LABEL, elementName, StructurePanel } from "./structure-panel";
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
 
@@ -207,6 +215,12 @@ export function LibraryWorkspace() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [confirm, setConfirm] = useState<"approve" | "discard" | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  // Advanced authoring: one selection shared by the structure, the canvas and the inspector. It names a template
+  // element (definition-level, never a rendered id), and the item picked on the canvas when the element repeats.
+  const [selection, setSelection] = useState<{ key: string; item: number | null } | null>(null);
+  const [leftView, setLeftView] = useState<"compositions" | "structure">("compositions");
+  const [selectMode, setSelectMode] = useState(false);
+  const [structureState, setStructureState] = useState<string | null>(null);
   const readyRef = useRef<Ready | null>(null);
   const editQueue = useRef<Promise<unknown>>(Promise.resolve());
   const lastValid = useRef(new Map<string, Instance>());
@@ -295,6 +309,19 @@ export function LibraryWorkspace() {
   // A draft's check counts only for the exact definition it checked: an edit makes a new definition (A3).
   const checkCurrent = !!check && check.definition === definition;
   const scenario = definition?.scenarios.find((s) => s.id === prefs.scenario) ?? definition?.scenarios[0];
+  // A selection belongs to one composition; it survives a change of version or example (its key is stable).
+  useEffect(() => {
+    setSelection(null);
+    setStructureState(null);
+    setSelectMode(false);
+  }, [definition?.id]);
+  useEffect(() => setStructureState(null), [scenario?.id, prefs.state]);
+  useEffect(() => {
+    if (!selectMode) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSelectMode(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectMode]);
 
   const persist = useCallback((next: LibraryPrefs) => {
     setPrefs(next);
@@ -663,9 +690,9 @@ export function LibraryWorkspace() {
           <summary>Coming next</summary>
           <div className="cl-head__pop" role="note">
             <p>
-              <strong>Editing a composition&rsquo;s structure</strong>, <strong>Playground</strong> and <strong>Publish</strong> are not available yet.
+              <strong>Changing a composition&rsquo;s layout</strong> (adding, removing or moving elements), <strong>Playground</strong> and <strong>Publish</strong> are not available yet.
             </p>
-            <p>Today you can look at compositions, try them with different data, and make a draft: change its details and examples, run its checks and approve it on this device.</p>
+            <p>Today you can look at compositions, try them with different data, and make a draft: change its details and examples, select an element to set what a person types into it or what pressing it sends, run its checks and approve it on this device.</p>
           </div>
         </details>
       </span>,
@@ -714,6 +741,45 @@ export function LibraryWorkspace() {
   const instance = shown?.ok ? shown.instance : null;
   const outcome = describeOutcome(shown, scenario, definition, check, failing, nameOf);
 
+  // ---- Selection (advanced authoring) ----------------------------------------------------------------------
+  const stateName = (id: string) => {
+    const st = definition?.states.find((x) => x.id === id);
+    return st ? sentence(humanize(st.id)) : id;
+  };
+  const shownState = instance?.state ?? null;
+  const listedState = definition ? (structureState && definition.states.some((x) => x.id === structureState) ? structureState : (shownState ?? definition.states[0]!.id)) : null;
+  const structure = definition && listedState ? structureOf(definition.states.find((x) => x.id === listedState)!) : null;
+  // Where each rendered component came from, worked out from this instance's own evidence (null: canvas selection is off).
+  const elements = definition && instance && scenario ? instanceElements(definition, instance, scenario.data as Json) : null;
+  const counts = elements ? new Map([...elements.byKey].map(([k, v]) => [k, v.length])) : null;
+  const statesOfSelected = selection && definition ? statesWithElement(definition, selection.key) : [];
+  const homeState = selection && structure && findInStructure(structure, selection.key) ? listedState : (statesOfSelected[0] ?? null);
+  const selectedTrail = selection && definition && homeState ? findInStructure(structureOf(definition.states.find((x) => x.id === homeState)!), selection.key) : null;
+  const selectedIds = selection && elements ? (elements.byKey.get(selection.key) ?? []) : [];
+  const pickedId = selection?.item != null ? (selectedIds[selection.item] ?? null) : null;
+  const itemContext: ItemContext | null =
+    selection?.item != null && instance && pickedId
+      ? {
+          index: selection.item,
+          count: selectedIds.length,
+          witness: instance.actions.find((a) => a.item?.index === selection.item)?.item?.witness ?? [],
+          payload: instance.actions.find((a) => a.componentId === pickedId)?.payload,
+        }
+      : null;
+  const selectElement = (key: string | null, item: number | null = null) => {
+    setSelection(key ? { key, item } : null);
+    if (key) setTab("design");
+  };
+  const pickOnCanvas = (componentId: string) => {
+    const origin = elements?.byComponent.get(componentId);
+    if (!origin || !definition) return;
+    selectElement(origin.key, origin.item?.index ?? null);
+    showInspector();
+    const trail = statesWithElement(definition, origin.key).length ? findInStructure(structureOf(definition.states.find((x) => x.id === instance!.state)!), origin.key) : null;
+    const node = trail?.at(-1);
+    setAnnounce(`Selected ${node ? elementName(node) : "an element"}${origin.item ? `, item ${origin.item.index + 1}` : ""}.`);
+  };
+
   // ---- Compositions panel -----------------------------------------------------------------------------------
 
   const libraryPanel = (
@@ -727,7 +793,7 @@ export function LibraryWorkspace() {
     >
       <div className="cl-panel__head">
         <h2 className="cl-h" id="cl-library-title">
-          Compositions
+          {leftView === "structure" ? "Structure" : "Compositions"}
         </h2>
         {layout === "narrow" && (
           <button className="cl-tool" onClick={() => closeDrawer("library")}>
@@ -735,6 +801,32 @@ export function LibraryWorkspace() {
           </button>
         )}
       </div>
+      <div className="cl-switch" role="group" aria-label="Show in this panel">
+        <button className={`cl-switch__opt${leftView === "compositions" ? " cl-switch__opt--on" : ""}`} aria-pressed={leftView === "compositions"} onClick={() => setLeftView("compositions")} data-testid="view-compositions">
+          Compositions
+        </button>
+        <button className={`cl-switch__opt${leftView === "structure" ? " cl-switch__opt--on" : ""}`} aria-pressed={leftView === "structure"} onClick={() => setLeftView("structure")} disabled={!definition} data-testid="view-structure">
+          Structure
+        </button>
+      </div>
+      {leftView === "structure" && definition && structure && listedState ? (
+        <StructurePanel
+          definition={definition}
+          structure={structure}
+          stateId={listedState}
+          shownState={shownState}
+          states={definition.states.map((x) => ({ id: x.id, label: stateName(x.id) }))}
+          onState={setStructureState}
+          selected={selection?.key ?? null}
+          onSelect={(k) => selectElement(k)}
+          onOpen={(k) => {
+            selectElement(k);
+            showInspector();
+          }}
+          counts={counts}
+        />
+      ) : (
+      <>
       <label className="cl-label" htmlFor="cl-filter">
         Find a composition
       </label>
@@ -783,7 +875,7 @@ export function LibraryWorkspace() {
               </li>
             ))}
           </ol>
-          <p className="cl-dim">To change a composition, choose “Create draft” on an approved version. Changing its structure is not available yet.</p>
+          <p className="cl-dim">To change a composition, choose “Create draft” on an approved version. Changing its layout is not available yet.</p>
           <button className="cl-tool" onClick={dismissGuide} data-testid="guide-dismiss">
             Hide the guide
           </button>
@@ -795,8 +887,10 @@ export function LibraryWorkspace() {
       )}
       {layout === "narrow" && (
         <p className="cl-dim" data-testid="coming-next-narrow">
-          Coming next: editing structure, Playground and Publish are not available yet.
+          Coming next: changing the layout, Playground and Publish are not available yet.
         </p>
+      )}
+      </>
       )}
       {ready.loaded.issues.length > 0 && (
         <details className="cl-issues">
@@ -868,8 +962,12 @@ export function LibraryWorkspace() {
           {definition.status === "draft" && (
             <details className="cl-draft" data-testid="draft-note" data-draft={draftState ?? undefined}>
               <summary>
-                <span className="cl-draft__status">{draftLabel[draftState!]}{changes ? " ·" : ""}</span>
-                {changes ? " What changed" : ""}
+                <span className="cl-draft__status">{draftLabel[draftState!]}</span>
+                {changes ? (
+                  <span className="cl-draft__more">
+                    <span className="cl-draft__dot"> ·</span> What changed
+                  </span>
+                ) : null}
               </summary>
               <div className="cl-draft__pop" role="note">
                 <p>
@@ -908,6 +1006,21 @@ export function LibraryWorkspace() {
           )}
         </div>
         <div className="cl-toolbar__view">
+          <button
+            className="cl-tool"
+            aria-pressed={selectMode}
+            onClick={() => {
+              const next = !selectMode;
+              setSelectMode(next);
+              setAnnounce(next ? "Select is on: click an element on the canvas to inspect it. Press Escape to turn it off." : "Select is off: the canvas can be used again.");
+            }}
+            disabled={!elements && !selectMode}
+            title={elements ? "Select elements on the canvas" : "Nothing on the canvas can be selected right now"}
+            data-testid="select-mode"
+          >
+            <Icon name="select" />
+            <span className="cl-tool__text">Select</span>
+          </button>
           {layout !== "narrow" && (
             <button className="cl-tool" aria-pressed={fitWidth} onClick={() => setFitWidth(!fitWidth)} data-testid="fit-width" title="Fit width">
               <Icon name="fit" />
@@ -987,7 +1100,13 @@ export function LibraryWorkspace() {
             clearState={() => persist({ ...prefs, state: null })}
             editExample={definition.status === "draft" && governed && scenario ? () => editExample(scenario.id) : undefined}
             previewing={previewing && preview}
+            selection={{ ids: selectedIds, primary: pickedId, selectMode: selectMode && !!elements, onPick: pickOnCanvas, label: "Click an element to select it" }}
           />
+          {selectMode && elements && (
+            <p className="cl-note cl-select-note" role="status" data-testid="select-note">
+              Select is on: click an element to inspect it. Buttons and fields do nothing until you turn Select off (Escape).
+            </p>
+          )}
           {lastAction && (
             // R4: pinned to the bottom of the visible canvas, so the feedback is seen where the button was pressed.
             <div className="cl-action" role="status" data-testid="action-note">
@@ -1104,6 +1223,23 @@ export function LibraryWorkspace() {
             </p>
           )}
           <div role="tabpanel" id="cl-tabpanel-design" aria-labelledby="cl-tab-design" hidden={activeTab !== "design"} data-testid="tabpanel-design">
+            {selectedTrail ? (
+              <ElementInspector
+                key={`${key}-${selectedTrail.at(-1)!.key}`}
+                definition={definition}
+                editable={definition.status === "draft" && governed}
+                trail={selectedTrail}
+                statesWith={statesOfSelected}
+                shownState={shownState}
+                onCanvas={selectedIds.length}
+                item={itemContext}
+                edit={applyEdit}
+                select={(k) => selectElement(k)}
+                stateLabel={stateName}
+                componentIds={selectedIds}
+              />
+            ) : (
+            <>
             {definition.status === "draft" ? (
               <>
                 <DetailsEditor key={key} definition={definition} edit={applyEdit} />
@@ -1130,7 +1266,7 @@ export function LibraryWorkspace() {
               </p>
             </Section>
             {definition.status === "draft" && (
-              <p className="cl-dim cl-structure-note">Its structure, below, is not editable yet: the data it needs, what a person can do and what a person can type come from the approved version.</p>
+              <p className="cl-dim cl-structure-note" data-testid="structure-note">To change what a person types into an element or what pressing it sends, select it on the canvas (Select) or in Structure. Adding, removing or moving elements is not available yet.</p>
             )}
             <Section title="Data it needs">
               <ul className="cl-plain">
@@ -1146,7 +1282,9 @@ export function LibraryWorkspace() {
               <ul className="cl-plain">
                 {definition.actions.map((a) => (
                   <li key={a.name}>
-                    <strong>{sentence(humanize(a.name))}</strong>
+                    <button className="cl-link" onClick={() => selectElement(`#${a.node}`)} data-testid={`inspect-action-${a.name}`}>
+                      <strong>{sentence(humanize(a.name))}</strong>
+                    </button>
                     {a.repeat ? `, on each ${humanize(a.repeat.as)}` : ""}
                     {a.payload && Object.keys(a.payload).length ? `: sends the ${Object.keys(a.payload).map(humanize).join(", ")}` : ""}
                     {a.carries?.length ? `${a.payload && Object.keys(a.payload).length ? " and" : ":"} sends what was typed` : ""}
@@ -1160,7 +1298,9 @@ export function LibraryWorkspace() {
                 <ul className="cl-plain">
                   {definition.inputs.map((i) => (
                     <li key={i.name}>
-                      <strong>{sentence(humanize(i.name))}</strong>
+                      <button className="cl-link" onClick={() => selectElement(`#${i.node}`)} data-testid={`inspect-input-${i.name}`}>
+                        <strong>{sentence(humanize(i.name))}</strong>
+                      </button>
                       {i.required ? "" : ", optional"}
                       {i.sensitive ? ". Private: used once for its action, never kept or shown" : ""}
                     </li>
@@ -1168,7 +1308,9 @@ export function LibraryWorkspace() {
                 </ul>
               </Section>
             )}
-          </div>
+                      </>
+            )}
+</div>
 
           {definition.status === "draft" && (
             <div role="tabpanel" id="cl-tabpanel-examples" aria-labelledby="cl-tab-examples" hidden={activeTab !== "examples"} data-testid="tabpanel-examples">
@@ -1363,6 +1505,11 @@ export function LibraryWorkspace() {
               approve={approveNow}
               discard={discardNow}
               packaged={origin === "packaged"}
+              blocking={interactionIssues(definition)}
+              fixBlocking={() => {
+                const first = interactionIssues(definition)[0];
+                if (first) void applyEdit((d) => applyInputChange(d, first.fix)).then((problem) => setAnnounce(problem ? `Not applied: ${problem}` : "The private field is masked. Run the checks again."));
+              }}
             />
           )}
         </>
@@ -1421,7 +1568,10 @@ function CanvasBody({
   clearState,
   editExample,
   previewing,
+  selection,
 }: {
+  /** Canvas selection (advanced authoring): the selected element's components, the picked one, and Select mode. */
+  selection: { ids: string[]; primary: string | null; selectMode: boolean; onPick: (componentId: string) => void; label: string };
   shown: ShowResult | null;
   definition: CompositionDefinition;
   scenario: Scenario | undefined;
@@ -1443,11 +1593,24 @@ function CanvasBody({
 }) {
   const registry = useMemo(() => registryFor("astryx", catalog), [catalog]);
   const scope = canvasScopeFor("astryx");
+  const stageRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  // In Select mode the canvas is inert (nothing typed, pressed or focused in it); the layer beside it selects.
   const frame = (instance: Instance, dimmed = false) => (
-    <div className={`cl-stage${fitWidth ? " cl-stage--fit" : ""}`}>
-      <div {...scope.attrs} className={`cl-frame${dimmed ? " cl-frame--kept" : ""}`} style={{ background: scope.background }} data-project-canvas="composer" data-surface={instance.surfaceId} inert={dimmed || undefined} onClickCapture={dimmed ? undefined : (e) => onCanvasClick(e.target as HTMLElement)}>
+    <div className={`cl-stage${fitWidth ? " cl-stage--fit" : ""}${!dimmed && selection.selectMode ? " cl-stage--select" : ""}`} ref={dimmed ? undefined : stageRef}>
+      <div
+        {...scope.attrs}
+        className={`cl-frame${dimmed ? " cl-frame--kept" : ""}`}
+        style={{ background: scope.background }}
+        data-project-canvas="composer"
+        data-surface={instance.surfaceId}
+        inert={dimmed || selection.selectMode || undefined}
+        onClickCapture={dimmed ? undefined : (e) => onCanvasClick(e.target as HTMLElement)}
+        ref={dimmed ? undefined : frameRef}
+      >
         <A2uiCanvas key={instance.surfaceId} catalog={catalog} registry={registry} messages={instance.messages as unknown[]} onAction={dimmed ? undefined : onAction} />
       </div>
+      {!dimmed && <SelectionLayer key={instance.surfaceId} stage={stageRef} frame={frameRef} selected={selection.ids} primary={selection.primary} selectMode={selection.selectMode} onPick={selection.onPick} label={selection.label} />}
     </div>
   );
   if (!shown) return <p className="cl-loading" role="status">Showing the composition…</p>;
@@ -1590,8 +1753,12 @@ function AuthoringBar({
   approve,
   discard,
   packaged,
+  blocking,
+  fixBlocking,
 }: {
   definition: CompositionDefinition;
+  blocking: Array<{ text: string }>;
+  fixBlocking: () => void;
   approvedVersion: number | undefined;
   state: "checking" | "unchecked" | "pass" | "fail";
   failing: number;
@@ -1605,7 +1772,7 @@ function AuthoringBar({
   const v = definition.version;
   if (confirm === "approve") {
     return (
-      <div className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-approve-title" data-testid="approve-confirm">
+      <div key="approve" className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-approve-title" data-testid="approve-confirm">
         <p className="cl-bar__title" id="cl-approve-title">
           Approve v{v} on this device?
         </p>
@@ -1628,7 +1795,7 @@ function AuthoringBar({
   }
   if (confirm === "discard") {
     return (
-      <div className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-discard-title" data-testid="discard-confirm">
+      <div key="discard" className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-discard-title" data-testid="discard-confirm">
         <p className="cl-bar__title" id="cl-discard-title">
           Discard draft v{v}?
         </p>
@@ -1653,12 +1820,20 @@ function AuthoringBar({
           ? `Checks fail: ${failing === 1 ? "1 example does" : `${failing} examples do`} not behave as expected. Fix ${failing === 1 ? "it" : "them"} in Examples, then run the checks again.`
           : "Checks pass under the Astryx rules. It can be approved; it is not approved yet.";
   return (
-    <div className="cl-bar" data-testid="authoring-bar" data-state={state}>
+    <div key="bar" className="cl-bar" data-testid="authoring-bar" data-state={state}>
       <p className={`cl-bar__line${state === "fail" ? " cl-bad" : state === "pass" ? " cl-ok" : ""}`} role="status">
         {line}
       </p>
+      {blocking.length > 0 && (
+        <p className="cl-bar__line cl-warn" data-testid="approval-blocked">
+          {blocking[0]!.text}{" "}
+          <button className="cl-link" onClick={fixBlocking} data-testid="mask-fix">
+            Mask the field
+          </button>
+        </p>
+      )}
       <div className="cl-bar__actions">
-        {state === "pass" ? (
+        {state === "pass" && blocking.length === 0 ? (
           <button className="cl-tool cl-tool--primary" onClick={() => setConfirm("approve")} data-testid="approve">
             Approve version…
           </button>
@@ -1667,7 +1842,7 @@ function AuthoringBar({
             {state === "checking" ? "Checking…" : "Run checks"}
           </button>
         )}
-        {state === "pass" && (
+        {state === "pass" && blocking.length === 0 && (
           <button className="cl-tool" onClick={runChecks} data-testid="run-checks-again">
             Run checks again
           </button>
@@ -1698,7 +1873,10 @@ function describeChanges(base: CompositionDefinition, draft: CompositionDefiniti
     else if (old.title !== s.title && s.title && s.title !== name(old, base)) out.push(`The “${name(old, base)}” example is renamed “${s.title}”.`);
   }
   for (const [id, s] of before) if (!after.has(id)) out.push(`The “${name(s, base)}” example was removed.`);
-  if (paths.some((p) => !/^\/(name|summary|parameters\[|scenarios\[)/.test(p))) out.push("Its structure differs from the approved version.");
+  out.push(...describeInteractionChanges(base, draft));
+  // Typed fields, actions and masks are described above; anything else in the template is structure.
+  const rest = definitionDifferences(withoutMasks(base), withoutMasks(draft));
+  if (rest.some((p) => !/^\/(name|summary|parameters\[|scenarios\[|inputs\[|actions\[)/.test(p))) out.push("Its structure differs from the approved version.");
   return out;
 }
 
@@ -1720,7 +1898,13 @@ function Frame({ layout, mode, top, open, children }: { layout: Layout; mode: "f
 }
 
 /** Small line icons for the view controls; decorative, so the button's text names it. */
-function Icon({ name }: { name: "panel-left" | "panel-right" | "fit" }) {
+function Icon({ name }: { name: "panel-left" | "panel-right" | "fit" | "select" }) {
+  if (name === "select")
+    return (
+      <svg className="cl-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" focusable="false">
+        <path d="M3 2.5l9 5-4 1-2 4.5z" strokeLinejoin="round" />
+      </svg>
+    );
   return (
     <svg className="cl-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" focusable="false">
       <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" />
@@ -1884,7 +2068,7 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-title { grid-area: title; font-family: var(--sans); font-weight: 600; color: var(--fg); font-size: 20px; margin: 0; outline: none; line-height: 1.2; white-space: nowrap; }
 .cl-toolbar__versions { grid-area: versions; display: flex; align-items: center; min-width: 0; }
 .cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-.cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; }
+.cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .cl-toolbar__panels { display: flex; gap: 6px; }
 @container canvas (max-width: 880px) {
   .cl-toolbar__head { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title title view" "versions status status"; }
@@ -1991,6 +2175,59 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
   .cl-chips-wrap[data-more-start]::before { content: "‹"; left: 0; z-index: 1; padding-left: 2px; background: linear-gradient(to left, transparent, var(--bg) 70%); }
 }
 @media (prefers-reduced-motion: reduce) { .cl * { transition: none !important; } }
+/* With Select in the toolbar, a narrower canvas keeps the title row's room by drawing the draft note as its status
+   alone; "What changed" stays in its name and opens with it. A phone draws "What changed" instead (above). */
+@container canvas (max-width: 1000px) {
+  .cl-draft__more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+@container canvas (max-width: 480px) {
+  .cl-draft__more { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .cl-draft__dot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+/* Advanced authoring: Structure, canvas selection and the element inspector. Chrome only: the selection layer
+   sits beside the canvas frame, so nothing inside the canvas is restyled. */
+.cl-stage { position: relative; }
+.cl-stage--select { cursor: crosshair; }
+.cl-sel { position: absolute; pointer-events: none; border-radius: 6px; z-index: 3; }
+.cl-sel--on { outline: 2px solid var(--fg); outline-offset: 0; box-shadow: 0 0 0 4px color-mix(in srgb, var(--bg) 70%, transparent); }
+.cl-sel--also { outline: 1px dashed var(--fg-dim); }
+.cl-sel--hover { outline: 1px solid var(--fg-dim); }
+.cl-pick { position: absolute; z-index: 4; cursor: crosshair; background: transparent; }
+.cl-select-note { margin: 8px auto 0; max-width: 760px; }
+.cl-switch { display: inline-flex; gap: 4px; margin: 8px 0 12px; }
+.cl-switch__opt { min-height: var(--cl-target); padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--fg-body); font: inherit; font-size: 14px; cursor: pointer; }
+.cl-switch__opt--on { background: var(--bg-2); color: var(--fg); border-color: var(--fg-dim); font-weight: 600; }
+.cl-switch__opt:disabled { opacity: 0.55; cursor: not-allowed; }
+.cl-structure select { margin-bottom: 8px; }
+.cl-tree, .cl-tree ul { list-style: none; margin: 0; padding: 0; }
+.cl-tree ul { padding-left: 14px; border-left: 1px solid var(--line-soft); margin-left: 8px; }
+.cl-tree__item { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-height: var(--cl-target); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; color: var(--fg-body); }
+.cl-tree__item:hover { background: var(--bg-2); }
+.cl-tree__item:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.cl-tree__item--on { background: var(--bg-2); color: var(--fg); box-shadow: inset 3px 0 0 var(--fg); }
+.cl-tree__item--group .cl-tree__name { font-style: italic; }
+.cl-tree__name { font-weight: 600; color: var(--fg); }
+.cl-tree__summary { color: var(--fg-dim); overflow-wrap: anywhere; }
+.cl-tree__badge, .cl-tree__count, .cl-src { font-size: 12px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg-dim); white-space: nowrap; }
+.cl-element__title { font-size: 16px; font-weight: 600; color: var(--fg); margin: 8px 0; }
+.cl-element__summary { font-weight: 400; color: var(--fg-body); }
+.cl-trail { font-size: 14px; color: var(--fg-dim); display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.cl-trail .cl-link { min-height: 24px; }
+.cl-kv { display: grid; grid-template-columns: minmax(80px, max-content) 1fr; gap: 4px 12px; margin: 0 0 8px; font-size: 14px; }
+.cl-kv dt { color: var(--fg-dim); }
+.cl-kv dd { margin: 0; color: var(--fg-body); overflow-wrap: anywhere; }
+.cl-form { display: grid; gap: 4px; }
+.cl-form__title { font-size: 14px; font-weight: 600; color: var(--fg); margin: 12px 0 4px; }
+.cl-form__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cl-check { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; min-height: var(--cl-target); font-size: 14px; }
+.cl-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--fg); }
+.cl-check .cl-field__hint { grid-column: 2; margin: 0; }
+.cl-payload { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.cl-payload__row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px; }
+.cl-payload__key { font-family: var(--mono); font-size: 13px; color: var(--fg); min-width: 64px; }
+.cl-payload__source { display: inline-flex; flex-wrap: wrap; gap: 6px; flex: 1 1 160px; min-width: 0; }
+.cl-payload__new { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 4px; margin: 4px 0 8px; }
+.cl-pre { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 4px; padding: 8px; margin: 8px 0 0; }
 /* Workspace appearance (T4): labels follow the chosen case, and the canvas may sit on its own surround. With the
    default choices these compute to exactly what they were before. */
 .cl-label, .cl-toolbar__label, .cl-table th, .cl-field__label, .cl-crumbs { text-transform: var(--cl-label-transform, none); letter-spacing: var(--cl-label-tracking, 0); }

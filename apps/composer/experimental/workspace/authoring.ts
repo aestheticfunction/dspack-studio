@@ -27,6 +27,7 @@ import {
   type Scenario,
   type ScenarioResult,
 } from "@dspack-studio/composer-core/compositions";
+import { interactionIssues } from "./interaction";
 import { definitionIssues, type LoadedLibrary, type VersionCheck } from "./runtime";
 import { readRecord, withApproval, writeRecord, type KeyValueStore } from "./storage";
 
@@ -118,6 +119,9 @@ export async function approveVersion(loaded: LoadedLibrary, governor: Governor, 
   const draft = loaded.library.get(id, version);
   if (!draft || draft.status !== "draft") return { ok: false, reason: "only a draft can be approved" };
   if (!(await checkIsCurrent(governor, draft, check))) return { ok: false, reason: "run the checks on this exact draft first; approval needs a passing check of the current version" };
+  // A private field must be masked on screen before a version that takes it is approved (interaction.ts).
+  const blocking = interactionIssues(draft);
+  if (blocking.length > 0) return { ok: false, reason: blocking[0]!.text.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase()) };
   const r = approveDraft(loaded.library, id, version);
   if (!r.ok) return { ok: false, reason: r.reason };
   const again = await recheck(governor, r.approved);
