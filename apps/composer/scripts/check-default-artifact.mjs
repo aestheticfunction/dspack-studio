@@ -38,6 +38,8 @@ const markers = new Set([
   "compositionsSidecar",
   "composition-library",
   "NEXT_PUBLIC_COMPOSER_TOOLCHAIN",
+  // D0.1: the hub's pointer to the Library.
+  "projects-library-entry",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));

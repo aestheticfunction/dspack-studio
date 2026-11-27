@@ -1192,6 +1192,7 @@
       "scenarios": [
         {
           "id": "three",
+          "title": "Three hotels",
           "data": {
             "destination": "Lisbon",
             "nights": 3,
@@ -1223,6 +1224,7 @@
         },
         {
           "id": "two",
+          "title": "Two hotels",
           "data": {
             "destination": "Lisbon",
             "nights": 3,
@@ -1247,6 +1249,7 @@
         },
         {
           "id": "one",
+          "title": "One hotel",
           "data": {
             "destination": "Lisbon",
             "nights": 3,
@@ -1265,6 +1268,7 @@
         },
         {
           "id": "none",
+          "title": "No hotels found",
           "data": {
             "destination": "Lisbon",
             "nights": 3,
@@ -1274,6 +1278,7 @@
         },
         {
           "id": "confirm",
+          "title": "Confirm a reservation",
           "data": {
             "destination": "Lisbon",
             "nights": 3,

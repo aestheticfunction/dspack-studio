@@ -1,0 +1,364 @@
+{
+ "1440x900 v1 none": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 1,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": []
+ },
+ "1440x900 v1 library": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 0.806,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions"
+  ]
+ },
+ "1440x900 v1 inspector": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 0.764,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": [
+   "Inspector"
+  ]
+ },
+ "1440x900 v1 both": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 0.569,
+  "chipsClipped": 1,
+  "chipsHiddenPx": 46,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions",
+   "Inspector"
+  ]
+ },
+ "1440x900 v2 none": {
+  "frameTop": 205,
+  "surfaceTop": 228,
+  "canvasShare": 1,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 132,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": []
+ },
+ "1440x900 v2 library": {
+  "frameTop": 205,
+  "surfaceTop": 228,
+  "canvasShare": 0.806,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 132,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions"
+  ]
+ },
+ "1440x900 v2 inspector": {
+  "frameTop": 205,
+  "surfaceTop": 228,
+  "canvasShare": 0.764,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 132,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": [
+   "Inspector"
+  ]
+ },
+ "1440x900 v2 both": {
+  "frameTop": 259,
+  "surfaceTop": 282,
+  "canvasShare": 0.569,
+  "chipsClipped": 1,
+  "chipsHiddenPx": 46,
+  "togglesWrap": true,
+  "toolbarHeight": 186,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions",
+   "Inspector"
+  ]
+ },
+ "1280x800 v1 none": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 1,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": []
+ },
+ "1280x800 v1 library": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 0.781,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions"
+  ]
+ },
+ "1280x800 v1 library first-run": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 0.781,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions"
+  ]
+ },
+ "1280x800 v1 inspector": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 0.734,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": [
+   "Inspector"
+  ]
+ },
+ "1280x800 v2 none": {
+  "frameTop": 205,
+  "surfaceTop": 228,
+  "canvasShare": 1,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 132,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": []
+ },
+ "1280x800 v2 library": {
+  "frameTop": 205,
+  "surfaceTop": 228,
+  "canvasShare": 0.781,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 132,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions"
+  ]
+ },
+ "1280x800 v2 inspector": {
+  "frameTop": 205,
+  "surfaceTop": 228,
+  "canvasShare": 0.734,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 132,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": [
+   "Inspector"
+  ]
+ },
+ "1024x768 v1 none": {
+  "frameTop": 166,
+  "surfaceTop": 189,
+  "canvasShare": 1,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 93,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": []
+ },
+ "1024x768 v1 library": {
+  "frameTop": 202,
+  "surfaceTop": 225,
+  "canvasShare": 0.727,
+  "chipsClipped": 1,
+  "chipsHiddenPx": 122,
+  "togglesWrap": true,
+  "toolbarHeight": 129,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions"
+  ]
+ },
+ "1024x768 v1 inspector": {
+  "frameTop": 200,
+  "surfaceTop": 223,
+  "canvasShare": 0.668,
+  "chipsClipped": 2,
+  "chipsHiddenPx": 208,
+  "togglesWrap": true,
+  "toolbarHeight": 127,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": [
+   "Inspector"
+  ]
+ },
+ "1024x768 v2 none": {
+  "frameTop": 205,
+  "surfaceTop": 228,
+  "canvasShare": 1,
+  "chipsClipped": 0,
+  "chipsHiddenPx": 0,
+  "togglesWrap": false,
+  "toolbarHeight": 132,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": []
+ },
+ "1024x768 v2 library": {
+  "frameTop": 259,
+  "surfaceTop": 282,
+  "canvasShare": 0.727,
+  "chipsClipped": 1,
+  "chipsHiddenPx": 122,
+  "togglesWrap": true,
+  "toolbarHeight": 186,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Find a composition",
+  "solidAccent": [
+   "Compositions"
+  ]
+ },
+ "1024x768 v2 inspector": {
+  "frameTop": 259,
+  "surfaceTop": 282,
+  "canvasShare": 0.668,
+  "chipsClipped": 2,
+  "chipsHiddenPx": 208,
+  "togglesWrap": true,
+  "toolbarHeight": 186,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "Example data",
+  "solidAccent": [
+   "Inspector"
+  ]
+ },
+ "390x844 v1 none": {
+  "frameTop": 232,
+  "surfaceTop": 243,
+  "canvasShare": 1,
+  "chipsClipped": 3,
+  "chipsHiddenPx": 509,
+  "togglesWrap": false,
+  "toolbarHeight": 119,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "v",
+  "solidAccent": [],
+  "targets": {
+   "toggles": 25,
+   "versions": 24,
+   "chips": 30,
+   "guideLink": 999
+  }
+ },
+ "390x844 v1 none first-run": {
+  "frameTop": 248,
+  "surfaceTop": 259,
+  "canvasShare": 1,
+  "chipsClipped": 3,
+  "chipsHiddenPx": 509,
+  "togglesWrap": false,
+  "toolbarHeight": 113,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "v",
+  "solidAccent": [],
+  "targets": {
+   "toggles": 25,
+   "versions": 24,
+   "chips": 30,
+   "guideLink": 18
+  }
+ },
+ "390x844 v2 none": {
+  "frameTop": 338,
+  "surfaceTop": 349,
+  "canvasShare": 1,
+  "chipsClipped": 3,
+  "chipsHiddenPx": 509,
+  "togglesWrap": false,
+  "toolbarHeight": 225,
+  "horizontalOverflow": false,
+  "minFont": 10.5,
+  "minFontText": "v",
+  "solidAccent": [],
+  "targets": {
+   "toggles": 25,
+   "versions": 24,
+   "chips": 30,
+   "guideLink": 999
+  }
+ }
+}

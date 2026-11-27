@@ -66,3 +66,28 @@ The owner accepted the independent review ([R0-REVIEW.md](R0-REVIEW.md)) with co
 
 All architectural conditions recorded above remain in effect.
 
+
+## Library acceptance and the designer-first refinement (2026-11-26)
+
+The owner accepted the corrected Library and decided the following. #128 (list semantics) and #127 (the Library, with R1 to R4) are merged and verified in production.
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 19 | Refine the workspace designer-first (D0) before any authoring | Approved | On the existing workspace; no new shell and no parallel governance; not merged or deployed without further approval. Record: [m1/d0/README.md](m1/d0/README.md) |
+| 20 | First-run task T3 | Corrected: "Identify the approved version and explain whether it has been published for external agent consumption" | Passing checks, human approval and future publication stay distinct |
+| 21 | Usability evaluation of D0 | Three to five designers, the five tasks ([m1/d0/USABILITY-SCRIPT.md](m1/d0/USABILITY-SCRIPT.md)) | Observations are kept apart from engineering verification. No AI evaluation is presented as a human usability test, and no participant is contacted without the owner |
+| 22 | The af-site theme compiler | Intended to graduate into `dspack-gen` as the shared compiler | Subject to explicit licensing, ownership and cross-repository authorization. No duplicate generator, and no private af-site code in this repository. Plan: [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md) |
+| 23 | AF brand identity, workspace appearance and canvas design-system styling | Kept separate | Workspace themes never modify composition definitions, governance outcomes, design-system tokens or computed canvas styling |
+| 24 | Workspace themes | AF dark during D0, as a temporary scope decision | Dark-only is not a permanent restriction. A later increment supports original AF, neutral light, neutral dark and custom themes through the shared compiler |
+| 25 | Getting-started documentation | A future requirement: concise getting-started docs with working examples | Not an extensive documentation suite, and not part of D0 |
+
+## The independent D0 audit and D0.1 (2026-11-27)
+
+The owner accepted the independent designer-first audit of D0 as the authoritative review for this increment, with targeted corrections before authoring (D0.1, [m1/d0/d01/README.md](m1/d0/d01/README.md)). The architecture is not reopened, and no further comprehensive review is commissioned.
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 26 | Layout criteria | 200 px stays the preferred desktop target at 1280 × 800, for approved **and** draft versions. The phone target becomes a provisional **about 300 px** (was 260). At least 60% canvas at 1280 with one panel | Readable controls come before any pixel target; deviations are reported, never bought with smaller type or targets. One consistent measurement reference before and after |
+| 27 | Readability floors in the experimental workspace | 12 px labels and toolbar text, 14 px guide and inspector reading text, 44 px primary phone targets, contrast at least 4.5:1, sentence case preferred, a quieter workspace that recedes behind the design | The solid accent is for meaningful primary actions only. Draft status is said separately from passing checks. The legacy production application is not redesigned |
+| 28 | A neutral, customizable working environment | A product requirement before broad external designer evaluation | It covers type scale, face and weight, case and tracking, spacing and density, elevation and borders, semantic status colours, and an independent canvas surround, through the shared compiler plan ([THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md)), subject to its own authorization |
+| 29 | The Compositions panel and first run | The list comes before the guide, which stays compact and expandable and can be hidden at any time | Usability task 1 names Hotel results and still starts on Projects. A minimal contextual Library entry on the experimental Projects page is allowed; no landing-page redesign |

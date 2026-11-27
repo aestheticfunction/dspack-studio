@@ -111,6 +111,25 @@ describe("schema versioning and recovery", () => {
     expect(readRecord("library", store)).toEqual({ status: "ok", value: prefs });
   });
 
+  it("the first-run record holds one flag and nothing else (D0)", () => {
+    const store = memoryStore();
+    expect(readRecord("onboarding", store)).toEqual({ status: "missing", value: { dismissed: false } });
+    expect(writeRecord("onboarding", { dismissed: true }, store)).toEqual({ ok: true });
+    expect(readRecord("onboarding", store)).toEqual({ status: "ok", value: { dismissed: true } });
+    expect(writeRecord("onboarding", { dismissed: true, seen: ["x"] } as never, store)).toMatchObject({ ok: false });
+    expect(store.touched.every((k) => k.startsWith(NAMESPACE))).toBe(true);
+  });
+
+  it("the view record holds whether the Library was on screen, and nothing else (D0.1)", () => {
+    const store = memoryStore();
+    expect(readRecord("view", store)).toEqual({ status: "missing", value: { library: false } });
+    expect(writeRecord("view", { library: true }, store)).toEqual({ ok: true });
+    expect(readRecord("view", store)).toEqual({ status: "ok", value: { library: true } });
+    expect(writeRecord("view", { library: true, project: "p1" } as never, store)).toMatchObject({ ok: false });
+    expect(writeRecord("view", { library: "yes" } as never, store)).toMatchObject({ ok: false });
+    expect(store.touched.every((k) => k.startsWith(NAMESPACE))).toBe(true);
+  });
+
   it("missing, unavailable and malformed records give the defaults, the same way every time", () => {
     expect(readRecord("library", memoryStore())).toEqual({ status: "missing", value: DEFAULT_PREFS });
     const blocked = memoryStore();

@@ -1,0 +1,36 @@
+const { chromium } = require("playwright");
+const [url, out, dpr = "1"] = process.argv.slice(2);
+const seed = () => { try { localStorage.setItem("composer.experimental.workspace.onboarding", JSON.stringify({ schema: "composer.experimental.workspace/onboarding", version: 1, data: { dismissed: true } })); } catch {} };
+(async () => {
+  const b = await chromium.launch();
+  const open = async (w, h) => {
+    const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: Number(dpr) });
+    const p = await ctx.newPage(); await p.addInitScript(seed);
+    await p.route("**/api/**", (r) => r.fulfill({ status: 503, body: '{"error":"unavailable"}' }));
+    await p.goto(url); await p.getByTestId("nav-library").click();
+    await p.waitForSelector("[data-testid=check-pill]:not([data-state=loading])"); await p.waitForTimeout(400);
+    return p;
+  };
+  let p = await open(1280, 800);
+  await p.getByTestId("scenario-one").click(); await p.getByTestId("toggle-inspector").click(); await p.getByTestId("tab-checks").click(); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${out}/state-expected-refusal-checks-1280.png` });
+  await p.getByTestId("scenario-three").click(); await p.getByTestId("state-select").selectOption("empty"); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${out}/state-unexpected-refusal-1280.png` });
+  await p.getByTestId("state-select").selectOption(""); await p.getByTestId("what-if").click(); await p.getByTestId("recheck").click(); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${out}/state-tryout-failed-1280.png` });
+  await p.getByTestId("what-if").click();
+  await p.getByTestId("tab-design").click(); await p.getByTestId("technical-details").locator("summary").click(); await p.getByTestId("tab-checks").click(); await p.getByTestId("technical-details").scrollIntoViewIfNeeded(); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${out}/state-technical-details-1280.png` });
+  await p.getByTestId("toggle-inspector").click();
+  await p.locator('[data-project-canvas="composer"] button', { hasText: "Choose Hotel Miradouro" }).click(); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${out}/state-action-preview-1280.png` });
+  await p.getByTestId("fit-width").click(); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${out}/state-fit-width-1280.png` });
+  await p.context().close();
+  p = await open(390, 844);
+  await p.getByTestId("toggle-inspector").click(); await p.waitForTimeout(400);
+  await p.screenshot({ path: `${out}/state-phone-inspector-sheet-390.png` });
+  await p.keyboard.press("Escape"); await p.getByTestId("scenario-one").click(); await p.waitForTimeout(300);
+  await p.screenshot({ path: `${out}/state-phone-expected-refusal-390.png` });
+  await b.close();
+})();

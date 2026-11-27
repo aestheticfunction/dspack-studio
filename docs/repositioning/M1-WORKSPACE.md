@@ -1,6 +1,6 @@
 # M1 workspace increment: storage, versions and the Composition Library
 
-**Status:** Slices A and B merged (#126). Slice C, the Library (#127), is corrected after the independent review ([M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md)) and awaits merge approval. Nothing here is in the default build.
+**Status:** Slices A and B merged (#126). Slice C, the Library, is merged (#127), as corrected after the independent review ([M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md)). The designer-first refinement **D0**, corrected after the independent audit as **D0.1**, is implemented for the owner's evaluation and not merged: [m1/d0/README.md](m1/d0/README.md) and [m1/d0/d01/README.md](m1/d0/d01/README.md). Nothing here is in the default build.
 
 | Slice | What | Where |
 |---|---|---|
@@ -26,16 +26,19 @@ COMPOSER_OUT_DIR=out-experimental PORT=3315 node e2e/serve-composer.mjs
 
 Open `http://localhost:3315/` and choose **Library** in the top navigation. The local agent and the hosted API are not needed: the Library makes no request.
 
-Things to try:
+Things to try (as refined by D0):
 
-1. **Hotel results.** Switch between **v1 Approved** and **v2 Draft**: the draft's wording appears, and v1 is unchanged.
-2. **Scenario "one".** The design system's rule refuses it, with its rationale. The last valid instance is kept behind a closed "not interactive" disclosure.
-3. **State "empty" with scenario "three".** The state's guard refuses it.
-4. **Inspector, What-if: require four options.** The canvas and the inspector both report **Needs a new check**. **Run checks under these rules** fails on "three" and "two", and both say **Checks fail**; nothing is stored. Hotel search passes under the same rules. **Restore the packaged rules** brings both back to **Checks pass**.
-5. **Hotel search.** Type a loyalty number and press **Search hotels**. A note pinned to the bottom of the canvas says **Preview only, not run**, with what the action would send and the loyalty number as `[sensitive]`.
-6. **Narrow the window below 900 px.** The canvas comes first, and the two panels become modal drawers: Tab stays inside, the page behind is unavailable, Escape closes and returns focus.
+1. **The first-run guide.** It follows the list in the Compositions panel. Each of its four tasks changes the canvas. **Hide the guide** is remembered, and **Show the guide** brings it back. A reload stays in the Library.
+2. **Hotel results.** Switch between **v1 Approved** and **v2 Draft**: the draft's wording appears, **What changed** lists the differences, and v1 is unchanged. The Design tab says neither is published for agents.
+3. **The "One hotel" example.** It is marked "should be refused", and the canvas says **Not shown, as expected**: "A comparison needs at least two options to choose from." The previous screen is kept behind a closed "not interactive" disclosure.
+4. **Inspector, Checks: Show a specific state, "Empty", with "Three hotels".** The state is marked as not available with this example. Choosing it shows an unexpected refusal and **Show the state the example chooses**.
+5. **Inspector, Checks: Try a stricter rule.** The canvas and the inspector both report **Needs a new check**. **Run checks under these rules** fails on "Three hotels" and "Two hotels"; nothing is stored. Hotel search passes under the same rule. **Restore the Astryx rules** brings both back to **Passes the design rules**.
+6. **Hotel search.** Type a member number and press **Search hotels**. A note pinned to the canvas says **Preview only, not run**, with what would be sent in plain words, and the member number as private. The recordable form is in Technical details.
+7. **Narrow the window below 900 px.** The canvas comes first. The Compositions panel is a modal drawer, and the inspector is a modal bottom sheet: Tab stays inside, the page behind is unavailable, and Escape closes it and returns focus.
 
-Screenshots at 1440, 1280, 1024 and 390 px, after the review corrections, are in [m1/screenshots/](m1/screenshots/).
+Screenshots at 1440, 1280, 1024 and 390 px are in two places:
+- after the review corrections: [m1/screenshots/](m1/screenshots/);
+- before and after D0: [m1/d0/before/](m1/d0/before/) and [m1/d0/after/](m1/d0/after/).
 
 ## Slice A: experimental storage
 
@@ -99,6 +102,9 @@ Screenshots at 1440, 1280, 1024 and 390 px, after the review corrections, are in
 **Not built, as proportionate to M1:** branching, merging, history beyond the versions present, a version picker for hosts (a host governs one version per id), and any authoring interface.
 
 ## Slice C: the Composition Library
+
+This section describes Slice C as merged. D0 reorganizes its presentation without changing what is real: see [m1/d0/README.md](m1/d0/README.md#what-changed).
+
 
 - **Where it lives.** The experimental build only. **Library** in the top navigation; the import is behind the literal flag.
 - **Layout.** The approved prototype's workspace in Composer's own identity:
@@ -173,7 +179,14 @@ Two of the owner's approved decisions are applied at the same time: the workspac
 - **One design system** (Astryx), two compositions, one draft.
 - **A rule change re-checks every composition**, not only those a rule affects. Rule coverage is deferred in M1.
 - **The what-if is the only way to reach "Needs a new check" in the Library**, because the packaged rules do not change while it runs.
-- **Designer-first refinements** (a fixed workspace frame, less chrome above the instance, plain-language refusals, human scenario names, technical details behind a disclosure) are proposed in [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md), ahead of authoring.
+- **Designer-first refinements** are implemented as D0, which awaits the owner's evaluation and the designer sessions ([m1/d0/README.md](m1/d0/README.md)). They are:
+  - a fixed workspace frame;
+  - less chrome above the instance;
+  - plain-language refusals;
+  - human scenario names;
+  - technical details behind a disclosure;
+  - first-run guidance.
+- **The workspace has only Composer's existing dark appearances** (Aesthetic Function, Ember and Slate, in Settings) during D0. This is temporary. A neutral, customizable working environment is a requirement before broad external designer evaluation (decision 28). Workspace themes through the shared compiler are planned in [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md).
 - **Sensitive fields are drawn unmasked.** Masking is required before real sensitive inputs are supported (owner decision). Only synthetic values are used here.
 - **Focus inside a repeated element** across a replacement is still verified as the host's hint only. The Library shows one instance per selection.
 
@@ -182,6 +195,9 @@ Two of the owner's approved decisions are applied at the same time: the workspac
 The owner's decisions on the review (§11) are recorded at the top of [M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md).
 
 ## Next: composition authoring, and preparing for M2
+
+Not before the owner has evaluated D0. Authoring (A1 to A4) is not authorized yet.
+
 
 1. **Authoring, smallest first.**
    - Edit a draft's parameters and scenarios in the inspector, through `editComposition`, stored as a draft record.
@@ -193,3 +209,4 @@ The owner's decisions on the review (§11) are recorded at the top of [M1-WORKSP
    - A timeline from the host log.
    - Only redacted events recorded.
 4. **Task planning and completeness** (M1 step 14), before any paid evaluation.
+5. **Getting-started documentation** (a recorded future requirement, decision 25). Concise docs with working examples, not an extensive documentation suite.

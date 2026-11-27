@@ -101,6 +101,8 @@ export interface Scenario {
    * (R1A-REVIEW L3). Any other refusal fails the re-check.
    */
   refusedBy?: string;
+  /** A short human name for the example, shown to designers (for example "Three hotels"). Optional. */
+  title?: string;
 }
 
 export interface CompositionDefinition {
@@ -216,6 +218,7 @@ const compositionSchema = z
             data: z.record(z.unknown()),
             expect: z.enum(["ok", "refused"]),
             refusedBy: z.string().min(1).optional(),
+            title: z.string().trim().min(1).max(60).optional(),
           })
           .strict(),
       )

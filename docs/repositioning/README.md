@@ -20,3 +20,6 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [LIVE-EVALUATION-PROPOSAL.md](LIVE-EVALUATION-PROPOSAL.md) | A costed pilot; nothing run |
 | [ASTRYX-D5B.md](ASTRYX-D5B.md) | Astryx for the hotel vertical, and what a contract extension would take |
 | [M1-SCOPE.md](M1-SCOPE.md) | M1 as updated at R0 (not authorized) |
+| [M1-WORKSPACE.md](M1-WORKSPACE.md) | The M1 workspace: experimental storage, version coexistence and the Composition Library, with the review corrections |
+| [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md) | The designer-first refinement, approved; D0 implements it ([m1/d0/README.md](m1/d0/README.md), with the [usability script](m1/d0/USABILITY-SCRIPT.md)) |
+| [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md) | Workspace themes through the shared theme compiler: a plan, not authorized |

@@ -1,0 +1,83 @@
+D0.1 assertions (e2e/composer-library.spec.ts, describe "D0.1") run against the D0 build at b7f4df6, before the corrections.
+Every one fails, each on the defect the independent audit reported. The same 10 pass on the corrected build.
+
+  1) [composer-experimental] › e2e/composer-library.spec.ts:331:3 › D0.1: the independent audit's corrections › toolbar state matrix: no example is hidden and the panel buttons stay on the title's line, approved and draft, every panel configuration 
+    Error: 1440 v1 Approved both
+  2) [composer-experimental] › e2e/composer-library.spec.ts:355:3 › D0.1: the independent audit's corrections › on a phone the examples scroll sideways, say so at their edges, and a focused example is fully visible 
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Error: element(s) not found
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('.cl-chips-wrap')
+  3) [composer-experimental] › e2e/composer-library.spec.ts:381:5 › D0.1: the independent audit's corrections › type floor at 1280 px: no workspace text under 12 px, reading text at least 14 px, no solid accent control 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  -  1
+    + Received  + 24
+    - Array []
+    + Array [
+    +   "10.5px Find a composition",
+    +   "10.5px v",
+    +   "10.5px 1",
+    +   "10.5px ·",
+    +   "10.5px Approved",
+    +   "10.5px v",
+    +   "10.5px 2",
+    +   "10.5px ·",
+    +   "10.5px Draft",
+    +   "10.5px v",
+    +   "10.5px 1",
+    +   "10.5px ·",
+    +   "10.5px Approved",
+    +   "11px v",
+    +   "11px 1",
+    +   "11px Approved",
+    +   "11px v",
+    +   "11px 2",
+    +   "11px Draft",
+    +   "10.5px Example data",
+    +   "header Astryx sample",
+    +   "header Coming next",
+    + ]
+  4) [composer-experimental] › e2e/composer-library.spec.ts:381:5 › D0.1: the independent audit's corrections › type floor at 390 px: no workspace text under 12 px, reading text at least 14 px, no solid accent control 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  -  1
+    + Received  + 27
+    - Array []
+    + Array [
+    +   "10.5px Find a composition",
+    +   "10.5px v",
+    +   "10.5px 1",
+    +   "10.5px ·",
+    +   "10.5px Approved",
+    +   "10.5px v",
+    +   "10.5px 2",
+    +   "10.5px ·",
+    +   "10.5px Draft",
+    +   "10.5px v",
+    +   "10.5px 1",
+    +   "10.5px ·",
+    +   "10.5px Approved",
+    +   "10.5px v",
+    +   "10.5px 1",
+    +   "10.5px Approved",
+    +   "10.5px v",
+    +   "10.5px 2",
+    +   "10.5px Draft",
+    +   "11.5px ✓",
+    +   "11.5px Passes the design rules",
+    +   "11px Compositions",
+    +   "11px Inspector",
+    +   "10.5px Example data",
+    +   "header Astryx sample",
+    + ]
+  5) [composer-experimental] › e2e/composer-library.spec.ts:419:3 › D0.1: the independent audit's corrections › “Coming next” meets 4.5:1, and phone controls are 44 px targets 
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+  6) [composer-experimental] › e2e/composer-library.spec.ts:447:3 › D0.1: the independent audit's corrections › the draft says what changed from v1 without adding a row; the pill reports checks, not approval 
+    Error: expect(locator).toHaveText(expected) failed
+    Error: element(s) not found
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for getByTestId('draft-note').locator('summary')
+  7) [composer-experimental] › e2e/composer-library.spec.ts:464:3 › D0.1: the independent audit's corrections › first run at 1280: the Compositions panel shows the list first, within the window, with the guide after it 
+    Error: expect(locator).toBeInViewport() failed
+      - Expect "toBeInViewport" with timeout 5000ms
+      - waiting for getByTestId('library-item-hotel-search')
+           - unexpected value "viewport ratio 0"
