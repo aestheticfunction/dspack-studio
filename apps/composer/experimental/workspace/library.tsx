@@ -962,8 +962,12 @@ export function LibraryWorkspace() {
           {definition.status === "draft" && (
             <details className="cl-draft" data-testid="draft-note" data-draft={draftState ?? undefined}>
               <summary>
-                <span className="cl-draft__status">{draftLabel[draftState!]}{changes ? " ·" : ""}</span>
-                {changes ? " What changed" : ""}
+                <span className="cl-draft__status">{draftLabel[draftState!]}</span>
+                {changes ? (
+                  <span className="cl-draft__more">
+                    <span className="cl-draft__dot"> ·</span> What changed
+                  </span>
+                ) : null}
               </summary>
               <div className="cl-draft__pop" role="note">
                 <p>
@@ -2064,7 +2068,7 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-title { grid-area: title; font-family: var(--sans); font-weight: 600; color: var(--fg); font-size: 20px; margin: 0; outline: none; line-height: 1.2; white-space: nowrap; }
 .cl-toolbar__versions { grid-area: versions; display: flex; align-items: center; min-width: 0; }
 .cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-.cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+.cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .cl-toolbar__panels { display: flex; gap: 6px; }
 @container canvas (max-width: 880px) {
   .cl-toolbar__head { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title title view" "versions status status"; }
@@ -2171,6 +2175,15 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
   .cl-chips-wrap[data-more-start]::before { content: "‹"; left: 0; z-index: 1; padding-left: 2px; background: linear-gradient(to left, transparent, var(--bg) 70%); }
 }
 @media (prefers-reduced-motion: reduce) { .cl * { transition: none !important; } }
+/* With Select in the toolbar, a narrower canvas keeps the title row's room by drawing the draft note as its status
+   alone; "What changed" stays in its name and opens with it. A phone draws "What changed" instead (above). */
+@container canvas (max-width: 1000px) {
+  .cl-draft__more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+@container canvas (max-width: 480px) {
+  .cl-draft__more { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .cl-draft__dot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
 /* Advanced authoring: Structure, canvas selection and the element inspector. Chrome only: the selection layer
    sits beside the canvas frame, so nothing inside the canvas is restyled. */
 .cl-stage { position: relative; }
