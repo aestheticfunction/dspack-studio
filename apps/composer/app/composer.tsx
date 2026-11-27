@@ -106,6 +106,25 @@ function Shell() {
     setView(id ? "build" : "projects");
   }, [state.activeProject?.id]);
 
+  // Experimental only: the Library stays on screen across a reload (D0.1), through the experimental workspace's
+  // own storage namespace. The first pass restores; every later view change is remembered. A default build
+  // folds all of this away.
+  const viewRestored = useRef(false);
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      void import("../experimental/workspace/storage").then(({ readRecord, writeRecord }) => {
+        if (!viewRestored.current) {
+          viewRestored.current = true;
+          if (readRecord("view").value.library) {
+            setView("library");
+            return;
+          }
+        }
+        writeRecord("view", { library: view === "library" });
+      });
+    }
+  }, [view]);
+
   const buildBlocked = state.mode === "agent" && !state.readiness.ready ? state.readiness.reason : undefined;
   const isAgentProject = state.activeProject?.source.kind === "agent" || state.mode === "agent";
   // The chip answers "what am I looking at" — the project's SOURCE, in the
@@ -264,6 +283,17 @@ function Shell() {
           </div>
         )}
 
+        {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && view === "projects" && (
+          // Experimental only: one contextual line pointing to the Library from the hub (D0.1).
+          <div className="af-page" style={{ paddingTop: 16, paddingBottom: 0 }}>
+            <p data-testid="projects-library-entry" style={{ margin: 0, fontSize: 14, color: "var(--fg-dim)", border: "1px solid var(--line)", borderRadius: 4, padding: "8px 12px" }}>
+              Experimental: the Composition Library has sample screen designs to try with different data.{" "}
+              <button className="st-link" onClick={() => setView("library")} style={{ font: "inherit", minHeight: 24 }}>
+                Open the Library
+              </button>
+            </p>
+          </div>
+        )}
         {view === "projects" && <ProjectsView onOpen={() => setView("build")} onConnect={() => setView("connect")} />}
         {view === "connect" && <ProjectView onNavigate={(v) => setView(v as View)} />}
         {view === "settings" && <SettingsView />}

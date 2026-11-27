@@ -35,6 +35,7 @@ import {
 } from "@dspack-studio/composer-core/compositions";
 import { canvasScopeFor, registryFor } from "../../app/registries";
 import { checkVersion, governorFor, hostFor, loadLibrary, type LoadedLibrary, type VersionCheck } from "./runtime";
+import { RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
 
 type Json = Record<string, any>;
@@ -63,15 +64,7 @@ function humanize(name: string): string {
     .trim();
 }
 const sentence = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-/**
- * Human names for the examples of the packaged approved versions. Those versions stay byte-identical to the
- * definitions R1a verified (an approved version cannot change), so their names live here; a definition's own
- * `title`, as the draft carries and authoring will write, always wins.
- */
-const SAMPLE_NAMES: Record<string, Record<string, string>> = {
-  "hotel-search": { ready: "An empty search", invalid: "A search with an error" },
-  "hotel-results": { three: "Three hotels", two: "Two hotels", one: "One hotel", none: "No hotels found", confirm: "Confirm a reservation" },
-};
+/** An example's human name: its own `title`, else the sample label (presentation.ts), else its id in words. */
 const scenarioName = (s: Scenario, compositionId: string) => s.title ?? SAMPLE_NAMES[compositionId]?.[s.id] ?? sentence(humanize(s.id));
 
 /** A rule's rationale, without its parenthetical scope notes: the part a designer needs. */
@@ -169,7 +162,7 @@ interface Ready {
 const GUIDE: Array<{ id: string; title: string; detail: string; composition: string; version: number; scenario: string }> = [
   { id: "data", title: "See a screen with real data", detail: "Hotel results, filled with three hotels an agent found.", composition: "hotel-results", version: 1, scenario: "three" },
   { id: "rules", title: "See what the design rules prevent", detail: "The same screen with one hotel: not a real choice, so it is not shown.", composition: "hotel-results", version: 1, scenario: "one" },
-  { id: "draft", title: "Compare a draft with the approved version", detail: "Version 2 rewords the screen. Version 1 stays approved and unchanged.", composition: "hotel-results", version: 2, scenario: "three" },
+  { id: "draft", title: "Compare a draft with the approved version", detail: "Version 2 rewords two pieces of text; “What changed” beside its status lists them. Version 1 stays approved and unchanged.", composition: "hotel-results", version: 2, scenario: "three" },
   { id: "confirm", title: "Try a confirmation step", detail: "Press Reserve: Composer shows what it would send. Nothing is booked.", composition: "hotel-results", version: 1, scenario: "confirm" },
 ];
 
@@ -184,7 +177,8 @@ export function LibraryWorkspace() {
   const [whatIf, setWhatIf] = useState<WhatIf>("none");
   const [shown, setShown] = useState<ShowResult | null>(null);
   const [showing, setShowing] = useState(false);
-  const [lastAction, setLastAction] = useState<{ name: string; label: string | null; context: Json; consequential: boolean } | null>(null);
+  // `name` is null for a button that sends nothing (an Astryx confirmation's "Not now"): the note says so (D0.1).
+  const [lastAction, setLastAction] = useState<{ name: string | null; label: string | null; context: Json; consequential: boolean } | null>(null);
   const [filter, setFilter] = useState("");
   const [announce, setAnnounce] = useState("");
   const [tab, setTab] = useState<Tab>("design");
@@ -196,6 +190,18 @@ export function LibraryWorkspace() {
   const toggles = useRef<Record<Panel, HTMLButtonElement | null>>({ library: null, inspector: null });
   const panels = useRef<Record<Panel, HTMLElement | null>>({ library: null, inspector: null });
   const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ design: null, checks: null });
+  const guideRef = useRef<HTMLElement>(null);
+  const actionSeen = useRef(false);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  const [chipEdges, setChipEdges] = useState({ start: false, end: false });
+  /** Which edges of the example chips have more beyond them, so a scrolling row says so (D0.1). */
+  const measureChips = useCallback(() => {
+    const el = chipsRef.current;
+    if (!el) return;
+    const start = el.scrollLeft > 1;
+    const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setChipEdges((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
+  }, []);
 
   useEffect(() => setSlot(document.getElementById("cl-header-slot")), []);
 
@@ -240,6 +246,15 @@ export function LibraryWorkspace() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const el = chipsRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    measureChips();
+    const observer = new ResizeObserver(measureChips);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ready, prefs.composition, prefs.version, layout, open.library, open.inspector, measureChips]);
 
   // Narrow screens start with the canvas alone.
   const narrowSeen = useRef(false);
@@ -307,6 +322,13 @@ export function LibraryWorkspace() {
     setGuide(true);
     writeRecord("onboarding", { dismissed: false });
     if (!open.library) togglePanel("library");
+    setTimeout(() => guideRef.current?.focus(), 0);
+  };
+
+  /** The phone's first-run link: open the Compositions sheet at the guide. */
+  const openGuide = () => {
+    togglePanel("library");
+    setTimeout(() => guideRef.current?.focus(), 0);
   };
 
   const togglePanel = (panel: Panel) => {
@@ -365,6 +387,7 @@ export function LibraryWorkspace() {
   const onAction = useCallback(
     (action: A2uiClientAction) => {
       if (!ready || !definition) return;
+      actionSeen.current = true;
       const a = action as unknown as { name: string; surfaceId: string; sourceComponentId: string; context?: Json };
       const host = ready.hosts.get(key)!;
       // Shown in its recordable form only: a sensitive value is replaced, never displayed or kept.
@@ -376,6 +399,23 @@ export function LibraryWorkspace() {
     },
     [ready, key, definition, instanceForLabels],
   );
+
+  /**
+   * A button on the canvas that dispatches no action (a confirmation's "Not now") still gets feedback, and
+   * never leaves an earlier action's note on screen (D0.1). The click is seen in the capture phase; if no
+   * action followed it, the note says the button sends nothing.
+   */
+  const onCanvasClick = useCallback((target: HTMLElement) => {
+    const button = target.closest("button");
+    if (!button) return;
+    actionSeen.current = false;
+    const label = button.textContent?.trim() || null;
+    setTimeout(() => {
+      if (actionSeen.current) return;
+      setLastAction({ name: null, label, context: {}, consequential: false });
+      setAnnounce(`${label ?? "That button"}: preview only, it sends nothing.`);
+    }, 0);
+  }, []);
 
   // On a phone an open panel is a modal sheet (R3): everything behind it is inert, and Tab stays inside it.
   // Wider screens keep side panels non-modal.
@@ -493,7 +533,11 @@ export function LibraryWorkspace() {
     const s = definition?.scenarios.find((x) => x.id === id);
     return s && definition ? scenarioName(s, definition.id) : id;
   };
-  const ruleRationale = (ruleId: string | undefined) => plainRationale(((governor.contract.rules ?? []) as Json[]).find((r) => r.id === ruleId)?.rationale);
+  /** What a refusal by a rule leads with (a plain sentence, presentation.ts), and the contract's own rationale. */
+  const ruleText = (ruleId: string | undefined) => {
+    const rationale = ((governor.contract.rules ?? []) as Json[]).find((r) => r.id === ruleId)?.rationale as string | undefined;
+    return { lead: (ruleId ? RULE_LEADS[ruleId] : undefined) ?? plainRationale(rationale), rationale: rationale ?? null };
+  };
   const instance = shown?.ok ? shown.instance : null;
   const outcome = describeOutcome(shown, scenario, definition, check, failing, nameOf);
 
@@ -513,40 +557,15 @@ export function LibraryWorkspace() {
           Compositions
         </h2>
         {layout === "narrow" && (
-          <button className="st-btn" onClick={() => closeDrawer("library")}>
+          <button className="cl-tool" onClick={() => closeDrawer("library")}>
             Close
           </button>
         )}
       </div>
-      {guide && (
-        <section className="cl-guide" aria-labelledby="cl-guide-title" data-testid="first-run">
-          <h3 id="cl-guide-title" className="cl-guide__title">
-            Design screens an AI agent can fill with real data, and keep them on-brand
-          </h3>
-          <p>
-            Each <strong>composition</strong> here is one screen design. An agent supplies the data; Composer shows the result and checks it against the Astryx design system&rsquo;s rules before anyone sees it.
-          </p>
-          <p className="cl-guide__lead">Try it:</p>
-          <ol className="cl-guide__steps">
-            {GUIDE.map((step) => (
-              <li key={step.id}>
-                <button className="cl-guide__step" onClick={() => takeGuide(step)} data-testid={`guide-${step.id}`}>
-                  <span className="cl-guide__step-title">{step.title}</span>
-                  <span className="cl-guide__step-detail">{step.detail}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-          <p className="cl-dim">Creating your own compositions comes with authoring, which is not available yet.</p>
-          <button className="st-btn" onClick={dismissGuide} data-testid="guide-dismiss">
-            Hide this guide
-          </button>
-        </section>
-      )}
       <label className="cl-label" htmlFor="cl-filter">
         Find a composition
       </label>
-      <input id="cl-filter" className="af-input" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="By name or purpose, for example “review”" />
+      <input id="cl-filter" className="af-input" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Name or purpose" />
       {entries.length === 0 ? (
         <Empty title="No composition matches">Clear the search to see all {ready.loaded.library.entries.length}.</Empty>
       ) : (
@@ -572,15 +591,39 @@ export function LibraryWorkspace() {
           })}
         </ul>
       )}
+      {/* The list comes first; the guide follows it, compact, and can be put away and brought back (D0.1). */}
+      {guide ? (
+        <section className="cl-guide" aria-labelledby="cl-guide-title" data-testid="first-run" tabIndex={-1} ref={guideRef}>
+          <h3 id="cl-guide-title" className="cl-guide__title">
+            New here? Four quick examples
+          </h3>
+          <p>
+            Composer lets you design screens an AI agent can fill with real data, and keeps them on-brand. Each <strong>composition</strong> above is one screen design: an agent supplies the data, and Composer checks the result against the Astryx design system&rsquo;s rules before anyone sees it.
+          </p>
+          <ol className="cl-guide__steps">
+            {GUIDE.map((step) => (
+              <li key={step.id}>
+                <button className="cl-guide__step" onClick={() => takeGuide(step)} data-testid={`guide-${step.id}`}>
+                  <span className="cl-guide__step-title">{step.title}</span>
+                  <span className="cl-guide__step-detail">{step.detail}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+          <p className="cl-dim">Creating your own compositions comes with authoring, which is not available yet.</p>
+          <button className="cl-tool" onClick={dismissGuide} data-testid="guide-dismiss">
+            Hide the guide
+          </button>
+        </section>
+      ) : (
+        <button className="cl-link cl-guide-show" onClick={showGuide} data-testid="guide-show">
+          New here? Show the guide
+        </button>
+      )}
       {layout === "narrow" && (
         <p className="cl-dim" data-testid="coming-next-narrow">
           Coming next: Compose, Playground and Publish are not available yet.
         </p>
-      )}
-      {!guide && (
-        <button className="cl-link" onClick={showGuide} data-testid="guide-show">
-          New here? Show the guide
-        </button>
       )}
       {ready.loaded.issues.length > 0 && (
         <details className="cl-issues">
@@ -597,77 +640,122 @@ export function LibraryWorkspace() {
 
   // ---- Canvas -----------------------------------------------------------------------------------------------
 
+  const changes = definition ? VERSION_CHANGES[`${definition.id}@${definition.version}`] : undefined;
+  const approvedVersion = entry?.approved?.version;
   const toolbar = definition && entry && (
     <div className="cl-toolbar">
-      <div className="cl-toolbar__row">
+      {/* One head row: what this is and its status on the left, view controls on the right. The view controls
+          never wrap away from the title; the status wraps below the title when the canvas is narrow (D0.1). */}
+      <div className="cl-toolbar__head">
         <h2 id="cl-canvas-title" className="cl-title" tabIndex={-1} ref={canvasHeading}>
           {definition.name}
         </h2>
-        {entry.versions.length > 1 ? (
-          <fieldset className="cl-seg">
-            <legend className="cl-sr">Version</legend>
-            {entry.versions.map((v) => (
-              <label key={v.version} className={`cl-seg__opt${v.version === definition.version ? " cl-seg__opt--on" : ""}`}>
-                <input type="radio" name="cl-version" checked={v.version === definition.version} onChange={() => persist({ ...prefs, version: v.version, state: null })} />
-                v{v.version} {v.status === "approved" ? "Approved" : "Draft"}
-              </label>
-            ))}
-          </fieldset>
-        ) : (
-          <span className={`cl-badge${definition.status === "approved" ? " cl-badge--ok" : ""}`}>
-            v{definition.version} · {definition.status === "approved" ? "Approved" : "Draft"}
+        <div className="cl-toolbar__versions">
+          {entry.versions.length > 1 ? (
+            <fieldset className="cl-seg">
+              <legend className="cl-sr">Version</legend>
+              {entry.versions.map((v) => (
+                <label key={v.version} className={`cl-seg__opt${v.version === definition.version ? " cl-seg__opt--on" : ""}`}>
+                  <input type="radio" name="cl-version" checked={v.version === definition.version} onChange={() => persist({ ...prefs, version: v.version, state: null })} />
+                  v{v.version} {v.status === "approved" ? "Approved" : "Draft"}
+                </label>
+              ))}
+            </fieldset>
+          ) : (
+            <span className={`cl-badge${definition.status === "approved" ? " cl-badge--ok" : ""}`}>
+              v{definition.version} · {definition.status === "approved" ? "Approved" : "Draft"}
+            </span>
+          )}
+        </div>
+        <div className="cl-toolbar__status">
+          {/* Checks only: whether a version is approved is said by its version status, never by this pill. */}
+          <span className={`cl-pill cl-pill--${outcome.tone}`} data-testid="check-pill" data-state={outcome.state}>
+            <span aria-hidden="true" className="cl-pill__icon">
+              {outcome.icon}
+            </span>{" "}
+            {outcome.pill}
+            {showing ? " · updating…" : ""}
           </span>
-        )}
-        <span className={`cl-pill cl-pill--${outcome.tone}`} data-testid="check-pill" data-state={outcome.state}>
-          <span aria-hidden="true">{outcome.icon}</span> {outcome.pill}
-          {definition.status === "draft" && outcome.state === "pass" ? " · Draft, not approved" : ""}
-          {showing ? " · updating…" : ""}
-        </span>
-        <span className="cl-toolbar__spacer" />
-        <span className="cl-break" aria-hidden="true" />
-        {(["library", "inspector"] as Panel[]).map((p) => (
-          <button
-            key={p}
-            ref={(el) => void (toggles.current[p] = el)}
-            className={`st-btn cl-toggle${open[p] ? " st-btn--active" : ""}`}
-            aria-expanded={open[p]}
-            aria-controls={`cl-${p}`}
-            onClick={() => togglePanel(p)}
-            data-testid={`toggle-${p}`}
-          >
-            {p === "library" ? "Compositions" : "Inspector"}
-          </button>
-        ))}
+          {definition.status === "draft" && (
+            <details className="cl-draft" data-testid="draft-note">
+              <summary>
+                <span className="cl-draft__status">Draft, not approved{changes ? " ·" : ""}</span>
+                {changes ? " What changed" : ""}
+              </summary>
+              <div className="cl-draft__pop" role="note">
+                <p>
+                  v{definition.version} is a draft, newer than approved v{approvedVersion}. It is not approved for use by agents: passing checks does not approve it. v{approvedVersion} stays approved and unchanged.
+                </p>
+                {changes && (
+                  <>
+                    <p className="cl-draft__lead">What changed from v{approvedVersion}</p>
+                    <ul data-testid="draft-changes">
+                      {changes.summary.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </details>
+          )}
+          {layout === "narrow" && guide && (
+            <span className="cl-guide-strip" data-testid="first-run-strip">
+              <button className="cl-link" onClick={openGuide}>
+                New here? Try the guide
+              </button>
+            </span>
+          )}
+        </div>
+        <div className="cl-toolbar__view">
+          {layout !== "narrow" && (
+            <button className="cl-tool" aria-pressed={fitWidth} onClick={() => setFitWidth(!fitWidth)} data-testid="fit-width" title="Fit width">
+              <Icon name="fit" />
+              <span className="cl-tool__text">Fit width</span>
+            </button>
+          )}
+          <div className="cl-toolbar__panels" role="group" aria-label="Panels">
+            {(["library", "inspector"] as Panel[]).map((p) => (
+              <button
+                key={p}
+                ref={(el) => void (toggles.current[p] = el)}
+                className="cl-tool cl-toggle"
+                aria-expanded={open[p]}
+                aria-controls={`cl-${p}`}
+                onClick={() => togglePanel(p)}
+                data-testid={`toggle-${p}`}
+                title={p === "library" ? "Compositions" : "Inspector"}
+              >
+                <Icon name={p === "library" ? "panel-left" : "panel-right"} />
+                <span className="cl-tool__text">{p === "library" ? "Compositions" : "Inspector"}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="cl-toolbar__row cl-toolbar__row--examples">
         <span className="cl-toolbar__label" id="cl-examples-label">
           Example data
         </span>
-        <div className="cl-chips" role="group" aria-labelledby="cl-examples-label" data-testid="scenario-chips">
-          {definition.scenarios.map((s) => (
-            <button
-              key={s.id}
-              className={`cl-chip${s.id === scenario?.id ? " cl-chip--on" : ""}`}
-              aria-pressed={s.id === scenario?.id}
-              onClick={() => persist({ ...prefs, scenario: s.id })}
-              data-testid={`scenario-${s.id}`}
-            >
-              {scenarioName(s, definition.id)}
-              {s.expect === "refused" ? <span className="cl-chip__note"> · should be refused</span> : null}
-            </button>
-          ))}
+        <div className="cl-chips-wrap" data-more-start={chipEdges.start || undefined} data-more-end={chipEdges.end || undefined}>
+          <div className="cl-chips" role="group" aria-labelledby="cl-examples-label" data-testid="scenario-chips" ref={chipsRef} onScroll={measureChips}>
+            {definition.scenarios.map((s) => (
+              <button
+                key={s.id}
+                className={`cl-chip${s.id === scenario?.id ? " cl-chip--on" : ""}`}
+                aria-pressed={s.id === scenario?.id}
+                onClick={() => persist({ ...prefs, scenario: s.id })}
+                // A chip that takes focus is scrolled fully into view, clear of the edge fades.
+                onFocus={(e) => e.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" })}
+                data-testid={`scenario-${s.id}`}
+              >
+                {scenarioName(s, definition.id)}
+                {s.expect === "refused" ? <> <span className="cl-chip__note">· should be refused</span></> : null}
+              </button>
+            ))}
+          </div>
         </div>
-        {layout !== "narrow" && (
-          <button className="cl-link cl-fit" aria-pressed={fitWidth} onClick={() => setFitWidth(!fitWidth)} data-testid="fit-width">
-            {fitWidth ? "Centred width" : "Fit width"}
-          </button>
-        )}
       </div>
-      {definition.status === "draft" && (
-        <p className="cl-note" data-testid="draft-note">
-          A draft, newer than approved v{entry.approved?.version}. It is not approved for use by agents: passing checks previews it but does not approve it. v{entry.approved?.version} stays as it was.
-        </p>
-      )}
       {!governed && (
         <p className="cl-note cl-note--warn" role="status">
           Try-out, this session only: a stricter rule needs four options in a review. Nothing is saved, and the Astryx rules are unchanged.
@@ -678,14 +766,6 @@ export function LibraryWorkspace() {
 
   const canvas = (
     <section className="cl-canvas" aria-labelledby="cl-canvas-title">
-      {layout === "narrow" && guide && (
-        <p className="cl-guide-strip" data-testid="first-run-strip">
-          New here?{" "}
-          <button className="cl-link" onClick={() => togglePanel("library")}>
-            Try four quick examples
-          </button>
-        </p>
-      )}
       {!definition || !entry ? (
         <Empty title="Nothing selected">Choose a composition from the list.</Empty>
       ) : (
@@ -701,7 +781,8 @@ export function LibraryWorkspace() {
             recheck={recheckNow}
             failing={failing}
             nameOf={nameOf}
-            ruleRationale={ruleRationale}
+            ruleText={ruleText}
+            onCanvasClick={onCanvasClick}
             fitWidth={fitWidth}
             clearState={() => persist({ ...prefs, state: null })}
           />
@@ -709,11 +790,19 @@ export function LibraryWorkspace() {
             // R4: pinned to the bottom of the visible canvas, so the feedback is seen where the button was pressed.
             <div className="cl-action" role="status" data-testid="action-note">
               <p>
-                <strong>Preview only, not run.</strong> {lastAction.label ? <>&ldquo;{lastAction.label}&rdquo;</> : sentence(humanize(lastAction.name))} would send{" "}
-                {Object.keys(lastAction.context).length ? Object.entries(lastAction.context).map(([k, v]) => plainValue(k, v)).join(", ") : "nothing else"}.
-                {lastAction.consequential ? " In a running flow this is accepted once, from this confirmation only." : ""}
+                {lastAction.name === null ? (
+                  <>
+                    <strong>Preview only.</strong> {lastAction.label ? <>&ldquo;{lastAction.label}&rdquo;</> : "That button"} sends nothing.
+                  </>
+                ) : (
+                  <>
+                    <strong>Preview only, not run.</strong> {lastAction.label ? <>&ldquo;{lastAction.label}&rdquo;</> : sentence(humanize(lastAction.name))} would send{" "}
+                    {Object.keys(lastAction.context).length ? Object.entries(lastAction.context).map(([k, v]) => plainValue(k, v)).join(", ") : "nothing else"}.
+                    {lastAction.consequential ? " In a running flow, this runs only once, and only from this confirmation." : ""}
+                  </>
+                )}
               </p>
-              <button className="st-btn" onClick={() => setLastAction(null)} aria-label="Dismiss the action preview">
+              <button className="cl-tool" onClick={() => setLastAction(null)} aria-label="Dismiss the action preview">
                 Dismiss
               </button>
             </div>
@@ -760,7 +849,7 @@ export function LibraryWorkspace() {
           Inspector
         </h2>
         {layout === "narrow" && (
-          <button className="st-btn" onClick={() => closeDrawer("inspector")}>
+          <button className="cl-tool" onClick={() => closeDrawer("inspector")}>
             Close
           </button>
         )}
@@ -910,7 +999,7 @@ export function LibraryWorkspace() {
               <p className="cl-dim">The example data normally chooses the state. A state an example cannot reach is refused, with the reason.</p>
             </Section>
             <Section title="Try a rule change">
-              <button className="st-btn" aria-pressed={!governed} onClick={() => changeRules(governed ? "four-options" : "none")} data-testid="what-if">
+              <button className="cl-tool" aria-pressed={!governed} onClick={() => changeRules(governed ? "four-options" : "none")} data-testid="what-if">
                 {governed ? "Try a stricter rule (this session only)" : "Restore the Astryx rules"}
               </button>
               <p className="cl-dim">Requires four options in a review instead of two, to show what happens when the rules change. Nothing is stored.</p>
@@ -960,7 +1049,7 @@ export function LibraryWorkspace() {
                 </tbody>
               </table>
             )}
-            {lastAction && (
+            {lastAction && lastAction.name !== null && (
               <p className="cl-dim">
                 Last preview, recordable form: <code data-testid="action-raw">{JSON.stringify({ name: lastAction.name, context: lastAction.context })}</code>
               </p>
@@ -1028,7 +1117,8 @@ function CanvasBody({
   recheck,
   failing,
   nameOf,
-  ruleRationale,
+  ruleText,
+  onCanvasClick,
   fitWidth,
   clearState,
 }: {
@@ -1042,7 +1132,8 @@ function CanvasBody({
   /** Examples that failed the latest check under the current rules, if it failed. */
   failing: string[];
   nameOf: (id: string) => string;
-  ruleRationale: (ruleId: string | undefined) => string | null;
+  ruleText: (ruleId: string | undefined) => { lead: string | null; rationale: string | null };
+  onCanvasClick: (target: HTMLElement) => void;
   fitWidth: boolean;
   clearState: () => void;
 }) {
@@ -1050,7 +1141,7 @@ function CanvasBody({
   const scope = canvasScopeFor("astryx");
   const frame = (instance: Instance, dimmed = false) => (
     <div className={`cl-stage${fitWidth ? " cl-stage--fit" : ""}`}>
-      <div {...scope.attrs} className={`cl-frame${dimmed ? " cl-frame--kept" : ""}`} style={{ background: scope.background }} data-project-canvas="composer" data-surface={instance.surfaceId} inert={dimmed || undefined}>
+      <div {...scope.attrs} className={`cl-frame${dimmed ? " cl-frame--kept" : ""}`} style={{ background: scope.background }} data-project-canvas="composer" data-surface={instance.surfaceId} inert={dimmed || undefined} onClickCapture={dimmed ? undefined : (e) => onCanvasClick(e.target as HTMLElement)}>
         <A2uiCanvas key={instance.surfaceId} catalog={catalog} registry={registry} messages={instance.messages as unknown[]} onAction={dimmed ? undefined : onAction} />
       </div>
     </div>
@@ -1072,6 +1163,7 @@ function CanvasBody({
           </>
         ) : null}
       </p>
+      {ruleText(rule).rationale && <p data-testid="refusal-rationale">Rule rationale: {ruleText(rule).rationale}</p>}
       <p>
         <code>{String(refusal.reason)}</code>
       </p>
@@ -1090,7 +1182,7 @@ function CanvasBody({
             {failing.map(nameOf).join(", ")} no longer {failing.length === 1 ? "behaves" : "behave"} as expected. Nothing runs from this version under these rules, and nothing shown before is replaced.
           </p>
         )}
-        <button className="st-btn" onClick={recheck} data-testid="recheck">
+        <button className="cl-tool" onClick={recheck} data-testid="recheck">
           Run checks under these rules
         </button>
       </>
@@ -1100,21 +1192,17 @@ function CanvasBody({
     const requested = definition.states.find((s) => refusal.reason?.includes(`'${s.id}'`));
     body = <p>{requested ? `The “${sentence(humanize(requested.id))}” state ${plainGuard(requested.guard)}, and the “${scenario ? nameOf(scenario.id) : "current"}” example does not fit it.` : String(refusal.reason)}</p>;
     next = (
-      <button className="st-btn" onClick={clearState}>
+      <button className="cl-tool" onClick={clearState}>
         Show the state the example chooses
       </button>
     );
   } else if (outcome.state === "expected") {
     title = "Not shown, as expected";
-    body = (
-      <p>
-        {ruleRationale(rule) ?? "A design rule refuses this data."} <span className="cl-dim">(Astryx rule: {humanize(rule ?? String(refusal.stage))}.)</span>
-      </p>
-    );
+    body = <p className="cl-refusal__lead">{ruleText(rule).lead ?? "A design rule refuses this data."}</p>;
     next = <p>This example exists to show the rule at work. Choose another example to see the composition.</p>;
   } else {
     title = "Not shown: this data breaks a design rule";
-    body = <p>{ruleRationale(rule) ?? String(refusal.reason)}</p>;
+    body = <p className="cl-refusal__lead">{ruleText(rule).lead ?? String(refusal.reason)}</p>;
     next = <p>What you can do: choose another example. Changing an example&rsquo;s data comes with authoring, which is not available yet.</p>;
   }
   return (
@@ -1127,8 +1215,8 @@ function CanvasBody({
       </div>
       {shown.kept && (
         <details className="cl-kept" data-testid="kept-instance">
-          <summary>Last valid instance · not interactive</summary>
-          <p className="cl-dim">In a running flow this stays on screen while the new data is refused. Here it is shown for comparison only.</p>
+          <summary>Previous screen · not interactive</summary>
+          <p className="cl-dim">In a running flow, the previous screen stays while the new data is refused. It is shown here for comparison only.</p>
           {frame(shown.kept, true)}
         </details>
       )}
@@ -1150,6 +1238,18 @@ function Frame({ layout, mode, top, open, children }: { layout: Layout; mode: "f
       <style>{CSS}</style>
       <div className="cl-body">{children}</div>
     </div>
+  );
+}
+
+/** Small line icons for the view controls; decorative, so the button's text names it. */
+function Icon({ name }: { name: "panel-left" | "panel-right" | "fit" }) {
+  return (
+    <svg className="cl-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" focusable="false">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" />
+      {name === "panel-left" && <line x1="6" y1="2.5" x2="6" y2="13.5" />}
+      {name === "panel-right" && <line x1="10" y1="2.5" x2="10" y2="13.5" />}
+      {name === "fit" && <path d="M4 8h8M4 8l2-2M4 8l2 2M12 8l-2-2M12 8l-2 2" />}
+    </svg>
   );
 }
 
@@ -1185,23 +1285,28 @@ function Empty({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const CSS = `
-.cl { --cl-panel-l: 280px; --cl-panel-r: 340px; display: flex; flex-direction: column; color: var(--fg-body); }
+/* The experimental workspace's own, quieter type (D0.1): sentence case in the workspace's sans face, no
+   tracked uppercase mono, a 12 px floor for labels and controls and 14 px for reading text. The AF palette is
+   kept; the solid accent is left for primary actions, and none is offered in the read-only Library. */
+.cl { --cl-panel-l: 280px; --cl-panel-r: 340px; --cl-target: 32px; display: flex; flex-direction: column; color: var(--fg-body); font-family: var(--sans); font-size: 14px; }
+.cl[data-layout="narrow"] { --cl-target: 44px; }
 .cl[data-frame="fixed"] { height: calc(100dvh - var(--cl-top, 60px)); min-height: 0; overflow: hidden; }
 .cl :focus-visible { outline: 2px solid var(--green-bright); outline-offset: 2px; }
 .cl-header-slot { display: flex; align-items: center; min-width: 0; }
-.cl-head { display: inline-flex; align-items: center; gap: 10px; margin-left: 4px; position: relative; }
-.cl-head__scope { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--fg-dim); border: 1px solid var(--line); border-radius: 2px; padding: 2px 6px; white-space: nowrap; }
-.cl-head__next summary { list-style: none; cursor: pointer; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-faint); white-space: nowrap; }
+.cl-head { display: inline-flex; align-items: center; gap: 10px; margin-left: 4px; position: relative; font-family: var(--sans); }
+.cl-head__scope { font-size: 12px; color: var(--fg-dim); border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; white-space: nowrap; }
+.cl-head__next summary { list-style: none; cursor: pointer; font-size: 12px; color: var(--fg-dim); white-space: nowrap; padding: 4px 2px; }
+.cl-head__next summary:hover { color: var(--fg-body); }
 .cl-head__next summary::-webkit-details-marker { display: none; }
 .cl-head__next summary::after { content: " ▾"; }
-.cl-head__pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; width: min(320px, 80vw); background: var(--bg-1); border: 1px solid var(--line); border-radius: 3px; box-shadow: var(--shadow-menu); padding: 10px 12px; font-size: 13px; line-height: 1.5; color: var(--fg-body); }
+.cl-head__pop { position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; width: min(320px, 80vw); background: var(--bg-1); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow-menu); padding: 10px 12px; font-size: 14px; line-height: 1.5; color: var(--fg-body); }
 .cl-head__pop p { margin: 0 0 6px; }
 .cl-body { position: relative; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; }
 .cl[data-layout="wide"] .cl-body, .cl[data-layout="medium"] .cl-body { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); }
 .cl-panel { background: var(--bg-1); border-color: var(--line); border-style: solid; border-width: 0; padding: 14px 16px; overflow: auto; min-width: 0; min-height: 0; outline: none; }
 .cl-panel[hidden] { display: none; }
 .cl-panel--library { width: var(--cl-panel-l); border-right-width: 1px; grid-column: 1; grid-row: 1; }
-.cl-canvas { grid-column: 2; grid-row: 1; padding: 0 max(16px, env(safe-area-inset-left)) 24px; min-width: 0; min-height: 0; overflow: auto; position: relative; }
+.cl-canvas { grid-column: 2; grid-row: 1; padding: 0 max(16px, env(safe-area-inset-left)) 24px; min-width: 0; min-height: 0; overflow: auto; position: relative; container: canvas / inline-size; }
 .cl-panel--inspector { width: var(--cl-panel-r); border-left-width: 1px; grid-column: 3; grid-row: 1; }
 .cl[data-layout="narrow"] .cl-canvas { grid-column: 1; overflow: visible; }
 .cl[data-layout="narrow"] .cl-panel { position: fixed; z-index: 30; box-shadow: var(--shadow-menu); }
@@ -1209,120 +1314,151 @@ const CSS = `
 .cl[data-layout="narrow"] .cl-panel--inspector { inset: auto 0 0 0; width: 100%; height: min(82dvh, 680px); border-left-width: 0; border-top-width: 1px; border-radius: 12px 12px 0 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 .cl-scrim { position: fixed; inset: 0; z-index: 25; background: rgba(0, 0, 0, 0.5); }
 .cl-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.cl-h { font-family: var(--hl); font-weight: 600; text-transform: uppercase; font-size: 17px; color: var(--fg); margin: 0; }
-.cl-label { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 6px; padding: 0; }
-.cl-dim { color: var(--fg-dim); font-size: 13px; line-height: 1.5; margin: 8px 0; }
+.cl-h { font-family: var(--sans); font-weight: 600; font-size: 16px; color: var(--fg); margin: 0; }
+.cl-label { display: block; font-size: 12px; font-weight: 600; color: var(--fg-dim); margin: 0 0 6px; padding: 0; }
+.cl-dim { color: var(--fg-dim); font-size: 14px; line-height: 1.5; margin: 8px 0; }
 .cl-body p { overflow-wrap: anywhere; }
-.cl-link { background: none; border: 0; padding: 0; color: var(--green-bright); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.cl-guide { border: 1px solid var(--green-deep); border-radius: 4px; padding: 12px; margin: 4px 0 16px; font-size: 13.5px; line-height: 1.5; background: color-mix(in srgb, var(--green-glow) 60%, transparent); }
+.cl-link { background: none; border: 0; padding: 0; color: var(--green-bright); font: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.cl-tool { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--cl-target); min-width: var(--cl-target); padding: 0 10px; font: inherit; font-size: 13px; font-weight: 500; color: var(--fg-body); background: transparent; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.cl-tool:hover { border-color: var(--fg-faint); color: var(--fg); }
+/* A pressed or open control is quiet: a raised surface and a lighter border, never the solid accent. */
+.cl-tool[aria-pressed="true"], .cl-tool[aria-expanded="true"] { background: var(--bg-2); border-color: var(--fg-dim); color: var(--fg); }
+.cl-icon { flex: none; }
+.cl-guide { border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin: 4px 0 12px; font-size: 14px; line-height: 1.5; background: var(--bg); outline: none; }
+.cl-guide:focus-visible { outline: 2px solid var(--green-bright); }
 .cl-guide p { margin: 0 0 8px; }
-.cl-guide__title { font-size: 15px; line-height: 1.35; color: var(--fg); margin: 0 0 8px; font-weight: 600; text-wrap: balance; }
-.cl-guide__lead { font-weight: 600; color: var(--fg); }
-.cl-guide__steps { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; counter-reset: step; }
+.cl-guide__title { font-size: 15px; line-height: 1.35; color: var(--fg); margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+.cl-guide__steps { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; counter-reset: step; }
 .cl-guide__steps li { counter-increment: step; }
-.cl-guide__step { width: 100%; text-align: left; display: grid; grid-template-columns: 22px 1fr; gap: 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg); color: inherit; font: inherit; cursor: pointer; }
-.cl-guide__step::before { content: counter(step); grid-row: span 2; font-family: var(--mono); font-size: 12px; color: var(--green-bright); padding-top: 1px; }
-.cl-guide__step:hover { border-color: var(--green); }
+.cl-guide__step { width: 100%; text-align: left; display: grid; grid-template-columns: 18px 1fr; gap: 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg-1); color: inherit; font: inherit; font-size: 14px; cursor: pointer; min-height: var(--cl-target); }
+.cl-guide__step::before { content: counter(step); grid-row: span 2; font-size: 13px; font-weight: 600; color: var(--fg-dim); padding-top: 1px; }
+.cl-guide__step:hover { border-color: var(--fg-faint); }
 .cl-guide__step-title { color: var(--fg); font-weight: 600; }
-.cl-guide__step-detail { color: var(--fg-dim); font-size: 12.5px; }
-.cl-guide-strip { margin: 10px 0 0; font-size: 13px; color: var(--fg-dim); }
+.cl-guide__step-detail { color: var(--fg-dim); }
+.cl-guide-show { display: inline-flex; align-items: center; min-height: var(--cl-target); margin: 0 0 8px; }
+.cl-guide-strip { font-size: 14px; }
+.cl-guide-strip .cl-link { display: inline-flex; align-items: center; min-height: var(--cl-target); }
 .cl-list { list-style: none; margin: 10px 0 12px; padding: 0; display: grid; gap: 8px; }
-.cl-item { width: 100%; text-align: left; display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 3px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.cl-item { width: 100%; text-align: left; display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .cl-item:hover { border-color: var(--fg-faint); }
-.cl-item--selected { border-color: var(--green); box-shadow: inset 3px 0 0 var(--green); }
+.cl-item--selected { border-color: var(--fg-dim); background: var(--bg-2); }
 .cl-item__name { color: var(--fg); font-weight: 600; font-size: 15px; }
-.cl-item__summary { font-size: 13px; color: var(--fg-dim); line-height: 1.45; }
+.cl-item__summary { font-size: 14px; color: var(--fg-dim); line-height: 1.45; }
 .cl-item__versions { display: flex; gap: 6px; flex-wrap: wrap; }
-.cl-badge { display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border: 1px solid var(--line); border-radius: 2px; color: var(--fg-dim); vertical-align: middle; white-space: nowrap; }
+.cl-badge { display: inline-block; font-size: 12px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg-dim); vertical-align: middle; white-space: nowrap; }
 .cl-badge--ok { border-color: var(--green-deep); color: var(--green-bright); }
 .cl-toolbar { position: sticky; top: 0; z-index: 6; background: var(--bg); padding: 12px 0 10px; display: grid; gap: 8px; border-bottom: 1px solid var(--line-soft); margin-bottom: 14px; }
 .cl[data-layout="narrow"] .cl-toolbar { position: static; }
-.cl-toolbar__row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
-.cl-toolbar__spacer { flex: 1; }
-.cl-toolbar__label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-dim); white-space: nowrap; }
-.cl-title { font-family: var(--hl); font-weight: 600; text-transform: uppercase; color: var(--fg); font-size: clamp(19px, 2vw, 24px); margin: 0; outline: none; line-height: 1.1; }
+/* The head: title, status, and the view controls, which never wrap away from the title. */
+.cl-toolbar__head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "title versions status view"; align-items: center; gap: 8px 12px; min-width: 0; }
+.cl-title { grid-area: title; font-family: var(--sans); font-weight: 600; color: var(--fg); font-size: 20px; margin: 0; outline: none; line-height: 1.2; white-space: nowrap; }
+.cl-toolbar__versions { grid-area: versions; display: flex; align-items: center; min-width: 0; }
+.cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; }
+.cl-toolbar__panels { display: flex; gap: 6px; }
+@container canvas (max-width: 880px) {
+  .cl-toolbar__head { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title title view" "versions status status"; }
+  /* The examples speak for themselves here; their group keeps its name for assistive technology. */
+  .cl-toolbar__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+@container canvas (max-width: 480px) {
+  /* A phone: the title alone, then versions beside the panel buttons, then the status. */
+  .cl-toolbar__head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title title" "versions view" "status status"; gap: 6px 8px; }
+  .cl-draft__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+@container canvas (max-width: 1180px) {
+  /* Narrower canvases keep the view controls' icons; their names stay for assistive technology and as tooltips. */
+  .cl-tool__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .cl-toolbar__view .cl-tool { padding: 0; }
+}
+.cl-toolbar__row { display: flex; align-items: center; gap: 8px 10px; min-width: 0; }
+.cl-toolbar__label { font-size: 12px; font-weight: 600; color: var(--fg-dim); white-space: nowrap; align-self: flex-start; line-height: var(--cl-target); }
 .cl-seg { border: 0; padding: 0; margin: 0; display: inline-flex; gap: 4px; align-items: center; }
-.cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 2px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; white-space: nowrap; }
-.cl-seg__opt input { margin: 0; accent-color: var(--green); }
-.cl-seg__opt--on { border-color: var(--green); color: var(--fg); }
-.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
-.cl-pill--ok { color: var(--green-bright); border-color: var(--green-deep); }
+.cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cl-target); padding: 0 10px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.cl-seg__opt input { margin: 0; width: 14px; height: 14px; accent-color: var(--fg); }
+.cl-seg__opt--on { border-color: var(--fg-dim); background: var(--bg-2); color: var(--fg); }
+.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--fg-body); }
+.cl-pill--ok .cl-pill__icon { color: var(--green-bright); }
 .cl-pill--bad { color: var(--err, #d9826b); border-color: color-mix(in srgb, var(--err, #d9826b) 60%, transparent); }
 .cl-pill--warn { color: var(--warn, #c9a35a); border-color: color-mix(in srgb, var(--warn, #c9a35a) 60%, transparent); }
-.cl-pill--neutral { color: var(--fg-body); }
-.cl-toggle { padding: 4px 10px; }
-.cl-toolbar__row--examples { flex-wrap: nowrap; }
-.cl-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; min-width: 0; padding: 2px; }
-.cl-chip { flex: none; font: inherit; font-size: 13px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg-body); cursor: pointer; white-space: nowrap; }
+.cl-draft { position: relative; }
+.cl-draft summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3em; min-height: var(--cl-target); padding: 0 10px; border: 1px dashed var(--fg-faint); border-radius: 999px; font-size: 13px; color: var(--fg); white-space: nowrap; }
+.cl-draft summary::-webkit-details-marker { display: none; }
+.cl-draft summary::after { content: " ▾"; margin-left: 4px; color: var(--fg-dim); }
+.cl-draft__pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 12; width: min(360px, 86vw); background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-menu); padding: 10px 12px; font-size: 14px; line-height: 1.5; }
+.cl-draft__pop p { margin: 0 0 8px; }
+.cl-draft__pop ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.cl-draft__lead { font-weight: 600; color: var(--fg); }
+.cl-toolbar__row--examples { flex-wrap: nowrap; align-items: flex-start; }
+.cl-chips-wrap { position: relative; min-width: 0; flex: 1; }
+/* Wider screens wrap the examples, so none is ever hidden. */
+.cl-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; padding: 2px; }
+.cl-chip { flex: none; display: inline-flex; align-items: center; gap: 0.3em; font: inherit; font-size: 13px; min-height: var(--cl-target); padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg-body); cursor: pointer; white-space: nowrap; }
 .cl-chip:hover { border-color: var(--fg-faint); }
 .cl-chip--on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-.cl-chip__note { opacity: 0.75; }
-.cl-fit { margin-left: auto; white-space: nowrap; }
+.cl-chip__note { opacity: 0.8; }
 .cl-ok { color: var(--green-bright); }
 .cl-bad { color: var(--err, #d9826b); }
 .cl-warn { color: var(--warn, #c9a35a); }
 p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8px; }
-.cl-note { font-size: 13px; line-height: 1.5; border-left: 3px solid var(--fg-faint); padding: 6px 10px; margin: 0; background: var(--bg-1); }
+.cl-note { font-size: 14px; line-height: 1.5; border-left: 3px solid var(--fg-faint); padding: 6px 10px; margin: 0; background: var(--bg-1); }
 .cl-note--warn { border-left-color: var(--warn, #c9a35a); }
-.cl-refusal code, .cl-table code, .cl-tech code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.cl-refusal code, .cl-table code, .cl-tech code { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
 .cl-stage { max-width: 760px; margin: 0 auto; }
 .cl-stage--fit { max-width: none; }
 .cl-frame { border: 1px solid var(--line); border-radius: 4px; padding: clamp(10px, 2.2vw, 22px); color: #111; }
 .cl-frame--kept { opacity: 0.55; margin-top: 8px; }
-.cl-refusal { max-width: 760px; margin: 0 auto 12px; border: 1px solid var(--line); border-left: 4px solid var(--fg-faint); border-radius: 3px; padding: 12px 14px; background: var(--bg-1); display: grid; gap: 8px; }
+.cl-refusal { max-width: 760px; margin: 0 auto 12px; border: 1px solid var(--line); border-left: 4px solid var(--fg-faint); border-radius: 4px; padding: 12px 14px; background: var(--bg-1); display: grid; gap: 8px; }
 .cl-refusal p { margin: 0; font-size: 14px; line-height: 1.55; }
 .cl-refusal--bad { border-left-color: var(--err, #d9826b); }
 .cl-refusal--warn { border-left-color: var(--warn, #c9a35a); }
 .cl-refusal--neutral { border-left-color: var(--fg-dim); }
 .cl-refusal__title { color: var(--fg); font-weight: 600; font-size: 15px !important; }
-.cl-refusal .st-btn { justify-self: start; }
+.cl-refusal__lead { color: var(--fg); }
+.cl-refusal .cl-tool { justify-self: start; }
 .cl-kept { max-width: 760px; margin: 8px auto 0; }
-.cl-kept summary { cursor: pointer; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-dim); padding: 6px 0; }
-.cl-action { position: sticky; bottom: 12px; z-index: 5; display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; max-width: 760px; margin: 12px auto 0; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--green); border-radius: 3px; background: var(--bg-1); box-shadow: var(--shadow-menu); font-size: 13.5px; line-height: 1.5; }
+.cl-kept summary { cursor: pointer; font-size: 13px; color: var(--fg-dim); padding: 6px 0; min-height: var(--cl-target); display: flex; align-items: center; }
+.cl-action { position: sticky; bottom: 12px; z-index: 5; display: flex; gap: 12px; align-items: center; justify-content: space-between; max-width: 760px; margin: 12px auto 0; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--fg-dim); border-radius: 4px; background: var(--bg-1); box-shadow: var(--shadow-menu); font-size: 14px; line-height: 1.5; }
 .cl-action p { margin: 0; min-width: 0; }
 .cl-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: 6px 0 4px; }
-.cl-tab { font: inherit; font-size: 13px; padding: 7px 12px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--fg-dim); cursor: pointer; margin-bottom: -1px; }
-.cl-tab--on { color: var(--fg); border-bottom-color: var(--green); }
+.cl-tab { font: inherit; font-size: 14px; min-height: var(--cl-target); padding: 0 12px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--fg-dim); cursor: pointer; margin-bottom: -1px; }
+.cl-tab--on { color: var(--fg); border-bottom-color: var(--fg); }
 .cl-tab__flag { color: var(--err, #d9826b); }
 .cl-section { padding-top: 12px; margin-top: 4px; }
 .cl-section + .cl-section { border-top: 1px solid var(--line-soft); margin-top: 12px; }
 .cl-text { font-size: 14px; line-height: 1.5; margin: 0 0 8px; }
-.cl-plain { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.55; display: grid; gap: 3px; }
-.cl-versions { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.5; }
+.cl-plain { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.55; display: grid; gap: 3px; }
+.cl-versions { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; font-size: 14px; line-height: 1.5; }
 .cl-versions__on { color: var(--fg); }
-.cl-crumbs { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-dim); margin: 0; }
-.cl-tech { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; }
-.cl-tech summary { cursor: pointer; color: var(--fg-dim); font-size: 13px; }
+.cl-crumbs { font-size: 14px; color: var(--fg-dim); margin: 0; }
+.cl-tech { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; }
+.cl-tech summary { cursor: pointer; color: var(--fg-dim); font-size: 14px; min-height: var(--cl-target); display: flex; align-items: center; }
 .cl-tech--inline { margin-top: 2px; border-top: 0; padding-top: 0; }
-.cl-tech--inline p { font-size: 12.5px !important; color: var(--fg-dim); margin-top: 6px !important; }
-.cl-facts { display: grid; gap: 6px; margin: 8px 0; font-size: 13px; }
+.cl-tech--inline p { font-size: 14px !important; color: var(--fg-dim); margin-top: 6px !important; }
+.cl-facts { display: grid; gap: 6px; margin: 8px 0; font-size: 14px; }
 .cl-facts div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 8px; }
 .cl-facts dt { color: var(--fg-dim); }
 .cl-facts dd { margin: 0; overflow-wrap: anywhere; }
-.cl-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0; }
+.cl-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
 .cl-table th, .cl-table td { text-align: left; padding: 5px 6px 5px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
-.cl-table th { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-dim); font-weight: 500; }
-.cl-empty { border: 1px dashed var(--line); border-radius: 3px; padding: 20px; margin-top: 12px; }
+.cl-table th { font-size: 12px; font-weight: 600; color: var(--fg-dim); }
+.cl-empty { border: 1px dashed var(--line); border-radius: 4px; padding: 20px; margin-top: 12px; }
 .cl-empty__title { color: var(--fg); font-weight: 600; margin: 0 0 4px; }
 .cl-loading { color: var(--fg-dim); padding: 24px 0; }
-.cl-issues { margin-top: 12px; font-size: 12px; color: var(--fg-dim); }
+.cl-issues { margin-top: 12px; font-size: 13px; color: var(--fg-dim); }
 .cl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.cl-break { display: none; }
 @media (max-width: 899px) {
   .cl-head__next { display: none; }
-  .cl-toolbar { padding: 10px 0 8px; gap: 6px; margin-bottom: 10px; }
-  .cl-toolbar__row:first-child > * { order: 5; }
-  .cl-toolbar__row:first-child > .cl-title { order: 0; }
-  .cl-toolbar__row:first-child > .cl-toolbar__spacer { order: 1; }
-  .cl-toolbar__row:first-child > .cl-toggle { order: 2; }
-  .cl-break { display: block; order: 3 !important; flex-basis: 100%; height: 0; }
-  .cl-toolbar__row:first-child { gap: 6px 8px; }
-  .cl-seg__opt { padding: 3px 6px; font-size: 10.5px; }
-  .cl-toggle { padding: 3px 8px; font-size: 11px; }
-  .cl-pill { font-size: 11.5px; padding: 2px 7px; }
+  .cl-toolbar { padding: 8px 0 8px; gap: 6px; margin-bottom: 10px; }
+  .cl-title { font-size: 18px; }
   .cl-toolbar__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .cl-guide-strip { margin: 4px 0 0; line-height: 18px; }
-  .cl-guide-strip + .cl-toolbar { padding-top: 4px; }
+  /* On a phone the examples scroll sideways; faded edges and a chevron show there are more, and a focused
+     chip is scrolled fully into view, clear of the fades. */
+  .cl-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; scroll-padding-inline: 32px; overscroll-behavior-x: contain; }
+  .cl-chips::-webkit-scrollbar { display: none; }
+  .cl-chips-wrap[data-more-end]::after, .cl-chips-wrap[data-more-start]::before { position: absolute; top: 0; bottom: 0; width: 36px; pointer-events: none; display: flex; align-items: center; font-size: 18px; color: var(--fg); }
+  .cl-chips-wrap[data-more-end]::after { content: "›"; right: 0; justify-content: flex-end; padding-right: 2px; background: linear-gradient(to right, transparent, var(--bg) 70%); }
+  .cl-chips-wrap[data-more-start]::before { content: "‹"; left: 0; z-index: 1; padding-left: 2px; background: linear-gradient(to left, transparent, var(--bg) 70%); }
 }
 @media (prefers-reduced-motion: reduce) { .cl * { transition: none !important; } }
 `;

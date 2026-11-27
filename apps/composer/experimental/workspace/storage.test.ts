@@ -120,6 +120,16 @@ describe("schema versioning and recovery", () => {
     expect(store.touched.every((k) => k.startsWith(NAMESPACE))).toBe(true);
   });
 
+  it("the view record holds whether the Library was on screen, and nothing else (D0.1)", () => {
+    const store = memoryStore();
+    expect(readRecord("view", store)).toEqual({ status: "missing", value: { library: false } });
+    expect(writeRecord("view", { library: true }, store)).toEqual({ ok: true });
+    expect(readRecord("view", store)).toEqual({ status: "ok", value: { library: true } });
+    expect(writeRecord("view", { library: true, project: "p1" } as never, store)).toMatchObject({ ok: false });
+    expect(writeRecord("view", { library: "yes" } as never, store)).toMatchObject({ ok: false });
+    expect(store.touched.every((k) => k.startsWith(NAMESPACE))).toBe(true);
+  });
+
   it("missing, unavailable and malformed records give the defaults, the same way every time", () => {
     expect(readRecord("library", memoryStore())).toEqual({ status: "missing", value: DEFAULT_PREFS });
     const blocked = memoryStore();

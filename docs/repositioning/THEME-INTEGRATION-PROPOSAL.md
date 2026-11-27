@@ -1,12 +1,13 @@
 # Workspace themes through the shared theme compiler: integration proposal
 
-**Status:** a plan for a later, separately authorized increment, 2026-11-26. **Nothing here is implemented or authorized.** It makes no change to af-site, `dspack-gen` or any other repository, adds no dependency, and copies no af-site code. It builds on the read-only discovery in [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md#workspace-theming-and-the-aesthetic-function-theme-generator).
+**Status:** a plan for a later, separately authorized increment, 2026-11-26, updated after the independent D0 audit, 2026-11-27. **Nothing here is implemented or authorized.** It makes no change to af-site, `dspack-gen` or any other repository, adds no dependency, and copies no af-site code. It builds on the read-only discovery in [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md#workspace-theming-and-the-aesthetic-function-theme-generator).
 
 ## The owner's decisions this plan follows
 
 - **The af-site compiler graduates into `dspack-gen`.** Its proposal compiler (`scripts/theme-direction/`) is to become a shared compiler there. That move needs explicit licensing, ownership and cross-repository authorization first.
 - **No second theme generator.** Composer does not get one of its own, and no private af-site code is copied into this public repository.
 - **AF dark for D0 only.** Keeping the workspace AF dark during D0 is a temporary scope decision. Dark-only is not approved as a permanent restriction.
+- **A neutral, customizable working environment is a product requirement** before broad external designer evaluation (decision 28). D0.1's quieter type in the experimental Library is a first step inside the current appearances, not this requirement.
 - **Four kinds of workspace theme in the future:**
   - **original AF**;
   - **neutral light**;
@@ -31,7 +32,8 @@
 - **An Appearance preference already exists.** It offers three governed dark themes: Aesthetic Function (the default), Ember and Slate (`apps/composer/app/appearance.ts`). It is stored as `composer.appearance.v1` and applied as `data-theme` on the root element.
 - **Their values are copied by hand** from af-site into `globals.css` and `af-ui.css`.
 - **All three are dark on purpose.** `globals.css` never sets `color-scheme` globally, because Astryx resolves `light-dark()` from the inherited scheme, and a light workspace would re-tint the canvas.
-- **The D0 Library uses the same chrome variables.** It adds no theme of its own.
+- **The Library follows those appearances.** Settings' Ember and Slate restyle the Library's chrome as well as the rest of the app; the canvas keeps its design system. The independent audit spot-checked this (canvas background, font family, button fill), which is not the full isolation test planned below.
+- **Colour is the only thing an appearance changes today.** Type size, face, weight, case, tracking, spacing and borders are written into component styles. D0.1 moved the experimental Library to sentence case in the sans face with a 12 px floor, but as styles, not tokens, and only there.
 
 ## The plan, in order
 
@@ -59,6 +61,18 @@ Each step needs its own authorization. The first two are outside this repository
 - **Custom** is a proposal chosen with enum pickers: surface, accent, contrast and type voice. These are the compiler's own enums, so no raw values are ever entered.
 
 **Semantic colours.** Composer's chrome needs colours the AF compiler does not model: error, warning, success, info, link and the violet accent. They are added to the compiler as derived outputs with constraints, so that each meets contrast on every surface it sits on. This is a compiler version bump, agreed with its owner, not a Composer-side patch.
+
+**More than colour.** A neutral or custom workspace has to change what makes the current one read as a developer tool, which is mostly not its colours. Each of these becomes a token the compiler emits or Composer derives, applied to the chrome only:
+
+| Aspect | Today | Needed |
+|---|---|---|
+| Typography scale | Fixed sizes in component styles | A scale with a floor (12 px labels, 14 px reading text) |
+| Typeface and weight | Oswald headings, Plex Sans and Mono | The face and weight per role (title, label, body, data) |
+| Capitalization and tracking | Uppercase tracked mono labels in most of the app | Case and tracking per role, so a neutral theme can be sentence case |
+| Spacing and density | Fixed paddings | A density step (comfortable, compact) |
+| Elevation and borders | Fixed hairlines and shadows | Border, radius and shadow tokens |
+| Semantic status colours | `--err`, `--warn`, `--ok`, `--info` hand-set, not modelled by AF | Constrained derived colours, contrast-checked on each surface (below) |
+| Canvas surround | Shares the workspace background | Its own token, independent of the workspace theme, so the canvas can sit on a neutral surround under any theme |
 
 **Typography.**
 - The compiler emits family names. Composer loads faces through `next/font`, whose CSS variables are generated names. A small fixed mapping turns the compiler's type voice into one of the faces Composer bundles.
@@ -93,7 +107,7 @@ Each step needs its own authorization. The first two are outside this repository
 - No change to af-site, `dspack-gen` or any sibling repository until each is authorized.
 - No hosted inference, including the phrase-to-theme front end.
 - No theme inside the canvas. Design-system theming belongs to the design system's contract and to governance, not to workspace appearance.
-- No change to D0, which keeps the AF dark workspace.
+- No change to D0 or D0.1, which keep Composer's existing dark appearances.
 
 ## Decisions needed before this increment
 
@@ -101,3 +115,4 @@ Each step needs its own authorization. The first two are outside this repository
 2. **Whether the existing Ember and Slate themes stay** as named proposals, or give way to neutral dark, neutral light and custom.
 3. **The semantic colour set** Composer needs from the compiler, agreed with its owner.
 4. **Whether a project export carries its appearance proposal.**
+5. **Which comes first** of a neutral workspace and authoring, given decision 28. The audit suggests that if designers would rather spend a day in the neutral prototype than in D0, the neutral workspace should come before or with authoring.

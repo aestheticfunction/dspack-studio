@@ -41,7 +41,8 @@ async function openChecks(page: Page) {
   if ((await page.getByTestId("composition-library").getAttribute("data-inspector")) !== "open") await page.getByTestId("toggle-inspector").click();
   await page.getByTestId("tab-checks").click();
 }
-const compositionTop = (page: Page) => page.evaluate(() => Math.round(document.querySelector('[data-project-canvas="composer"]:not(.cl-frame--kept) [data-a2ui-surface]')!.getBoundingClientRect().top));
+/** Where the composition starts: the top of its white canvas frame (the reference used before and after D0.1). */
+const compositionTop = (page: Page) => page.evaluate(() => Math.round(document.querySelector('[data-project-canvas="composer"]:not(.cl-frame--kept)')!.getBoundingClientRect().top));
 
 test.describe("the Composition Library", () => {
   test("opens from the primary nav and shows a governed instance on Composer's own canvas", async ({ page }) => {
@@ -84,15 +85,18 @@ test.describe("the Composition Library", () => {
     await expect(refusal).toHaveAttribute("data-expected", "true");
     await expect(pill(page)).toHaveAttribute("data-state", "expected");
     await expect(refusal.locator(".cl-refusal__title")).toHaveText("Not shown, as expected");
-    await expect(refusal).toContainText("A choice of one is not a comparison");
+    // D0.1: the plain sentence leads; the contract's rationale and the rule id are in Technical details, closed.
+    await expect(refusal.locator(".cl-refusal__lead")).toHaveText("A comparison needs at least two options to choose from.");
     await expect(refusal).toContainText("Choose another example to see the composition.");
-    // The rule id and the raw message are in Technical details, closed.
     const tech = refusal.locator("details.cl-tech");
     await expect(tech).not.toHaveAttribute("open", "");
+    expect(await refusal.innerText()).not.toContain("selectable cards");
+    await tech.locator("summary").click();
     await expect(tech).toContainText("rule.review-offers-alternatives");
+    await expect(page.getByTestId("refusal-rationale")).toContainText("A choice of one is not a comparison: a review's option list carries at least two selectable cards");
     const kept = page.getByTestId("kept-instance");
     await expect(kept).not.toHaveAttribute("open", "");
-    await expect(kept.locator("summary")).toHaveText("Last valid instance · not interactive");
+    await expect(kept.locator("summary")).toHaveText("Previous screen · not interactive");
     await expect(page.locator(".cl-frame--kept")).toHaveAttribute("inert", "");
     await example(page, "none");
     await expect(pill(page)).toHaveAttribute("data-state", "pass");
@@ -158,7 +162,10 @@ test.describe("D0: designer-first", () => {
     await openLibrary(page);
     const guide = page.getByTestId("first-run");
     await expect(guide).toBeVisible();
-    await expect(guide).toContainText("Design screens an AI agent can fill with real data");
+    await expect(guide).toContainText("Composer lets you design screens an AI agent can fill with real data");
+    // D0.1: the panel is a library first; the guide follows the list.
+    const listTop = (await page.getByTestId("library-list").boundingBox())!.y;
+    expect((await guide.boundingBox())!.y).toBeGreaterThan(listTop);
     await expect(guide).toContainText("not available yet");
     await page.getByTestId("guide-rules").click();
     await expect(page.getByTestId("scenario-one")).toHaveAttribute("aria-pressed", "true");
@@ -214,10 +221,17 @@ test.describe("D0: designer-first", () => {
     await expect(page.getByTestId("tab-design")).toHaveAttribute("aria-selected", "true");
   });
 
-  test("layout targets at 1280 × 800: the composition starts within 200 px, normal and first run, in a fixed frame", async ({ page }) => {
+  test("layout targets at 1280 × 800: the composition starts within 200 px, approved and draft, normal and first run, in a fixed frame", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await openLibrary(page);
-    expect(await compositionTop(page)).toBeLessThanOrEqual(200);
+    const approved = await compositionTop(page);
+    expect(approved).toBeLessThanOrEqual(200);
+    await page.getByRole("radio", { name: /v2 Draft/i }).check();
+    await expect(page.getByTestId("draft-note")).toBeVisible();
+    const draft = await compositionTop(page);
+    expect(draft).toBeLessThanOrEqual(200);
+    expect(Math.abs(draft - approved)).toBeLessThanOrEqual(8);
+    await page.getByRole("radio", { name: /v1 Approved/i }).check();
     await page.getByTestId("guide-dismiss").click();
     expect(await compositionTop(page)).toBeLessThanOrEqual(200);
     // A fixed frame: the page itself does not scroll; the canvas and the panels scroll on their own.
@@ -235,16 +249,21 @@ test.describe("D0: designer-first", () => {
     await expect(page.getByTestId("scenario-chips")).toBeInViewport();
   });
 
-  test("layout targets at 390 × 844: the composition starts within 260 px, normal and first run", async ({ page }) => {
+  test("layout at 390 × 844: the composition starts near 300 px (the provisional phone target), approved, draft and first run", async ({ page }) => {
+    // D0.1 traded about 60 px for 12 px text and 44 px targets (owner decision): the phone target moved, not the type.
     await page.setViewportSize({ width: 390, height: 844 });
     await openLibrary(page, { guide: false });
-    expect(await compositionTop(page)).toBeLessThanOrEqual(260);
+    expect(await compositionTop(page)).toBeLessThanOrEqual(300);
+    await page.getByRole("radio", { name: /v2 Draft/i }).check();
+    await expect(page.getByTestId("draft-note")).toBeVisible();
+    expect(await compositionTop(page)).toBeLessThanOrEqual(310);
+    await page.getByRole("radio", { name: /v1 Approved/i }).check();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
     await page.evaluate(() => localStorage.removeItem("composer.experimental.workspace.onboarding"));
     await page.reload();
     await page.getByTestId("nav-library").click();
     await expect(page.getByTestId("first-run-strip")).toBeVisible();
-    expect(await compositionTop(page)).toBeLessThanOrEqual(260);
+    expect(await compositionTop(page)).toBeLessThanOrEqual(310);
   });
 
   test("fit width widens the centred composition", async ({ page }) => {
@@ -269,6 +288,228 @@ test.describe("D0: designer-first", () => {
   });
 });
 
+/** The toolbar's layout in the current state: chips hidden past an edge or under a control, and whether the panel toggles left the title's line. */
+const toolbarState = (page: Page) =>
+  page.evaluate(() => {
+    const chips = document.querySelector('[data-testid="scenario-chips"]')!;
+    const box = chips.getBoundingClientRect();
+    const fit = document.querySelector('[data-testid="fit-width"]')?.getBoundingClientRect();
+    const hidden = [...chips.querySelectorAll("button")].filter((c) => {
+      const r = c.getBoundingClientRect();
+      const under = fit && r.right > fit.left && r.left < fit.right && r.bottom > fit.top && r.top < fit.bottom;
+      return r.right > box.right + 1 || r.left < box.left - 1 || under;
+    }).length;
+    const mid = (r: DOMRect) => r.top + r.height / 2;
+    const title = document.querySelector("#cl-canvas-title")!.getBoundingClientRect();
+    const toggles = [...document.querySelectorAll('[data-testid^="toggle-"]')].map((t) => t.getBoundingClientRect());
+    return { hidden, togglesOffTitle: toggles.some((t) => Math.abs(mid(t) - mid(title)) > 12), share: document.querySelector(".cl-canvas")!.getBoundingClientRect().width / innerWidth };
+  });
+
+async function setPanels(page: Page, want: "none" | "library" | "inspector" | "both") {
+  for (const panel of ["library", "inspector"] as const) {
+    const t = page.getByTestId(`toggle-${panel}`);
+    const should = want === "both" || want === panel;
+    if (((await t.getAttribute("aria-expanded")) === "true") !== should) await t.click();
+  }
+  if (want === "library" || want === "inspector") await expect(page.getByTestId(`toggle-${want}`)).toHaveAttribute("aria-expanded", "true");
+}
+
+/** WCAG relative-luminance contrast between two computed rgb() colours. */
+const contrast = (fg: string, bg: string) => {
+  const lum = (c: string) => {
+    const [r, g, b] = c.match(/\d+(\.\d+)?/g)!.slice(0, 3).map((v) => {
+      const x = Number(v) / 255;
+      return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
+  return (a! + 0.05) / (b! + 0.05);
+};
+
+test.describe("D0.1: the independent audit's corrections", () => {
+  test("toolbar state matrix: no example is hidden and the panel buttons stay on the title's line, approved and draft, every panel configuration", async ({ page }) => {
+    await openLibrary(page, { guide: false });
+    const matrix: Array<[number, number, Array<"none" | "library" | "inspector" | "both">]> = [
+      [1440, 900, ["none", "library", "inspector", "both"]],
+      [1280, 800, ["none", "library", "inspector"]],
+      [1024, 768, ["none", "library", "inspector"]],
+    ];
+    for (const [w, h, configs] of matrix) {
+      await page.setViewportSize({ width: w, height: h });
+      for (const version of ["v1 Approved", "v2 Draft"]) {
+        await page.getByRole("radio", { name: new RegExp(version, "i") }).check();
+        for (const config of configs) {
+          await setPanels(page, config);
+          const state = await toolbarState(page);
+          const where = `${w} ${version} ${config}`;
+          expect(state.hidden, where).toBe(0);
+          expect(state.togglesOffTitle, where).toBe(false);
+          if (w === 1280 && config !== "none") expect(state.share, where).toBeGreaterThanOrEqual(0.6);
+          if (w === 1280) expect(await compositionTop(page), where).toBeLessThanOrEqual(200);
+        }
+      }
+    }
+  });
+
+  test("on a phone the examples scroll sideways, say so at their edges, and a focused example is fully visible", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openLibrary(page, { guide: false });
+    const wrap = page.locator(".cl-chips-wrap");
+    await expect(wrap).toHaveAttribute("data-more-end", "true");
+    await expect(wrap).not.toHaveAttribute("data-more-start", /.*/);
+    const fullyVisible = (id: string) =>
+      page.evaluate((testId) => {
+        const chip = document.querySelector(`[data-testid="${testId}"]`)!.getBoundingClientRect();
+        const row = document.querySelector('[data-testid="scenario-chips"]')!.getBoundingClientRect();
+        return chip.left >= row.left - 0.5 && chip.right <= row.right + 0.5;
+      }, id);
+    expect(await fullyVisible("scenario-confirm")).toBe(false);
+    await page.getByTestId("scenario-none").focus();
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("scenario-confirm")).toBeFocused();
+    await expect.poll(() => fullyVisible("scenario-confirm")).toBe(true);
+    await expect(wrap).toHaveAttribute("data-more-start", "true");
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("scenario-confirm")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  for (const [w, h] of [
+    [1280, 800],
+    [390, 844],
+  ] as const) {
+    test(`type floor at ${w} px: no workspace text under 12 px, reading text at least 14 px, no solid accent control`, async ({ page }) => {
+      await page.setViewportSize({ width: w, height: h });
+      await openLibrary(page);
+      if (w === 390) await page.getByTestId("first-run-strip").getByRole("button").click();
+      const scan = () =>
+        page.evaluate(() => {
+          const small: string[] = [];
+          const reading: string[] = [];
+          const walker = document.createTreeWalker(document.querySelector(".cl")!, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            const el = n.parentElement!;
+            if (!n.textContent!.trim() || el.closest("[data-project-canvas], .cl-sr, style, [hidden], .cl-tool__text, .cl-draft__status") || !el.getClientRects().length) continue;
+            const size = parseFloat(getComputedStyle(el).fontSize);
+            if (size < 12) small.push(`${size}px ${n.textContent!.trim().slice(0, 30)}`);
+            // Reading text in the guide and the inspector: paragraphs, list items, table cells and definitions.
+            if (el.closest(".cl-guide, #cl-inspector") && el.closest("p, li, td, dd") && !el.closest("code, .cl-label, th") && size < 14) reading.push(`${size}px ${n.textContent!.trim().slice(0, 30)}`);
+          }
+          for (const el of document.querySelectorAll(".cl-head *")) if (el.getClientRects().length && parseFloat(getComputedStyle(el).fontSize) < 12) small.push(`header ${el.textContent}`);
+          const accent = getComputedStyle(document.documentElement).getPropertyValue("--green").trim().replace("#", "");
+          const rgb = `rgb(${parseInt(accent.slice(0, 2), 16)}, ${parseInt(accent.slice(2, 4), 16)}, ${parseInt(accent.slice(4, 6), 16)})`;
+          const solid = [...document.querySelectorAll(".cl button, .cl label, .cl summary")].filter((b) => !b.closest("[data-project-canvas]") && b.getClientRects().length && getComputedStyle(b).backgroundColor === rgb).map((b) => b.textContent);
+          return { small, reading, solid };
+        });
+      const first = await scan();
+      expect(first.small).toEqual([]);
+      expect(first.reading).toEqual([]);
+      expect(first.solid).toEqual([]);
+      // With the inspector open as well.
+      if (w === 390) await page.keyboard.press("Escape");
+      await page.getByTestId("toggle-inspector").click();
+      await page.getByTestId("tab-checks").click();
+      const second = await scan();
+      expect(second.small).toEqual([]);
+      expect(second.reading).toEqual([]);
+      expect(second.solid).toEqual([]);
+    });
+  }
+
+  test("“Coming next” meets 4.5:1, and phone controls are 44 px targets", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openLibrary(page, { guide: false });
+    const colours = await page.locator(".cl-head__next summary").evaluate((el) => {
+      let bg = "rgba(0, 0, 0, 0)";
+      for (let n: Element | null = el; n && /rgba\(0, 0, 0, 0\)|transparent/.test(bg); n = n.parentElement) bg = getComputedStyle(n).backgroundColor;
+      return { fg: getComputedStyle(el).color, bg };
+    });
+    expect(contrast(colours.fg, colours.bg)).toBeGreaterThanOrEqual(4.5);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => localStorage.removeItem("composer.experimental.workspace.onboarding"));
+    await page.reload();
+    await expect(pill(page)).not.toHaveAttribute("data-state", "loading");
+    const heights = await page.evaluate(() =>
+      Object.fromEntries(
+        (
+          [
+            ["toggles", '[data-testid^="toggle-"]'],
+            ["versions", ".cl-seg__opt"],
+            ["examples", ".cl-chip"],
+            ["guide link", '[data-testid="first-run-strip"] button'],
+          ] as const
+        ).map(([k, sel]) => [k, Math.min(...[...document.querySelectorAll(sel)].map((e) => e.getBoundingClientRect().height))]),
+      ),
+    );
+    for (const [k, v] of Object.entries(heights)) expect(v, k).toBeGreaterThanOrEqual(44);
+  });
+
+  test("the draft says what changed from v1 without adding a row; the pill reports checks, not approval", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openLibrary(page, { guide: false });
+    await page.getByRole("radio", { name: /v2 Draft/i }).check();
+    const note = page.getByTestId("draft-note");
+    await expect(note.locator("summary")).toHaveText(/Draft, not approved · What changed/);
+    await expect(pill(page)).toHaveText(/^\W*Passes the design rules$/);
+    await note.locator("summary").click();
+    const changes = page.getByTestId("draft-changes");
+    await expect(changes).toBeVisible();
+    await expect(changes).toContainText("“Prices are per night, before taxes.” instead of “Compare and choose one.”");
+    await expect(changes).toContainText("The “New search” button reads “Change search”.");
+    await expect(note).toContainText("v1 stays approved and unchanged");
+    await note.locator("summary").press("Enter");
+    await expect(changes).toBeHidden();
+  });
+
+  test("first run at 1280: the Compositions panel shows the list first, within the window, with the guide after it", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openLibrary(page);
+    await expect(page.getByTestId("library-item-hotel-search")).toBeInViewport();
+    await expect(page.getByTestId("first-run")).toBeVisible();
+    await page.getByTestId("guide-rules").click();
+    await expect(page.getByTestId("refusal")).toHaveAttribute("data-expected", "true");
+    // Putting the guide away does not require finishing it.
+    await page.getByTestId("guide-dismiss").click();
+    await expect(page.getByTestId("guide-show")).toBeVisible();
+  });
+
+  test("a reload stays in the Library, and leaving it is remembered too", async ({ page }) => {
+    await openLibrary(page, { guide: false });
+    await page.reload();
+    await expect(page.getByTestId("composition-library")).toBeVisible();
+    await expect(page.getByTestId("nav-library")).toHaveAttribute("aria-current", "page");
+    await page.getByTestId("nav-projects").click();
+    await page.reload();
+    await expect(page.getByTestId("nav-projects")).toBeVisible();
+    await expect(page.getByTestId("composition-library")).toHaveCount(0);
+    const keys = Object.keys(await storage(page)).filter((k) => k.includes("view"));
+    expect(keys).toEqual([`${NS}view`]);
+  });
+
+  test("“Not now” replaces the earlier note: it says it sends nothing, and no Reserve note stays", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openLibrary(page, { guide: false });
+    await example(page, "confirm");
+    await canvas(page).getByRole("button", { name: /^Reserve / }).click();
+    const note = page.getByTestId("action-note");
+    await expect(note).toContainText("would send hotel id");
+    await expect(note).toContainText("runs only once, and only from this confirmation");
+    await canvas(page).getByRole("button", { name: "Not now" }).click();
+    await expect(note).toContainText("“Not now” sends nothing.");
+    await expect(note).not.toContainText("Reserve");
+    await expect(note).not.toContainText("would send");
+  });
+
+  test("the Projects page offers one contextual way into the Library", async ({ page }) => {
+    await page.route("**/api/**", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "unavailable" }) }));
+    await page.goto("/");
+    const entry = page.getByTestId("projects-library-entry");
+    await expect(entry).toContainText("Composition Library");
+    await entry.getByRole("button", { name: "Open the Library" }).click();
+    await expect(pill(page)).not.toHaveAttribute("data-state", "loading", { timeout: 30_000 });
+  });
+});
+
 test.describe("M1 workspace review corrections (R1 to R4)", () => {
   test("R1: passing checks never reads as approval; a draft stays a draft", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 860 });
@@ -276,7 +517,9 @@ test.describe("M1 workspace review corrections (R1 to R4)", () => {
     await openChecks(page);
     await page.getByRole("radio", { name: /v2 Draft/i }).check();
     await expect(page.getByTestId("draft-note")).toContainText("not approved for use by agents");
-    await expect(pill(page)).toContainText("Passes the design rules · Draft, not approved");
+    // The pill reports checks only; the draft's status is said beside it, separately (D0.1).
+    await expect(pill(page)).toHaveText(/^\W*Passes the design rules$/);
+    await expect(page.getByTestId("draft-note").locator("summary")).toContainText("Draft, not approved");
     await expect(page.getByTestId("check-status")).toHaveAttribute("data-check", "pass");
     await expect(page.getByTestId("draft-check-note")).toContainText("passing checks does not approve it");
     await expect(page.getByTestId("device-record")).not.toContainText(/approv/i);

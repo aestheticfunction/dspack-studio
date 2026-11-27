@@ -80,3 +80,14 @@ The owner accepted the corrected Library and decided the following. #128 (list s
 | 23 | AF brand identity, workspace appearance and canvas design-system styling | Kept separate | Workspace themes never modify composition definitions, governance outcomes, design-system tokens or computed canvas styling |
 | 24 | Workspace themes | AF dark during D0, as a temporary scope decision | Dark-only is not a permanent restriction. A later increment supports original AF, neutral light, neutral dark and custom themes through the shared compiler |
 | 25 | Getting-started documentation | A future requirement: concise getting-started docs with working examples | Not an extensive documentation suite, and not part of D0 |
+
+## The independent D0 audit and D0.1 (2026-11-27)
+
+The owner accepted the independent designer-first audit of D0 as the authoritative review for this increment, with targeted corrections before authoring (D0.1, [m1/d0/d01/README.md](m1/d0/d01/README.md)). The architecture is not reopened, and no further comprehensive review is commissioned.
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 26 | Layout criteria | 200 px stays the preferred desktop target at 1280 × 800, for approved **and** draft versions. The phone target becomes a provisional **about 300 px** (was 260). At least 60% canvas at 1280 with one panel | Readable controls come before any pixel target; deviations are reported, never bought with smaller type or targets. One consistent measurement reference before and after |
+| 27 | Readability floors in the experimental workspace | 12 px labels and toolbar text, 14 px guide and inspector reading text, 44 px primary phone targets, contrast at least 4.5:1, sentence case preferred, a quieter workspace that recedes behind the design | The solid accent is for meaningful primary actions only. Draft status is said separately from passing checks. The legacy production application is not redesigned |
+| 28 | A neutral, customizable working environment | A product requirement before broad external designer evaluation | It covers type scale, face and weight, case and tracking, spacing and density, elevation and borders, semantic status colours, and an independent canvas surround, through the shared compiler plan ([THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md)), subject to its own authorization |
+| 29 | The Compositions panel and first run | The list comes before the guide, which stays compact and expandable and can be hidden at any time | Usability task 1 names Hotel results and still starts on Projects. A minimal contextual Library entry on the experimental Projects page is allowed; no landing-page redesign |

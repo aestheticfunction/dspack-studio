@@ -21,7 +21,7 @@
  * Writes that fail (quota, blocked) report it and change nothing stored.
  *
  * What may be stored is closed by the shapes below: the Library's selection and panel, whether the first-run
- * guide was put away, approval records
+ * guide was put away, whether the Library was the view on screen, approval records
  * (pins and scenario outcomes, which are evidence, never authorizations: see versions.ts), and drafts. None
  * of them has room for a typed input value, an action event, a session or surface id, a commitment or
  * renderer state (Part B decisions; checked by storage.test.ts).
@@ -34,11 +34,12 @@ export const KEYS = {
   approvals: `${NAMESPACE}approvals`,
   drafts: `${NAMESPACE}drafts`,
   onboarding: `${NAMESPACE}onboarding`,
+  view: `${NAMESPACE}view`,
 } as const;
 export type RecordKind = keyof typeof KEYS;
 
 /** The schema version this build reads and writes, per record. */
-export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1 };
+export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1 };
 
 export interface LibraryPrefs {
   composition: string | null;
@@ -64,11 +65,17 @@ export interface Onboarding {
   dismissed: boolean;
 }
 
+/** Whether the Library was the view on screen, so a reload returns to it (D0.1). */
+export interface ViewRecord {
+  library: boolean;
+}
+
 interface Shapes {
   library: LibraryPrefs;
   approvals: StoredApprovals;
   drafts: StoredDrafts;
   onboarding: Onboarding;
+  view: ViewRecord;
 }
 
 const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
@@ -76,6 +83,7 @@ const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
   approvals: { records: [] },
   drafts: { drafts: [] },
   onboarding: { dismissed: false },
+  view: { library: false },
 };
 
 export type ReadResult<T> =
@@ -144,6 +152,10 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
       records.push(structuredClone(r) as unknown as ApprovalRecord);
     }
     return { ok: true, value: { records } };
+  },
+  view(data) {
+    if (!isObject(data) || !onlyKeys(data, ["library"]) || typeof data.library !== "boolean") return { ok: false, reason: "view: not the view shape" };
+    return { ok: true, value: { library: data.library } };
   },
   onboarding(data) {
     if (!isObject(data) || !onlyKeys(data, ["dismissed"]) || typeof data.dismissed !== "boolean") return { ok: false, reason: "onboarding: not the onboarding shape" };

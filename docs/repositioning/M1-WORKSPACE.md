@@ -1,6 +1,6 @@
 # M1 workspace increment: storage, versions and the Composition Library
 
-**Status:** Slices A and B merged (#126). Slice C, the Library, is merged (#127), as corrected after the independent review ([M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md)). The designer-first refinement **D0** is implemented for the owner's evaluation and not merged: [m1/d0/README.md](m1/d0/README.md). Nothing here is in the default build.
+**Status:** Slices A and B merged (#126). Slice C, the Library, is merged (#127), as corrected after the independent review ([M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md)). The designer-first refinement **D0**, corrected after the independent audit as **D0.1**, is implemented for the owner's evaluation and not merged: [m1/d0/README.md](m1/d0/README.md) and [m1/d0/d01/README.md](m1/d0/d01/README.md). Nothing here is in the default build.
 
 | Slice | What | Where |
 |---|---|---|
@@ -28,9 +28,9 @@ Open `http://localhost:3315/` and choose **Library** in the top navigation. The 
 
 Things to try (as refined by D0):
 
-1. **The first-run guide.** It opens in the Compositions panel. Each of its four tasks changes the canvas. **Hide this guide** is remembered, and **Show the guide** brings it back.
-2. **Hotel results.** Switch between **v1 Approved** and **v2 Draft**: the draft's wording appears, and v1 is unchanged. The Design tab says neither is published for agents.
-3. **The "One hotel" example.** It is marked "should be refused", and the canvas says **Not shown, as expected**, with the rule's reason in plain words. The last valid instance is kept behind a closed "not interactive" disclosure.
+1. **The first-run guide.** It follows the list in the Compositions panel. Each of its four tasks changes the canvas. **Hide the guide** is remembered, and **Show the guide** brings it back. A reload stays in the Library.
+2. **Hotel results.** Switch between **v1 Approved** and **v2 Draft**: the draft's wording appears, **What changed** lists the differences, and v1 is unchanged. The Design tab says neither is published for agents.
+3. **The "One hotel" example.** It is marked "should be refused", and the canvas says **Not shown, as expected**: "A comparison needs at least two options to choose from." The previous screen is kept behind a closed "not interactive" disclosure.
 4. **Inspector, Checks: Show a specific state, "Empty", with "Three hotels".** The state is marked as not available with this example. Choosing it shows an unexpected refusal and **Show the state the example chooses**.
 5. **Inspector, Checks: Try a stricter rule.** The canvas and the inspector both report **Needs a new check**. **Run checks under these rules** fails on "Three hotels" and "Two hotels"; nothing is stored. Hotel search passes under the same rule. **Restore the Astryx rules** brings both back to **Passes the design rules**.
 6. **Hotel search.** Type a member number and press **Search hotels**. A note pinned to the canvas says **Preview only, not run**, with what would be sent in plain words, and the member number as private. The recordable form is in Technical details.
@@ -186,7 +186,7 @@ Two of the owner's approved decisions are applied at the same time: the workspac
   - human scenario names;
   - technical details behind a disclosure;
   - first-run guidance.
-- **The workspace is AF dark only during D0.** This is temporary. Workspace themes through the shared compiler are planned in [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md).
+- **The workspace has only Composer's existing dark appearances** (Aesthetic Function, Ember and Slate, in Settings) during D0. This is temporary. A neutral, customizable working environment is a requirement before broad external designer evaluation (decision 28). Workspace themes through the shared compiler are planned in [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md).
 - **Sensitive fields are drawn unmasked.** Masking is required before real sensitive inputs are supported (owner decision). Only synthetic values are used here.
 - **Focus inside a repeated element** across a replacement is still verified as the host's hint only. The Library shows one instance per selection.
 

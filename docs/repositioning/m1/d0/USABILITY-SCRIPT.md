@@ -1,6 +1,6 @@
 # D0 usability script: five first-run tasks
 
-**For:** three to five product designers who have not seen Composer. **Length:** about 20 minutes each. **Status:** ready to use. **No participant has been recruited or contacted.** The product owner decides who takes part and when.
+**For:** three to five product designers who have not seen Composer. **Length:** about 20 minutes each. **Status:** ready to use; T1 and T5 updated for D0.1 (2026-11-27). **No participant has been recruited or contacted.** The product owner decides who takes part and when.
 
 This script is for human sessions. Do not record an AI walkthrough as a session, and do not report one as a usability result. Write what you observe in [USABILITY-OBSERVATIONS.md](USABILITY-OBSERVATIONS.md), kept separate from the engineering verification in [README.md](README.md).
 
@@ -9,7 +9,7 @@ This script is for human sessions. Do not record an AI walkthrough as a session,
 - Build and serve the experimental Library as described in [README.md](README.md#how-to-evaluate-it).
 - Use a fresh browser profile, or clear the site's storage, so that the participant sees the first run.
 - Desktop: a window of about 1280 × 800. Phone (task 5): a phone, or the browser's device toolbar at 390 × 844, with storage cleared again.
-- Start the participant on the Projects page, not the Library.
+- Start the participant on the Projects page, not the Library. T1 tests whether the Library can be found from there, so do not point to it.
 - Have the observations template open. Note times from the moment each task is read out.
 
 ## Introduction (read aloud)
@@ -30,11 +30,11 @@ Read the task as written. Do not point at the screen. If they ask whether they'r
 
 | # | Task, as read aloud | Passes when | Note especially |
 |---|---|---|---|
-| T1 | "Find the screen design for hotel search results, and tell me in your own words what it is for." | They reach hotel results within 30 seconds and describe its purpose: showing hotels a search found so a person can choose one | Where they look first; whether they read the guide; the words they use for "composition" |
+| T1 | "Find the screen design called Hotel results, and tell me in your own words what it is for." | They reach the Hotel results composition within 30 seconds, starting from Projects, and describe its purpose: showing the hotels a search found so a person can choose one | How they get from Projects to it (the header's Library link, or the line on the Projects page); where they look first; whether they read the guide; the words they use for "composition" |
 | T2 | "Show that design with only one hotel. Then tell me what happens, and why." | They choose the one-hotel example and say it is not shown because a choice of one is not a comparison (the design needs at least two options) | Whether they see the refusal as expected or as a fault; whether they find the reason without opening details |
 | T3 | "Which version of this design is the approved one? And has it been published, so that an outside agent could use it?" | They name v1 as approved (v2 is a draft), and they say it has **not** been published: publishing is not available yet | Whether they confuse **passing checks**, **approved** and **published**; where they find the answer |
 | T4 | "Find out what would happen if a person pressed the button to choose one of the hotels." | They press a choose button, find the preview note, and say what it would send and that nothing actually runs | Whether they notice the note; whether "preview only" is believed |
-| T5 | (On a phone, storage cleared.) "Do the first task again on this phone." | They reach hotel results and describe it, and they see the design itself without opening a panel to find it | Whether the strip is noticed; whether the sideways-scrolling example chips are found |
+| T5 | (On a phone, storage cleared, starting on Projects.) "Do the first task again on this phone." | They reach Hotel results and describe it, and they see the design itself without opening a panel to find it | Whether "New here? Try the guide" is noticed; whether the sideways-scrolling examples are found |
 
 ## After the tasks (ask, in this order)
 

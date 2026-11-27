@@ -1,6 +1,6 @@
 # D0: the designer-first refinement of the Composition Library
 
-**Status:** implemented on the D0 branch for the product owner's evaluation, 2026-11-26. **Not merged and not deployed.** It is in the experimental build only, and the default artifact is unchanged.
+**Status:** implemented on the D0 branch for the product owner's evaluation, 2026-11-26, then corrected after the independent audit as **D0.1** (2026-11-27): see [d01/README.md](d01/README.md), whose measurements, copy and layout supersede the D0 figures below. **Not merged and not deployed.** It is in the experimental build only, and the default artifact is unchanged.
 
 It implements [DESIGNER-FIRST-PROPOSAL.md](../../DESIGNER-FIRST-PROPOSAL.md) on the existing workspace. There is no new shell and no parallel governance path: the Library still shows real governed instances through the R1a host, on Composer's canvas, with the M1 storage.
 
@@ -135,7 +135,7 @@ Open `http://localhost:3315/` and choose **Library**. Nothing is called: no agen
 
 - **Not merged or deployed**, by instruction. It is experimental only.
 - **The Library is read-only.** Authoring, inputs and actions, template editing, block promotion, the Playground, running actions, external agents and publishing are not built. The interface names them and offers no control for them.
-- **The workspace is AF dark only.** This is a temporary D0 scope decision. Workspace themes are a later increment ([THEME-INTEGRATION-PROPOSAL.md](../../THEME-INTEGRATION-PROPOSAL.md)).
+- **The workspace keeps Composer's existing dark appearances** (Aesthetic Function, Ember and Slate, in Settings). No light or neutral workspace exists yet. That is a temporary D0 scope decision; workspace themes are a later increment ([THEME-INTEGRATION-PROPOSAL.md](../../THEME-INTEGRATION-PROPOSAL.md)).
 - **The approved versions' example names come from a label map in the Library**, because approved definitions cannot change. Authoring writes `title` into new drafts.
 - **"Expected" refusals depend on the example's declaration.** A refusal is "as expected" only when the example says it should be refused and the refusing rule or stage is the one it names. Anything else is unexpected.
 - **The Design tab is long for compositions with many actions.** Grouping is a candidate for authoring, once there is something to edit.
