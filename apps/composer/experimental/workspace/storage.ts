@@ -21,7 +21,8 @@
  * Writes that fail (quota, blocked) report it and change nothing stored.
  *
  * What may be stored is closed by the shapes below: the Library's selection and panel, whether the first-run
- * guide was put away, whether the Library was the view on screen, approval records
+ * guide was put away, whether the Library was the view on screen, versions approved on this device and
+ * packaged drafts discarded here, approval records
  * (pins and scenario outcomes, which are evidence, never authorizations: see versions.ts), and drafts. None
  * of them has room for a typed input value, an action event, a session or surface id, a commitment or
  * renderer state (Part B decisions; checked by storage.test.ts).
@@ -35,11 +36,12 @@ export const KEYS = {
   drafts: `${NAMESPACE}drafts`,
   onboarding: `${NAMESPACE}onboarding`,
   view: `${NAMESPACE}view`,
+  versions: `${NAMESPACE}versions`,
 } as const;
 export type RecordKind = keyof typeof KEYS;
 
 /** The schema version this build reads and writes, per record. */
-export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1 };
+export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1, versions: 1 };
 
 export interface LibraryPrefs {
   composition: string | null;
@@ -65,6 +67,16 @@ export interface Onboarding {
   dismissed: boolean;
 }
 
+/**
+ * The device's own changes to the version list (M1 authoring): versions a person approved here, and packaged
+ * drafts discarded here (by `<id>@<version>`). Approved versions are written only after their re-check
+ * passed, in one write, so a version is either fully approved on this device or not at all.
+ */
+export interface DeviceVersions {
+  approved: CompositionDefinition[];
+  retired: string[];
+}
+
 /** Whether the Library was the view on screen, so a reload returns to it (D0.1). */
 export interface ViewRecord {
   library: boolean;
@@ -76,6 +88,7 @@ interface Shapes {
   drafts: StoredDrafts;
   onboarding: Onboarding;
   view: ViewRecord;
+  versions: DeviceVersions;
 }
 
 const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
@@ -84,6 +97,7 @@ const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
   drafts: { drafts: [] },
   onboarding: { dismissed: false },
   view: { library: false },
+  versions: { approved: [], retired: [] },
 };
 
 export type ReadResult<T> =
@@ -109,6 +123,7 @@ export function browserStore(): KeyValueStore | null {
 
 const ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const HEX64 = /^[0-9a-f]{64}$/;
+const KEY = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*@[1-9][0-9]*$/;
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const onlyKeys = (o: Record<string, unknown>, allowed: string[]) => Object.keys(o).every((k) => allowed.includes(k));
 const nullableId = (v: unknown) => v === null || (typeof v === "string" && ID.test(v));
@@ -152,6 +167,19 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
       records.push(structuredClone(r) as unknown as ApprovalRecord);
     }
     return { ok: true, value: { records } };
+  },
+  versions(data) {
+    if (!isObject(data) || !onlyKeys(data, ["approved", "retired"]) || !Array.isArray(data.approved) || !Array.isArray(data.retired)) return { ok: false, reason: "versions: not the versions shape" };
+    if (!data.retired.every((k) => typeof k === "string" && KEY.test(k))) return { ok: false, reason: "versions: a retired version is not <id>@<version>" };
+    let approved: CompositionDefinition[] = [];
+    if (data.approved.length > 0) {
+      // The one composition language: an approved version is checked by the 0.2 parser, as a packaged one is.
+      const probe = parseCompositionsSidecar({ compositionsSidecar: "0.2", status: "approved", reference: { name: "probe", dspack: "0", version: "0" }, baseSha256: "0".repeat(64), blocks: [], compositions: data.approved });
+      if (!probe.ok) return { ok: false, reason: `versions: ${probe.issues[0]?.path}: ${probe.issues[0]?.message}` };
+      if (probe.sidecar.compositions.some((c) => c.status !== "approved")) return { ok: false, reason: "versions: only approved versions are kept here; drafts have their own record" };
+      approved = probe.sidecar.compositions;
+    }
+    return { ok: true, value: { approved, retired: [...data.retired] as string[] } };
   },
   view(data) {
     if (!isObject(data) || !onlyKeys(data, ["library"]) || typeof data.library !== "boolean") return { ok: false, reason: "view: not the view shape" };

@@ -115,4 +115,4 @@ Each step needs its own authorization. The first two are outside this repository
 2. **Whether the existing Ember and Slate themes stay** as named proposals, or give way to neutral dark, neutral light and custom.
 3. **The semantic colour set** Composer needs from the compiler, agreed with its owner.
 4. **Whether a project export carries its appearance proposal.**
-5. **Which comes first** of a neutral workspace and authoring, given decision 28. The audit suggests that if designers would rather spend a day in the neutral prototype than in D0, the neutral workspace should come before or with authoring.
+5. ~~Which comes first of a neutral workspace and authoring.~~ **Decided (33):** authoring first; the neutral, customizable workspace remains a requirement before broad external designer evaluation.

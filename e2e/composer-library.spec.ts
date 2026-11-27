@@ -58,7 +58,8 @@ test.describe("the Composition Library", () => {
     // for an unavailable capability.
     const scope = page.locator("header.af-top").getByTestId("library-scope");
     await expect(scope).toContainText("Astryx sample");
-    await expect(scope.locator(".cl-head__pop")).toContainText("Compose, Playground and Publish are not available yet");
+    // Since authoring (A1 to A4), what is not available yet is structure editing, the Playground and publishing.
+    await expect(scope.locator(".cl-head__pop")).toContainText("Editing a composition’s structure, Playground and Publish are not available yet");
     await expect(scope.locator("button, a")).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Workspace" })).toHaveCount(0);
   });

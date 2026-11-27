@@ -120,6 +120,25 @@ describe("schema versioning and recovery", () => {
     expect(store.touched.every((k) => k.startsWith(NAMESPACE))).toBe(true);
   });
 
+  it("the versions record keeps only approved versions in the composition language, and retired version keys (authoring)", async () => {
+    const store = memoryStore();
+    const packaged = (await import("../compositions/astryx.compositions.json")).default as { compositions: Array<Record<string, unknown>> };
+    const v1 = packaged.compositions.find((c) => c.id === "hotel-results" && c.version === 1)!;
+    expect(readRecord("versions", store)).toEqual({ status: "missing", value: { approved: [], retired: [] } });
+    const approved = { ...structuredClone(v1), version: 2 } as never;
+    expect(writeRecord("versions", { approved: [approved], retired: ["hotel-results@2"] }, store)).toEqual({ ok: true });
+    const back = readRecord("versions", store);
+    expect(back.status).toBe("ok");
+    expect(back.value.approved[0]).toMatchObject({ id: "hotel-results", version: 2, status: "approved" });
+    expect(back.value.retired).toEqual(["hotel-results@2"]);
+    // A draft is refused here; so is anything outside the composition language, and a malformed key.
+    expect(writeRecord("versions", { approved: [{ ...structuredClone(v1), status: "draft" } as never], retired: [] }, store)).toMatchObject({ ok: false });
+    expect(writeRecord("versions", { approved: [{ ...structuredClone(v1), script: "x" } as never], retired: [] }, store)).toMatchObject({ ok: false });
+    expect(writeRecord("versions", { approved: [], retired: ["hotel-results"] }, store)).toMatchObject({ ok: false });
+    expect(writeRecord("versions", { approved: [], retired: [], extra: 1 } as never, store)).toMatchObject({ ok: false });
+    expect(store.touched.every((k) => k.startsWith(NAMESPACE))).toBe(true);
+  });
+
   it("the view record holds whether the Library was on screen, and nothing else (D0.1)", () => {
     const store = memoryStore();
     expect(readRecord("view", store)).toEqual({ status: "missing", value: { library: false } });

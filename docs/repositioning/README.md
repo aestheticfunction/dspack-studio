@@ -23,3 +23,4 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [M1-WORKSPACE.md](M1-WORKSPACE.md) | The M1 workspace: experimental storage, version coexistence and the Composition Library, with the review corrections |
 | [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md) | The designer-first refinement, approved; D0 implements it ([m1/d0/README.md](m1/d0/README.md), with the [usability script](m1/d0/USABILITY-SCRIPT.md)) |
 | [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md) | Workspace themes through the shared theme compiler: a plan, not authorized |
+| [m1/authoring/README.md](m1/authoring/README.md) | Composition authoring A1 to A4: draft, edit, check, approve on this device; with the [authoring walkthrough](m1/authoring/AUTHORING-WALKTHROUGH.md) |
