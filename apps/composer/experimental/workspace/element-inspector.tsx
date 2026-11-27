@@ -26,6 +26,7 @@ import {
   type InputChange,
 } from "./interaction";
 import { describeTemplateValue, elementName, elementSummary } from "./structure-panel";
+import { ContentEditor, IdentityEditor, type ContentApi } from "./content-editor";
 
 type Json = Record<string, any>;
 
@@ -64,7 +65,17 @@ export function ElementInspector({
   select,
   stateLabel,
   componentIds,
+  contract,
+  content,
+  contentStates = [],
+  suggestId = "",
 }: {
+  /** Template editing on a draft (M1 visual template editing): the contract, and the content and identity edits. */
+  contract?: Record<string, any>;
+  content?: ContentApi;
+  /** The states a content change applies in. */
+  contentStates?: string[];
+  suggestId?: string;
   definition: CompositionDefinition;
   editable: boolean;
   trail: StructureNode[];
@@ -98,7 +109,7 @@ export function ElementInspector({
   const inputChange = (change: InputChange, done: string) => run(inputProblem(definition, change), (d) => applyInputChange(d, change), done);
   const actionChange = (change: ActionChange, done: string) => run(actionProblem(definition, change), (d) => applyActionChange(d, change), done);
 
-  const content = Object.entries({ ...(node.text !== undefined ? { text: node.text } : {}), ...(node.props ?? {}) }).filter(([k]) => !["variant", "type", "size", "items"].includes(k));
+  const shown = Object.entries({ ...(node.text !== undefined ? { text: node.text } : {}), ...(node.props ?? {}) }).filter(([k]) => !["variant", "type", "size", "items"].includes(k));
 
   return (
     <div className="cl-element" data-testid="element-inspector" data-key={node.key}>
@@ -141,16 +152,28 @@ export function ElementInspector({
         </p>
       )}
 
-      {content.length > 0 && (
+      {editable && content && contract && node.kind === "element" ? (
         <Group title="What it shows">
-          <dl className="cl-kv">
-            {content.map(([k, v]) => (
-              <Row key={k} label={k === "text" ? "Text" : words(k)}>
-                {describeTemplateValue(v)} <span className="cl-src">{sourceOf(definition, v)}</span>
-              </Row>
-            ))}
-          </dl>
-          <p className="cl-dim">Changing what an element shows is part of template editing, which is not available yet.</p>
+          <ContentEditor definition={definition} contract={contract} node={node} states={contentStates} api={content} />
+        </Group>
+      ) : (
+        shown.length > 0 && (
+          <Group title="What it shows">
+            <dl className="cl-kv">
+              {shown.map(([k, v]) => (
+                <Row key={k} label={k === "text" ? "Text" : words(k)}>
+                  {describeTemplateValue(v)} <span className="cl-src">{sourceOf(definition, v)}</span>
+                </Row>
+              ))}
+            </dl>
+            {definition.status === "approved" && <p className="cl-dim">This version is approved and cannot change. Create a draft to change what it shows.</p>}
+          </Group>
+        )
+      )}
+
+      {editable && content && node.kind === "element" && (
+        <Group title="Identity">
+          <IdentityEditor node={node} suggest={suggestId} api={content} />
         </Group>
       )}
 

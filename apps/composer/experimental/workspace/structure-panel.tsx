@@ -7,7 +7,7 @@
  * The tree lists TEMPLATE elements: a repeat is one node ("Each hotel"), and what it yields is listed once,
  * however many items the example has. How many are on the canvas is said beside it.
  */
-import { useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { flattenStructure, type CompositionDefinition, type StructureNode } from "@dspack-studio/composer-core/compositions";
 
 type Json = Record<string, any>;
@@ -66,7 +66,13 @@ export function StructurePanel({
   onSelect,
   onOpen,
   counts,
+  tools,
+  focus,
 }: {
+  /** Structure editing controls for a draft (M1 visual template editing). */
+  tools?: ReactNode;
+  /** Move keyboard focus to an element after an edit placed, moved or removed it. */
+  focus?: { key: string; n: number } | null;
   definition: CompositionDefinition;
   structure: StructureNode;
   stateId: string;
@@ -81,6 +87,11 @@ export function StructurePanel({
   counts: Map<string, number> | null;
 }) {
   const tree = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    if (!focus) return;
+    const t = setTimeout(() => tree.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(focus.key)}"]`)?.focus(), 0);
+    return () => clearTimeout(t);
+  }, [focus]);
   const flat = flattenStructure(structure);
   const parentOf = new Map<string, string>();
   const index = (n: StructureNode) => n.children.forEach((c) => (parentOf.set(c.key, n.key), index(c)));
@@ -164,6 +175,7 @@ export function StructurePanel({
       </select>
       {stateId !== shownState && <p className="cl-dim">This state is not on the canvas with the chosen example. Its elements can still be selected and inspected.</p>}
       <p className="cl-dim">Arrow keys move through the structure; the canvas and the inspector follow. Enter opens the inspector.</p>
+      {tools}
       <ul className="cl-tree" role="tree" aria-label={`Structure of ${definition.name}`} ref={tree} onKeyDown={onKey} data-testid="structure-tree">
         {item(structure, 1)}
       </ul>

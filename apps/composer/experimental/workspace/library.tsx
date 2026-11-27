@@ -52,6 +52,9 @@ import { applyInputChange, describeInteractionChanges, interactionIssues, withou
 import { ElementInspector, type ItemContext } from "./element-inspector";
 import { SelectionLayer } from "./selection-layer";
 import { COMPONENT_LABEL, elementName, StructurePanel } from "./structure-panel";
+import { TemplateTools } from "./template-tools";
+import { applyContent, applyInsert, assignId as assignElementId, contentProblem, moveNode, plainTemplateIssue, removeNode, renameId as renameElementId, statesShowing, type Insertable } from "./template-editing";
+import { uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult, type StoredAuthorization } from "./storage";
 import { applyWithdrawals, restoreApproval, withdrawApproval } from "./withdrawal";
@@ -227,6 +230,10 @@ export function LibraryWorkspace() {
   const [leftView, setLeftView] = useState<"compositions" | "structure">("compositions");
   const [selectMode, setSelectMode] = useState(false);
   const [structureState, setStructureState] = useState<string | null>(null);
+  // Visual template editing: where keyboard focus goes after an edit, and a session-only undo history per draft.
+  const [treeFocus, setTreeFocus] = useState<{ key: string; n: number } | null>(null);
+  const history = useRef(new Map<string, { past: CompositionDefinition[]; future: CompositionDefinition[] }>());
+  const [, setHistoryTick] = useState(0);
   const readyRef = useRef<Ready | null>(null);
   const editQueue = useRef<Promise<unknown>>(Promise.resolve());
   const lastValid = useRef(new Map<string, Instance>());
@@ -325,6 +332,10 @@ export function LibraryWorkspace() {
     setSelectMode(false);
   }, [definition?.id]);
   useEffect(() => setStructureState(null), [scenario?.id, prefs.state]);
+  // A selection names an element of the draft as it is now: one an edit or undo removed leaves no stale selection.
+  useEffect(() => {
+    if (selection && definition && statesWithElement(definition, selection.key).length === 0) setSelection(null);
+  }, [definition, selection]);
   useEffect(() => {
     if (!selectMode) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSelectMode(false);
@@ -556,6 +567,44 @@ export function LibraryWorkspace() {
     return run;
   };
 
+  /** A draft's definition replaced by an earlier one (undo, redo), keeping its id, version and status. */
+  const replaceDefinition = (d: CompositionDefinition, from: CompositionDefinition) => {
+    const fixed = new Set(["id", "version", "status"]);
+    for (const k of Object.keys(d)) if (!fixed.has(k)) delete (d as Json)[k];
+    for (const [k, v] of Object.entries(from)) if (!fixed.has(k)) (d as Json)[k] = structuredClone(v);
+  };
+  const latestDraft = () => (definition ? readyRef.current?.loaded.library.get(definition.id, definition.version) : undefined);
+  /** An edit that undo can take back: element and structure edits, kept for this session only. */
+  const applyTracked = async (edit: (draft: CompositionDefinition) => void): Promise<string | null> => {
+    const before = latestDraft();
+    const refused = await applyEdit(edit);
+    if (!refused && before) {
+      const h = history.current.get(key) ?? { past: [], future: [] };
+      h.past = [...h.past.slice(-29), before];
+      h.future = [];
+      history.current.set(key, h);
+      setHistoryTick((t) => t + 1);
+    }
+    return refused;
+  };
+  const stepHistory = async (direction: "undo" | "redo") => {
+    const h = history.current.get(key);
+    const current = latestDraft();
+    const target = direction === "undo" ? h?.past.at(-1) : h?.future.at(-1);
+    if (!h || !current || !target) return;
+    const refused = await applyEdit((d) => replaceDefinition(d, target));
+    if (refused) return setAnnounce(`Could not ${direction}: ${refused}`);
+    if (direction === "undo") {
+      h.past = h.past.slice(0, -1);
+      h.future = [...h.future, current];
+    } else {
+      h.future = h.future.slice(0, -1);
+      h.past = [...h.past, current];
+    }
+    setHistoryTick((t) => t + 1);
+    setAnnounce(direction === "undo" ? "Undone. The checks need to run again." : "Redone. The checks need to run again.");
+  };
+
   const discardNow = async () => {
     if (!ready || !definition) return;
     const r = await discardDraftVersion(ready.loaded, definition.id, definition.version, browserStore());
@@ -646,6 +695,21 @@ export function LibraryWorkspace() {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // Ctrl or Cmd+Z undoes, with Shift redoes, element and structure edits on a draft, outside text fields.
+  const historyKeys = useRef<(e: KeyboardEvent) => void>(() => {});
+  historyKeys.current = (e: KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z" || definition?.status !== "draft") return;
+    const el = e.target as HTMLElement | null;
+    if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable)) return;
+    e.preventDefault();
+    void stepHistory(e.shiftKey ? "redo" : "undo");
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => historyKeys.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const instanceForLabels = shown?.ok ? shown.instance : null;
@@ -847,6 +911,58 @@ export function LibraryWorkspace() {
     setAnnounce(`Selected ${node ? elementName(node) : "an element"}${origin.item ? `, item ${origin.item.index + 1}` : ""}.`);
   };
 
+  // ---- Template editing (draft) ------------------------------------------------------------------------------
+  const editable = !!definition && definition.status === "draft" && governed;
+  const editState = homeState ?? listedState;
+  /**
+   * One structural or identity edit: tried on a copy first, so a refusal is said plainly and nothing changes;
+   * then applied as one edit through editDraft (the loader decides), and the selection and keyboard focus follow
+   * the element to where it now is.
+   */
+  const runTemplate = async (mutate: (d: CompositionDefinition) => { ok: true; key: string } | { ok: false; reason: string }, said: string): Promise<string | null> => {
+    if (!definition || !editable) return "Only a draft can be edited.";
+    const dry = mutate(structuredClone(definition));
+    if (!dry.ok) return `${sentence(dry.reason)}.`;
+    const refused = await applyTracked((d) => void mutate(d));
+    if (refused) return plainTemplateIssue(refused);
+    setSelection({ key: dry.key, item: null });
+    setTreeFocus({ key: dry.key, n: Date.now() });
+    setAnnounce(`${said} The checks need to run again.`);
+    return null;
+  };
+  const contract = governor.contract as Json;
+  const templateOps =
+    editable && editState
+      ? {
+          insert: (at: { key: string; position: Position }, component: Insertable, label: string) => runTemplate((d) => applyInsert(d, { stateId: editState, at, component, label }), `Added a ${COMPONENT_LABEL[component]?.toLowerCase() ?? component}.`),
+          move: (to: { key: string; position: Position }) => (selection ? runTemplate((d) => moveNode(d, editState, selection.key, to), "Moved.") : Promise.resolve("Select an element first.")),
+          remove: (resolve: boolean) => (selection ? runTemplate((d) => removeNode(d, editState, selection.key, resolve), "Removed.") : Promise.resolve("Select an element first.")),
+          undo: () => void stepHistory("undo"),
+          redo: () => void stepHistory("redo"),
+          canUndo: !!history.current.get(key)?.past.length,
+          canRedo: !!history.current.get(key)?.future.length,
+        }
+      : null;
+  const contentApi =
+    editable && editState && selection && definition
+      ? {
+          set: async (field: string, value: unknown, label: string) => {
+            const change = { stateId: editState, key: selection.key, field, value };
+            const problem = contentProblem(definition, contract, change);
+            if (problem) return problem;
+            const refused = await applyTracked((d) => applyContent(d, change));
+            if (refused) return plainTemplateIssue(refused);
+            setAnnounce(`${label} changed. The checks need to run again.`);
+            return null;
+          },
+          assignId: (id: string) => runTemplate((d) => assignElementId(d, editState, selection.key, id), `It now has the id ${id}.`),
+          renameId: (to: string) => {
+            const from = selection.key.startsWith("#") ? selection.key.slice(1) : null;
+            return from ? runTemplate((d) => renameElementId(d, from, to), `Renamed to ${to}; every state and declaration that used it follows.`) : Promise.resolve("It has no id to rename.");
+          },
+        }
+      : undefined;
+
   // ---- Compositions panel -----------------------------------------------------------------------------------
 
   const libraryPanel = (
@@ -891,6 +1007,8 @@ export function LibraryWorkspace() {
             showInspector();
           }}
           counts={counts}
+          focus={treeFocus}
+          tools={templateOps && definition ? <TemplateTools definition={definition} contract={contract} stateId={listedState} selected={selection && homeState === listedState ? selection.key : null} ops={templateOps} /> : undefined}
         />
       ) : (
       <>
@@ -1307,10 +1425,14 @@ export function LibraryWorkspace() {
                 shownState={shownState}
                 onCanvas={selectedIds.length}
                 item={itemContext}
-                edit={applyEdit}
+                edit={applyTracked}
                 select={(k) => selectElement(k)}
                 stateLabel={stateName}
                 componentIds={selectedIds}
+                contract={contract}
+                content={contentApi}
+                contentStates={selection && editState ? statesShowing(definition, editState, selection.key) : []}
+                suggestId={uniqueId(definition, selectedTrail.at(-1)!.component ?? "element")}
               />
             ) : (
             <>
@@ -2390,6 +2512,22 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
 .cl-payload__source { display: inline-flex; flex-wrap: wrap; gap: 6px; flex: 1 1 160px; min-width: 0; }
 .cl-payload__new { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 4px; margin: 4px 0 8px; }
 .cl-pre { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 4px; padding: 8px; margin: 8px 0 0; }
+/* Visual template editing: Structure's editing controls, the content parts editor, and identity. */
+.cl-tt { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 0 0 10px; display: grid; gap: 8px; }
+.cl-tt__row { display: flex; flex-wrap: wrap; gap: 6px; }
+.cl-tt__row .cl-tool { min-height: var(--cl-target); padding: 0 10px; }
+.cl-tt__panel { display: grid; gap: 6px; border-top: 1px solid var(--line-soft); padding-top: 8px; }
+.cl-tt__where { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }
+.cl-tt__options { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cl-tt__option { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; font-size: 14px; padding: 6px; border: 1px solid var(--line-soft); border-radius: 4px; cursor: pointer; }
+.cl-tt__option input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--fg); }
+.cl-tt__option--blocked { opacity: 0.75; cursor: not-allowed; }
+.cl-parts { border: 1px solid var(--line-soft); border-radius: 6px; padding: 8px; margin: 0 0 10px; display: grid; gap: 6px; min-width: 0; }
+.cl-parts__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cl-parts__row { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.cl-parts__row .cl-input { flex: 1 1 auto; min-width: 0; }
+.cl-parts__add { display: flex; flex-wrap: wrap; gap: 6px; }
+.cl-parts__row--wrap { flex-wrap: wrap; }
 /* Workspace appearance (T4): labels follow the chosen case, and the canvas may sit on its own surround. With the
    default choices these compute to exactly what they were before. */
 .cl-label, .cl-toolbar__label, .cl-table th, .cl-field__label, .cl-crumbs { text-transform: var(--cl-label-transform, none); letter-spacing: var(--cl-label-tracking, 0); }

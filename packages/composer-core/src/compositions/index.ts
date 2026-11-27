@@ -8,3 +8,4 @@ export * from "./instantiate";
 export * from "./host";
 export * from "./versions";
 export * from "./structure";
+export * from "./template";
