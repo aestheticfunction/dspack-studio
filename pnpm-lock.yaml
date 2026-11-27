@@ -90,6 +90,9 @@ importers:
       '@dspack-studio/wireframe-renderers':
         specifier: workspace:*
         version: link:../../packages/wireframe-renderers
+      dspack-gen-theme:
+        specifier: npm:@aestheticfunction/dspack-gen@0.6.0
+        version: '@aestheticfunction/dspack-gen@0.6.0(zod@4.4.3)'
       next:
         specifier: 15.3.2
         version: 15.3.2(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -492,6 +495,11 @@ packages:
 
   '@aestheticfunction/dspack-gen@0.5.0':
     resolution: {integrity: sha512-mqqs4xLkZIJw9j06OskhNDgw1rXDXqJwCxgYmvi1/aleSlWRmhsEeNRZLZVgsLPB2Zd33yv68xmS5AyKy3jdrA==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+
+  '@aestheticfunction/dspack-gen@0.6.0':
+    resolution: {integrity: sha512-2/JLYikdMfJ2Oka8CsB0X+087CYokwK+FNyUvTrWbetDjqLUFDiADigAjY8rjcON0nIrFYd7XF9OIJBIUvd2DA==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -2421,6 +2429,16 @@ snapshots:
       - zod
 
   '@aestheticfunction/dspack-gen@0.5.0(zod@4.4.3)':
+    dependencies:
+      '@aestheticfunction/dspack-emit': 0.7.0
+      '@anthropic-ai/sdk': 0.109.1(zod@4.4.3)
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+      undici: 6.27.0
+    transitivePeerDependencies:
+      - zod
+
+  '@aestheticfunction/dspack-gen@0.6.0(zod@4.4.3)':
     dependencies:
       '@aestheticfunction/dspack-emit': 0.7.0
       '@anthropic-ai/sdk': 0.109.1(zod@4.4.3)

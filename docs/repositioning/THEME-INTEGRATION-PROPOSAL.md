@@ -1,6 +1,6 @@
 # Workspace themes through the shared theme compiler: integration proposal
 
-**Status:** a plan for a later, separately authorized increment, 2026-11-26, updated after the independent D0 audit, 2026-11-27. **Nothing here is implemented or authorized.** It makes no change to af-site, `dspack-gen` or any other repository, adds no dependency, and copies no af-site code. It builds on the read-only discovery in [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md#workspace-theming-and-the-aesthetic-function-theme-generator).
+**Status:** implemented as T1 to T4, 2026-11-27, for the product owner's evaluation; not merged, published or deployed. The record is [m1/appearance/README.md](m1/appearance/README.md), and the owner's decisions are 34 to 40 in [DECISIONS.md](DECISIONS.md). The text below is the plan as approved, kept as written. (First written 2026-11-26, updated after the independent D0 audit, 2026-11-27.)
 
 ## The owner's decisions this plan follows
 

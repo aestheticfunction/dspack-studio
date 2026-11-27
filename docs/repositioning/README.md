@@ -24,3 +24,4 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [DESIGNER-FIRST-PROPOSAL.md](DESIGNER-FIRST-PROPOSAL.md) | The designer-first refinement, approved; D0 implements it ([m1/d0/README.md](m1/d0/README.md), with the [usability script](m1/d0/USABILITY-SCRIPT.md)) |
 | [THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md) | Workspace themes through the shared theme compiler: a plan, not authorized |
 | [m1/authoring/README.md](m1/authoring/README.md) | Composition authoring A1 to A4: draft, edit, check, approve on this device; with the [authoring walkthrough](m1/authoring/AUTHORING-WALKTHROUGH.md) |
+| [m1/appearance/README.md](m1/appearance/README.md) | Workspace appearances through the shared theme compiler (T1 to T4): Neutral dark, Neutral light, Custom and the workspace choices; the canvas unchanged |

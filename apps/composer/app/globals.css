@@ -102,13 +102,13 @@ input[type="range"] {
 .st-btn--active {
   background: var(--green);
   border-color: var(--green);
-  color: #10120c;
+  color: var(--on-accent, #10120c);
   font-weight: 600;
 }
 .st-btn--active:hover {
   background: var(--green-bright);
   border-color: var(--green-bright);
-  color: #10120c;
+  color: var(--on-accent, #10120c);
 }
 .st-btn--dashed {
   border-style: dashed;

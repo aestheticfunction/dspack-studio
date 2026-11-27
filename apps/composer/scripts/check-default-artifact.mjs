@@ -43,6 +43,10 @@ const markers = new Set([
   // M1 authoring (A1 to A4): the draft's authoring bar and its Create draft action.
   "authoring-bar",
   "create-draft",
+  // T4: the shared theme compiler and the workspace appearance are experimental only.
+  "theme-direction-compiler@",
+  "workspace-appearance@",
+  "composer-workspace-appearance",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));

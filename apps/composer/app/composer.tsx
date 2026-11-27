@@ -65,9 +65,13 @@ function Shell() {
   const [view, setView] = useState<View>("projects");
   const hasProject = !!state.activeProject;
 
-  // Apply the persisted appearance once on mount.
+  // Apply the persisted appearance once on mount. An experimental build then applies the workspace appearance
+  // (T4) from its own validated record, compiled by the shared theme compiler; a default build folds this away.
   useEffect(() => {
     applyTheme(getStoredTheme());
+    if (process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1") {
+      void import("../experimental/workspace/appearance").then(({ applyStoredAppearance }) => applyStoredAppearance());
+    }
   }, []);
 
   // Keep keyboard focus clear of the sticky header (WCAG 2.2 SC 2.4.11): the

@@ -11,6 +11,7 @@
  * secret. The browser never stores a credential. Provider choice changes only
  * how a proposal is generated; the governance and rendering are identical.
  */
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useComposer } from "../state";
 import { Eyebrow } from "../ui";
@@ -20,6 +21,16 @@ import { THEMES, getStoredTheme, applyTheme, type ThemeId } from "../appearance"
 import type { ExperimentalPreferences } from "../experimental";
 
 type TestState = { status: "idle" | "testing" | "ok" | "error"; models: string[]; error?: string };
+/**
+ * Workspace appearance (experimental, T4): neutral and custom appearances compiled by the shared theme compiler.
+ * Only an experimental build has it; the literal flag check folds the import away in the default build, which keeps
+ * the three governed themes below.
+ */
+const WorkspaceAppearance =
+  process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1"
+    ? dynamic(() => import("../../experimental/workspace/appearance-settings").then((m) => m.WorkspaceAppearance), { ssr: false })
+    : null;
+
 const IDLE: TestState = { status: "idle", models: [] };
 
 export function SettingsView() {
@@ -284,6 +295,9 @@ export function SettingsView() {
       </section>
 
       {/* Appearance */}
+      {WorkspaceAppearance ? (
+        <WorkspaceAppearance />
+      ) : (
       <section aria-labelledby="appearance-h">
         <h2 id="appearance-h" className="af-h2" style={{ marginBottom: 6 }}>
           Appearance
@@ -306,6 +320,7 @@ export function SettingsView() {
           ))}
         </div>
       </section>
+      )}
 
       {process.env.NEXT_PUBLIC_COMPOSER_EXPERIMENTAL === "1" && <ExperimentalSection experimental={experimental} setExperimental={setExperimental} />}
     </div>
