@@ -22,7 +22,7 @@
     "@dspack-studio/composer-core": "workspace:*",
     "@dspack-studio/shadcn-renderers": "workspace:*",
     "@dspack-studio/wireframe-renderers": "workspace:*",
-    "dspack-gen-theme": "github:aestheticfunction/dspack-gen#0a244844c62853f78d6444d052144ab417b4bfa3",
+    "dspack-gen-theme": "npm:@aestheticfunction/dspack-gen@0.6.0",
     "next": "15.3.2",
     "react": "19.2.7",
     "react-dom": "19.2.7"

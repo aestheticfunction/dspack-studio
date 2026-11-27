@@ -1,6 +1,6 @@
 # M1 workspace appearance: the shared theme compiler in Composer (T1 to T4)
 
-**Status:** implemented for the product owner's evaluation, 2026-11-27. **Not merged, published or deployed.** Experimental build only; the default application and artifact are unchanged.
+**Status:** accepted by the product owner, 2026-11-27 (decisions 41 to 44), and released: the compiler is published as `@aestheticfunction/dspack-gen` 0.6.0, and af-site and Composer pin that exact version. **Experimental build only**; the default application is unchanged. Human visual and usability acceptance is still outstanding.
 
 A designer can now choose how Composer's workspace looks:
 - the three existing appearances, **Aesthetic Function**, **Ember** and **Slate**, unchanged;
@@ -15,9 +15,9 @@ None of this reaches the canvas. The design system draws the canvas exactly as b
 
 | Step | Repository | What |
 |---|---|---|
-| **T1** | `dspack-gen` (public, Apache-2.0) | The deterministic theme compiler graduates from its incubation in Aesthetic Function's website as `@aestheticfunction/dspack-gen/theme` (0.6.0, unreleased). The compiler, its schema, constraints and solver move byte-identical. A workspace layer, `compileWorkspace`, adds status and link colours (solved to 4.5:1 on every surface) and the five workspace choices, without changing any compiler token. Its identity is `workspace-appearance@1.0.0` |
+| **T1** | `dspack-gen` (public, Apache-2.0) | The deterministic theme compiler graduates from its incubation in Aesthetic Function's website as `@aestheticfunction/dspack-gen/theme` (0.6.0, published from tag `v0.6.0` with npm provenance). The compiler, its schema, constraints and solver move byte-identical. A workspace layer, `compileWorkspace`, adds status and link colours (solved to 4.5:1 on every surface) and the five workspace choices, without changing any compiler token. Its identity is `workspace-appearance@1.0.0` |
 | **T2** | Aesthetic Function's website (private) | The website consumes the package instead of its own copy, with equivalent output: every compile golden regenerates byte-identically, and its browser runtime embeds the same compiler. A gate holds the pin exact and forbids a second copy |
-| **T3** | `dspack-studio` | Composer pins the same package (as `dspack-gen-theme`). It is imported only by the experimental workspace, behind the experimental guard; the default artifact check refuses the compiler's markers |
+| **T3** | `dspack-studio` | Composer pins the same published package, `npm:@aestheticfunction/dspack-gen@0.6.0`, as `dspack-gen-theme`; its governance dependency on `@aestheticfunction/dspack-gen` stays on 0.5.0. It is imported only by the experimental workspace, behind the experimental guard; the default artifact check refuses the compiler's markers |
 | **T4** | `dspack-studio` | Settings, Appearance in the experimental build. This record |
 
 There is **one compiler**. Composer has no theme generator, solver or palette of its own: a stored appearance is a proposal, compiled at load.
