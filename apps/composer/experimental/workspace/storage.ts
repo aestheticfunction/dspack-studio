@@ -39,11 +39,12 @@ export const KEYS = {
   view: `${NAMESPACE}view`,
   versions: `${NAMESPACE}versions`,
   appearance: `${NAMESPACE}appearance`,
+  authorization: `${NAMESPACE}authorization`,
 } as const;
 export type RecordKind = keyof typeof KEYS;
 
 /** The schema version this build reads and writes, per record. */
-export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1, versions: 1, appearance: 1 };
+export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1, versions: 1, appearance: 1, authorization: 1 };
 
 export interface LibraryPrefs {
   composition: string | null;
@@ -79,6 +80,22 @@ export interface DeviceVersions {
   retired: string[];
 }
 
+/**
+ * Approvals withdrawn on this device (decision 34): an authorization-lifecycle decision, never a change to the
+ * approved definition, which stays exactly as it is, nor to its recorded check evidence. Each entry names the
+ * exact definition it withdraws (its sha256), so it cannot apply to any other. A packaged approval is withdrawn
+ * here by this local record alone: the packaged definition is never changed.
+ */
+export interface Withdrawal {
+  composition: string;
+  version: number;
+  compositionSha256: string;
+  origin: "packaged" | "device";
+}
+export interface StoredAuthorization {
+  withdrawn: Withdrawal[];
+}
+
 /** Whether the Library was the view on screen, so a reload returns to it (D0.1). */
 export interface ViewRecord {
   library: boolean;
@@ -92,6 +109,7 @@ interface Shapes {
   view: ViewRecord;
   versions: DeviceVersions;
   appearance: AppearanceRecord;
+  authorization: StoredAuthorization;
 }
 
 const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
@@ -101,6 +119,7 @@ const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
   onboarding: { dismissed: false },
   view: { library: false },
   versions: { approved: [], retired: [] },
+  authorization: { withdrawn: [] },
   // Never used as such: a missing appearance record starts from the default build's preference (appearance.ts).
   appearance: {
     base: "default",
@@ -189,6 +208,20 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
       approved = probe.sidecar.compositions;
     }
     return { ok: true, value: { approved, retired: [...data.retired] as string[] } };
+  },
+  authorization(data) {
+    if (!isObject(data) || !onlyKeys(data, ["withdrawn"]) || !Array.isArray(data.withdrawn)) return { ok: false, reason: "authorization: not the authorization shape" };
+    const seen = new Set<string>();
+    for (const w of data.withdrawn) {
+      if (!isObject(w) || !onlyKeys(w, ["composition", "version", "compositionSha256", "origin"])) return { ok: false, reason: "authorization: a withdrawal has unknown fields" };
+      if (typeof w.composition !== "string" || !Number.isInteger(w.version) || (w.version as number) < 1) return { ok: false, reason: "authorization: a withdrawal does not name a version" };
+      if (typeof w.compositionSha256 !== "string" || !/^[0-9a-f]{64}$/.test(w.compositionSha256)) return { ok: false, reason: "authorization: a withdrawal does not name its exact definition" };
+      if (w.origin !== "packaged" && w.origin !== "device") return { ok: false, reason: "authorization: a withdrawal's origin is packaged or device" };
+      const k = `${w.composition}@${w.version}`;
+      if (seen.has(k)) return { ok: false, reason: `authorization: ${k} is withdrawn twice` };
+      seen.add(k);
+    }
+    return { ok: true, value: { withdrawn: structuredClone(data.withdrawn) as Withdrawal[] } };
   },
   appearance(data) {
     // A workspace appearance is a closed-enum proposal, never token values (T4): every field is checked here, and

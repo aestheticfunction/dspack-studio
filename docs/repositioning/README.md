@@ -26,3 +26,4 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [m1/authoring/README.md](m1/authoring/README.md) | Composition authoring A1 to A4: draft, edit, check, approve on this device; with the [authoring walkthrough](m1/authoring/AUTHORING-WALKTHROUGH.md) |
 | [m1/appearance/README.md](m1/appearance/README.md) | Workspace appearances through the shared theme compiler (T1 to T4): Neutral dark, Neutral light, Custom and the workspace choices; the canvas unchanged |
 | [m1/interaction/README.md](m1/interaction/README.md) | Interaction authoring: Structure, canvas selection, and what a person types and what pressing sends, on a draft |
+| [m1/withdrawal/README.md](m1/withdrawal/README.md) | Approval withdrawal on this device (decision 34): withdraw and restore an approval without changing the definition |

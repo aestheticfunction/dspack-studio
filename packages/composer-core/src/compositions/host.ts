@@ -13,6 +13,9 @@
  *                    (the refusal names its idempotency key);
  *   locked           the surface accepted a consequential action and has not
  *                    been replaced since (R1A-REVIEW M3, decision D3);
+ *   withdrawn        a person withdrew the composition's approval on this host
+ *                    (withdraw); only a check issued after the withdrawal,
+ *                    given through restore, authorizes it again;
  *   needs-recheck    the approval's pins no longer match the contract,
  *                    profile, toolchain or composition being governed, or the
  *                    surface itself was governed under other pins;
@@ -96,6 +99,12 @@ export interface Approval {
 }
 
 const issued = new WeakSet<object>();
+/**
+ * When each approval was issued, in issue order. A withdrawal records the latest issue at that moment, so an
+ * approval issued before it (a stale authorization someone kept) can never restore what was withdrawn.
+ */
+const issuedAt = new WeakMap<object, number>();
+let issueSeq = 0;
 
 /** Re-run every declared scenario. An approval exists only if each behaves as declared. */
 export async function recheck(governor: Governor, c: CompositionDefinition): Promise<{ ok: boolean; approval?: Approval; scenarios: ScenarioResult[] }> {
@@ -115,6 +124,7 @@ export async function recheck(governor: Governor, c: CompositionDefinition): Pro
   if (!ok) return { ok, scenarios };
   const approval: Approval = deepFreeze({ pins: await pinsFor(governor, c), scenarios: structuredClone(scenarios) });
   issued.add(approval);
+  issuedAt.set(approval, ++issueSeq);
   return { ok, approval, scenarios };
 }
 
@@ -181,7 +191,7 @@ export interface Commitment {
   readonly history: ReadonlyArray<{ status: Outcome; at: number }>;
 }
 
-export type ActCode = "stale" | "duplicate" | "locked" | "needs-recheck" | "needs-confirmation" | "unauthorized" | "payload-mismatch" | "invalid-input";
+export type ActCode = "stale" | "duplicate" | "locked" | "withdrawn" | "needs-recheck" | "needs-confirmation" | "unauthorized" | "payload-mismatch" | "invalid-input";
 
 export type ActResult =
   | {
@@ -199,6 +209,8 @@ export type SettleResult = { ok: true; commitment: Commitment } | { ok: false; c
 
 export type ApproveResult = { approved: true } | { approved: false; reason: string };
 
+export type WithdrawResult = { withdrawn: true } | { withdrawn: false; reason: string };
+
 export type FocusHint = { kind: "component"; componentId: string } | { kind: "heading"; componentId: string | null };
 
 export type ShowResult =
@@ -215,13 +227,13 @@ export type ShowResult =
     }
   | {
       ok: false;
-      refusal: Extract<InstantiateResult, { ok: false }> | { stage: "needs-recheck"; reason: string } | { stage: "outcome-pending"; reason: string; key: string };
+      refusal: Extract<InstantiateResult, { ok: false }> | { stage: "needs-recheck"; reason: string } | { stage: "withdrawn"; reason: string } | { stage: "outcome-pending"; reason: string; key: string };
       kept: Instance | null;
     };
 
 export interface HostLogEntry {
   at: number;
-  kind: "show" | "refused-show" | "accepted" | "refused" | "approved" | "refused-approval" | "settled" | "refused-settle";
+  kind: "show" | "refused-show" | "accepted" | "refused" | "approved" | "refused-approval" | "withdrawn" | "restored" | "settled" | "refused-settle";
   surfaceId?: string;
   name?: string;
   code?: string;
@@ -240,8 +252,18 @@ export interface Host {
   commitments(): Commitment[];
   /** Replace the governor (a contract, rule or toolchain change). Approvals are judged against its pins at once. */
   setGovernor(governor: Governor): void;
-  /** Accepts only an approval recheck issued, for that composition. */
+  /** Accepts only an approval recheck issued, for that composition. Refused while its approval is withdrawn. */
   approve(compositionId: string, approval: Approval): ApproveResult;
+  /**
+   * A person withdraws the composition's approval: nothing new is shown from it and nothing on a surface already
+   * shown is accepted. The definition is not touched. Withdrawal is not supersession: it names this composition
+   * as governed here, and no other version is authorized in its place.
+   */
+  withdraw(compositionId: string): WithdrawResult;
+  /** Whether the composition's approval is withdrawn on this host. */
+  isWithdrawn(compositionId: string): boolean;
+  /** A person restores a withdrawn approval, with an approval recheck issued after the withdrawal. */
+  restore(compositionId: string, approval: Approval): ApproveResult;
   show(compositionId: string, input: { parameters?: Json; data?: Json; state?: string; focused?: string | null }): Promise<ShowResult>;
   act(event: ActionEvent): ActResult;
   /** Report what is known of a commitment's outcome. */
@@ -275,6 +297,8 @@ export async function createHost(options: { session?: string; governor: Governor
   const sensitiveNames = { inputs: [...compositions.values()].flatMap((c) => c.inputs.filter((i) => i.sensitive)) };
 
   const approvals = new Map<string, Approval>();
+  /** Withdrawn compositions, with the latest issue at the moment of withdrawal. */
+  const withdrawals = new Map<string, number>();
   let counter = 0;
   let current: Instance | null = null;
   /** The latest non-sensitive values typed on the current surface: what a replacement can carry. */
@@ -312,8 +336,33 @@ export async function createHost(options: { session?: string; governor: Governor
       if (approval.pins.composition !== compositionId) return refuse(`the approval is for '${approval.pins.composition}', not '${compositionId}'`);
       const governed = compositions.get(compositionId)!;
       if (approval.pins.version !== governed.version) return refuse(`the approval is for v${approval.pins.version} of '${compositionId}'; this host governs v${governed.version}`);
+      if (withdrawals.has(compositionId)) return refuse(`the approval of '${compositionId}' was withdrawn; only restore, with a check issued after the withdrawal, authorizes it again`);
       approvals.set(compositionId, approval);
       log.push({ at: ++seq, kind: "approved", name: compositionId });
+      return { approved: true };
+    },
+    withdraw(compositionId) {
+      if (!compositions.has(compositionId)) return { withdrawn: false, reason: `unknown composition '${compositionId}'` };
+      approvals.delete(compositionId);
+      withdrawals.set(compositionId, issueSeq);
+      log.push({ at: ++seq, kind: "withdrawn", name: compositionId });
+      return { withdrawn: true };
+    },
+    isWithdrawn: (compositionId) => withdrawals.has(compositionId),
+    restore(compositionId, approval) {
+      const refuse = (reason: string): ApproveResult => {
+        log.push({ at: ++seq, kind: "refused-approval", name: compositionId, reason });
+        return { approved: false, reason };
+      };
+      if (!withdrawals.has(compositionId)) return refuse(`the approval of '${compositionId}' is not withdrawn`);
+      if (!approval || typeof approval !== "object" || !issued.has(approval)) return refuse("an approval is accepted only as recheck issued it");
+      if ((issuedAt.get(approval) ?? 0) <= withdrawals.get(compositionId)!) return refuse("this check was issued before the withdrawal; restoring needs a new check");
+      if (approval.pins.composition !== compositionId) return refuse(`the approval is for '${approval.pins.composition}', not '${compositionId}'`);
+      if (approval.pins.version !== compositions.get(compositionId)!.version) return refuse(`the approval is for v${approval.pins.version} of '${compositionId}'; this host governs v${compositions.get(compositionId)!.version}`);
+      if (!samePins(approval.pins, pinsWith(governor, own.get(compositionId)!))) return refuse("the check was made against other rules or another toolchain; run it again");
+      withdrawals.delete(compositionId);
+      approvals.set(compositionId, approval);
+      log.push({ at: ++seq, kind: "restored", name: compositionId });
       return { approved: true };
     },
     show(compositionId, input) {
@@ -358,6 +407,11 @@ export async function createHost(options: { session?: string; governor: Governor
       const reason = `the outcome of '${open!.action}' (${open!.key}) is ${open!.status}; nothing replaces its surface until it is known`;
       log.push({ at: ++seq, kind: "refused-show", code: "outcome-pending", reason, key: open!.key });
       return { ok: false, refusal: { stage: "outcome-pending", reason, key: open!.key }, kept: current };
+    }
+    if (withdrawals.has(c.id)) {
+      const reason = `the approval of ${c.id} v${c.version} was withdrawn; nothing is shown from it until a person restores it`;
+      log.push({ at: ++seq, kind: "refused-show", code: "withdrawn", reason });
+      return { ok: false, refusal: { stage: "withdrawn", reason }, kept: current };
     }
     if (!approvalCurrent(c.id)) {
       const reason = approvals.has(c.id)
@@ -419,6 +473,7 @@ export async function createHost(options: { session?: string; governor: Governor
       return refuse("locked", `surface '${current.surfaceId}' accepted '${open.action}' (${open.status}); it accepts nothing more until it is replaced`, { key: open.key });
     }
     const c = compositions.get(current.composition)!;
+    if (withdrawals.has(c.id)) return refuse("withdrawn", `the approval of ${c.id} v${c.version} was withdrawn after surface '${current.surfaceId}' was shown; nothing on it runs`);
     if (!approvalCurrent(c.id)) return refuse("needs-recheck", `${c.id} needs a re-check against the current rules and toolchain`);
     // The surface itself must have been governed under the current approval's pins (R1A-REVIEW H1): a
     // re-approval under changed rules does not make a surface emitted under the old ones executable again.
