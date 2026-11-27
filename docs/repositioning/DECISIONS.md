@@ -91,3 +91,14 @@ The owner accepted the independent designer-first audit of D0 as the authoritati
 | 27 | Readability floors in the experimental workspace | 12 px labels and toolbar text, 14 px guide and inspector reading text, 44 px primary phone targets, contrast at least 4.5:1, sentence case preferred, a quieter workspace that recedes behind the design | The solid accent is for meaningful primary actions only. Draft status is said separately from passing checks. The legacy production application is not redesigned |
 | 28 | A neutral, customizable working environment | A product requirement before broad external designer evaluation | It covers type scale, face and weight, case and tracking, spacing and density, elevation and borders, semantic status colours, and an independent canvas surround, through the shared compiler plan ([THEME-INTEGRATION-PROPOSAL.md](THEME-INTEGRATION-PROPOSAL.md)), subject to its own authorization |
 | 29 | The Compositions panel and first run | The list comes before the guide, which stays compact and expandable and can be hidden at any time | Usability task 1 names Hotel results and still starts on Projects. A minimal contextual Library entry on the experimental Projects page is allowed; no landing-page redesign |
+
+## D0.1 acceptance and the first authoring increment (2026-11-27)
+
+The owner accepted D0 and D0.1 as the experimental workspace foundation. #129 is merged and verified in production. Engineering acceptance is not human usability validation: the sessions are still to be held.
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 30 | D0.1's layout trade-offs | Accepted | Readability, target sizes and hierarchy come before canvas-position targets. Kept: sentence-case workspace type, the minimum sizes, contextual onboarding, list prominence, the checks, approval and publication distinction, plain refusals, progressive disclosure, canvas first. Measurement references stay consistent |
+| 31 | Composition authoring A1 to A4 | Authorized after #129's production verification | Extend the workspace; no parallel editor, pipeline or shell. No template editing, input or action declaration, block promotion, Playground, publication, theme work or paid inference. Not merged or deployed without approval. Record: [m1/authoring/README.md](m1/authoring/README.md) |
+| 32 | An authoring walkthrough for designers | Prepared alongside the first-run script ([m1/authoring/AUTHORING-WALKTHROUGH.md](m1/authoring/AUTHORING-WALKTHROUGH.md)) | Human observations kept apart from tests and AI assessments; no one recruited or contacted; it may run alongside development |
+| 33 | Authoring before the shared theme compiler | Accepted | The neutral, customizable workspace stays a requirement before broad external designer evaluation (decision 28). The compiler's graduation into `dspack-gen` stays subject to its own authorization |

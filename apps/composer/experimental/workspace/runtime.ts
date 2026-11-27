@@ -24,11 +24,12 @@ import {
   type LintReport,
   type ScenarioResult,
   type Toolchain,
+  versionKey,
 } from "@dspack-studio/composer-core/compositions";
 import contractDoc from "../../astryx-project/astryx.dspack.json";
 import profileDoc from "../../astryx-project/astryx.profile.json";
 import sidecar from "../compositions/astryx.compositions.json";
-import { readRecord, withApproval, writeRecord, type KeyValueStore } from "./storage";
+import { readRecord, withApproval, writeRecord, type KeyValueStore, type ReadResult } from "./storage";
 
 type Json = Record<string, any>;
 
@@ -59,12 +60,61 @@ export interface LoadedLibrary {
   library: CompositionLibrary;
   /** Anything the loader or the version rules left out, as reasons. */
   issues: string[];
+  /** Where each version comes from: the packaged sample, or this device (authoring). Keyed `<id>@<version>`. */
+  origin: Map<string, "packaged" | "device">;
+  /** The packaged versions as loaded, before this device's changes. */
+  packaged: CompositionDefinition[];
+  /** What the two authoring records held when read, and how they read. */
+  stored: { drafts: CompositionDefinition[]; approved: CompositionDefinition[]; retired: string[]; status: { drafts: ReadResult<unknown>["status"]; versions: ReadResult<unknown>["status"] } };
 }
 
-export async function loadLibrary(): Promise<LoadedLibrary> {
+/**
+ * Whether one definition is a valid composition of the packaged reference: the same loader, contract and
+ * checks a packaged composition goes through (loadCompositions), so authoring adds no second validator.
+ */
+export async function definitionIssues(definition: CompositionDefinition): Promise<string[]> {
+  const probe = { compositionsSidecar: sidecar.compositionsSidecar, status: definition.status, reference: sidecar.reference, baseSha256: sidecar.baseSha256, blocks: [], compositions: [definition] };
+  const loaded = await loadCompositions(probe, { baseContract: contractDoc as Json });
+  if (loaded.usable.length === 1) return [];
+  return [...loaded.issues, ...loaded.disabled.flatMap((d) => d.issues)];
+}
+
+/**
+ * The packaged versions, with this device's authoring applied: versions approved here, drafts kept here (a
+ * draft created here, or an edited copy of a packaged draft), and packaged drafts discarded here. A stored
+ * version that no longer validates is left out and reported; the packaged versions are never changed.
+ */
+export async function loadLibrary(store: KeyValueStore | null = null): Promise<LoadedLibrary> {
   const loaded = await loadCompositions(sidecar, { baseContract: contractDoc as Json });
-  const { library, issues } = createLibrary(loaded.usable);
-  return { library, issues: [...loaded.issues, ...loaded.disabled.map((d) => `${d.composition}: ${d.issues.join("; ")}`), ...issues.map((i) => `${i.key}: ${i.message}`)] };
+  const drafts = readRecord("drafts", store);
+  const versions = readRecord("versions", store);
+  const issues = [...loaded.issues, ...loaded.disabled.map((d) => `${d.composition}: ${d.issues.join("; ")}`)];
+  const valid = async (list: CompositionDefinition[], what: string) => {
+    const kept: CompositionDefinition[] = [];
+    for (const c of list) {
+      const found = await definitionIssues(c);
+      if (found.length === 0) kept.push(c);
+      else issues.push(`${what} ${versionKey(c.id, c.version)} on this device was left out: ${found[0]}`);
+    }
+    return kept;
+  };
+  const approved = await valid(versions.value.approved, "approved version");
+  const approvedKeys = new Set(approved.map((c) => versionKey(c.id, c.version)));
+  // A draft left behind by an approval whose cleanup did not finish is superseded by the approved version.
+  const storedDrafts = (await valid(drafts.value.drafts, "draft")).filter((c) => !approvedKeys.has(versionKey(c.id, c.version)));
+  const replaced = new Set([...approvedKeys, ...storedDrafts.map((c) => versionKey(c.id, c.version)), ...versions.value.retired]);
+  const packaged = loaded.usable.filter((c) => !replaced.has(versionKey(c.id, c.version)));
+  const { library, issues: versionRules } = createLibrary([...packaged, ...approved, ...storedDrafts]);
+  const origin = new Map<string, "packaged" | "device">();
+  for (const c of packaged) origin.set(versionKey(c.id, c.version), "packaged");
+  for (const c of [...approved, ...storedDrafts]) origin.set(versionKey(c.id, c.version), "device");
+  return {
+    library,
+    issues: [...issues, ...versionRules.map((i) => `${i.key}: ${i.message}`)],
+    origin,
+    packaged: loaded.usable,
+    stored: { drafts: storedDrafts, approved, retired: versions.value.retired, status: { drafts: drafts.status, versions: versions.status } },
+  };
 }
 
 export interface VersionCheck {

@@ -9,7 +9,7 @@ import { createHost, recheck } from "./host";
 import { loadCompositions } from "./load";
 import type { CompositionDefinition } from "./schema";
 import { contract, datasets, governorFor, sidecarJson } from "./spike/fixtures";
-import { approvalRecord, approvalStatus, createLibrary, editComposition, versionKey, type ApprovalRecord } from "./versions";
+import { approvalRecord, approvalStatus, approveDraft, createLibrary, discardDraft, editComposition, versionKey, type ApprovalRecord } from "./versions";
 
 let g: Governor;
 let base: CompositionDefinition[];
@@ -160,5 +160,76 @@ describe("approvals belong to one exact version", () => {
     const refused = await host.show("hotel-results", { data: ds.three });
     expect(refused).toMatchObject({ ok: false, refusal: { stage: "needs-recheck" }, kept: { surfaceId: shown.instance.surfaceId } });
     expect(host.current()?.surfaceId).toBe(shown.instance.surfaceId);
+  });
+});
+
+describe("approving and discarding drafts (M1 authoring, A1 and A4)", () => {
+  it("approving a draft makes it an approved version of the same number; every other version is byte-identical", () => {
+    const { library } = createLibrary(base);
+    const before = JSON.stringify(library.entries.flatMap((e) => e.versions).filter((v) => !(v.id === "hotel-results" && v.version === 2)));
+    const r = approveDraft(library, "hotel-results", 2);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.approved.status).toBe("approved");
+    expect(r.approved.version).toBe(2);
+    expect(Object.isFrozen(r.approved)).toBe(true);
+    expect(r.library.entry("hotel-results")!.approved!.version).toBe(2);
+    expect(r.library.entry("hotel-results")!.draft).toBeNull();
+    expect(JSON.stringify(r.library.entries.flatMap((e) => e.versions).filter((v) => !(v.id === "hotel-results" && v.version === 2)))).toBe(before);
+    // The library it was given is unchanged.
+    expect(library.get("hotel-results", 2)!.status).toBe("draft");
+  });
+
+  it("the approved definition hashes differently, so the draft's approval does not carry over: it must be re-checked", async () => {
+    const { library } = createLibrary(base);
+    const draft = library.get("hotel-results", 2)!;
+    const checked = await recheck(g, draft);
+    expect(checked.approval).toBeDefined();
+    const r = approveDraft(library, "hotel-results", 2);
+    if (!r.ok) throw new Error(r.reason);
+    const host = await createHost({ governor: g, compositions: [r.approved] });
+    expect(host.approve("hotel-results", checked.approval!)).toEqual({ approved: true });
+    const shown = await host.show("hotel-results", { data: ds.three as never });
+    expect(shown.ok).toBe(false);
+    if (!shown.ok) expect(shown.refusal.stage).toBe("needs-recheck");
+    const again = await recheck(g, r.approved);
+    expect(again.approval!.pins.compositionSha256).not.toBe(checked.approval!.pins.compositionSha256);
+    host.approve("hotel-results", again.approval!);
+    expect((await host.show("hotel-results", { data: ds.three as never })).ok).toBe(true);
+  });
+
+  it("an approved version cannot be approved again or discarded; an unknown version is refused", () => {
+    const { library } = createLibrary(base);
+    expect(approveDraft(library, "hotel-results", 1)).toMatchObject({ ok: false });
+    expect(discardDraft(library, "hotel-results", 1)).toMatchObject({ ok: false });
+    expect(approveDraft(library, "hotel-results", 9)).toMatchObject({ ok: false });
+    expect(discardDraft(library, "nope", 1)).toMatchObject({ ok: false });
+  });
+
+  it("discarding a draft removes only the draft; a new draft can then be forked from the approved version", () => {
+    const { library } = createLibrary(base);
+    const r = discardDraft(library, "hotel-results", 2);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.library.get("hotel-results", 2)).toBeUndefined();
+    expect(JSON.stringify(r.library.get("hotel-results", 1))).toBe(JSON.stringify(library.get("hotel-results", 1)));
+    const forked = editComposition(r.library, "hotel-results", 1, (d) => void (d.summary = "Edited."));
+    expect(forked).toMatchObject({ ok: true, forked: true });
+    if (forked.ok) expect(forked.draft.version).toBe(2);
+  });
+
+  it("after approval, the next draft forks from the newest approved version, numbered above it", () => {
+    const { library } = createLibrary(base);
+    const approved = approveDraft(library, "hotel-results", 2);
+    if (!approved.ok) throw new Error(approved.reason);
+    const next = editComposition(approved.library, "hotel-results", 2, (d) => void (d.name = "Hotel results, compact"));
+    expect(next).toMatchObject({ ok: true, forked: true });
+    if (!next.ok) return;
+    expect(next.draft.version).toBe(3);
+    expect(next.library.entry("hotel-results")!.versions.map((v) => [v.version, v.status])).toEqual([
+      [1, "approved"],
+      [2, "approved"],
+      [3, "draft"],
+    ]);
   });
 });

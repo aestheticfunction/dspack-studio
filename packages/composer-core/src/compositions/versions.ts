@@ -133,6 +133,38 @@ export function editComposition(library: CompositionLibrary, id: string, version
   return { ok: true, library: next, draft: next.get(id, draft.version)!, forked };
 }
 
+export type ApproveDraftResult = { ok: true; library: CompositionLibrary; approved: CompositionDefinition } | { ok: false; reason: string };
+
+/**
+ * A person approves a draft (M1 authoring, A4): the draft becomes an approved version with the same number,
+ * which is then immutable like any other. Every other version, approved or not, is kept exactly as it was.
+ *
+ * This is the definition change only. The approved definition's hash differs from the draft's (its status
+ * is part of it), so no approval the draft held carries over: the caller re-checks the approved definition
+ * (recheck) before any host may use it, and records it only if that re-check passes.
+ */
+export function approveDraft(library: CompositionLibrary, id: string, version: number): ApproveDraftResult {
+  const target = library.get(id, version);
+  if (!target) return { ok: false, reason: `no version ${versionKey(id, version)}` };
+  if (target.status !== "draft") return { ok: false, reason: `${versionKey(id, version)} is already approved; approved versions do not change` };
+  const approved = { ...structuredClone(target), status: "approved" as const };
+  const others = library.entries.flatMap((e) => e.versions).filter((v) => !(v.id === id && v.version === version));
+  const { library: next, issues } = createLibrary([...others, approved]);
+  if (issues.length > 0) return { ok: false, reason: issues.map((i) => i.message).join("; ") };
+  return { ok: true, library: next, approved: next.get(id, version)! };
+}
+
+export type DiscardDraftResult = { ok: true; library: CompositionLibrary } | { ok: false; reason: string };
+
+/** Remove a draft (M1 authoring, A1). Approved versions are never removed. */
+export function discardDraft(library: CompositionLibrary, id: string, version: number): DiscardDraftResult {
+  const target = library.get(id, version);
+  if (!target) return { ok: false, reason: `no version ${versionKey(id, version)}` };
+  if (target.status !== "draft") return { ok: false, reason: `${versionKey(id, version)} is approved; approved versions are never discarded` };
+  const others = library.entries.flatMap((e) => e.versions).filter((v) => !(v.id === id && v.version === version));
+  return { ok: true, library: createLibrary(others).library };
+}
+
 /** The plain form of an approval, for storage and display. Never accepted by a host (see the module note). */
 export interface ApprovalRecord {
   composition: string;

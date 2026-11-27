@@ -1,6 +1,6 @@
 # M1 workspace increment: storage, versions and the Composition Library
 
-**Status:** Slices A and B merged (#126). Slice C, the Library, is merged (#127), as corrected after the independent review ([M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md)). The designer-first refinement **D0**, corrected after the independent audit as **D0.1**, is implemented for the owner's evaluation and not merged: [m1/d0/README.md](m1/d0/README.md) and [m1/d0/d01/README.md](m1/d0/d01/README.md). Nothing here is in the default build.
+**Status:** Slices A and B merged (#126). Slice C, the Library, is merged (#127), as corrected after the independent review ([M1-WORKSPACE-REVIEW.md](M1-WORKSPACE-REVIEW.md)). The designer-first refinement **D0** and **D0.1** are merged (#129): [m1/d0/README.md](m1/d0/README.md) and [m1/d0/d01/README.md](m1/d0/d01/README.md). The first **authoring** increment (A1 to A4: draft, edit, check, approve on this device) is implemented for evaluation, not merged: [m1/authoring/README.md](m1/authoring/README.md). Nothing here is in the default build.
 
 | Slice | What | Where |
 |---|---|---|
@@ -196,7 +196,7 @@ The owner's decisions on the review (§11) are recorded at the top of [M1-WORKSP
 
 ## Next: composition authoring, and preparing for M2
 
-Not before the owner has evaluated D0. Authoring (A1 to A4) is not authorized yet.
+Authoring A1 to A4 is implemented ([m1/authoring/README.md](m1/authoring/README.md)). What follows is the list as it stood before it.
 
 
 1. **Authoring, smallest first.**

@@ -3,7 +3,9 @@
 /**
  * The Composition Library: the first application integration of the approved canvas-first workspace
  * (docs/repositioning/prototypes/composer-workspace.html, owner decisions 11 and 18), refined designer-first
- * (D0, docs/repositioning/DESIGNER-FIRST-PROPOSAL.md). Read-only.
+ * (D0, docs/repositioning/DESIGNER-FIRST-PROPOSAL.md), with the first authoring increment (A1 to A4,
+ * docs/repositioning/m1/authoring/README.md): create and discard a draft, edit its details, parameters and
+ * examples (editors.tsx), run its checks, and approve it on this device (authoring.ts).
  *
  * What a designer meets first answers five questions: what am I designing, what does it look like, how does
  * it behave with different data, does it satisfy the design rules, and what can I do next. Ids, hashes,
@@ -14,16 +16,21 @@
  * canvas shows, rendering through Composer's own canvas and Astryx registry (the Preview path), the
  * refusal and needs-a-new-check states as the host reports them, and the selection and first-run guide kept
  * in experimental storage (storage.ts).
- * Not here: authoring (Compose), running flows and actions (Playground), publishing. They are named in the
- * header as not yet available, never offered as controls.
+ * Not here: structure editing (templates, states, inputs, actions), running flows and actions (Playground),
+ * publishing. They are named in the header as not yet available, never offered as controls.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { A2uiCanvas, type A2uiClientAction } from "@dspack-studio/a2ui-ingest";
 import {
+  createHost,
+  createSessionId,
   guardHolds,
+  instantiate,
   pinsFor,
+  redactEvent,
   samePins,
+  surfaceIdFor,
   versionKey,
   type CompositionDefinition,
   type Governor,
@@ -35,14 +42,18 @@ import {
 } from "@dspack-studio/composer-core/compositions";
 import { canvasScopeFor, registryFor } from "../../app/registries";
 import { checkVersion, governorFor, hostFor, loadLibrary, type LoadedLibrary, type VersionCheck } from "./runtime";
-import { RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
+import { approveVersion, createDraft, discardDraftVersion, editDraft, plainDataReason } from "./authoring";
+import { DetailsEditor, ExamplesEditor, ParametersEditor } from "./editors";
+import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
 
 type Json = Record<string, any>;
 type WhatIf = "none" | "four-options";
 type Layout = "wide" | "medium" | "narrow";
 type Panel = "library" | "inspector";
-type Tab = "design" | "checks";
+/** A draft adds an Examples tab; its Design tab is editable (M1 authoring). */
+type Tab = "design" | "examples" | "checks";
+type Notice = { tone: "ok" | "warn" | "bad"; text: string };
 
 // ---- Plain language ----------------------------------------------------------------------------------------
 
@@ -189,7 +200,18 @@ export function LibraryWorkspace() {
   const canvasHeading = useRef<HTMLHeadingElement>(null);
   const toggles = useRef<Record<Panel, HTMLButtonElement | null>>({ library: null, inspector: null });
   const panels = useRef<Record<Panel, HTMLElement | null>>({ library: null, inspector: null });
-  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ design: null, checks: null });
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ design: null, examples: null, checks: null });
+  // Authoring (A1 to A4): the version being checked, a notice for the last authoring step, and an open
+  // confirmation. Edits run one at a time against the latest library, so fast typing never loses a change.
+  const [checking, setChecking] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [confirm, setConfirm] = useState<"approve" | "discard" | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const readyRef = useRef<Ready | null>(null);
+  const editQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const lastValid = useRef(new Map<string, Instance>());
+  const previewSession = useRef(createSessionId());
+  const previewCounter = useRef(0);
   const guideRef = useRef<HTMLElement>(null);
   const actionSeen = useRef(false);
   const chipsRef = useRef<HTMLDivElement>(null);
@@ -214,7 +236,7 @@ export function LibraryWorkspace() {
         const stored = readRecord("library", store);
         const onboarding = readRecord("onboarding", store);
         const governor = await governorFor("none");
-        const loaded = await loadLibrary();
+        const loaded = await loadLibrary(store);
         const checks = new Map<string, VersionCheck>();
         const hosts = new Map<string, Host>();
         for (const entry of loaded.library.entries) {
@@ -265,10 +287,13 @@ export function LibraryWorkspace() {
     }
   }, [layout]);
 
+  readyRef.current = ready;
   const definition: CompositionDefinition | undefined = ready && prefs.composition && prefs.version ? ready.loaded.library.get(prefs.composition, prefs.version) : undefined;
   const key = definition ? versionKey(definition.id, definition.version) : "";
   // One authoritative result per version and rule set; undefined means not checked under these rules yet.
   const check = ready?.checks.get(whatIf)?.get(key);
+  // A draft's check counts only for the exact definition it checked: an edit makes a new definition (A3).
+  const checkCurrent = !!check && check.definition === definition;
   const scenario = definition?.scenarios.find((s) => s.id === prefs.scenario) ?? definition?.scenarios[0];
 
   const persist = useCallback((next: LibraryPrefs) => {
@@ -277,20 +302,47 @@ export function LibraryWorkspace() {
   }, []);
 
   // Show the selection through its version's host. Late answers to earlier selections are dropped.
+  // A draft edited since its last check has no approval to show it with; it is previewed instead, through the
+  // same pipeline (instantiate), labelled as not checked, with the last valid preview kept when an edit cannot
+  // be shown (A2). Nothing runs from a preview: actions only ever show what they would send.
+  const preview = !!definition && definition.status === "draft" && whatIf === "none" && !(checkCurrent && check?.approval);
   useEffect(() => {
     if (!ready || !definition || !scenario) return;
     const mine = ++request.current;
-    const host = ready.hosts.get(key)!;
     setShowing(true);
     setLastAction(null);
-    void host.show(definition.id, { data: scenario.data as Json, ...(prefs.state ? { state: prefs.state } : {}) }).then((r) => {
+    const input = { data: scenario.data as Json, ...(prefs.state ? { state: prefs.state } : {}) };
+    const what = `${definition.name}, version ${definition.version}, with ${scenarioName(scenario, definition.id)}`;
+    if (preview) {
+      const governor = ready.governors.get("none")!;
+      void instantiate(governor, definition, { surfaceId: surfaceIdFor(definition.id, previewSession.current, ++previewCounter.current), data: input.data, state: input.state }).then((r) => {
+        if (mine !== request.current) return;
+        if (r.ok) lastValid.current.set(key, r.instance);
+        setShown((r.ok ? { ok: true, instance: r.instance } : { ok: false, refusal: r, kept: lastValid.current.get(key) ?? null }) as ShowResult);
+        setPreviewing(true);
+        setShowing(false);
+        setAnnounce(r.ok ? `Previewing ${what}, not checked yet.` : `${what} cannot be shown: ${plainRationale(r.reason) ?? r.stage}.`);
+      });
+      return;
+    }
+    void (async () => {
+      // A draft edited since its last check has no host until its checks run; under a rule try-out it gets an
+      // unapproved one, which shows nothing new until checked (needs-recheck), as every version does there.
+      let host = ready.hosts.get(key);
+      if (!host) {
+        host = await createHost({ governor: ready.governors.get(whatIf)!, compositions: [definition] });
+        ready.hosts.set(key, host);
+      }
+      return host.show(definition.id, input);
+    })().then((r) => {
       if (mine !== request.current) return;
+      if (r.ok) lastValid.current.set(key, r.instance);
       setShown(r);
+      setPreviewing(false);
       setShowing(false);
-      const what = `${definition.name}, version ${definition.version}, with ${scenarioName(scenario, definition.id)}`;
       setAnnounce(r.ok ? `Showing ${what}.` : `${what} is not shown: ${r.refusal.stage === "needs-recheck" ? "it needs a new check" : "the design rules refuse it"}.`);
     });
-  }, [ready, key, scenario?.id, prefs.state, whatIf]);
+  }, [ready, key, definition, scenario, prefs.state, whatIf, preview]);
 
   const focusCanvasOnPhone = () => {
     if (layout === "narrow") {
@@ -361,7 +413,8 @@ export function LibraryWorkspace() {
     for (const e of ready.loaded.library.entries) {
       for (const v of e.versions) {
         const k = versionKey(v.id, v.version);
-        const host = ready.hosts.get(k)!;
+        const host = ready.hosts.get(k);
+        if (!host) continue;
         host.setGovernor(governor);
         const issued = ready.checks.get(next)?.get(k)?.approval;
         if (issued && samePins(issued.pins, await pinsFor(governor, v))) host.approve(v.id, issued);
@@ -370,17 +423,135 @@ export function LibraryWorkspace() {
     setWhatIf(next);
   };
 
+  /**
+   * Run checks (A3): re-check every example of the selected version under the current rules. A draft gets a
+   * fresh host for the exact definition checked, approved only if every example behaves as expected.
+   */
   const recheckNow = async () => {
     if (!ready || !definition) return;
     const governor = ready.governors.get(whatIf)!;
+    setChecking(key);
+    setNotice(null);
+    setAnnounce("Running the checks…");
     // A try-out is never stored: its check writes no record, and it is kept only for this session.
-    const result = await checkVersion(governor, definition, whatIf === "none" ? browserStore() : null);
-    if (result.approval) ready.hosts.get(key)!.approve(definition.id, result.approval);
-    const forRules = ready.checks.get(whatIf) ?? new Map<string, VersionCheck>();
+    const [result] = await Promise.all([checkVersion(governor, definition, whatIf === "none" ? browserStore() : null), new Promise((r) => setTimeout(r, 250))]);
+    const latest = readyRef.current ?? ready;
+    if (definition.status === "draft") latest.hosts.set(key, await hostFor(governor, result));
+    else if (result.approval) latest.hosts.get(key)!.approve(definition.id, result.approval);
+    const forRules = latest.checks.get(whatIf) ?? new Map<string, VersionCheck>();
     forRules.set(key, result);
-    ready.checks.set(whatIf, forRules);
+    latest.checks.set(whatIf, forRules);
+    setChecking(null);
+    const failed = result.scenarios.filter((x) => !x.matches).length;
+    setAnnounce(result.approval ? `Checks pass: all ${result.scenarios.length} examples behave as expected.` : `Checks fail: ${failed} of ${result.scenarios.length} examples do not behave as expected.`);
     // A new object, so the selection is shown again through the (possibly re-approved) host.
-    setReady({ ...ready });
+    setReady({ ...latest });
+  };
+
+  // ---- Authoring (A1, A2, A4) ---------------------------------------------------------------------------------
+
+  /**
+   * Put a new library in place. A rebuilt library holds fresh frozen copies of every version, so versions are
+   * compared by content: an unchanged version keeps its host and its checks (re-pointed at the new copy); a
+   * changed or removed one loses both, and must be checked again.
+   */
+  const adopt = (current: Ready, loaded: LoadedLibrary): Ready => {
+    const next: Ready = { ...current, loaded };
+    for (const e of current.loaded.library.entries)
+      for (const v of e.versions) {
+        const k = versionKey(v.id, v.version);
+        const now = loaded.library.get(v.id, v.version);
+        if (now && JSON.stringify(now) === JSON.stringify(v)) {
+          for (const m of next.checks.values()) {
+            const c = m.get(k);
+            if (c && c.definition === v) m.set(k, { ...c, definition: now });
+          }
+        } else {
+          next.hosts.delete(k);
+          for (const m of next.checks.values()) m.delete(k);
+        }
+      }
+    return next;
+  };
+
+  /** Open the inspector without touching the stored selection (the caller persists it). */
+  const showInspector = () => {
+    if (open.inspector) return;
+    setOpen(layout === "wide" ? { ...open, inspector: true } : { library: false, inspector: true });
+    if (layout === "narrow") setTimeout(() => panels.current.inspector?.focus(), 0);
+  };
+
+  const startDraft = async () => {
+    if (!ready || !definition) return;
+    const r = await createDraft(ready.loaded, definition.id, browserStore());
+    if (!r.ok) return setNotice({ tone: "bad", text: sentence(r.reason) });
+    setReady(adopt(ready, r.loaded));
+    persist({ ...prefs, version: r.version, scenario: null, state: null, panel: "inspector" });
+    setTab("design");
+    showInspector();
+    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `Draft v${r.version} created from v${definition.version}. v${definition.version} stays approved and unchanged.` });
+    setAnnounce(`Draft v${r.version} created. Edit it in the inspector.`);
+  };
+
+  const openDraft = (version: number) => {
+    persist({ ...prefs, version, state: null });
+    setAnnounce(`Showing draft v${version}.`);
+  };
+
+  /**
+   * One edit to the selected draft (A2), queued after any edit still being applied, and applied to the latest
+   * library. Returns the reason when the edit is not a valid composition; nothing is changed then.
+   */
+  const applyEdit = (edit: (draft: CompositionDefinition) => void): Promise<string | null> => {
+    if (!definition || definition.status !== "draft") return Promise.resolve("only a draft can be edited");
+    const { id, version } = definition;
+    const run = editQueue.current.then(async () => {
+      const current = readyRef.current;
+      if (!current) return "not loaded";
+      const r = await editDraft(current.loaded, id, version, edit, browserStore());
+      if (!r.ok) return sentence(r.reason);
+      const next = adopt(current, r.loaded);
+      readyRef.current = next;
+      setReady(next);
+      setNotice(r.warning ? { tone: "warn", text: r.warning } : null);
+      return null;
+    });
+    editQueue.current = run.catch(() => undefined);
+    return run;
+  };
+
+  const discardNow = async () => {
+    if (!ready || !definition) return;
+    const r = await discardDraftVersion(ready.loaded, definition.id, definition.version, browserStore());
+    setConfirm(null);
+    if (!r.ok) return setNotice({ tone: "bad", text: sentence(r.reason) });
+    const entry = r.loaded.library.entry(definition.id);
+    setReady(adopt(ready, r.loaded));
+    lastValid.current.delete(key);
+    persist({ ...prefs, version: entry?.approved?.version ?? entry?.versions[0]?.version ?? null, scenario: null, state: null });
+    setTab("design");
+    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `Draft v${definition.version} discarded. The approved versions are unchanged.` });
+    setAnnounce(`Draft v${definition.version} discarded.`);
+    setTimeout(() => canvasHeading.current?.focus(), 0);
+  };
+
+  const approveNow = async () => {
+    if (!ready || !definition) return;
+    const governor = ready.governors.get("none")!;
+    const r = await approveVersion(ready.loaded, governor, definition.id, definition.version, ready.checks.get("none")?.get(key), browserStore());
+    setConfirm(null);
+    if (!r.ok) {
+      setNotice({ tone: "bad", text: `Not approved: ${r.reason}.` });
+      setAnnounce(`Not approved: ${r.reason}.`);
+      return;
+    }
+    const next = adopt(ready, r.loaded);
+    const result: VersionCheck = { definition: r.approved, approval: r.approval, scenarios: r.scenarios, previous: { status: "none" } };
+    next.hosts.set(key, await hostFor(governor, result));
+    next.checks.get("none")!.set(key, result);
+    setReady({ ...next });
+    setNotice({ tone: r.warning ? "warn" : "ok", text: r.warning ?? `v${definition.version} is approved on this device. It cannot change now; v${(ready.loaded.library.entry(definition.id)?.approved?.version ?? 1)} stays available. It is not published.` });
+    setAnnounce(`Version ${definition.version} approved on this device.`);
   };
 
   const instanceForLabels = shown?.ok ? shown.instance : null;
@@ -389,9 +560,11 @@ export function LibraryWorkspace() {
       if (!ready || !definition) return;
       actionSeen.current = true;
       const a = action as unknown as { name: string; surfaceId: string; sourceComponentId: string; context?: Json };
-      const host = ready.hosts.get(key)!;
-      // Shown in its recordable form only: a sensitive value is replaced, never displayed or kept.
-      const recordable = host.redact({ name: a.name, surfaceId: a.surfaceId, sourceComponentId: a.sourceComponentId, context: a.context ?? {} });
+      const host = ready.hosts.get(key);
+      // Shown in its recordable form only: a sensitive value is replaced, never displayed or kept. A preview has no
+      // host yet; the same redaction applies, from the definition's own sensitive inputs.
+      const event = { name: a.name, surfaceId: a.surfaceId, sourceComponentId: a.sourceComponentId, context: a.context ?? {} };
+      const recordable = host ? host.redact(event) : redactEvent(event, definition);
       const declared = definition.actions.find((x) => x.name === a.name);
       const label = controlLabel(instanceForLabels, a.sourceComponentId);
       setLastAction({ name: a.name, label, context: recordable.context, consequential: !!declared?.consequential });
@@ -490,9 +663,9 @@ export function LibraryWorkspace() {
           <summary>Coming next</summary>
           <div className="cl-head__pop" role="note">
             <p>
-              <strong>Compose</strong>, <strong>Playground</strong> and <strong>Publish</strong> are not available yet.
+              <strong>Editing a composition&rsquo;s structure</strong>, <strong>Playground</strong> and <strong>Publish</strong> are not available yet.
             </p>
-            <p>Today the Library lets you look at compositions, try them with different data and see whether they pass the design rules. Creating and editing your own comes with authoring.</p>
+            <p>Today you can look at compositions, try them with different data, and make a draft: change its details and examples, run its checks and approve it on this device.</p>
           </div>
         </details>
       </span>,
@@ -610,7 +783,7 @@ export function LibraryWorkspace() {
               </li>
             ))}
           </ol>
-          <p className="cl-dim">Creating your own compositions comes with authoring, which is not available yet.</p>
+          <p className="cl-dim">To change a composition, choose “Create draft” on an approved version. Changing its structure is not available yet.</p>
           <button className="cl-tool" onClick={dismissGuide} data-testid="guide-dismiss">
             Hide the guide
           </button>
@@ -622,7 +795,7 @@ export function LibraryWorkspace() {
       )}
       {layout === "narrow" && (
         <p className="cl-dim" data-testid="coming-next-narrow">
-          Coming next: Compose, Playground and Publish are not available yet.
+          Coming next: editing structure, Playground and Publish are not available yet.
         </p>
       )}
       {ready.loaded.issues.length > 0 && (
@@ -640,8 +813,13 @@ export function LibraryWorkspace() {
 
   // ---- Canvas -----------------------------------------------------------------------------------------------
 
-  const changes = definition ? VERSION_CHANGES[`${definition.id}@${definition.version}`] : undefined;
+  const origin = definition ? ready.loaded.origin.get(key) : undefined;
+  // What a draft changes from the approved version it follows: the packaged sample's own wording, or, for a
+  // draft made or edited here, worked out from the two definitions (presentation.ts).
+  const changes = definition?.status === "draft" ? (origin === "packaged" ? VERSION_CHANGES[key] : entry?.approved ? { summary: describeChanges(entry.approved, definition) } : undefined) : undefined;
   const approvedVersion = entry?.approved?.version;
+  const draftState = definition?.status === "draft" ? (checking === key ? "checking" : !checkCurrent ? "unchecked" : check?.approval ? "pass" : "fail") : null;
+  const draftLabel = { checking: "Checking…", unchecked: "Not checked", fail: "Checks fail", pass: "Not approved" } as const;
   const toolbar = definition && entry && (
     <div className="cl-toolbar">
       {/* One head row: what this is and its status on the left, view controls on the right. The view controls
@@ -651,7 +829,18 @@ export function LibraryWorkspace() {
           {definition.name}
         </h2>
         <div className="cl-toolbar__versions">
-          {entry.versions.length > 1 ? (
+          {entry.versions.length > 2 ? (
+            <label className="cl-version-select">
+              <span className="cl-sr">Version</span>
+              <select className="af-select cl-input" value={definition.version} onChange={(e) => persist({ ...prefs, version: Number(e.target.value), state: null })} data-testid="version-select">
+                {[...entry.versions].reverse().map((v) => (
+                  <option key={v.version} value={v.version}>
+                    v{v.version} {v.status === "approved" ? (ready.loaded.origin.get(versionKey(v.id, v.version)) === "device" ? "Approved on this device" : "Approved") : "Draft"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : entry.versions.length > 1 ? (
             <fieldset className="cl-seg">
               <legend className="cl-sr">Version</legend>
               {entry.versions.map((v) => (
@@ -677,27 +866,38 @@ export function LibraryWorkspace() {
             {showing ? " · updating…" : ""}
           </span>
           {definition.status === "draft" && (
-            <details className="cl-draft" data-testid="draft-note">
+            <details className="cl-draft" data-testid="draft-note" data-draft={draftState ?? undefined}>
               <summary>
-                <span className="cl-draft__status">Not approved{changes ? " ·" : ""}</span>
+                <span className="cl-draft__status">{draftLabel[draftState!]}{changes ? " ·" : ""}</span>
                 {changes ? " What changed" : ""}
               </summary>
               <div className="cl-draft__pop" role="note">
                 <p>
                   v{definition.version} is a draft, newer than approved v{approvedVersion}. It is not approved for use by agents: passing checks does not approve it. v{approvedVersion} stays approved and unchanged.
                 </p>
+                {draftState !== "pass" && <p data-testid="draft-check-state">{draftState === "checking" ? "Its checks are running." : draftState === "fail" ? "Its latest checks fail: open Checks in the inspector to see which examples, and why." : "It has changed since its last check. Run the checks before it can be approved."}</p>}
                 {changes && (
                   <>
                     <p className="cl-draft__lead">What changed from v{approvedVersion}</p>
-                    <ul data-testid="draft-changes">
-                      {changes.summary.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
+                    {changes.summary.length === 0 ? (
+                      <p>Nothing yet: it is the same as v{approvedVersion}.</p>
+                    ) : (
+                      <ul data-testid="draft-changes">
+                        {changes.summary.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    )}
                   </>
                 )}
               </div>
             </details>
+          )}
+          {/* An existing draft is one choice away in the version control beside this; only creating one needs a button. */}
+          {definition.status === "approved" && governed && !entry.draft && (
+            <button className="cl-tool cl-tool--primary" onClick={startDraft} data-testid="create-draft">
+              Create draft
+            </button>
           )}
           {layout === "narrow" && guide && (
             <span className="cl-guide-strip" data-testid="first-run-strip">
@@ -785,6 +985,8 @@ export function LibraryWorkspace() {
             onCanvasClick={onCanvasClick}
             fitWidth={fitWidth}
             clearState={() => persist({ ...prefs, state: null })}
+            editExample={definition.status === "draft" && governed && scenario ? () => editExample(scenario.id) : undefined}
+            previewing={previewing && preview}
           />
           {lastAction && (
             // R4: pinned to the bottom of the visible canvas, so the feedback is seen where the button was pressed.
@@ -814,20 +1016,36 @@ export function LibraryWorkspace() {
 
   // ---- Inspector --------------------------------------------------------------------------------------------
 
+  const tabs: Tab[] = definition?.status === "draft" ? ["design", "examples", "checks"] : ["design", "checks"];
+  const activeTab: Tab = tabs.includes(tab) ? tab : "design";
   const onTabKey = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
     e.preventDefault();
-    const next: Tab = e.key === "Home" ? "design" : e.key === "End" ? "checks" : tab === "design" ? "checks" : "design";
+    const at = tabs.indexOf(activeTab);
+    const next: Tab = e.key === "Home" ? tabs[0]! : e.key === "End" ? tabs[tabs.length - 1]! : tabs[(at + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]!;
     setTab(next);
     tabRefs.current[next]?.focus();
   };
+
+  /** Open the inspector at an example, to edit it (from a failing check or a refusal on the canvas). */
+  const editExample = (id: string) => {
+    persist({ ...prefs, scenario: id, state: null, panel: "inspector" });
+    setTab("examples");
+    showInspector();
+  };
+  const ruleLabel = (rule: string) => (rule === "data" ? "Invalid data (the data checks)" : rule === "state" ? "The chosen state does not fit (the state guard)" : (RULE_LEADS[rule] ? `${sentence(humanize(rule))}: ${RULE_LEADS[rule]}` : sentence(humanize(rule))));
+  const draftResults = definition?.status === "draft" && checkCurrent && check ? new Map(check.scenarios.map((x) => [x.id, x])) : null;
 
   const versionsList = entry && definition && (
     <ul className="cl-versions" data-testid="versions">
       {entry.versions.map((v) => (
         <li key={v.version} className={v.version === definition.version ? "cl-versions__on" : undefined}>
           <span className={`cl-badge${v.status === "approved" ? " cl-badge--ok" : ""}`}>v{v.version}</span>{" "}
-          {v.status === "approved" ? "Approved: a person approved this exact version, and it cannot change." : "Draft: not approved for use by agents."}
+          {v.status === "approved"
+            ? ready.loaded.origin.get(versionKey(v.id, v.version)) === "device"
+              ? "Approved on this device: a person approved this exact version here, and it cannot change."
+              : "Approved: a person approved this exact version, and it cannot change."
+            : "Draft: not approved for use by agents."}
           {v.version === definition.version ? " (shown)" : ""}
         </li>
       ))}
@@ -860,36 +1078,60 @@ export function LibraryWorkspace() {
             {definition.name} · v{definition.version}
           </p>
           <div className="cl-tabs" role="tablist" aria-label="Inspector views">
-            {(["design", "checks"] as Tab[]).map((t) => (
+            {tabs.map((t) => (
               <button
                 key={t}
                 role="tab"
                 id={`cl-tab-${t}`}
-                aria-selected={tab === t}
+                aria-selected={activeTab === t}
                 aria-controls={`cl-tabpanel-${t}`}
-                tabIndex={tab === t ? 0 : -1}
-                className={`cl-tab${tab === t ? " cl-tab--on" : ""}`}
+                tabIndex={activeTab === t ? 0 : -1}
+                className={`cl-tab${activeTab === t ? " cl-tab--on" : ""}`}
                 onClick={() => setTab(t)}
                 onKeyDown={onTabKey}
                 ref={(el) => void (tabRefs.current[t] = el)}
                 data-testid={`tab-${t}`}
               >
-                {t === "design" ? "Design" : "Checks"}
-                {t === "checks" && check && !check.approval ? <span className="cl-tab__flag"> · fails</span> : null}
+                {t === "design" ? (definition.status === "draft" ? "Details" : "Design") : t === "examples" ? "Examples" : "Checks"}
+                {t === "checks" && check && checkCurrent && !check.approval ? <span className="cl-tab__flag"> · fails</span> : null}
               </button>
             ))}
           </div>
 
-          <div role="tabpanel" id="cl-tabpanel-design" aria-labelledby="cl-tab-design" hidden={tab !== "design"} data-testid="tabpanel-design">
-            <Section title="What it is">
-              <p className="cl-text">{definition.summary}</p>
-            </Section>
+          {notice && (
+            <p className={`cl-notice cl-notice--${notice.tone}`} role={notice.tone === "bad" ? "alert" : "status"} data-testid="authoring-notice">
+              {notice.text}
+            </p>
+          )}
+          <div role="tabpanel" id="cl-tabpanel-design" aria-labelledby="cl-tab-design" hidden={activeTab !== "design"} data-testid="tabpanel-design">
+            {definition.status === "draft" ? (
+              <>
+                <DetailsEditor key={key} definition={definition} edit={applyEdit} />
+                <ParametersEditor key={`${key}-p`} definition={definition} edit={applyEdit} />
+              </>
+            ) : (
+              <Section title="What it is">
+                <p className="cl-text">{definition.summary}</p>
+              </Section>
+            )}
             <Section title="Versions">
               {versionsList}
+              {definition.status === "approved" && governed && entry && (
+                entry.draft ? (
+                  <button className="cl-tool" onClick={() => openDraft(entry.draft!.version)} data-testid="open-draft">
+                    Open draft v{entry.draft.version}
+                  </button>
+                ) : (
+                  <p className="cl-text">To change this composition, create a draft: v{definition.version} stays approved and unchanged while you work.</p>
+                )
+              )}
               <p className="cl-text" data-testid="publication-note">
                 <strong>Published for agents: no.</strong> Publishing is not available yet. Passing checks or being approved does not publish a version.
               </p>
             </Section>
+            {definition.status === "draft" && (
+              <p className="cl-dim cl-structure-note">Its structure, below, is not editable yet: the data it needs, what a person can do and what a person can type come from the approved version.</p>
+            )}
             <Section title="Data it needs">
               <ul className="cl-plain">
                 {[...definition.parameters, ...definition.data].map((p) => (
@@ -928,9 +1170,34 @@ export function LibraryWorkspace() {
             )}
           </div>
 
-          <div role="tabpanel" id="cl-tabpanel-checks" aria-labelledby="cl-tab-checks" hidden={tab !== "checks"} data-testid="tabpanel-checks">
+          {definition.status === "draft" && (
+            <div role="tabpanel" id="cl-tabpanel-examples" aria-labelledby="cl-tab-examples" hidden={activeTab !== "examples"} data-testid="tabpanel-examples">
+              <ExamplesEditor
+                key={key}
+                definition={definition}
+                edit={applyEdit}
+                selected={scenario}
+                select={(id) => persist({ ...prefs, scenario: id, state: null })}
+                contract={ready.governors.get("none")!.contract}
+                ruleLabel={ruleLabel}
+                nameOf={(s) => scenarioName(s, definition.id)}
+                refusingRule={shown && !shown.ok ? (((shown.refusal as Json).failures?.[0]?.rule as string | undefined) ?? ((shown.refusal as Json).stage === "data" ? "data" : undefined)) : undefined}
+                results={draftResults}
+              />
+            </div>
+          )}
+
+          <div role="tabpanel" id="cl-tabpanel-checks" aria-labelledby="cl-tab-checks" hidden={activeTab !== "checks"} data-testid="tabpanel-checks">
             <Section title="Design rules">
-              {!check ? (
+              {definition.status === "draft" && checking === key ? (
+                <p className="cl-text" data-testid="check-status" data-check="checking" role="status">
+                  Checking all {definition.scenarios.length} examples…
+                </p>
+              ) : definition.status === "draft" && governed && !checkCurrent ? (
+                <p className="cl-warn" data-testid="check-status" data-check="unchecked">
+                  {check ? "Changed since its last check." : "Not checked yet."} Run the checks to see whether every example behaves as expected.
+                </p>
+              ) : !check ? (
                 <p className="cl-warn" data-testid="check-status" data-check="unchecked">
                   Needs a new check: not yet checked under {rules}. Nothing new is shown from this version until its examples pass.
                 </p>
@@ -948,7 +1215,7 @@ export function LibraryWorkspace() {
                   Still a draft: passing checks does not approve it for agents. Approving a version is a separate, explicit decision.
                 </p>
               )}
-              {check && (
+              {check && !(definition.status === "draft" && !checkCurrent) && (
                 <table className="cl-table">
                   <thead>
                     <tr>
@@ -959,8 +1226,20 @@ export function LibraryWorkspace() {
                   </thead>
                   <tbody>
                     {check.scenarios.map((s) => (
-                      <tr key={s.id}>
-                        <td>{nameOf(s.id)}</td>
+                      <tr key={s.id} data-testid={`check-row-${s.id}`}>
+                        <td>
+                          {nameOf(s.id)}
+                          {!s.matches && definition.status === "draft" && checkCurrent && (
+                            <>
+                              <span className="cl-check-why" data-testid={`check-why-${s.id}`}>
+                                {whatToDo(s, ruleText)}
+                              </span>
+                              <button className="cl-tool cl-check-edit" onClick={() => editExample(s.id)} data-testid={`edit-example-${s.id}`}>
+                                Edit this example
+                              </button>
+                            </>
+                          )}
+                        </td>
                         <td>{s.expect === "refused" ? "Refused by a rule" : "Shown"}</td>
                         <td className={s.matches ? "cl-ok" : "cl-bad"}>
                           {s.matches ? "✓ As expected" : `✗ ${s.outcome === "ok" ? "Shown" : "Refused"}`}
@@ -970,7 +1249,7 @@ export function LibraryWorkspace() {
                   </tbody>
                 </table>
               )}
-              {check && governed && (
+              {check && governed && !(definition.status === "draft" && !checkCurrent) && (
                 <p className="cl-dim" data-testid="device-record">
                   {check.previous.status === "none"
                     ? "On this device: these checks are recorded for the first time."
@@ -1067,6 +1346,25 @@ export function LibraryWorkspace() {
               </p>
             </Section>
           )}
+          {(ready.loaded.stored.status.drafts === "malformed" || ready.loaded.stored.status.versions === "malformed" || ready.loaded.stored.status.drafts === "incompatible" || ready.loaded.stored.status.versions === "incompatible") && (
+            <p className="cl-notice cl-notice--warn" data-testid="authoring-storage-note">
+              Drafts or approvals saved on this device could not be read, so they are not shown. They are kept as they are.
+            </p>
+          )}
+          {definition.status === "draft" && governed && (
+            <AuthoringBar
+              definition={definition}
+              approvedVersion={approvedVersion}
+              state={draftState!}
+              failing={draftResults ? [...draftResults.values()].filter((x) => !x.matches).length : 0}
+              confirm={confirm}
+              setConfirm={setConfirm}
+              runChecks={recheckNow}
+              approve={approveNow}
+              discard={discardNow}
+              packaged={origin === "packaged"}
+            />
+          )}
         </>
       )}
     </aside>
@@ -1121,6 +1419,8 @@ function CanvasBody({
   onCanvasClick,
   fitWidth,
   clearState,
+  editExample,
+  previewing,
 }: {
   shown: ShowResult | null;
   definition: CompositionDefinition;
@@ -1136,6 +1436,10 @@ function CanvasBody({
   onCanvasClick: (target: HTMLElement) => void;
   fitWidth: boolean;
   clearState: () => void;
+  /** For a draft: open the inspector at this example (M1 authoring). */
+  editExample?: () => void;
+  /** The draft is shown as an unchecked preview of its edits. */
+  previewing: boolean;
 }) {
   const registry = useMemo(() => registryFor("astryx", catalog), [catalog]);
   const scope = canvasScopeFor("astryx");
@@ -1147,7 +1451,17 @@ function CanvasBody({
     </div>
   );
   if (!shown) return <p className="cl-loading" role="status">Showing the composition…</p>;
-  if (shown.ok) return frame(shown.instance);
+  if (shown.ok)
+    return previewing ? (
+      <>
+        <p className="cl-preview-note" data-testid="preview-note">
+          Preview of this draft: not checked yet.
+        </p>
+        {frame(shown.instance)}
+      </>
+    ) : (
+      frame(shown.instance)
+    );
 
   const refusal = shown.refusal as Json;
   const rule = refusal.failures?.[0]?.rule as string | undefined;
@@ -1200,10 +1514,35 @@ function CanvasBody({
     title = "Not shown, as expected";
     body = <p className="cl-refusal__lead">{ruleText(rule).lead ?? "A design rule refuses this data."}</p>;
     next = <p>This example exists to show the rule at work. Choose another example to see the composition.</p>;
+  } else if (refusal.stage === "data") {
+    title = "Not shown: this data does not fit the composition";
+    body = (
+      <ul className="cl-plain cl-refusal__lead" data-testid="refusal-data">
+        {plainDataReason(String(refusal.reason)).map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    );
+    next = editExample ? (
+      <button className="cl-tool" onClick={editExample} data-testid="refusal-edit-example">
+        Edit this example
+      </button>
+    ) : (
+      <p>What you can do: choose another example, or create a draft to change this one.</p>
+    );
   } else {
     title = "Not shown: this data breaks a design rule";
     body = <p className="cl-refusal__lead">{ruleText(rule).lead ?? String(refusal.reason)}</p>;
-    next = <p>What you can do: choose another example. Changing an example&rsquo;s data comes with authoring, which is not available yet.</p>;
+    next = editExample ? (
+      <>
+        <p>What you can do: change this example&rsquo;s data so the rule holds, or expect the rule to refuse it.</p>
+        <button className="cl-tool" onClick={editExample} data-testid="refusal-edit-example">
+          Edit this example
+        </button>
+      </>
+    ) : (
+      <p>What you can do: choose another example, or create a draft to change this one.</p>
+    );
   }
   return (
     <>
@@ -1215,13 +1554,152 @@ function CanvasBody({
       </div>
       {shown.kept && (
         <details className="cl-kept" data-testid="kept-instance">
-          <summary>Previous screen · not interactive</summary>
+          <summary>{previewing ? "Last valid preview · not interactive" : "Previous screen · not interactive"}</summary>
           <p className="cl-dim">In a running flow, the previous screen stays while the new data is refused. It is shown here for comparison only.</p>
           {frame(shown.kept, true)}
         </details>
       )}
     </>
   );
+}
+
+/** What a designer can do about an example that did not behave as expected (A3). */
+function whatToDo(s: { expect: "ok" | "refused"; outcome: "ok" | "refused"; refusedBy?: string; stage?: string; rules?: string[]; reason?: string }, ruleText: (rule: string | undefined) => { lead: string | null }): string {
+  const rule = s.rules?.[0];
+  if (s.expect === "ok") {
+    if (s.stage === "data") return `Its data does not fit: ${plainDataReason(s.reason).join("; ") || "invalid data"}. Correct the data.`;
+    if (s.stage === "state") return "Its state does not fit its data. Choose another state, or let the data choose it.";
+    return `A design rule refuses it: ${ruleText(rule).lead ?? humanize(rule ?? s.stage ?? "a rule")} Change its data so the rule holds, or expect the rule to refuse it.`;
+  }
+  if (s.outcome === "ok") return `It is shown, but it should be refused${s.refusedBy ? ` by “${humanize(s.refusedBy)}”` : ""}. Change its data so the rule applies, or expect it to be shown.`;
+  return `It is refused by “${humanize(rule ?? s.stage ?? "another check")}”, not by “${humanize(s.refusedBy ?? "the rule chosen")}”. Choose that rule, or change its data.`;
+}
+
+/**
+ * The draft's lifecycle actions, at the foot of the inspector (A3, A4, A1): one primary action for the state
+ * it is in, and confirmations written out in full before anything irreversible happens.
+ */
+function AuthoringBar({
+  definition,
+  approvedVersion,
+  state,
+  failing,
+  confirm,
+  setConfirm,
+  runChecks,
+  approve,
+  discard,
+  packaged,
+}: {
+  definition: CompositionDefinition;
+  approvedVersion: number | undefined;
+  state: "checking" | "unchecked" | "pass" | "fail";
+  failing: number;
+  confirm: "approve" | "discard" | null;
+  setConfirm: (c: "approve" | "discard" | null) => void;
+  runChecks: () => void;
+  approve: () => void;
+  discard: () => void;
+  packaged: boolean;
+}) {
+  const v = definition.version;
+  if (confirm === "approve") {
+    return (
+      <div className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-approve-title" data-testid="approve-confirm">
+        <p className="cl-bar__title" id="cl-approve-title">
+          Approve v{v} on this device?
+        </p>
+        <ul className="cl-plain">
+          <li>v{v} becomes approved and can no longer change. Further changes need a new draft.</li>
+          {approvedVersion !== undefined && <li>v{approvedVersion} and every other approved version stay available.</li>}
+          <li>The approval is recorded on this device only.</li>
+          <li>It is not published: no external agent can use it.</li>
+        </ul>
+        <div className="cl-bar__actions">
+          <button className="cl-tool cl-tool--primary" onClick={approve} data-testid="approve-confirm-button">
+            Approve v{v} on this device
+          </button>
+          <button className="cl-tool" onClick={() => setConfirm(null)} autoFocus>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+  if (confirm === "discard") {
+    return (
+      <div className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-discard-title" data-testid="discard-confirm">
+        <p className="cl-bar__title" id="cl-discard-title">
+          Discard draft v{v}?
+        </p>
+        <p className="cl-text">{packaged ? "This sample draft is withdrawn on this device. " : "Its changes and examples are removed from this device. "}The approved versions are not affected. This cannot be undone here.</p>
+        <div className="cl-bar__actions">
+          <button className="cl-tool cl-tool--danger" onClick={discard} data-testid="discard-confirm-button">
+            Discard draft v{v}
+          </button>
+          <button className="cl-tool" onClick={() => setConfirm(null)} autoFocus>
+            Keep the draft
+          </button>
+        </div>
+      </div>
+    );
+  }
+  const line =
+    state === "checking"
+      ? "Running the checks…"
+      : state === "unchecked"
+        ? "Changed since its last check. Run the checks before it can be approved."
+        : state === "fail"
+          ? `Checks fail: ${failing === 1 ? "1 example does" : `${failing} examples do`} not behave as expected. Fix ${failing === 1 ? "it" : "them"} in Examples, then run the checks again.`
+          : "Checks pass under the Astryx rules. It can be approved; it is not approved yet.";
+  return (
+    <div className="cl-bar" data-testid="authoring-bar" data-state={state}>
+      <p className={`cl-bar__line${state === "fail" ? " cl-bad" : state === "pass" ? " cl-ok" : ""}`} role="status">
+        {line}
+      </p>
+      <div className="cl-bar__actions">
+        {state === "pass" ? (
+          <button className="cl-tool cl-tool--primary" onClick={() => setConfirm("approve")} data-testid="approve">
+            Approve version…
+          </button>
+        ) : (
+          <button className="cl-tool cl-tool--primary" onClick={runChecks} disabled={state === "checking"} aria-disabled={state === "checking"} data-testid="run-checks">
+            {state === "checking" ? "Checking…" : "Run checks"}
+          </button>
+        )}
+        {state === "pass" && (
+          <button className="cl-tool" onClick={runChecks} data-testid="run-checks-again">
+            Run checks again
+          </button>
+        )}
+        <button className="cl-tool" onClick={() => setConfirm("discard")} data-testid="discard">
+          Discard draft…
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** What a draft changes from the approved version it follows, in a designer's words (M1 authoring). */
+function describeChanges(base: CompositionDefinition, draft: CompositionDefinition): string[] {
+  const paths = definitionDifferences(base, draft);
+  const out: string[] = [];
+  if (paths.includes("/name")) out.push(`The name reads “${draft.name}”.`);
+  if (paths.includes("/summary")) out.push("The summary is reworded.");
+  const params = new Set(paths.filter((p) => p.startsWith("/parameters[")).map((p) => Number(p.slice(12, p.indexOf("]")))));
+  for (const i of params) out.push(`The “${humanize(String((draft.parameters[i] ?? base.parameters[i])?.name ?? "parameter"))}” parameter changed.`);
+  const name = (s: Scenario, c: CompositionDefinition) => scenarioName(s, c.id);
+  const before = new Map(base.scenarios.map((s) => [s.id, s]));
+  const after = new Map(draft.scenarios.map((s) => [s.id, s]));
+  for (const [id, s] of after) {
+    const old = before.get(id);
+    if (!old) out.push(`New example: “${name(s, draft)}”.`);
+    else if (JSON.stringify({ ...old, title: undefined }) !== JSON.stringify({ ...s, title: undefined })) out.push(`The “${name(s, draft)}” example changed.`);
+    else if (old.title !== s.title && s.title && s.title !== name(old, base)) out.push(`The “${name(old, base)}” example is renamed “${s.title}”.`);
+  }
+  for (const [id, s] of before) if (!after.has(id)) out.push(`The “${name(s, base)}” example was removed.`);
+  if (paths.some((p) => !/^\/(name|summary|parameters\[|scenarios\[)/.test(p))) out.push("Its structure differs from the approved version.");
+  return out;
 }
 
 function Frame({ layout, mode, top, open, children }: { layout: Layout; mode: "fixed" | "flow"; top: number; open: Record<Panel, boolean>; children: ReactNode }) {
@@ -1324,6 +1802,58 @@ const CSS = `
 /* A pressed or open control is quiet: a raised surface and a lighter border, never the solid accent. */
 .cl-tool[aria-pressed="true"], .cl-tool[aria-expanded="true"] { background: var(--bg-2); border-color: var(--fg-dim); color: var(--fg); }
 .cl-icon { flex: none; }
+/* Authoring (M1 A1 to A4): the solid accent marks the one primary action of the moment. */
+.cl-tool--primary { background: var(--green); border-color: var(--green); color: var(--on-accent, #10120c); font-weight: 600; }
+.cl-tool--primary:hover { background: var(--green-bright); border-color: var(--green-bright); color: var(--on-accent, #10120c); }
+.cl-tool--danger { border-color: var(--err, #d9826b); color: var(--err, #d9826b); }
+.cl-tool:disabled { opacity: 0.6; cursor: not-allowed; }
+.cl-notice { font-size: 14px; line-height: 1.5; margin: 8px 0; padding: 8px 10px; border: 1px solid var(--line); border-left: 3px solid var(--fg-dim); border-radius: 4px; background: var(--bg); }
+.cl-notice--ok { border-left-color: var(--green-bright); }
+.cl-notice--warn { border-left-color: var(--warn, #c9a35a); }
+.cl-notice--bad { border-left-color: var(--err, #d9826b); color: var(--fg); }
+.cl-field { display: grid; gap: 4px; margin: 0 0 10px; min-width: 0; }
+.cl-field--check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: var(--cl-target); }
+.cl-field--check input { width: 18px; height: 18px; margin: 0; accent-color: var(--fg); }
+.cl-field__label { font-size: 13px; font-weight: 600; color: var(--fg); }
+.cl-field__hint { font-size: 12px; font-weight: 400; color: var(--fg-dim); margin: 0; }
+.cl-field__error { font-size: 13px; line-height: 1.45; color: var(--err, #d9826b); margin: 0; }
+.cl-input { width: 100%; min-height: var(--cl-target); font: inherit; font-size: 14px; box-sizing: border-box; }
+.cl-input--number { max-width: 10rem; }
+textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
+.cl-fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px 4px; margin: 0 0 10px; min-width: 0; }
+.cl-fieldset legend { font-size: 13px; font-weight: 600; color: var(--fg); padding: 0 4px; }
+.cl-fieldset--plain { border: 0; padding: 0; margin: 4px 0 10px; }
+.cl-fieldset--plain > legend { padding: 0; margin-bottom: 6px; }
+.cl-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.cl-items { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.cl-items__item { border: 1px solid var(--line-soft); border-radius: 4px; padding: 8px; }
+.cl-items__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.cl-items__title { font-size: 13px; font-weight: 600; color: var(--fg); min-width: 0; overflow-wrap: anywhere; }
+.cl-examples { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.cl-examples__row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+.cl-examples__row--on { border-color: var(--fg-dim); background: var(--bg-2); }
+.cl-examples__pick { flex: 1 1 10rem; min-width: 0; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; display: grid; gap: 2px; padding: 4px; min-height: var(--cl-target); }
+.cl-examples__name { font-size: 14px; font-weight: 600; color: var(--fg); }
+.cl-examples__meta { font-size: 13px; color: var(--fg-dim); }
+.cl-examples__actions { display: flex; gap: 6px; }
+.cl-example-edit { border-top: 1px solid var(--line-soft); }
+.cl-json-edit summary { cursor: pointer; font-size: 14px; color: var(--fg-dim); min-height: var(--cl-target); display: flex; align-items: center; }
+.cl-json { display: grid; gap: 6px; }
+.cl-json__text { font-family: var(--mono); font-size: 13px; min-height: 160px; }
+.cl-issues-box { border: 1px solid var(--line); border-left: 3px solid var(--warn, #c9a35a); border-radius: 4px; padding: 8px 10px; margin: 8px 0; font-size: 14px; line-height: 1.5; }
+.cl-issues-box p { margin: 0 0 4px; }
+.cl-issues-box ul { margin: 0; padding-left: 18px; }
+.cl-check-why { display: block; font-size: 14px; color: var(--fg-dim); margin: 4px 0; }
+.cl-check-edit { margin: 2px 0 4px; }
+.cl-structure-note { margin-top: 16px; }
+.cl-preview-note { max-width: 760px; margin: 0 auto 6px; font-size: 13px; color: var(--warn, #c9a35a); }
+.cl-version-select select { min-width: 11rem; }
+.cl-bar { position: sticky; bottom: -14px; z-index: 3; margin: 16px -16px -14px; padding: 12px 16px; background: var(--bg-1); border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.cl[data-layout="narrow"] .cl-bar { bottom: calc(-1 * max(16px, env(safe-area-inset-bottom))); margin-bottom: calc(-1 * max(16px, env(safe-area-inset-bottom))); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+.cl-bar__line { margin: 0; font-size: 14px; line-height: 1.45; }
+.cl-bar__title { margin: 0; font-size: 15px; font-weight: 600; color: var(--fg); }
+.cl-bar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cl-bar--confirm { border-top: 2px solid var(--fg-dim); }
 .cl-guide { border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin: 4px 0 12px; font-size: 14px; line-height: 1.5; background: var(--bg); outline: none; }
 .cl-guide:focus-visible { outline: 2px solid var(--green-bright); }
 .cl-guide p { margin: 0 0 8px; }
