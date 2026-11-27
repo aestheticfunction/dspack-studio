@@ -129,3 +129,17 @@ The owner accepted T0 to T4 as implemented and authorized the sequential release
 | 42 | The six workspace appearances and the five workspace choices | Kept | Experimental only. Readability, accessibility and phone interaction requirements still apply; appearance stays independent of the design system's styling and never alters definitions, governance outcomes, approval records or computed canvas styling. Human visual and usability acceptance is still outstanding |
 | 43 | Approval withdrawal (decision 34) | Scheduled before external agent consumption and publication | Withdrawal never mutates or deletes the approved definition |
 | 44 | Side-by-side version comparison and mobile split-preview authoring | Future usability enhancements | Neither is a prerequisite for the next advanced-authoring increment |
+
+## Theme integration closeout and advanced composition authoring (2026-11-27)
+
+The owner accepted the shared theme compiler release and its integration: dspack-gen 0.6.0 at `cd8755d`, af-site #131 at `18ca634`, dspack-studio #131 at `c40c83e`. Human visual and usability acceptance remains outstanding. The next increment, interaction authoring, is recorded in [m1/interaction/README.md](m1/interaction/README.md).
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 45 | af-site production deployment | A merge to af-site `main` deploys production automatically (Workers Builds), as #131 did | Future merge authorizations for af-site are deployment authorizations; the manual `deploy.yml` is no longer the only path |
+| 46 | dspack-gen 0.6.0 changelog wording ("0.6.0 — unreleased") | Corrected in the next appropriate release | No version is published only to correct it |
+| 47 | Interaction authoring | Authorized on an isolated branch: Structure view, canvas selection, contextual input and action authoring | Extends A1 to A4. No parallel schema, editor, shell or pipeline; no layout or template-tree editing; not merged or deployed without approval |
+| 48 | Element identity | Definition-level: a template node's literal id, or its state and template path | Rendered ids are never stored or used as identities; which item was picked comes from the instance's own binding evidence |
+| 49 | Private (sensitive) fields | A private field is masked on screen (the contract's `type: "password"`), and a version with an unmasked private field is not approved here | The packaged approved Hotel search v1 is immutable and stays unmasked; its drafts must mask before approval |
+| 50 | Safeguards in the editor | A confirmation cannot be turned off; a consequential action sends fixed values only; a repeated action sends its own item's values only | The editor never relaxes a safeguard; the host's stale-action refusal, once-per-surface and idempotency are unchanged |
+| 51 | Declarations are unique | One input per name and per node, one action per name and per node, an action named as the emitter names its node | Added to the core loader; every packaged composition already complies |

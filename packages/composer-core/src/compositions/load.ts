@@ -135,6 +135,20 @@ function eachBodyNodes(template: Json, list: string): { each: string; as: string
 /** Structural checks a composition must pass before any instance is made. */
 export function compositionIssues(c: CompositionDefinition, contract: Json): CompositionIssue[] {
   const issues: CompositionIssue[] = [];
+  // One declaration per name and per node: two inputs on one name would share /input/<name>, and two
+  // declarations on one node would compete for it. An action is named by its node, as the emitter names it.
+  const twice = (list: string[]) => list.find((x, i) => list.indexOf(x) !== i);
+  const inputName = twice(c.inputs.map((i) => i.name));
+  if (inputName) issues.push({ path: "inputs", message: `two inputs are named '${inputName}'` });
+  const inputNode = twice(c.inputs.map((i) => i.node));
+  if (inputNode) issues.push({ path: "inputs", message: `two inputs bind node '${inputNode}'` });
+  const actionName = twice(c.actions.map((a) => a.name));
+  if (actionName) issues.push({ path: "actions", message: `two actions are named '${actionName}'` });
+  const actionNode = twice(c.actions.map((a) => a.node));
+  if (actionNode) issues.push({ path: "actions", message: `two actions are declared on node '${actionNode}'` });
+  c.actions.forEach((a, n) => {
+    if (a.name !== slug(a.node)) issues.push({ path: `actions.${n}.name`, message: `the action on '${a.node}' is emitted as '${slug(a.node)}', not '${a.name}'` });
+  });
   const intents = new Set(((contract.intents ?? []) as Json[]).map((i) => String(i.id)));
   c.states.forEach((state, n) => {
     if (!intents.has(state.purpose)) issues.push({ path: `states.${n}.purpose`, message: `'${state.purpose}' is not an intent of this contract` });
