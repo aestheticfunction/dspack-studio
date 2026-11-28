@@ -184,6 +184,18 @@ The independent visual authoring review was accepted as the reference for this i
 | 69 | The draft's next step | Run checks and Approve beside the draft chip when the inspector is closed; Approve confirms in place | Approval keeps its existing confirmation and meaning |
 | 70 | Carried forward | Decision 56's withdrawal follow-ups and decisions 52 and 53's sensitive-data requirement are open | For the milestone before external agent consumption; not resolved by presentation work |
 
+## State, transition and dialog authoring (2026-11-28)
+
+These slices were authorized after #135 and #136 were verified. Record: [m1/states/README.md](m1/states/README.md).
+
+| # | Decision | Answer | Condition or limit |
+|---|---|---|---|
+| 71 | State authoring | Create, duplicate, rename, reorder and remove states, and set each state's purpose and condition, on drafts, through the existing schema (composer-core `states.ts`) | References follow in one step or the change is refused. Removal says what depends on the state first. The last state stays. A confirmation state is not duplicated |
+| 72 | Conditions | Typed controls over declared fields only: always, or all of *is given*, *is empty*, *has at least N items* (lists) | No expressions. States the data can never choose are reported |
+| 73 | Transitions | Represented as the schema allows: the states an action is sent from, its confirmation, and the conditions by which the data chooses the next state | A next-state declaration (`leadsTo`, intent only) is proposed in [m1/states/TRANSITIONS-PROPOSAL.md](m1/states/TRANSITIONS-PROPOSAL.md), awaiting approval |
+| 74 | Dialogs | Dialog and Confirmation dialog are insertable where the contract's rules hold: a confirmation only in a destructive state (one per state), a dialog elsewhere; never nested, never repeated | A confirmation is declared with its consequential action; generic action labels are refused |
+| 75 | Undo and state edits | State edits are not part of Undo (decision 62 unchanged) | An undo step conflicting with a later state edit is refused, with the reason |
+
 ## Block promotion (2026-11-28)
 
 Slice D of the advanced-authoring increment, authorized after #135 and #136 were verified. It is independent of slices A to C. Records: [m1/promotion/README.md](m1/promotion/README.md) and [m1/safeguards/README.md](m1/safeguards/README.md).

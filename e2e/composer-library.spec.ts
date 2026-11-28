@@ -211,7 +211,9 @@ test.describe("D0: designer-first", () => {
     await expect(page.getByTestId("versions")).toContainText("Approved: a person approved this exact version, and it cannot change.");
     await expect(page.getByTestId("versions")).toContainText("Draft: not approved for use by agents.");
     await expect(page.getByTestId("publication-note")).toContainText("Published for agents: no.");
-    await expect(design).toContainText("Reserve: sends the hotel id. Consequential: asks for confirmation first");
+    // What actions do (slice B): the reservation sends the hotel id and is asked for in its confirmation state.
+    await expect(page.getByTestId("action-flow-reserve")).toContainText("hotel id");
+    await expect(page.getByTestId("action-flow-reserve")).toContainText("Asked in Confirm");
     await page.getByTestId("tab-design").focus();
     await page.keyboard.press("ArrowRight");
     await expect(page.getByTestId("tab-checks")).toBeFocused();

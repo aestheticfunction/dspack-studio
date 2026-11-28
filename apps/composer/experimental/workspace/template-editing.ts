@@ -192,7 +192,7 @@ export const statesShowing = (c: CompositionDefinition, stateId: string, key: st
 
 // ---- Inserting components -----------------------------------------------------------------------------------
 
-export type Insertable = "text" | "badge" | "button" | "text-input" | "card" | "selectable-card";
+export type Insertable = "text" | "badge" | "button" | "text-input" | "card" | "selectable-card" | "dialog" | "alert-dialog";
 
 export const INSERTABLE: Array<{ component: Insertable; label: string; hint: string }> = [
   { component: "text", label: "Text", hint: "A line or paragraph of text." },
@@ -201,7 +201,12 @@ export const INSERTABLE: Array<{ component: Insertable; label: string; hint: str
   { component: "text-input", label: "Text field", hint: "Something a person types into." },
   { component: "card", label: "Card", hint: "A box that groups other elements." },
   { component: "selectable-card", label: "Selectable card", hint: "One option in a list a person chooses from." },
+  { component: "dialog", label: "Dialog", hint: "A window over the page, for information or a short form. Not for destructive confirmations." },
+  { component: "alert-dialog", label: "Confirmation dialog", hint: "Asks a person to confirm a destructive or irreversible action. It sends one consequential action, once." },
 ];
+
+/** Labels the contract forbids on a confirmation's action: it must say what it does (rule.alertdialog-action-label-specific). */
+export const GENERIC_CONFIRM_LABELS = ["OK", "Confirm", "Yes", "Continue"];
 
 /** Which components can go at a place, and why the others cannot. */
 export function insertOptions(c: CompositionDefinition, contract: Json, stateId: string, key: string, position: Position): Array<{ component: Insertable; label: string; hint: string; blocked?: string }> {
@@ -210,6 +215,19 @@ export function insertOptions(c: CompositionDefinition, contract: Json, stateId:
   const at = trail?.at(-1);
   const parent = position === "inside" ? at : trail?.at(-2);
   const within = position === "inside" ? [...(at?.within ?? []), ...(at?.kind === "repeat" ? [at.repeat!] : [])] : (at?.within ?? []);
+  // Dialogs (slice C): only where the contract's rules and the host's safeguards hold.
+  const overlay = new Set<Insertable>(["dialog", "alert-dialog"]);
+  const inDialog = (position === "inside" ? trail ?? [] : (trail ?? []).slice(0, -1)).some((n) => n.component === "dialog");
+  const destructive = state?.purpose === "destructive-action";
+  const hasConfirmation = !!state && JSON.stringify(state.template).includes('"component":"alert-dialog"');
+  const dialogBlocked = (component: Insertable): string | undefined => {
+    if (inDialog) return "A dialog is one layer: nothing that opens over the page goes inside it.";
+    if (within.length > 0) return "A dialog opens once, so it cannot be repeated for each item.";
+    if (component === "dialog" && destructive) return "A state that confirms a destructive action uses a confirmation dialog, not a dialog.";
+    if (component === "alert-dialog" && !destructive) return "A confirmation dialog belongs in a state whose purpose is Destructive action. Set the state's purpose first.";
+    if (component === "alert-dialog" && hasConfirmation) return "This state already asks for one confirmation; a state confirms one consequential action.";
+    return undefined;
+  };
   return INSERTABLE.filter((x) => (contract.components ?? {})[x.component]).map((x) => {
     let blocked: string | undefined;
     if (!at || (position !== "inside" && !parent)) blocked = "Nothing can be placed beside the outermost element.";
@@ -217,6 +235,7 @@ export function insertOptions(c: CompositionDefinition, contract: Json, stateId:
     else if (parent?.component === "list" && x.component !== "selectable-card") blocked = "A list holds selectable cards.";
     else if (x.component === "selectable-card" && parent?.component !== "list" && parent?.kind !== "repeat") blocked = "A selectable card goes in a list.";
     else if (x.component === "text-input" && within.length > 0) blocked = "A text field holds one value, so it cannot be repeated for each item.";
+    else if (overlay.has(x.component)) blocked = dialogBlocked(x.component);
     return { ...x, ...(blocked ? { blocked } : {}) };
   });
 }
@@ -237,6 +256,11 @@ function newElement(c: CompositionDefinition, component: Insertable, label: stri
       return { component: "card", children: [{ component: "text", props: { type: "body" }, text: text || "New card" }] };
     case "selectable-card":
       return { component: "selectable-card", props: { label: text || "New option" }, children: [{ component: "text", props: { type: "body" }, text: "Details" }] };
+    case "dialog":
+      return { component: "dialog", props: { purpose: "info" }, children: [{ component: "text", props: { type: "display-3" }, text: text || "Dialog title" }, { component: "text", props: { type: "body" }, text: "What this dialog says." }] };
+    case "alert-dialog":
+      // The contract requires a title, a description and a specific action label; the action is declared with it.
+      return { component: "alert-dialog", id: uniqueId(c, text || "confirm"), props: { title: `${text || "Delete this item"}?`, description: "Say what happens when this is confirmed, and what cannot be undone.", actionLabel: text || "Delete this item", cancelLabel: "Cancel" } };
   }
 }
 
@@ -247,12 +271,15 @@ export type InsertChange = { stateId: string; at: { key: string; position: Posit
  * so no button is ever left sending an undeclared action. Returns the new element's key.
  */
 export function applyInsert(draft: CompositionDefinition, change: InsertChange): { ok: true; key: string } | { ok: false; reason: string } {
+  if (change.component === "alert-dialog" && GENERIC_CONFIRM_LABELS.some((g) => g.toLowerCase() === change.label.trim().toLowerCase()))
+    return { ok: false, reason: `a confirmation's action says what it does, for example “Release the hold”, not “${change.label.trim()}”` };
   const node = newElement(draft, change.component, change.label);
   const r = insertNode(draft, change.stateId, change.at, node);
   if (!r.ok) return r;
-  if (change.component === "button") {
+  if (change.component === "button" || change.component === "alert-dialog") {
+    // A confirmation dialog's action is consequential (interaction.ts newAction): sent once, from this state only.
     applyActionChange(draft, { op: "declare", node: node.id });
-    if (!draft.actions.some((a) => a.node === node.id)) return { ok: false, reason: "the button's action could not be declared here" };
+    if (!draft.actions.some((a) => a.node === node.id)) return { ok: false, reason: `the ${change.component === "button" ? "button" : "confirmation"}'s action could not be declared here` };
   }
   if (change.component === "text-input") applyInputChange(draft, { op: "declare", node: node.id });
   return r;

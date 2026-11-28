@@ -31,3 +31,4 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [m1/promotion/README.md](m1/promotion/README.md) | Block promotion: a packaged block becomes a new draft composition; unresolved interactions block approval |
 | [m1/safeguards/README.md](m1/safeguards/README.md) | Authorization and sensitive-data requirements before agent-facing discovery, with a narrow implementation |
 | [m1/refinement/README.md](m1/refinement/README.md) | Professional authoring refinement: Structure rows and icons, the grouped toolbar, the component picker, side by side from 1280 px, version menu |
+| [m1/states/README.md](m1/states/README.md) | State, transition and dialog authoring: states and conditions, what actions do, dialogs; the next-state proposal |

@@ -220,8 +220,9 @@ test.describe("component picker", () => {
     await expect(picker).toContainText("Can be added here");
     await expect(picker).toContainText("Cannot go here");
     await expect(page.getByTestId("tt-component-text-input")).toBeDisabled();
-    // J3: only the supported vocabulary is offered.
-    for (const later of ["Dialog", "Table", "Dropdown menu", "Details list", "Confirmation dialog"]) await expect(picker).not.toContainText(later);
+    // J3: only the supported vocabulary is offered (dialogs arrived with state authoring, where they are safe).
+    for (const later of ["Table", "Dropdown menu", "Details list"]) await expect(picker).not.toContainText(later);
+    await expect(page.getByTestId("tt-component-alert-dialog")).toBeDisabled();
     // Escape closes and returns focus to Add.
     await page.keyboard.press("Escape");
     await expect(picker).toHaveCount(0);
