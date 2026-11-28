@@ -5,9 +5,9 @@
  * Text is edited as parts, fixed text and declared fields, chosen from lists: never typed as an expression.
  * Enums offer the contract's values; booleans are on or off. Each change is applied on Apply, as one edit.
  */
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CompositionDefinition, StructureNode } from "@dspack-studio/composer-core/compositions";
-import { editableContent, fieldsInScope, fromParts, toParts, type Part, type PropControl } from "./template-editing";
+import { booleanValue, editableContent, fieldsInScope, fromParts, toParts, type Part, type PropControl } from "./template-editing";
 import { describeTemplateValue } from "./structure-panel";
 
 type Json = Record<string, any>;
@@ -21,42 +21,32 @@ export interface ContentApi {
 export function ContentEditor({ definition, contract, node, states, api }: { definition: CompositionDefinition; contract: Json; node: StructureNode; states: string[]; api: ContentApi }) {
   const controls = editableContent(contract, node);
   const fields = fieldsInScope(definition, node);
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
-  useEffect(() => {
-    setError(null);
-    setDone(null);
-  }, [node.key, definition.version]);
+  // The result of the latest change, said directly under the control that made it (F6).
+  const [result, setResult] = useState<{ field: string; error: string | null; done: string | null } | null>(null);
+  useEffect(() => setResult(null), [node.key]);
   const set = async (c: PropControl, value: unknown) => {
-    setDone(null);
+    setResult(null);
     const problem = await api.set(c.name, value, c.label);
-    setError(problem);
-    if (!problem) setDone(`${c.label} changed.`);
+    setResult({ field: c.name, error: problem, done: problem ? null : value === undefined ? `${c.label} is not set: the design system's default applies.` : `${c.label} changed.` });
   };
+  const feedback = (name: string) => (result?.field === name ? <EditResult error={result.error} done={result.done} errorId="content-error" doneId="content-applied" /> : null);
   const current = (name: string) => (name === "text" ? node.text : node.props?.[name]);
   if (controls.length === 0) return <p className="cl-dim">This element has nothing to set here.</p>;
   return (
     <div className="cl-form" data-testid="content-editor">
       {states.length > 1 && <p className="cl-dim">This element appears in {states.length} states; a change here applies in all of them.</p>}
-      {controls.map((c) =>
-        c.kind === "text" ? (
-          <PartsEditor key={`${node.key}-${c.name}-${definition.version}`} control={c} value={current(c.name)} fields={fields} apply={(v) => set(c, v)} />
-        ) : c.kind === "enum" ? (
-          <EnumEditor key={`${node.key}-${c.name}-${definition.version}`} control={c} value={current(c.name)} apply={(v) => set(c, v)} />
-        ) : (
-          <BoolEditor key={`${node.key}-${c.name}-${definition.version}`} control={c} value={current(c.name)} apply={(v) => set(c, v)} />
-        ),
-      )}
-      {error && (
-        <p className="cl-field__error" role="alert" data-testid="content-error">
-          Not applied: {error}
-        </p>
-      )}
-      {done && !error && (
-        <p className="cl-ok" role="status" data-testid="content-applied">
-          {done} The canvas shows it, and the checks need to run again.
-        </p>
-      )}
+      {controls.map((c) => (
+        <div key={`${node.key}-${c.name}-${definition.version}`} className="cl-content__control">
+          {c.kind === "text" ? (
+            <PartsEditor control={c} value={current(c.name)} fields={fields} apply={(v) => set(c, v)} />
+          ) : c.kind === "enum" ? (
+            <EnumEditor control={c} value={current(c.name)} apply={(v) => set(c, v)} />
+          ) : (
+            <BoolEditor control={c} value={current(c.name)} apply={(v) => set(c, v)} />
+          )}
+          {feedback(c.name)}
+        </div>
+      ))}
     </div>
   );
 }
@@ -125,8 +115,8 @@ function EnumEditor({ control, value, apply }: { control: PropControl; value: un
       <label className="cl-field__label" htmlFor={id}>
         {control.label}
       </label>
-      <select id={id} className="af-select cl-input" value={typeof value === "string" ? value : ""} onChange={(e) => apply(e.target.value)} data-testid={`content-${control.name}`}>
-        <option value="">Not set (the design system's default)</option>
+      <select id={id} className="af-select cl-input" value={typeof value === "string" ? value : ""} onChange={(e) => apply(e.target.value === "" ? undefined : e.target.value)} data-testid={`content-${control.name}`}>
+        <option value="">{control.default !== undefined ? `Not set (the default, ${String(control.default)})` : "Not set (the design system's default)"}</option>
         {control.values!.map((v) => (
           <option key={v} value={v}>
             {v}
@@ -141,10 +131,35 @@ function BoolEditor({ control, value, apply }: { control: PropControl; value: un
   const id = useId();
   return (
     <div className="cl-check">
-      <input id={id} type="checkbox" checked={value === true} onChange={(e) => apply(e.target.checked ? true : "")} data-testid={`content-${control.name}`} />
+      <input id={id} type="checkbox" checked={value === undefined ? control.default === true : value === true} onChange={(e) => apply(booleanValue(control, e.target.checked))} data-testid={`content-${control.name}`} />
       <label htmlFor={id}>{control.label}</label>
     </div>
   );
+}
+
+/**
+ * The result of an edit, placed by the control that made it and brought into view, clear of the sticky bar
+ * (F6). A refusal is an alert; a success is a status message.
+ */
+export function EditResult({ error, done, errorId, doneId, suffix = " The canvas shows it, and the checks need to run again." }: { error: string | null; done: string | null; errorId: string; doneId: string; suffix?: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView?.({ block: "nearest" });
+  }, [error, done]);
+  if (error)
+    return (
+      <p className="cl-field__error cl-result" role="alert" data-testid={errorId} ref={ref}>
+        Not applied: {error}
+      </p>
+    );
+  if (done)
+    return (
+      <p className="cl-ok cl-result" role="status" data-testid={doneId} ref={ref}>
+        {done}
+        {suffix}
+      </p>
+    );
+  return null;
 }
 
 /** An element's id: give one to an element without, or rename it everywhere it is used. */

@@ -26,7 +26,7 @@ import {
   type InputChange,
 } from "./interaction";
 import { describeTemplateValue, elementName, elementSummary } from "./structure-panel";
-import { ContentEditor, IdentityEditor, type ContentApi } from "./content-editor";
+import { ContentEditor, EditResult, IdentityEditor, type ContentApi } from "./content-editor";
 
 type Json = Record<string, any>;
 
@@ -108,6 +108,9 @@ export function ElementInspector({
   };
   const inputChange = (change: InputChange, done: string) => run(inputProblem(definition, change), (d) => applyInputChange(d, change), done);
   const actionChange = (change: ActionChange, done: string) => run(actionProblem(definition, change), (d) => applyActionChange(d, change), done);
+
+  // The result of the latest input or action change, said in the group where it was made (F6).
+  const result = <EditResult error={error} done={applied} errorId="element-error" doneId="element-applied" suffix=" The checks need to run again before this draft can be approved." />;
 
   const shown = Object.entries({ ...(node.text !== undefined ? { text: node.text } : {}), ...(node.props ?? {}) }).filter(([k]) => !["variant", "type", "size", "items"].includes(k));
 
@@ -193,6 +196,7 @@ export function ElementInspector({
               )}
             </>
           )}
+          {result}
         </Group>
       )}
 
@@ -212,21 +216,12 @@ export function ElementInspector({
               )}
             </>
           )}
+          {result}
         </Group>
       )}
 
       {role.kind === "content" && node.kind === "element" && <p className="cl-dim">This element shows content only: a person cannot type into it or press it.</p>}
 
-      {error && (
-        <p className="cl-field__error" role="alert" data-testid="element-error">
-          Not applied: {error}
-        </p>
-      )}
-      {applied && !error && (
-        <p className="cl-ok" role="status" data-testid="element-applied">
-          {applied} The checks need to run again before this draft can be approved.
-        </p>
-      )}
       {!editable && (role.kind === "input" || role.kind === "action") && (
         <p className="cl-dim" data-testid="element-readonly">
           {definition.status === "approved" ? "This version is approved and cannot change. Create a draft to change what this element does." : "Changes are not available while a rule try-out is on."}

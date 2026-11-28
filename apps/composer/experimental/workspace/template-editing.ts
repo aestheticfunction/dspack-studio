@@ -43,6 +43,8 @@ export interface PropControl {
   kind: "text" | "enum" | "boolean";
   values?: string[];
   description?: string;
+  /** The design system's own value when the prop is not set. */
+  default?: unknown;
 }
 
 /** Props that are not edited as content: data-shaped props, and a field's type (masking follows "Private"). */
@@ -58,7 +60,7 @@ export function editableContent(contract: Json, node: StructureNode): PropContro
     if (NOT_CONTENT.has(name) || NOT_CONTENT.has(`${name}:${node.component}`)) continue;
     const kind = p.type === "enum" ? "enum" : p.type === "boolean" ? "boolean" : p.type === "string" ? "text" : null;
     if (!kind) continue;
-    out.push({ name, label: words(name), kind, ...(p.values ? { values: p.values as string[] } : {}), ...(p.description ? { description: String(p.description) } : {}) });
+    out.push({ name, label: words(name), kind, ...(p.values ? { values: p.values as string[] } : {}), ...(p.description ? { description: String(p.description) } : {}), ...(p.default !== undefined ? { default: p.default } : {}) });
   }
   return out;
 }
@@ -145,6 +147,9 @@ export function contentProblem(c: CompositionDefinition, contract: Json, change:
   for (const { structure } of nodes) {
     const control = editableContent(contract, structure).find((p) => p.name === change.field);
     if (!control) return `A ${words(structure.component ?? "element").toLowerCase()} has no “${words(change.field).toLowerCase()}” to set here.`;
+    // Not set: the prop is removed and the design system's default applies (F1, F2). Text is checked below.
+    const reset = change.value === undefined || (change.value === "" && control.kind !== "text");
+    if (reset) continue;
     if (control.kind === "enum" && !control.values!.includes(String(change.value))) return `“${String(change.value)}” is not one of the choices for ${control.label.toLowerCase()}.`;
     if (control.kind === "boolean" && typeof change.value !== "boolean") return `${control.label} is on or off.`;
     if (control.kind === "text") {
@@ -159,6 +164,12 @@ export function contentProblem(c: CompositionDefinition, contract: Json, change:
   }
   return null;
 }
+
+/**
+ * The value a boolean control stores: only what differs from the design system's default, so turning it back
+ * to the default removes the prop rather than writing the default out.
+ */
+export const booleanValue = (control: PropControl, on: boolean): boolean | undefined => (on === (control.default === true) ? undefined : on);
 
 /** Apply a content change to every node the key names (an id names the same element in every state). */
 export function applyContent(draft: CompositionDefinition, change: ContentChange): void {
@@ -285,11 +296,11 @@ export function describeDependencies(d: Dependencies): string[] {
 
 export { assignId, dependenciesOf, moveNode, removeNode, renameId, actionNameFor, inputNameFor };
 
-/** A template or loader refusal in plain words. */
-export function plainTemplateIssue(message: string): string {
+/** A template or loader refusal in plain words, naming what is being placed when it is known. */
+export function plainTemplateIssue(message: string, subject = "button"): string {
   const m = message.replace(/^[A-Za-z]+(\.[A-Za-z0-9]+)*: /, "");
   const rules: Array<[RegExp, string]> = [
-    [/each item must expand to exactly one node/, "Each item of a repeat must be one element, so each item's button stays with its own item. Put it inside the item's card instead."],
+    [/each item must expand to exactly one node/, `Each item of a repeat must be one element, so each item's ${subject} stays with its own item. Put it inside the item's card instead.`],
     [/must hold exactly one \$each and nothing else/, "A list whose items send an action holds only its repeated items. Put the element outside the list, or inside an item."],
     [/is not inside the '([^']+)' repeat/, "A repeated button must stay inside its item."],
     [/state '([^']+)' has no node with id '([^']+)'/, "An action would be sent from a state that no longer shows its button."],

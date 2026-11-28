@@ -132,7 +132,7 @@ test.describe("visual template editing", () => {
     // 12. Reload: v2 is approved, withdrawn, and still has every edit.
     await page.reload();
     await ready(page);
-    await expect(page.getByRole("radio", { name: /v2 Approved · withdrawn/i })).toBeChecked();
+    await expect(page.getByRole("radio", { name: /v2 Withdrawn/i })).toBeChecked();
     await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
     expect(JSON.stringify(approvedBefore)).toContain("show-on-map");
     expect(JSON.stringify(approvedBefore)).toContain("Start over");
@@ -207,4 +207,200 @@ test.describe("visual template editing", () => {
       const b = await new AxeBuilder({ page }).withTags(TAGS).analyze();
       expect(b.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
     });
+});
+
+/** The stored draft of a composition at a version, as the workspace wrote it. */
+async function storedDraft(page: Page, id: string, version: number) {
+  const raw = (await storage(page))[`${NS}drafts`];
+  return raw ? (JSON.parse(raw).data.drafts as Array<Record<string, any>>).find((d) => d.id === id && d.version === version) : undefined;
+}
+const nodeById = (template: unknown, id: string): Record<string, any> | undefined => {
+  if (!template || typeof template !== "object") return undefined;
+  if (Array.isArray(template)) return template.map((t) => nodeById(t, id)).find(Boolean);
+  const t = template as Record<string, any>;
+  if (t.id === id) return t;
+  return [t.children, t.else, t.$each?.template, t.$each?.children, t.template].map((c) => nodeById(c, id)).find(Boolean);
+};
+
+test.describe("authoring review corrections (Priority 1)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openLibrary(page);
+    await page.getByRole("radio", { name: /v2 Draft/i }).check();
+    await ready(page);
+    await structure(page);
+    await inspectorToo(page);
+  });
+
+  test("F1: a boolean prop turns off again; the canvas follows and the prop is removed", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("content-isDisabled").check();
+    await expect(canvas(page).getByRole("button", { name: "Change search" })).toBeDisabled();
+    await page.getByTestId("content-isDisabled").uncheck();
+    await expect(page.getByTestId("content-isDisabled")).not.toBeChecked();
+    await expect(page.getByTestId("content-error")).toHaveCount(0);
+    await expect(canvas(page).getByRole("button", { name: "Change search" })).toBeEnabled();
+    const d = await storedDraft(page, "hotel-results", 2);
+    expect(nodeById(d!.states.find((s: any) => s.id === "ready").template, "new-search")!.props?.isDisabled).toBeUndefined();
+  });
+
+  test("F2: an enum prop goes back to the design system's default", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("content-variant").selectOption("primary");
+    await expect(page.getByTestId("content-applied")).toContainText("Variant changed.");
+    await page.getByTestId("content-variant").selectOption("");
+    await expect(page.getByTestId("content-error")).toHaveCount(0);
+    await expect(page.getByTestId("content-applied")).toContainText("Variant is not set: the design system's default applies.");
+    const d = await storedDraft(page, "hotel-results", 2);
+    expect(nodeById(d!.states.find((s: any) => s.id === "ready").template, "new-search")!.props?.variant).toBeUndefined();
+  });
+
+  test("F3: undo takes back only its element or structure edit; a later summary edit stays", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("tt-up").click();
+    await expect(page.getByTestId("tt-status")).toContainText("Moved up.");
+    const moved = JSON.stringify((await storedDraft(page, "hotel-results", 2))!.states);
+    await page.getByTestId("element-back").click();
+    await page.getByTestId("edit-summary").fill("Hotels the search found, to compare.");
+    await expect.poll(async () => (await storedDraft(page, "hotel-results", 2))?.summary).toBe("Hotels the search found, to compare.");
+    await page.getByTestId("tt-undo").click();
+    await expect(page.getByTestId("tt-status")).toContainText("Undone: moved up.");
+    const after = (await storedDraft(page, "hotel-results", 2))!;
+    expect(after.summary).toBe("Hotels the search found, to compare.");
+    expect(JSON.stringify(after.states)).not.toBe(moved);
+    await page.getByTestId("tt-redo").click();
+    await expect(page.getByTestId("tt-status")).toContainText("Redone: moved up.");
+    const redone = (await storedDraft(page, "hotel-results", 2))!;
+    expect(JSON.stringify(redone.states)).toBe(moved);
+    expect(redone.summary).toBe("Hotels the search found, to compare.");
+  });
+
+  test("F3: an inspector content edit is a step of its own: undo puts back the label, then the move", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("tt-up").click();
+    await page.getByTestId("content-label-text-0").fill("Search again");
+    await page.getByTestId("content-label-apply").click();
+    await expect(canvas(page).getByRole("button", { name: "Search again" })).toBeVisible();
+    await page.getByTestId("tt-undo").click();
+    await expect(page.getByTestId("tt-status")).toContainText("Undone: label change.");
+    await expect(canvas(page).getByRole("button", { name: "Change search" })).toBeVisible();
+    await page.getByTestId("tt-undo").click();
+    await expect(page.getByTestId("tt-status")).toContainText("Undone: moved up.");
+    await expect(page.getByTestId("tt-undo")).toBeDisabled();
+  });
+
+  test("F4: undo history ends with its draft: discard, create a draft, and nothing can be undone into it", async ({ page }) => {
+    // The work that is discarded: a move and a label change on v2.
+    await tree(page, "#new-search").click();
+    await page.getByTestId("tt-up").click();
+    await page.getByTestId("content-label-text-0").fill("Discarded label");
+    await page.getByTestId("content-label-apply").click();
+    await expect(page.getByTestId("tt-undo")).toBeEnabled();
+    await page.getByTestId("element-back").click();
+    await page.getByTestId("discard").click();
+    await page.getByTestId("discard-confirm-button").click();
+    await expect(page.getByTestId("authoring-notice")).toContainText("discarded");
+    await page.getByTestId("create-draft").click();
+    await ready(page);
+    await structure(page);
+    await expect(page.getByTestId("tt-undo")).toBeDisabled();
+    await expect(page.getByTestId("tt-redo")).toBeDisabled();
+    await page.locator("body").press("Control+z");
+    await page.locator("body").press("Control+Shift+z");
+    // The new draft is v1's content, and nothing of the discarded draft comes back.
+    await expect(canvas(page).getByRole("button", { name: "New search" })).toBeVisible();
+    await expect(canvas(page).getByText("Discarded label")).toHaveCount(0);
+    const raw = (await storage(page))[`${NS}drafts`];
+    const drafts = (raw ? JSON.parse(raw).data.drafts : []) as Array<Record<string, any>>;
+    expect(JSON.stringify(drafts.filter((x) => x.id === "hotel-results"))).not.toContain("Discarded label");
+    await expect(page.getByTestId("tt-status")).toHaveCount(0);
+  });
+
+  test("F4: approving a draft ends its undo history", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("content-label-text-0").fill("Search again");
+    await page.getByTestId("content-label-apply").click();
+    await expect(page.getByTestId("tt-undo")).toBeEnabled();
+    await page.getByTestId("element-back").click();
+    await page.getByTestId("run-checks").click();
+    await expect(page.getByTestId("authoring-bar")).toHaveAttribute("data-state", "pass");
+    await page.getByTestId("approve").click();
+    await page.getByTestId("approve-confirm-button").click();
+    await expect(page.getByRole("radio", { name: /v2 Approved/i })).toBeChecked();
+    await expect(page.getByTestId("template-tools")).toHaveCount(0);
+    await page.locator("body").press("Control+z");
+    await expect(canvas(page).getByRole("button", { name: "Search again" })).toBeVisible();
+  });
+
+  test("F5: Add opens on a position and component that work, and an impossible position says why before anything is chosen", async ({ page }) => {
+    // The outermost card: nothing beside it, so Add opens inside it.
+    await tree(page, "ready@").click();
+    await page.getByTestId("tt-add").click();
+    await expect(page.getByTestId("tt-pos-inside")).toBeChecked();
+    await expect(page.getByTestId("tt-pos-after")).toBeDisabled();
+    await expect(page.getByTestId("tt-add-panel")).toContainText("Nothing can be placed beside the outermost element.");
+    await expect(page.getByTestId("tt-add-confirm")).toBeEnabled();
+    await page.keyboard.press("Escape");
+    // The single element of each hotel's item: nothing can go beside it, for any component, with the reason now.
+    await tree(page, "ready@2.0.0").click();
+    await page.getByTestId("tt-add").click();
+    await expect(page.getByTestId("tt-pos-inside")).toBeChecked();
+    await expect(page.getByTestId("tt-pos-after")).toBeDisabled();
+    await expect(page.getByTestId("tt-add-panel")).toContainText("Each item of a repeat must be one element");
+    await page.getByTestId("tt-add-confirm").click();
+    await expect(page.getByTestId("tt-error")).toHaveCount(0);
+    // A text, after Inside was used: Add opens After it, never on a dead Inside.
+    await tree(page, "ready@1").click();
+    await page.getByTestId("tt-add").click();
+    await expect(page.getByTestId("tt-pos-after")).toBeChecked();
+    await expect(page.getByTestId("tt-pos-inside")).toBeDisabled();
+    await expect(page.getByTestId("tt-add-confirm")).toBeEnabled();
+  });
+
+  test("F6: an edit's result is beside its control and in view; structure edits say what happened", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("content-isDisabled").check();
+    const applied = page.getByTestId("content-applied");
+    await expect(applied).toBeInViewport();
+    // It sits in the same control group as the checkbox that made it.
+    expect(await applied.evaluate((el) => !!el.closest(".cl-content__control")?.querySelector('[data-testid="content-isDisabled"]'))).toBe(true);
+    await page.getByTestId("tt-up").click();
+    await expect(page.getByTestId("tt-status")).toContainText("Moved up.");
+    await expect(page.getByTestId("edit-announce")).toContainText("Moved up.");
+  });
+
+  test("F8: Escape closes Add, Move to and Remove; Cancel and Keep it return focus to their control", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("tt-add").click();
+    await expect(page.getByTestId("tt-add-panel")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("tt-add-panel")).toHaveCount(0);
+    await expect(page.getByTestId("tt-add")).toBeFocused();
+    await page.getByTestId("tt-move").click();
+    await expect(page.getByTestId("tt-move-target")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("tt-move")).toBeFocused();
+    await page.getByTestId("tt-remove").click();
+    await expect(page.getByRole("button", { name: "Keep it" })).toBeFocused();
+    await page.getByRole("button", { name: "Keep it" }).click();
+    await expect(page.getByTestId("tt-remove-panel")).toHaveCount(0);
+    await expect(page.getByTestId("tt-remove")).toBeFocused();
+    // An undo that empties the history hands focus to Redo.
+    await page.getByTestId("tt-up").click();
+    await page.getByTestId("tt-undo").click();
+    await expect(page.getByTestId("tt-redo")).toBeFocused();
+  });
+
+  test("F16 and status: the removal confirmation fits its tools, and an unchecked preview never reads as passing", async ({ page }) => {
+    await tree(page, "#new-search").click();
+    await page.getByTestId("content-label-text-0").fill("Search again");
+    await page.getByTestId("content-label-apply").click();
+    await expect(page.getByTestId("check-pill")).toHaveAttribute("data-state", "preview");
+    await expect(page.getByTestId("check-pill")).toContainText("Preview · not checked");
+    await expect(page.getByTestId("check-pill")).not.toContainText("Passes");
+    await page.getByTestId("tt-remove").click();
+    const [panel, tools] = await Promise.all([page.getByTestId("tt-remove-panel").boundingBox(), page.getByTestId("template-tools").boundingBox()]);
+    expect(panel!.x + panel!.width).toBeLessThanOrEqual(tools!.x + tools!.width + 0.5);
+    await expect(page.getByTestId("tt-remove-panel")).toContainText("Remove Button “Search again” from this state?");
+  });
 });

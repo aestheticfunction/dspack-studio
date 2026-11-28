@@ -25,7 +25,21 @@ There is no new schema, expression language, editor or shell.
 | **B2 Identity** | Inspector, **Identity**: **Give it this id**, or **Rename** | `assignId` and `renameId` (composer-core `template.ts`). Ids are unique across states and never emitted alike. A rename updates, in one operation, the nodes in every state, the inputs and actions bound to it (an action is named by its node, as the emitter names it), and any repeated action whose list it is. The selection follows the new key |
 | **B3 Insert** | Structure, **Add element…**: before, after, or inside; then Text, Badge, Button, Text field, Card or Selectable card. A choice that does not fit says why (“A list holds selectable cards.”, “A text field holds one value, so it cannot be repeated for each item.”) | `insertOptions` and `applyInsert`. A **Button** is declared with its action, and a **Text field** with its typed input, in the same operation, so a button never sends an undeclared action. Inside a repeated item, the button's action is repeated. Its items are told apart by what the list's other action already uses (here the hotel's name), since the binding check refuses an unseen value. Initial props are valid for the contract |
 | **B4 Move and remove** | Structure: **↑ Up**, **↓ Down**, **Move to…** a container, **Remove…** | `moveNode` and `removeNode`. Bindings are by id, so a path change never redirects one. **Remove…** says first what depends on the element: “The ‘Show on map’ action is removed.”, “Search stops sending ‘Member number’.” It changes those declarations only as part of the same step. Without dependencies it says nothing else depends on it |
-| **B5 Editing** | Select mode keeps the canvas inert, so selecting never presses anything. Structure's tools and the inspector edit; the canvas previews every successful edit. Focus moves to the inserted or moved element, or to the explanation of a refusal. **Undo** and **Redo** (also Ctrl or Cmd+Z, with Shift to redo, outside text fields) | A session-only history per draft of element and structure edits, through the same `editDraft` path. Nothing else is versioned. Approval still needs current passing checks and an explicit decision |
+| **B5 Editing** | Select mode keeps the canvas inert, so selecting never presses anything. Structure's tools and the inspector edit; the canvas previews every successful edit. Focus moves to the inserted or moved element, or to the explanation of a refusal. Every result is said beside the control that made it, and Structure edits and undo say what happened in the tools. Escape closes Add, Move to and Remove, and focus returns to the control that opened them. **Undo** and **Redo** (also Ctrl or Cmd+Z, with Shift to redo, outside text fields) | `undo-history.ts`: a session-only history of element and structure steps. Each step records the template, inputs and actions before and after it; undo puts only those back, so details, parameters and examples edited since stay. A step that no longer matches the draft, or that the loader would refuse, changes nothing and clears the history with the reason. The history ends with its draft: discard, approval and a new draft clear it. Undo is an edit like any other: it makes the checks stale and restores no approval |
+
+## Corrections from the independent authoring review (Priority 1)
+
+| Finding | Correction | Evidence |
+|---|---|---|
+| F1 A boolean prop could not be turned off | Turning it back to the design system's default removes the prop; a prop whose default is on is stored as off | `composer-template.spec.ts` F1 |
+| F2 “Not set” could not be chosen for an enum | It removes the prop; the option names the default | F2 |
+| F3 Undo reverted later name and summary edits | Undo restores only the template, inputs and actions (decision 62) | `undo-history.test.ts`; F3 (two browser tests) |
+| F4 Undo survived Discard and a new draft | The history ends with its draft: discard, approve and create clear it | F4 (discard, and approval) |
+| F5 Add could open with nothing to choose | Every position and component is tried on a copy through the loader first; Add opens on one that works, an impossible position says why before anything is chosen, and when nothing fits Add says so without opening | F5 |
+| F6 Feedback was far from its control | Results sit under the control that made them and scroll into view; Structure edits and undo report in the tools and in their own live region | F6 |
+| F8 Focus fell to the page; Escape closed nothing | Escape and Cancel or Keep it return focus to the opener; an Undo or Redo that disables itself hands focus to the other, or to the tree; opening the inspector from Structure moves focus to it | F8 |
+| F16 The removal confirmation overflowed | Its own block inside the tools, naming the element | F16 |
+| F13 (part) An unchecked preview read as passing | The pill reads “Preview · not checked”, neutral; the line above the canvas is gone | F16 and status test; `composer-authoring.spec.ts` |
 
 ## Integrity, and how it is held
 
@@ -48,7 +62,7 @@ There is no new schema, expression language, editor or shell.
   - They can be selected, moved, removed and have their own props edited where those props are text, enums or booleans.
 - **New states and transitions,** **conditions** (`$if`) and **new repeats** are not authored here.
   - Content inside a condition can be selected and seen, but not edited.
-- **Undo** lasts for the session and covers element and structure edits only. Details and examples edits use their own fields.
+- **Undo** lasts for the session and covers element and structure edits only (decision 62). Details, parameters and examples are edited in their own fields and are never reverted by undo.
 - **Drag and drop** is not provided; every operation has an explicit control.
 - **Inserting a Selectable card into a list whose items are repeated** is refused by the loader, because such a list holds only its repeated items.
 
