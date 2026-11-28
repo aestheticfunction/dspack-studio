@@ -68,6 +68,10 @@ const markers = new Set([
   "version-menu",
   "panels-both",
   "draft-run-checks",
+  // State, transition and dialog authoring are experimental only.
+  "states-editor",
+  "action-flow",
+  "edit-states",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));

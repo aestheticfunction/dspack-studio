@@ -22,6 +22,10 @@ export const COMPONENT_LABEL: Record<string, string> = {
   button: "Button",
   "text-input": "Text field",
   "alert-dialog": "Confirmation dialog",
+  dialog: "Dialog",
+  badge: "Badge",
+  table: "Table",
+  "dropdown-menu": "Dropdown menu",
 };
 
 const words = (s: string) => {
@@ -111,7 +115,10 @@ export function StructurePanel({
   tools,
   focus,
   onShortcut,
+  onEditStates,
 }: {
+  /** Open the states in the inspector: add, rename, reorder, set conditions (slice A). */
+  onEditStates?: () => void;
   /** Structure editing controls for a draft (M1 visual template editing). */
   tools?: ReactNode;
   /** Move keyboard focus to an element after an edit placed, moved or removed it. */
@@ -296,6 +303,11 @@ export function StructurePanel({
             </option>
           ))}
         </select>
+        {onEditStates && (
+          <button className="cl-tool cl-structure__states" onClick={onEditStates} title="States: add, rename, reorder, set conditions" data-testid="edit-states">
+            States…
+          </button>
+        )}
       </div>
       {stateId !== shownState && <p className="cl-dim cl-structure__note">Not on the canvas with this example. Its elements can still be selected and inspected.</p>}
       {tools}
