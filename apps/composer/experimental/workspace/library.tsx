@@ -53,7 +53,8 @@ import { ElementInspector, type ItemContext } from "./element-inspector";
 import { SelectionLayer } from "./selection-layer";
 import { COMPONENT_LABEL, elementName, StructurePanel } from "./structure-panel";
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
-import { browserStore, DEFAULT_PREFS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
+import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult, type StoredAuthorization } from "./storage";
+import { applyWithdrawals, restoreApproval, withdrawApproval } from "./withdrawal";
 
 type Json = Record<string, any>;
 type WhatIf = "none" | "four-options";
@@ -175,6 +176,8 @@ interface Ready {
   checks: Map<WhatIf, Map<string, VersionCheck>>;
   hosts: Map<string, Host>;
   storage: ReadResult<LibraryPrefs>["status"];
+  /** Approvals withdrawn on this device (decision 34): an authorization decision, never a definition change. */
+  authorization: StoredAuthorization;
 }
 
 /** The four guided examples of the first-run guide: each changes the selection, nothing else. */
@@ -214,6 +217,9 @@ export function LibraryWorkspace() {
   const [checking, setChecking] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [confirm, setConfirm] = useState<"approve" | "discard" | null>(null);
+  // Approval lifecycle on an approved version (decision 34): an open confirmation, and an operation in progress.
+  const [lifecycle, setLifecycle] = useState<"withdraw" | "restore" | null>(null);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   // Advanced authoring: one selection shared by the structure, the canvas and the inspector. It names a template
   // element (definition-level, never a rendered id), and the item picked on the canvas when the element repeats.
@@ -260,6 +266,9 @@ export function LibraryWorkspace() {
             hosts.set(versionKey(v.id, v.version), await hostFor(governor, check));
           }
         }
+        // Withdrawals recorded on this device apply before anything is shown (decision 34).
+        const authorization = readRecord("authorization", store).value;
+        await applyWithdrawals(authorization, loaded.library.entries.flatMap((e) => e.versions.map((v) => ({ definition: v, host: hosts.get(versionKey(v.id, v.version)) }))));
         if (cancelled) return;
         const first = loaded.library.entries[0];
         const known = stored.value.composition ? loaded.library.get(stored.value.composition, stored.value.version ?? 0) : undefined;
@@ -273,7 +282,7 @@ export function LibraryWorkspace() {
         // Compositions panel, where the guide is.
         const narrow = !window.matchMedia("(min-width: 900px)").matches;
         setOpen(narrow ? { library: false, inspector: false } : !firstRun && start.panel === "inspector" ? { library: false, inspector: true } : { library: true, inspector: false });
-        setReady({ loaded, governors: new Map([["none", governor]]), checks: new Map([["none", checks]]), hosts, storage: stored.status });
+        setReady({ loaded, governors: new Map([["none", governor]]), checks: new Map([["none", checks]]), hosts, storage: stored.status, authorization });
       } catch (error) {
         if (!cancelled) setFailed(error instanceof Error ? error.message : String(error));
       }
@@ -367,7 +376,7 @@ export function LibraryWorkspace() {
       setShown(r);
       setPreviewing(false);
       setShowing(false);
-      setAnnounce(r.ok ? `Showing ${what}.` : `${what} is not shown: ${r.refusal.stage === "needs-recheck" ? "it needs a new check" : "the design rules refuse it"}.`);
+      setAnnounce(r.ok ? `Showing ${what}.` : `${what} is not shown: ${r.refusal.stage === "withdrawn" ? "its approval is withdrawn on this device" : r.refusal.stage === "needs-recheck" ? "it needs a new check" : "the design rules refuse it"}.`);
     });
   }, [ready, key, definition, scenario, prefs.state, whatIf, preview]);
 
@@ -516,7 +525,7 @@ export function LibraryWorkspace() {
     persist({ ...prefs, version: r.version, scenario: null, state: null, panel: "inspector" });
     setTab("design");
     showInspector();
-    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `Draft v${r.version} created from v${definition.version}. v${definition.version} stays approved and unchanged.` });
+    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `Draft v${r.version} created from v${definition.version}. ${isWithdrawn(definition) ? `v${definition.version} is unchanged; its approval is withdrawn.` : `v${definition.version} stays approved and unchanged.`}` });
     setAnnounce(`Draft v${r.version} created. Edit it in the inspector.`);
   };
 
@@ -580,6 +589,64 @@ export function LibraryWorkspace() {
     setNotice({ tone: r.warning ? "warn" : "ok", text: r.warning ?? `v${definition.version} is approved on this device. It cannot change now; v${(ready.loaded.library.entry(definition.id)?.approved?.version ?? 1)} stays available. It is not published.` });
     setAnnounce(`Version ${definition.version} approved on this device.`);
   };
+
+  /** Whether this version's approval is withdrawn on this device: its host says so. */
+  const isWithdrawn = (v: CompositionDefinition | undefined) => !!v && v.status === "approved" && !!ready?.hosts.get(versionKey(v.id, v.version))?.isWithdrawn(v.id);
+
+  /** Withdraw the selected approved version's approval on this device (decision 34). Its definition does not change. */
+  const withdrawNow = async () => {
+    if (!ready || !definition) return;
+    const host = ready.hosts.get(key);
+    if (!host) return;
+    setLifecycleBusy(true);
+    const r = await withdrawApproval({ definition, host, record: ready.authorization, origin: ready.loaded.origin.get(key) === "device" ? "device" : "packaged", store: browserStore() });
+    setLifecycleBusy(false);
+    setLifecycle(null);
+    if (!r.ok) {
+      setNotice({ tone: "bad", text: `Not withdrawn: ${r.reason}.` });
+      setAnnounce(`Not withdrawn: ${r.reason}.`);
+      return;
+    }
+    setReady({ ...ready, authorization: r.record });
+    setNotice({ tone: "ok", text: `Approval of v${definition.version} withdrawn on this device. v${definition.version} itself is unchanged, and no other version is used in its place.` });
+    setAnnounce(`Approval of version ${definition.version} withdrawn.`);
+  };
+
+  /** Restore a withdrawn approval: a person's decision and a check that passes now. */
+  const restoreNow = async () => {
+    if (!ready || !definition) return;
+    const host = ready.hosts.get(key);
+    if (!host) return;
+    setLifecycleBusy(true);
+    setAnnounce("Running the checks before restoring…");
+    const r = await restoreApproval({ governor: ready.governors.get("none")!, definition, host, record: ready.authorization, store: browserStore() });
+    setLifecycleBusy(false);
+    setLifecycle(null);
+    if (!r.ok) {
+      setNotice({ tone: "bad", text: `Not restored: ${r.reason}.` });
+      setAnnounce(`Not restored: ${r.reason}.`);
+      return;
+    }
+    setReady({ ...ready, authorization: r.record });
+    setNotice({ tone: "ok", text: `Approval of v${definition.version} restored on this device: its checks pass now.` });
+    setAnnounce(`Approval of version ${definition.version} restored.`);
+  };
+
+  // Another tab on this device withdrew an approval: apply it here at once. (A restoration elsewhere is not
+  // applied here: this tab keeps refusing until it reloads, which re-checks; the safe direction.)
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== KEYS.authorization) return;
+      const current = readyRef.current;
+      if (!current) return;
+      const record = readRecord("authorization").value;
+      void applyWithdrawals(record, current.loaded.library.entries.flatMap((x) => x.versions.map((v) => ({ definition: v, host: current.hosts.get(versionKey(v.id, v.version)) })))).then((applied) => {
+        if (applied.length) setReady({ ...current, authorization: record });
+      });
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const instanceForLabels = shown?.ok ? shown.instance : null;
   const onAction = useCallback(
@@ -845,8 +912,8 @@ export function LibraryWorkspace() {
                   <span className="cl-item__summary">{shownVersion.summary}</span>
                   <span className="cl-item__versions">
                     {e.versions.map((v) => (
-                      <span key={v.version} className={`cl-badge${v.status === "approved" ? " cl-badge--ok" : ""}`}>
-                        v{v.version} · {v.status === "approved" ? "Approved" : "Draft"}
+                      <span key={v.version} className={`cl-badge${v.status === "approved" && !isWithdrawn(v) ? " cl-badge--ok" : ""}`}>
+                        v{v.version} · {v.status === "approved" ? (isWithdrawn(v) ? "Withdrawn" : "Approved") : "Draft"}
                       </span>
                     ))}
                   </span>
@@ -929,7 +996,7 @@ export function LibraryWorkspace() {
               <select className="af-select cl-input" value={definition.version} onChange={(e) => persist({ ...prefs, version: Number(e.target.value), state: null })} data-testid="version-select">
                 {[...entry.versions].reverse().map((v) => (
                   <option key={v.version} value={v.version}>
-                    v{v.version} {v.status === "approved" ? (ready.loaded.origin.get(versionKey(v.id, v.version)) === "device" ? "Approved on this device" : "Approved") : "Draft"}
+                    v{v.version} {v.status === "approved" ? (isWithdrawn(v) ? "Withdrawn" : ready.loaded.origin.get(versionKey(v.id, v.version)) === "device" ? "Approved on this device" : "Approved") : "Draft"}
                   </option>
                 ))}
               </select>
@@ -940,13 +1007,13 @@ export function LibraryWorkspace() {
               {entry.versions.map((v) => (
                 <label key={v.version} className={`cl-seg__opt${v.version === definition.version ? " cl-seg__opt--on" : ""}`}>
                   <input type="radio" name="cl-version" checked={v.version === definition.version} onChange={() => persist({ ...prefs, version: v.version, state: null })} />
-                  v{v.version} {v.status === "approved" ? "Approved" : "Draft"}
+                  v{v.version} {v.status === "approved" ? (isWithdrawn(v) ? "Withdrawn" : "Approved") : "Draft"}
                 </label>
               ))}
             </fieldset>
           ) : (
-            <span className={`cl-badge${definition.status === "approved" ? " cl-badge--ok" : ""}`}>
-              v{definition.version} · {definition.status === "approved" ? "Approved" : "Draft"}
+            <span className={`cl-badge${definition.status === "approved" && !isWithdrawn(definition) ? " cl-badge--ok" : ""}`}>
+              v{definition.version} · {definition.status === "approved" ? (isWithdrawn(definition) ? "Withdrawn" : "Approved") : "Draft"}
             </span>
           )}
         </div>
@@ -971,7 +1038,7 @@ export function LibraryWorkspace() {
               </summary>
               <div className="cl-draft__pop" role="note">
                 <p>
-                  v{definition.version} is a draft, newer than approved v{approvedVersion}. It is not approved for use by agents: passing checks does not approve it. v{approvedVersion} stays approved and unchanged.
+                  v{definition.version} is a draft, newer than {isWithdrawn(entry.approved ?? undefined) ? "" : "approved "}v{approvedVersion}. It is not approved for use by agents: passing checks does not approve it. {isWithdrawn(entry.approved ?? undefined) ? `v${approvedVersion} is unchanged; its approval is withdrawn.` : `v${approvedVersion} stays approved and unchanged.`}
                 </p>
                 {draftState !== "pass" && <p data-testid="draft-check-state">{draftState === "checking" ? "Its checks are running." : draftState === "fail" ? "Its latest checks fail: open Checks in the inspector to see which examples, and why." : "It has changed since its last check. Run the checks before it can be approved."}</p>}
                 {changes && (
@@ -1100,6 +1167,11 @@ export function LibraryWorkspace() {
             clearState={() => persist({ ...prefs, state: null })}
             editExample={definition.status === "draft" && governed && scenario ? () => editExample(scenario.id) : undefined}
             previewing={previewing && preview}
+            openRestore={() => {
+              setLifecycle("restore");
+              setTab("design");
+              showInspector();
+            }}
             selection={{ ids: selectedIds, primary: pickedId, selectMode: selectMode && !!elements, onPick: pickOnCanvas, label: "Click an element to select it" }}
           />
           {selectMode && elements && (
@@ -1159,8 +1231,10 @@ export function LibraryWorkspace() {
     <ul className="cl-versions" data-testid="versions">
       {entry.versions.map((v) => (
         <li key={v.version} className={v.version === definition.version ? "cl-versions__on" : undefined}>
-          <span className={`cl-badge${v.status === "approved" ? " cl-badge--ok" : ""}`}>v{v.version}</span>{" "}
-          {v.status === "approved"
+          <span className={`cl-badge${v.status === "approved" && !isWithdrawn(v) ? " cl-badge--ok" : ""}`}>v{v.version}</span>{" "}
+          {v.status === "approved" && isWithdrawn(v)
+            ? "Approval withdrawn on this device. It is unchanged, and nothing may use it until approval is restored."
+            : v.status === "approved"
             ? ready.loaded.origin.get(versionKey(v.id, v.version)) === "device"
               ? "Approved on this device: a person approved this exact version here, and it cannot change."
               : "Approved: a person approved this exact version, and it cannot change."
@@ -1258,8 +1332,20 @@ export function LibraryWorkspace() {
                     Open draft v{entry.draft.version}
                   </button>
                 ) : (
-                  <p className="cl-text">To change this composition, create a draft: v{definition.version} stays approved and unchanged while you work.</p>
+                  <p className="cl-text">{isWithdrawn(definition) ? "To change this composition, create a draft from it." : `To change this composition, create a draft: v${definition.version} stays approved and unchanged while you work.`}</p>
                 )
+              )}
+              {definition.status === "approved" && governed && (
+                <ApprovalLifecycle
+                  version={definition.version}
+                  withdrawn={isWithdrawn(definition)}
+                  origin={ready.loaded.origin.get(key) === "device" ? "device" : "packaged"}
+                  open={lifecycle}
+                  setOpen={setLifecycle}
+                  busy={lifecycleBusy}
+                  withdraw={withdrawNow}
+                  restore={restoreNow}
+                />
               )}
               <p className="cl-text" data-testid="publication-note">
                 <strong>Published for agents: no.</strong> Publishing is not available yet. Passing checks or being approved does not publish a version.
@@ -1533,7 +1619,7 @@ export function LibraryWorkspace() {
 }
 
 interface Outcome {
-  state: "loading" | "pass" | "expected" | "refused" | "unchecked" | "fail";
+  state: "loading" | "pass" | "expected" | "refused" | "unchecked" | "fail" | "withdrawn";
   tone: "ok" | "neutral" | "bad" | "warn";
   icon: string;
   pill: string;
@@ -1546,6 +1632,7 @@ function describeOutcome(shown: ShowResult | null, scenario: Scenario | undefine
   if (!shown) return { state: "loading", tone: "neutral", icon: "…", pill: "Checking" };
   if (shown.ok) return { state: "pass", tone: "ok", icon: "✓", pill: "Passes the design rules" };
   const refusal = shown.refusal as Json;
+  if (refusal.stage === "withdrawn") return { state: "withdrawn", tone: "warn", icon: "⊘", pill: "Approval withdrawn" };
   if (refusal.stage === "needs-recheck") return failing.length || (check && !check.approval) ? { state: "fail", tone: "bad", icon: "✗", pill: "Fails the changed rules" } : { state: "unchecked", tone: "warn", icon: "!", pill: "Needs a new check" };
   const rule = refusal.failures?.[0]?.rule as string | undefined;
   const expected = scenario?.expect === "refused" && !!scenario.refusedBy && (scenario.refusedBy === rule || scenario.refusedBy === refusal.stage);
@@ -1569,7 +1656,10 @@ function CanvasBody({
   editExample,
   previewing,
   selection,
+  openRestore,
 }: {
+  /** For a version whose approval is withdrawn: open its restore confirmation in the inspector. */
+  openRestore?: () => void;
   /** Canvas selection (advanced authoring): the selected element's components, the picked one, and Select mode. */
   selection: { ids: string[]; primary: string | null; selectMode: boolean; onPick: (componentId: string) => void; label: string };
   shown: ShowResult | null;
@@ -1649,7 +1739,15 @@ function CanvasBody({
   let title: string;
   let body: ReactNode;
   let next: ReactNode = null;
-  if (outcome.state === "unchecked" || outcome.state === "fail") {
+  if (outcome.state === "withdrawn") {
+    title = "Approval withdrawn on this device";
+    body = <p>{definition.name} v{definition.version} is unchanged, but its approval was withdrawn: nothing new is shown from it and nothing on a screen already shown runs. No other version is used in its place.</p>;
+    next = openRestore ? (
+      <button className="cl-tool" onClick={openRestore} data-testid="refusal-restore">
+        Restore approval…
+      </button>
+    ) : null;
+  } else if (outcome.state === "unchecked" || outcome.state === "fail") {
     title = outcome.state === "fail" ? "Checks fail under these rules" : "Needs a new check";
     body = <p>The rules changed since {definition.name} v{definition.version} was last checked, so nothing new is shown from it until its examples pass again.</p>;
     next = (
@@ -1852,6 +1950,69 @@ function AuthoringBar({
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Withdraw or restore an approved version's approval on this device (decision 34), with the consequences written
+ * out before anything happens. Withdrawal changes authorization only; the definition stays exactly as it is.
+ */
+function ApprovalLifecycle({ version, withdrawn, origin, open, setOpen, busy, withdraw, restore }: { version: number; withdrawn: boolean; origin: "packaged" | "device"; open: "withdraw" | "restore" | null; setOpen: (o: "withdraw" | "restore" | null) => void; busy: boolean; withdraw: () => void; restore: () => void }) {
+  if (open === "withdraw" && !withdrawn) {
+    return (
+      <div className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-withdraw-title" data-testid="withdraw-confirm">
+        <p className="cl-bar__title" id="cl-withdraw-title">
+          Withdraw the approval of v{version} on this device?
+        </p>
+        <ul className="cl-plain">
+          <li>v{version} stays exactly as it is: its definition and its recorded checks do not change.</li>
+          <li>Nothing may use it until its approval is restored: nothing new is shown from it, and nothing on a screen already shown runs.</li>
+          <li>No other version is used in its place.</li>
+          <li>{origin === "packaged" ? "It is a packaged approval: it is withdrawn on this device only, by a local record." : "It was approved on this device; the withdrawal is recorded here."}</li>
+          <li>Restoring it later needs your decision and checks that pass at that time.</li>
+        </ul>
+        <div className="cl-bar__actions">
+          <button className="cl-tool cl-tool--danger" onClick={withdraw} disabled={busy} data-testid="withdraw-confirm-button">
+            Withdraw approval of v{version}
+          </button>
+          <button className="cl-tool" onClick={() => setOpen(null)} autoFocus>
+            Keep it approved
+          </button>
+        </div>
+      </div>
+    );
+  }
+  if (open === "restore" && withdrawn) {
+    return (
+      <div className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-restore-title" data-testid="restore-confirm">
+        <p className="cl-bar__title" id="cl-restore-title">
+          Restore the approval of v{version} on this device?
+        </p>
+        <ul className="cl-plain">
+          <li>Its checks run again now; it is restored only if every example behaves as expected.</li>
+          <li>v{version} itself does not change. It is not published.</li>
+        </ul>
+        <div className="cl-bar__actions">
+          <button className="cl-tool cl-tool--primary" onClick={restore} disabled={busy} data-testid="restore-confirm-button">
+            {busy ? "Checking…" : `Run checks and restore v${version}`}
+          </button>
+          <button className="cl-tool" onClick={() => setOpen(null)} autoFocus>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return withdrawn ? (
+    <div data-testid="approval-withdrawn">
+      <button className="cl-tool" onClick={() => setOpen("restore")} data-testid="restore">
+        Restore approval…
+      </button>
+    </div>
+  ) : (
+    <button className="cl-tool" onClick={() => setOpen("withdraw")} data-testid="withdraw">
+      Withdraw approval…
+    </button>
   );
 }
 
@@ -2087,7 +2248,7 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 }
 .cl-toolbar__row { display: flex; align-items: center; gap: 8px 10px; min-width: 0; }
 .cl-toolbar__label { font-size: 12px; font-weight: 600; color: var(--fg-dim); white-space: nowrap; align-self: flex-start; line-height: var(--cl-target); }
-.cl-seg { border: 0; padding: 0; margin: 0; display: inline-flex; gap: 4px; align-items: center; }
+.cl-seg { border: 0; padding: 0; margin: 0; display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 0; }
 .cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cl-target); padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .cl-seg__opt input { margin: 0; width: 14px; height: 14px; accent-color: var(--fg); }
 .cl-seg__opt--on { border-color: var(--fg-dim); background: var(--bg-2); color: var(--fg); }

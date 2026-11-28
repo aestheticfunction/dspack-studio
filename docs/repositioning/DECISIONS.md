@@ -143,3 +143,16 @@ The owner accepted the shared theme compiler release and its integration: dspack
 | 49 | Private (sensitive) fields | A private field is masked on screen (the contract's `type: "password"`), and a version with an unmasked private field is not approved here | The packaged approved Hotel search v1 is immutable and stays unmasked; its drafts must mask before approval |
 | 50 | Safeguards in the editor | A confirmation cannot be turned off; a consequential action sends fixed values only; a repeated action sends its own item's values only | The editor never relaxes a safeguard; the host's stale-action refusal, once-per-surface and idempotency are unchanged |
 | 51 | Declarations are unique | One input per name and per node, one action per name and per node, an action named as the emitter names its node | Added to the core loader; every packaged composition already complies |
+
+## Interaction authoring acceptance, sensitive-field rule and approval withdrawal (2026-11-27)
+
+The owner accepted interaction authoring; #132 is merged (`7927694`) and verified in production. Human usability evaluation remains outstanding.
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 52 | A draft with an unmasked private (sensitive) input cannot be approved | Approved (decision 49 confirmed) | The packaged Hotel search v1 stays immutable with its historical evidence, and its unmasked private field stays named as a limitation |
+| 53 | Historical approvals and current safety rules | Before external agent consumption, every approved version must satisfy the current sensitive-data requirements | A historical approval never exempts a version from current safety checks. Synthetic data only; sensitive values are never persisted, put in diagnostics or carried into replacements |
+| 54 | Automatic af-site production deployment on merge (decision 45) | Acknowledged and accepted | Future af-site merge authorizations account for it. No other website or Cloudflare change is authorized |
+| 55 | Interaction-authoring deferrals | Accepted: input starting values, nested repeats, canvas selection with conditions, direct keyboard selection on the canvas | Structure remains the keyboard route to every selectable element. The schema is not expanded only to lift these |
+| 56 | Approval withdrawal (decision 34) | Implemented on this device as an authorization-lifecycle decision ([m1/withdrawal/README.md](m1/withdrawal/README.md)) | The definition and its check evidence never change. Restoring needs an explicit decision and a check issued after the withdrawal. A packaged approval is withdrawn by a local record only. Withdrawal is not supersession, and no substitute is authorized |
+| 57 | Template and component-tree editing | Authorized after #132's verification, on the existing schema, loader, expansion and pipeline | Separate from withdrawal; not merged or deployed without approval |

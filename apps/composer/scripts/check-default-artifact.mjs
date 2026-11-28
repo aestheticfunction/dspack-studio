@@ -51,6 +51,9 @@ const markers = new Set([
   "structure-panel",
   "element-inspector",
   "select-layer",
+  // Approval withdrawal (decision 34) is experimental only.
+  "withdraw-confirm",
+  "approval-withdrawn",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));
