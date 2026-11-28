@@ -18,6 +18,9 @@ async function openLibrary(page: Page) {
   await page.getByTestId("nav-library").click();
   await ready(page);
 }
+const shot = async (page: Page, name: string) => {
+  if (process.env.SAFEGUARD_SHOTS) await page.screenshot({ path: `docs/repositioning/m1/safeguards/${name}.png` });
+};
 const ready = (page: Page) => expect(page.getByTestId("check-pill")).not.toHaveAttribute("data-state", "loading", { timeout: 30_000 });
 async function inspector(page: Page) {
   if ((await page.getByTestId("composition-library").getAttribute("data-inspector")) !== "open") await page.getByTestId("toggle-inspector").click();
@@ -117,3 +120,56 @@ test.describe("cross-tab authorization integrity", () => {
     await context.close();
   });
 });
+
+test.describe("agent eligibility (R4)", () => {
+  test("one gate in the inspector: Hotel search v1 needs a safety update, Hotel results v1 is eligible, a withdrawal makes it ineligible at once; none of it is publication", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openLibrary(page);
+    await choose(page, "hotel-search");
+    await inspector(page);
+    const gate = page.getByTestId("agent-eligibility");
+    await expect(gate).toHaveAttribute("data-eligible", "false");
+    await expect(gate).toContainText("Needs a safety update before agents can use it.");
+    await expect(page.getByTestId("agent-eligibility-reasons")).toContainText("Member number is private, but its field shows what is typed.");
+    // Still previewed in the Library: the historical version is unchanged and usable here.
+    await expect(page.getByTestId("check-pill")).toHaveAttribute("data-state", "pass");
+    // Technical identities are one disclosure deeper.
+    await expect(page.getByTestId("agent-eligibility-technical")).not.toHaveAttribute("open", "");
+    await gate.scrollIntoViewIfNeeded();
+    await shot(page, "01-needs-safety-update");
+    await choose(page, "hotel-results");
+    await page.getByRole("radio", { name: /v1 Approved/i }).check();
+    await ready(page);
+    await inspector(page);
+    await expect(gate).toHaveAttribute("data-eligible", "true");
+    await expect(gate).toContainText("Not published");
+    await page.getByTestId("agent-eligibility-technical").locator("summary").click();
+    await expect(page.getByTestId("agent-eligibility-technical")).toContainText("generation 0");
+    await gate.scrollIntoViewIfNeeded();
+    await shot(page, "02-eligible");
+    await startWithdraw(page);
+    await page.getByTestId("withdraw-confirm-button").click();
+    await expect(gate).toHaveAttribute("data-eligible", "false");
+    await expect(page.getByTestId("agent-eligibility-reasons")).toContainText("Its approval is withdrawn on this device.");
+  });
+
+  test("restored in another tab: said in this tab, which stays ineligible until its own checks pass", async ({ browser }) => {
+    const { context, a, b } = await twoTabs(browser);
+    for (const page of [a, b]) {
+      await page.getByRole("radio", { name: /v1 Approved/i }).check();
+      await ready(page);
+    }
+    await startWithdraw(a);
+    await a.getByTestId("withdraw-confirm-button").click();
+    await a.getByTestId("refusal-restore").click();
+    await a.getByTestId("restore-confirm-button").click();
+    await expect(b.getByTestId("restored-elsewhere")).toBeVisible();
+    await inspector(b);
+    await expect(b.getByTestId("agent-eligibility")).toHaveAttribute("data-eligible", "false");
+    await shot(b, "03-restored-elsewhere");
+    await b.getByTestId("restored-elsewhere-check").click();
+    await expect(b.getByTestId("agent-eligibility")).toHaveAttribute("data-eligible", "true", { timeout: 20_000 });
+    await context.close();
+  });
+});
+

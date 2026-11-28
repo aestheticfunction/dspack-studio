@@ -64,6 +64,7 @@ import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from
 import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
 import { browserAuthority, type Authority, type AuthorityRecord } from "./authority";
 import { agentEligibility, type Eligibility } from "./eligibility";
+import { acceptedBeforeWithdrawal, keptCommitments, type ListableStore } from "./commitments";
 import { applyAuthority, restoreApproval, withdrawApproval } from "./withdrawal";
 
 type Json = Record<string, any>;
@@ -374,6 +375,29 @@ export function LibraryWorkspace() {
 
   readyRef.current = ready;
   const definition: CompositionDefinition | undefined = ready && prefs.composition && prefs.version ? ready.loaded.library.get(prefs.composition, prefs.version) : undefined;
+  useEffect(() => {
+    const authority = authorityRef.current;
+    if (!ready || !definition || !authority) return;
+    let live = true;
+    const k = versionKey(definition.id, definition.version);
+    void (async () => {
+      const record = await authority.read();
+      const value = await agentEligibility({
+        definition,
+        host: ready.hosts.get(k),
+        check: ready.checks.get("none")?.get(k),
+        governor: ready.governors.get("none")!,
+        authority,
+        record,
+        approvalGeneration: ready.approvalGen.get(k),
+        promotionBlockers: await promotionBlockers(ready.loaded, definition),
+      });
+      if (live) setEligibility({ key: k, value });
+    })();
+    return () => {
+      live = false;
+    };
+  }, [ready, definition]);
   const key = definition ? versionKey(definition.id, definition.version) : "";
   // One authoritative result per version and rule set; undefined means not checked under these rules yet.
   const check = ready?.checks.get(whatIf)?.get(key);
@@ -1064,29 +1088,6 @@ export function LibraryWorkspace() {
       : [];
   // Transition intent (decision 81): each intended next state must be reached by an example before approval.
   const intentIssues = definition?.status === "draft" ? transitionIssues(definition) : [];
-  useEffect(() => {
-    const authority = authorityRef.current;
-    if (!ready || !definition || !authority) return;
-    let live = true;
-    const k = versionKey(definition.id, definition.version);
-    void (async () => {
-      const record = await authority.read();
-      const value = await agentEligibility({
-        definition,
-        host: ready.hosts.get(k),
-        check: ready.checks.get("none")?.get(k),
-        governor: ready.governors.get("none")!,
-        authority,
-        record,
-        approvalGeneration: ready.approvalGen.get(k),
-        promotionBlockers: await promotionBlockers(ready.loaded, definition),
-      });
-      if (live) setEligibility({ key: k, value });
-    })();
-    return () => {
-      live = false;
-    };
-  }, [ready, definition]);
   const showPromotion = () => {
     setSelection(null);
     setTab("design");
@@ -1830,6 +1831,26 @@ export function LibraryWorkspace() {
                   </details>
                 </div>
               )}
+              {(() => {
+                // Commitments kept on this device for this version (R3): queried and settled by key, never sent again.
+                const kept = keptCommitments(browserStore() as ListableStore | null).filter((c) => c.composition === definition.id && c.version === definition.version);
+                if (kept.length === 0) return null;
+                return (
+                  <div className="cl-eligibility" data-testid="pending-commitments">
+                    <p className="cl-eligibility__headline">
+                      <strong>Outcomes on this device:</strong> {kept.filter((c) => c.status === "pending" || c.status === "unknown").length} still open
+                    </p>
+                    <ul className="cl-plain">
+                      {kept.map((c) => (
+                        <li key={c.key} data-status={c.status} data-before-withdrawal={acceptedBeforeWithdrawal(c, ready.authority)}>
+                          {sentence(humanize(c.action))}: {c.status === "pending" ? "outcome not known yet" : c.status === "unknown" ? "outcome unknown; ask by its key, never send again" : c.status}
+                          {acceptedBeforeWithdrawal(c, ready.authority) ? " · accepted before the approval was withdrawn" : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
               <p className="cl-text" data-testid="publication-note">
                 <strong>Published for agents: no.</strong> Publishing is not available yet. Passing checks or being approved does not publish a version.
               </p>

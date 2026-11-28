@@ -72,6 +72,12 @@ const markers = new Set([
   "promotion-details",
   "promote-confirm",
   "block-list",
+  // Transition intent and the authorization safeguards are experimental only.
+  "action-flow-intent-note",
+  "agent-eligibility",
+  "restored-elsewhere",
+  "pending-commitments",
+  "composer.experimental.workspace.authority",
   // State, transition and dialog authoring are experimental only.
   "states-editor",
   "action-flow",
