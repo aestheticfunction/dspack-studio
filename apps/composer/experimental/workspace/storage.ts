@@ -218,8 +218,8 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
     if (!data.retired.every((k) => typeof k === "string" && KEY.test(k))) return { ok: false, reason: "versions: a retired version is not <id>@<version>" };
     let approved: CompositionDefinition[] = [];
     if (data.approved.length > 0) {
-      // The one composition language: an approved version is checked by the 0.2 parser, as a packaged one is.
-      const probe = parseCompositionsSidecar({ compositionsSidecar: "0.2", status: "approved", reference: { name: "probe", dspack: "0", version: "0" }, baseSha256: "0".repeat(64), blocks: [], compositions: data.approved });
+      // The one composition language: an approved version is checked by the parser, as a packaged one is (0.3 reads 0.2).
+      const probe = parseCompositionsSidecar({ compositionsSidecar: "0.3", status: "approved", reference: { name: "probe", dspack: "0", version: "0" }, baseSha256: "0".repeat(64), blocks: [], compositions: data.approved });
       if (!probe.ok) return { ok: false, reason: `versions: ${probe.issues[0]?.path}: ${probe.issues[0]?.message}` };
       if (probe.sidecar.compositions.some((c) => c.status !== "approved")) return { ok: false, reason: "versions: only approved versions are kept here; drafts have their own record" };
       approved = probe.sidecar.compositions;
@@ -276,8 +276,8 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
   drafts(data) {
     if (!isObject(data) || !onlyKeys(data, ["drafts"]) || !Array.isArray(data.drafts)) return { ok: false, reason: "drafts: not the drafts shape" };
     if (data.drafts.length === 0) return { ok: true, value: { drafts: [] } };
-    // The one composition language: a draft is checked by the 0.2 parser, as a packaged composition is.
-    const probe = parseCompositionsSidecar({ compositionsSidecar: "0.2", status: "draft", reference: { name: "probe", dspack: "0", version: "0" }, baseSha256: "0".repeat(64), blocks: [], compositions: data.drafts });
+    // The one composition language: a draft is checked by the parser, as a packaged composition is (0.3 reads 0.2).
+    const probe = parseCompositionsSidecar({ compositionsSidecar: "0.3", status: "draft", reference: { name: "probe", dspack: "0", version: "0" }, baseSha256: "0".repeat(64), blocks: [], compositions: data.drafts });
     if (!probe.ok) return { ok: false, reason: `drafts: ${probe.issues[0]?.path}: ${probe.issues[0]?.message}` };
     if (probe.sidecar.compositions.some((c) => c.status !== "draft")) return { ok: false, reason: "drafts: only drafts are stored here; approved versions are packaged and immutable" };
     return { ok: true, value: { drafts: probe.sidecar.compositions } };
