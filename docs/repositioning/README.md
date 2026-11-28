@@ -33,3 +33,4 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [m1/refinement/README.md](m1/refinement/README.md) | Professional authoring refinement: Structure rows and icons, the grouped toolbar, the component picker, side by side from 1280 px, version menu |
 | [m1/states/README.md](m1/states/README.md) | State, transition and dialog authoring: states and conditions, what actions do, dialogs; the next-state proposal |
 | [m1/transitions/README.md](m1/transitions/README.md) | Transition intent (schema 0.3): intended next states, state titles and descriptions, reachability evidence |
+| [m1/discovery/README.md](m1/discovery/README.md) | Local agent-facing discovery: eligible exact versions, exact-version resolution, the eight demonstrations; the server-side authorization proposal |

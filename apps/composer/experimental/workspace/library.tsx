@@ -64,6 +64,7 @@ import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from
 import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
 import { browserAuthority, type Authority, type AuthorityRecord } from "./authority";
 import { agentEligibility, type Eligibility } from "./eligibility";
+import { DiscoveryPanel, type LastResolution } from "./discovery-panel";
 import { acceptedBeforeWithdrawal, keptCommitments, type ListableStore } from "./commitments";
 import { applyAuthority, restoreApproval, withdrawApproval } from "./withdrawal";
 
@@ -262,7 +263,9 @@ export function LibraryWorkspace() {
   // Advanced authoring: one selection shared by the structure, the canvas and the inspector. It names a template
   // element (definition-level, never a rendered id), and the item picked on the canvas when the element repeats.
   const [selection, setSelection] = useState<{ key: string; item: number | null } | null>(null);
-  const [leftView, setLeftView] = useState<"compositions" | "structure">("compositions");
+  const [leftView, setLeftView] = useState<"compositions" | "structure" | "agents">("compositions");
+  // The last reference a simulated agent resolved: kept while the designer works elsewhere, so it can be asked again.
+  const [discoveryLast, setDiscoveryLast] = useState<LastResolution>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [structureState, setStructureState] = useState<string | null>(null);
   // Visual template editing: where keyboard focus goes after an edit, and a session-only undo history per draft.
@@ -1217,7 +1220,7 @@ export function LibraryWorkspace() {
       <div className="cl-panel__head">
         {/* The view switch below is the panel's visible heading; this names the panel (and the phone's sheet). */}
         <h2 className="cl-sr" id="cl-library-title">
-          {leftView === "structure" ? "Structure" : "Compositions"}
+          {leftView === "structure" ? "Structure" : leftView === "agents" ? "Agents" : "Compositions"}
         </h2>
       <div className="cl-switch" role="group" aria-label="Show in this panel">
         <button className={`cl-switch__opt${leftView === "compositions" ? " cl-switch__opt--on" : ""}`} aria-pressed={leftView === "compositions"} onClick={() => setLeftView("compositions")} data-testid="view-compositions">
@@ -1226,6 +1229,9 @@ export function LibraryWorkspace() {
         <button className={`cl-switch__opt${leftView === "structure" ? " cl-switch__opt--on" : ""}`} aria-pressed={leftView === "structure"} onClick={() => setLeftView("structure")} disabled={!definition} data-testid="view-structure">
           Structure
         </button>
+        <button className={`cl-switch__opt${leftView === "agents" ? " cl-switch__opt--on" : ""}`} aria-pressed={leftView === "agents"} onClick={() => setLeftView("agents")} data-testid="view-agents">
+          Agents
+        </button>
       </div>
         {layout === "narrow" && (
           <button className="cl-tool" onClick={() => closeDrawer("library")}>
@@ -1233,7 +1239,22 @@ export function LibraryWorkspace() {
           </button>
         )}
       </div>
-      {leftView === "structure" && definition && structure && listedState ? (
+      {leftView === "agents" ? (
+        <DiscoveryPanel
+          last={discoveryLast}
+          setLast={setDiscoveryLast}
+          revision={ready}
+          context={() => {
+            const current = readyRef.current ?? ready;
+            const authority = authorityRef.current;
+            return current && authority ? { loaded: current.loaded, hosts: current.hosts, checks: current.checks.get("none")!, governor: current.governors.get("none")!, authority, approvalGen: current.approvalGen } : null;
+          }}
+          open={(composition, version) => {
+            persist({ ...prefs, composition, version, scenario: null, state: null });
+            setLeftView("compositions");
+          }}
+        />
+      ) : leftView === "structure" && definition && structure && listedState ? (
         <StructurePanel
           definition={definition}
           structure={structure}
@@ -1495,7 +1516,7 @@ export function LibraryWorkspace() {
           <div className="cl-toolbar__panels" role="group" aria-label="Panels">
             {(["library", "inspector"] as Panel[]).map((p) => {
               // The left toggle is named for what it shows now (5.2).
-              const name = p === "library" ? (leftView === "structure" ? "Structure" : "Compositions") : "Inspector";
+              const name = p === "library" ? (leftView === "structure" ? "Structure" : leftView === "agents" ? "Agents" : "Compositions") : "Inspector";
               return (
                 <button key={p} ref={(el) => void (toggles.current[p] = el)} className="cl-tool cl-toggle" aria-expanded={open[p]} aria-controls={`cl-${p}`} onClick={() => togglePanel(p)} data-testid={`toggle-${p}`} title={name}>
                   <Icon name={p === "library" ? "panel-left" : "panel-right"} />
@@ -2874,6 +2895,14 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-block { display: grid; gap: 6px; padding: 12px; border: 1px dashed var(--line); border-radius: 6px; }
 .cl-block > .cl-tool { justify-self: start; }
 .cl-promo { display: grid; gap: 8px; }
+.cl-discovery { display: grid; gap: 8px; min-width: 0; }
+.cl-discovery > * { min-width: 0; }
+.cl-discovery__heading { margin: 8px 0 0; font-size: 13px; font-weight: 600; color: var(--fg); }
+.cl-discovery__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cl-discovery__item { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line-soft); border-left-width: 3px; border-radius: 4px; min-width: 0; overflow-wrap: anywhere; }
+.cl-discovery__item--ok { border-left-color: var(--green-deep); }
+.cl-discovery__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cl-discovery__json { max-width: 100%; max-height: 320px; overflow: auto; font-size: 12px; line-height: 1.4; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 4px; padding: 8px; white-space: pre; }
 .cl-eligibility { display: grid; gap: 6px; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--line); border-left: 3px solid var(--warn, #c9a35a); border-radius: 4px; }
 .cl-eligibility--ok { border-left-color: var(--green-deep); }
 .cl-eligibility__headline { margin: 0; font-size: 14px; color: var(--fg-body); }
@@ -3023,7 +3052,9 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
 .cl-pick { position: absolute; z-index: 4; cursor: crosshair; background: transparent; }
 .cl-select-note { margin: 8px auto 0; max-width: 760px; }
 .cl-switch { display: inline-flex; gap: 4px; margin: 8px 0 12px; }
-.cl-panel__head .cl-switch { margin: 0; }
+.cl-panel__head .cl-switch { margin: 0; min-width: 0; }
+/* Three views (Compositions, Structure, Agents) in the panel's width: a little tighter than elsewhere. */
+.cl-panel__head .cl-switch__opt { padding: 4px 8px; font-size: 13px; white-space: nowrap; }
 .cl-switch__opt { min-height: var(--cl-target); padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--fg-body); font: inherit; font-size: 14px; cursor: pointer; }
 .cl-switch__opt--on { background: var(--bg-2); color: var(--fg); border-color: var(--fg-dim); font-weight: 600; }
 .cl-switch__opt:disabled { opacity: 0.55; cursor: not-allowed; }
