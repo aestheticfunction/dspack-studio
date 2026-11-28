@@ -45,8 +45,13 @@ test("forking creates a labeled new run and never mutates the original", async (
   await expect(page.getByTestId("fixture-meta")).toContainText("18 events");
   await expect(page.getByTestId("fork-blurb")).toContainText("The original is untouched");
 
-  // The forked prefix reconstructs the parent's surface at that moment.
-  await scrubToEnd(page);
+  // The forked prefix reconstructs the parent's surface at that moment. Selecting the fork renders it first and
+  // resets its playhead in an effect after that render; an End pressed in between is undone by the reset. Scrub
+  // again until the reset has happened, then the surface must be there.
+  await expect(async () => {
+    await scrubToEnd(page);
+    await expect(page.getByTestId("scrubber")).toHaveValue("17", { timeout: 500 });
+  }).toPass({ timeout: 10_000 });
   await expect(page.locator("[data-canvas] [data-a2ui-id]").first()).toBeVisible();
 
   // Back on the parent: still the full 20-event run.
