@@ -78,6 +78,9 @@ const markers = new Set([
   "agent-eligibility",
   "restored-elsewhere",
   "pending-commitments",
+  // Local agent-facing discovery is experimental only.
+  "composer.local-discovery/",
+  "discovery-resolution",
   // State, transition and dialog authoring are experimental only.
   "states-editor",
   "action-flow",

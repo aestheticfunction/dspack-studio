@@ -222,3 +222,13 @@ Authorized with the acceptance of #137 to #139.
 | 86 | Pending commitments (R3) | A commitment names the version, definition and approval it was accepted under; it is kept before acceptance and re-attached settle-only after a reload; a duplicate is refused while one is open | Metadata only. Local and synthetic: nothing is executed |
 | 87 | Safeguards corrections (findings on #141) | Unreadable legacy authorization evidence blocks every approval and is kept as it is; migrated legacy withdrawals match by composition and version; an approval is bound to the generation its checks began under; withdrawals are distinct per exact definition and never erase one another; two tabs cannot approve different definitions as the same version; a kept commitment key is never accepted again, an open commitment kept by another host refuses a second, and a terminal outcome is never overwritten | The commitment journal is for local synthetic use only: localStorage has no cross-tab transaction. Real consequential dispatch needs the server-side record first |
 
+## Local agent-facing discovery (2026-11-28)
+
+Authorized after #141, within the experimental workspace and the local synthetic boundary. Records: [m1/discovery/README.md](m1/discovery/README.md), [m1/discovery/SERVER-AUTHORIZATION-PROPOSAL.md](m1/discovery/SERVER-AUTHORIZATION-PROPOSAL.md).
+
+| # | Decision | Answer | Condition or limit |
+|---|---|---|---|
+| 88 | Local discovery | `discover` returns the eligible exact versions and every other version with reasons, as `composer.local-discovery/1`, evaluated from the authority at each request with `agentEligibility` as the only gate | Minimum exposure: names and kinds, never values; examples only on request. Not published, no endpoint |
+| 89 | Exact-version resolution | `resolve` takes composition, version and definition hash; refuses unknown, altered and ineligible references; never substitutes a version; renders through a fresh governed host | A reference obtained before a withdrawal is refused after it |
+| 90 | Server-side boundary | Proposed, not implemented: server-owned immutable versions, authoritative approvals and withdrawals with generations, request-time eligibility, publication separate from approval, durable commitments | Browser-local approvals never become server approvals by copying; client claims are never trusted |
+
