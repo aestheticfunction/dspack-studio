@@ -78,11 +78,13 @@ test.describe("selection: one element shared by the canvas, Structure and the in
     await expect(page.getByTestId("selection-outline")).toHaveCount(3);
     await expect(page.locator('.cl-sel--on[data-testid="selection-outline"]')).toHaveAttribute("data-component", "choose_2");
     await expect(page.getByTestId("action-item-payload")).toContainText("For “Hotel Miradouro” it would send hotelId:");
-    // Structure shows the template once, with the count on the canvas, and the same selection.
+    // Structure shows the template once, with the count once on its repeat, and the same selection.
     await structure(page);
     const item = page.getByTestId("structure-#choose");
     await expect(item).toHaveAttribute("aria-selected", "true");
-    await expect(item).toContainText("×3");
+    await expect(page.getByTestId("structure-ready@2.0")).toContainText("×3");
+    await expect(page.getByTestId("structure-ready@2.0")).toHaveAttribute("aria-label", /repeated 3 times/);
+    await expect(item).not.toContainText("×3");
     await expect(page.getByTestId("structure-tree").getByRole("treeitem")).toHaveCount(9);
     // Choosing in Structure moves the selection (and the outline) to another element.
     await page.getByTestId("structure-#new-search").click();

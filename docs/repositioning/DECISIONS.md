@@ -168,3 +168,18 @@ Implemented after #132's verification, stacked on approval withdrawal. Record: [
 | 60 | Insertion | Text, Badge, Button, Text field, Card and Selectable card, where they fit | A button is declared with its action and a text field with its input, in the same edit. Dialogs, tables, menus and details lists are not insertable yet |
 | 61 | Removal | Dependencies are said first and resolved in the same edit, never silently | Refused without resolution |
 | 62 | Recovery | A session-only undo and redo of element and structure edits | No comprehensive history or collaboration |
+
+## Authoring review acceptance and professional authoring refinement (2026-11-28)
+
+The independent visual authoring review was accepted as the reference for this increment. Its Priority 1 corrections were merged with #133 and #134. Record: [m1/refinement/README.md](m1/refinement/README.md).
+
+| # | Decision | Owner's answer | Condition or limit |
+|---|---|---|---|
+| 63 | J1 Structure row labels | Content first, with a semantic component icon; the component name where nothing is shown | The full type, label and behaviour stay in the accessible name and tooltip. The term Structure is kept |
+| 64 | J2 Side panels (amends decision 18) | One panel at a time stays the default from 900 to 1439 px. From 1280 px the designer may choose Structure and the inspector together, in compact widths (about 248 and 312 px) | Single-panel mode keeps at least 60% canvas. The chosen pair may give about 56%, if the composition stays usable and nothing overflows. The phone's modal sheets are unchanged |
+| 65 | J3 Component picker | Show the supported insertable components; tell compatible from incompatible, with reasons | The five components not yet insertable are not listed as choices until their authoring exists. No search or categories at this count |
+| 66 | J4 Withdrawal access | Reachable through composition-level version management whatever element is selected; never in the Structure toolbar | Explicit confirmation, safe default focus and every withdrawal safeguard are kept |
+| 67 | Undo placement | Undo and Redo with the canvas controls (on a phone, in the open sheet) | Their scope is unchanged (decision 62) |
+| 68 | Known-invalid placement | The picker and Move to try each choice on a copy through the loader before it is offered | The interface prevents known-invalid choices; the loader stays the authority on confirm |
+| 69 | The draft's next step | Run checks and Approve beside the draft chip when the inspector is closed; Approve confirms in place | Approval keeps its existing confirmation and meaning |
+| 70 | Carried forward | Decision 56's withdrawal follow-ups and decisions 52 and 53's sensitive-data requirement are open | For the milestone before external agent consumption; not resolved by presentation work |
