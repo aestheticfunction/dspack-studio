@@ -52,10 +52,15 @@ export async function agentEligibility(input: {
   const reasons: EligibilityReason[] = [];
   if (c.status !== "approved") reasons.push({ kind: "status", text: "Only an approved version can be used by agents; this is a draft." });
   if (!authority.available) reasons.push({ kind: "authority", text: `This browser cannot keep authorization safely (${authority.reason}), so nothing is eligible here.` });
-  const standing = approvalStanding(record, c, sha, approvalGeneration ?? -1);
-  if (standing === "withdrawn") reasons.push({ kind: "withdrawn", text: "Its approval is withdrawn on this device." });
-  // Not withdrawn in the record, but this tab's approval predates a withdrawal (or this tab still refuses it).
-  else if (standing === "stale" || host?.isWithdrawn(c.id)) reasons.push({ kind: "stale", text: "It was withdrawn and restored since this tab checked it. Run its checks here." });
+  // Withdrawal and staleness concern approvals; a draft has none, and says so above.
+  if (c.status === "approved") {
+    const standing = approvalStanding(record, c, sha, approvalGeneration ?? -1);
+    if (standing === "withdrawn") reasons.push({ kind: "withdrawn", text: "Its approval is withdrawn on this device." });
+    // Without an approval generation this tab holds no approval of it: never current (fail closed).
+    else if (approvalGeneration === undefined) reasons.push({ kind: "stale", text: "This tab holds no approval of it. Run its checks here." });
+    // Not withdrawn in the record, but this tab's approval predates a withdrawal (or this tab still refuses it).
+    else if (standing === "stale" || host?.isWithdrawn(c.id)) reasons.push({ kind: "stale", text: "It was withdrawn and restored since this tab checked it. Run its checks here." });
+  }
   const current = !!check?.approval && check.definition === c && samePins(check.approval.pins, await pinsFor(governor, c));
   if (c.status === "approved" && !current) reasons.push({ kind: "checks", text: "Its checks have not passed under the current rules, profile and toolchain." });
   for (const i of interactionIssues(c)) reasons.push({ kind: "safety", text: i.text.replace(/ (Mask|Make|Declare) [^.]*before this version can be approved\.$/, "") });

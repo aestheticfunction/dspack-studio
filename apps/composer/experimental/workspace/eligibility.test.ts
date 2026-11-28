@@ -80,6 +80,10 @@ describe("agent eligibility", () => {
     expect((await ask({ definition: intent, check: undefined })).reasons.map((r) => r.kind)).toEqual(["checks", "intent"]);
     const draft = loaded.library.get("hotel-results", 2)!;
     expect((await ask({ definition: draft, check: undefined })).reasons.map((r) => r.kind)).toEqual(["status"]);
+    // A draft holds no approval: it is never described as withdrawn or stale, only as a draft.
+    expect((await ask({ definition: draft, check: undefined, approvalGeneration: undefined })).reasons.map((r) => r.kind)).toEqual(["status"]);
+    // An approved version this tab holds no approval of is never current (fail closed).
+    expect((await ask({ approvalGeneration: undefined })).reasons).toEqual([{ kind: "stale", text: "This tab holds no approval of it. Run its checks here." }]);
   });
 });
 
