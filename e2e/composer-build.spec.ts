@@ -31,6 +31,17 @@ async function ready(page: Page): Promise<DemoProject> {
   return project;
 }
 
+/**
+ * The text of turn `turn`'s rendered surface. The canvas container appears as soon as the turn is emitted, and
+ * A2uiCanvas fills it in an effect after that render, so the container alone can still be empty. A rendered
+ * component (`data-a2ui-id`) appears only once the surface is committed, all at once: wait for it, then read.
+ */
+async function surfaceText(page: Page, turn: number): Promise<string> {
+  const canvas = page.getByTestId(`build-canvas-${turn}`);
+  await expect(canvas.locator("[data-a2ui-id]").first()).toBeVisible({ timeout: 30_000 });
+  return canvas.innerText();
+}
+
 async function runScripted(page: Page, prompt: string) {
   await page.getByTestId("build-prompt").fill(prompt);
   await page.getByTestId("build-run").click();
@@ -390,18 +401,18 @@ test("an intent with no example cannot borrow another intent's (#43)", async ({ 
 test("two consecutive refinements each use the immediately prior surface, non-vacuously (#43)", async ({ page }) => {
   const project = await ready(page);
   await runScripted(page, "a deployment status screen");
-  const first = await page.getByTestId("build-canvas-1").innerText();
+  const first = await surfaceText(page, 1);
 
   await page.getByTestId("build-prompt").fill("make the title clearer");
   await page.getByTestId("build-refine").click();
-  await expect(page.getByTestId("build-canvas-2")).toBeVisible({ timeout: 30_000 });
-  const second = await page.getByTestId("build-canvas-2").innerText();
+  const second = await surfaceText(page, 2);
 
   await page.getByTestId("build-prompt").fill("and say it once more");
   await page.getByTestId("build-refine").click();
-  await expect(page.getByTestId("build-canvas-3")).toBeVisible({ timeout: 30_000 });
-  const third = await page.getByTestId("build-canvas-3").innerText();
+  const third = await surfaceText(page, 3);
 
+  // Each turn rendered a surface with content: an empty read can never pass for a difference.
+  for (const text of [first, second, third]) expect(text.trim()).not.toBe("");
   // Turn 3 built on turn 2 — and is NOT a byte-identical no-op reported as success.
   expect(second).not.toBe(first);
   expect(third, "the second refinement must not be a silent no-op").not.toBe(second);
