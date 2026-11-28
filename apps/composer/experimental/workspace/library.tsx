@@ -45,7 +45,7 @@ import {
   type ShowResult,
 } from "@dspack-studio/composer-core/compositions";
 import { canvasScopeFor, registryFor } from "../../app/registries";
-import { checkVersion, definitionIssues, governorFor, hostFor, loadLibrary, promotableBlocks, promotionOf, type LoadedLibrary, type VersionCheck } from "./runtime";
+import { checkVersion, definitionIssues, governorFor, hostFor, loadLibrary, promotableBlocks, promotionBlockers, promotionOf, type LoadedLibrary, type VersionCheck } from "./runtime";
 import { approveVersion, createDraft, discardDraftVersion, editDraft, plainDataReason, promoteBlockDraft } from "./authoring";
 import { BlockList, mapEdit, PromotionDetails, removeEdit } from "./promotion-panel";
 import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
@@ -63,6 +63,7 @@ import { promotionIssues, transitionIssues, uniqueId, type Position } from "@dsp
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
 import { browserAuthority, type Authority, type AuthorityRecord } from "./authority";
+import { agentEligibility, type Eligibility } from "./eligibility";
 import { applyAuthority, restoreApproval, withdrawApproval } from "./withdrawal";
 
 type Json = Record<string, any>;
@@ -276,6 +277,9 @@ export function LibraryWorkspace() {
   const [blocks, setBlocks] = useState<BlockDefinition[] | null>(null);
   useEffect(() => void promotableBlocks().then(setBlocks, () => setBlocks([])), []);
   const [promoStatus, setPromoStatus] = useState<{ text: string; tone: "ok" | "bad" } | null>(null);
+  // Agent eligibility (safeguards R4): evaluated whenever the library, the selection or the record changes, from
+  // the authority as it is now; never stored.
+  const [eligibility, setEligibility] = useState<{ key: string; value: Eligibility } | null>(null);
   const toolsRef = useRef<TemplateToolsHandle>(null);
   const revealSelection = useRef(false);
   const [, setHistoryTick] = useState(0);
@@ -1055,11 +1059,34 @@ export function LibraryWorkspace() {
   const unresolved =
     promotion && definition?.status === "draft"
       ? promotionBlock
-        ? promotionIssues(definition, promotionBlock.actions ?? [])
+        ? promotionIssues(definition, promotionBlock.actions ?? [], promotionBlock.constraints)
         : [promotionBlock === null ? `The block it was promoted from (${promotion.block} v${promotion.version}) is not available, so its actions cannot be checked.` : "Reading the block it was promoted from…"]
       : [];
   // Transition intent (decision 81): each intended next state must be reached by an example before approval.
   const intentIssues = definition?.status === "draft" ? transitionIssues(definition) : [];
+  useEffect(() => {
+    const authority = authorityRef.current;
+    if (!ready || !definition || !authority) return;
+    let live = true;
+    const k = versionKey(definition.id, definition.version);
+    void (async () => {
+      const record = await authority.read();
+      const value = await agentEligibility({
+        definition,
+        host: ready.hosts.get(k),
+        check: ready.checks.get("none")?.get(k),
+        governor: ready.governors.get("none")!,
+        authority,
+        record,
+        approvalGeneration: ready.approvalGen.get(k),
+        promotionBlockers: await promotionBlockers(ready.loaded, definition),
+      });
+      if (live) setEligibility({ key: k, value });
+    })();
+    return () => {
+      live = false;
+    };
+  }, [ready, definition]);
   const showPromotion = () => {
     setSelection(null);
     setTab("design");
@@ -1761,6 +1788,48 @@ export function LibraryWorkspace() {
                   restore={restoreNow}
                 />
               )}
+              {eligibility?.key === key && (
+                <div className={`cl-eligibility${eligibility.value.eligible ? " cl-eligibility--ok" : ""}`} data-testid="agent-eligibility" data-eligible={eligibility.value.eligible}>
+                  <p className="cl-eligibility__headline">
+                    <strong>Agents:</strong> {eligibility.value.headline}
+                  </p>
+                  {eligibility.value.reasons.length > 0 && (
+                    <ul className="cl-plain" data-testid="agent-eligibility-reasons">
+                      {eligibility.value.reasons.map((r) => (
+                        <li key={r.kind + r.text} data-kind={r.kind}>
+                          {r.text}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {eligibility.value.reasons.some((r) => r.kind === "safety") && definition.status === "approved" && (
+                    <p className="cl-dim">This version stays as it was approved and can still be previewed here. Create a draft to make the update; the draft is approved on its own.</p>
+                  )}
+                  <details className="cl-tech" data-testid="agent-eligibility-technical">
+                    <summary>Technical details</summary>
+                    <dl className="cl-kv">
+                      <div>
+                        <dt>Definition</dt>
+                        <dd>{eligibility.value.technical.compositionSha256.slice(0, 12)}</dd>
+                      </div>
+                      <div>
+                        <dt>Authorization record</dt>
+                        <dd>generation {eligibility.value.technical.authorityGeneration}</dd>
+                      </div>
+                      <div>
+                        <dt>This tab's approval</dt>
+                        <dd>{eligibility.value.technical.approvalGeneration === null ? "none" : `from generation ${eligibility.value.technical.approvalGeneration}`}</dd>
+                      </div>
+                      {eligibility.value.technical.withdrawalGeneration !== null && (
+                        <div>
+                          <dt>Withdrawn at</dt>
+                          <dd>generation {eligibility.value.technical.withdrawalGeneration}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </details>
+                </div>
+              )}
               <p className="cl-text" data-testid="publication-note">
                 <strong>Published for agents: no.</strong> Publishing is not available yet. Passing checks or being approved does not publish a version.
               </p>
@@ -2014,7 +2083,7 @@ export function LibraryWorkspace() {
               intentIssues={intentIssues}
               fixBlocking={() => {
                 const first = interactionIssues(definition)[0];
-                if (first) void applyEdit((d) => applyInputChange(d, first.fix)).then((problem) => setAnnounce(problem ? `Not applied: ${problem}` : "The private field is masked. Run the checks again."));
+                if (first) void applyEdit((d) => applyInputChange(d, first.fix)).then((problem) => setAnnounce(problem ? `Not applied: ${problem}` : `${first.fixLabel}: done. Run the checks again.`));
               }}
             />
           )}
@@ -2319,7 +2388,7 @@ function AuthoringBar({
   intentIssues,
 }: {
   definition: CompositionDefinition;
-  blocking: Array<{ text: string }>;
+  blocking: Array<{ text: string; fixLabel?: string }>;
   unresolved: string[];
   showUnresolved: () => void;
   intentIssues: string[];
@@ -2388,7 +2457,7 @@ function AuthoringBar({
         <p className="cl-bar__line cl-warn" data-testid="approval-blocked">
           {blocking[0]!.text}{" "}
           <button className="cl-link" onClick={fixBlocking} data-testid="mask-fix">
-            Mask the field
+            {blocking[0]!.fixLabel ?? "Mask the field"}
           </button>
         </p>
       )}
@@ -2774,6 +2843,10 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-block { display: grid; gap: 6px; padding: 12px; border: 1px dashed var(--line); border-radius: 6px; }
 .cl-block > .cl-tool { justify-self: start; }
 .cl-promo { display: grid; gap: 8px; }
+.cl-eligibility { display: grid; gap: 6px; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--line); border-left: 3px solid var(--warn, #c9a35a); border-radius: 4px; }
+.cl-eligibility--ok { border-left-color: var(--green-deep); }
+.cl-eligibility__headline { margin: 0; font-size: 14px; color: var(--fg-body); }
+.cl-tech summary { cursor: pointer; font-size: 13px; color: var(--fg-dim); }
 .cl-flow__evidence { display: block; margin-top: 4px; font-size: 13px; }
 .cl-promo__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .cl-promo__row { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line-soft); border-left-width: 3px; border-radius: 4px; }

@@ -98,7 +98,7 @@ export async function promotionBlockers(loaded: LoadedLibrary, definition: Compo
   if (!p) return [];
   const block = (await promotableBlocks()).find((b) => b.id === p.block && b.version === p.version);
   if (!block) return [`The block it was promoted from (${p.block} v${p.version}) is not available, so its actions cannot be checked.`];
-  return promotionIssues(definition, block.actions ?? []);
+  return promotionIssues(definition, block.actions ?? [], block.constraints);
 }
 
 /**

@@ -134,10 +134,28 @@ function setMasked(draft: CompositionDefinition, nodeId: string, masked: boolean
  * What a version still needs before it can be approved here, beyond its checks: a private field must be
  * masked on screen. Each problem comes with the change that fixes it.
  */
-export function interactionIssues(definition: CompositionDefinition): Array<{ node: string; text: string; fix: InputChange }> {
-  return definition.inputs
+export function interactionIssues(definition: CompositionDefinition): Array<{ node: string; text: string; fix: InputChange; fixLabel: string }> {
+  const unmasked = definition.inputs
     .filter((i) => i.sensitive && !isMasked(definition, i.node))
-    .map((i) => ({ node: i.node, text: `${words(i.name)} is private, but its field shows what is typed. Mask it before this version can be approved.`, fix: { op: "update", name: i.name, patch: { sensitive: true } } }));
+    .map((i) => ({ node: i.node, text: `${words(i.name)} is private, but its field shows what is typed. Mask it before this version can be approved.`, fix: { op: "update", name: i.name, patch: { sensitive: true } } as InputChange, fixLabel: "Mask the field" }));
+  // Safeguards R4: a field drawn as a password is treated as holding a secret. It must be declared private, so its
+  // value is redacted from everything recorded and never carried into a replacement.
+  const drawn = new Set<string>();
+  const visit = (n: Json) => {
+    if (!n || typeof n !== "object") return;
+    if (n.component === "text-input" && typeof n.id === "string" && (n.props as Json | undefined)?.type === "password") drawn.add(n.id);
+    for (const c of (n.children ?? []) as Json[]) visit(c);
+    for (const c of (n.else ?? []) as Json[]) visit(c);
+  };
+  for (const st of definition.states) visit(st.template as unknown as Json);
+  const notPrivate = [...drawn].flatMap((node) => {
+    const input = definition.inputs.find((i) => i.node === node);
+    if (input?.sensitive) return [];
+    return input
+      ? [{ node, text: `${words(input.name)} is drawn as a password but is not private, so what is typed could be recorded. Make it private before this version can be approved.`, fix: { op: "update", name: input.name, patch: { sensitive: true } } as InputChange, fixLabel: "Make it private" }]
+      : [{ node, text: `The “${node}” field is drawn as a password but takes no declared input. Declare it and make it private before this version can be approved.`, fix: { op: "declare", node } as InputChange, fixLabel: "Declare the field" }];
+  });
+  return [...unmasked, ...notPrivate];
 }
 
 // ---- Input changes -------------------------------------------------------------------------------------------
