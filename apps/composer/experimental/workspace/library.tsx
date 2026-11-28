@@ -525,7 +525,7 @@ export function LibraryWorkspace() {
     persist({ ...prefs, version: r.version, scenario: null, state: null, panel: "inspector" });
     setTab("design");
     showInspector();
-    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `Draft v${r.version} created from v${definition.version}. v${definition.version} stays approved and unchanged.` });
+    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `Draft v${r.version} created from v${definition.version}. ${isWithdrawn(definition) ? `v${definition.version} is unchanged; its approval is withdrawn.` : `v${definition.version} stays approved and unchanged.`}` });
     setAnnounce(`Draft v${r.version} created. Edit it in the inspector.`);
   };
 
@@ -608,7 +608,7 @@ export function LibraryWorkspace() {
       return;
     }
     setReady({ ...ready, authorization: r.record });
-    setNotice({ tone: "ok", text: `The approval of v${definition.version} is withdrawn on this device. v${definition.version} itself is unchanged; nothing may use it until approval is restored, and no other version is used in its place.` });
+    setNotice({ tone: "ok", text: `Approval of v${definition.version} withdrawn on this device. v${definition.version} itself is unchanged, and no other version is used in its place.` });
     setAnnounce(`Approval of version ${definition.version} withdrawn.`);
   };
 
@@ -913,7 +913,7 @@ export function LibraryWorkspace() {
                   <span className="cl-item__versions">
                     {e.versions.map((v) => (
                       <span key={v.version} className={`cl-badge${v.status === "approved" && !isWithdrawn(v) ? " cl-badge--ok" : ""}`}>
-                        v{v.version} · {v.status === "approved" ? (isWithdrawn(v) ? "Approved · withdrawn" : "Approved") : "Draft"}
+                        v{v.version} · {v.status === "approved" ? (isWithdrawn(v) ? "Withdrawn" : "Approved") : "Draft"}
                       </span>
                     ))}
                   </span>
@@ -996,7 +996,7 @@ export function LibraryWorkspace() {
               <select className="af-select cl-input" value={definition.version} onChange={(e) => persist({ ...prefs, version: Number(e.target.value), state: null })} data-testid="version-select">
                 {[...entry.versions].reverse().map((v) => (
                   <option key={v.version} value={v.version}>
-                    v{v.version} {v.status === "approved" ? `${ready.loaded.origin.get(versionKey(v.id, v.version)) === "device" ? "Approved on this device" : "Approved"}${isWithdrawn(v) ? " · withdrawn" : ""}` : "Draft"}
+                    v{v.version} {v.status === "approved" ? (isWithdrawn(v) ? "Withdrawn" : ready.loaded.origin.get(versionKey(v.id, v.version)) === "device" ? "Approved on this device" : "Approved") : "Draft"}
                   </option>
                 ))}
               </select>
@@ -1007,13 +1007,13 @@ export function LibraryWorkspace() {
               {entry.versions.map((v) => (
                 <label key={v.version} className={`cl-seg__opt${v.version === definition.version ? " cl-seg__opt--on" : ""}`}>
                   <input type="radio" name="cl-version" checked={v.version === definition.version} onChange={() => persist({ ...prefs, version: v.version, state: null })} />
-                  v{v.version} {v.status === "approved" ? (isWithdrawn(v) ? "Approved · withdrawn" : "Approved") : "Draft"}
+                  v{v.version} {v.status === "approved" ? (isWithdrawn(v) ? "Withdrawn" : "Approved") : "Draft"}
                 </label>
               ))}
             </fieldset>
           ) : (
             <span className={`cl-badge${definition.status === "approved" && !isWithdrawn(definition) ? " cl-badge--ok" : ""}`}>
-              v{definition.version} · {definition.status === "approved" ? (isWithdrawn(definition) ? "Approved · withdrawn" : "Approved") : "Draft"}
+              v{definition.version} · {definition.status === "approved" ? (isWithdrawn(definition) ? "Withdrawn" : "Approved") : "Draft"}
             </span>
           )}
         </div>
@@ -1038,7 +1038,7 @@ export function LibraryWorkspace() {
               </summary>
               <div className="cl-draft__pop" role="note">
                 <p>
-                  v{definition.version} is a draft, newer than approved v{approvedVersion}. It is not approved for use by agents: passing checks does not approve it. v{approvedVersion} stays approved and unchanged.
+                  v{definition.version} is a draft, newer than {isWithdrawn(entry.approved ?? undefined) ? "" : "approved "}v{approvedVersion}. It is not approved for use by agents: passing checks does not approve it. {isWithdrawn(entry.approved ?? undefined) ? `v${approvedVersion} is unchanged; its approval is withdrawn.` : `v${approvedVersion} stays approved and unchanged.`}
                 </p>
                 {draftState !== "pass" && <p data-testid="draft-check-state">{draftState === "checking" ? "Its checks are running." : draftState === "fail" ? "Its latest checks fail: open Checks in the inspector to see which examples, and why." : "It has changed since its last check. Run the checks before it can be approved."}</p>}
                 {changes && (
@@ -1233,7 +1233,7 @@ export function LibraryWorkspace() {
         <li key={v.version} className={v.version === definition.version ? "cl-versions__on" : undefined}>
           <span className={`cl-badge${v.status === "approved" && !isWithdrawn(v) ? " cl-badge--ok" : ""}`}>v{v.version}</span>{" "}
           {v.status === "approved" && isWithdrawn(v)
-            ? "Approved, then its approval was withdrawn on this device: it is unchanged, and nothing may use it until approval is restored."
+            ? "Approval withdrawn on this device. It is unchanged, and nothing may use it until approval is restored."
             : v.status === "approved"
             ? ready.loaded.origin.get(versionKey(v.id, v.version)) === "device"
               ? "Approved on this device: a person approved this exact version here, and it cannot change."
@@ -1332,7 +1332,7 @@ export function LibraryWorkspace() {
                     Open draft v{entry.draft.version}
                   </button>
                 ) : (
-                  <p className="cl-text">To change this composition, create a draft: v{definition.version} stays approved and unchanged while you work.</p>
+                  <p className="cl-text">{isWithdrawn(definition) ? "To change this composition, create a draft from it." : `To change this composition, create a draft: v${definition.version} stays approved and unchanged while you work.`}</p>
                 )
               )}
               {definition.status === "approved" && governed && (
@@ -2005,7 +2005,6 @@ function ApprovalLifecycle({ version, withdrawn, origin, open, setOpen, busy, wi
   }
   return withdrawn ? (
     <div data-testid="approval-withdrawn">
-      <p className="cl-warn">The approval of v{version} is withdrawn on this device. Nothing may use it until approval is restored.</p>
       <button className="cl-tool" onClick={() => setOpen("restore")} data-testid="restore">
         Restore approval…
       </button>
@@ -2249,7 +2248,7 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 }
 .cl-toolbar__row { display: flex; align-items: center; gap: 8px 10px; min-width: 0; }
 .cl-toolbar__label { font-size: 12px; font-weight: 600; color: var(--fg-dim); white-space: nowrap; align-self: flex-start; line-height: var(--cl-target); }
-.cl-seg { border: 0; padding: 0; margin: 0; display: inline-flex; gap: 4px; align-items: center; }
+.cl-seg { border: 0; padding: 0; margin: 0; display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 0; }
 .cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cl-target); padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .cl-seg__opt input { margin: 0; width: 14px; height: 14px; accent-color: var(--fg); }
 .cl-seg__opt--on { border-color: var(--fg-dim); background: var(--bg-2); color: var(--fg); }

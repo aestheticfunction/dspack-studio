@@ -47,13 +47,13 @@ test.describe("approval withdrawal", () => {
     await expect(page.getByRole("button", { name: "Keep it approved" })).toBeFocused();
     const evidence = (await storage(page))[`${NS}approvals`];
     await page.getByTestId("withdraw-confirm-button").click();
-    await expect(page.getByTestId("authoring-notice")).toContainText("The approval of v1 is withdrawn on this device. v1 itself is unchanged");
+    await expect(page.getByTestId("authoring-notice")).toContainText("Approval of v1 withdrawn on this device. v1 itself is unchanged");
     await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
     await expect(page.getByTestId("refusal")).toContainText("Approval withdrawn on this device");
     await expect(page.getByTestId("check-pill")).toHaveAttribute("data-state", "withdrawn");
     // The previous screen is kept for comparison only, not interactive.
     await expect(page.getByTestId("kept-instance").locator("summary")).toContainText("not interactive");
-    await expect(page.getByRole("radio", { name: /v1 Approved · withdrawn/i })).toBeChecked();
+    await expect(page.getByRole("radio", { name: /v1 Withdrawn/i })).toBeChecked();
     // Another example: still nothing shown from v1, and the draft is not used in its place.
     await page.getByTestId("scenario-two").click();
     await ready(page);
@@ -65,7 +65,7 @@ test.describe("approval withdrawal", () => {
     expect(stored[`${NS}versions`]).toBeUndefined();
     await page.reload();
     await ready(page);
-    await page.getByRole("radio", { name: /v1 Approved · withdrawn/i }).check();
+    await page.getByRole("radio", { name: /v1 Withdrawn/i }).check();
     await ready(page);
     await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
   });
@@ -108,7 +108,7 @@ test.describe("approval withdrawal", () => {
     await page.reload();
     await ready(page);
     // Opening the composition selects v2, withdrawn, as it is: v1 is not silently used instead.
-    await expect(page.getByRole("radio", { name: /v2 Approved · withdrawn/i })).toBeChecked();
+    await expect(page.getByRole("radio", { name: /v2 Withdrawn/i })).toBeChecked();
     await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
     // v1 keeps its own approval.
     await page.getByRole("radio", { name: /v1 Approved/i }).check();
@@ -127,8 +127,34 @@ test.describe("approval withdrawal", () => {
     await expect(b.getByTestId("check-pill")).toHaveAttribute("data-state", "pass");
     await withdraw(a);
     await expect(b.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
-    await expect(b.getByRole("radio", { name: /v1 Approved · withdrawn/i })).toBeChecked();
+    await expect(b.getByRole("radio", { name: /v1 Withdrawn/i })).toBeChecked();
     await context.close();
+  });
+
+  test("a withdrawn version is said to be withdrawn once per surface, never that it stays approved; at 390 px its label does not run under the view controls", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openLibrary(page);
+    await page.getByRole("radio", { name: /v1 Approved/i }).check();
+    await ready(page);
+    await withdraw(page);
+    await page.keyboard.press("Escape");
+    const overlap = await page.evaluate(() => {
+      const box = (el: Element) => el.getBoundingClientRect();
+      const options = [...document.querySelectorAll(".cl-toolbar__versions .cl-seg__opt")].map(box);
+      const view = [...document.querySelectorAll(".cl-toolbar__view button")].map(box);
+      return options.flatMap((a) => view.filter((b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5).map(() => 1)).length;
+    });
+    expect(overlap).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expect(page.getByRole("radio", { name: /v2 Draft/i })).toBeVisible();
+    await inspector(page);
+    const versions = page.getByTestId("versions");
+    await expect(versions).toContainText("Approval withdrawn on this device.");
+    // The inspector's Versions section states it once, and offers the next action.
+    await expect(page.getByTestId("approval-withdrawn")).not.toContainText("withdrawn");
+    await expect(page.getByTestId("approval-withdrawn").getByTestId("restore")).toBeVisible();
+    await expect(page.getByTestId("composition-library")).not.toContainText("v1 stays approved");
+    await expect(page.getByTestId("composition-library")).not.toContainText("Approved · withdrawn");
   });
 
   for (const [w, h] of [
