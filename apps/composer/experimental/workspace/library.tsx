@@ -55,6 +55,7 @@ import { ElementInspector, type ItemContext } from "./element-inspector";
 import { SelectionLayer } from "./selection-layer";
 import { COMPONENT_LABEL, elementName, StructurePanel } from "./structure-panel";
 import { TemplateTools, type TemplateToolsHandle } from "./template-tools";
+import { ActionFlow, StatesEditor } from "./state-editor";
 import { Icon } from "./icons";
 import { emptyHistory, plan, record, restoreTracked, settle, type History } from "./undo-history";
 import { applyContent, applyInsert, assignId as assignElementId, contentProblem, moveNode, plainTemplateIssue, removeNode, renameId as renameElementId, statesShowing, type Insertable } from "./template-editing";
@@ -1182,6 +1183,12 @@ export function LibraryWorkspace() {
           focus={treeFocus}
           tools={templateOps && definition ? <TemplateTools ref={toolsRef} definition={definition} contract={contract} stateId={listedState} selected={selection && homeState === listedState ? selection.key : null} ops={templateOps} layout={layout} extra={layout === "narrow" && open.library ? historyControls : null} /> : undefined}
           onShortcut={templateOps ? (sc) => toolsRef.current?.shortcut(sc) : undefined}
+          onEditStates={() => {
+            setSelection(null);
+            setTab("design");
+            showInspector();
+            setTimeout(() => document.getElementById("cl-states-section")?.scrollIntoView({ block: "start" }), 80);
+          }}
         />
       ) : (
       <>
@@ -1732,20 +1739,23 @@ export function LibraryWorkspace() {
                 ))}
               </ul>
             </Section>
-            <Section title="What a person can do">
-              <ul className="cl-plain">
-                {definition.actions.map((a) => (
-                  <li key={a.name}>
-                    <button className="cl-link" onClick={() => selectElement(`#${a.node}`)} data-testid={`inspect-action-${a.name}`}>
-                      <strong>{sentence(humanize(a.name))}</strong>
-                    </button>
-                    {a.repeat ? `, on each ${humanize(a.repeat.as)}` : ""}
-                    {a.payload && Object.keys(a.payload).length ? `: sends the ${Object.keys(a.payload).map(humanize).join(", ")}` : ""}
-                    {a.carries?.length ? `${a.payload && Object.keys(a.payload).length ? " and" : ":"} sends what was typed` : ""}
-                    {a.consequential ? ". Consequential: asks for confirmation first" : ""}
-                  </li>
-                ))}
-              </ul>
+            <Section title="States">
+              <div id="cl-states-section" />
+              <StatesEditor
+                definition={definition}
+                contract={contract}
+                editable={editable}
+                edit={applyEdit}
+                selected={listedState}
+                select={(id) => setStructureState(id)}
+                preview={(id) => {
+                  setStructureState(id);
+                  persist({ ...prefs, state: id });
+                }}
+              />
+            </Section>
+            <Section title="What actions do">
+              <ActionFlow definition={definition} editable={editable} edit={applyEdit} inspect={(name) => selectElement(`#${definition.actions.find((a) => a.name === name)!.node}`)} />
             </Section>
             {definition.inputs.length > 0 && (
               <Section title="What a person can type">
@@ -2591,6 +2601,29 @@ const CSS = withWorkspaceChoices(`
 .cl-vmenu__pop { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; min-width: 240px; padding: 8px; background: var(--bg-1); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow-menu); display: grid; gap: 6px; }
 .cl-vmenu__pop .cl-tool { justify-content: flex-start; }
 .cl-lifecycle-over { margin-bottom: 12px; }
+/* States and what actions do (slices A and B). */
+.cl-states { display: grid; gap: 10px; }
+.cl-states__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cl-states__row { width: 100%; display: grid; grid-template-columns: auto 1fr; grid-template-areas: "n name" "n when"; column-gap: 8px; text-align: left; padding: 6px 8px; min-height: var(--cl-target); border: 1px solid var(--line-soft); border-radius: 4px; background: transparent; color: var(--fg-body); font: inherit; cursor: pointer; }
+.cl-states__row:hover { border-color: var(--fg-faint); }
+.cl-states__row--on { background: var(--bg-2); border-color: var(--fg-dim); box-shadow: inset 3px 0 0 var(--fg); }
+.cl-states__n { grid-area: n; align-self: center; font-size: 12px; color: var(--fg-dim); min-width: 1.2em; text-align: right; }
+.cl-states__name { grid-area: name; font-weight: 600; color: var(--fg); font-size: 14px; }
+.cl-states__when { grid-area: when; font-size: 13px; color: var(--fg-dim); line-height: 1.4; }
+.cl-states__detail { display: grid; gap: 8px; border-top: 1px solid var(--line-soft); padding-top: 10px; }
+.cl-states__title { margin: 0; font-size: 15px; font-weight: 600; color: var(--fg); }
+.cl-states__detail .cl-dim { margin: 0; }
+.cl-cond { border: 1px solid var(--line-soft); border-radius: 4px; padding: 8px; margin: 0; display: grid; gap: 6px; min-width: 0; }
+.cl-cond__parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cl-cond__part { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cl-cond__part .cl-input { flex: 1 1 120px; min-width: 0; }
+.cl-cond__min { flex: 0 0 72px !important; }
+.cl-structure__states { flex: none; }
+.cl-flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cl-flow__item { border-top: 1px solid var(--line-soft); padding-top: 8px; }
+.cl-flow__kv { margin-top: 4px; }
+.cl-flow__kv > div { display: contents; }
+.cl-flow__states { display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .cl-toolbar__status { position: relative; }
 .cl-approve-pop { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(380px, 90vw); display: grid; gap: 8px; padding: 12px 14px; background: var(--bg-1); border: 1px solid var(--line); border-top: 2px solid var(--fg-dim); border-radius: 4px; box-shadow: var(--shadow-menu); }
 .cl-lifecycle-over .cl-bar { position: static; margin: 0; }
