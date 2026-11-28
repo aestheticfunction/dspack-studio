@@ -71,7 +71,7 @@ test.describe("block promotion", () => {
     const confirm = page.getByTestId("promote-confirm");
     await expect(confirm).toContainText("A new draft, “Account access” v1");
     await expect(confirm).toContainText("Nothing is approved or published");
-    await expect(page.getByTestId("promote-to-resolve")).toContainText("4 things to resolve");
+    await expect(page.getByTestId("promote-to-resolve")).toContainText("5 things to resolve");
     await expect(page.getByTestId("promote-to-resolve")).toContainText("Nothing is mapped for you");
     await shot(page, "02-promote-confirm");
     await page.getByTestId("promote-confirm-button").click();
@@ -80,7 +80,9 @@ test.describe("block promotion", () => {
     // canvas refuses it, because a button would send an action nobody declared.
     await expect(page.getByTestId("library-item-auth-form")).toContainText("v1 · Draft");
     await expect(page.getByTestId("promotion-source")).toContainText("Astryx block “Account access” (auth-form v1). The block is unchanged.");
-    await expect(page.getByTestId("promotion-summary")).toContainText("4 things to resolve");
+    await expect(page.getByTestId("promotion-summary")).toContainText("5 things to resolve");
+    // Its checks between fields cannot be carried, and the composition still shows those fields: approval waits.
+    await expect(row(page, "checks-blocking")).toContainText("4 checks between fields");
     await expect(row(page, "auth_submit")).toHaveAttribute("data-status", "to-resolve");
     await expect(row(page, "auth_forgot")).toContainText("shown only when “recovery” is set");
     await expect(row(page, "repeat-providers")).toContainText("cannot be mapped");
@@ -96,7 +98,7 @@ test.describe("block promotion", () => {
     // 4. Resolve the mapping: Submit is a literal, always-shown button, so its action can be declared.
     await row(page, "auth_submit").getByTestId("promotion-map-auth_submit").click();
     await expect(row(page, "auth_submit")).toHaveAttribute("data-status", "resolved");
-    await expect(page.getByTestId("promotion-summary")).toContainText("3 things to resolve");
+    await expect(page.getByTestId("promotion-summary")).toContainText("4 things to resolve");
 
     // 5. Identify and remove what cannot be supported: the conditional Forgot and the provider buttons.
     await row(page, "auth_forgot").getByTestId("promotion-remove-auth_forgot").click();
@@ -106,9 +108,9 @@ test.describe("block promotion", () => {
     await row(page, "repeat-providers").getByTestId("promotion-remove-repeat-providers").click();
     await expect(row(page, "repeat-providers")).toHaveCount(0);
     await expect(row(page, "removed")).toContainText("5 actions no longer sent");
-    await expect(page.getByTestId("promotion-summary")).toContainText("1 thing to resolve");
+    await expect(page.getByTestId("promotion-summary")).toContainText("2 things to resolve");
     // Approval is blocked with the reason while anything is unresolved, even before the checks.
-    await expect(page.getByTestId("promotion-blocked")).toContainText("1 thing from the block to resolve");
+    await expect(page.getByTestId("promotion-blocked")).toContainText("from the block to resolve");
     await expect(page.getByTestId("approve")).toHaveCount(0);
     // Replace the computed text fields with fields of their own, then remove the computed ones.
     await page.getByTestId("structure-#auth-submit").click();
@@ -127,8 +129,9 @@ test.describe("block promotion", () => {
     await expect(canvas(page).getByLabel("Email address")).toHaveCount(1);
     await expect(row(page, "input-password")).toContainText("Declared and private");
     await expect(page.getByTestId("promotion-blocked")).toHaveCount(0);
-    // What a composition cannot carry stays said: the block's field checks are not enforced by the composition.
-    await expect(page.getByTestId("promotion-not-carried")).toContainText("when mode is reset, fields includes email");
+    // The checks between fields are genuinely resolved: the composition no longer shows the fields they constrain.
+    await expect(row(page, "checks-moot")).toContainText("when mode is reset, fields includes email");
+    await expect(row(page, "checks-moot")).toHaveAttribute("data-status", "resolved");
     await shot(page, "05-resolved");
 
     // 6. Refine the examples: rename the block's example and add a sign-in one.
@@ -178,7 +181,7 @@ test.describe("block promotion", () => {
     await expect(row(page, "removed")).toBeVisible();
     await page.locator(".cl-toolbar__view").getByTestId("tt-undo").click();
     await expect(row(page, "auth_forgot")).toHaveAttribute("data-status", "to-resolve");
-    await expect(page.getByTestId("promotion-blocked")).toContainText("4 things");
+    await expect(page.getByTestId("promotion-blocked")).toContainText("5 things");
     // Discarding the draft removes it and its provenance; the block is still offered.
     await page.getByTestId("discard").click();
     await page.getByTestId("discard-confirm-button").click();
@@ -196,7 +199,7 @@ test.describe("block promotion", () => {
     await page.getByTestId("promote-records-table").click();
     await expect(page.getByTestId("promote-confirm")).toContainText("Not carried: The block's check that columns and rows.*.cells have the same length");
     await page.getByTestId("promote-confirm-button").click();
-    await expect(page.getByTestId("promotion-not-carried")).toContainText("cannot declare checks between fields yet");
+    await expect(row(page, "checks-blocking")).toContainText("still shows those fields");
     await expect(page.getByTestId("promotion-summary")).toContainText("to resolve");
   });
 

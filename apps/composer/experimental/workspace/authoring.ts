@@ -186,8 +186,16 @@ export async function approveVersion(loaded: LoadedLibrary, governor: Governor, 
   const again = await recheck(governor, r.approved);
   if (!again.approval) return { ok: false, reason: "the approved version did not pass its own re-check, so nothing was approved" };
   const key = versionKey(id, version);
-  const retired = loaded.packaged.some((c) => keyOf(c) === key) && !loaded.stored.retired.includes(key) ? [...loaded.stored.retired, key] : loaded.stored.retired;
-  const approved = [...loaded.stored.approved.filter((c) => keyOf(c) !== key), r.approved];
+  // Read what is stored now, not this tab's copy: another tab may have approved a different definition under the
+  // same composition and version since this tab loaded. Two definitions cannot both be "v{n} approved" here, so
+  // that is refused rather than overwritten; and versions another tab approved are kept.
+  const stored = readRecord("versions", store);
+  if (stored.status === "malformed" || stored.status === "incompatible") return { ok: false, reason: "the versions approved on this device could not be read, so nothing was approved" };
+  const other = stored.value.approved.find((c) => keyOf(c) === key);
+  if (other && JSON.stringify(other) !== JSON.stringify(r.approved)) return { ok: false, reason: `another tab approved a different v${version} on this device; reload to see it. Nothing was approved here` };
+  const storedRetired = stored.value.retired.length ? stored.value.retired : loaded.stored.retired;
+  const retired = loaded.packaged.some((c) => keyOf(c) === key) && !storedRetired.includes(key) ? [...storedRetired, key] : storedRetired;
+  const approved = [...stored.value.approved.filter((c) => keyOf(c) !== key), r.approved];
   const written = writeRecord("versions", { approved: approved.map((c) => structuredClone(c)), retired }, store);
   if (!written.ok) return { ok: false, reason: `nothing was approved: ${written.reason}` };
   const drafts = loaded.stored.drafts.filter((d) => keyOf(d) !== key);

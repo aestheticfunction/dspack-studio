@@ -74,6 +74,10 @@ const markers = new Set([
   "block-list",
   // Transition intent is experimental only.
   "action-flow-intent-note",
+  // The authorization safeguards are experimental only.
+  "agent-eligibility",
+  "restored-elsewhere",
+  "pending-commitments",
   // State, transition and dialog authoring are experimental only.
   "states-editor",
   "action-flow",

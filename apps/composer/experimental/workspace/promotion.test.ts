@@ -82,7 +82,9 @@ describe("approval waits until every block action is resolved", () => {
       if (!r.ok) throw new Error(r.reason);
       loaded = r.loaded;
     };
-    expect((await promotionBlockers(loaded, draft())).length).toBe(4);
+    expect((await promotionBlockers(loaded, draft())).length).toBe(5);
+    // Its four checks between fields cannot be carried while the composition still shows "fields" (decision 82).
+    expect((await promotionBlockers(loaded, draft())).at(-1)).toContain("4 checks between fields");
 
     // Map Submit on its own button; remove the conditional Forgot and the provider buttons computed per provider.
     await edit((d) => applyActionChange(d, { op: "declare", node: "auth-submit" }));

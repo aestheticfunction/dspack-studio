@@ -194,11 +194,65 @@ export function promoteBlock(block: BlockDefinition, options: { reference: strin
 }
 
 /**
+ * The top-level data fields a composition may read anywhere: templates, conditions and payloads. Deliberately
+ * an over-approximation, so it fails closed: every string value counts by its first path segment, whatever
+ * operator holds it ($prop, $each, $map, $case, $if and any added later). A field named by a literal text is
+ * counted as read too, which can only keep a check blocking, never release it.
+ */
+export function fieldsRead(c: CompositionDefinition): Set<string> {
+  const out = new Set<string>();
+  const visit = (v: unknown) => {
+    if (typeof v === "string") {
+      if (v) out.add(v.split(".")[0]!);
+      return;
+    }
+    if (Array.isArray(v)) return v.forEach(visit);
+    if (v && typeof v === "object") for (const x of Object.values(v as Json)) visit(x);
+  };
+  for (const st of c.states) {
+    visit(st.template);
+    visit(st.guard);
+  }
+  for (const a of c.actions) visit(a.payload ?? {});
+  return out;
+}
+
+/** The fields a block constraint constrains (its paths; for a conditional rule, the path it includes or excludes). */
+function constrained(k: Json): string[] {
+  if (Array.isArray(k.paths)) return (k.paths as string[]).map((p) => p.split(".")[0]!);
+  if (typeof k.path === "string") return [k.path.split(".")[0]!];
+  return [];
+}
+
+export interface ConstraintStanding {
+  text: string;
+  /** "blocking": the composition still shows what the check protected; "moot": it no longer reads those fields. */
+  status: "blocking" | "moot";
+}
+
+/**
+ * The block's checks between fields, which a 0.2 or 0.3 composition cannot declare (safeguards R4, decision 82).
+ * Such a check must not silently disappear. While the composition still reads every field the check constrains,
+ * data that breaks the check would be shown, and approval waits. A check is genuinely resolved only when the
+ * composition no longer reads a field it constrains. Unknown kinds always block.
+ */
+export function constraintStandings(c: CompositionDefinition, constraints: readonly unknown[] | undefined): ConstraintStanding[] {
+  const read = fieldsRead(c);
+  return (constraints ?? []).map((raw) => {
+    const k = raw as Json;
+    const fields = constrained(k);
+    const known = k.kind === "equal-length" || k.kind === "includes-when" || k.kind === "excludes-when";
+    const blocking = !known || fields.length === 0 || fields.every((f) => read.has(f));
+    return { text: constraintWords(k), status: blocking ? "blocking" : "moot" };
+  });
+}
+
+/**
  * Why a promoted composition cannot be approved yet: every block action that an element still emits must be
  * declared, and no element may have an id computed from data. Resolved by declaring a mappable action, or by
  * removing (or replacing) the element through the ordinary editing. Empty when nothing is left to resolve.
  */
-export function promotionIssues(c: CompositionDefinition, blockActions: readonly string[]): string[] {
+export function promotionIssues(c: CompositionDefinition, blockActions: readonly string[], constraints?: readonly unknown[]): string[] {
   const out: string[] = [];
   for (const m of promotionMappings(c, blockActions)) {
     if (m.kind === "action" && m.status === "mappable" && !c.actions.some((a) => a.node === m.node)) out.push(`The block's “${m.name}” action is not mapped: its button “${m.node}” sends nothing until it is declared.`);
@@ -210,6 +264,9 @@ export function promotionIssues(c: CompositionDefinition, blockActions: readonly
   for (const m of promotionMappings(c, blockActions)) if (m.kind === "action" && m.status === "computed") computed.set(m.repeat!, [...(computed.get(m.repeat!) ?? []), m.name]);
   for (const [repeat, names] of computed)
     out.push(`The block's ${names.length === 1 ? "action" : "actions"} ${names.map((n) => `“${n}”`).join(", ")} ${names.length === 1 ? "comes" : "come"} from buttons whose ids are computed for each item in “${repeat}”: they cannot be bound. Remove them, or replace them with buttons of their own.`);
+  const blocking = constraintStandings(c, constraints).filter((k) => k.status === "blocking");
+  if (blocking.length)
+    out.push(`The block's ${blocking.length === 1 ? "check" : `${blocking.length} checks`} between fields (${blocking.map((k) => k.text).join("; ")}) cannot be carried into a composition, and this composition still shows those fields: data that breaks ${blocking.length === 1 ? "it" : "them"} would be shown. Remove what reads them, or keep using the block.`);
   return [...new Set(out)];
 }
 

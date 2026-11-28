@@ -20,6 +20,21 @@ async function openLibrary(page: Page) {
   await ready(page);
 }
 const ready = (page: Page) => expect(page.getByTestId("check-pill")).not.toHaveAttribute("data-state", "loading", { timeout: 30_000 });
+/** The authorization authority's record (IndexedDB, safeguards R1). */
+const authority = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<any>((resolve, reject) => {
+        const open = indexedDB.open("composer.experimental.workspace", 1);
+        open.onupgradeneeded = () => open.result.createObjectStore("authority");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const get = open.result.transaction("authority").objectStore("authority").get("authorization");
+          get.onsuccess = () => resolve(get.result ?? null);
+          get.onerror = () => reject(get.error);
+        };
+      }),
+  );
 const storage = (page: Page) => page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])));
 async function inspector(page: Page) {
   if ((await page.getByTestId("composition-library").getAttribute("data-inspector")) !== "open") await page.getByTestId("toggle-inspector").click();
@@ -59,8 +74,8 @@ test.describe("approval withdrawal", () => {
     await ready(page);
     await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
     const stored = await storage(page);
-    const record = JSON.parse(stored[`${NS}authorization`]!).data.withdrawn;
-    expect(record).toEqual([{ composition: "hotel-results", version: 1, compositionSha256: expect.stringMatching(/^[0-9a-f]{64}$/), origin: "packaged" }]);
+    const record = (await authority(page)).withdrawn;
+    expect(record).toEqual([{ composition: "hotel-results", version: 1, compositionSha256: expect.stringMatching(/^[0-9a-f]{64}$/), origin: "packaged", generation: 1, withdrawnAt: expect.any(String) }]);
     expect(stored[`${NS}approvals`]).toBe(evidence);
     expect(stored[`${NS}versions`]).toBeUndefined();
     await page.reload();
@@ -82,7 +97,8 @@ test.describe("approval withdrawal", () => {
     await expect(page.getByTestId("authoring-notice")).toContainText("Approval of v1 restored on this device: its checks pass now.");
     await expect(page.getByTestId("check-pill")).toHaveAttribute("data-state", "pass");
     await expect(page.getByRole("radio", { name: /^v1 Approved$/i })).toBeChecked();
-    expect(JSON.parse((await storage(page))[`${NS}authorization`]!).data.withdrawn).toEqual([]);
+    expect((await authority(page)).withdrawn).toEqual([]);
+    expect((await authority(page)).history).toEqual([expect.objectContaining({ composition: "hotel-results", version: 1, withdrawnGeneration: 1, restoredGeneration: 2 })]);
     await page.reload();
     await ready(page);
     await page.getByRole("radio", { name: /v1 Approved/i }).check();
@@ -101,7 +117,7 @@ test.describe("approval withdrawal", () => {
     await expect(page.getByRole("radio", { name: /v2 Approved/i })).toBeChecked();
     await withdraw(page);
     await expect(page.getByTestId("withdraw-confirm")).toHaveCount(0);
-    const record = JSON.parse((await storage(page))[`${NS}authorization`]!).data.withdrawn;
+    const record = (await authority(page)).withdrawn;
     expect(record).toEqual([expect.objectContaining({ composition: "hotel-results", version: 2, origin: "device" })]);
     // The device's approved definition is still recorded, unchanged.
     expect(JSON.parse((await storage(page))[`${NS}versions`]!).data.approved.map((c: { version: number; status: string }) => `${c.version}:${c.status}`)).toEqual(["2:approved"]);

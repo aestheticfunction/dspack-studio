@@ -183,6 +183,13 @@ export interface Commitment {
   readonly key: string;
   readonly surfaceId: string;
   readonly composition: string;
+  /** The exact version and definition it was accepted under (safeguards R3). */
+  readonly version: number;
+  readonly compositionSha256: string;
+  /** The order in which the approval it was accepted under was issued (0 for a commitment re-attached after a reload). */
+  readonly approvalIssue: number;
+  /** Re-attached from a journal after a reload: it can be queried and settled, never dispatched again. */
+  readonly reattached?: boolean;
   readonly action: string;
   readonly componentId: string;
   /** Literal only: a consequential action carries no input (R1A-REVIEW M6). */
@@ -191,7 +198,36 @@ export interface Commitment {
   readonly history: ReadonlyArray<{ status: Outcome; at: number }>;
 }
 
-export type ActCode = "stale" | "duplicate" | "locked" | "withdrawn" | "needs-recheck" | "needs-confirmation" | "unauthorized" | "payload-mismatch" | "invalid-input";
+export type ActCode = "stale" | "duplicate" | "locked" | "withdrawn" | "needs-recheck" | "needs-confirmation" | "unauthorized" | "payload-mismatch" | "invalid-input" | "unrecorded";
+
+/**
+ * Where a host keeps its commitments beyond its own memory (safeguards R3). Only metadata: never a payload, a
+ * typed value or anything the tool returned. Both calls are synchronous and return false when nothing was kept;
+ * the host then does not accept (or does not report as settled) what it could not record.
+ */
+export interface CommitmentJournal {
+  /**
+   * True: kept. False: not kept. `{ duplicate }`: the journal already holds this key, or an open commitment of the
+   * same action for the same definition that another host accepted (another tab).
+   */
+  accept(c: Commitment): boolean | { duplicate: string };
+  /**
+   * True: kept. False: not kept. "conflict": the journal already holds an outcome this one may not follow (a
+   * terminal outcome is never overwritten, whichever host reports it).
+   */
+  settle(key: string, status: Outcome): boolean | "conflict";
+}
+
+/** A commitment as a journal keeps it, given back to a new host after a reload. */
+export interface PersistedCommitment {
+  key: string;
+  composition: string;
+  version: number;
+  compositionSha256: string;
+  action: string;
+  componentId: string;
+  status: Outcome;
+}
 
 export type ActResult =
   | {
@@ -205,7 +241,7 @@ export type ActResult =
     }
   | { accepted: false; code: ActCode; reason: string; fields?: Record<string, string>; key?: string };
 
-export type SettleResult = { ok: true; commitment: Commitment } | { ok: false; code: "unknown-key" | "conflict" | "invalid-outcome"; reason: string };
+export type SettleResult = { ok: true; commitment: Commitment } | { ok: false; code: "unknown-key" | "conflict" | "invalid-outcome" | "unrecorded"; reason: string };
 
 export type ApproveResult = { approved: true } | { approved: false; reason: string };
 
@@ -284,7 +320,7 @@ const NEXT: Record<Outcome, readonly Outcome[]> = {
  * supplied one is validated. The host governs its own frozen snapshot of each composition, hashed once here,
  * so every pin comparison is synchronous (R1A-REVIEW L4).
  */
-export async function createHost(options: { session?: string; governor: Governor; compositions: CompositionDefinition[] }): Promise<Host> {
+export async function createHost(options: { session?: string; governor: Governor; compositions: CompositionDefinition[]; journal?: CommitmentJournal; pending?: PersistedCommitment[] }): Promise<Host> {
   const session = options.session === undefined ? createSessionId() : checkSessionId(options.session);
   let governor = options.governor;
   const compositions = new Map<string, CompositionDefinition>();
@@ -308,6 +344,13 @@ export async function createHost(options: { session?: string; governor: Governor
   const history: Commitment[] = [];
   const log: HostLogEntry[] = [];
   let seq = 0;
+  const journal = options.journal;
+  // Commitments a journal kept for exactly the definitions this host governs (R3): re-attached settle-only.
+  for (const p of options.pending ?? []) {
+    const c = compositions.get(p.composition);
+    if (!c || c.version !== p.version || own.get(c.id)!.compositionSha256 !== p.compositionSha256 || history.some((h) => h.key === p.key)) continue;
+    history.push(deepFreeze({ key: p.key, surfaceId: "", composition: p.composition, version: p.version, compositionSha256: p.compositionSha256, approvalIssue: 0, reattached: true, action: p.action, componentId: p.componentId, payload: {}, status: p.status, history: [{ status: p.status, at: ++seq }] }));
+  }
 
   const approvalCurrent = (id: string) => {
     const approval = approvals.get(id);
@@ -379,7 +422,7 @@ export async function createHost(options: { session?: string; governor: Governor
       return actNow(event);
     },
     settle(key, outcome) {
-      const refuse = (code: "unknown-key" | "conflict" | "invalid-outcome", reason: string): SettleResult => {
+      const refuse = (code: "unknown-key" | "conflict" | "invalid-outcome" | "unrecorded", reason: string): SettleResult => {
         log.push({ at: ++seq, kind: "refused-settle", code, reason, ...(typeof key === "string" ? { key } : {}) });
         return { ok: false, code, reason };
       };
@@ -389,6 +432,11 @@ export async function createHost(options: { session?: string; governor: Governor
       const was = history[i]!;
       if (!NEXT[was.status].includes(outcome)) return refuse("conflict", `the outcome is already ${was.status}, which is final`);
       if (was.status === outcome) return { ok: true, commitment: was };
+      if (journal) {
+        const kept = journal.settle(key, outcome);
+        if (kept === "conflict") return refuse("conflict", `the outcome already kept for '${key}' is final or does not allow ${outcome}; it is not overwritten`);
+        if (!kept) return refuse("unrecorded", `the outcome could not be recorded, so '${key}' is still ${was.status}`);
+      }
       const next: Commitment = deepFreeze({ ...was, status: outcome, history: [...was.history, { status: outcome, at: ++seq }] });
       history[i] = next;
       if (open?.key === key) open = next;
@@ -507,8 +555,18 @@ export async function createHost(options: { session?: string; governor: Governor
       log.push({ at: ++seq, kind: "accepted", surfaceId: event.surfaceId, name: event.name });
       return { accepted: true, action: bound, values, instance: current };
     }
+    // An earlier commitment of the same action, still pending or unknown (on another surface, or re-attached after
+    // a reload), is never followed by a second one: it must be settled by its key first (R3).
+    const earlier = history.find((h) => h.composition === c.id && h.action === bound.name && (h.status === "pending" || h.status === "unknown"));
+    if (earlier) return refuse("duplicate", `an earlier '${bound.name}' (${earlier.key}) is still ${earlier.status}; it is not dispatched again, and a new one waits until it is settled`, { key: earlier.key });
     const key = idempotencyKey(current.surfaceId, bound.name, bound.componentId);
-    const commitment: Commitment = deepFreeze({ key, surfaceId: current.surfaceId, composition: c.id, action: bound.name, componentId: bound.componentId, payload: { ...bound.payload }, status: "pending" as const, history: [{ status: "pending" as const, at: ++seq }] });
+    const commitment: Commitment = deepFreeze({ key, surfaceId: current.surfaceId, composition: c.id, version: c.version, compositionSha256: own.get(c.id)!.compositionSha256, approvalIssue: issuedAt.get(approvals.get(c.id)!) ?? 0, action: bound.name, componentId: bound.componentId, payload: { ...bound.payload }, status: "pending" as const, history: [{ status: "pending" as const, at: ++seq }] });
+    // Kept before it is accepted: what cannot be recorded is not represented as accepted (R3).
+    if (journal) {
+      const kept = journal.accept(commitment);
+      if (kept !== true && kept) return refuse("duplicate", `an earlier '${bound.name}' (${kept.duplicate}) is already kept as open on this device; it is not dispatched again, and a new one waits until it is settled`, { key: kept.duplicate });
+      if (!kept) return refuse("unrecorded", `'${bound.name}' could not be recorded on this device, so it was not accepted; nothing was dispatched`);
+    }
     open = commitment;
     history.push(commitment);
     log.push({ at: seq, kind: "accepted", surfaceId: event.surfaceId, name: event.name, key });

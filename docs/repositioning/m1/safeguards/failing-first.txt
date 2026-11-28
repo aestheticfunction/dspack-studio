@@ -1,0 +1,29 @@
+Failing-first evidence, R1 (cross-tab authorization integrity)
+Run against the code before R1 (branch claude/transition-intent, experimental build), 2026-11-28.
+
+composer-authority.spec.ts:47  reproduced: a withdrawal made in another tab is not erased by this tab's next withdrawal, and stays withdrawn after a reload
+  FAILED: after the reload, getByRole('radio', { name: /v2 Withdrawn/i }) was not found.
+  Tab A rewrote the authorization record from its own copy, which never held tab B's withdrawal of
+  Hotel results v2. After the reload, v2 read as Approved again.
+
+composer-authority.spec.ts:99  a restoration in another tab does not authorize this tab until it runs its own checks
+  FAILED: getByTestId('restored-elsewhere') was not found. A restoration made elsewhere was not said in this tab.
+
+composer-authority.spec.ts:76  concurrent withdrawals in two tabs are both kept
+  Passed by timing: each tab's storage event arrived before its own write. The interleaving that loses an
+  entry is reproduced deterministically in authority.test.ts.
+
+Failing-first evidence, targeted findings on PR #141 (owner's source inspection), 2026-11-28.
+Probes run against the code at ae8a7af (before the corrections); each line is the old behaviour.
+
+1. Migration: a malformed version-1 record migrated as "no withdrawals" ([]), and the old code then cleared
+   the version-1 key. Now an unreadable record refuses, nothing is written, the record is kept, and every
+   approval is blocked (safeguards-findings.test.ts, composer-authority.spec.ts).
+2. Restoration ordering: with a withdrawal and restoration in another tab while this tab's checks ran, the
+   restore was ACCEPTED and bound to generation 4, although the checks began at generation 2. Now it is
+   refused and fresh checks are required; an approval is bound to the generation its checks began under.
+3. Exact identity: withdrawing definition Y erased the withdrawal of definition X (same composition and
+   version): 1 entry left, and X read as "current". Now both are kept, and each is restored on its own.
+4. Commitments: the journal accepted the same key twice (true), and settled a "succeeded" commitment as
+   "failed" (overwritten). Now a kept key is refused as a duplicate, an open commitment kept by another host
+   refuses a second one, and a terminal outcome is never overwritten ("conflict").

@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from "react";
 import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
-import { promoteBlock, promotionIssues, promotionMappings, promotionPartKey, removeNode, type CompositionDefinition, type PromotionMapping } from "@dspack-studio/composer-core/compositions";
+import { constraintStandings, promoteBlock, promotionIssues, promotionMappings, promotionPartKey, removeNode, type CompositionDefinition, type PromotionMapping } from "@dspack-studio/composer-core/compositions";
 import { applyActionChange } from "./interaction";
 import type { Promotion } from "./storage";
 
@@ -72,7 +72,7 @@ export function BlockList({ blocks, taken, reference, promote }: { blocks: Block
 function PromoteConfirm({ block, taken, reference, busy, problem, cancel, confirm }: { block: BlockDefinition; taken: ReadonlySet<string>; reference: string; busy: boolean; problem: string | null; cancel: () => void; confirm: () => void }) {
   // The same promotion the confirmation would make, on a copy: what is said here is what will happen.
   const { composition, report } = useMemo(() => promoteBlock(block, { reference, taken }), [block, reference, taken]);
-  const toResolve = promotionIssues(composition, block.actions ?? []).length;
+  const toResolve = promotionIssues(composition, block.actions ?? [], block.constraints).length;
   return (
     <div className="cl-bar cl-bar--confirm" role="group" aria-labelledby={`cl-promote-${block.id}`} data-testid="promote-confirm">
       <p className="cl-bar__title" id={`cl-promote-${block.id}`}>
@@ -206,8 +206,18 @@ export function PromotionDetails({ definition, promotion, block, editable, ops, 
       </p>
     );
   const list = rows(definition, block.actions ?? [], editable && definition.status === "draft", ops);
-  // What the composition cannot carry is a property of the block, so it is the same as when it was promoted.
-  const notCarried = promoteBlock(block, { reference: promotion.reference, taken: new Set() }).report.notCarried;
+  // The block's checks between fields (decision 82): blocking while the composition still shows what they
+  // protect; genuinely resolved, and said so, once it no longer reads a field they constrain.
+  const standings = constraintStandings(definition, block.constraints);
+  const blocking = standings.filter((k) => k.status === "blocking");
+  const moot = standings.filter((k) => k.status === "moot");
+  const listed = (ks: typeof standings) => ks.map((k) => k.text).join("; ");
+  if (blocking.length)
+    list.push({ id: "checks-blocking", title: blocking.length === 1 ? "A check between fields" : `${blocking.length} checks between fields`, status: "to-resolve", detail: `The block checks that ${listed(blocking)}. A composition cannot carry ${blocking.length === 1 ? "that check" : "these checks"}, and this one still shows those fields, so data that breaks ${blocking.length === 1 ? "it" : "them"} would be shown. Remove what reads them.` });
+  if (moot.length)
+    list.push({ id: "checks-moot", title: moot.length === 1 ? "A check between fields, no longer needed" : `${moot.length} checks between fields, no longer needed`, status: "resolved", detail: `The block checks that ${listed(moot)}. This composition no longer shows a field ${moot.length === 1 ? "it constrains" : "they constrain"}.` });
+  // Checks between fields are listed above with their standing; what else is not carried is said here.
+  const notCarried = promoteBlock(block, { reference: promotion.reference, taken: new Set() }).report.notCarried.filter((n) => !n.startsWith("The block's check") && !/^The block's \d+ checks/.test(n));
   const open = list.filter((r) => r.status === "to-resolve").length;
   return (
     <div className="cl-promo" data-testid="promotion-details" data-open={open}>

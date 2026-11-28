@@ -122,3 +122,23 @@ describe("the part an unresolved mapping sits in", () => {
     expect(promotionMappings(c, blocks["auth-form"]!.actions).find((m) => m.name === "auth_forgot")!.status).toBe("missing");
   });
 });
+
+describe("checks between fields that a composition cannot carry (decision 82)", () => {
+  it("block approval while the composition still shows what they protect; are genuinely resolved once it does not", async () => {
+    const { constraintStandings } = await import("./promotion");
+    const block = blocks["auth-form"]!;
+    const { composition: c } = promoteBlock(block, { reference: "Astryx", taken: new Set() });
+    expect(constraintStandings(c, block.constraints).map((k) => k.status)).toEqual(["blocking", "blocking", "blocking", "blocking"]);
+    expect(promotionIssues(c, block.actions, block.constraints).some((i) => i.includes("4 checks between fields") && i.includes("still shows those fields"))).toBe(true);
+    // Remove what reads "fields" (the repeated text fields): the checks no longer protect anything shown.
+    expect(removeNode(c, "data-collection", keyOf("data-collection", c.states[0]!.template, (x) => x.$each === "fields"))).toMatchObject({ ok: true });
+    expect(constraintStandings(c, block.constraints).every((k) => k.status === "moot")).toBe(true);
+    expect(promotionIssues(c, block.actions, block.constraints).some((i) => i.includes("checks between fields"))).toBe(false);
+    // records-table: the table shows both columns and rows, so its check blocks approval.
+    const rt = blocks["records-table"]!;
+    const { composition: table } = promoteBlock(rt, { reference: "Astryx", taken: new Set() });
+    expect(constraintStandings(table, rt.constraints)).toEqual([{ text: "columns and rows.*.cells have the same length", status: "blocking" }]);
+    // An unknown kind of check always blocks.
+    expect(constraintStandings(table, [{ kind: "something-new", path: "nothing" }])[0]!.status).toBe("blocking");
+  });
+});
