@@ -156,3 +156,15 @@ The owner accepted interaction authoring; #132 is merged (`7927694`) and verifie
 | 55 | Interaction-authoring deferrals | Accepted: input starting values, nested repeats, canvas selection with conditions, direct keyboard selection on the canvas | Structure remains the keyboard route to every selectable element. The schema is not expanded only to lift these |
 | 56 | Approval withdrawal (decision 34) | Implemented on this device as an authorization-lifecycle decision ([m1/withdrawal/README.md](m1/withdrawal/README.md)) | The definition and its check evidence never change. Restoring needs an explicit decision and a check issued after the withdrawal. A packaged approval is withdrawn by a local record only. Withdrawal is not supersession, and no substitute is authorized |
 | 57 | Template and component-tree editing | Authorized after #132's verification, on the existing schema, loader, expansion and pipeline | Separate from withdrawal; not merged or deployed without approval |
+
+## Visual template editing (2026-11-27)
+
+Implemented after #132's verification, stacked on approval withdrawal. Record: [m1/template/README.md](m1/template/README.md).
+
+| # | Decision | Answer | Condition or limit |
+|---|---|---|---|
+| 58 | Content | Text and labels are parts of the existing template language (fixed text, declared fields, both joined); props are the contract's own | No expressions, code or props outside the contract. An element with an id changes in every state that shows it |
+| 59 | Identity | Literal ids are unique across states and never emitted alike. A rename updates every reference in one operation or is refused | Bindings are by id, so structural changes never redirect them; emitted ids are never stored |
+| 60 | Insertion | Text, Badge, Button, Text field, Card and Selectable card, where they fit | A button is declared with its action and a text field with its input, in the same edit. Dialogs, tables, menus and details lists are not insertable yet |
+| 61 | Removal | Dependencies are said first and resolved in the same edit, never silently | Refused without resolution |
+| 62 | Recovery | A session-only undo and redo of element and structure edits | No comprehensive history or collaboration |

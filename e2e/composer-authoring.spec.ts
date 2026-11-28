@@ -65,7 +65,8 @@ test.describe("A1: create and discard drafts", () => {
     await expect(page.getByTestId("edit-name")).toHaveValue("Hotel search");
     await expect(bar(page)).toHaveAttribute("data-state", "unchecked");
     // Previewed through the pipeline, labelled as not checked.
-    await expect(page.getByTestId("preview-note")).toContainText("not checked yet");
+    await expect(page.getByTestId("check-pill")).toHaveAttribute("data-state", "preview");
+    await expect(page.getByTestId("check-pill")).toContainText("Preview · not checked");
     await expect(canvas(page)).toContainText("Find a hotel");
     await page.getByRole("radio", { name: /v1 Approved/i }).check();
     expect(await definitionHash(page)).toBe(v1);
@@ -161,7 +162,7 @@ test.describe("A2: edit a draft", () => {
     await page.getByTestId("edit-example-title").fill("Two hotels in Porto");
     await page.getByTestId("data-destination").fill("Porto");
     await expect(canvas(page)).toContainText("Hotels in Porto");
-    await expect(page.getByTestId("preview-note")).toBeVisible();
+    await expect(page.getByTestId("check-pill")).toHaveAttribute("data-state", "preview");
     await expect(page.getByTestId("scenario-chips")).toContainText("Two hotels in Porto");
     await page.getByTestId("data-hotels-add").click();
     await page.getByTestId("data-hotels-2-name").fill("Casa Ribeira");
@@ -307,7 +308,7 @@ test.describe("A3 and A4: checks and approval", () => {
     await openLibrary(page);
     await choose(page, "hotel-search");
     await page.getByTestId("create-draft").click();
-    await expect(page.getByTestId("preview-note")).toBeVisible();
+    await expect(page.getByTestId("check-pill")).toHaveAttribute("data-state", "preview");
     await canvas(page).locator('[data-a2ui-id="destination"] input').fill("Lisbon");
     await canvas(page).locator('[data-a2ui-id="member_number"] input').fill("SYN-LOYAL-7781");
     await canvas(page).getByRole("button", { name: "Search hotels" }).click();

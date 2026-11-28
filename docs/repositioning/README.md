@@ -27,3 +27,4 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [m1/appearance/README.md](m1/appearance/README.md) | Workspace appearances through the shared theme compiler (T1 to T4): Neutral dark, Neutral light, Custom and the workspace choices; the canvas unchanged |
 | [m1/interaction/README.md](m1/interaction/README.md) | Interaction authoring: Structure, canvas selection, and what a person types and what pressing sends, on a draft |
 | [m1/withdrawal/README.md](m1/withdrawal/README.md) | Approval withdrawal on this device (decision 34): withdraw and restore an approval without changing the definition |
+| [m1/template/README.md](m1/template/README.md) | Visual template editing (B1 to B5): what elements show, identity, insert, move and remove, undo |

@@ -41,14 +41,14 @@ export function roleOf(definition: CompositionDefinition, node: StructureNode): 
   if (node.kind !== "element") return { kind: "content" };
   if (node.component === "text-input") {
     const input = node.id ? definition.inputs.find((i) => i.node === node.id) : undefined;
-    if (!node.id) return { kind: "input", blocked: "This field has no template id, so nothing can be bound to it. Giving elements ids is part of template editing, which is not available yet." };
+    if (!node.id) return { kind: "input", blocked: "This field has no id, so nothing can be bound to it yet. On a draft, give it an id under Id, below." };
     if (node.within.length > 0) return { kind: "input", blocked: "This field is repeated for each item. A typed field holds one value, so it has to sit outside a repeat." };
     return { kind: "input", ...(input ? { input } : {}) };
   }
   if (node.component === "button" || node.component === "alert-dialog") {
     const action = node.id ? definition.actions.find((a) => a.node === node.id) : undefined;
     const confirmation = node.component === "alert-dialog";
-    if (!node.id) return { kind: "action", confirmation, blocked: "This element has no template id, so it cannot send an action. Giving elements ids is part of template editing, which is not available yet." };
+    if (!node.id) return { kind: "action", confirmation, blocked: "This element has no id, so it cannot send an action yet. On a draft, give it an id under Id, below." };
     if (node.within.length > 1) return { kind: "action", confirmation, blocked: "Repeats inside repeats are not supported." };
     return { kind: "action", confirmation, ...(action ? { action } : {}) };
   }
@@ -270,9 +270,14 @@ export function newAction(definition: CompositionDefinition, nodeId: string): Ac
     const at = trail!.findIndex((n) => n.kind === "repeat");
     const list = trail![at - 1];
     const loop = node.within[0]!;
-    const first = witnessFields(definition, node)[0];
-    if (!list?.id || !first) return null;
-    action.repeat = { list: list.id, each: loop.each, as: loop.as, witness: [first.path] };
+    // Tell items apart by what is shown: the fields another action on the same list already uses, or else a
+    // name-like field, rather than an id a person never sees (the binding check refuses an unseen witness).
+    const fields = witnessFields(definition, node);
+    const sibling = definition.actions.find((a) => a.repeat && a.repeat.list === list?.id && a.repeat.as === loop.as)?.repeat?.witness;
+    const named = fields.find((f) => /\.(name|title|label)$/.test(f.path));
+    const witness = sibling ?? (named ? [named.path] : fields[0] ? [fields[0].path] : null);
+    if (!list?.id || !witness) return null;
+    action.repeat = { list: list.id, each: loop.each, as: loop.as, witness: [...witness] };
   }
   if (node?.component === "alert-dialog") action.consequential = true;
   return action;

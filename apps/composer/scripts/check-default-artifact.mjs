@@ -54,6 +54,14 @@ const markers = new Set([
   // Approval withdrawal (decision 34) is experimental only.
   "withdraw-confirm",
   "approval-withdrawn",
+  // Visual template editing is experimental only.
+  "template-tools",
+  "content-editor",
+  "identity-editor",
+  // The authoring review's corrections: edit results and scoped undo are experimental only.
+  "edit-announce",
+  "tt-status",
+  "the elements changed another way since",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));

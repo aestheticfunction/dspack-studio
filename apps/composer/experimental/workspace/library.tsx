@@ -45,13 +45,17 @@ import {
   type ShowResult,
 } from "@dspack-studio/composer-core/compositions";
 import { canvasScopeFor, registryFor } from "../../app/registries";
-import { checkVersion, governorFor, hostFor, loadLibrary, type LoadedLibrary, type VersionCheck } from "./runtime";
+import { checkVersion, definitionIssues, governorFor, hostFor, loadLibrary, type LoadedLibrary, type VersionCheck } from "./runtime";
 import { approveVersion, createDraft, discardDraftVersion, editDraft, plainDataReason } from "./authoring";
 import { DetailsEditor, ExamplesEditor, ParametersEditor } from "./editors";
 import { applyInputChange, describeInteractionChanges, interactionIssues, withoutMasks } from "./interaction";
 import { ElementInspector, type ItemContext } from "./element-inspector";
 import { SelectionLayer } from "./selection-layer";
 import { COMPONENT_LABEL, elementName, StructurePanel } from "./structure-panel";
+import { TemplateTools } from "./template-tools";
+import { emptyHistory, plan, record, restoreTracked, settle, type History } from "./undo-history";
+import { applyContent, applyInsert, assignId as assignElementId, contentProblem, moveNode, plainTemplateIssue, removeNode, renameId as renameElementId, statesShowing, type Insertable } from "./template-editing";
+import { uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult, type StoredAuthorization } from "./storage";
 import { applyWithdrawals, restoreApproval, withdrawApproval } from "./withdrawal";
@@ -227,6 +231,16 @@ export function LibraryWorkspace() {
   const [leftView, setLeftView] = useState<"compositions" | "structure">("compositions");
   const [selectMode, setSelectMode] = useState(false);
   const [structureState, setStructureState] = useState<string | null>(null);
+  // Visual template editing: where keyboard focus goes after an edit, and a session-only undo history per draft.
+  const [treeFocus, setTreeFocus] = useState<{ key: string; n: number } | null>(null);
+  // Undo history (decision 62): element and structure edits only. Each step records the template, inputs and
+  // actions before and after it, never the draft's details, parameters or examples, and it belongs to one draft
+  // lifecycle: it is cleared when that draft is discarded or approved, or a new draft is created.
+  const history = useRef(new Map<string, History>());
+  // The result of the latest element or structure edit, undo or redo: shown in the Structure toolbar and said
+  // in its own live region, so a preview message never overwrites it (F6).
+  const [editStatus, setEditStatus] = useState<{ text: string; tone: "ok" | "bad"; n: number } | null>(null);
+  const [, setHistoryTick] = useState(0);
   const readyRef = useRef<Ready | null>(null);
   const editQueue = useRef<Promise<unknown>>(Promise.resolve());
   const lastValid = useRef(new Map<string, Instance>());
@@ -325,6 +339,10 @@ export function LibraryWorkspace() {
     setSelectMode(false);
   }, [definition?.id]);
   useEffect(() => setStructureState(null), [scenario?.id, prefs.state]);
+  // A selection names an element of the draft as it is now: one an edit or undo removed leaves no stale selection.
+  useEffect(() => {
+    if (selection && definition && statesWithElement(definition, selection.key).length === 0) setSelection(null);
+  }, [definition, selection]);
   useEffect(() => {
     if (!selectMode) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSelectMode(false);
@@ -514,13 +532,15 @@ export function LibraryWorkspace() {
   const showInspector = () => {
     if (open.inspector) return;
     setOpen(layout === "wide" ? { ...open, inspector: true } : { library: false, inspector: true });
-    if (layout === "narrow") setTimeout(() => panels.current.inspector?.focus(), 0);
+    // Below the wide layout the Structure panel closes as the inspector opens: focus goes with the work (F8).
+    if (layout === "narrow" || (layout !== "wide" && open.library)) setTimeout(() => panels.current.inspector?.focus(), 0);
   };
 
   const startDraft = async () => {
     if (!ready || !definition) return;
     const r = await createDraft(ready.loaded, definition.id, browserStore());
     if (!r.ok) return setNotice({ tone: "bad", text: sentence(r.reason) });
+    forgetHistory(versionKey(definition.id, r.version));
     setReady(adopt(ready, r.loaded));
     persist({ ...prefs, version: r.version, scenario: null, state: null, panel: "inspector" });
     setTab("design");
@@ -556,11 +576,59 @@ export function LibraryWorkspace() {
     return run;
   };
 
+  const latestDraft = () => (definition ? readyRef.current?.loaded.library.get(definition.id, definition.version) : undefined);
+  useEffect(() => setEditStatus(null), [key]);
+  const said = (text: string, tone: "ok" | "bad" = "ok") => setEditStatus({ text, tone, n: Date.now() });
+  /** An edit that undo can take back: an element or structure edit, kept for this draft's lifecycle only. */
+  const applyTracked = async (edit: (draft: CompositionDefinition) => void, what = "Change"): Promise<string | null> => {
+    const before = latestDraft();
+    const refused = await applyEdit(edit);
+    const after = latestDraft();
+    if (!refused && before && after) {
+      history.current.set(key, record(history.current.get(key) ?? emptyHistory(), before, after, what));
+      setHistoryTick((t) => t + 1);
+    }
+    return refused;
+  };
+  const forgetHistory = (k: string) => {
+    history.current.delete(k);
+    setHistoryTick((t) => t + 1);
+  };
+  /**
+   * Undo or redo one element or structure step (undo-history.ts). If the draft's elements changed another way
+   * since, or putting them back is no longer valid, nothing is changed and this draft's history is cleared.
+   */
+  const stepHistory = async (direction: "undo" | "redo"): Promise<boolean> => {
+    const h = history.current.get(key);
+    const current = latestDraft();
+    if (!h || !current) return false;
+    const p = plan(h, current, direction);
+    const verb = direction === "undo" ? "Undo" : "Redo";
+    if (!p.ok) {
+      if (p.reason === "conflict") {
+        forgetHistory(key);
+        said(`${verb} is no longer available: the elements changed another way since. Nothing was changed.`, "bad");
+      }
+      return false;
+    }
+    const refused = await applyEdit((d) => restoreTracked(d, p.target));
+    if (refused) {
+      forgetHistory(key);
+      said(`${verb} is no longer possible: ${plainTemplateIssue(refused)} A later change depends on it, so nothing was changed and the undo history for this draft is cleared.`, "bad");
+      return false;
+    }
+    history.current.set(key, settle(h, direction));
+    setHistoryTick((t) => t + 1);
+    said(`${direction === "undo" ? "Undone" : "Redone"}: ${p.step.what.toLowerCase()}. The checks need to run again.`);
+    return true;
+  };
+
   const discardNow = async () => {
     if (!ready || !definition) return;
     const r = await discardDraftVersion(ready.loaded, definition.id, definition.version, browserStore());
     setConfirm(null);
     if (!r.ok) return setNotice({ tone: "bad", text: sentence(r.reason) });
+    forgetHistory(key);
     const entry = r.loaded.library.entry(definition.id);
     setReady(adopt(ready, r.loaded));
     lastValid.current.delete(key);
@@ -581,6 +649,7 @@ export function LibraryWorkspace() {
       setAnnounce(`Not approved: ${r.reason}.`);
       return;
     }
+    forgetHistory(key);
     const next = adopt(ready, r.loaded);
     const result: VersionCheck = { definition: r.approved, approval: r.approval, scenarios: r.scenarios, previous: { status: "none" } };
     next.hosts.set(key, await hostFor(governor, result));
@@ -646,6 +715,21 @@ export function LibraryWorkspace() {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // Ctrl or Cmd+Z undoes, with Shift redoes, element and structure edits on a draft, outside text fields.
+  const historyKeys = useRef<(e: KeyboardEvent) => void>(() => {});
+  historyKeys.current = (e: KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z" || definition?.status !== "draft") return;
+    const el = e.target as HTMLElement | null;
+    if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable)) return;
+    e.preventDefault();
+    void stepHistory(e.shiftKey ? "redo" : "undo");
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => historyKeys.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const instanceForLabels = shown?.ok ? shown.instance : null;
@@ -729,7 +813,7 @@ export function LibraryWorkspace() {
   useEffect(() => {
     if (layout !== "narrow") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || e.defaultPrevented) return;
       const which = (Object.keys(open) as Panel[]).find((p) => open[p]);
       if (which) closeDrawer(which);
     };
@@ -806,7 +890,7 @@ export function LibraryWorkspace() {
     return { lead: (ruleId ? RULE_LEADS[ruleId] : undefined) ?? plainRationale(rationale), rationale: rationale ?? null };
   };
   const instance = shown?.ok ? shown.instance : null;
-  const outcome = describeOutcome(shown, scenario, definition, check, failing, nameOf);
+  const outcome = describeOutcome(shown, scenario, definition, check, failing, nameOf, previewing && preview);
 
   // ---- Selection (advanced authoring) ----------------------------------------------------------------------
   const stateName = (id: string) => {
@@ -846,6 +930,67 @@ export function LibraryWorkspace() {
     const node = trail?.at(-1);
     setAnnounce(`Selected ${node ? elementName(node) : "an element"}${origin.item ? `, item ${origin.item.index + 1}` : ""}.`);
   };
+
+  // ---- Template editing (draft) ------------------------------------------------------------------------------
+  const editable = !!definition && definition.status === "draft" && governed;
+  const editState = homeState ?? listedState;
+  /**
+   * One structural or identity edit: tried on a copy first, so a refusal is said plainly and nothing changes;
+   * then applied as one edit through editDraft (the loader decides), and the selection and keyboard focus follow
+   * the element to where it now is.
+   */
+  const runTemplate = async (mutate: (d: CompositionDefinition) => { ok: true; key: string } | { ok: false; reason: string }, said: string, subject?: string): Promise<string | null> => {
+    if (!definition || !editable) return "Only a draft can be edited.";
+    const dry = mutate(structuredClone(definition));
+    if (!dry.ok) return `${sentence(dry.reason)}.`;
+    const refused = await applyTracked((d) => void mutate(d), said.replace(/\.$/, ""));
+    if (refused) return plainTemplateIssue(refused, subject);
+    setSelection({ key: dry.key, item: null });
+    setTreeFocus({ key: dry.key, n: Date.now() });
+    setEditStatus({ text: `${said} The checks need to run again.`, tone: "ok", n: Date.now() });
+    return null;
+  };
+  const contract = governor.contract as Json;
+  const templateOps =
+    editable && editState
+      ? {
+          insert: (at: { key: string; position: Position }, component: Insertable, label: string) => runTemplate((d) => applyInsert(d, { stateId: editState, at, component, label }), `Added a ${COMPONENT_LABEL[component]?.toLowerCase() ?? component}.`, COMPONENT_LABEL[component]?.toLowerCase()),
+          move: (to: { key: string; position: Position }, what = "Moved.") => (selection ? runTemplate((d) => moveNode(d, editState, selection.key, to), what) : Promise.resolve("Select an element first.")),
+          remove: (resolve: boolean) => (selection ? runTemplate((d) => removeNode(d, editState, selection.key, resolve), "Removed.") : Promise.resolve("Select an element first.")),
+          undo: () => stepHistory("undo"),
+          redo: () => stepHistory("redo"),
+          status: editStatus,
+          /** Whether a component can go at a place: tried on a copy and validated by the loader, changing nothing. */
+          check: async (at: { key: string; position: Position }, component: Insertable) => {
+            const copy = structuredClone(definition) as CompositionDefinition;
+            const r = applyInsert(copy, { stateId: editState, at, component, label: "" });
+            if (!r.ok) return `${sentence(r.reason)}.`;
+            const issues = await definitionIssues(copy);
+            return issues.length ? plainTemplateIssue(issues[0]!, COMPONENT_LABEL[component]?.toLowerCase()) : null;
+          },
+          canUndo: !!history.current.get(key)?.past.length,
+          canRedo: !!history.current.get(key)?.future.length,
+        }
+      : null;
+  const contentApi =
+    editable && editState && selection && definition
+      ? {
+          set: async (field: string, value: unknown, label: string) => {
+            const change = { stateId: editState, key: selection.key, field, value };
+            const problem = contentProblem(definition, contract, change);
+            if (problem) return problem;
+            const refused = await applyTracked((d) => applyContent(d, change), `${label} change`);
+            if (refused) return plainTemplateIssue(refused);
+            setEditStatus({ text: `${label} changed. The checks need to run again.`, tone: "ok", n: Date.now() });
+            return null;
+          },
+          assignId: (id: string) => runTemplate((d) => assignElementId(d, editState, selection.key, id), `It now has the id ${id}.`),
+          renameId: (to: string) => {
+            const from = selection.key.startsWith("#") ? selection.key.slice(1) : null;
+            return from ? runTemplate((d) => renameElementId(d, from, to), `Renamed to ${to}; every state and declaration that used it follows.`) : Promise.resolve("It has no id to rename.");
+          },
+        }
+      : undefined;
 
   // ---- Compositions panel -----------------------------------------------------------------------------------
 
@@ -891,6 +1036,8 @@ export function LibraryWorkspace() {
             showInspector();
           }}
           counts={counts}
+          focus={treeFocus}
+          tools={templateOps && definition ? <TemplateTools definition={definition} contract={contract} stateId={listedState} selected={selection && homeState === listedState ? selection.key : null} ops={templateOps} /> : undefined}
         />
       ) : (
       <>
@@ -1307,10 +1454,14 @@ export function LibraryWorkspace() {
                 shownState={shownState}
                 onCanvas={selectedIds.length}
                 item={itemContext}
-                edit={applyEdit}
+                edit={(e) => applyTracked(e, "Change to what it does")}
                 select={(k) => selectElement(k)}
                 stateLabel={stateName}
                 componentIds={selectedIds}
+                contract={contract}
+                content={contentApi}
+                contentStates={selection && editState ? statesShowing(definition, editState, selection.key) : []}
+                suggestId={uniqueId(definition, selectedTrail.at(-1)!.component ?? "element")}
               />
             ) : (
             <>
@@ -1614,22 +1765,29 @@ export function LibraryWorkspace() {
       <div className="cl-sr" aria-live="polite">
         {announce}
       </div>
+      {/* Edit results have their own live region, so a preview message never replaces them (F6). */}
+      <div className="cl-sr" aria-live="polite" data-testid="edit-announce">
+        {editStatus?.text ?? ""}
+      </div>
     </Frame>
   );
 }
 
 interface Outcome {
-  state: "loading" | "pass" | "expected" | "refused" | "unchecked" | "fail" | "withdrawn";
+  state: "loading" | "preview" | "pass" | "expected" | "refused" | "unchecked" | "fail" | "withdrawn";
   tone: "ok" | "neutral" | "bad" | "warn";
   icon: string;
   pill: string;
 }
 
 /** What the canvas says about the current selection, in one short phrase. */
-function describeOutcome(shown: ShowResult | null, scenario: Scenario | undefined, definition: CompositionDefinition | undefined, check: VersionCheck | undefined, failing: string[], nameOf: (id: string) => string): Outcome {
+function describeOutcome(shown: ShowResult | null, scenario: Scenario | undefined, definition: CompositionDefinition | undefined, check: VersionCheck | undefined, failing: string[], nameOf: (id: string) => string, previewing = false): Outcome {
   void definition;
   void nameOf;
   if (!shown) return { state: "loading", tone: "neutral", icon: "…", pill: "Checking" };
+  // A draft changed since its checks is previewed: this one example renders, which says nothing about the draft's
+  // checks, so the pill stays neutral and never reads as passing (F13).
+  if (shown.ok && previewing) return { state: "preview", tone: "neutral", icon: "○", pill: "Preview · not checked" };
   if (shown.ok) return { state: "pass", tone: "ok", icon: "✓", pill: "Passes the design rules" };
   const refusal = shown.refusal as Json;
   if (refusal.stage === "withdrawn") return { state: "withdrawn", tone: "warn", icon: "⊘", pill: "Approval withdrawn" };
@@ -1705,16 +1863,8 @@ function CanvasBody({
   );
   if (!shown) return <p className="cl-loading" role="status">Showing the composition…</p>;
   if (shown.ok)
-    return previewing ? (
-      <>
-        <p className="cl-preview-note" data-testid="preview-note">
-          Preview of this draft: not checked yet.
-        </p>
-        {frame(shown.instance)}
-      </>
-    ) : (
-      frame(shown.instance)
-    );
+    // The check pill says this is an unchecked preview; the canvas shows the composition alone.
+    return frame(shown.instance);
 
   const refusal = shown.refusal as Json;
   const rule = refusal.failures?.[0]?.rule as string | undefined;
@@ -2162,6 +2312,9 @@ const CSS = withWorkspaceChoices(`
 .cl-field__label { font-size: 13px; font-weight: 600; color: var(--fg); }
 .cl-field__hint { font-size: 12px; font-weight: 400; color: var(--fg-dim); margin: 0; }
 .cl-field__error { font-size: 13px; line-height: 1.45; color: var(--err, #d9826b); margin: 0; }
+/* An edit's result sits under its control and scrolls into view clear of the sticky bars (F6). */
+.cl-result { scroll-margin: 24px 0 140px; margin-top: 6px; }
+.cl-content__control { display: grid; gap: 4px; }
 .cl-input { width: 100%; min-height: var(--cl-target); font: inherit; font-size: 14px; box-sizing: border-box; }
 .cl-input--number { max-width: 10rem; }
 textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
@@ -2389,6 +2542,32 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
 .cl-payload__source { display: inline-flex; flex-wrap: wrap; gap: 6px; flex: 1 1 160px; min-width: 0; }
 .cl-payload__new { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 4px; margin: 4px 0 8px; }
 .cl-pre { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 4px; padding: 8px; margin: 8px 0 0; }
+/* Visual template editing: Structure's editing controls, the content parts editor, and identity. */
+.cl-tt { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 0 0 10px; display: grid; gap: 8px; }
+.cl-tt__row { display: flex; flex-wrap: wrap; gap: 6px; }
+.cl-tt__row .cl-tool { min-height: var(--cl-target); padding: 0 10px; }
+.cl-tt__panel { display: grid; gap: 6px; border-top: 1px solid var(--line-soft); padding-top: 8px; }
+.cl-tt__where { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }
+.cl-tt__options { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cl-tt__option { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; font-size: 14px; padding: 6px; border: 1px solid var(--line-soft); border-radius: 4px; cursor: pointer; }
+.cl-tt__option input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--fg); }
+.cl-tt__option--blocked { cursor: not-allowed; border-style: dashed; }
+.cl-tt__option--blocked strong { color: var(--fg-dim); font-weight: 500; }
+/* A reason why something cannot go here stays at full reading contrast; only the option itself is muted. */
+.cl-tt__why { color: var(--fg-dim); font-size: 13px; }
+.cl-tt__status { margin: 0; font-size: 13px; line-height: 1.4; color: var(--green-bright); }
+.cl-tt__status--bad { color: var(--err, #d9826b); }
+/* The removal confirmation is its own block inside the tools, never wider than them (F16). */
+.cl-tt__confirm { display: grid; gap: 8px; border-top: 2px solid var(--fg-dim); padding-top: 8px; min-width: 0; overflow-wrap: anywhere; }
+.cl-tt__title { margin: 0; font-size: 14px; font-weight: 600; color: var(--fg); }
+.cl-tt__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cl-tt__actions .cl-tool { white-space: normal; text-align: left; max-width: 100%; }
+.cl-parts { border: 1px solid var(--line-soft); border-radius: 6px; padding: 8px; margin: 0 0 10px; display: grid; gap: 6px; min-width: 0; }
+.cl-parts__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cl-parts__row { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.cl-parts__row .cl-input { flex: 1 1 auto; min-width: 0; }
+.cl-parts__add { display: flex; flex-wrap: wrap; gap: 6px; }
+.cl-parts__row--wrap { flex-wrap: wrap; }
 /* Workspace appearance (T4): labels follow the chosen case, and the canvas may sit on its own surround. With the
    default choices these compute to exactly what they were before. */
 .cl-label, .cl-toolbar__label, .cl-table th, .cl-field__label, .cl-crumbs { text-transform: var(--cl-label-transform, none); letter-spacing: var(--cl-label-tracking, 0); }
