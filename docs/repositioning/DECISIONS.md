@@ -208,3 +208,11 @@ Slice D of the advanced-authoring increment, authorized after #135 and #136 were
 | 79 | Not carried | What a 0.2 composition cannot declare (checks between fields, further intents) is said in the confirmation and the inspector | Never dropped silently. Carrying it would need a schema extension, not proposed here |
 | 80 | Safeguards before discovery | The exact requirements for cross-tab withdrawal and restoration, stale authorization, pre-withdrawal commitments and sensitive data in historical approvals are recorded with a narrow implementation | Not implemented here. Recommended as one small increment before agent-facing discovery, starting with the authorization-record race |
 
+## Final authoring closeout (2026-11-28)
+
+Authorized with the acceptance of #137 to #139.
+
+| # | Decision | Answer | Condition or limit |
+|---|---|---|---|
+| 81 | Transition intent | Optional `leadsTo` on an action, and `title` (≤ 60) and `description` (≤ 240) on a state, as composition schema 0.3 ([m1/transitions/README.md](m1/transitions/README.md)) | Intent only: never navigation or authorization. Targets validated and kept in step by rename and remove. Each target must be reached by an example before approval. 0.2 definitions keep their meaning and hashes; 0.2 refuses the new fields |
+
