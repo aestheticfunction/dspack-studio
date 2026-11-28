@@ -18,13 +18,13 @@ import { contractDigest } from "../blocks/digest";
 import type { BlockDefinition, BlocksSidecar, TemplateChild } from "../blocks/schema";
 import { parseBlocksSidecar } from "../blocks/schema";
 import { versionIssues, versionKey } from "./versions";
-import { COMPOSITIONS_SIDECAR_VERSION, parseCompositionsSidecar, type CompositionDefinition, type CompositionIssue, type CompositionsSidecar } from "./schema";
+import { COMPOSITIONS_SIDECAR_VERSION, COMPOSITIONS_SIDECAR_VERSIONS, parseCompositionsSidecar, type CompositionDefinition, type CompositionIssue, type CompositionsSidecar } from "./schema";
 
 type Json = Record<string, unknown>;
 
 export interface LoadedCompositions {
   /** The version the file declared. */
-  from: "0.1" | "0.2";
+  from: "0.1" | "0.2" | "0.3";
   binding: "ok" | "mismatch" | "invalid";
   sidecar?: CompositionsSidecar;
   usable: CompositionDefinition[];
@@ -215,20 +215,20 @@ export function compositionIssues(c: CompositionDefinition, contract: Json): Com
 /** Parse (0.1 or 0.2), bind to the packaged base contract, and check every composition. */
 export async function loadCompositions(raw: unknown, options: { baseContract: Json }): Promise<LoadedCompositions> {
   const declared = isObject(raw) ? (raw.compositionsSidecar ?? raw.blocksSidecar) : undefined;
-  let from: "0.1" | "0.2";
+  let from: "0.1" | "0.2" | "0.3";
   let sidecar: CompositionsSidecar;
   if (isObject(raw) && raw.blocksSidecar === "0.1" && raw.compositionsSidecar === undefined) {
     const parsed = parseBlocksSidecar(raw);
     if (!parsed.ok) return { from: "0.1", binding: "invalid", usable: [], disabled: [], issues: parsed.issues.map((i) => `${i.path}: ${i.message}`) };
     from = "0.1";
     sidecar = upcastSidecar(parsed.sidecar);
-  } else if (isObject(raw) && raw.compositionsSidecar === COMPOSITIONS_SIDECAR_VERSION) {
+  } else if (isObject(raw) && (COMPOSITIONS_SIDECAR_VERSIONS as readonly unknown[]).includes(raw.compositionsSidecar)) {
     const parsed = parseCompositionsSidecar(raw);
-    if (!parsed.ok) return { from: "0.2", binding: "invalid", usable: [], disabled: [], issues: parsed.issues.map((i) => `${i.path}: ${i.message}`) };
-    from = "0.2";
+    if (!parsed.ok) return { from: raw.compositionsSidecar as "0.2" | "0.3", binding: "invalid", usable: [], disabled: [], issues: parsed.issues.map((i) => `${i.path}: ${i.message}`) };
+    from = parsed.sidecar.compositionsSidecar;
     sidecar = { ...parsed.sidecar, compositions: [...parsed.sidecar.blocks.map(upcastBlock), ...parsed.sidecar.compositions] };
   } else {
-    return { from: "0.2", binding: "invalid", usable: [], disabled: [], issues: [`unsupported sidecar version '${String(declared)}'; this loader reads 0.1 and 0.2`] };
+    return { from: "0.2", binding: "invalid", usable: [], disabled: [], issues: [`unsupported sidecar version '${String(declared)}'; this loader reads 0.1, 0.2 and 0.3`] };
   }
   const digest = await contractDigest(options.baseContract);
   if (digest !== sidecar.baseSha256) {

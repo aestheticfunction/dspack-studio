@@ -89,6 +89,28 @@ export function setGuard(c: CompositionDefinition, stateId: string, guard: Guard
   return { ok: true, id: stateId };
 }
 
+/** Set (or clear) a state's human title, 60 characters at most (decision 81). Presentation only. */
+export function setStateTitle(c: CompositionDefinition, stateId: string, title: string): StateResult {
+  const state = c.states.find((s) => s.id === stateId);
+  if (!state) return { ok: false, reason: `there is no “${stateId}” state` };
+  const t = title.trim();
+  if (t.length > 60) return { ok: false, reason: "a state's title is 60 characters at most" };
+  if (t) state.title = t;
+  else delete state.title;
+  return { ok: true, id: stateId };
+}
+
+/** Set (or clear) a state's description, 240 characters at most (decision 81). Presentation only. */
+export function setStateDescription(c: CompositionDefinition, stateId: string, description: string): StateResult {
+  const state = c.states.find((s) => s.id === stateId);
+  if (!state) return { ok: false, reason: `there is no “${stateId}” state` };
+  const d = description.trim();
+  if (d.length > 240) return { ok: false, reason: "a state's description is 240 characters at most" };
+  if (d) state.description = d;
+  else delete state.description;
+  return { ok: true, id: stateId };
+}
+
 /** Set the contract intent a state is judged under. The loader checks that it is an intent of the contract. */
 export function setPurpose(c: CompositionDefinition, stateId: string, purpose: string): StateResult {
   const state = c.states.find((s) => s.id === stateId);
@@ -169,7 +191,10 @@ export function renameState(c: CompositionDefinition, from: string, to: string):
   const problem = stateIdProblem(c, to, from);
   if (problem) return { ok: false, reason: problem };
   state.id = to;
-  for (const a of c.actions) a.states = a.states.map((s) => (s === from ? to : s));
+  for (const a of c.actions) {
+    a.states = a.states.map((s) => (s === from ? to : s));
+    if (a.leadsTo) a.leadsTo = a.leadsTo.map((s) => (s === from ? to : s));
+  }
   for (const s of c.scenarios) if (s.state === from) s.state = to;
   return { ok: true, id: to };
 }
@@ -196,6 +221,8 @@ export interface StateDependencies {
   carries: Array<{ action: string; input: string }>;
   /** Examples that ask for this state: they stop asking, and the data chooses their state. */
   scenarios: string[];
+  /** Actions intended to lead to this state (decision 81): the intent is removed with it. */
+  leadsTo: string[];
 }
 
 /** What depends on a state. */
@@ -209,10 +236,11 @@ export function stateDependencies(c: CompositionDefinition, id: string): StateDe
   const removed = new Set(actions.filter((a) => a.effect === "removed").map((a) => a.name));
   const carries = c.actions.filter((a) => !removed.has(a.name)).flatMap((a) => (a.carries ?? []).filter((x) => inputs.includes(x)).map((input) => ({ action: a.name, input })));
   const scenarios = c.scenarios.filter((s) => s.state === id).map((s) => s.id);
-  return { actions, inputs, carries, scenarios };
+  const leadsTo = c.actions.filter((a) => !removed.has(a.name) && a.leadsTo?.includes(id)).map((a) => a.name);
+  return { actions, inputs, carries, scenarios, leadsTo };
 }
 
-export const stateHasDependencies = (d: StateDependencies) => d.actions.length + d.inputs.length + d.carries.length + d.scenarios.length > 0;
+export const stateHasDependencies = (d: StateDependencies) => d.actions.length + d.inputs.length + d.carries.length + d.scenarios.length + d.leadsTo.length > 0;
 
 /**
  * Remove a state. The last state cannot be removed. With dependencies, it is refused unless `resolve` is set;
@@ -238,6 +266,11 @@ export function removeState(c: CompositionDefinition, id: string, resolve = fals
       if (a.carries && a.carries.length === 0) delete a.carries;
     }
     for (const s of c.scenarios) if (s.state === id) delete s.state;
+    for (const a of c.actions) {
+      if (!a.leadsTo) continue;
+      a.leadsTo = a.leadsTo.filter((s) => s !== id);
+      if (a.leadsTo.length === 0) delete a.leadsTo;
+    }
   }
   return { ok: true, id: c.states[Math.min(i, c.states.length - 1)]!.id };
 }

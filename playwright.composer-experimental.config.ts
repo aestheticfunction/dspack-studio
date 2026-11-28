@@ -24,7 +24,7 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     contextOptions: { reducedMotion: "reduce" },
   },
-  projects: [{ name: "composer-experimental", testMatch: ["composer-blocks.spec.ts", "composer-blocks-provenance.spec.ts", "composer-blocks-receipts.spec.ts", "composer-blocks-a11y.spec.ts", "composer-beta.spec.ts", "composer-library.spec.ts", "composer-authoring.spec.ts", "composer-appearance.spec.ts", "composer-interaction.spec.ts", "composer-withdrawal.spec.ts", "composer-template.spec.ts", "composer-refinement.spec.ts", "composer-promotion.spec.ts", "composer-states.spec.ts"] }],
+  projects: [{ name: "composer-experimental", testMatch: ["composer-blocks.spec.ts", "composer-blocks-provenance.spec.ts", "composer-blocks-receipts.spec.ts", "composer-blocks-a11y.spec.ts", "composer-beta.spec.ts", "composer-library.spec.ts", "composer-authoring.spec.ts", "composer-appearance.spec.ts", "composer-interaction.spec.ts", "composer-withdrawal.spec.ts", "composer-template.spec.ts", "composer-refinement.spec.ts", "composer-promotion.spec.ts", "composer-states.spec.ts", "composer-transitions.spec.ts"] }],
   webServer: [
     {
       command: "node e2e/serve-composer.mjs",

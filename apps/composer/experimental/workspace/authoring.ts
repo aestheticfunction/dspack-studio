@@ -17,6 +17,7 @@ import {
   createLibrary,
   discardDraft,
   promoteBlock,
+  transitionIssues,
   editComposition,
   pinsFor,
   recheck,
@@ -32,7 +33,7 @@ import {
 } from "@dspack-studio/composer-core/compositions";
 import { interactionIssues } from "./interaction";
 import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
-import { definitionIssues, promotionBlockers, type LoadedLibrary, type VersionCheck } from "./runtime";
+import { definitionIssues, promotionBlockers, validated, type LoadedLibrary, type VersionCheck } from "./runtime";
 import { readRecord, withApproval, writeRecord, type KeyValueStore, type Promotion } from "./storage";
 
 type Json = Record<string, any>;
@@ -74,12 +75,16 @@ export async function editDraft(loaded: LoadedLibrary, id: string, version: numb
   if (!target || target.status !== "draft") return { ok: false, reason: "only a draft can be edited; create a draft first" };
   const r = editComposition(loaded.library, id, version, edit);
   if (!r.ok) return { ok: false, reason: r.reason };
-  const issues = await definitionIssues(r.draft);
-  if (issues.length > 0) return { ok: false, reason: issues[0]! };
-  const drafts = draftsWith(loaded, r.draft);
+  const v = await validated(r.draft);
+  if (!v.ok) return { ok: false, reason: v.issues[0]! };
+  // The draft is kept exactly as the loader reads it back, so it hashes the same in this session and after a
+  // reload (a definition's identity is the hash of its JSON).
+  const draft = v.definition;
+  const library = JSON.stringify(draft) === JSON.stringify(r.draft) ? r.library : createLibrary(r.library.entries.flatMap((e) => e.versions).map((x) => (keyOf(x) === keyOf(draft) ? draft : x))).library;
+  const drafts = draftsWith(loaded, draft);
   const written = writeRecord("drafts", { drafts: drafts.map((d) => structuredClone(d)) }, store);
-  const origin = new Map(loaded.origin).set(keyOf(r.draft), "device");
-  return { ok: true, loaded: withLibrary(loaded, r.library, { drafts }, origin), version, ...(written.ok ? {} : { warning: `This edit is kept for this session only: ${written.reason}.` }) };
+  const origin = new Map(loaded.origin).set(keyOf(draft), "device");
+  return { ok: true, loaded: withLibrary(loaded, library, { drafts }, origin), version, ...(written.ok ? {} : { warning: `This edit is kept for this session only: ${written.reason}.` }) };
 }
 
 /** A1: discard a draft. A packaged draft is withdrawn on this device only; approved versions are untouched. */
@@ -120,9 +125,12 @@ export async function promoteBlockDraft(
   store: KeyValueStore | null,
 ): Promise<{ ok: true; loaded: LoadedLibrary; version: number; id: string; report: PromotionReport; warning?: string } | { ok: false; reason: string }> {
   const taken = new Set(loaded.library.entries.map((e) => e.id));
-  const { composition, report } = promoteBlock(block, { reference, taken });
-  const issues = await definitionIssues(composition);
-  if (issues.length > 0) return { ok: false, reason: `the block could not become a composition: ${issues[0]}` };
+  const promoted = promoteBlock(block, { reference, taken });
+  const v = await validated(promoted.composition);
+  if (!v.ok) return { ok: false, reason: `the block could not become a composition: ${v.issues[0]}` };
+  // Kept exactly as the loader reads it back, so it hashes the same now and after a reload.
+  const composition = v.definition;
+  const report = promoted.report;
   const { library, issues: rules } = createLibrary([...loaded.library.entries.flatMap((e) => e.versions), composition]);
   if (rules.length > 0) return { ok: false, reason: rules[0]!.message };
   const drafts = draftsWith(loaded, composition);
@@ -167,6 +175,9 @@ export async function approveVersion(loaded: LoadedLibrary, governor: Governor, 
   // A private field must be masked on screen before a version that takes it is approved (interaction.ts).
   const blocking = interactionIssues(draft);
   if (blocking.length > 0) return { ok: false, reason: blocking[0]!.text.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase()) };
+  // Transition intent (decision 81): each intended target is reached by an example, or approval waits.
+  const unreachable = transitionIssues(draft);
+  if (unreachable.length > 0) return { ok: false, reason: unreachable[0]!.replace(/^./, (c) => c.toLowerCase()) };
   // A promoted composition: every block action resolved first (slice D). Never fabricated, never skipped.
   const unresolved = await promotionBlockers(loaded, draft);
   if (unresolved.length > 0) return { ok: false, reason: unresolved[0]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase()) };

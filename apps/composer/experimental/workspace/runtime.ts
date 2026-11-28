@@ -16,6 +16,7 @@ import {
   loadCompositions,
   promotionIssues,
   recheck,
+  requiredSidecarVersion,
   type Approval,
   type ApprovalState,
   type CompositionDefinition,
@@ -105,10 +106,19 @@ export async function promotionBlockers(loaded: LoadedLibrary, definition: Compo
  * checks a packaged composition goes through (loadCompositions), so authoring adds no second validator.
  */
 export async function definitionIssues(definition: CompositionDefinition): Promise<string[]> {
-  const probe = { compositionsSidecar: sidecar.compositionsSidecar, status: definition.status, reference: sidecar.reference, baseSha256: sidecar.baseSha256, blocks: [], compositions: [definition] };
+  const r = await validated(definition);
+  return r.ok ? [] : r.issues;
+}
+
+/**
+ * The definition as the loader reads it back, or why it is not valid. The document version is the oldest that
+ * can hold it (0.2 unless it uses a 0.3 field), so a 0.2 definition is judged exactly as before.
+ */
+export async function validated(definition: CompositionDefinition): Promise<{ ok: true; definition: CompositionDefinition } | { ok: false; issues: string[] }> {
+  const probe = { compositionsSidecar: requiredSidecarVersion(definition), status: definition.status, reference: sidecar.reference, baseSha256: sidecar.baseSha256, blocks: [], compositions: [definition] };
   const loaded = await loadCompositions(probe, { baseContract: contractDoc as Json });
-  if (loaded.usable.length === 1) return [];
-  return [...loaded.issues, ...loaded.disabled.flatMap((d) => d.issues)];
+  if (loaded.usable.length === 1) return { ok: true, definition: loaded.usable[0]! };
+  return { ok: false, issues: [...loaded.issues, ...loaded.disabled.flatMap((d) => d.issues)] };
 }
 
 /**

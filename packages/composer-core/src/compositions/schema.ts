@@ -29,6 +29,14 @@ import type { BlockConstraint, BlockDefinition, PropSpec, TemplateNode } from ".
 import { parseBlocksSidecar } from "../blocks/schema";
 
 export const COMPOSITIONS_SIDECAR_VERSION = "0.2";
+/**
+ * 0.3 is 0.2 plus three optional, intent-only fields (decision 81): an action's `leadsTo`, and a state's
+ * `title` and `description`. A definition that uses none of them is a 0.2 definition and hashes as before; one
+ * that uses any of them needs a 0.3 document, so a reader that knows only 0.2 refuses it rather than
+ * misreading it (0.2 stays strict).
+ */
+export const COMPOSITIONS_SIDECAR_VERSIONS = ["0.2", "0.3"] as const;
+export type CompositionsSidecarVersion = (typeof COMPOSITIONS_SIDECAR_VERSIONS)[number];
 
 const ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const NAME = /^[a-z][a-zA-Z0-9]*$/;
@@ -45,6 +53,10 @@ export type Guard =
 
 export interface CompositionState {
   id: string;
+  /** 0.3: a short human name for the state (60 characters at most). Presentation only. */
+  title?: string;
+  /** 0.3: what the state is for, in a sentence or two (240 characters at most). Presentation only. */
+  description?: string;
   /** The contract intent this state's surface is judged under (S3). */
   purpose: string;
   guard: Guard;
@@ -88,6 +100,12 @@ export interface ActionSpec {
   carries?: string[];
   /** A consequential action is accepted only from its confirmation state, once per surface. */
   consequential?: boolean;
+  /**
+   * 0.3: the states the designer intends this action to lead to. Intent only: the host never moves to them,
+   * never refuses data that leads elsewhere, and never authorizes anything because of them. The next state is
+   * still chosen by the data the agent returns (expand.ts selectState).
+   */
+  leadsTo?: string[];
 }
 
 export interface Scenario {
@@ -127,7 +145,7 @@ export interface CompositionDefinition {
 }
 
 export interface CompositionsSidecar {
-  compositionsSidecar: typeof COMPOSITIONS_SIDECAR_VERSION;
+  compositionsSidecar: CompositionsSidecarVersion;
   status: "draft" | "approved";
   reference: { name: string; dspack: string; version: string };
   baseSha256: string;
@@ -198,6 +216,7 @@ const compositionSchema = z
             payload: z.record(payloadValue).optional(),
             carries: z.array(z.string().regex(NAME)).optional(),
             consequential: z.boolean().optional(),
+            leadsTo: z.array(z.string().regex(ID)).min(1).optional(),
           })
           .strict(),
       )
@@ -205,7 +224,14 @@ const compositionSchema = z
     states: z
       .array(
         z
-          .object({ id: z.string().regex(ID), purpose: z.string().min(1), guard: guardSchema, template: z.record(z.unknown()) })
+          .object({
+            id: z.string().regex(ID),
+            title: z.string().trim().min(1).max(60).optional(),
+            description: z.string().trim().min(1).max(240).optional(),
+            purpose: z.string().min(1),
+            guard: guardSchema,
+            template: z.record(z.unknown()),
+          })
           .strict(),
       )
       .min(1),
@@ -228,7 +254,7 @@ const compositionSchema = z
 
 const sidecarSchema = z
   .object({
-    compositionsSidecar: z.literal(COMPOSITIONS_SIDECAR_VERSION),
+    compositionsSidecar: z.enum(COMPOSITIONS_SIDECAR_VERSIONS),
     status: z.enum(["draft", "approved"]),
     reference: z.object({ name: z.string().min(1), dspack: z.string().min(1), version: z.string().min(1) }).strict(),
     baseSha256: z.string().regex(/^[0-9a-f]{64}$/),
@@ -272,8 +298,14 @@ export function parseCompositionsSidecar(json: unknown): { ok: true; sidecar: Co
     if (dup) issues.push({ path: `${at}`, message: `'${dup}' is declared twice across parameters and data` });
     const stateIds = c.states.map((s) => s.id);
     if (new Set(stateIds).size !== stateIds.length) issues.push({ path: `${at}.states`, message: "state ids must be unique" });
+    if (doc.compositionsSidecar === "0.2" && usesIntentFields(c as unknown as CompositionDefinition)) {
+      issues.push({ path: at, message: "leadsTo, a state's title and a state's description need compositionsSidecar 0.3" });
+    }
     c.actions.forEach((a, i) => {
       for (const s of a.states) if (!stateIds.includes(s)) issues.push({ path: `${at}.actions.${i}.states`, message: `unknown state '${s}'` });
+      for (const s of a.leadsTo ?? []) if (!stateIds.includes(s)) issues.push({ path: `${at}.actions.${i}.leadsTo`, message: `unknown state '${s}'` });
+      if (a.leadsTo && new Set(a.leadsTo).size !== a.leadsTo.length) issues.push({ path: `${at}.actions.${i}.leadsTo`, message: "a state is named twice in leadsTo" });
+      if (a.consequential && a.leadsTo?.some((s) => a.states.includes(s))) issues.push({ path: `${at}.actions.${i}.leadsTo`, message: "a consequential action cannot lead back to its own confirmation state" });
       for (const name of a.carries ?? []) if (!c.inputs.some((x) => x.name === name)) issues.push({ path: `${at}.actions.${i}.carries`, message: `unknown input '${name}'` });
       if (a.repeat && a.carries?.length) issues.push({ path: `${at}.actions.${i}`, message: "a repeated action carries a literal payload only, never input values" });
     });
@@ -285,6 +317,16 @@ export function parseCompositionsSidecar(json: unknown): { ok: true; sidecar: Co
   });
   if (issues.length > 0) return { ok: false, issues };
   return { ok: true, sidecar: { ...(doc as unknown as CompositionsSidecar), blocks } };
+}
+
+/** Whether a definition uses any 0.3 field (leadsTo, a state's title or description). */
+export function usesIntentFields(c: CompositionDefinition): boolean {
+  return c.actions.some((a) => a.leadsTo !== undefined) || c.states.some((s) => s.title !== undefined || s.description !== undefined);
+}
+
+/** The oldest document version that can hold a definition: 0.2 unless it uses a 0.3 field. */
+export function requiredSidecarVersion(c: CompositionDefinition): CompositionsSidecarVersion {
+  return usesIntentFields(c) ? "0.3" : "0.2";
 }
 
 function probeSidecar(doc: { status: string; reference: unknown; baseSha256: string }, props: unknown[]) {

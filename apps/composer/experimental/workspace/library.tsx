@@ -59,7 +59,7 @@ import { ActionFlow, StatesEditor } from "./state-editor";
 import { Icon } from "./icons";
 import { emptyHistory, plan, record, restoreTracked, settle, type History } from "./undo-history";
 import { applyContent, applyInsert, assignId as assignElementId, contentProblem, moveNode, plainTemplateIssue, removeNode, renameId as renameElementId, statesShowing, type Insertable } from "./template-editing";
-import { promotionIssues, uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
+import { promotionIssues, transitionIssues, uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult, type StoredAuthorization } from "./storage";
 import { applyWithdrawals, restoreApproval, withdrawApproval } from "./withdrawal";
@@ -973,7 +973,7 @@ export function LibraryWorkspace() {
   // ---- Selection (advanced authoring) ----------------------------------------------------------------------
   const stateName = (id: string) => {
     const st = definition?.states.find((x) => x.id === id);
-    return st ? sentence(humanize(st.id)) : id;
+    return st ? (st.title ?? sentence(humanize(st.id))) : id;
   };
   const shownState = instance?.state ?? null;
   const listedState = definition ? (structureState && definition.states.some((x) => x.id === structureState) ? structureState : (shownState ?? definition.states[0]!.id)) : null;
@@ -1022,6 +1022,8 @@ export function LibraryWorkspace() {
         ? promotionIssues(definition, promotionBlock.actions ?? [])
         : [promotionBlock === null ? `The block it was promoted from (${promotion.block} v${promotion.version}) is not available, so its actions cannot be checked.` : "Reading the block it was promoted from…"]
       : [];
+  // Transition intent (decision 81): each intended next state must be reached by an example before approval.
+  const intentIssues = definition?.status === "draft" ? transitionIssues(definition) : [];
   const showPromotion = () => {
     setSelection(null);
     setTab("design");
@@ -1365,7 +1367,7 @@ export function LibraryWorkspace() {
               <button className="cl-tool cl-draft__next" onClick={showPromotion} data-testid="draft-resolve">
                 Resolve from the block ({unresolved.length})
               </button>
-            ) : draftState === "pass" ? (
+            ) : draftState === "pass" && intentIssues.length === 0 ? (
               <button
                 className="cl-tool cl-draft__next"
                 onClick={() => setConfirm("approve")}
@@ -1972,6 +1974,7 @@ export function LibraryWorkspace() {
               blocking={interactionIssues(definition)}
               unresolved={unresolved}
               showUnresolved={showPromotion}
+              intentIssues={intentIssues}
               fixBlocking={() => {
                 const first = interactionIssues(definition)[0];
                 if (first) void applyEdit((d) => applyInputChange(d, first.fix)).then((problem) => setAnnounce(problem ? `Not applied: ${problem}` : "The private field is masked. Run the checks again."));
@@ -2266,11 +2269,13 @@ function AuthoringBar({
   fixBlocking,
   unresolved,
   showUnresolved,
+  intentIssues,
 }: {
   definition: CompositionDefinition;
   blocking: Array<{ text: string }>;
   unresolved: string[];
   showUnresolved: () => void;
+  intentIssues: string[];
   fixBlocking: () => void;
   approvedVersion: number | undefined;
   state: "checking" | "unchecked" | "pass" | "fail";
@@ -2327,6 +2332,11 @@ function AuthoringBar({
           </button>
         </p>
       )}
+      {intentIssues.length > 0 && (
+        <p className="cl-bar__line cl-warn" data-testid="intent-blocked">
+          Not ready to approve: {intentIssues[0]}.
+        </p>
+      )}
       {blocking.length > 0 && (
         <p className="cl-bar__line cl-warn" data-testid="approval-blocked">
           {blocking[0]!.text}{" "}
@@ -2336,7 +2346,7 @@ function AuthoringBar({
         </p>
       )}
       <div className="cl-bar__actions">
-        {state === "pass" && blocking.length === 0 && unresolved.length === 0 ? (
+        {state === "pass" && blocking.length === 0 && unresolved.length === 0 && intentIssues.length === 0 ? (
           <button className="cl-tool cl-tool--primary" onClick={() => setConfirm("approve")} data-testid="approve">
             Approve version…
           </button>
@@ -2345,7 +2355,7 @@ function AuthoringBar({
             {state === "checking" ? "Checking…" : "Run checks"}
           </button>
         )}
-        {state === "pass" && blocking.length === 0 && unresolved.length === 0 && (
+        {state === "pass" && blocking.length === 0 && unresolved.length === 0 && intentIssues.length === 0 && (
           <button className="cl-tool" onClick={runChecks} data-testid="run-checks-again">
             Run checks again
           </button>
@@ -2717,6 +2727,7 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-block { display: grid; gap: 6px; padding: 12px; border: 1px dashed var(--line); border-radius: 6px; }
 .cl-block > .cl-tool { justify-self: start; }
 .cl-promo { display: grid; gap: 8px; }
+.cl-flow__evidence { display: block; margin-top: 4px; font-size: 13px; }
 .cl-promo__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .cl-promo__row { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line-soft); border-left-width: 3px; border-radius: 4px; }
 .cl-promo__row--resolved { border-left-color: var(--green-deep); }

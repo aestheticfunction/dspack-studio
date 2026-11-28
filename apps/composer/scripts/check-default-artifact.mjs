@@ -72,6 +72,8 @@ const markers = new Set([
   "promotion-details",
   "promote-confirm",
   "block-list",
+  // Transition intent is experimental only.
+  "action-flow-intent-note",
   // State, transition and dialog authoring are experimental only.
   "states-editor",
   "action-flow",
