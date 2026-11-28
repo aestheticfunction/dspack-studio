@@ -1303,7 +1303,6 @@ export function LibraryWorkspace() {
               </button>
             ) : (
               <button className="cl-tool cl-draft__next" onClick={() => void recheckNow()} data-testid="draft-run-checks">
-                <Icon name="check" />
                 Run checks
               </button>
             )
@@ -2480,7 +2479,10 @@ const CSS = withWorkspaceChoices(`
 .cl-tool[aria-pressed="true"], .cl-tool[aria-expanded="true"] { background: var(--bg-2); border-color: var(--fg-dim); color: var(--fg); }
 .cl-icon { flex: none; width: calc(16px * var(--cl-type, 1)); height: calc(16px * var(--cl-type, 1)); }
 /* Undo and Redo with the canvas controls, the edit result under them, and the draft's next step. */
-.cl-toolbar__history { display: inline-flex; gap: 2px; margin-right: 4px; }
+.cl-toolbar__history { display: inline-flex; gap: 0; margin-right: 4px; }
+/* Undo and Redo read as one pair: joined, each keeping its full target. */
+.cl-toolbar__history .cl-tool:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.cl-toolbar__history .cl-tool:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
 .cl-panel__head .cl-toolbar__history { margin: 0 0 0 auto; }
 .cl-pairing { flex: none; margin-left: auto; font-size: 12px; padding: 0 8px; }
 .cl-toolbar__history .cl-tool { padding: 0; }
@@ -2589,9 +2591,9 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-toolbar__head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "title versions status view"; align-items: center; gap: 6px; min-width: 0; }
 .cl-title { grid-area: title; font-family: var(--sans); font-weight: 600; color: var(--fg); font-size: 20px; margin: 0; outline: none; line-height: 1.2; white-space: nowrap; }
 .cl-toolbar__versions { grid-area: versions; display: flex; align-items: center; min-width: 0; }
-.cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
-.cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
-.cl-toolbar__panels { display: flex; gap: 6px; }
+.cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+.cl-toolbar__panels { display: flex; gap: 4px; }
 @container canvas (max-width: 880px) {
   .cl-toolbar__head { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title title view" "versions status status"; }
   /* The examples speak for themselves here; their group keeps its name for assistive technology. */
@@ -2613,12 +2615,12 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cl-target); padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .cl-seg__opt input { margin: 0; width: 14px; height: 14px; accent-color: var(--fg); }
 .cl-seg__opt--on { border-color: var(--fg-dim); background: var(--bg-2); color: var(--fg); }
-.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--fg-body); }
+.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 6px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--fg-body); }
 .cl-pill--ok .cl-pill__icon { color: var(--green-bright); }
 .cl-pill--bad { color: var(--err, #d9826b); border-color: color-mix(in srgb, var(--err, #d9826b) 60%, transparent); }
 .cl-pill--warn { color: var(--warn, #c9a35a); border-color: color-mix(in srgb, var(--warn, #c9a35a) 60%, transparent); }
 .cl-draft { position: relative; }
-.cl-draft summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3em; min-height: var(--cl-target); padding: 0 8px; border: 1px dashed var(--fg-faint); border-radius: 999px; font-size: 13px; color: var(--fg); white-space: nowrap; }
+.cl-draft summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3em; min-height: var(--cl-target); padding: 0 6px; border: 1px dashed var(--fg-faint); border-radius: 999px; font-size: 13px; color: var(--fg); white-space: nowrap; }
 .cl-draft summary::-webkit-details-marker { display: none; }
 .cl-draft summary::after { content: " ▾"; margin-left: 4px; color: var(--fg-dim); }
 .cl-draft__pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 12; width: min(360px, 86vw); background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-menu); padding: 10px 12px; font-size: 14px; line-height: 1.5; }
