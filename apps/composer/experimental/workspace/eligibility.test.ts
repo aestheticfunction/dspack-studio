@@ -63,7 +63,7 @@ describe("agent eligibility", () => {
     const restored = await restoreApproval({ governor, definition, host: other, authority });
     expect(restored.ok).toBe(true);
     // This tab's host is still withdrawn.
-    expect((await ask({ record: shared.record })).reasons.map((r) => r.kind)).toEqual(["withdrawn"]);
+    expect((await ask({ record: shared.record })).reasons.map((r) => r.kind)).toEqual(["stale"]);
     expect((await ask({ record: shared.record, host: undefined })).reasons.map((r) => r.kind)).toEqual(["stale"]);
     expect(await ask({ record: shared.record, host: other, approvalGeneration: restored.ok ? restored.approvalGeneration : -1 })).toMatchObject({ eligible: true });
   });

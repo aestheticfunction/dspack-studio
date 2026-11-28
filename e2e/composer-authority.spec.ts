@@ -166,6 +166,7 @@ test.describe("agent eligibility (R4)", () => {
     await expect(b.getByTestId("restored-elsewhere")).toBeVisible();
     await inspector(b);
     await expect(b.getByTestId("agent-eligibility")).toHaveAttribute("data-eligible", "false");
+    await expect(b.getByTestId("agent-eligibility-reasons")).toContainText("Run its checks here.");
     await shot(b, "03-restored-elsewhere");
     await b.getByTestId("restored-elsewhere-check").click();
     await expect(b.getByTestId("agent-eligibility")).toHaveAttribute("data-eligible", "true", { timeout: 20_000 });
