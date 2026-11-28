@@ -22,9 +22,14 @@ import {
   moveState,
   removeState,
   renameState,
+  leadsToOptions,
   setActionStates,
   setGuard,
+  setLeadsTo,
   setPurpose,
+  setStateDescription,
+  setStateTitle,
+  transitionEvidence,
   stateDependencies,
   statesShowingAction,
   uniqueStateId,
@@ -42,6 +47,11 @@ const words = (s: string) => {
 };
 
 type Part = { kind: "present" | "empty" | "minItems"; path: string; min: number };
+
+/** A state's human name: its title (decision 81), else its id in words. */
+export function stateLabel(definition: CompositionDefinition, id: string): string {
+  return definition.states.find((s) => s.id === id)?.title ?? words(id);
+}
 
 function partsOf(g: Guard): { always: boolean; parts: Part[] } {
   if ("always" in g) return { always: true, parts: [] };
@@ -167,10 +177,14 @@ export function StatesEditor({
   const [newName, setNewName] = useState("");
   const [newPurpose, setNewPurpose] = useState(intents[0]?.id ?? "");
   const current = definition.states.find((s) => s.id === selected) ?? definition.states[0]!;
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   useEffect(() => {
     setRename(current.id);
+    setTitle(current.title ?? "");
+    setDescription(current.description ?? "");
     setPanel(null);
-  }, [current.id]);
+  }, [current.id, current.title, current.description]);
   useEffect(() => setResult({ error: null, done: null }), [definition.id, definition.version]);
 
   const run = async (op: (d: CompositionDefinition) => { ok: true; id: string } | { ok: false; reason: string }, done: (id: string) => string, then?: (id: string) => void) => {
@@ -189,6 +203,7 @@ export function StatesEditor({
         ...deps.inputs.map((i) => `The typed field “${words(i)}” is removed.`),
         ...deps.carries.map((x) => `“${words(x.action)}” stops sending “${words(x.input)}”.`),
         ...deps.scenarios.map((s) => `The example “${words(definition.scenarios.find((x) => x.id === s)?.title ?? s)}” stops asking for this state; its data chooses the state.`),
+        ...deps.leadsTo.map((a) => `“${words(a)}” is no longer intended to lead here.`),
       ]
     : [];
 
@@ -201,7 +216,7 @@ export function StatesEditor({
               <span className="cl-states__n" aria-hidden="true">
                 {i + 1}
               </span>
-              <span className="cl-states__name">{words(s.id)}</span>
+              <span className="cl-states__name">{s.title ?? words(s.id)}</span>
               <span className="cl-states__when">
                 {describeCondition(s.guard)} · {intentName(s.purpose)}
                 {unreachable.has(s.id) ? " · never chosen by the data" : ""}
@@ -217,7 +232,12 @@ export function StatesEditor({
       )}
 
       <div className="cl-states__detail" data-testid="state-detail" data-state={current.id}>
-        <p className="cl-states__title">{words(current.id)}</p>
+        <p className="cl-states__title" data-testid="state-heading">{current.title ?? words(current.id)}</p>
+        {current.description && (
+          <p className="cl-text" data-testid="state-description-text">
+            {current.description}
+          </p>
+        )}
         <p className="cl-dim">
           Shown {describeCondition(current.guard)}. Judged as {intentName(current.purpose).toLowerCase()}: the design rules for that purpose apply to this screen.
         </p>
@@ -236,6 +256,31 @@ export function StatesEditor({
                 <input id="cl-state-rename" className="af-input cl-input" value={rename} onChange={(e) => setRename(e.target.value)} data-testid="state-rename-input" />
                 <button className="cl-tool" disabled={rename.trim() === current.id} onClick={() => void run((d) => renameState(d, current.id, rename.trim()), (id) => `Renamed to ${words(id)}; its actions and examples follow.`, select)} data-testid="state-rename-apply">
                   Rename
+                </button>
+              </div>
+            </div>
+            <div className="cl-field">
+              <label className="cl-field__label" htmlFor="cl-state-title">
+                Title
+              </label>
+              <div className="cl-parts__row cl-parts__row--wrap">
+                <input id="cl-state-title" className="af-input cl-input" value={title} maxLength={60} placeholder={words(current.id)} onChange={(e) => setTitle(e.target.value)} aria-describedby="cl-state-title-hint" data-testid="state-title-input" />
+                <button className="cl-tool" disabled={title.trim() === (current.title ?? "")} onClick={() => void run((d) => setStateTitle(d, current.id, title), () => (title.trim() ? `Titled “${title.trim()}”.` : "The title is cleared; the name is shown."))} data-testid="state-title-apply">
+                  Apply
+                </button>
+              </div>
+              <p className="cl-field__hint" id="cl-state-title-hint">
+                How designers see this state, up to 60 characters. The name stays its identity.
+              </p>
+            </div>
+            <div className="cl-field">
+              <label className="cl-field__label" htmlFor="cl-state-description">
+                Description
+              </label>
+              <textarea id="cl-state-description" className="af-input cl-input" rows={2} value={description} maxLength={240} onChange={(e) => setDescription(e.target.value)} data-testid="state-description-input" />
+              <div className="cl-tt__actions">
+                <button className="cl-tool" disabled={description.trim() === (current.description ?? "")} onClick={() => void run((d) => setStateDescription(d, current.id, description), () => (description.trim() ? "Description saved." : "The description is cleared."))} data-testid="state-description-apply">
+                  Apply description
                 </button>
               </div>
             </div>
@@ -386,6 +431,16 @@ function DuplicateForm({ definition, from, apply, cancel }: { definition: Compos
 export function ActionFlow({ definition, editable, edit, inspect }: { definition: CompositionDefinition; editable: boolean; edit: Edit; inspect: (name: string) => void }) {
   const [result, setResult] = useState<{ name: string; error: string | null } | null>(null);
   if (definition.actions.length === 0) return <p className="cl-dim">Nothing sends an action yet. Add a button or a confirmation dialog in Structure.</p>;
+  const intend = async (name: string, state: string, on: boolean) => {
+    const a = definition.actions.find((x) => x.name === name)!;
+    const next = on ? [...(a.leadsTo ?? []), state] : (a.leadsTo ?? []).filter((s) => s !== state);
+    const dry = setLeadsTo(structuredClone(definition), name, next);
+    if (!dry.ok) return setResult({ name, error: `${dry.reason.charAt(0).toUpperCase()}${dry.reason.slice(1)}.` });
+    const refused = await edit((d) => void setLeadsTo(d, name, next));
+    setResult({ name, error: refused });
+  };
+  const evidence = transitionEvidence(definition);
+  const exampleName = (id: string) => definition.scenarios.find((x) => x.id === id)?.title ?? words(id);
   const toggle = async (name: string, state: string, on: boolean) => {
     const a = definition.actions.find((x) => x.name === name)!;
     const next = on ? [...a.states, state] : a.states.filter((s) => s !== state);
@@ -398,6 +453,9 @@ export function ActionFlow({ definition, editable, edit, inspect }: { definition
     <>
     <p className="cl-dim" data-testid="action-flow-lead">
       An action never changes the screen by itself: the agent receives it and answers with data, and that data chooses the next state, by the conditions above. An action sent from a screen that is no longer current is refused. In the Library actions are previewed, never run.
+    </p>
+    <p className="cl-dim" data-testid="action-flow-intent-note">
+      <strong>Intended next</strong> records where you mean an action to lead. It is intent, not behaviour: nothing moves there because of it. An example that reaches the state shows the screen can be reached, not that this action leads to it; that is tested in the Playground.
     </p>
     <ul className="cl-flow" data-testid="action-flow">
       {definition.actions.map((a) => {
@@ -434,6 +492,34 @@ export function ActionFlow({ definition, editable, edit, inspect }: { definition
               <div>
                 <dt>Confirmation</dt>
                 <dd>{a.consequential ? `Asked in ${words(a.states[0]!)}: it is sent once, from that screen only, and only what the confirmation shows` : "None: sent when pressed"}</dd>
+              </div>
+              <div>
+                <dt>Intended next</dt>
+                <dd data-testid={`action-intent-${a.name}`}>
+                  {editable ? (
+                    <span className="cl-flow__states" role="group" aria-label={`States ${words(a.name)} is intended to lead to`}>
+                      {leadsToOptions(definition, a.name).map((s) => (
+                        <label key={s} className="cl-check">
+                          <input type="checkbox" checked={!!a.leadsTo?.includes(s)} onChange={(e) => void intend(a.name, s, e.target.checked)} data-testid={`action-leads-${a.name}-${s}`} />
+                          <span>{stateLabel(definition, s)}</span>
+                        </label>
+                      ))}
+                    </span>
+                  ) : a.leadsTo?.length ? (
+                    a.leadsTo.map((s) => stateLabel(definition, s)).join(", ")
+                  ) : (
+                    "Not declared"
+                  )}
+                  {evidence
+                    .filter((e) => e.action === a.name)
+                    .map((e) => (
+                      <span key={e.target} className={`cl-flow__evidence ${e.examples.length ? "cl-dim" : "cl-warn"}`} data-testid={`action-evidence-${a.name}-${e.target}`} data-reached={e.examples.length > 0}>
+                        {e.examples.length
+                          ? `${stateLabel(definition, e.target)} is reached by the example “${exampleName(e.examples[0]!)}”.`
+                          : `No example reaches ${stateLabel(definition, e.target)} yet. Add one whose data chooses it before this version can be approved.`}
+                      </span>
+                    ))}
+                </dd>
               </div>
               {(a.consequential || !!a.carries?.length) && (
                 <div>
