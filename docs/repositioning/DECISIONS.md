@@ -183,3 +183,16 @@ The independent visual authoring review was accepted as the reference for this i
 | 68 | Known-invalid placement | The picker and Move to try each choice on a copy through the loader before it is offered | The interface prevents known-invalid choices; the loader stays the authority on confirm |
 | 69 | The draft's next step | Run checks and Approve beside the draft chip when the inspector is closed; Approve confirms in place | Approval keeps its existing confirmation and meaning |
 | 70 | Carried forward | Decision 56's withdrawal follow-ups and decisions 52 and 53's sensitive-data requirement are open | For the milestone before external agent consumption; not resolved by presentation work |
+
+## Block promotion (2026-11-28)
+
+Slice D of the advanced-authoring increment, authorized after #135 and #136 were verified. It is independent of slices A to C. Records: [m1/promotion/README.md](m1/promotion/README.md) and [m1/safeguards/README.md](m1/safeguards/README.md).
+
+| # | Decision | Answer | Condition or limit |
+|---|---|---|---|
+| 76 | Block promotion | A packaged block becomes a new draft composition (composer-core `promotion.ts`, from the unchanged `upcastBlock`): a new stable id, version 1, props as data, examples as examples, one state for its first intent | The block is never changed. Nothing is approved or published by promoting |
+| 77 | Unresolved interactions | Each block action is mappable, conditional, computed or no longer sent. Nothing is mapped for the designer. Approval is refused until each is declared or explicitly removed, through ordinary undoable edits | A missing source block keeps approval blocked. A whole conditional part can now be removed in Structure |
+| 78 | Provenance | Kept on this device in a validated `promotions` record, beside the composition, not in it | The strict 0.2 schema is unchanged. Discarding a promotion with no approved version removes it |
+| 79 | Not carried | What a 0.2 composition cannot declare (checks between fields, further intents) is said in the confirmation and the inspector | Never dropped silently. Carrying it would need a schema extension, not proposed here |
+| 80 | Safeguards before discovery | The exact requirements for cross-tab withdrawal and restoration, stale authorization, pre-withdrawal commitments and sensitive data in historical approvals are recorded with a narrow implementation | Not implemented here. Recommended as one small increment before agent-facing discovery, starting with the authorization-record race |
+

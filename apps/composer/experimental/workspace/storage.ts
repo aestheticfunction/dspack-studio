@@ -40,11 +40,12 @@ export const KEYS = {
   versions: `${NAMESPACE}versions`,
   appearance: `${NAMESPACE}appearance`,
   authorization: `${NAMESPACE}authorization`,
+  promotions: `${NAMESPACE}promotions`,
 } as const;
 export type RecordKind = keyof typeof KEYS;
 
 /** The schema version this build reads and writes, per record. */
-export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1, versions: 1, appearance: 1, authorization: 1 };
+export const VERSIONS: Record<RecordKind, number> = { library: 1, approvals: 1, drafts: 1, onboarding: 1, view: 1, versions: 1, appearance: 1, authorization: 1, promotions: 1 };
 
 export interface LibraryPrefs {
   composition: string | null;
@@ -96,6 +97,20 @@ export interface StoredAuthorization {
   withdrawn: Withdrawal[];
 }
 
+/**
+ * Compositions promoted from a block on this device (slice D): where each came from. Provenance only: it never
+ * changes the composition or the block, and approval reads it to know which block actions must be resolved.
+ */
+export interface Promotion {
+  composition: string;
+  block: string;
+  version: number;
+  reference: string;
+}
+export interface StoredPromotions {
+  promoted: Promotion[];
+}
+
 /** Whether the Library was the view on screen, so a reload returns to it (D0.1). */
 export interface ViewRecord {
   library: boolean;
@@ -110,6 +125,7 @@ interface Shapes {
   versions: DeviceVersions;
   appearance: AppearanceRecord;
   authorization: StoredAuthorization;
+  promotions: StoredPromotions;
 }
 
 const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
@@ -120,6 +136,7 @@ const DEFAULTS: { [K in RecordKind]: Shapes[K] } = {
   view: { library: false },
   versions: { approved: [], retired: [] },
   authorization: { withdrawn: [] },
+  promotions: { promoted: [] },
   // Never used as such: a missing appearance record starts from the default build's preference (appearance.ts).
   appearance: {
     base: "default",
@@ -222,6 +239,18 @@ const VALIDATE: { [K in RecordKind]: (data: unknown) => { ok: true; value: Shape
       seen.add(k);
     }
     return { ok: true, value: { withdrawn: structuredClone(data.withdrawn) as Withdrawal[] } };
+  },
+  promotions(data) {
+    if (!isObject(data) || !onlyKeys(data, ["promoted"]) || !Array.isArray(data.promoted)) return { ok: false, reason: "promotions: not the promotions shape" };
+    const seen = new Set<string>();
+    for (const p of data.promoted) {
+      if (!isObject(p) || !onlyKeys(p, ["composition", "block", "version", "reference"])) return { ok: false, reason: "promotions: a promotion has unknown fields" };
+      if (typeof p.composition !== "string" || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(p.composition)) return { ok: false, reason: "promotions: a promotion does not name a composition" };
+      if (typeof p.block !== "string" || !Number.isInteger(p.version) || (p.version as number) < 1 || typeof p.reference !== "string") return { ok: false, reason: "promotions: a promotion does not name its block" };
+      if (seen.has(p.composition)) return { ok: false, reason: `promotions: ${p.composition} is listed twice` };
+      seen.add(p.composition);
+    }
+    return { ok: true, value: { promoted: structuredClone(data.promoted) as Promotion[] } };
   },
   appearance(data) {
     // A workspace appearance is a closed-enum proposal, never token values (T4): every field is checked here, and

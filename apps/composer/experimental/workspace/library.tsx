@@ -45,8 +45,10 @@ import {
   type ShowResult,
 } from "@dspack-studio/composer-core/compositions";
 import { canvasScopeFor, registryFor } from "../../app/registries";
-import { checkVersion, definitionIssues, governorFor, hostFor, loadLibrary, type LoadedLibrary, type VersionCheck } from "./runtime";
-import { approveVersion, createDraft, discardDraftVersion, editDraft, plainDataReason } from "./authoring";
+import { checkVersion, definitionIssues, governorFor, hostFor, loadLibrary, promotableBlocks, promotionOf, type LoadedLibrary, type VersionCheck } from "./runtime";
+import { approveVersion, createDraft, discardDraftVersion, editDraft, plainDataReason, promoteBlockDraft } from "./authoring";
+import { BlockList, mapEdit, PromotionDetails, removeEdit } from "./promotion-panel";
+import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
 import { DetailsEditor, ExamplesEditor, ParametersEditor } from "./editors";
 import { applyInputChange, describeInteractionChanges, interactionIssues, withoutMasks } from "./interaction";
 import { ElementInspector, type ItemContext } from "./element-inspector";
@@ -56,7 +58,7 @@ import { TemplateTools, type TemplateToolsHandle } from "./template-tools";
 import { Icon } from "./icons";
 import { emptyHistory, plan, record, restoreTracked, settle, type History } from "./undo-history";
 import { applyContent, applyInsert, assignId as assignElementId, contentProblem, moveNode, plainTemplateIssue, removeNode, renameId as renameElementId, statesShowing, type Insertable } from "./template-editing";
-import { uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
+import { promotionIssues, uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
 import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult, type StoredAuthorization } from "./storage";
 import { applyWithdrawals, restoreApproval, withdrawApproval } from "./withdrawal";
@@ -223,6 +225,9 @@ export function LibraryWorkspace() {
   const together = layout === "wide" || paired;
   const [whatIf, setWhatIf] = useState<WhatIf>("none");
   const [shown, setShown] = useState<ShowResult | null>(null);
+  // Which version the shown result belongs to: until a newly selected version's answer arrives, the last one
+  // is not read as its instance (a promoted composition shares no state with the one shown before it).
+  const [shownKey, setShownKey] = useState<string | null>(null);
   const [showing, setShowing] = useState(false);
   // `name` is null for a button that sends nothing (an Astryx confirmation's "Not now"): the note says so (D0.1).
   const [lastAction, setLastAction] = useState<{ name: string | null; label: string | null; context: Json; consequential: boolean } | null>(null);
@@ -261,6 +266,10 @@ export function LibraryWorkspace() {
   // The result of the latest element or structure edit, undo or redo: shown in the Structure toolbar and said
   // in its own live region, so a preview message never overwrites it (F6).
   const [editStatus, setEditStatus] = useState<{ text: string; tone: "ok" | "bad"; n: number } | null>(null);
+  // The blocks a designer can promote (slice D), read once; null until read.
+  const [blocks, setBlocks] = useState<BlockDefinition[] | null>(null);
+  useEffect(() => void promotableBlocks().then(setBlocks, () => setBlocks([])), []);
+  const [promoStatus, setPromoStatus] = useState<{ text: string; tone: "ok" | "bad" } | null>(null);
   const toolsRef = useRef<TemplateToolsHandle>(null);
   const revealSelection = useRef(false);
   const [, setHistoryTick] = useState(0);
@@ -396,6 +405,7 @@ export function LibraryWorkspace() {
         if (mine !== request.current) return;
         if (r.ok) lastValid.current.set(key, r.instance);
         setShown((r.ok ? { ok: true, instance: r.instance } : { ok: false, refusal: r, kept: lastValid.current.get(key) ?? null }) as ShowResult);
+        setShownKey(key);
         setPreviewing(true);
         setShowing(false);
         setAnnounce(r.ok ? `Previewing ${what}, not checked yet.` : `${what} cannot be shown: ${plainRationale(r.reason) ?? r.stage}.`);
@@ -415,6 +425,7 @@ export function LibraryWorkspace() {
       if (mine !== request.current) return;
       if (r.ok) lastValid.current.set(key, r.instance);
       setShown(r);
+      setShownKey(key);
       setPreviewing(false);
       setShowing(false);
       setAnnounce(r.ok ? `Showing ${what}.` : `${what} is not shown: ${r.refusal.stage === "withdrawn" ? "its approval is withdrawn on this device" : r.refusal.stage === "needs-recheck" ? "it needs a new check" : "the design rules refuse it"}.`);
@@ -573,6 +584,25 @@ export function LibraryWorkspace() {
     setAnnounce(`Draft v${r.version} created. Edit it in the inspector.`);
   };
 
+  /** Slice D: promote a block into a new draft composition, then open it with its "From a block" section. */
+  const promoteNow = async (block: BlockDefinition): Promise<string | null> => {
+    const current = readyRef.current ?? ready;
+    if (!current) return "The library is not loaded.";
+    const r = await promoteBlockDraft(current.loaded, block, "Astryx", browserStore());
+    if (!r.ok) return sentence(r.reason);
+    const next = adopt(current, r.loaded);
+    readyRef.current = next;
+    setReady(next);
+    persist({ ...prefs, composition: r.id, version: r.version, scenario: null, state: null, panel: "inspector" });
+    setTab("design");
+    setSelection(null);
+    showInspector();
+    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `“${block.name}” is now a draft composition, v1. The block is unchanged. Resolve what the block’s actions need in the inspector before it can be approved.` });
+    setAnnounce(`Promoted ${block.name} to a draft composition.`);
+    setTimeout(() => document.getElementById("cl-promotion-section")?.scrollIntoView({ block: "start" }), 120);
+    return null;
+  };
+
   const openDraft = (version: number) => {
     persist({ ...prefs, version, state: null });
     setAnnounce(`Showing draft v${version}.`);
@@ -601,7 +631,10 @@ export function LibraryWorkspace() {
   };
 
   const latestDraft = () => (definition ? readyRef.current?.loaded.library.get(definition.id, definition.version) : undefined);
-  useEffect(() => setEditStatus(null), [key]);
+  useEffect(() => {
+    setEditStatus(null);
+    setPromoStatus(null);
+  }, [key]);
   // Selecting in Structure scrolls the canvas so the selection's outline is in view, where it is drawn (5.1).
   useEffect(() => {
     if (!revealSelection.current) return;
@@ -933,7 +966,7 @@ export function LibraryWorkspace() {
     const rationale = ((governor.contract.rules ?? []) as Json[]).find((r) => r.id === ruleId)?.rationale as string | undefined;
     return { lead: (ruleId ? RULE_LEADS[ruleId] : undefined) ?? plainRationale(rationale), rationale: rationale ?? null };
   };
-  const instance = shown?.ok ? shown.instance : null;
+  const instance = shown?.ok && shownKey === key ? shown.instance : null;
   const outcome = describeOutcome(shown, scenario, definition, check, failing, nameOf, previewing && preview);
 
   // ---- Selection (advanced authoring) ----------------------------------------------------------------------
@@ -979,6 +1012,34 @@ export function LibraryWorkspace() {
   const editable = !!definition && definition.status === "draft" && governed;
   // With the inspector closed, approval is confirmed beside the draft chip, so approving never swaps panels.
   const approveHere = !open.inspector && layout !== "narrow";
+  // Slice D: a composition promoted from a block, and what is left to resolve before a draft of it is approved.
+  const promotion = definition ? promotionOf(ready.loaded, definition.id) : undefined;
+  const promotionBlock = promotion ? (blocks === null ? undefined : (blocks.find((b) => b.id === promotion.block && b.version === promotion.version) ?? null)) : undefined;
+  const unresolved =
+    promotion && definition?.status === "draft"
+      ? promotionBlock
+        ? promotionIssues(definition, promotionBlock.actions ?? [])
+        : [promotionBlock === null ? `The block it was promoted from (${promotion.block} v${promotion.version}) is not available, so its actions cannot be checked.` : "Reading the block it was promoted from…"]
+      : [];
+  const showPromotion = () => {
+    setSelection(null);
+    setTab("design");
+    showInspector();
+    setTimeout(() => document.getElementById("cl-promotion-section")?.scrollIntoView({ block: "start" }), 120);
+  };
+  const promotionOps = {
+    map: async (node: string) => {
+      const refused = await applyTracked(mapEdit(node), "Map an action from the block");
+      setPromoStatus(refused ? { tone: "bad", text: `Not mapped: ${refused}` } : { tone: "ok", text: `Mapped: pressing “${node}” now sends its action. The checks need to run again.` });
+    },
+    remove: async (kind: "repeat" | "condition", field: string) => {
+      const edit = definition ? removeEdit(definition, kind, field) : null;
+      if (!edit) return setPromoStatus({ tone: "bad", text: "That part is no longer in this draft." });
+      const refused = await applyTracked(edit, "Remove a part from the block");
+      setPromoStatus(refused ? { tone: "bad", text: `Not removed: ${plainTemplateIssue(refused)}` } : { tone: "ok", text: `Removed the part ${kind === "repeat" ? `repeated for each item in “${humanize(field)}”` : `shown when “${humanize(field)}” is set`}. Undo brings it back. The checks need to run again.` });
+    },
+    inspect: (k: string) => selectElement(k),
+  };
   // J4: withdrawal and restoration through version management, whatever element is selected. Beside the status on
   // wider screens; in the inspector sheet's head on a phone, so the canvas header keeps its rows.
   const versionMenuNode =
@@ -1153,6 +1214,7 @@ export function LibraryWorkspace() {
           })}
         </ul>
       )}
+      {blocks && <BlockList blocks={blocks} taken={new Set(ready.loaded.library.entries.map((e) => e.id))} reference="Astryx" promote={promoteNow} />}
       {/* The list comes first; the guide follows it, compact, and can be put away and brought back (D0.1). */}
       {guide ? (
         <section className="cl-guide" aria-labelledby="cl-guide-title" data-testid="first-run" tabIndex={-1} ref={guideRef}>
@@ -1292,7 +1354,11 @@ export function LibraryWorkspace() {
               the inspector open, and on a phone (where the inspector is one tap away as a sheet), its own authoring
               bar offers the same two actions. */}
           {definition.status === "draft" && governed && draftState && draftState !== "checking" && !open.inspector && layout !== "narrow" && (
-            draftState === "pass" ? (
+            unresolved.length > 0 ? (
+              <button className="cl-tool cl-draft__next" onClick={showPromotion} data-testid="draft-resolve">
+                Resolve from the block ({unresolved.length})
+              </button>
+            ) : draftState === "pass" ? (
               <button
                 className="cl-tool cl-draft__next"
                 onClick={() => setConfirm("approve")}
@@ -1609,6 +1675,13 @@ export function LibraryWorkspace() {
               />
             ) : (
             <>
+            {promotion && (
+              <div id="cl-promotion-section" data-testid="promotion-section">
+                <Section title="From a block">
+                  <PromotionDetails definition={definition} promotion={promotion} block={promotionBlock} editable={editable} ops={promotionOps} status={promoStatus} />
+                </Section>
+              </div>
+            )}
             {definition.status === "draft" ? (
               <>
                 <DetailsEditor key={key} definition={definition} edit={applyEdit} />
@@ -1887,6 +1960,8 @@ export function LibraryWorkspace() {
               discard={discardNow}
               packaged={origin === "packaged"}
               blocking={interactionIssues(definition)}
+              unresolved={unresolved}
+              showUnresolved={showPromotion}
               fixBlocking={() => {
                 const first = interactionIssues(definition)[0];
                 if (first) void applyEdit((d) => applyInputChange(d, first.fix)).then((problem) => setAnnounce(problem ? `Not applied: ${problem}` : "The private field is masked. Run the checks again."));
@@ -2069,6 +2144,13 @@ function CanvasBody({
     title = "Not shown, as expected";
     body = <p className="cl-refusal__lead">{ruleText(rule).lead ?? "A design rule refuses this data."}</p>;
     next = <p>This example exists to show the rule at work. Choose another example to see the composition.</p>;
+  } else if (refusal.stage === "attach") {
+    // A button sends an action the state does not declare (or a declared element is not on screen): a fault in
+    // the composition, not in the example's data. Promoted compositions start here until their actions are mapped.
+    const g = /component '([^']+)' dispatches '([^']+)', which state '([^']+)' does not declare/.exec(String(refusal.reason));
+    title = "Not shown: a button sends an action that is not declared";
+    body = <p className="cl-refusal__lead">{g ? `The “${humanize(g[1]!)}” button sends an action that the “${sentence(humanize(g[3]!))}” state does not declare, so what it sends could not be trusted.` : String(refusal.reason)}</p>;
+    next = <p>What you can do: select the button and declare what it sends, or remove it. {definition.status === "draft" ? "Then run the checks." : "Create a draft to change it."}</p>;
   } else if (refusal.stage === "data") {
     title = "Not shown: this data does not fit the composition";
     body = (
@@ -2172,9 +2254,13 @@ function AuthoringBar({
   packaged,
   blocking,
   fixBlocking,
+  unresolved,
+  showUnresolved,
 }: {
   definition: CompositionDefinition;
   blocking: Array<{ text: string }>;
+  unresolved: string[];
+  showUnresolved: () => void;
   fixBlocking: () => void;
   approvedVersion: number | undefined;
   state: "checking" | "unchecked" | "pass" | "fail";
@@ -2223,6 +2309,14 @@ function AuthoringBar({
       <p className={`cl-bar__line${state === "fail" ? " cl-bad" : state === "pass" ? " cl-ok" : ""}`} role="status">
         {line}
       </p>
+      {unresolved.length > 0 && (
+        <p className="cl-bar__line cl-warn" data-testid="promotion-blocked">
+          Not ready to approve: {unresolved.length === 1 ? "1 thing" : `${unresolved.length} things`} from the block to resolve.{" "}
+          <button className="cl-link" onClick={showUnresolved} data-testid="promotion-review">
+            Review them
+          </button>
+        </p>
+      )}
       {blocking.length > 0 && (
         <p className="cl-bar__line cl-warn" data-testid="approval-blocked">
           {blocking[0]!.text}{" "}
@@ -2232,7 +2326,7 @@ function AuthoringBar({
         </p>
       )}
       <div className="cl-bar__actions">
-        {state === "pass" && blocking.length === 0 ? (
+        {state === "pass" && blocking.length === 0 && unresolved.length === 0 ? (
           <button className="cl-tool cl-tool--primary" onClick={() => setConfirm("approve")} data-testid="approve">
             Approve version…
           </button>
@@ -2241,7 +2335,7 @@ function AuthoringBar({
             {state === "checking" ? "Checking…" : "Run checks"}
           </button>
         )}
-        {state === "pass" && blocking.length === 0 && (
+        {state === "pass" && blocking.length === 0 && unresolved.length === 0 && (
           <button className="cl-tool" onClick={runChecks} data-testid="run-checks-again">
             Run checks again
           </button>
@@ -2585,6 +2679,21 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-item__versions { display: flex; gap: 6px; flex-wrap: wrap; }
 .cl-badge { display: inline-block; font-size: 12px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg-dim); vertical-align: middle; white-space: nowrap; }
 .cl-badge--ok { border-color: var(--green-deep); color: var(--green-bright); }
+.cl-blocks { margin: 4px 0 12px; }
+.cl-blocks .cl-list { margin-top: 6px; }
+.cl-block { display: grid; gap: 6px; padding: 12px; border: 1px dashed var(--line); border-radius: 6px; }
+.cl-block > .cl-tool { justify-self: start; }
+.cl-promo { display: grid; gap: 8px; }
+.cl-promo__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cl-promo__row { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line-soft); border-left-width: 3px; border-radius: 4px; }
+.cl-promo__row--resolved { border-left-color: var(--green-deep); }
+.cl-promo__row--to-resolve { border-left-color: var(--warn, #c9a35a); }
+.cl-promo__title { font-size: 13px; font-weight: 600; color: var(--fg); display: flex; gap: 6px; align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
+.cl-promo__mark { width: 1em; text-align: center; color: var(--fg-dim); }
+.cl-promo__row--resolved .cl-promo__mark { color: var(--green-bright); }
+.cl-promo__row--to-resolve .cl-promo__mark { color: var(--warn, #c9a35a); }
+.cl-promo__detail { font-size: 13px; color: var(--fg-body, var(--fg-dim)); line-height: 1.45; }
+.cl-promo__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .cl-toolbar { position: sticky; top: 0; z-index: 6; background: var(--bg); padding: 12px 0 10px; display: grid; gap: 8px; border-bottom: 1px solid var(--line-soft); margin-bottom: 14px; }
 .cl[data-layout="narrow"] .cl-toolbar { position: static; }
 /* The head: title, status, and the view controls, which never wrap away from the title. */

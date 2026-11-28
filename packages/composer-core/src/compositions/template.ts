@@ -243,7 +243,8 @@ export function removeNode(c: CompositionDefinition, stateId: string, key: strin
   const l = state && locate(state, key);
   if (!state || !l) return { ok: false, reason: "that element is not in this state" };
   if (!l.container) return { ok: false, reason: "the outermost element cannot be removed" };
-  if (l.kind === "condition") return { ok: false, reason: "conditional content cannot be edited here" };
+  // A whole conditional part can be removed (block promotion resolves a conditional interaction this way);
+  // its condition and contents are not edited here.
   const deps = dependenciesOf(c, stateId, key)!;
   if (hasDependencies(deps) && !resolve) return { ok: false, reason: "other declarations depend on it" };
   const parentKey = keyOfRef(state, walk(state).find((x) => x.path === l.parentPath)!.node)!;
