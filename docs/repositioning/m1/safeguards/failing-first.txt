@@ -1,0 +1,14 @@
+Failing-first evidence, R1 (cross-tab authorization integrity)
+Run against the code before R1 (branch claude/transition-intent, experimental build), 2026-11-28.
+
+composer-authority.spec.ts:47  reproduced: a withdrawal made in another tab is not erased by this tab's next withdrawal, and stays withdrawn after a reload
+  FAILED: after the reload, getByRole('radio', { name: /v2 Withdrawn/i }) was not found.
+  Tab A rewrote the authorization record from its own copy, which never held tab B's withdrawal of
+  Hotel results v2. After the reload, v2 read as Approved again.
+
+composer-authority.spec.ts:99  a restoration in another tab does not authorize this tab until it runs its own checks
+  FAILED: getByTestId('restored-elsewhere') was not found. A restoration made elsewhere was not said in this tab.
+
+composer-authority.spec.ts:76  concurrent withdrawals in two tabs are both kept
+  Passed by timing: each tab's storage event arrived before its own write. The interleaving that loses an
+  entry is reproduced deterministically in authority.test.ts.

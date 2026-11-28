@@ -61,8 +61,9 @@ import { emptyHistory, plan, record, restoreTracked, settle, type History } from
 import { applyContent, applyInsert, assignId as assignElementId, contentProblem, moveNode, plainTemplateIssue, removeNode, renameId as renameElementId, statesShowing, type Insertable } from "./template-editing";
 import { promotionIssues, transitionIssues, uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
 import { definitionDifferences, RULE_LEADS, SAMPLE_NAMES, VERSION_CHANGES } from "./presentation";
-import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult, type StoredAuthorization } from "./storage";
-import { applyWithdrawals, restoreApproval, withdrawApproval } from "./withdrawal";
+import { browserStore, DEFAULT_PREFS, KEYS, readRecord, writeRecord, type LibraryPrefs, type ReadResult } from "./storage";
+import { browserAuthority, type Authority, type AuthorityRecord } from "./authority";
+import { applyAuthority, restoreApproval, withdrawApproval } from "./withdrawal";
 
 type Json = Record<string, any>;
 type WhatIf = "none" | "four-options";
@@ -198,8 +199,12 @@ interface Ready {
   checks: Map<WhatIf, Map<string, VersionCheck>>;
   hosts: Map<string, Host>;
   storage: ReadResult<LibraryPrefs>["status"];
-  /** Approvals withdrawn on this device (decision 34): an authorization decision, never a definition change. */
-  authorization: StoredAuthorization;
+  /** The authority's record as last read (safeguards R1, R2): withdrawals, with their generations and history. */
+  authority: AuthorityRecord;
+  /** For each version this tab approved (or re-checked), the authority generation read before that check. */
+  approvalGen: Map<string, number>;
+  /** Versions another tab restored: this tab uses them only after its own checks pass here. */
+  restoredElsewhere: Set<string>;
 }
 
 /** The four guided examples of the first-run guide: each changes the selection, nothing else. */
@@ -275,6 +280,7 @@ export function LibraryWorkspace() {
   const revealSelection = useRef(false);
   const [, setHistoryTick] = useState(0);
   const readyRef = useRef<Ready | null>(null);
+  const authorityRef = useRef<Authority | null>(null);
   const editQueue = useRef<Promise<unknown>>(Promise.resolve());
   const lastValid = useRef(new Map<string, Instance>());
   const previewSession = useRef(createSessionId());
@@ -304,6 +310,10 @@ export function LibraryWorkspace() {
         const onboarding = readRecord("onboarding", store);
         const governor = await governorFor("none");
         const loaded = await loadLibrary(store);
+        // The authority is read before any check runs: each approval below is bound to this generation (R2).
+        const authority = await browserAuthority(store);
+        authorityRef.current = authority;
+        const generation = (await authority.read()).generation;
         const checks = new Map<string, VersionCheck>();
         const hosts = new Map<string, Host>();
         for (const entry of loaded.library.entries) {
@@ -313,9 +323,10 @@ export function LibraryWorkspace() {
             hosts.set(versionKey(v.id, v.version), await hostFor(governor, check));
           }
         }
-        // Withdrawals recorded on this device apply before anything is shown (decision 34).
-        const authorization = readRecord("authorization", store).value;
-        await applyWithdrawals(authorization, loaded.library.entries.flatMap((e) => e.versions.map((v) => ({ definition: v, host: hosts.get(versionKey(v.id, v.version)) }))));
+        // Withdrawals recorded on this device apply before anything is shown (decision 34), read again now.
+        const approvalGen = new Map([...hosts.keys()].map((k) => [k, generation]));
+        const record = await authority.read();
+        const standing = await applyAuthority(record, loaded.library.entries.flatMap((e) => e.versions.map((v) => ({ definition: v, host: hosts.get(versionKey(v.id, v.version)), approvalGeneration: generation }))));
         if (cancelled) return;
         const first = loaded.library.entries[0];
         const known = stored.value.composition ? loaded.library.get(stored.value.composition, stored.value.version ?? 0) : undefined;
@@ -329,7 +340,7 @@ export function LibraryWorkspace() {
         // Compositions panel, where the guide is.
         const narrow = !window.matchMedia("(min-width: 900px)").matches;
         setOpen(narrow ? { library: false, inspector: false } : !firstRun && start.panel === "inspector" ? { library: false, inspector: true } : { library: true, inspector: false });
-        setReady({ loaded, governors: new Map([["none", governor]]), checks: new Map([["none", checks]]), hosts, storage: stored.status, authorization });
+        setReady({ loaded, governors: new Map([["none", governor]]), checks: new Map([["none", checks]]), hosts, storage: stored.status, authority: record, approvalGen, restoredElsewhere: new Set(standing.restoredElsewhere) });
       } catch (error) {
         if (!cancelled) setFailed(error instanceof Error ? error.message : String(error));
       }
@@ -414,6 +425,8 @@ export function LibraryWorkspace() {
       return;
     }
     void (async () => {
+      // Authorization-sensitive: consult the authority itself first, not only the last message from another tab.
+      if (definition.status === "approved") await syncAuthority();
       // A draft edited since its last check has no host until its checks run; under a rule try-out it gets an
       // unapproved one, which shows nothing new until checked (needs-recheck), as every version does there.
       let host = ready.hosts.get(key);
@@ -707,6 +720,7 @@ export function LibraryWorkspace() {
   const approveNow = async () => {
     if (!ready || !definition) return;
     const governor = ready.governors.get("none")!;
+    const generation = authorityRef.current ? (await authorityRef.current.read()).generation : 0;
     const r = await approveVersion(ready.loaded, governor, definition.id, definition.version, ready.checks.get("none")?.get(key), browserStore());
     setConfirm(null);
     if (!r.ok) {
@@ -719,6 +733,7 @@ export function LibraryWorkspace() {
     const result: VersionCheck = { definition: r.approved, approval: r.approval, scenarios: r.scenarios, previous: { status: "none" } };
     next.hosts.set(key, await hostFor(governor, result));
     next.checks.get("none")!.set(key, result);
+    next.approvalGen.set(key, generation);
     setReady({ ...next });
     setNotice({ tone: r.warning ? "warn" : "ok", text: r.warning ?? `v${definition.version} is approved on this device. It cannot change now; v${(ready.loaded.library.entry(definition.id)?.approved?.version ?? 1)} stays available. It is not published.` });
     setAnnounce(`Version ${definition.version} approved on this device.`);
@@ -743,7 +758,9 @@ export function LibraryWorkspace() {
     const host = ready.hosts.get(key);
     if (!host) return;
     setLifecycleBusy(true);
-    const r = await withdrawApproval({ definition, host, record: ready.authorization, origin: ready.loaded.origin.get(key) === "device" ? "device" : "packaged", store: browserStore() });
+    const authority = authorityRef.current;
+    if (!authority) return;
+    const r = await withdrawApproval({ definition, host, authority, origin: ready.loaded.origin.get(key) === "device" ? "device" : "packaged" });
     setLifecycleBusy(false);
     setLifecycle(null);
     if (!r.ok) {
@@ -751,8 +768,8 @@ export function LibraryWorkspace() {
       setAnnounce(`Not withdrawn: ${r.reason}.`);
       return;
     }
-    setReady({ ...ready, authorization: r.record });
-    setNotice({ tone: "ok", text: `Approval of v${definition.version} withdrawn on this device. v${definition.version} itself is unchanged, and no other version is used in its place.` });
+    setReady({ ...ready, authority: r.record });
+    setNotice(r.warning ? { tone: "warn", text: r.warning } : { tone: "ok", text: `Approval of v${definition.version} withdrawn on this device. v${definition.version} itself is unchanged, and no other version is used in its place.` });
     setAnnounce(`Approval of version ${definition.version} withdrawn.`);
   };
 
@@ -763,7 +780,9 @@ export function LibraryWorkspace() {
     if (!host) return;
     setLifecycleBusy(true);
     setAnnounce("Running the checks before restoring…");
-    const r = await restoreApproval({ governor: ready.governors.get("none")!, definition, host, record: ready.authorization, store: browserStore() });
+    const authority = authorityRef.current;
+    if (!authority) return;
+    const r = await restoreApproval({ governor: ready.governors.get("none")!, definition, host, authority });
     setLifecycleBusy(false);
     setLifecycle(null);
     if (!r.ok) {
@@ -771,26 +790,43 @@ export function LibraryWorkspace() {
       setAnnounce(`Not restored: ${r.reason}.`);
       return;
     }
-    setReady({ ...ready, authorization: r.record });
+    const current = readyRef.current ?? ready;
+    current.approvalGen.set(key, r.approvalGeneration ?? r.record.generation);
+    const restoredElsewhere = new Set(current.restoredElsewhere);
+    restoredElsewhere.delete(key);
+    setReady({ ...current, authority: r.record, restoredElsewhere });
     setNotice({ tone: "ok", text: `Approval of v${definition.version} restored on this device: its checks pass now.` });
     setAnnounce(`Approval of version ${definition.version} restored.`);
   };
 
-  // Another tab on this device withdrew an approval: apply it here at once. (A restoration elsewhere is not
-  // applied here: this tab keeps refusing until it reloads, which re-checks; the safe direction.)
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== KEYS.authorization) return;
-      const current = readyRef.current;
-      if (!current) return;
-      const record = readRecord("authorization").value;
-      void applyWithdrawals(record, current.loaded.library.entries.flatMap((x) => x.versions.map((v) => ({ definition: v, host: current.hosts.get(versionKey(v.id, v.version)) })))).then((applied) => {
-        if (applied.length) setReady({ ...current, authorization: record });
-      });
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+  /**
+   * Read the authority and apply it to every host here (R1): a withdrawal anywhere applies at once, and a
+   * restoration elsewhere is said, never applied, until this tab's own checks pass. Run when another tab says the
+   * record changed, and before anything is shown, so a lost message cannot leave this tab authorizing what was
+   * withdrawn.
+   */
+  const syncAuthority = useCallback(async () => {
+    const authority = authorityRef.current;
+    const current = readyRef.current;
+    if (!authority || !current) return;
+    const record = await authority.read();
+    const standing = await applyAuthority(
+      record,
+      current.loaded.library.entries.flatMap((x) => x.versions.map((v) => ({ definition: v, host: current.hosts.get(versionKey(v.id, v.version)), approvalGeneration: current.approvalGen.get(versionKey(v.id, v.version)) ?? 0 }))),
+    );
+    const latest = readyRef.current ?? current;
+    const elsewhere = new Set(standing.restoredElsewhere);
+    const same = elsewhere.size === latest.restoredElsewhere.size && [...elsewhere].every((k) => latest.restoredElsewhere.has(k));
+    if (standing.withdrawn.length || !same || record.generation !== latest.authority.generation) {
+      const next = { ...latest, authority: record, restoredElsewhere: elsewhere };
+      readyRef.current = next;
+      setReady(next);
+    }
   }, []);
+  useEffect(() => {
+    if (!ready || !authorityRef.current) return;
+    return authorityRef.current.subscribe(() => void syncAuthority());
+  }, [!!ready, syncAuthority]);
 
   // Ctrl or Cmd+Z undoes, with Shift redoes, element and structure edits on a draft, outside text fields.
   const historyKeys = useRef<(e: KeyboardEvent) => void>(() => {});
@@ -1502,6 +1538,7 @@ export function LibraryWorkspace() {
             clearState={() => persist({ ...prefs, state: null })}
             editExample={definition.status === "draft" && governed && scenario ? () => editExample(scenario.id) : undefined}
             previewing={previewing && preview}
+            restoredElsewhere={ready.restoredElsewhere.has(key) ? () => void restoreNow() : undefined}
             openRestore={() => {
               setLifecycle("restore");
               setTab("design");
@@ -2047,9 +2084,12 @@ function CanvasBody({
   previewing,
   selection,
   openRestore,
+  restoredElsewhere,
 }: {
   /** For a version whose approval is withdrawn: open its restore confirmation in the inspector. */
   openRestore?: () => void;
+  /** For a version another tab restored: run this tab's own checks to use it here. */
+  restoredElsewhere?: () => void;
   /** Canvas selection (advanced authoring): the selected element's components, the picked one, and Select mode. */
   selection: { ids: string[]; primary: string | null; selectMode: boolean; onPick: (componentId: string) => void; label: string };
   shown: ShowResult | null;
@@ -2124,7 +2164,14 @@ function CanvasBody({
   if (outcome.state === "withdrawn") {
     title = "Approval withdrawn on this device";
     body = <p>{definition.name} v{definition.version} is unchanged, but its approval was withdrawn: nothing new is shown from it and nothing on a screen already shown runs. No other version is used in its place.</p>;
-    next = openRestore ? (
+    next = restoredElsewhere ? (
+      <div data-testid="restored-elsewhere">
+        <p>Restored in another tab. This tab uses it only after its own checks pass here.</p>
+        <button className="cl-tool" onClick={restoredElsewhere} data-testid="restored-elsewhere-check">
+          Run the checks here
+        </button>
+      </div>
+    ) : openRestore ? (
       <button className="cl-tool" onClick={openRestore} data-testid="refusal-restore">
         Restore approval…
       </button>
