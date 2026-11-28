@@ -61,11 +61,26 @@ export function keptCommitments(store: ListableStore | null): KeptCommitment[] {
   return out.sort((a, b) => a.acceptedAt.localeCompare(b.acceptedAt));
 }
 
-/** The journal a host writes through. `approvalGeneration` is read when each commitment is accepted. */
-export function commitmentJournal(store: KeyValueStore | null, approvalGeneration: () => number): CommitmentJournal {
+const NEXT: Record<Outcome, Outcome[]> = { pending: ["succeeded", "failed", "unknown"], unknown: ["succeeded", "failed", "unknown"], succeeded: ["succeeded"], failed: ["failed"] };
+
+/**
+ * The journal a host writes through. `approvalGeneration` is read when each commitment is accepted.
+ *
+ * Across hosts (tabs) it re-reads what is stored at each step: a key already kept is never accepted again; an
+ * open commitment of the same action for the same definition, kept by another host, refuses a second one; and a
+ * kept outcome is moved only along the lifecycle, so a terminal outcome is never overwritten. localStorage has
+ * no cross-tab transaction, so two tabs pressing at the same instant can still both pass the check. That
+ * residual window is why this journal is for local synthetic use only (see the safeguards record).
+ */
+export function commitmentJournal(store: (KeyValueStore & Partial<Pick<ListableStore, "length" | "key">>) | null, approvalGeneration: () => number): CommitmentJournal {
   return {
     accept(c: Commitment) {
       if (!store) return false;
+      if (store.getItem(`${PREFIX}${c.key}`) !== null) return { duplicate: c.key };
+      if (typeof store.length === "number" && store.key) {
+        const open = keptCommitments(store as ListableStore).find((k) => k.composition === c.composition && k.version === c.version && k.compositionSha256 === c.compositionSha256 && k.action === c.action && (k.status === "pending" || k.status === "unknown"));
+        if (open) return { duplicate: open.key };
+      }
       const kept: KeptCommitment = {
         key: c.key,
         composition: c.composition,
@@ -90,6 +105,8 @@ export function commitmentJournal(store: KeyValueStore | null, approvalGeneratio
       try {
         const was = valid(JSON.parse(store.getItem(`${PREFIX}${key}`) ?? ""));
         if (!was) return false;
+        if (!NEXT[was.status].includes(status)) return "conflict";
+        if (was.status === status) return true;
         const next: KeptCommitment = { ...was, status, history: [...was.history, { status, at: new Date().toISOString() }] };
         store.setItem(`${PREFIX}${key}`, JSON.stringify(next));
         return true;

@@ -6,7 +6,8 @@
  * withdrawal, rule change or safety rule applies at once. A version is eligible only if all of these hold:
  * - it is an exact approved version (approved versions are immutable);
  * - this device can keep authorization safely (the authority is available);
- * - its approval is not withdrawn, and this tab's approval of it is not older than its latest withdrawal;
+ * - it is not withdrawn, AND this tab's authorization of it is not stale: an approval obtained before its latest
+ *   withdrawal never counts, even after the version is restored (both conditions, never either);
  * - its latest check passed for exactly this definition under the current contract, profile and toolchain;
  * - it meets the current sensitive-data rules: every private field is masked, and every field drawn as a
  *   password is private;

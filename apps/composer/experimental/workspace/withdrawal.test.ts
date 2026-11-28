@@ -125,7 +125,8 @@ describe("restore", () => {
     const { governor, v1, host } = await setup();
     await withdrawApproval({ definition: v1, host, authority, origin: "packaged" });
     const r = await restoreApproval({ governor, definition: v1, host, authority });
-    expect(r).toMatchObject({ ok: true, approvalGeneration: 2 });
+    // Bound to the generation the checks began under (1), not the restoration's own (2).
+    expect(r).toMatchObject({ ok: true, approvalGeneration: 1 });
     expect(shared.record.withdrawn).toEqual([]);
     expect(shared.record.history).toEqual([{ composition: "hotel-results", version: 1, compositionSha256: await shaOf(v1), withdrawnGeneration: 1, restoredGeneration: 2 }]);
     expect(host.isWithdrawn("hotel-results")).toBe(false);
@@ -154,11 +155,11 @@ describe("restore", () => {
     const { v1 } = await setup();
     const sha = await shaOf(v1);
     await authority.update(withdrawChange(v1, sha, "packaged"));
-    const seen = withdrawalFor(shared.record, v1, sha)!;
+    const seen = [withdrawalFor(shared.record, v1, sha)!];
     // Another tab restores it and withdraws it again while this tab's checks run.
-    await authority.update(restoreChange(seen));
+    await authority.update(restoreChange(v1, sha, seen));
     await authority.update(withdrawChange(v1, sha, "packaged"));
-    const late = await authority.update(restoreChange(seen));
+    const late = await authority.update(restoreChange(v1, sha, seen));
     expect(late).toMatchObject({ ok: true, changed: false });
     expect(withdrawalFor(shared.record, v1, sha)!.generation).toBe(3);
   });
@@ -192,14 +193,18 @@ describe("the record", () => {
     const store = memory();
     const { v1, search } = await setup(store);
     writeRecord("authorization", { withdrawn: [{ composition: v1.id, version: 1, compositionSha256: await shaOf(v1), origin: "packaged" }, { composition: search.id, version: 1, compositionSha256: await shaOf(search), origin: "packaged" }] }, store);
-    const r = migrateV1(store);
+    const m = migrateV1(store);
+    if (!m.ok) throw new Error(m.reason);
+    const r = m.record;
     expect(r).toMatchObject({ version: 2, generation: 2, history: [] });
-    expect(r.withdrawn.map((w) => `${w.composition}@${w.generation}`)).toEqual(["hotel-results@1", "hotel-search@2"]);
+    expect(r.withdrawn.map((w) => `${w.composition}@${w.generation}${w.legacy ? " legacy" : ""}`)).toEqual(["hotel-results@1 legacy", "hotel-search@2 legacy"]);
     expect(validAuthority(r)).toEqual(r);
     // An approval from before the migration (generation 0) is stale against both.
     expect(approvalStanding(r, v1, await shaOf(v1), 0)).toBe("withdrawn");
-    // Nothing stored: an empty record.
-    expect(migrateV1(memory())).toMatchObject({ generation: 0, withdrawn: [] });
+    // Genuinely absent: an empty record.
+    expect(migrateV1(memory())).toMatchObject({ ok: true, record: { generation: 0, withdrawn: [] } });
+    // The version-1 record is left in place as evidence.
+    expect(readRecord("authorization", store).status).toBe("ok");
     void KEYS;
   });
 

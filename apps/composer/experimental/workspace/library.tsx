@@ -332,6 +332,11 @@ export function LibraryWorkspace() {
         const approvalGen = new Map([...hosts.keys()].map((k) => [k, generation]));
         const record = await authority.read();
         const standing = await applyAuthority(record, loaded.library.entries.flatMap((e) => e.versions.map((v) => ({ definition: v, host: hosts.get(versionKey(v.id, v.version)), approvalGeneration: generation }))));
+        // Unreadable authorization evidence (safeguards R1): no approval on this device is used until it can be read.
+        if (authority.blockAll) for (const [k, h] of hosts) {
+          const [id] = k.split("@");
+          if (loaded.library.get(id!, Number(k.split("@")[1]))?.status === "approved" && !h.isWithdrawn(id!)) h.withdraw(id!);
+        }
         if (cancelled) return;
         const first = loaded.library.entries[0];
         const known = stored.value.composition ? loaded.library.get(stored.value.composition, stored.value.version ?? 0) : undefined;
@@ -836,7 +841,7 @@ export function LibraryWorkspace() {
   const syncAuthority = useCallback(async () => {
     const authority = authorityRef.current;
     const current = readyRef.current;
-    if (!authority || !current) return;
+    if (!authority || !current || authority.blockAll) return;
     const record = await authority.read();
     const standing = await applyAuthority(
       record,
@@ -1788,6 +1793,11 @@ export function LibraryWorkspace() {
                   withdraw={withdrawNow}
                   restore={restoreNow}
                 />
+              )}
+              {authorityRef.current?.blockAll && (
+                <p className="cl-notice cl-notice--warn" data-testid="authority-unreadable">
+                  Approvals on this device cannot be used: {authorityRef.current.reason}. Nothing is eligible for agents and nothing can be restored until it can be read.
+                </p>
               )}
               {eligibility?.key === key && (
                 <div className={`cl-eligibility${eligibility.value.eligible ? " cl-eligibility--ok" : ""}`} data-testid="agent-eligibility" data-eligible={eligibility.value.eligible}>

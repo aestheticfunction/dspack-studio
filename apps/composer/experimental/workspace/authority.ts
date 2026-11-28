@@ -24,10 +24,20 @@
  * agents. A withdrawal still takes effect in the tab that made it, labelled as not kept.
  *
  * Migration: a version-1 localStorage record is moved in once, in the first transaction that finds no
- * version-2 record. Every entry is kept as withdrawn, with an ordering generation. The old key is then removed
- * so it cannot be migrated again.
+ * version-2 record. Every entry is kept as withdrawn, with an ordering generation, and marked `legacy`. A legacy
+ * entry applies to its composition and version whatever the definition's hash: its hash was taken before
+ * definitions were normalized (decision 81), so the same definition can hash differently now, and matching by
+ * hash alone could let it through. The version-1 record is never cleared or rewritten: it stays as evidence, and
+ * the version-2 record existing is what prevents a second migration.
+ *
+ * Only a genuinely absent version-1 record means "no withdrawals". A record that is malformed, of another
+ * version, or cannot be read is evidence that withdrawals may exist. Then nothing is written, the old record is
+ * left as it is, and the authority blocks every approval on this device (`blockAll`) until it can be read.
+ *
+ * Identity: an entry names one exact definition (composition, version and hash). Two definitions under the same
+ * composition and version are distinct, and withdrawing one never erases the other's withdrawal.
  */
-import { KEYS, readRecord, type KeyValueStore } from "./storage";
+import { readRecord, type KeyValueStore } from "./storage";
 
 export interface WithdrawalEntry {
   composition: string;
@@ -38,6 +48,8 @@ export interface WithdrawalEntry {
   generation: number;
   /** When, for people; never used for ordering. */
   withdrawnAt: string;
+  /** Migrated from a version-1 record: applies to its composition and version whatever the hash (fail closed). */
+  legacy?: true;
 }
 
 export interface RestoredEntry {
@@ -46,6 +58,7 @@ export interface RestoredEntry {
   compositionSha256: string;
   withdrawnGeneration: number;
   restoredGeneration: number;
+  legacy?: true;
 }
 
 export interface AuthorityRecord {
@@ -67,6 +80,11 @@ export interface Authority {
   readonly available: boolean;
   /** Why not, when unavailable. */
   readonly reason?: string;
+  /**
+   * The record exists but cannot be established (unreadable evidence): no approval on this device may be used
+   * until it can, and nothing is written meanwhile.
+   */
+  readonly blockAll?: boolean;
   read(): Promise<AuthorityRecord>;
   update(change: AuthorityChange): Promise<AuthorityUpdate>;
   /** Be told that another tab changed the record (re-read it; the message itself carries nothing trusted). */
@@ -87,35 +105,53 @@ export function validAuthority(raw: unknown): AuthorityRecord | null {
     if (!isObject(w) || typeof w.composition !== "string" || !ID.test(w.composition) || !Number.isInteger(w.version) || (w.version as number) < 1) return null;
     if (typeof w.compositionSha256 !== "string" || !SHA.test(w.compositionSha256) || (w.origin !== "packaged" && w.origin !== "device")) return null;
     if (!nat(w.generation) || (w.generation as number) > (raw.generation as number) || typeof w.withdrawnAt !== "string") return null;
+    if (w.legacy !== undefined && w.legacy !== true) return null;
   }
   for (const h of raw.history) {
     if (!isObject(h) || typeof h.composition !== "string" || !Number.isInteger(h.version) || typeof h.compositionSha256 !== "string" || !SHA.test(h.compositionSha256)) return null;
     if (!nat(h.withdrawnGeneration) || !nat(h.restoredGeneration) || (h.restoredGeneration as number) <= (h.withdrawnGeneration as number) || (h.restoredGeneration as number) > (raw.generation as number)) return null;
+    if (h.legacy !== undefined && h.legacy !== true) return null;
   }
-  const keys = raw.withdrawn.map((w) => `${(w as WithdrawalEntry).composition}@${(w as WithdrawalEntry).version}`);
+  // One entry per exact definition: composition, version and hash.
+  const keys = raw.withdrawn.map((w) => `${(w as WithdrawalEntry).composition}@${(w as WithdrawalEntry).version}#${(w as WithdrawalEntry).compositionSha256}`);
   if (new Set(keys).size !== keys.length) return null;
   return structuredClone(raw) as unknown as AuthorityRecord;
 }
 
-/** A version-1 record (localStorage) moved into version 2: every entry stays withdrawn, in order. */
-export function migrateV1(store: KeyValueStore | null): AuthorityRecord {
+/**
+ * A version-1 record (localStorage) moved into version 2: every entry stays withdrawn, in order, marked legacy.
+ * Only a genuinely absent record migrates as "nothing withdrawn". Anything unreadable refuses, with the reason;
+ * the caller then writes nothing and fails closed.
+ */
+export function migrateV1(store: KeyValueStore | null): { ok: true; record: AuthorityRecord } | { ok: false; reason: string } {
+  if (!store) return { ok: false, reason: "the earlier authorization record cannot be read in this browser, so whether anything was withdrawn is unknown" };
   const v1 = readRecord("authorization", store);
-  const entries = v1.status === "ok" ? v1.value.withdrawn : [];
+  if (v1.status === "missing") return { ok: true, record: structuredClone(EMPTY_AUTHORITY) };
+  if (v1.status !== "ok") return { ok: false, reason: `the earlier authorization record is ${v1.status === "malformed" ? "not in the expected form" : v1.status === "incompatible" ? "of another version" : "unreadable"}, so whether anything was withdrawn is unknown; it is kept as it is` };
   const at = new Date().toISOString();
-  return { version: 2, generation: entries.length, withdrawn: entries.map((w, i) => ({ ...w, generation: i + 1, withdrawnAt: at })), history: [] };
+  const entries = v1.value.withdrawn;
+  return { ok: true, record: { version: 2, generation: entries.length, withdrawn: entries.map((w, i) => ({ ...w, generation: i + 1, withdrawnAt: at, legacy: true as const })), history: [] } };
 }
 
 // ---- Questions every caller asks ----------------------------------------------------------------------------
 
-/** The current withdrawal of exactly this definition, if any. */
+/** Whether an entry applies to this definition: its exact hash, or a legacy entry for its composition and version. */
+const applies = (x: { composition: string; version: number; compositionSha256: string; legacy?: true }, c: { id: string; version: number }, sha: string) =>
+  x.composition === c.id && x.version === c.version && (x.compositionSha256 === sha || x.legacy === true);
+
+/** Every current withdrawal that applies to this definition. */
+export function withdrawalsFor(record: AuthorityRecord, c: { id: string; version: number }, sha: string): WithdrawalEntry[] {
+  return record.withdrawn.filter((w) => applies(w, c, sha));
+}
+
+/** A current withdrawal of this definition, if any. */
 export function withdrawalFor(record: AuthorityRecord, c: { id: string; version: number }, sha: string): WithdrawalEntry | undefined {
-  return record.withdrawn.find((w) => w.composition === c.id && w.version === c.version && w.compositionSha256 === sha);
+  return withdrawalsFor(record, c, sha)[0];
 }
 
 /** The generation of the latest withdrawal of this definition, current or restored; 0 if never withdrawn. */
 export function lastWithdrawalGeneration(record: AuthorityRecord, c: { id: string; version: number }, sha: string): number {
-  const same = (x: { composition: string; version: number; compositionSha256: string }) => x.composition === c.id && x.version === c.version && x.compositionSha256 === sha;
-  return Math.max(0, ...record.withdrawn.filter(same).map((w) => w.generation), ...record.history.filter(same).map((h) => h.withdrawnGeneration));
+  return Math.max(0, ...record.withdrawn.filter((w) => applies(w, c, sha)).map((w) => w.generation), ...record.history.filter((h) => applies(h, c, sha)).map((h) => h.withdrawnGeneration));
 }
 
 /**
@@ -129,51 +165,53 @@ export function approvalStanding(record: AuthorityRecord, c: { id: string; versi
 
 // ---- Changes ------------------------------------------------------------------------------------------------
 
-/** Withdraw exactly this definition. No change if it is already withdrawn. */
+/**
+ * Withdraw exactly this definition. No change if a withdrawal already applies to it. Withdrawals of other
+ * definitions under the same composition and version are kept: one never erases another.
+ */
 export const withdrawChange =
   (c: { id: string; version: number }, sha: string, origin: "packaged" | "device", at = new Date().toISOString()): AuthorityChange =>
   (r) => {
     if (withdrawalFor(r, c, sha)) return null;
     const generation = r.generation + 1;
-    return { ...r, generation, withdrawn: [...r.withdrawn.filter((w) => !(w.composition === c.id && w.version === c.version)), { composition: c.id, version: c.version, compositionSha256: sha, origin, generation, withdrawnAt: at }] };
+    return { ...r, generation, withdrawn: [...r.withdrawn, { composition: c.id, version: c.version, compositionSha256: sha, origin, generation, withdrawnAt: at }] };
   };
 
+const sameEntry = (a: WithdrawalEntry, b: WithdrawalEntry) => a.composition === b.composition && a.version === b.version && a.compositionSha256 === b.compositionSha256 && a.generation === b.generation;
+const toHistory = (w: WithdrawalEntry, restoredGeneration: number): RestoredEntry => ({ composition: w.composition, version: w.version, compositionSha256: w.compositionSha256, withdrawnGeneration: w.generation, restoredGeneration, ...(w.legacy ? { legacy: true as const } : {}) });
+
 /**
- * Restore exactly the withdrawal that was checked (compare and set): if it is no longer there, or a newer
- * withdrawal replaced it, nothing changes. A restoration never removes a withdrawal it did not see.
+ * Restore exactly the withdrawals that were seen to apply to this definition (compare and set): if any of them is
+ * no longer there, or any other withdrawal now applies to it, nothing changes. A restoration never removes a
+ * withdrawal it did not see, and never touches another definition's.
  */
 export const restoreChange =
-  (seen: WithdrawalEntry): AuthorityChange =>
+  (c: { id: string; version: number }, sha: string, seen: WithdrawalEntry[]): AuthorityChange =>
   (r) => {
-    const current = r.withdrawn.find((w) => w.composition === seen.composition && w.version === seen.version);
-    if (!current || current.generation !== seen.generation || current.compositionSha256 !== seen.compositionSha256) return null;
+    const now = withdrawalsFor(r, c, sha);
+    if (seen.length === 0 || now.length !== seen.length || !seen.every((s) => now.some((n) => sameEntry(n, s)))) return null;
     const generation = r.generation + 1;
-    return {
-      ...r,
-      generation,
-      withdrawn: r.withdrawn.filter((w) => w !== current),
-      history: [...r.history, { composition: current.composition, version: current.version, compositionSha256: current.compositionSha256, withdrawnGeneration: current.generation, restoredGeneration: generation }],
-    };
+    return { ...r, generation, withdrawn: r.withdrawn.filter((w) => !now.includes(w)), history: [...r.history, ...now.map((w) => toHistory(w, generation))] };
   };
 
 /** Undo exactly one withdrawal this tab just made (its host refused): only if it is still the one it made. */
 export const undoWithdrawChange =
   (made: WithdrawalEntry): AuthorityChange =>
   (r) => {
-    const current = r.withdrawn.find((w) => w.composition === made.composition && w.version === made.version);
-    if (!current || current.generation !== made.generation) return null;
+    const current = r.withdrawn.find((w) => sameEntry(w, made));
+    if (!current) return null;
     // Kept in history, so an approval from before it stays stale.
     const generation = r.generation + 1;
-    return { ...r, generation, withdrawn: r.withdrawn.filter((w) => w !== current), history: [...r.history, { composition: current.composition, version: current.version, compositionSha256: current.compositionSha256, withdrawnGeneration: current.generation, restoredGeneration: generation }] };
+    return { ...r, generation, withdrawn: r.withdrawn.filter((w) => w !== current), history: [...r.history, toHistory(current, generation)] };
   };
 
-/** Put back exactly a withdrawal this tab removed (its host then refused the restoration), as a new withdrawal. */
+/** Put back the withdrawals this tab removed (its host then refused the restoration), as new withdrawals. */
 export const reinstateChange =
-  (removed: WithdrawalEntry): AuthorityChange =>
+  (c: { id: string; version: number }, sha: string, removed: WithdrawalEntry[]): AuthorityChange =>
   (r) => {
-    if (r.withdrawn.some((w) => w.composition === removed.composition && w.version === removed.version)) return null;
+    if (removed.length === 0 || withdrawalsFor(r, c, sha).length > 0) return null;
     const generation = r.generation + 1;
-    return { ...r, generation, withdrawn: [...r.withdrawn, { ...removed, generation, withdrawnAt: new Date().toISOString() }] };
+    return { ...r, generation, withdrawn: [...r.withdrawn, ...removed.map((w) => ({ ...w, generation, withdrawnAt: new Date().toISOString() }))] };
   };
 
 // ---- Implementations ----------------------------------------------------------------------------------------
@@ -214,7 +252,14 @@ export async function browserAuthority(store: KeyValueStore | null): Promise<Aut
         get.onsuccess = () => {
           let current: AuthorityRecord | null;
           if (get.result === undefined) {
-            current = migrateV1(store);
+            const m = migrateV1(store);
+            if (!m.ok) {
+              // Unreadable evidence: write nothing, leave the old record as it is, and fail closed.
+              result = { ok: false, reason: m.reason };
+              tx.abort();
+              return;
+            }
+            current = m.record;
             migrated = true;
           } else current = validAuthority(get.result);
           if (!current) {
@@ -227,13 +272,9 @@ export async function browserAuthority(store: KeyValueStore | null): Promise<Aut
           result = { ok: true, record: next ?? current, changed: !!next };
         };
         tx.oncomplete = () => {
-          if (migrated) {
-            try {
-              store?.setItem(KEYS.authorization, "");
-            } catch {
-              /* the migrated copy is authoritative; a leftover old key is ignored once version 2 exists */
-            }
-          }
+          // The version-1 record is left in place as evidence; the version-2 record now existing prevents a
+          // second migration.
+          void migrated;
           if (result.ok && result.changed) channel?.postMessage({ changed: true });
           resolve(result);
         };
@@ -243,6 +284,9 @@ export async function browserAuthority(store: KeyValueStore | null): Promise<Aut
       }
     });
 
+  // Establish the record once before anything relies on it: unreadable evidence blocks every approval here.
+  const first = await transact(null);
+  if (!first.ok) return blockedAuthority(first.reason);
   return {
     available: true,
     async read() {
@@ -256,6 +300,14 @@ export async function browserAuthority(store: KeyValueStore | null): Promise<Aut
       return () => listeners.delete(listener);
     },
   };
+}
+
+/**
+ * Fail closed on unreadable evidence: nothing is kept, nothing can be restored, and every approval on this device
+ * is treated as withdrawn (`blockAll`) until the record can be read.
+ */
+export function blockedAuthority(reason: string): Authority {
+  return { ...unavailableAuthority(reason), blockAll: true };
 }
 
 /** Fail closed: nothing is kept, nothing can be restored; reads report no withdrawals but `available` is false. */

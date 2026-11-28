@@ -174,3 +174,40 @@ test.describe("agent eligibility (R4)", () => {
   });
 });
 
+test.describe("legacy authorization migration (finding 1)", () => {
+  const LEGACY = "composer.experimental.workspace.authorization";
+  async function withLegacy(page: Page, value: string) {
+    await page.addInitScript(([k, v]) => {
+      if (!sessionStorage.getItem("seeded")) {
+        localStorage.setItem(k as string, v as string);
+        sessionStorage.setItem("seeded", "1");
+      }
+    }, [LEGACY, value]);
+    await openLibrary(page);
+  }
+
+  test("an unreadable earlier record is never read as 'nothing withdrawn': every approval is blocked, it is said, and the record is kept as it is", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await withLegacy(page, "{not json");
+    await page.getByRole("radio", { name: /v1/i }).first().check();
+    await ready(page);
+    await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
+    await inspector(page);
+    await expect(page.getByTestId("authority-unreadable")).toContainText("cannot be used");
+    await expect(page.getByTestId("agent-eligibility")).toHaveAttribute("data-eligible", "false");
+    expect(await page.evaluate((k) => localStorage.getItem(k), LEGACY)).toBe("{not json");
+  });
+
+  test("a readable earlier record migrates with every withdrawal kept, and is left in place as evidence", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const v1 = JSON.stringify({ schema: "composer.experimental.workspace/authorization", version: 1, data: { withdrawn: [{ composition: "hotel-results", version: 1, compositionSha256: "0".repeat(64), origin: "packaged" }] } });
+    await withLegacy(page, v1);
+    // The legacy entry's hash is not this definition's, yet it applies: legacy withdrawals match by version.
+    await page.getByRole("radio", { name: /v1 Withdrawn/i }).check();
+    await ready(page);
+    await expect(page.getByTestId("refusal")).toHaveAttribute("data-stage", "withdrawn");
+    await expect(page.getByTestId("authority-unreadable")).toHaveCount(0);
+    expect(await page.evaluate((k) => localStorage.getItem(k), LEGACY)).toBe(v1);
+  });
+});
+

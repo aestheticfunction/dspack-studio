@@ -206,8 +206,16 @@ export type ActCode = "stale" | "duplicate" | "locked" | "withdrawn" | "needs-re
  * the host then does not accept (or does not report as settled) what it could not record.
  */
 export interface CommitmentJournal {
-  accept(c: Commitment): boolean;
-  settle(key: string, status: Outcome): boolean;
+  /**
+   * True: kept. False: not kept. `{ duplicate }`: the journal already holds this key, or an open commitment of the
+   * same action for the same definition that another host accepted (another tab).
+   */
+  accept(c: Commitment): boolean | { duplicate: string };
+  /**
+   * True: kept. False: not kept. "conflict": the journal already holds an outcome this one may not follow (a
+   * terminal outcome is never overwritten, whichever host reports it).
+   */
+  settle(key: string, status: Outcome): boolean | "conflict";
 }
 
 /** A commitment as a journal keeps it, given back to a new host after a reload. */
@@ -424,7 +432,11 @@ export async function createHost(options: { session?: string; governor: Governor
       const was = history[i]!;
       if (!NEXT[was.status].includes(outcome)) return refuse("conflict", `the outcome is already ${was.status}, which is final`);
       if (was.status === outcome) return { ok: true, commitment: was };
-      if (journal && !journal.settle(key, outcome)) return refuse("unrecorded", `the outcome could not be recorded, so '${key}' is still ${was.status}`);
+      if (journal) {
+        const kept = journal.settle(key, outcome);
+        if (kept === "conflict") return refuse("conflict", `the outcome already kept for '${key}' is final or does not allow ${outcome}; it is not overwritten`);
+        if (!kept) return refuse("unrecorded", `the outcome could not be recorded, so '${key}' is still ${was.status}`);
+      }
       const next: Commitment = deepFreeze({ ...was, status: outcome, history: [...was.history, { status: outcome, at: ++seq }] });
       history[i] = next;
       if (open?.key === key) open = next;
@@ -550,7 +562,11 @@ export async function createHost(options: { session?: string; governor: Governor
     const key = idempotencyKey(current.surfaceId, bound.name, bound.componentId);
     const commitment: Commitment = deepFreeze({ key, surfaceId: current.surfaceId, composition: c.id, version: c.version, compositionSha256: own.get(c.id)!.compositionSha256, approvalIssue: issuedAt.get(approvals.get(c.id)!) ?? 0, action: bound.name, componentId: bound.componentId, payload: { ...bound.payload }, status: "pending" as const, history: [{ status: "pending" as const, at: ++seq }] });
     // Kept before it is accepted: what cannot be recorded is not represented as accepted (R3).
-    if (journal && !journal.accept(commitment)) return refuse("unrecorded", `'${bound.name}' could not be recorded on this device, so it was not accepted; nothing was dispatched`);
+    if (journal) {
+      const kept = journal.accept(commitment);
+      if (kept !== true && kept) return refuse("duplicate", `an earlier '${bound.name}' (${kept.duplicate}) is already kept as open on this device; it is not dispatched again, and a new one waits until it is settled`, { key: kept.duplicate });
+      if (!kept) return refuse("unrecorded", `'${bound.name}' could not be recorded on this device, so it was not accepted; nothing was dispatched`);
+    }
     open = commitment;
     history.push(commitment);
     log.push({ at: seq, kind: "accepted", surfaceId: event.surfaceId, name: event.name, key });

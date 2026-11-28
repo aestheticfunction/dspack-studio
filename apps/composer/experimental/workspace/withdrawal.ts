@@ -19,7 +19,7 @@
  * no other.
  */
 import { compositionPins, recheck, type CompositionDefinition, type Governor, type Host, type ScenarioResult } from "@dspack-studio/composer-core/compositions";
-import { approvalStanding, EMPTY_AUTHORITY, reinstateChange, restoreChange, undoWithdrawChange, withdrawalFor, withdrawChange, type Authority, type AuthorityRecord } from "./authority";
+import { approvalStanding, EMPTY_AUTHORITY, lastWithdrawalGeneration, reinstateChange, restoreChange, undoWithdrawChange, withdrawalFor, withdrawalsFor, withdrawChange, type Authority, type AuthorityRecord } from "./authority";
 
 export const shaOf = async (c: CompositionDefinition): Promise<string> => (await compositionPins(c)).compositionSha256;
 
@@ -61,31 +61,36 @@ export async function restoreApproval(options: { governor: Governor; definition:
   if (!authority.available) return { ok: false, reason: `nothing can be restored here: ${authority.reason}` };
   const sha = await shaOf(c);
   const before = await authority.read();
-  const seen = withdrawalFor(before, c, sha);
-  if (!seen && !host.isWithdrawn(c.id)) return { ok: false, reason: `the approval of v${c.version} is not withdrawn` };
-  // The approval this check yields is bound to the generation read before it ran.
+  const seen = withdrawalsFor(before, c, sha);
+  if (seen.length === 0 && !host.isWithdrawn(c.id)) return { ok: false, reason: `the approval of v${c.version} is not withdrawn` };
+  // The approval this check yields is bound to the generation read before it began, and to nothing later.
+  const checkedAt = before.generation;
   const fresh = await recheck(governor, c);
   if (!fresh.approval) {
     const failing = fresh.scenarios.filter((s) => !s.matches).length;
     return { ok: false, reason: `its checks do not pass now (${failing} of ${fresh.scenarios.length} examples), so it stays withdrawn`, scenarios: fresh.scenarios };
   }
-  let record = before;
-  if (seen) {
-    const u = await authority.update(restoreChange(seen));
+  let record: AuthorityRecord;
+  if (seen.length) {
+    // Compare and set on exactly the withdrawals the checks began under: any change to them refuses.
+    const u = await authority.update(restoreChange(c, sha, seen));
     if (!u.ok) return { ok: false, reason: `the restoration could not be recorded on this device, so it stays withdrawn: ${u.reason}` };
-    if (!u.changed) return { ok: false, reason: "it changed in another tab while the checks ran (withdrawn again, or already restored); nothing was restored here. Look again" };
+    if (!u.changed) return { ok: false, reason: "it changed in another tab while the checks ran (withdrawn again, or already restored); nothing was restored here. Run the checks again" };
     record = u.record;
   } else {
-    // Restored in another tab: the record already allows it. Make sure nothing withdrew it again meanwhile.
+    // Restored in another tab. A withdrawal of it made while the checks ran (even one restored again since)
+    // invalidates them: they began before it.
     record = await authority.read();
-    if (withdrawalFor(record, c, sha)) return { ok: false, reason: "it was withdrawn again in another tab while the checks ran; nothing was restored here" };
+    if (withdrawalFor(record, c, sha) || lastWithdrawalGeneration(record, c, sha) > checkedAt) {
+      return { ok: false, reason: "it was withdrawn in another tab while the checks ran, so they no longer count; nothing was restored here. Run the checks again" };
+    }
   }
   const r = host.restore(c.id, fresh.approval);
   if (!r.approved) {
-    if (seen) await authority.update(reinstateChange(seen));
+    if (seen.length) await authority.update(reinstateChange(c, sha, seen));
     return { ok: false, reason: r.reason };
   }
-  return { ok: true, record, scenarios: fresh.scenarios, approvalGeneration: record.generation };
+  return { ok: true, record, scenarios: fresh.scenarios, approvalGeneration: checkedAt };
 }
 
 export interface Standing {
