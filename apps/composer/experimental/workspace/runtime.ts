@@ -14,6 +14,7 @@ import {
   createHost,
   createLibrary,
   loadCompositions,
+  promotionIssues,
   recheck,
   type Approval,
   type ApprovalState,
@@ -28,8 +29,10 @@ import {
 } from "@dspack-studio/composer-core/compositions";
 import contractDoc from "../../astryx-project/astryx.dspack.json";
 import profileDoc from "../../astryx-project/astryx.profile.json";
+import { loadBlocks, type BlockDefinition } from "@dspack-studio/composer-core/blocks";
+import blocksSidecar from "../blocks/astryx.blocks.json";
 import sidecar from "../compositions/astryx.compositions.json";
-import { readRecord, withApproval, writeRecord, type KeyValueStore, type ReadResult } from "./storage";
+import { readRecord, withApproval, writeRecord, type KeyValueStore, type Promotion, type ReadResult } from "./storage";
 
 type Json = Record<string, any>;
 
@@ -65,7 +68,36 @@ export interface LoadedLibrary {
   /** The packaged versions as loaded, before this device's changes. */
   packaged: CompositionDefinition[];
   /** What the two authoring records held when read, and how they read. */
-  stored: { drafts: CompositionDefinition[]; approved: CompositionDefinition[]; retired: string[]; status: { drafts: ReadResult<unknown>["status"]; versions: ReadResult<unknown>["status"] } };
+  stored: { drafts: CompositionDefinition[]; approved: CompositionDefinition[]; retired: string[]; promotions?: Promotion[]; status: { drafts: ReadResult<unknown>["status"]; versions: ReadResult<unknown>["status"] } };
+}
+
+/**
+ * The blocks a designer can promote (slice D): the packaged Astryx blocks the blocks loader accepts against
+ * the same contract the compositions are bound to. Read only; a promotion works on a copy.
+ */
+let blocksCache: Promise<BlockDefinition[]> | null = null;
+export function promotableBlocks(): Promise<BlockDefinition[]> {
+  blocksCache ??= loadBlocks(blocksSidecar, { baseContract: contractDoc as Json }).then((l) => (l.binding === "ok" ? [...l.usable] : []));
+  return blocksCache;
+}
+
+/** The block a composition was promoted from on this device, if any. */
+export function promotionOf(loaded: LoadedLibrary, id: string): Promotion | undefined {
+  return loaded.stored.promotions?.find((p) => p.composition === id);
+}
+
+/**
+ * What still blocks approving a promoted composition: each block action its elements emit must be declared,
+ * and no element may have an id computed from data (composer-core promotion.ts). Empty for a composition that
+ * was not promoted, or once everything is resolved. If the block can no longer be found, approval stays
+ * blocked rather than passing unchecked.
+ */
+export async function promotionBlockers(loaded: LoadedLibrary, definition: CompositionDefinition): Promise<string[]> {
+  const p = promotionOf(loaded, definition.id);
+  if (!p) return [];
+  const block = (await promotableBlocks()).find((b) => b.id === p.block && b.version === p.version);
+  if (!block) return [`The block it was promoted from (${p.block} v${p.version}) is not available, so its actions cannot be checked.`];
+  return promotionIssues(definition, block.actions ?? []);
 }
 
 /**
@@ -88,6 +120,7 @@ export async function loadLibrary(store: KeyValueStore | null = null): Promise<L
   const loaded = await loadCompositions(sidecar, { baseContract: contractDoc as Json });
   const drafts = readRecord("drafts", store);
   const versions = readRecord("versions", store);
+  const promotions = readRecord("promotions", store);
   const issues = [...loaded.issues, ...loaded.disabled.map((d) => `${d.composition}: ${d.issues.join("; ")}`)];
   const valid = async (list: CompositionDefinition[], what: string) => {
     const kept: CompositionDefinition[] = [];
@@ -113,7 +146,7 @@ export async function loadLibrary(store: KeyValueStore | null = null): Promise<L
     issues: [...issues, ...versionRules.map((i) => `${i.key}: ${i.message}`)],
     origin,
     packaged: loaded.usable,
-    stored: { drafts: storedDrafts, approved, retired: versions.value.retired, status: { drafts: drafts.status, versions: versions.status } },
+    stored: { drafts: storedDrafts, approved, retired: versions.value.retired, promotions: promotions.value.promoted, status: { drafts: drafts.status, versions: versions.status } },
   };
 }
 

@@ -9,4 +9,5 @@ export * from "./host";
 export * from "./versions";
 export * from "./structure";
 export * from "./template";
+export * from "./promotion";
 export * from "./states";

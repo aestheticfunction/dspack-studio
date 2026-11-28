@@ -68,6 +68,10 @@ const markers = new Set([
   "version-menu",
   "panels-both",
   "draft-run-checks",
+  // Block promotion (slice D) is experimental only.
+  "promotion-details",
+  "promote-confirm",
+  "block-list",
   // State, transition and dialog authoring are experimental only.
   "states-editor",
   "action-flow",

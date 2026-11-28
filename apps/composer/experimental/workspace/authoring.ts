@@ -14,7 +14,9 @@
 import {
   approvalRecord,
   approveDraft,
+  createLibrary,
   discardDraft,
+  promoteBlock,
   editComposition,
   pinsFor,
   recheck,
@@ -24,12 +26,14 @@ import {
   type Approval,
   type CompositionDefinition,
   type Governor,
+  type PromotionReport,
   type Scenario,
   type ScenarioResult,
 } from "@dspack-studio/composer-core/compositions";
 import { interactionIssues } from "./interaction";
-import { definitionIssues, type LoadedLibrary, type VersionCheck } from "./runtime";
-import { readRecord, withApproval, writeRecord, type KeyValueStore } from "./storage";
+import type { BlockDefinition } from "@dspack-studio/composer-core/blocks";
+import { definitionIssues, promotionBlockers, type LoadedLibrary, type VersionCheck } from "./runtime";
+import { readRecord, withApproval, writeRecord, type KeyValueStore, type Promotion } from "./storage";
 
 type Json = Record<string, any>;
 
@@ -94,7 +98,48 @@ export async function discardDraftVersion(loaded: LoadedLibrary, id: string, ver
   const written = writeRecord("drafts", { drafts: drafts.map((d) => structuredClone(d)) }, store);
   const origin = new Map(loaded.origin);
   origin.delete(key);
-  return { ok: true, loaded: withLibrary(loaded, r.library, { drafts, retired }, origin), version, ...(written.ok ? {} : { warning: `Discarded for this session; ${written.reason}.` }) };
+  // A promoted composition discarded before any version was approved is gone: its provenance goes with it.
+  let promotions = loaded.stored.promotions;
+  if (!r.library.entry(id) && promotions?.some((p) => p.composition === id)) {
+    promotions = promotions.filter((p) => p.composition !== id);
+    writeRecord("promotions", { promoted: promotions.map((p) => ({ ...p })) }, store);
+  }
+  return { ok: true, loaded: withLibrary(loaded, r.library, { drafts, retired, promotions }, origin), version, ...(written.ok ? {} : { warning: `Discarded for this session; ${written.reason}.` }) };
+}
+
+/**
+ * Slice D: promote a block into a new draft composition (composer-core promotion.ts). The block is not
+ * changed. The draft goes through the same loader as any composition, is stored with the other drafts, and
+ * where it came from is recorded on this device so approval can insist that every block action is resolved.
+ * Nothing is approved or published.
+ */
+export async function promoteBlockDraft(
+  loaded: LoadedLibrary,
+  block: BlockDefinition,
+  reference: string,
+  store: KeyValueStore | null,
+): Promise<{ ok: true; loaded: LoadedLibrary; version: number; id: string; report: PromotionReport; warning?: string } | { ok: false; reason: string }> {
+  const taken = new Set(loaded.library.entries.map((e) => e.id));
+  const { composition, report } = promoteBlock(block, { reference, taken });
+  const issues = await definitionIssues(composition);
+  if (issues.length > 0) return { ok: false, reason: `the block could not become a composition: ${issues[0]}` };
+  const { library, issues: rules } = createLibrary([...loaded.library.entries.flatMap((e) => e.versions), composition]);
+  if (rules.length > 0) return { ok: false, reason: rules[0]!.message };
+  const drafts = draftsWith(loaded, composition);
+  const promotion: Promotion = { composition: composition.id, block: block.id, version: block.version, reference };
+  const promotions = [...(loaded.stored.promotions ?? []).filter((p) => p.composition !== composition.id), promotion];
+  // Provenance first: a stored draft without it could later be approved without its block actions resolved.
+  const recorded = writeRecord("promotions", { promoted: promotions.map((p) => ({ ...p })) }, store);
+  const written = recorded.ok ? writeRecord("drafts", { drafts: drafts.map((d) => structuredClone(d)) }, store) : recorded;
+  const origin = new Map(loaded.origin).set(keyOf(composition), "device");
+  return {
+    ok: true,
+    loaded: withLibrary(loaded, library, { drafts, promotions }, origin),
+    version: 1,
+    id: composition.id,
+    report,
+    ...(written.ok ? {} : { warning: `The new draft is kept for this session only: ${written.reason}.` }),
+  };
 }
 
 /** Whether a check is the passing check of exactly this definition under these rules: what approval needs. */
@@ -122,6 +167,9 @@ export async function approveVersion(loaded: LoadedLibrary, governor: Governor, 
   // A private field must be masked on screen before a version that takes it is approved (interaction.ts).
   const blocking = interactionIssues(draft);
   if (blocking.length > 0) return { ok: false, reason: blocking[0]!.text.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase()) };
+  // A promoted composition: every block action resolved first (slice D). Never fabricated, never skipped.
+  const unresolved = await promotionBlockers(loaded, draft);
+  if (unresolved.length > 0) return { ok: false, reason: unresolved[0]!.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase()) };
   const r = approveDraft(loaded.library, id, version);
   if (!r.ok) return { ok: false, reason: r.reason };
   const again = await recheck(governor, r.approved);

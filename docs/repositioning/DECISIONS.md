@@ -195,3 +195,16 @@ These slices were authorized after #135 and #136 were verified. Record: [m1/stat
 | 73 | Transitions | Represented as the schema allows: the states an action is sent from, its confirmation, and the conditions by which the data chooses the next state | A next-state declaration (`leadsTo`, intent only) is proposed in [m1/states/TRANSITIONS-PROPOSAL.md](m1/states/TRANSITIONS-PROPOSAL.md), awaiting approval |
 | 74 | Dialogs | Dialog and Confirmation dialog are insertable where the contract's rules hold: a confirmation only in a destructive state (one per state), a dialog elsewhere; never nested, never repeated | A confirmation is declared with its consequential action; generic action labels are refused |
 | 75 | Undo and state edits | State edits are not part of Undo (decision 62 unchanged) | An undo step conflicting with a later state edit is refused, with the reason |
+
+## Block promotion (2026-11-28)
+
+Slice D of the advanced-authoring increment, authorized after #135 and #136 were verified. It is independent of slices A to C. Records: [m1/promotion/README.md](m1/promotion/README.md) and [m1/safeguards/README.md](m1/safeguards/README.md).
+
+| # | Decision | Answer | Condition or limit |
+|---|---|---|---|
+| 76 | Block promotion | A packaged block becomes a new draft composition (composer-core `promotion.ts`, from the unchanged `upcastBlock`): a new stable id, version 1, props as data, examples as examples, one state for its first intent | The block is never changed. Nothing is approved or published by promoting |
+| 77 | Unresolved interactions | Each block action is mappable, conditional, computed or no longer sent. Nothing is mapped for the designer. Approval is refused until each is declared or explicitly removed, through ordinary undoable edits | A missing source block keeps approval blocked. A whole conditional part can now be removed in Structure |
+| 78 | Provenance | Kept on this device in a validated `promotions` record, beside the composition, not in it | The strict 0.2 schema is unchanged. Discarding a promotion with no approved version removes it |
+| 79 | Not carried | What a 0.2 composition cannot declare (checks between fields, further intents) is said in the confirmation and the inspector | Never dropped silently. Carrying it would need a schema extension, not proposed here |
+| 80 | Safeguards before discovery | The exact requirements for cross-tab withdrawal and restoration, stale authorization, pre-withdrawal commitments and sensitive data in historical approvals are recorded with a narrow implementation | Not implemented here. Recommended as one small increment before agent-facing discovery, starting with the authorization-record race |
+
