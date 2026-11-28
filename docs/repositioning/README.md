@@ -29,3 +29,4 @@ Records for the repositioning of Composer from a governed static-surface workben
 | [m1/withdrawal/README.md](m1/withdrawal/README.md) | Approval withdrawal on this device (decision 34): withdraw and restore an approval without changing the definition |
 | [m1/template/README.md](m1/template/README.md) | Visual template editing (B1 to B5): what elements show, identity, insert, move and remove, undo |
 | [m1/refinement/README.md](m1/refinement/README.md) | Professional authoring refinement: Structure rows and icons, the grouped toolbar, the component picker, side by side from 1280 px, version menu |
+| [m1/states/README.md](m1/states/README.md) | State, transition and dialog authoring: states and conditions, what actions do, dialogs; the next-state proposal |
