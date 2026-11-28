@@ -11,7 +11,7 @@ A person can withdraw the approval of an approved version, and later restore it.
 | **Where** | Inspector, Versions: **Withdraw approval…** on an approved version | **Restore approval…** in the inspector, or on the canvas where the version is refused |
 | **Confirmation** | Written out before anything happens: the version stays exactly as it is; nothing may use it until restored; no other version is used in its place; a packaged approval is withdrawn on this device only, by a local record; restoring needs a decision and passing checks | Its checks run again now; it is restored only if every example behaves as expected |
 | **Effect** | The host refuses to show anything new from it (`withdrawn`). It also refuses every action on a screen already shown, so existing authorization is invalidated. The last screen is kept for comparison only and is not interactive | The host authorizes it again, with the approval the new check issued |
-| **Shown as** | **v1 Approved · withdrawn** in the version control and the list, the pill **Approval withdrawn**, and a canvas panel saying what it means | **v1 Approved** |
+| **Shown as** | **v1 Withdrawn** in the version control and the list, the pill **Approval withdrawn**, and a canvas panel saying what it means | **v1 Approved** |
 
 ## How it is built
 
