@@ -89,13 +89,13 @@ test.describe("visual template editing", () => {
     const order = await canvas(page).getByRole("button").allTextContents();
     expect(order.indexOf("Show on map")).toBeLessThan(order.indexOf("Choose Casa do Rio"));
     // 8. An invalid structural operation: moving Start over into each hotel's repeat would give each item two
-    //    elements. It is refused in plain words, and nothing changes; then resolved by moving it somewhere valid.
+    //    elements. It is known before anything is chosen (tried through the loader on a copy): the container is
+    //    listed with the reason and cannot be chosen. It is resolved by moving it somewhere valid.
     await tree(page, "#new-search").click();
     await page.getByTestId("tt-move").click();
-    await page.getByTestId("tt-move-target").selectOption("ready@2.0");
-    await page.getByTestId("tt-move-confirm").click();
-    await expect(page.getByTestId("tt-error")).toContainText("Each item of a repeat must be one element");
-    await expect(page.getByTestId("tt-error")).toBeFocused();
+    const repeatTarget = page.getByTestId("tt-move-target").locator('option[value="ready@2.0"]');
+    await expect(repeatTarget).toBeDisabled();
+    await expect(repeatTarget).toContainText("Each item of a repeat must be one element");
     await expect(tree(page, "#new-search")).toBeVisible();
     await page.getByTestId("tt-move-target").selectOption("ready@");
     await page.getByTestId("tt-move-confirm").click();

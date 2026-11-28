@@ -80,7 +80,7 @@ export function WorkspaceAppearance() {
         {BASES.map((b) => (
           <button key={b} type="button" className={`af-choice${record.base === b ? " af-choice--active" : ""}`} onClick={() => pickBase(b)} aria-pressed={record.base === b} data-testid={`theme-${b}`}>
             <span className="af-choice__title">{BASE_LABEL[b].title}</span>
-            <span style={{ display: "block", fontSize: 13, color: "var(--fg-dim)", marginTop: 4, textTransform: "none", letterSpacing: 0, fontFamily: "var(--sans)" }}>{BASE_LABEL[b].note}</span>
+            <span style={{ display: "block", fontSize: 13, color: "var(--fg-body)", marginTop: 4, textTransform: "none", letterSpacing: 0, fontFamily: "var(--sans)" }}>{BASE_LABEL[b].note}</span>
           </button>
         ))}
       </div>

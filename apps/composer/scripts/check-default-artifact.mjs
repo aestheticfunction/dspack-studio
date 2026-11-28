@@ -62,6 +62,12 @@ const markers = new Set([
   "edit-announce",
   "tt-status",
   "the elements changed another way since",
+  // The authoring refinement: Structure rows, picker, version menu and paired panels are experimental only.
+  "cl-picker",
+  "structure-keys",
+  "version-menu",
+  "panels-both",
+  "draft-run-checks",
 ]);
 for (const file of readdirSync(sidecars).filter((f) => f.endsWith(".blocks.json"))) {
   const doc = JSON.parse(readFileSync(join(sidecars, file), "utf8"));

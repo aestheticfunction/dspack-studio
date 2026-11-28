@@ -52,7 +52,8 @@ import { applyInputChange, describeInteractionChanges, interactionIssues, withou
 import { ElementInspector, type ItemContext } from "./element-inspector";
 import { SelectionLayer } from "./selection-layer";
 import { COMPONENT_LABEL, elementName, StructurePanel } from "./structure-panel";
-import { TemplateTools } from "./template-tools";
+import { TemplateTools, type TemplateToolsHandle } from "./template-tools";
+import { Icon } from "./icons";
 import { emptyHistory, plan, record, restoreTracked, settle, type History } from "./undo-history";
 import { applyContent, applyInsert, assignId as assignElementId, contentProblem, moveNode, plainTemplateIssue, removeNode, renameId as renameElementId, statesShowing, type Insertable } from "./template-editing";
 import { uniqueId, type Position } from "@dspack-studio/composer-core/compositions";
@@ -134,6 +135,20 @@ function controlLabel(instance: Instance | null, componentId: string): string | 
 
 // ---- Layout ------------------------------------------------------------------------------------------------
 
+/** Whether the window is at least this wide, kept current. */
+function useMinWidth(px: number): boolean {
+  const q = `(min-width: ${px}px)`;
+  const [on, setOn] = useState(() => typeof window !== "undefined" && window.matchMedia(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia(q);
+    const update = () => setOn(m.matches);
+    update();
+    m.addEventListener("change", update);
+    return () => m.removeEventListener("change", update);
+  }, [q]);
+  return on;
+}
+
 function useLayout(): Layout {
   const read = (): Layout => (typeof window === "undefined" ? "medium" : window.matchMedia("(min-width: 1440px)").matches ? "wide" : window.matchMedia("(min-width: 900px)").matches ? "medium" : "narrow");
   const [layout, setLayout] = useState<Layout>(read);
@@ -200,6 +215,12 @@ export function LibraryWorkspace() {
   const [failed, setFailed] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<LibraryPrefs>(DEFAULT_PREFS);
   const [open, setOpen] = useState<Record<Panel, boolean>>({ library: true, inspector: false });
+  // Decision 18, amended (J2): from 1280 px a designer may choose to keep Structure and the inspector open
+  // together, in compact widths. One panel at a time stays the default; the choice lasts for the session.
+  const pairable = useMinWidth(1280);
+  const [pairChosen, setPairChosen] = useState(false);
+  const paired = layout === "medium" && pairable && pairChosen;
+  const together = layout === "wide" || paired;
   const [whatIf, setWhatIf] = useState<WhatIf>("none");
   const [shown, setShown] = useState<ShowResult | null>(null);
   const [showing, setShowing] = useState(false);
@@ -240,6 +261,8 @@ export function LibraryWorkspace() {
   // The result of the latest element or structure edit, undo or redo: shown in the Structure toolbar and said
   // in its own live region, so a preview message never overwrites it (F6).
   const [editStatus, setEditStatus] = useState<{ text: string; tone: "ok" | "bad"; n: number } | null>(null);
+  const toolsRef = useRef<TemplateToolsHandle>(null);
+  const revealSelection = useRef(false);
   const [, setHistoryTick] = useState(0);
   const readyRef = useRef<Ready | null>(null);
   const editQueue = useRef<Promise<unknown>>(Promise.resolve());
@@ -440,8 +463,9 @@ export function LibraryWorkspace() {
   const togglePanel = (panel: Panel) => {
     const next = !open[panel];
     const other: Panel = panel === "library" ? "inspector" : "library";
-    // Below 1440 px, one side panel at a time (decision 18); on a phone, panels are modal sheets over the canvas.
-    setOpen(layout === "wide" ? { ...open, [panel]: next } : ({ [panel]: next, [other]: false } as Record<Panel, boolean>));
+    // Below 1440 px, one side panel at a time (decision 18), unless the designer chose both from 1280 px (J2);
+    // on a phone, panels are modal sheets over the canvas.
+    setOpen(together ? { ...open, [panel]: next } : ({ [panel]: next, [other]: false } as Record<Panel, boolean>));
     if (next) {
       persist({ ...prefs, panel });
       if (layout === "narrow") setTimeout(() => panels.current[panel]?.focus(), 0);
@@ -531,9 +555,9 @@ export function LibraryWorkspace() {
   /** Open the inspector without touching the stored selection (the caller persists it). */
   const showInspector = () => {
     if (open.inspector) return;
-    setOpen(layout === "wide" ? { ...open, inspector: true } : { library: false, inspector: true });
-    // Below the wide layout the Structure panel closes as the inspector opens: focus goes with the work (F8).
-    if (layout === "narrow" || (layout !== "wide" && open.library)) setTimeout(() => panels.current.inspector?.focus(), 0);
+    setOpen(together ? { ...open, inspector: true } : { library: false, inspector: true });
+    // Where the Structure panel closes as the inspector opens, focus goes with the work (F8).
+    if (layout === "narrow" || (!together && open.library)) setTimeout(() => panels.current.inspector?.focus(), 0);
   };
 
   const startDraft = async () => {
@@ -578,6 +602,13 @@ export function LibraryWorkspace() {
 
   const latestDraft = () => (definition ? readyRef.current?.loaded.library.get(definition.id, definition.version) : undefined);
   useEffect(() => setEditStatus(null), [key]);
+  // Selecting in Structure scrolls the canvas so the selection's outline is in view, where it is drawn (5.1).
+  useEffect(() => {
+    if (!revealSelection.current) return;
+    revealSelection.current = false;
+    const t = setTimeout(() => document.querySelector<HTMLElement>('.cl-canvas [data-testid="selection-outline"]')?.scrollIntoView({ block: "nearest", inline: "nearest" }), 120);
+    return () => clearTimeout(t);
+  }, [selection]);
   const said = (text: string, tone: "ok" | "bad" = "ok") => setEditStatus({ text, tone, n: Date.now() });
   /** An edit that undo can take back: an element or structure edit, kept for this draft's lifecycle only. */
   const applyTracked = async (edit: (draft: CompositionDefinition) => void, what = "Change"): Promise<string | null> => {
@@ -662,6 +693,16 @@ export function LibraryWorkspace() {
   /** Whether this version's approval is withdrawn on this device: its host says so. */
   const isWithdrawn = (v: CompositionDefinition | undefined) => !!v && v.status === "approved" && !!ready?.hosts.get(versionKey(v.id, v.version))?.isWithdrawn(v.id);
 
+  const versionMenu = useRef<HTMLDetailsElement>(null);
+  /** Open the withdrawal or restoration confirmation from the version menu, whatever element is selected (J4). */
+  const openLifecycle = (which: "withdraw" | "restore") => {
+    if (versionMenu.current) versionMenu.current.open = false;
+    setLifecycle(which);
+    setTab("design");
+    showInspector();
+    setTimeout(() => document.querySelector<HTMLElement>(which === "withdraw" ? '[data-testid="withdraw-confirm"] button:last-child' : '[data-testid="restore-confirm"] button:last-child')?.focus(), 0);
+  };
+
   /** Withdraw the selected approved version's approval on this device (decision 34). Its definition does not change. */
   const withdrawNow = async () => {
     if (!ready || !definition) return;
@@ -720,11 +761,14 @@ export function LibraryWorkspace() {
   // Ctrl or Cmd+Z undoes, with Shift redoes, element and structure edits on a draft, outside text fields.
   const historyKeys = useRef<(e: KeyboardEvent) => void>(() => {});
   historyKeys.current = (e: KeyboardEvent) => {
-    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z" || definition?.status !== "draft") return;
+    const k = e.key.toLowerCase();
+    if (!(e.ctrlKey || e.metaKey) || (k !== "z" && k !== "y") || definition?.status !== "draft") return;
+    // Text editing keeps the browser's own undo; a checkbox, select, radio or button does not edit text.
     const el = e.target as HTMLElement | null;
-    if (el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable)) return;
+    const typing = !!el && (el.tagName === "TEXTAREA" || el.isContentEditable || (el.tagName === "INPUT" && !["checkbox", "radio", "button", "submit", "range", "color", "file"].includes((el as HTMLInputElement).type)));
+    if (typing) return;
     e.preventDefault();
-    void stepHistory(e.shiftKey ? "redo" : "undo");
+    void stepHistory(k === "y" || e.shiftKey ? "redo" : "undo");
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => historyKeys.current(e);
@@ -933,6 +977,32 @@ export function LibraryWorkspace() {
 
   // ---- Template editing (draft) ------------------------------------------------------------------------------
   const editable = !!definition && definition.status === "draft" && governed;
+  // With the inspector closed, approval is confirmed beside the draft chip, so approving never swaps panels.
+  const approveHere = !open.inspector && layout !== "narrow";
+  // J4: withdrawal and restoration through version management, whatever element is selected. Beside the status on
+  // wider screens; in the inspector sheet's head on a phone, so the canvas header keeps its rows.
+  const versionMenuNode =
+    definition && definition.status === "approved" && governed ? (
+      <details className="cl-vmenu" data-testid="version-menu" ref={versionMenu}>
+        <summary aria-label={`Version actions for v${definition.version}`} title="Version actions">
+          <Icon name="more" />
+        </summary>
+        <div className="cl-vmenu__pop" role="group" aria-label={`v${definition.version}`}>
+          {isWithdrawn(definition) ? (
+            <button className="cl-tool" onClick={() => openLifecycle("restore")} data-testid="version-restore">
+              Restore approval of v{definition.version}…
+            </button>
+          ) : (
+            <button className="cl-tool" onClick={() => openLifecycle("withdraw")} data-testid="version-withdraw">
+              Withdraw approval of v{definition.version}…
+            </button>
+          )}
+        </div>
+      </details>
+    ) : null;
+  // Undo and Redo: with the canvas controls on wider screens; on a phone, in whichever sheet is open, where the
+  // editing happens, so the canvas header keeps its 44 px targets on two rows.
+  const historyControls = editable ? <HistoryControls canUndo={!!history.current.get(key)?.past.length} canRedo={!!history.current.get(key)?.future.length} undo={() => stepHistory("undo")} redo={() => stepHistory("redo")} /> : null;
   const editState = homeState ?? listedState;
   /**
    * One structural or identity edit: tried on a copy first, so a refusal is said plainly and nothing changes;
@@ -954,12 +1024,14 @@ export function LibraryWorkspace() {
   const templateOps =
     editable && editState
       ? {
-          insert: (at: { key: string; position: Position }, component: Insertable, label: string) => runTemplate((d) => applyInsert(d, { stateId: editState, at, component, label }), `Added a ${COMPONENT_LABEL[component]?.toLowerCase() ?? component}.`, COMPONENT_LABEL[component]?.toLowerCase()),
+          insert: async (at: { key: string; position: Position }, component: Insertable, label: string) => {
+            const problem = await runTemplate((d) => applyInsert(d, { stateId: editState, at, component, label }), `Added a ${COMPONENT_LABEL[component]?.toLowerCase() ?? component}.`, COMPONENT_LABEL[component]?.toLowerCase());
+            if (!problem && (component === "button" || component === "text-input") && open.inspector)
+              setTimeout(() => document.querySelector<HTMLElement>(`[data-testid="element-inspector"] [data-group="${component === "button" ? "When pressed" : "What a person types"}"]`)?.scrollIntoView({ block: "start" }), 120);
+            return problem;
+          },
           move: (to: { key: string; position: Position }, what = "Moved.") => (selection ? runTemplate((d) => moveNode(d, editState, selection.key, to), what) : Promise.resolve("Select an element first.")),
           remove: (resolve: boolean) => (selection ? runTemplate((d) => removeNode(d, editState, selection.key, resolve), "Removed.") : Promise.resolve("Select an element first.")),
-          undo: () => stepHistory("undo"),
-          redo: () => stepHistory("redo"),
-          status: editStatus,
           /** Whether a component can go at a place: tried on a copy and validated by the loader, changing nothing. */
           check: async (at: { key: string; position: Position }, component: Insertable) => {
             const copy = structuredClone(definition) as CompositionDefinition;
@@ -968,8 +1040,14 @@ export function LibraryWorkspace() {
             const issues = await definitionIssues(copy);
             return issues.length ? plainTemplateIssue(issues[0]!, COMPONENT_LABEL[component]?.toLowerCase()) : null;
           },
-          canUndo: !!history.current.get(key)?.past.length,
-          canRedo: !!history.current.get(key)?.future.length,
+          checkMove: async (into: string) => {
+            if (!selection) return "Select an element first.";
+            const copy = structuredClone(definition) as CompositionDefinition;
+            const r = moveNode(copy, editState, selection.key, { key: into, position: "inside" });
+            if (!r.ok) return `${sentence(r.reason)}.`;
+            const issues = await definitionIssues(copy);
+            return issues.length ? plainTemplateIssue(issues[0]!) : null;
+          },
         }
       : null;
   const contentApi =
@@ -1004,15 +1082,10 @@ export function LibraryWorkspace() {
       ref={(el) => void (panels.current.library = el)}
     >
       <div className="cl-panel__head">
-        <h2 className="cl-h" id="cl-library-title">
+        {/* The view switch below is the panel's visible heading; this names the panel (and the phone's sheet). */}
+        <h2 className="cl-sr" id="cl-library-title">
           {leftView === "structure" ? "Structure" : "Compositions"}
         </h2>
-        {layout === "narrow" && (
-          <button className="cl-tool" onClick={() => closeDrawer("library")}>
-            Close
-          </button>
-        )}
-      </div>
       <div className="cl-switch" role="group" aria-label="Show in this panel">
         <button className={`cl-switch__opt${leftView === "compositions" ? " cl-switch__opt--on" : ""}`} aria-pressed={leftView === "compositions"} onClick={() => setLeftView("compositions")} data-testid="view-compositions">
           Compositions
@@ -1020,6 +1093,12 @@ export function LibraryWorkspace() {
         <button className={`cl-switch__opt${leftView === "structure" ? " cl-switch__opt--on" : ""}`} aria-pressed={leftView === "structure"} onClick={() => setLeftView("structure")} disabled={!definition} data-testid="view-structure">
           Structure
         </button>
+      </div>
+        {layout === "narrow" && (
+          <button className="cl-tool" onClick={() => closeDrawer("library")}>
+            Close
+          </button>
+        )}
       </div>
       {leftView === "structure" && definition && structure && listedState ? (
         <StructurePanel
@@ -1030,14 +1109,18 @@ export function LibraryWorkspace() {
           states={definition.states.map((x) => ({ id: x.id, label: stateName(x.id) }))}
           onState={setStructureState}
           selected={selection?.key ?? null}
-          onSelect={(k) => selectElement(k)}
+          onSelect={(k) => {
+            revealSelection.current = true;
+            selectElement(k);
+          }}
           onOpen={(k) => {
             selectElement(k);
             showInspector();
           }}
           counts={counts}
           focus={treeFocus}
-          tools={templateOps && definition ? <TemplateTools definition={definition} contract={contract} stateId={listedState} selected={selection && homeState === listedState ? selection.key : null} ops={templateOps} /> : undefined}
+          tools={templateOps && definition ? <TemplateTools ref={toolsRef} definition={definition} contract={contract} stateId={listedState} selected={selection && homeState === listedState ? selection.key : null} ops={templateOps} layout={layout} extra={layout === "narrow" && open.library ? historyControls : null} /> : undefined}
+          onShortcut={templateOps ? (sc) => toolsRef.current?.shortcut(sc) : undefined}
         />
       ) : (
       <>
@@ -1205,6 +1288,30 @@ export function LibraryWorkspace() {
               </div>
             </details>
           )}
+          {/* The draft's next step when the inspector is closed (3.6): run its checks, or approve once they pass. With
+              the inspector open, and on a phone (where the inspector is one tap away as a sheet), its own authoring
+              bar offers the same two actions. */}
+          {definition.status === "draft" && governed && draftState && draftState !== "checking" && !open.inspector && layout !== "narrow" && (
+            draftState === "pass" ? (
+              <button
+                className="cl-tool cl-draft__next"
+                onClick={() => setConfirm("approve")}
+                aria-expanded={confirm === "approve"}
+                data-testid="draft-approve"
+              >
+                Approve…
+              </button>
+            ) : (
+              <button className="cl-tool cl-draft__next" onClick={() => void recheckNow()} data-testid="draft-run-checks">
+                <Icon name="check" />
+                Run checks
+              </button>
+            )
+          )}
+          {layout !== "narrow" && versionMenuNode}
+          {approveHere && confirm === "approve" && definition.status === "draft" && (
+            <ApproveConfirm className="cl-approve-pop" version={definition.version} approvedVersion={approvedVersion} approve={approveNow} cancel={() => setConfirm(null)} />
+          )}
           {/* An existing draft is one choice away in the version control beside this; only creating one needs a button. */}
           {definition.status === "approved" && governed && !entry.draft && (
             <button className="cl-tool cl-tool--primary" onClick={startDraft} data-testid="create-draft">
@@ -1220,6 +1327,7 @@ export function LibraryWorkspace() {
           )}
         </div>
         <div className="cl-toolbar__view">
+          {layout !== "narrow" && historyControls}
           <button
             className="cl-tool"
             aria-pressed={selectMode}
@@ -1242,24 +1350,24 @@ export function LibraryWorkspace() {
             </button>
           )}
           <div className="cl-toolbar__panels" role="group" aria-label="Panels">
-            {(["library", "inspector"] as Panel[]).map((p) => (
-              <button
-                key={p}
-                ref={(el) => void (toggles.current[p] = el)}
-                className="cl-tool cl-toggle"
-                aria-expanded={open[p]}
-                aria-controls={`cl-${p}`}
-                onClick={() => togglePanel(p)}
-                data-testid={`toggle-${p}`}
-                title={p === "library" ? "Compositions" : "Inspector"}
-              >
-                <Icon name={p === "library" ? "panel-left" : "panel-right"} />
-                <span className="cl-tool__text">{p === "library" ? "Compositions" : "Inspector"}</span>
-              </button>
-            ))}
+            {(["library", "inspector"] as Panel[]).map((p) => {
+              // The left toggle is named for what it shows now (5.2).
+              const name = p === "library" ? (leftView === "structure" ? "Structure" : "Compositions") : "Inspector";
+              return (
+                <button key={p} ref={(el) => void (toggles.current[p] = el)} className="cl-tool cl-toggle" aria-expanded={open[p]} aria-controls={`cl-${p}`} onClick={() => togglePanel(p)} data-testid={`toggle-${p}`} title={name}>
+                  <Icon name={p === "library" ? "panel-left" : "panel-right"} />
+                  <span className="cl-tool__text">{name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
+      {editable && editStatus && (
+        <p className={`cl-toolbar__edit${editStatus.tone === "bad" ? " cl-toolbar__edit--bad" : ""}`} data-testid="tt-status">
+          {editStatus.text}
+        </p>
+      )}
       <div className="cl-toolbar__row cl-toolbar__row--examples">
         <span className="cl-toolbar__label" id="cl-examples-label">
           Example data
@@ -1298,6 +1406,12 @@ export function LibraryWorkspace() {
       ) : (
         <>
           {toolbar}
+          {/* Select mode says what it does above the composition, where it is seen (5.3). */}
+          {selectMode && elements && (
+            <p className="cl-note cl-select-note" role="status" data-testid="select-note">
+              Select is on: click an element to inspect it. Buttons and fields do nothing until you turn Select off (Escape).
+            </p>
+          )}
           <CanvasBody
             shown={shown}
             definition={definition}
@@ -1321,11 +1435,6 @@ export function LibraryWorkspace() {
             }}
             selection={{ ids: selectedIds, primary: pickedId, selectMode: selectMode && !!elements, onPick: pickOnCanvas, label: "Click an element to select it" }}
           />
-          {selectMode && elements && (
-            <p className="cl-note cl-select-note" role="status" data-testid="select-note">
-              Select is on: click an element to inspect it. Buttons and fields do nothing until you turn Select off (Escape).
-            </p>
-          )}
           {lastAction && (
             // R4: pinned to the bottom of the visible canvas, so the feedback is seen where the button was pressed.
             <div className="cl-action" role="status" data-testid="action-note">
@@ -1406,6 +1515,26 @@ export function LibraryWorkspace() {
         <h2 className="cl-h" id="cl-inspector-title">
           Inspector
         </h2>
+        {layout === "narrow" && open.inspector && historyControls}
+        {layout === "narrow" && open.inspector && versionMenuNode}
+        {/* J2: from 1280 px a designer may keep Structure open beside the inspector, in compact widths. */}
+        {layout === "medium" && pairable && (
+          <button
+            className="cl-tool cl-pairing"
+            aria-pressed={pairChosen}
+            onClick={() => {
+              const next = !pairChosen;
+              setPairChosen(next);
+              setOpen(next ? { library: true, inspector: true } : { library: false, inspector: open.inspector });
+              setAnnounce(next ? "Structure and the inspector stay open together, in compact widths." : "One side panel at a time.");
+            }}
+            data-testid="panels-both"
+            title={pairChosen ? "Show one panel at a time" : "Keep the left panel open beside the inspector"}
+          >
+            <Icon name="panels-both" />
+            <span>Side by side</span>
+          </button>
+        )}
         {layout === "narrow" && (
           <button className="cl-tool" onClick={() => closeDrawer("inspector")}>
             Close
@@ -1444,6 +1573,22 @@ export function LibraryWorkspace() {
             </p>
           )}
           <div role="tabpanel" id="cl-tabpanel-design" aria-labelledby="cl-tab-design" hidden={activeTab !== "design"} data-testid="tabpanel-design">
+            {/* Withdrawal and restoration are composition-level decisions, reachable from the version menu whatever
+                element is selected (J4): their confirmation shows here above the element. */}
+            {selectedTrail && lifecycle && definition.status === "approved" && governed && (
+              <div className="cl-lifecycle-over" data-testid="lifecycle-over">
+                <ApprovalLifecycle
+                  version={definition.version}
+                  withdrawn={isWithdrawn(definition)}
+                  origin={ready.loaded.origin.get(key) === "device" ? "device" : "packaged"}
+                  open={lifecycle}
+                  setOpen={setLifecycle}
+                  busy={lifecycleBusy}
+                  withdraw={withdrawNow}
+                  restore={restoreNow}
+                />
+              </div>
+            )}
             {selectedTrail ? (
               <ElementInspector
                 key={`${key}-${selectedTrail.at(-1)!.key}`}
@@ -1664,7 +1809,7 @@ export function LibraryWorkspace() {
             </Section>
           </div>
 
-          <details className="cl-tech" data-testid="technical-details">
+          {!selectedTrail && <details className="cl-tech" data-testid="technical-details">
             <summary>Technical details</summary>
             <Facts
               rows={[
@@ -1712,7 +1857,7 @@ export function LibraryWorkspace() {
                 Last preview, recordable form: <code data-testid="action-raw">{JSON.stringify({ name: lastAction.name, context: lastAction.context })}</code>
               </p>
             )}
-          </details>
+          </details>}
 
           {ready.storage !== "ok" && ready.storage !== "missing" && (
             <Section title="Workspace settings">
@@ -1736,7 +1881,7 @@ export function LibraryWorkspace() {
               approvedVersion={approvedVersion}
               state={draftState!}
               failing={draftResults ? [...draftResults.values()].filter((x) => !x.matches).length : 0}
-              confirm={confirm}
+              confirm={approveHere && confirm === "approve" ? null : confirm}
               setConfirm={setConfirm}
               runChecks={recheckNow}
               approve={approveNow}
@@ -1755,7 +1900,7 @@ export function LibraryWorkspace() {
   );
 
   return (
-    <Frame layout={layout} mode={frameMode} top={headerHeight} open={open}>
+    <Frame layout={layout} mode={frameMode} top={headerHeight} open={open} paired={paired}>
       {header}
       <h1 className="cl-sr">Composition Library</h1>
       {layout === "narrow" && (open.library || open.inspector) && <div className="cl-scrim" aria-hidden="true" onClick={() => closeDrawer(open.library ? "library" : "inspector")} />}
@@ -1990,6 +2135,31 @@ function whatToDo(s: { expect: "ok" | "refused"; outcome: "ok" | "refused"; refu
  * The draft's lifecycle actions, at the foot of the inspector (A3, A4, A1): one primary action for the state
  * it is in, and confirmations written out in full before anything irreversible happens.
  */
+/** The approval confirmation (A4): one decision by a person, with what it means said first. */
+function ApproveConfirm({ version: v, approvedVersion, approve, cancel, className = "cl-bar cl-bar--confirm" }: { version: number; approvedVersion: number | undefined; approve: () => void; cancel: () => void; className?: string }) {
+  return (
+      <div className={className} role="group" aria-labelledby="cl-approve-title" data-testid="approve-confirm">
+        <p className="cl-bar__title" id="cl-approve-title">
+          Approve v{v} on this device?
+        </p>
+        <ul className="cl-plain">
+          <li>v{v} becomes approved and can no longer change. Further changes need a new draft.</li>
+          {approvedVersion !== undefined && <li>v{approvedVersion} and every other approved version stay available.</li>}
+          <li>The approval is recorded on this device only.</li>
+          <li>It is not published: no external agent can use it.</li>
+        </ul>
+        <div className="cl-bar__actions">
+          <button className="cl-tool cl-tool--primary" onClick={approve} data-testid="approve-confirm-button">
+            Approve v{v} on this device
+          </button>
+          <button className="cl-tool" onClick={cancel} autoFocus>
+            Cancel
+          </button>
+        </div>
+      </div>
+  );
+}
+
 function AuthoringBar({
   definition,
   approvedVersion,
@@ -2020,25 +2190,7 @@ function AuthoringBar({
   const v = definition.version;
   if (confirm === "approve") {
     return (
-      <div key="approve" className="cl-bar cl-bar--confirm" role="group" aria-labelledby="cl-approve-title" data-testid="approve-confirm">
-        <p className="cl-bar__title" id="cl-approve-title">
-          Approve v{v} on this device?
-        </p>
-        <ul className="cl-plain">
-          <li>v{v} becomes approved and can no longer change. Further changes need a new draft.</li>
-          {approvedVersion !== undefined && <li>v{approvedVersion} and every other approved version stay available.</li>}
-          <li>The approval is recorded on this device only.</li>
-          <li>It is not published: no external agent can use it.</li>
-        </ul>
-        <div className="cl-bar__actions">
-          <button className="cl-tool cl-tool--primary" onClick={approve} data-testid="approve-confirm-button">
-            Approve v{v} on this device
-          </button>
-          <button className="cl-tool" onClick={() => setConfirm(null)} autoFocus>
-            Cancel
-          </button>
-        </div>
-      </div>
+      <ApproveConfirm key="approve" version={v} approvedVersion={approvedVersion} approve={approve} cancel={() => setConfirm(null)} />
     );
   }
   if (confirm === "discard") {
@@ -2191,7 +2343,7 @@ function describeChanges(base: CompositionDefinition, draft: CompositionDefiniti
   return out;
 }
 
-function Frame({ layout, mode, top, open, children }: { layout: Layout; mode: "fixed" | "flow"; top: number; open: Record<Panel, boolean>; children: ReactNode }) {
+function Frame({ layout, mode, top, open, paired = false, children }: { layout: Layout; mode: "fixed" | "flow"; top: number; open: Record<Panel, boolean>; paired?: boolean; children: ReactNode }) {
   return (
     <div
       className="cl"
@@ -2200,6 +2352,7 @@ function Frame({ layout, mode, top, open, children }: { layout: Layout; mode: "f
       data-frame={mode}
       data-library={open.library ? "open" : "closed"}
       data-inspector={open.inspector ? "open" : "closed"}
+      data-pair={paired ? "on" : undefined}
       style={{ ["--cl-top" as string]: `${top}px` }}
     >
       <style>{CSS}</style>
@@ -2208,21 +2361,50 @@ function Frame({ layout, mode, top, open, children }: { layout: Layout; mode: "f
   );
 }
 
-/** Small line icons for the view controls; decorative, so the button's text names it. */
-function Icon({ name }: { name: "panel-left" | "panel-right" | "fit" | "select" }) {
-  if (name === "select")
+/**
+ * Undo and Redo, with the canvas controls (3.2), so they are reachable whichever panel is open. Unavailable is said
+ * in the tooltip; one that becomes unavailable after use hands focus to the other, or to the tree (F8).
+ */
+function HistoryControls({ canUndo, canRedo, undo, redo }: { canUndo: boolean; canRedo: boolean; undo: () => Promise<boolean>; redo: () => Promise<boolean> }) {
+  const refs = useRef<{ undo: HTMLButtonElement | null; redo: HTMLButtonElement | null; pressed: "undo" | "redo" | null }>({ undo: null, redo: null, pressed: null });
+  useEffect(() => {
+    const h = refs.current;
+    if (!h.pressed) return;
+    const gone = h.pressed === "undo" ? !canUndo : !canRedo;
+    if (!gone) return;
+    const other = h.pressed === "undo" ? h.redo : h.undo;
+    const otherOk = h.pressed === "undo" ? canRedo : canUndo;
+    h.pressed = null;
+    if (other && otherOk) other.focus();
+    else (document.querySelector<HTMLElement>('[data-testid="structure-tree"] [aria-selected="true"]') ?? document.querySelector<HTMLElement>('[data-testid="structure-tree"] [role="treeitem"]'))?.focus();
+  }, [canUndo, canRedo]);
+  const button = (which: "undo" | "redo", ok: boolean, run: () => Promise<boolean>) => {
+    const name = which === "undo" ? "Undo" : "Redo";
+    const keys = which === "undo" ? "Ctrl+Z" : "Shift+Ctrl+Z or Ctrl+Y";
     return (
-      <svg className="cl-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" focusable="false">
-        <path d="M3 2.5l9 5-4 1-2 4.5z" strokeLinejoin="round" />
-      </svg>
+      <button
+        ref={(el) => void (refs.current[which] = el)}
+        className="cl-tool"
+        aria-label={name}
+        aria-disabled={ok ? undefined : true}
+        aria-keyshortcuts={which === "undo" ? "Control+Z Meta+Z" : "Shift+Control+Z Shift+Meta+Z Control+Y"}
+        title={ok ? `${name} an element or structure edit (${keys})` : `${name}: nothing to ${which}`}
+        onClick={() => {
+          if (!ok) return;
+          refs.current.pressed = which;
+          void run();
+        }}
+        data-testid={`tt-${which}`}
+      >
+        <Icon name={which} />
+      </button>
     );
+  };
   return (
-    <svg className="cl-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" focusable="false">
-      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" />
-      {name === "panel-left" && <line x1="6" y1="2.5" x2="6" y2="13.5" />}
-      {name === "panel-right" && <line x1="10" y1="2.5" x2="10" y2="13.5" />}
-      {name === "fit" && <path d="M4 8h8M4 8l2-2M4 8l2 2M12 8l-2-2M12 8l-2 2" />}
-    </svg>
+    <div className="cl-toolbar__history" role="group" aria-label="Undo and redo">
+      {button("undo", canUndo, undo)}
+      {button("redo", canRedo, redo)}
+    </div>
   );
 }
 
@@ -2296,7 +2478,33 @@ const CSS = withWorkspaceChoices(`
 .cl-tool:hover { border-color: var(--fg-faint); color: var(--fg); }
 /* A pressed or open control is quiet: a raised surface and a lighter border, never the solid accent. */
 .cl-tool[aria-pressed="true"], .cl-tool[aria-expanded="true"] { background: var(--bg-2); border-color: var(--fg-dim); color: var(--fg); }
-.cl-icon { flex: none; }
+.cl-icon { flex: none; width: calc(16px * var(--cl-type, 1)); height: calc(16px * var(--cl-type, 1)); }
+/* Undo and Redo with the canvas controls, the edit result under them, and the draft's next step. */
+.cl-toolbar__history { display: inline-flex; gap: 2px; margin-right: 4px; }
+.cl-panel__head .cl-toolbar__history { margin: 0 0 0 auto; }
+.cl-pairing { flex: none; margin-left: auto; font-size: 12px; padding: 0 8px; }
+.cl-toolbar__history .cl-tool { padding: 0; }
+.cl-toolbar__history .cl-tool[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.cl-toolbar__edit { margin: 0; font-size: 13px; line-height: 1.4; color: var(--green-bright); }
+.cl-toolbar__edit--bad { color: var(--err, #d9826b); }
+.cl-draft__next { font-size: 13px; padding: 0 6px; gap: 4px; }
+.cl-vmenu { position: relative; margin-left: 4px; }
+.cl-panel__head .cl-vmenu { margin-left: auto; }
+.cl-vmenu summary { list-style: none; display: inline-flex; align-items: center; justify-content: center; min-width: var(--cl-target); min-height: var(--cl-target); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--fg-body); }
+.cl-vmenu summary::-webkit-details-marker { display: none; }
+.cl-vmenu__pop { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; min-width: 240px; padding: 8px; background: var(--bg-1); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow-menu); display: grid; gap: 6px; }
+.cl-vmenu__pop .cl-tool { justify-content: flex-start; }
+.cl-lifecycle-over { margin-bottom: 12px; }
+.cl-toolbar__status { position: relative; }
+.cl-approve-pop { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(380px, 90vw); display: grid; gap: 8px; padding: 12px 14px; background: var(--bg-1); border: 1px solid var(--line); border-top: 2px solid var(--fg-dim); border-radius: 4px; box-shadow: var(--shadow-menu); }
+.cl-lifecycle-over .cl-bar { position: static; margin: 0; }
+/* Both panels chosen from 1280 px (J2): compact widths, so the canvas keeps the larger share. */
+.cl[data-pair="on"] { --cl-panel-l: 248px; --cl-panel-r: 312px; }
+/* The compact pair keeps the Structure toolbar on one row: slightly narrower gutters and groups, same targets. */
+.cl[data-pair="on"] .cl-panel { padding-left: 12px; padding-right: 12px; }
+.cl[data-pair="on"] .cl-tt__row { gap: 3px; }
+.cl[data-pair="on"] .cl-tt__sep { margin: 4px 2px; }
+.cl[data-pair="on"] .cl-tt__tool--label { padding: 0 8px 0 6px; }
 /* Authoring (M1 A1 to A4): the solid accent marks the one primary action of the moment. */
 .cl-tool--primary { background: var(--green); border-color: var(--green); color: var(--on-accent, #10120c); font-weight: 600; }
 .cl-tool--primary:hover { background: var(--green-bright); border-color: var(--green-bright); color: var(--on-accent, #10120c); }
@@ -2378,10 +2586,10 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-toolbar { position: sticky; top: 0; z-index: 6; background: var(--bg); padding: 12px 0 10px; display: grid; gap: 8px; border-bottom: 1px solid var(--line-soft); margin-bottom: 14px; }
 .cl[data-layout="narrow"] .cl-toolbar { position: static; }
 /* The head: title, status, and the view controls, which never wrap away from the title. */
-.cl-toolbar__head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "title versions status view"; align-items: center; gap: 8px; min-width: 0; }
+.cl-toolbar__head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "title versions status view"; align-items: center; gap: 6px; min-width: 0; }
 .cl-title { grid-area: title; font-family: var(--sans); font-weight: 600; color: var(--fg); font-size: 20px; margin: 0; outline: none; line-height: 1.2; white-space: nowrap; }
 .cl-toolbar__versions { grid-area: versions; display: flex; align-items: center; min-width: 0; }
-.cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.cl-toolbar__status { grid-area: status; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
 .cl-toolbar__view { grid-area: view; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 .cl-toolbar__panels { display: flex; gap: 6px; }
 @container canvas (max-width: 880px) {
@@ -2394,7 +2602,7 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
   .cl-toolbar__head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title title" "versions view" "status status"; gap: 6px 8px; }
   .cl-draft__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
-@container canvas (max-width: 1180px) {
+@container canvas (max-width: 1260px) {
   /* Narrower canvases keep the view controls' icons; their names stay for assistive technology and as tooltips. */
   .cl-tool__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .cl-toolbar__view .cl-tool { padding: 0; }
@@ -2405,12 +2613,12 @@ textarea.cl-input { min-height: 72px; resize: vertical; line-height: 1.45; }
 .cl-seg__opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cl-target); padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .cl-seg__opt input { margin: 0; width: 14px; height: 14px; accent-color: var(--fg); }
 .cl-seg__opt--on { border-color: var(--fg-dim); background: var(--bg-2); color: var(--fg); }
-.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--fg-body); }
+.cl-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; color: var(--fg-body); }
 .cl-pill--ok .cl-pill__icon { color: var(--green-bright); }
 .cl-pill--bad { color: var(--err, #d9826b); border-color: color-mix(in srgb, var(--err, #d9826b) 60%, transparent); }
 .cl-pill--warn { color: var(--warn, #c9a35a); border-color: color-mix(in srgb, var(--warn, #c9a35a) 60%, transparent); }
 .cl-draft { position: relative; }
-.cl-draft summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3em; min-height: var(--cl-target); padding: 0 10px; border: 1px dashed var(--fg-faint); border-radius: 999px; font-size: 13px; color: var(--fg); white-space: nowrap; }
+.cl-draft summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3em; min-height: var(--cl-target); padding: 0 8px; border: 1px dashed var(--fg-faint); border-radius: 999px; font-size: 13px; color: var(--fg); white-space: nowrap; }
 .cl-draft summary::-webkit-details-marker { display: none; }
 .cl-draft summary::after { content: " ▾"; margin-left: 4px; color: var(--fg-dim); }
 .cl-draft__pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 12; width: min(360px, 86vw); background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-menu); padding: 10px 12px; font-size: 14px; line-height: 1.5; }
@@ -2509,19 +2717,44 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
 .cl-pick { position: absolute; z-index: 4; cursor: crosshair; background: transparent; }
 .cl-select-note { margin: 8px auto 0; max-width: 760px; }
 .cl-switch { display: inline-flex; gap: 4px; margin: 8px 0 12px; }
+.cl-panel__head .cl-switch { margin: 0; }
 .cl-switch__opt { min-height: var(--cl-target); padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--fg-body); font: inherit; font-size: 14px; cursor: pointer; }
 .cl-switch__opt--on { background: var(--bg-2); color: var(--fg); border-color: var(--fg-dim); font-weight: 600; }
 .cl-switch__opt:disabled { opacity: 0.55; cursor: not-allowed; }
-.cl-structure select { margin-bottom: 8px; }
+/* Structure (refinement, Priority 2): one line per row, the component's icon first, content as the label, what
+   it carries as small trailing glyphs, a count once on a repeat. Rows never wrap; the full name is in the tooltip
+   and the accessible name. 16 px of indent per level. */
+.cl-structure { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.cl-structure__state { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cl-structure__state .cl-label { margin: 0; white-space: nowrap; }
+.cl-structure__state select { flex: 1; min-width: 0; margin: 0; }
+.cl-structure__note { margin: 0; font-size: 13px; }
 .cl-tree, .cl-tree ul { list-style: none; margin: 0; padding: 0; }
-.cl-tree ul { padding-left: 14px; border-left: 1px solid var(--line-soft); margin-left: 8px; }
-.cl-tree__item { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-height: var(--cl-target); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; color: var(--fg-body); }
+.cl-tree__item { display: flex; align-items: center; gap: 4px; height: calc(28px * var(--cl-type, 1)); min-height: 28px; padding: 0 6px 0 calc(4px + var(--level, 0) * 16px); border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--fg-body); white-space: nowrap; min-width: 0; }
+.cl[data-layout="narrow"] .cl-tree__item { height: auto; min-height: 44px; }
 .cl-tree__item:hover { background: var(--bg-2); }
 .cl-tree__item:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
 .cl-tree__item--on { background: var(--bg-2); color: var(--fg); box-shadow: inset 3px 0 0 var(--fg); }
-.cl-tree__item--group .cl-tree__name { font-style: italic; }
-.cl-tree__name { font-weight: 600; color: var(--fg); }
-.cl-tree__summary { color: var(--fg-dim); overflow-wrap: anywhere; }
+.cl-tree__chev { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 16px; height: 16px; color: var(--fg-dim); border-radius: 3px; }
+.cl-tree__chev .cl-icon { width: 12px; height: 12px; transition: transform 0.12s; }
+.cl-tree__chev--open .cl-icon { transform: rotate(90deg); }
+.cl-tree__chev--none { visibility: hidden; }
+.cl-tree__chev:not(.cl-tree__chev--none):hover { background: var(--line-soft); color: var(--fg); }
+.cl-tree__type { color: var(--fg-dim); }
+.cl-tree__item--on .cl-tree__type { color: var(--fg); }
+.cl-tree__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cl-tree__label--name { color: var(--fg); font-weight: 600; }
+.cl-tree__item--group .cl-tree__label { font-style: italic; }
+.cl-tree__marks { display: inline-flex; gap: 2px; color: var(--fg-dim); flex: none; }
+.cl-tree__marks .cl-icon { width: calc(12px * var(--cl-type, 1)); height: calc(12px * var(--cl-type, 1)); }
+.cl-tree__count { flex: none; }
+.cl-keys { font-size: 12px; color: var(--fg-dim); }
+.cl-keys summary { cursor: pointer; min-height: var(--cl-target); display: flex; align-items: center; }
+.cl-keys__list { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 4px 0 0; font-size: 12px; }
+.cl-keys__list dt { font-weight: 600; color: var(--fg-body); white-space: nowrap; }
+.cl-keys__list dd { margin: 0; }
+/* Arrow-key help is for keyboards: touch screens do not show it. */
+@media (pointer: coarse) { .cl-keys { display: none; } }
 .cl-tree__badge, .cl-tree__count, .cl-src { font-size: 12px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg-dim); white-space: nowrap; }
 .cl-element__title { font-size: 16px; font-weight: 600; color: var(--fg); margin: 8px 0; }
 .cl-element__summary { font-weight: 400; color: var(--fg-body); }
@@ -2543,16 +2776,49 @@ p.cl-ok, p.cl-bad, p.cl-warn { font-size: 14px; line-height: 1.5; margin: 0 0 8p
 .cl-payload__new { display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 4px; margin: 4px 0 8px; }
 .cl-pre { font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 4px; padding: 8px; margin: 8px 0 0; }
 /* Visual template editing: Structure's editing controls, the content parts editor, and identity. */
-.cl-tt { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 0 0 10px; display: grid; gap: 8px; }
-.cl-tt__row { display: flex; flex-wrap: wrap; gap: 6px; }
-.cl-tt__row .cl-tool { min-height: var(--cl-target); padding: 0 10px; }
+/* The Structure toolbar (Priority 3): one row, three groups, kept in view while the tree scrolls. */
+.cl-tt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 0; }
+.cl-tt__row { position: sticky; top: -14px; z-index: 2; display: flex; flex-wrap: wrap; row-gap: 6px; align-items: center; gap: 4px; padding: 6px 0; background: var(--bg-1); border-bottom: 1px solid var(--line-soft); }
+.cl-tt__tool { padding: 0; width: var(--cl-target); flex: none; }
+.cl-tt__tool--label { width: auto; padding: 0 10px 0 8px; font-weight: 600; }
+.cl-tt__tool[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.cl-tt__tool--danger:not([aria-disabled="true"]):hover { border-color: var(--err, #d9826b); color: var(--err, #d9826b); }
+.cl-tt__sep { width: 1px; align-self: stretch; margin: 4px 4px; background: var(--line); }
+.cl-tt__extra { display: inline-flex; margin-left: auto; }
+.cl-tt__extra .cl-toolbar__history { margin: 0; }
+.cl[data-layout="narrow"] .cl-tt__row { flex-wrap: wrap; row-gap: 6px; }
 .cl-tt__panel { display: grid; gap: 6px; border-top: 1px solid var(--line-soft); padding-top: 8px; }
-.cl-tt__where { border: 0; padding: 0; margin: 0; display: grid; gap: 2px; }
-.cl-tt__options { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.cl-tt__option { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; font-size: 14px; padding: 6px; border: 1px solid var(--line-soft); border-radius: 4px; cursor: pointer; }
-.cl-tt__option input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--fg); }
-.cl-tt__option--blocked { cursor: not-allowed; border-style: dashed; }
-.cl-tt__option--blocked strong { color: var(--fg-dim); font-weight: 500; }
+/* The component picker (Priority 4): a popover beside the Structure panel, or part of the phone's sheet. */
+.cl-picker { position: fixed; z-index: 40; width: min(340px, calc(100vw - 16px)); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; background: var(--bg-1); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-menu); font-size: 14px; }
+.cl-picker--sheet { position: static; width: auto; box-shadow: none; border-color: var(--fg-dim); }
+.cl-picker__head { display: grid; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line-soft); }
+.cl-picker__title { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; font-weight: 600; color: var(--fg); min-width: 0; }
+.cl-picker__title > span:first-of-type { white-space: nowrap; }
+.cl-picker__target { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-picker__pos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 4px; padding: 0; margin: 0; overflow: hidden; }
+.cl-picker__seg { position: relative; display: flex; align-items: center; justify-content: center; min-height: var(--cl-target); font-size: 13px; cursor: pointer; color: var(--fg-body); border-left: 1px solid var(--line); }
+.cl-picker__seg:first-of-type { border-left: 0; }
+.cl-picker__seg input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: inherit; }
+.cl-picker__seg--on { background: var(--bg-2); color: var(--fg); font-weight: 600; }
+.cl-picker__seg--off { color: var(--fg-faint); cursor: not-allowed; text-decoration: line-through; text-decoration-color: var(--line); }
+.cl-picker__seg:has(input:focus-visible) { outline: 2px solid var(--green-bright); outline-offset: -2px; }
+.cl-picker__why { margin: 0; font-size: 13px; line-height: 1.4; color: var(--fg-dim); }
+.cl-picker__list { overflow: auto; padding: 4px 6px 8px; min-height: 0; }
+.cl-picker__group { margin: 8px 6px 2px; font-size: 12px; font-weight: 600; color: var(--fg-dim); }
+.cl-picker__opt { display: grid; grid-template-columns: auto auto minmax(0, 1fr); grid-template-areas: "radio icon name" "radio icon hint"; column-gap: 8px; align-items: center; padding: 6px 8px; margin-bottom: 2px; border-radius: 4px; cursor: pointer; min-height: 40px; }
+.cl[data-layout="narrow"] .cl-picker__opt { min-height: 44px; }
+.cl-picker__opt input { grid-area: radio; margin: 0; width: 16px; height: 16px; accent-color: var(--fg); }
+.cl-picker__opt > .cl-icon { grid-area: icon; color: var(--fg-dim); }
+.cl-picker__name { grid-area: name; font-weight: 600; color: var(--fg); font-size: 14px; }
+.cl-picker__hint { grid-area: hint; font-size: 13px; line-height: 1.35; color: var(--fg-dim); }
+.cl-picker__opt:hover, .cl-picker__opt--on { background: var(--bg-2); }
+.cl-picker__opt--blocked { cursor: not-allowed; }
+.cl-picker__opt--blocked .cl-picker__name { color: var(--fg-dim); font-weight: 500; }
+.cl-picker__opt--blocked > .cl-icon, .cl-picker__opt--blocked input { opacity: 0.45; }
+/* A reason why something cannot go here stays at full reading contrast; only the option itself is muted. */
+.cl-picker__reason { color: var(--fg-body); }
+.cl-picker__foot { display: grid; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line-soft); }
+.cl-picker__foot .cl-dim { margin: 0; font-size: 13px; }
 /* A reason why something cannot go here stays at full reading contrast; only the option itself is muted. */
 .cl-tt__why { color: var(--fg-dim); font-size: 13px; }
 .cl-tt__status { margin: 0; font-size: 13px; line-height: 1.4; color: var(--green-bright); }

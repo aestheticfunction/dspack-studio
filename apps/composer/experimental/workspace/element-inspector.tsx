@@ -246,7 +246,7 @@ export function ElementInspector({
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="cl-section">
+    <section className="cl-section" data-group={title}>
       <h4 className="cl-label">{title}</h4>
       {children}
     </section>

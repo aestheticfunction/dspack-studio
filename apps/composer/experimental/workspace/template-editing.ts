@@ -272,16 +272,16 @@ export function siblingMove(c: CompositionDefinition, stateId: string, key: stri
 }
 
 /** The containers in a state an element could move into (not itself or anything inside it). */
-export function moveTargets(c: CompositionDefinition, stateId: string, key: string): Array<{ key: string; label: string }> {
+export function moveTargets(c: CompositionDefinition, stateId: string, key: string): Array<{ key: string; label: string; depth: number }> {
   const state = c.states.find((s) => s.id === stateId);
   if (!state) return [];
-  const out: Array<{ key: string; label: string }> = [];
-  const visit = (n: StructureNode, inside: boolean) => {
+  const out: Array<{ key: string; label: string; depth: number }> = [];
+  const visit = (n: StructureNode, inside: boolean, depth: number) => {
     const self = inside || n.key === key;
-    if (!self && ((n.kind === "element" && CONTAINERS.has(String(n.component))) || n.kind === "repeat")) out.push({ key: n.key, label: n.kind === "repeat" ? `Each ${words(n.repeat!.as).toLowerCase()}` : `${words(String(n.component))}${n.id ? ` (${n.id})` : ""}` });
-    n.children.forEach((ch) => visit(ch, self));
+    if (!self && ((n.kind === "element" && CONTAINERS.has(String(n.component))) || n.kind === "repeat")) out.push({ key: n.key, depth, label: n.kind === "repeat" ? `Each ${words(n.repeat!.as).toLowerCase()}` : `${words(String(n.component))}${n.id ? ` (${n.id})` : ""}` });
+    n.children.forEach((ch) => visit(ch, self, depth + 1));
   };
-  visit(structureOf(state), false);
+  visit(structureOf(state), false, 0);
   return out;
 }
 
