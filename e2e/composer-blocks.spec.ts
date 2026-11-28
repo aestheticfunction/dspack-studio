@@ -76,6 +76,8 @@ test("the Settings preference persists across a reload, and each reference repor
   await page.reload();
   await page.getByTestId("nav-settings").click();
   await expect(page.getByTestId("experimental-blocks")).toBeChecked();
+  // The workspace appearance choices render after the page: scan once they are there, so the scan never races them.
+  await expect(page.getByTestId("appearance")).toBeVisible();
   expect((await scan(page)).violations).toEqual([]);
 });
 
